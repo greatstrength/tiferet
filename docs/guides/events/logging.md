@@ -7,7 +7,15 @@
 
 ## Overview
 
-The logging event module provides create, list, and remove operations for the three logging domain objects — `Formatter`, `Handler`, and `Logger`. Every event in this module depends on an injected `LoggingService` and operates through the corresponding aggregate mappers (`FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`).
+The logging event module provides create, list, and remove operations for the three logging domain objects — `Formatter`, `Handler`, and `Logger`. Every event extends the shared `LoggingEvent` base event (which injects `LoggingService`) and operates through the corresponding aggregate mappers (`FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`). **Vision:** see the `LoggingEvent` class docstring in `tiferet/events/logging.py` for the value statement this guide distills.
+
+There are no update events — a formatter, handler, or logger configuration is replaced by removing and re-adding it.
+
+## Ubiquitous Language
+
+- **Formatter** — a `Formatter` domain object: a named log-message format string plus optional date format.
+- **Handler** — a `Handler` domain object: a logging destination (stream, file, etc.) bound to one `Formatter` by id.
+- **Logger** — a `Logger` domain object: a named logger bound to one or more `Handler` ids, assembled into `logging.config.dictConfig` form by `LoggingSettings.format_config()`.
 
 ## Events at a Glance
 
@@ -23,6 +31,7 @@ The logging event module provides create, list, and remove operations for the th
 
 ## Dependency
 
+<a id="loggingevent"></a>
 All events inject a single dependency:
 
 - **`logging_service: LoggingService`** — the service interface for persisting and retrieving logging configuration objects.
@@ -189,3 +198,14 @@ DomainEvent.handle(
 )
 ```
 
+## Boundaries
+
+**Inside this domain:** create/list/remove operations for `Formatter`, `Handler`, and `Logger` configurations.
+**Outside this domain:** the declared domain object shapes and `dictConfig` assembly (`LoggingSettings.format_config()` — [docs/guides/domain/logging.md](../domain/logging.md)); building the runtime `logging.Logger` from an assembled config (`LoggingContext` — [docs/guides/contexts.md](../contexts.md)).
+
+## Related Documentation
+
+- [docs/guides/domain/logging.md](../domain/logging.md) — `Formatter`/`Handler`/`Logger`/`LoggingSettings` domain objects
+- [docs/guides/contexts.md](../contexts.md) — `LoggingContext`, which builds the runtime logger
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions

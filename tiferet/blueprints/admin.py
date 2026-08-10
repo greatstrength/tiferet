@@ -170,11 +170,16 @@ def build_admin_app_session_context(
     )
 
 # ** blueprint: build_admin_app
+# >> see: @guides/blueprints.md#build-admin-app
 def build_admin_app(
     interface_id: str = a.app.TIFERET_ADMIN_ID,
     **parameters: Any,
 ) -> AppSessionContext:
     '''
+    The single-call entry point for the framework's own built-in admin
+    session — a parallel, not derived, counterpart to ``core.build_app`` that
+    ships management capability without requiring a consumer config entry.
+
     Build a fully wired admin app session context in a single call.
 
     Parallel to :func:`core.build_app` but uses the admin cache (seeded with

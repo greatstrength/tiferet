@@ -64,6 +64,8 @@ Util-specific labels:
 The config loaders declare only `FileLoader`; they implement no configuration
 contract, since no consumer or implementer needs one.
 
+**Docstrings & guides:** Utility class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/utils.md#<anchor>` (strategy) or `@guides/utils/<module>.md#<anchor>` (cookbook detail) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
+
 ## Example
 
 ```python

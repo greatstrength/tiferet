@@ -94,9 +94,9 @@ class AppSessionContext(BaseContext):
         return request.handle_response()
 ```
 
-The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, builds a logger via the injected `build_logger_handler` (cache-first, on the first `run()`), and loads domain objects via `load_feature_domain` / `get_error`. The hub owns a `CacheContext` — used by `load_feature_domain` and `get_error` (which resolves an error from the cache, pre-seeded with the framework defaults under `error_`-prefixed keys by `build_cache`, before falling back to the get-error event and caching the result) and shared with the `FeatureContext` it builds; the error and logging contexts no longer take a cache. Feature-step services are resolved through the injected `get_dependency` handler (provided by the `ServiceResolver`), which the hub forwards to each `FeatureContext` it builds.
+The hub owns a `CacheContext` shared with the `FeatureContext` it builds; the error and logging contexts do not take a cache of their own. Feature-step services are resolved through the injected `get_dependency` handler (provided by the `ServiceResolver`), which the hub forwards to each `FeatureContext` it builds.
 
-When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
+There is no separate async context class. When a bound `Feature` has `is_async` set to `True`, `FeatureContext.execute_feature` itself drives the whole step loop through a private `_execute_async` coroutine, run to completion via the module-level `run_coroutine` helper — `asyncio.run` when no event loop is running, otherwise a dedicated worker thread — keeping the public `run()` entry point synchronous. An individual step with `step.is_async=True` on an otherwise synchronous feature is driven the same way, per step, via `run_coroutine(self._execute_step_async(...))`.
 
 ### Required Handler Wiring
 
@@ -108,11 +108,11 @@ The hub's five template methods — `build_logger`, `build_request`, `execute_fe
 
 The `CacheContext` (`tiferet/contexts/cache.py`) exposes `get`, `set`, `delete`, `clear`, and `get_by_prefix(prefix)` — the last returns all entries whose keys start with the given prefix as a `Dict[str, Any]`. This backs enumeration of the framework catalogs that `build_cache` seeds under namespaced key prefixes.
 
-The app-context module (`tiferet/contexts/app.py`) provides paired seeders and getters for the bootstrap catalogs:
+The app-context module (`tiferet/contexts/app.py`) provides paired seeders and getters for the bootstrap catalogs, each namespaced under its own `*prefix` tuple (e.g. `APP_SERVICE_CACHE_PREFIX = ('app', 'services')`):
 
-- `add_default_app_services` / `add_default_app_constants` seed the cache under the `app_service_` and `app_constant_` key prefixes (stacked as decorators on `build_cache`).
-- `get_default_app_services(cache)` returns the seeded `AppServiceDependency` domain objects (the values behind the `app_service_` prefix).
-- `get_default_app_constants(cache)` returns the seeded bootstrap constants keyed by name, stripping the `app_constant_` prefix.
+- `add_default_app_services` / `add_default_app_constants` seed the cache under the `('app', 'services')` and `('app', 'constants')` namespaces (stacked as decorators on `build_cache`).
+- `get_default_app_services(cache)` returns the seeded `AppServiceDependency` domain objects from the `('app', 'services')` namespace.
+- `get_default_app_constants(cache)` returns the seeded bootstrap constants keyed by name from the `('app', 'constants')` namespace.
 
 These getters let the `build_app_service_container` blueprint pull the framework defaults back off the shared cache when composing the app-level service container.
 

@@ -211,6 +211,7 @@ Every TRD must include a **"Related Code Style Documentation"** section (§8) li
 - `tiferet-code-style` — always required for every story.
 - `tiferet-code-<component>` — include for each component the story modifies.
 - `tiferet-code-architecture` — include for any story that modifies more than one component.
+- `tiferet-guide-docs` — include when the story's Acceptance Criteria requires adding or remediating a `docs/guides/` entry, upgrading a docstring to vision-tier, or adding a `# >> see:` annotation.
 - **Fallback** (if skills not installed): link to `docs/core/<component>.md` directly.
 
 Available skills and their fallback docs:
@@ -226,6 +227,7 @@ Available skills and their fallback docs:
 - **`tiferet-code-utils`** / [utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — infrastructure utility conventions.
 - **`tiferet-code-di`** / [di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md) — dependency injection layer.
 - **`tiferet-code-testing`** / [testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md) — test harness conventions.
+- **`tiferet-guide-docs`** / [code_style.md § Annotation Artifacts](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — docstring/guide-doc convention, guide genre templates, and the `# >> see:` annotation.
 
 ## TRD File Lifecycle and Naming
 

@@ -2,7 +2,7 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** May 04, 2026  
+**Date:** August 09, 2026  
 **Version:** 2.0.0
 
 ## Overview
@@ -12,6 +12,13 @@ The Logging domain defines the structural foundation for observability and loggi
 All domain objects in this module are **immutable value objects**: they carry no mutation methods and expose only read-only queries via `format_config()`. All state changes (renaming, adding/removing handlers, etc.) occur exclusively through Aggregates in the mappers layer.
 
 **Module:** `tiferet/domain/logging.py`
+**Vision:** See the `LoggingSettings` class docstring in `tiferet/domain/logging.py` for the value statement this guide distills.
+
+## Ubiquitous Language
+
+- **dictConfig entry** — the plain-dict shape each domain object's `format_config()` produces, matching the structure `logging.config.dictConfig` expects for that section.
+- **Root logger** — the one `Logger` in a `LoggingSettings` bundle flagged `is_root`; `LoggingSettings.format_config()` draws the dedicated `root` dictConfig entry from it and excludes it from the keyed `loggers` mapping.
+- **Whole-system assembly** — `LoggingSettings.format_config()`'s role: composing every bundled `Formatter`/`Handler`/`Logger`'s own `format_config()` into the single dictionary `logging.config.dictConfig` consumes.
 
 ## Three-Model Composition
 
@@ -33,16 +40,17 @@ Logger → [handler_id, ...] → Handler → formatter_id → Formatter
 
 Immutable value object representing a logging formatter configuration.
 
-| Attribute     | Type            | Required | Default | Description                          |
-|---------------|-----------------|----------|---------|--------------------------------------|
-| `id`          | `str`           | Yes      | —       | The unique identifier of the formatter. |
-| `name`        | `str`           | Yes      | —       | The name of the formatter.           |
-| `description` | `str \| None`   | No       | `None`  | The description of the formatter.    |
-| `format`      | `str`           | Yes      | —       | The format string for log messages.  |
-| `datefmt`     | `str \| None`   | No       | `None`  | The date format for log timestamps.  |
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="formatter-id"></a>`id` | `str` | Yes | — | The unique identifier of the formatter. |
+| <a id="formatter-name"></a>`name` | `str` | Yes | — | The name of the formatter. |
+| <a id="formatter-description"></a>`description` | `str \| None` | No | `None` | The description of the formatter. |
+| <a id="formatter-format"></a>`format` | `str` | Yes | — | The format string for log messages. |
+| <a id="formatter-datefmt"></a>`datefmt` | `str \| None` | No | `None` | The date format for log timestamps. |
 
 #### Methods
 
+<a id="formatter-format-config"></a>
 **`format_config() -> Dict[str, Any]`**
 
 Returns a `dictConfig`-compatible formatter entry:
@@ -60,20 +68,21 @@ When `datefmt` is not set, the key is still present with a `None` value.
 
 Immutable value object representing a logging handler configuration.
 
-| Attribute     | Type            | Required | Default | Description                                              |
-|---------------|-----------------|----------|---------|----------------------------------------------------------|
-| `id`          | `str`           | Yes      | —       | The unique identifier of the handler.                    |
-| `name`        | `str`           | Yes      | —       | The name of the handler.                                 |
-| `description` | `str \| None`   | No       | `None`  | The description of the handler.                          |
-| `module_path` | `str`           | Yes      | —       | The module path for the handler class.                   |
-| `class_name`  | `str`           | Yes      | —       | The class name of the handler.                           |
-| `level`       | `str`           | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `formatter`   | `str`           | Yes      | —       | The ID of the formatter to use.                          |
-| `stream`      | `str \| None`   | No       | `None`  | The stream for StreamHandler (e.g., `ext://sys.stdout`). |
-| `filename`    | `str \| None`   | No       | `None`  | The file path for FileHandler (e.g., `app.log`).         |
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="handler-id"></a>`id` | `str` | Yes | — | The unique identifier of the handler. |
+| <a id="handler-name"></a>`name` | `str` | Yes | — | The name of the handler. |
+| <a id="handler-description"></a>`description` | `str \| None` | No | `None` | The description of the handler. |
+| <a id="handler-module-path"></a>`module_path` | `str` | Yes | — | The module path for the handler class. |
+| <a id="handler-class-name"></a>`class_name` | `str` | Yes | — | The class name of the handler. |
+| <a id="handler-level"></a>`level` | `str` | Yes | — | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| <a id="handler-formatter"></a>`formatter` | `str` | Yes | — | The ID of the formatter to use. |
+| <a id="handler-stream"></a>`stream` | `str \| None` | No | `None` | The stream for StreamHandler (e.g., `ext://sys.stdout`). |
+| <a id="handler-filename"></a>`filename` | `str \| None` | No | `None` | The file path for FileHandler (e.g., `app.log`). |
 
 #### Methods
 
+<a id="handler-format-config"></a>
 **`format_config() -> Dict[str, Any]`**
 
 Returns a `dictConfig`-compatible handler entry. The `class` key is composed from `module_path` and `class_name`. Optional attributes (`stream`, `filename`) are only included when set:
@@ -90,18 +99,19 @@ handler.format_config()
 
 Immutable value object representing a logger configuration.
 
-| Attribute     | Type             | Required | Default | Description                                              |
-|---------------|------------------|----------|---------|----------------------------------------------------------|
-| `id`          | `str`            | Yes      | —       | The unique identifier of the logger.                     |
-| `name`        | `str`            | Yes      | —       | The name of the logger.                                  |
-| `description` | `str \| None`    | No       | `None`  | The description of the logger.                           |
-| `level`       | `str`            | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `handlers`    | `List[str]`      | No       | `[]`    | List of handler IDs for the logger.                      |
-| `propagate`   | `bool`           | No       | `False` | Whether to propagate messages to parent loggers.         |
-| `is_root`     | `bool`           | No       | `False` | Whether this is the root logger.                         |
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="logger-id"></a>`id` | `str` | Yes | — | The unique identifier of the logger. |
+| <a id="logger-name"></a>`name` | `str` | Yes | — | The name of the logger. |
+| <a id="logger-description"></a>`description` | `str \| None` | No | `None` | The description of the logger. |
+| <a id="logger-level"></a>`level` | `str` | Yes | — | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| <a id="logger-handlers"></a>`handlers` | `List[str]` | No | `[]` | List of handler IDs for the logger. |
+| <a id="logger-propagate"></a>`propagate` | `bool` | No | `False` | Whether to propagate messages to parent loggers. |
+| <a id="logger-is-root"></a>`is_root` | `bool` | No | `False` | Whether this is the root logger. |
 
 #### Methods
 
+<a id="logger-format-config"></a>
 **`format_config() -> Dict[str, Any]`**
 
 Returns a `dictConfig`-compatible logger entry:
@@ -119,14 +129,15 @@ Runtime value object that bundles the formatter, handler, and logger configurati
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `formatters` | `List[Formatter]` | No | `[]` | The formatter configurations. |
-| `handlers` | `List[Handler]` | No | `[]` | The handler configurations. |
-| `loggers` | `List[Logger]` | No | `[]` | The logger configurations. |
-| `version` | `int` | No | `1` | The dictConfig schema version. |
-| `disable_existing_loggers` | `bool` | No | `False` | Whether to disable existing loggers on configuration. |
+| <a id="loggingsettings-formatters"></a>`formatters` | `List[Formatter]` | No | `[]` | The formatter configurations. |
+| <a id="loggingsettings-handlers"></a>`handlers` | `List[Handler]` | No | `[]` | The handler configurations. |
+| <a id="loggingsettings-loggers"></a>`loggers` | `List[Logger]` | No | `[]` | The logger configurations. |
+| <a id="loggingsettings-version"></a>`version` | `int` | No | `1` | The dictConfig schema version. |
+| <a id="loggingsettings-disable-existing-loggers"></a>`disable_existing_loggers` | `bool` | No | `False` | Whether to disable existing loggers on configuration. |
 
 #### Methods
 
+<a id="loggingsettings-format-config"></a>
 **`format_config() -> Dict[str, Any]`**
 
 Assembles a `logging.config.dictConfig`-compatible dictionary, keying `formatters`/`handlers`/`loggers` by id and drawing the `root` entry from the logger flagged `is_root`:
@@ -186,14 +197,17 @@ Each top-level section (`formatters`, `handlers`, `loggers`) maps directly to th
 
 ## Domain Events
 
-The following domain events interact with `Formatter`, `Handler`, and `Logger`:
+The following domain events (`tiferet/events/logging.py`) interact with `Formatter`, `Handler`, and `Logger`:
 
-| Event                     | Description                                           |
-|---------------------------|-------------------------------------------------------|
-| `ListAllLoggingConfigs`   | Retrieves all formatters, handlers, and loggers.      |
-| `AddFormatter`            | Creates and persists a new `Formatter`.               |
-| `AddHandler`              | Creates and persists a new `Handler`.                 |
-| `AddLogger`               | Creates and persists a new `Logger`.                  |
+| Event | Description |
+|---|---|
+| `ListAllLoggingConfigs` | Retrieves all formatters, handlers, and loggers as a single tuple. |
+| `AddFormatter` | Creates and persists a new `Formatter`. |
+| `RemoveFormatter` | Removes a `Formatter` by ID (idempotent). |
+| `AddHandler` | Creates and persists a new `Handler`. |
+| `RemoveHandler` | Removes a `Handler` by ID (idempotent). |
+| `AddLogger` | Creates and persists a new `Logger`. |
+| `RemoveLogger` | Removes a `Logger` by ID (idempotent). |
 
 These events depend on the `LoggingService` interface for persistence operations.
 
@@ -201,19 +215,25 @@ These events depend on the `LoggingService` interface for persistence operations
 
 **`LoggingService`** (`tiferet/interfaces/logging.py`) defines the abstract contract for Logging domain persistence:
 
-- `list_formatters() -> List[Formatter]`
-- `list_handlers() -> List[Handler]`
-- `list_loggers() -> List[Logger]`
-- `save_formatter(formatter) -> None`
-- `save_handler(handler) -> None`
-- `save_logger(logger) -> None`
+- `list_all() -> Tuple[List[Formatter], List[Handler], List[Logger]]`
+- `save_formatter(formatter: FormatterAggregate) -> None`
+- `save_handler(handler: HandlerAggregate) -> None`
+- `save_logger(logger: LoggerAggregate) -> None`
+- `delete_formatter(formatter_id: str) -> None`
+- `delete_handler(handler_id: str) -> None`
+- `delete_logger(logger_id: str) -> None`
 
 Concrete implementations (e.g., `LoggingConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **App:** `LoggingContext` is loaded as part of the application interface bootstrap, receiving `LoggingService` via dependency injection. Every application interface can have its own logging configuration.
+- **App:** `LoggingContext` is loaded lazily by the `AppSessionContext` hub's `build_logger` template method (via `build_logger_handler`), receiving `LoggingService` via dependency injection. Every app session can have its own logging configuration.
 - **All Contexts:** Once configured, the Python logging system is available globally to all contexts, domain events, and services throughout the application lifecycle.
+
+## Boundaries
+
+**Inside this domain:** the declared shape of formatter/handler/logger configuration and the pure `dictConfig` assembly logic (`format_config()` on each object, and the whole-system assembly on `LoggingSettings`).
+**Outside this domain:** the actual `logging.config.dictConfig(...)` call and `getLogger` construction (`LoggingContext`/`create_logger`, `docs/core/contexts.md`), and cache-first logger reuse (the `('logging', 'loggers')` cache prefix owned by `contexts/app.py::build_logger_handler`).
 
 ## Instantiation
 
@@ -252,10 +272,10 @@ lgr = Logger(
 
 ## Related Documentation
 
+- [docs/guides/domain/app.md](app.md) — App domain guide (`build_logger_handler` wiring)
+- [docs/guides/domain/error.md](error.md) — Error domain guide
+- [docs/guides/domain/feature.md](feature.md) — Feature domain guide
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
-- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error domain guide
-- [docs/guides/domain/feature.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/feature.md) — Feature domain guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

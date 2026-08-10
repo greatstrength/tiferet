@@ -159,5 +159,8 @@ App('interface_id')                               # blueprints/core.py: build_ap
             └─ build_response()                  # → RequestContext.handle_response()
 ```
 
+## Docstrings & guides
+This skill documents the layer graph that every guide's `## Boundaries` section relies on — cross-reference it there rather than restating it. See `tiferet-guide-docs` for the vision-tier docstring / `# >> see:` convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/

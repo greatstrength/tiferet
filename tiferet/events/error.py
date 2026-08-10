@@ -17,6 +17,7 @@ from ..mappers import ErrorAggregate
 # *** events
 
 # ** event: error_event
+# >> see: @guides/events/error.md#errorevent
 class ErrorEvent(DomainEvent):
     '''
     Base event providing the shared ErrorService dependency for error domain events.
@@ -38,6 +39,7 @@ class ErrorEvent(DomainEvent):
         self.error_service = error_service
 
 # ** event: add_error
+# >> see: @guides/events/error.md#adderror
 class AddError(ErrorEvent):
     '''
     Event to add a new Error domain object to the repository.
@@ -94,6 +96,7 @@ class AddError(ErrorEvent):
         return new_error
 
 # ** event: get_error
+# >> see: @guides/events/error.md#geterror
 class GetError(ErrorEvent):
     '''
     Event to retrieve an Error domain object by its ID.
@@ -127,6 +130,7 @@ class GetError(ErrorEvent):
         )
 
 # ** event: list_errors
+# >> see: @guides/events/error.md#listerrors
 class ListErrors(ErrorEvent):
     '''
     Event to list all Error domain objects.
@@ -147,6 +151,7 @@ class ListErrors(ErrorEvent):
         return self.error_service.list()
 
 # ** event: rename_error
+# >> see: @guides/events/error.md#renameerror
 class RenameError(ErrorEvent):
     '''
     Event to rename an existing Error domain object.
@@ -189,6 +194,7 @@ class RenameError(ErrorEvent):
         return error
 
 # ** event: set_error_message
+# >> see: @guides/events/error.md#seterrormessage
 class SetErrorMessage(ErrorEvent):
     '''
     Event to set the message of an existing Error domain object.
@@ -233,6 +239,7 @@ class SetErrorMessage(ErrorEvent):
         return id
 
 # ** event: remove_error_message
+# >> see: @guides/events/error.md#removeerrormessage
 class RemoveErrorMessage(ErrorEvent):
     '''
     Event to remove a message from an existing Error domain object.
@@ -280,6 +287,7 @@ class RemoveErrorMessage(ErrorEvent):
         return id
 
 # ** event: remove_error
+# >> see: @guides/events/error.md#removeerror
 class RemoveError(ErrorEvent):
     '''
     Event to remove an existing Error domain object by its ID.

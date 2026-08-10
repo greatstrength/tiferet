@@ -133,6 +133,7 @@ def build_cli_record(result: Any) -> CliRecord:
 # *** contexts
 
 # ** context: cli_request_context
+# >> see: @guides/contexts.md#clirequestcontext
 class CliRequestContext(RequestContext):
     '''
     A CLI-specific request context that converts raw feature results into typed
@@ -175,6 +176,7 @@ class CliRequestContext(RequestContext):
 
 
 # ** context: cli_session_context
+# >> see: @guides/contexts.md#clisessioncontext
 class CliSessionContext(AppSessionContext):
     '''
     The CLI session context extends the application session hub with

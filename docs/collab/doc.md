@@ -27,6 +27,10 @@ When documentation references a version (e.g., in a TRD header or guide metadata
 5. The user **squash-merges** the PR.
 6. **Local cleanup:** pull latest from `main` and delete the local docs branch.
 
+## Guide-Doc Changes
+
+When a documentation change adds or updates a `docs/guides/**/*.md` entry, start from the matching genre template in [docs/guides/templates/](../guides/templates/) rather than authoring from scratch or copying a sibling guide. See the **`tiferet-guide-docs`** skill for the genre-selection heuristic (domain / strategy / events / utils) and the docstring↔guide-doc convention this repository follows.
+
 ## No Milestone or Release
 
 Doc stream changes do not require a milestone, release tag, or GitHub Release. They are merged directly into `main` via pull request.

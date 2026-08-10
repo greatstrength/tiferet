@@ -29,6 +29,7 @@ INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 # *** utils
 
 # ** util: toml_loader
+# >> see: @guides/utils/toml.md#tomlloader
 class TomlLoader(FileLoader):
     '''
     Utility for loading TOML files with structured error handling.

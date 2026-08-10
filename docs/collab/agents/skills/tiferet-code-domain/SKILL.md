@@ -46,6 +46,7 @@ Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app
 - Use `@model_validator(mode='before')` for pre-construction derivation logic (e.g. deriving `error_code` from `id`); label with `# * method: _derive_<name> (validator)`.
 - Keep domain methods focused on **structure and read-only behavior** (formatting, lookups, derived values).
 - Naming: PascalCase class names matching the domain concept (`AppSession`, `Feature`, `Error`, `CliCommand`).
+- **Docstrings & guides:** A domain class's docstring opens with a 1–2 sentence vision-tier value statement (why the concept exists), linked via a `# >> see: @guides/domain/<module>.md#<anchor>` tag to the corresponding `docs/guides/domain/*.md` entry, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Example
 

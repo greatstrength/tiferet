@@ -7,9 +7,14 @@
 
 ## Overview
 
-The CLI event module provides domain events for managing `CliCommand` configurations — the definitions that drive Tiferet's command-line interface. Every event depends on an injected `CliService` and operates on `CliCommand` domain objects through the `CliCommandAggregate` mapper.
+The CLI event module provides domain events for managing `CliCommand` configurations — the definitions that drive Tiferet's command-line interface. Every event extends the shared `CliEvent` base event (which injects `CliService`) and operates on `CliCommand` domain objects through the `CliCommandAggregate` mapper. **Vision:** see the `CliEvent` class docstring in `tiferet/events/cli.py` for the value statement this guide distills.
 
 These events are consumed by CLI management tooling and by contexts that need to inspect or modify the CLI command tree at runtime.
+
+## Ubiquitous Language
+
+- **CLI command** — a `CliCommand` domain object: a composite-id (`group_key.key`) terminal entry point mapped 1:1 to a feature id.
+- **Parent argument** — an argument shared across every command in a group, retrieved via `GetParentArguments` rather than declared per-command.
 
 ## Events at a Glance
 
@@ -22,6 +27,7 @@ These events are consumed by CLI management tooling and by contexts that need to
 
 ## Dependency
 
+<a id="clievent"></a>
 All events inject a single dependency:
 
 - **`cli_service: CliService`** — the service interface for persisting, retrieving, and querying `CliCommand` configurations.
@@ -147,6 +153,11 @@ parent_args = DomainEvent.handle(
 ### Kwargs Forwarding
 
 `AddCliArgument` forwards additional `**kwargs` to `CliCommandAggregate.add_argument()`, allowing callers to pass argument metadata (`type`, `required`, `default`, `choices`, `nargs`, `action`) without the event needing to enumerate every field.
+
+## Boundaries
+
+**Inside this domain:** the CRUD operations for `CliCommand` configurations, including parent-argument retrieval.
+**Outside this domain:** the declared `CliCommand`/`CliArgument` shape and argparse-kwarg translation ([docs/guides/domain/cli.md](../domain/cli.md)); actually building the argparse parser and dispatching a parsed request (`CliSessionContext` — [docs/guides/contexts.md](../contexts.md)).
 
 ## Related Documentation
 

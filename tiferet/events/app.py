@@ -12,6 +12,7 @@ from ..mappers import AppSessionAggregate
 # *** events
 
 # ** event: app_event
+# >> see: @guides/events/app.md#appevent
 class AppEvent(DomainEvent):
     '''
     Base event providing the shared AppService dependency for app domain events.
@@ -33,6 +34,7 @@ class AppEvent(DomainEvent):
         self.app_service = app_service
 
 # ** event: add_app_session
+# >> see: @guides/events/app.md#addappsession
 class AddAppSession(AppEvent):
     '''
     A domain event to add a new application session configuration via the AppService.
@@ -103,6 +105,7 @@ class AddAppSession(AppEvent):
         return interface
 
 # ** event: get_app_session
+# >> see: @guides/events/app.md#getappsession
 class GetAppSession(AppEvent):
     '''
     A domain event to retrieve an app session using the ``AppService`` abstraction.
@@ -138,6 +141,7 @@ class GetAppSession(AppEvent):
         return session
 
 # ** event: update_app_session
+# >> see: @guides/events/app.md#updateappsession
 class UpdateAppSession(AppEvent):
     '''
     A domain event to update scalar attributes of an existing app session.
@@ -182,6 +186,7 @@ class UpdateAppSession(AppEvent):
         return id
 
 # ** event: set_app_constants
+# >> see: @guides/events/app.md#setappconstants
 class SetAppConstants(AppEvent):
     '''
     A domain event to set or clear constants on an app session.
@@ -229,6 +234,7 @@ class SetAppConstants(AppEvent):
         return id
 
 # ** event: list_app_sessions
+# >> see: @guides/events/app.md#listappsessions
 class ListAppSessions(AppEvent):
     '''
     A domain event to list all configured app sessions.
@@ -249,6 +255,7 @@ class ListAppSessions(AppEvent):
         return self.app_service.list()
 
 # ** event: set_service_dependency
+# >> see: @guides/events/app.md#setservicedependency
 class SetServiceDependency(AppEvent):
     '''
     A domain event to set or update a service dependency on an app session.
@@ -310,6 +317,7 @@ class SetServiceDependency(AppEvent):
         return id
 
 # ** event: remove_service_dependency
+# >> see: @guides/events/app.md#removeservicedependency
 class RemoveServiceDependency(AppEvent):
     '''
     A domain event to remove a service dependency from an app session (idempotent).
@@ -352,6 +360,7 @@ class RemoveServiceDependency(AppEvent):
         return id
 
 # ** event: remove_app_session
+# >> see: @guides/events/app.md#removeappsession
 class RemoveAppSession(AppEvent):
     '''
     A domain event to remove an entire app session configuration by ID (idempotent).

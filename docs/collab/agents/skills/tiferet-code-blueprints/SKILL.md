@@ -48,6 +48,7 @@ Both sections may appear in the same module. `# *** functions` must appear first
 - Always validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in single-call entry points.
 - Use `TiferetError.raise_error()` for all error paths.
 - Module-private helpers are underscore-prefixed (`_resolve_bootstrap_session`).
+- **Docstrings & guides:** Blueprint docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/blueprints.md#<anchor>` to `docs/guides/blueprints.md`, which carries the composition-chain detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Example
 

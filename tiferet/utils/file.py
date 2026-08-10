@@ -55,6 +55,7 @@ VALID_ENCODINGS = (
 # *** utils
 
 # ** util: file_loader
+# >> see: @guides/utils/file.md#fileloader
 class FileLoader(FileService):
     '''
     Base utility for low-level file stream operations with validation and context support.

@@ -77,6 +77,8 @@ self._save(full_data)
 
 **Testing:** Integration tests only — use `tmp_path` fixtures with real temp YAML/JSON files. Use `# ** test_int: <name>` labels for integration test cases.
 
+**Docstrings & guides:** Repository class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/repos.md#<anchor>` to `docs/guides/repos.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Example
 
 ```python

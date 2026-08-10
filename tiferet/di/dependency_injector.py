@@ -22,6 +22,7 @@ DI_DEPENDENCY_NOT_REGISTERED_ID = 'DI_DEPENDENCY_NOT_REGISTERED'
 # *** classes
 
 # ** class: di_dynamic_service_container
+# >> see: @guides/di/dependency_injector.md#didynamicservicecontainer
 class DIDynamicServiceContainer(ServiceContainer):
     '''
     A concrete ServiceContainer that adapts the framework's DI container
@@ -206,6 +207,7 @@ class DIDynamicServiceContainer(ServiceContainer):
         return providers.Factory(service_type, **kwargs)
 
 # ** class: di_app_service_container
+# >> see: @guides/di/dependency_injector.md#diappservicecontainer
 class DIAppServiceContainer(DIDynamicServiceContainer):
     '''
     A concrete ServiceContainer for the application's core service graph. It
@@ -283,6 +285,7 @@ class DIAppServiceContainer(DIDynamicServiceContainer):
         return cls(services=services_by_id, constants=constants)
 
 # ** class: di_dynamic_service_resolver
+# >> see: @guides/di/dependency_injector.md#didynamicserviceresolver
 class DIDynamicServiceResolver(ServiceResolver):
     '''
     A concrete ServiceResolver that builds DIDynamicServiceContainers from the

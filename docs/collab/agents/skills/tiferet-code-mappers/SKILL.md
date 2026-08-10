@@ -63,6 +63,7 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
 - `map(**overrides)` — serializes via `to_model` role then constructs the target aggregate.
 - `from_model(cls, model, **overrides)` — `@classmethod` creating a ConfigObject from a domain model or aggregate.
 - Attribute aliasing: `serialization_alias` for output aliasing, `validation_alias=AliasChoices(...)` for multiple input names.
+- **Docstrings & guides:** Mapper class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/mappers.md#<anchor>` to `docs/guides/mappers.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Example
 

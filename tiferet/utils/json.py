@@ -29,6 +29,7 @@ INVALID_JSON_PATH_ID = 'INVALID_JSON_PATH'
 # *** utils
 
 # ** util: json_loader
+# >> see: @guides/utils/json.md#jsonloader
 class JsonLoader(FileLoader):
     '''
     Utility for loading and saving JSON files with structured error handling.

@@ -37,6 +37,7 @@ CSV_INVALID_WRITE_MODE_MESSAGE = 'File not opened in writable mode for CSV writi
 # *** utils
 
 # ** util: csv_loader
+# >> see: @guides/utils/csv.md#csvloader
 class CsvLoader(FileLoader):
     '''
     Utility for CSV operations with list-based rows.
@@ -351,6 +352,7 @@ class CsvLoader(FileLoader):
 
 
 # ** util: csv_dict_loader
+# >> see: @guides/utils/csv.md#csvdictloader
 class CsvDictLoader(CsvLoader):
     '''
     Utility for CSV operations with dict-based rows.

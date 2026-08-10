@@ -18,6 +18,7 @@ UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 # *** classes
 
 # ** class: configuration_repository
+# >> see: @guides/repos.md#configurationrepository
 class ConfigurationRepository:
     '''
     A format-agnostic base for configuration repositories.

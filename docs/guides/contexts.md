@@ -7,271 +7,207 @@
 
 ## Overview
 
-Contexts form the runtime "body" of a Tiferet application. They encapsulate interaction surfaces, orchestration, and supporting services behind clean, injectable classes. While blueprints (`tiferet/blueprints/`) own the application lifecycle and wiring, contexts own the per-interface runtime shape — how requests are parsed, features are executed, errors are handled, and responses are returned.
+Contexts form the runtime "body" of a Tiferet application. While blueprints (`tiferet/blueprints/`) own application lifecycle and wiring, contexts own the per-session runtime shape — how requests are built, features are executed, errors are handled, and responses are returned. **Vision:** see the `BaseContext` class docstring in `tiferet/contexts/core.py` and the `AppSessionContext` class docstring in `tiferet/contexts/app.py` for the value statements this guide distills.
 
-Tiferet distinguishes between two categories of contexts:
+Tiferet distinguishes two categories of contexts:
 
-- **High-level contexts** — extend `AppInterfaceContext` and expose the interface's runtime entry point (e.g., a CLI interface or a web API). They delegate to lower-level contexts for execution concerns.
-- **Low-level contexts** — single-purpose orchestrators that back the high-level context (e.g., `FeatureContext`, `AsyncFeatureContext`, `RequestContext`, `ErrorContext`, `LoggingContext`, `CacheContext`).
+- **High-level contexts** — extend `AppSessionContext`, the minimal application session hub. They are the runtime entry point for an interface (e.g. `CliSessionContext`).
+- **Low-level contexts** — single-purpose orchestrators the hub builds on demand (`FeatureContext`, `ErrorContext`, `LoggingContext`, `RequestContext`, `CacheContext`).
 
-This guide covers cross-cutting strategies for using, extending, and composing contexts. For artifact-level structure and code style, see [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md).
+## Ubiquitous Language
 
-## Context Responsibilities
+- **Hub** — `AppSessionContext`, the context bound to a loaded `AppSession` that owns the `run` pipeline and holds the shared `CacheContext`.
+- **Template-method handler** — one of the hub's five injected callables (`build_logger_handler`, `create_request_handler`, `execute_feature_handler`, `raise_error_handler`, `response_handler`) supplied by the blueprint layer at construction time. Each backing template method (`build_logger`, `build_request`, `execute_feature`, `handle_error`, `build_response`) raises `APP_ERROR` when its handler is unwired rather than falling back to a hub-local implementation.
+- **Domain-bound context** — a context constructed via `BaseContext.from_domain(domain_obj, **kwargs)`, which binds `domain_obj` as `self.domain` so the context reads its own subject rather than receiving one per call (e.g. a `FeatureContext` bound to the `Feature` it executes).
+- **Registry resolution** — looking up a context class for a domain type via `BaseContext.for_domain(DomainType)`, backed by the `ContextMeta` metaclass registry.
 
-Every context in `tiferet/contexts/` has a single, well-defined responsibility:
+## The BaseContext Registry
 
-| Context | Responsibility |
-| --- | --- |
-| `AppInterfaceContext` | Parse the incoming request, execute the feature, format the response, and handle errors at the interface boundary. |
-| `CliContext` | Extend `AppInterfaceContext` with CLI concerns: build an argparse parser from configured commands/arguments, parse `argv` into a request (`parse_cli_request`), and dispatch via the inherited `run` (`run_cli`). |
-| `FeatureContext` | Resolve each configured step via the injected `get_dependency` handler, parse parameters, and execute the steps sequentially against a `RequestContext` (operating on a pre-loaded `Feature`). |
-| `AsyncFeatureContext` | Subclass of `FeatureContext` that awaits coroutine-based steps via `execute_feature_async`; selected by `AppInterfaceContext` when a feature's `is_async` flag is set. |
-| `ErrorContext` | Format a raised `TiferetError` into a structured, localized API response from a pre-loaded `Error` domain object. |
-| `LoggingContext` | Build loggers from configured formatters, handlers, and logger specs. |
-| `CacheContext` | Provide an in-memory keyed cache for reusable objects (e.g., loaded features, service providers). |
-| `RequestContext` | Carry request headers, data, and the feature result through the execution pipeline; produce the final response via `handle_response`. |
+<a id="basecontext"></a><a id="contextmeta"></a>
+Every context extends `BaseContext` (`tiferet/contexts/core.py`). Its `ContextMeta` metaclass registers each subclass that declares a non-`None` `domain_type` in its own namespace — so a subclass that merely inherits `domain_type` (e.g. `CliSessionContext` inheriting `AppSession` from `AppSessionContext`) does not overwrite the parent's registration.
 
-Contexts are consumed by the `AppInterfaceContext` (and its subclasses) — not by domain events. Domain events only receive injected **services**, never contexts.
+- `BaseContext.for_domain(DomainType)` — resolves the registered context class, raising `CONTEXT_NOT_FOUND` when none is registered.
+- `BaseContext.from_domain(domain_obj, **kwargs)` — resolves the target class (the registry, when called on `BaseContext` itself; `cls` directly, when called on a concrete subclass), constructs it, and binds `domain_obj` as `context.domain`.
 
-## The AppInterfaceContext Pattern
+Caching is intentionally **not** part of `BaseContext` — contexts that need one (`AppSessionContext`, `FeatureContext`) declare and own a `CacheContext` themselves.
 
-`AppInterfaceContext` is the canonical high-level context. Its `run` method defines the standard request lifecycle:
+## The AppSessionContext Hub
+
+<a id="appsessioncontext"></a>
+`AppSessionContext` binds a loaded `AppSession` and drives the standard `run(feature_id, headers, data, **kwargs)` pipeline:
 
 ```python
 def run(self, feature_id, headers=None, data=None, **kwargs):
-    # Build logger.
-    logger = self.logging.build_logger()
-
-    # Parse request into a RequestContext.
-    request = self.parse_request(headers or {}, data or {}, feature_id)
-
-    # Execute the feature, capturing TiferetError.
+    logger = self.build_logger()
+    request = self.build_request(feature_id, headers or {}, data or {})
     try:
-        self.execute_feature(feature_id=feature_id, request=request, logger=logger, **kwargs)
+        self.execute_feature(feature_id, request, logger=logger, **kwargs)
     except TiferetError as e:
-        return self.handle_error(e)
-
-    # Return the response via the request context.
-    return request.handle_response()
+        return self.handle_error(e, **kwargs)
+    return self.build_response(request)
 ```
 
-The four steps — **parse**, **execute**, **handle errors**, **handle response** — are the extension points subclasses typically override.
+Each of the five steps — `build_logger`, `build_request`, `execute_feature`, `handle_error`, `build_response` — is a template method that delegates to an injected handler callable rather than implementing the work itself:
 
-### Extending AppInterfaceContext
+| Template method | Injected handler | Blueprint factory |
+| --- | --- | --- |
+| `build_logger()` | `build_logger_handler` | `build_logger_handler(cache, get_dependency)` |
+| `build_request(feature_id, headers, data)` | `create_request_handler` | `create_session_request` |
+| `execute_feature(feature_id, request, **kwargs)` | `execute_feature_handler` | `execute_feature_handler` |
+| `handle_error(error, **kwargs)` | `raise_error_handler` | `raise_error_handler` |
+| `build_response(request)` | `response_handler` | `response_handler` |
 
-Create a subclass when the interface needs to translate a transport-specific payload (e.g., CLI `argv`, Flask `Request`) into a `RequestContext`, or when the response needs transport-specific formatting.
+All five are required. An unwired handler is treated as a composition bug, not a degraded-mode condition: the template method calls the module-level `raise_unwired_handler_error` helper, which raises a `TiferetAPIError` naming the missing slot. Because that error is already the formatted, consumer-facing representation, `handle_error` re-raises any `TiferetAPIError` verbatim — before consulting `raise_error_handler` — so an unwired `execute_feature_handler` surfaces as itself rather than being masked by a missing `raise_error_handler`. `build_logger` additionally formats a `TiferetError` its own handler raises into a `TiferetAPIError` via `handle_error`, so the pre-`try` region of `run` never raises a bare `TiferetError`.
+
+### Extending AppSessionContext
+
+Subclass when an interface needs to translate a transport-specific payload into a request, or format a transport-specific response. Forward the hub's constructor kwargs via `**kwargs`, and call `super()` for shared behavior:
 
 ```python
-# ** context: flask_api_context
-class FlaskApiContext(AppInterfaceContext):
-    '''
-    Flask API context that translates Flask requests into feature invocations.
-    '''
-
-    # * attribute: flask_handler
-    flask_handler: FlaskApiHandler
-
-    # * init
+class FlaskApiContext(AppSessionContext):
     def __init__(self, flask_handler, **kwargs):
-        '''
-        Initialize the Flask API context.
-
-        :param flask_handler: The Flask request handler.
-        :param kwargs: Hub collaborators forwarded to AppInterfaceContext.
-        '''
-
-        # Forward hub collaborators to the parent and store the handler.
         super().__init__(**kwargs)
         self.flask_handler = flask_handler
 
-    # * method: parse_request
-    def parse_request(self, flask_request) -> RequestContext:
-        '''
-        Translate a Flask request into a RequestContext.
-        '''
-
-        # Extract headers, data, and feature_id from the Flask request.
-        headers, data, feature_id = self.flask_handler.extract(flask_request)
-
-        # Delegate to the base parse_request for RequestContext construction.
-        return super().parse_request(headers=headers, data=data, feature_id=feature_id)
+    def build_response(self, request):
+        model = super().build_response(request)
+        return jsonify(model)
 ```
 
-High-level contexts accept transport-specific collaborators as explicit keyword arguments and forward the hub collaborators via `**kwargs` to `super().__init__(**kwargs)`. The blueprint imports the context class from the interface's `module_path`/`class_name` and constructs it via `BaseContext.from_domain`. Override only the lifecycle methods you need; always call `super()` for shared behavior.
+### CLI: CliSessionContext and CliRequestContext
 
-### CLI Interfaces and CliContext
+<a id="clisessioncontext"></a><a id="clirequestcontext"></a>
+`CliSessionContext` (`tiferet/contexts/cli.py`) extends `AppSessionContext` with an injected `parse_cli_args` closure (built by the `build_cli` blueprint's `parse_cli_args_handler`) that owns argparse command discovery, parser construction, and request derivation. `run(argv=None)` parses `argv` via that closure into `(feature_id, headers, data)`, delegates to the inherited hub `run`, and translates failures into process exit codes: an argparse failure exits `2`; an unhandled `TiferetAPIError` exits `1`. It intentionally omits `domain_type`, so the `ContextMeta` registry keeps mapping `AppSession` to `AppSessionContext`.
 
-CLI interfaces are handled by `CliContext` (`tiferet/contexts/cli.py`), a high-level context that extends `AppInterfaceContext` with command-line concerns. It retrieves CLI commands (`list_commands_evt`) and parent arguments (`get_parent_args_evt`), builds an argparse parser, parses `argv` into a `RequestContext` (`parse_cli_request`), and dispatches through the inherited `run` pipeline (`run_cli`). Stateless parsing helpers — `group_commands_by_key`, `build_parser`, and `derive_feature_request` — live as side-effect-free module-level functions, and per-argument argparse translation lives on `CliArgument.to_argparse_kwargs()`.
+`CliRequestContext` extends `RequestContext` with a CLI-specific `handle_response` that converts the raw feature result into a typed CLI output model via the module-level `build_cli_record` helper: a list becomes a `CliRecordList`, a `dict`/`DomainObject` becomes a `CliOutputRecord`, anything else passes through unchanged. It also omits `domain_type`. `CliSessionContext.build_response` extends the hub's response step (rather than reimplementing it) by printing the formatted or stringified model only when the request is a `CliRequestContext`.
 
-A consumer CLI interface opts in by pointing its config at `module_path: tiferet.contexts.cli` / `class_name: CliContext`. The `build_cli` blueprint is a thin entrypoint that realizes the interface and calls `cli_context.run_cli(argv)`. `CliContext` is selected explicitly through the interface config; it intentionally omits `domain_type`, so the `ContextMeta` registry keeps mapping `AppInterface` to `AppInterfaceContext`.
+A consumer interface reaches this path through the `CLI`/`build_cli` entry point, not through a `module_path`/`class_name` declaration — every interface resolved through `build_cli` gets a `CliSessionContext`.
 
-## Low-Level Context Lifecycles
+## FeatureContext
 
-### FeatureContext
+<a id="featurecontext"></a>
+`FeatureContext` (`tiferet/contexts/feature.py`) is a domain-bound context: constructed via `BaseContext.from_domain(feature, ...)`, it reads the bound `Feature` as `self.domain` and executes it through `execute_feature(request, *flags, **kwargs)`.
 
-`FeatureContext.execute_feature(request)` drives the core feature pipeline. The context is registry-bound: it is always constructed via `BaseContext.from_domain(feature, ...)` and reads the bound `Feature` from `self.domain` rather than receiving one per call, so `resolve_feature_steps` and the async loop operate on the same feature the context was composed against.
+There is **no separate async context class** — a single `FeatureContext` handles all three dispatch cases based on `is_async` flags:
 
-1. Read the bound feature from `self.domain` (loading is owned by the caller — `create_feature_context` in the blueprint layer).
-2. For each configured step:
-   - Evaluate the step's `condition` expression (if present) via `evaluate_condition`. If the condition resolves to `False`, the step is silently skipped.
-   - Resolve the domain event via the injected `get_dependency(service_id, *flags)` handler.
-   - Parse each step parameter with `parse_request_parameter` (supports `$r.<key>` request-backed parameters).
-   - Invoke `handle_feature_step`, which executes the event and stores the result on the `RequestContext` under `data_key`.
+1. `feature.is_async=True` — the whole step loop runs via the private `_execute_async` coroutine, driven to completion by the module-level `run_coroutine(coro)` helper (`asyncio.run` when no event loop is running, otherwise a dedicated worker thread).
+2. `feature.is_async=False`, `step.is_async=True` — an individual step is driven per-step via `run_coroutine(self._execute_step_async(...))` within an otherwise synchronous loop.
+3. Both flags `False` — fully synchronous `execute_step`.
 
-Feature-level flags (defined on the `Feature`) are combined with step-level flags and passed to the `get_dependency` handler. Higher priority is given to feature-level flags.
+Before any step runs, `execute_feature` calls the module-level `validate_request(feature, request)`, which coerces `request.data` against `feature.params_schema` (a `RequestSpecification`) when one is declared, raising `REQUEST_VALIDATION_FAILED` on a schema violation. Each step is then resolved and executed:
+
+- `resolve_step_event(step, feature_flags)` resolves the step's domain event via the injected `get_dependency` handler, combining feature-level and step-level flags (feature-level first).
+- `resolve_middleware(middleware_ids)` resolves configured middleware service IDs to callables; `compose_step_middleware` concatenates feature-level (outer) and step-level (inner) middleware into one ordered list, and `build_step_chain` wraps the event's `execute` in that chain.
+- `parse_request_parameter` resolves `$r.<key>`-prefixed parameters from `request.data`, delegating everything else to the injected `parse_parameter` callable (identity by default).
+- `execute_step`/`_execute_step_async` run the built chain and store the result via `request.set_result(result, data_key)`. `pass_on_error=True` catches only a `TiferetError` — a `ModelError`, `ServiceError`, or any other exception is a defect, not a domain outcome, and always propagates.
 
 ### Conditional Step Execution
 
-`EventFeatureStep` supports an optional `condition` field — a boolean expression string evaluated against request data before the step executes. The `$r.` prefix references values from `request.data` (e.g., `$r.b != 0`, `$r.mode == 'advanced'`).
-
-- When `condition` is `None` or empty, the step always executes.
-- When `condition` evaluates to `False`, the step is silently skipped (no error raised).
-- Invalid or unparseable expressions are treated as `False` (defensive).
-
-YAML configuration example:
+`EventFeatureStep.condition` is an optional boolean expression evaluated by the module-level `evaluate_condition(condition, request)` before a step runs. `None`/empty always executes; `$r.<key>` references are substituted from `request.data`; an unparseable expression defensively evaluates to `False` rather than raising.
 
 ```yaml
 features:
   calc:
     safe_divide:
-      name: Safe Divide
-      description: Divides only when denominator is non-zero
       commands:
         - service_id: divide_number_event
-          name: Divide a by b
           condition: '$r.b != 0'
 ```
 
-### AsyncFeatureContext
+### Service Resolution (get_dependency)
 
-`AsyncFeatureContext` extends `FeatureContext` for features whose steps execute asynchronously. It adds `handle_feature_step_async` and `execute_feature_async`, which await coroutine-based domain events (and async middleware) while reusing the inherited step resolution, parameter parsing, condition evaluation, and middleware composition. The synchronous helpers are unchanged.
+Feature-step services are resolved through the injected `get_dependency(registration_id, *flags)` callable — the bound method of a `ServiceResolver` (`di/dependency_injector.py`), composed by `build_service_resolver` and injected into the hub at construction time, then forwarded unchanged into each `FeatureContext` the hub builds. See [docs/guides/di.md](di.md) for how `get_dependency` builds and caches per-flag containers; contexts never hold a container directly.
 
-Selection is driven by the `Feature.is_async` flag. `AppInterfaceContext.execute_feature` instantiates `AsyncFeatureContext` instead of `FeatureContext` when `is_async` is `True` and drives `execute_feature_async` to completion via an internal `_run_coroutine` helper — `asyncio.run` when no event loop is running, otherwise a short-lived worker thread — so the public `run()` entry point stays synchronous. Because `AsyncFeatureContext` does not declare its own `domain_type`, the `ContextMeta` registry still resolves `Feature` to the synchronous `FeatureContext`.
+## RequestContext
 
-### Service Resolution (ServiceResolver)
+<a id="requestcontext"></a>
+`RequestContext` (`tiferet/contexts/request.py`) binds a `Request` domain value object as `self.domain` and exposes `session_id`, `feature_id`, `headers`, and `data` as read/write proxy properties delegating straight to it, while `result` is runtime-only context state with no `Request` counterpart. `set_result(result, data_key=None)` stores into `self.domain.data[data_key]` when a step declares a `data_key`, or into `self.result` directly otherwise; `handle_response()` returns `self.result` by default. See [docs/guides/domain/request.md](domain/request.md) for the full `Request`/`RequestContext` split.
 
-Feature-step services are resolved by `ServiceResolver`, whose bound `get_dependency(registration_id, *flags)` method is injected into the hub and forwarded to each `FeatureContext`. `ServiceResolver.get_dependency` performs:
+## ErrorContext and LoggingContext
 
-1. Normalize the flags into a flat list.
-2. Build (or retrieve from cache) a per-flag `ServiceContainer` via `build_container`.
-3. Resolve and return the service from the container by `registration_id`.
+<a id="errorcontext"></a><a id="loggingcontext"></a>
+`ErrorContext.format_response(error, exception, lang)` formats a structured, localized response dict from a pre-loaded `Error` domain object and the raised `TiferetError`'s `kwargs`; error retrieval itself is owned by the caller (the `raise_error_handler` the hub delegates to), not by `ErrorContext`.
 
-`build_container` lists all `ServiceRegistration` objects and constants (merging bootstrap defaults), parses constants and per-configuration parameters, resolves each configuration to a concrete type, and loads the resulting services into a `ServiceContainer` (registering constants before service types). The `ServiceResolver` is composed by `build_service_resolver` in `tiferet/blueprints/core.py` and injected via `get_dependency` into the context at construction time.
+`LoggingContext.build_logger()` assembles a `logging.config.dictConfig`-ready dict from a pre-assembled `LoggingSettings` domain object (which owns the `format_config()` assembly) and returns a configured `logging.Logger`. Neither context is typically subclassed — extend the underlying domain settings or error catalog instead.
 
-### RequestContext
+## CacheContext
 
-`RequestContext` is a plain data carrier populated by `parse_request` and mutated by step handlers via `set_result(result, data_key)`. Its `handle_response` method builds the final response object returned by `AppInterfaceContext.run`.
-
-### ErrorContext and LoggingContext
-
-- `ErrorContext.format_response(error, exception, lang)` formats a localized payload from a pre-loaded `Error` domain object and the raised `TiferetError` (reading its `kwargs` directly). Error retrieval is owned by the hub's `get_error`, which resolves the error from the shared cache (pre-seeded with the framework defaults under `error_`-prefixed keys) or, on a miss, the get-error event — caching the result. `AppInterfaceContext.handle_error` loads the error domain, formats the payload, and wraps it in `TiferetAPIError`.
-- `LoggingContext.build_logger` wraps the configured formatters, handlers, and loggers in a `LoggingSettings` value object (which owns the `dictConfig` assembly) and creates a ready-to-use logger instance.
-
-The error context is built on demand inside `handle_error`; the logger is built via the injected `build_logger_handler` on the hub's `build_logger` template method (cache-first, on the first `run()`). Neither is typically subclassed — extend the underlying services instead.
-
-Error formatting itself is owned by the injected `raise_error_handler`, which the hub's `handle_error` delegates to. A `TiferetAPIError` is re-raised verbatim rather than delegated, since it is already the formatted, consumer-facing representation. All five injected handlers are required — an unwired one raises `APP_ERROR` naming the missing slot rather than falling back to a hub-local implementation. `build_logger` additionally formats a `TiferetError` raised by its handler into a `TiferetAPIError` via `handle_error`.
-
-### CacheContext
-
-A simple keyed in-memory cache. `AppInterfaceContext` creates one `CacheContext` per interface and shares it with the `FeatureContext` it builds (the error and logging contexts no longer take a cache). Treat it as a per-interface cache — it is not shared across interfaces.
+<a id="cachecontext"></a>
+`CacheContext` (`tiferet/contexts/cache.py`) is a namespaced in-memory cache: every item is stored under a `*prefix` tuple (e.g. `('app', 'errors')`), with the empty prefix `()` addressing the root namespace. `get`/`set`/`delete` accept an optional `*prefix`; `get_by_prefix(*prefix)` returns a shallow copy of an entire namespace as a `Dict[str, Any]`, backing enumeration of the bootstrap catalogs `build_cache` seeds (app services/constants, default errors, features, CLI commands, logging settings). The hub owns one `CacheContext` per session and shares it with the `FeatureContext` it builds — treat it as per-session, never shared across sessions.
 
 ## Composition in the Application Graph
 
-The `build_app` blueprint constructs the `AppInterfaceContext` declaratively from the loaded `AppInterface` (binding it as `self.domain`). The hub then builds its sub-contexts on demand, sharing its `CacheContext` with the `FeatureContext`:
+The `build_app` blueprint constructs the hub declaratively from the loaded `AppSession`, wiring the five handlers and the resolver's `get_dependency`:
 
 ```
 build_app (blueprint)
-  └── ServiceResolver           (owns DI assembly; get_dependency injected into the hub)
-        └── AppInterfaceContext  (hub, bound to AppInterface; owns CacheContext)
-              ├── FeatureContext   ── get_dependency + shared CacheContext
-              ├── ErrorContext     ── (no cache)
-              └── LoggingContext   ── (no cache)
+  └── ServiceResolver            (owns DI assembly; get_dependency injected into the hub)
+        └── AppSessionContext     (hub, bound to AppSession; owns CacheContext)
+              ├── FeatureContext     ── get_dependency + shared CacheContext, built on demand
+              ├── ErrorContext       ── built on demand by raise_error_handler
+              └── LoggingContext     ── built by build_logger_handler (cache-first)
 ```
 
-Each `AppInterfaceContext` instance is per-interface. Interface events and repositories are wired by name into a registry; the context graph itself is built declaratively. Tests can inject a `get_dependency` mock and a `build_logger_handler` mock at construction time, and provide feature/error contexts by patching `BaseContext.for_domain`.
+`CliSessionContext` composes in parallel through `build_cli`, substituting itself for `AppSessionContext` and overriding the `create_request_handler`/`response_handler` slots with CLI-specific closures. See [docs/guides/blueprints.md](blueprints.md) for the full composition chain.
 
 ## Testing Contexts
 
-Context tests use `pytest` with `unittest.mock`. Focus on behavior, not implementation detail.
-
-### Patterns
-
-- **Mock all injected dependencies** — use `mock.Mock(spec=...)` against the expected type.
-- **Test each method in isolation** — `parse_request`, `execute_feature`, `handle_error`, `handle_response`, and `run`.
-- **Verify service interactions** — assert that service and handler calls occur with expected arguments.
-- **Exercise both success and error paths** — especially for `AppInterfaceContext.run`, which has distinct branches for successful completion and `TiferetError` recovery.
-
-### Example
+Context tests use `pytest` with `unittest.mock`, focused on behavior rather than implementation detail.
 
 ```python
-# *** fixtures
-
-# ** fixture: app_interface_context
+# ** fixture: app_session_context
 @pytest.fixture
-def app_interface_context(app_interface):
-    # Build the hub declaratively, injecting a mock build_logger_handler
-    # directly; feature/error contexts are built on demand, so patch
-    # BaseContext.for_domain to supply mocks for them.
-    context = AppInterfaceContext.from_domain(
-        app_interface,
-        get_feature_evt=mock.Mock(),
-        get_error_evt=mock.Mock(),
-        logging_list_all_evt=mock.Mock(),
+def app_session_context(app_session, build_logger_handler):
+    return AppSessionContext.from_domain(
+        app_session,
         get_dependency=mock.Mock(),
-        build_logger_handler=mock.Mock(return_value=mock.Mock()),
+        build_logger_handler=build_logger_handler,
+        execute_feature_handler=mock.Mock(),
+        create_request_handler=mock.Mock(return_value=RequestContext()),
+        raise_error_handler=mock.Mock(),
+        response_handler=mock.Mock(side_effect=lambda request: request.result),
     )
-    return context
-
-# *** tests
 
 # ** test: run_success
-def test_run_success(app_interface_context):
-    '''
-    Verify run executes the feature and returns the response payload.
-    '''
-
-    # Arrange the logger and response.
-    app_interface_context._build_logger.return_value = mock.Mock()
-
-    # Act.
-    result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
-
-    # Assert the run completed and produced a response (the feature context is
-    # built on demand inside execute_feature).
+def test_run_success(app_session_context, build_logger_handler):
+    build_logger_handler.return_value = mock.Mock()
+    result = app_session_context.run('calc.add', data={'a': 1, 'b': 2})
     assert result is not None
 ```
+
+- **Mock every injected handler** — `AppSessionContext` has no fallback implementation for any of the five, so an unmocked handler in a test raises `APP_ERROR` exactly as it would in production.
+- **Exercise the unwired-handler guard directly** — construct with a handler left `None` and assert the resulting `TiferetAPIError` names the correct slot.
+- **Test `FeatureContext` in isolation** from the hub — bind a `Feature` via `from_domain`, inject a mock `get_dependency`, and assert on `resolve_step_event`/`execute_step` behavior rather than routing everything through `run`.
 
 ## Best Practices
 
 ### 1. Keep Contexts Focused
-
 A context owns one runtime concern. If a context grows multiple responsibilities, split it into a high-level context plus one or more low-level contexts.
 
-### 2. Delegate to Services, Not Other Contexts (Where Possible)
+### 2. Prefer `super()` Over Reimplementation
+When extending `AppSessionContext`, override only the template methods that differ and call `super()` for the rest — this preserves timing, logging, and the unwired-handler guarantees for free.
 
-Low-level contexts should depend on services — not on each other — except where composition is intrinsic (e.g., `FeatureContext` using the injected `get_dependency` handler and a shared `CacheContext`). This keeps the dependency graph shallow.
+### 3. Never Inject Contexts into Domain Events
+Domain events depend on **services**, not contexts. Passing a context into an event couples domain logic to the runtime graph and makes the event harder to test in isolation.
 
-### 3. Prefer `super()` Over Reimplementation
+### 4. Use `TiferetError.raise_error()` for Context-Level Failures
+Contexts raise structured `TiferetError` instances with framework error codes — never raw exceptions — so `handle_error` can format them. `raise_unwired_handler_error` is the one deliberate exception: it raises an already-formatted `TiferetAPIError` for a composition bug that a domain error code shouldn't need to catalog.
 
-When extending `AppInterfaceContext`, override only the steps that differ and call `super()` for the rest. This preserves logging, timing, and error handling behavior for free.
+### 5. Treat CacheContext as Per-Session
+Each `AppSessionContext` creates one `CacheContext` and shares it only with the `FeatureContext` it builds. Never share a single `CacheContext` across sessions.
 
-### 4. Never Inject Contexts into Domain Events
+## Boundaries
 
-Domain events depend on **services**, not contexts. Passing a context into an event couples domain logic to the runtime graph and makes the event harder to test.
-
-### 5. Use `TiferetError.raise_error()` for Context-Level Errors
-
-Contexts must raise structured `TiferetError` instances with framework error codes — never raw exceptions. `AppInterfaceContext.handle_error` wraps unhandled exceptions, but preferring structured errors at the source yields better diagnostics.
-
-### 6. Treat CacheContext as Per-Interface
-
-Each `AppInterfaceContext` creates one `CacheContext` and shares it with the `FeatureContext` it builds. Do not share a single `CacheContext` across interfaces — a fresh hub per interface means a fresh cache, avoiding cross-interface leakage.
+**Inside this domain:** binding domain objects to runtime orchestrators (`BaseContext`/`ContextMeta`), the hub's five-handler `run` pipeline, feature-step resolution and middleware composition, and the namespaced in-memory cache.
+**Outside this domain:** wiring the handler callables themselves and choosing which context class backs a session (`build_app`/`build_cli` — [docs/guides/blueprints.md](blueprints.md)); resolving a service by id (`ServiceResolver` — [docs/guides/di.md](di.md)); the declared shape of the domain objects contexts bind (`Feature`, `AppSession`, `Request`, `Error`, `LoggingSettings` — `docs/guides/domain/`).
 
 ## Related Documentation
 
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context base classes, artifact comments, and code style reference
-- [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — Blueprint design (build_app, build_cli)
-- [docs/guides/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/blueprints.md) — Blueprint strategies and patterns
-- [docs/core/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md) — Dependency injection and service provider architecture
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and usage
+- [docs/guides/blueprints.md](blueprints.md) — Blueprint composition chains that construct and wire contexts
+- [docs/guides/di.md](di.md) — `ServiceResolver`/`get_dependency`, consumed by `FeatureContext`
+- [docs/guides/domain/request.md](domain/request.md) — `Request`/`RequestContext` split
+- [docs/guides/domain/feature.md](domain/feature.md) — `Feature`/`EventFeatureStep` domain objects `FeatureContext` executes
+- [docs/guides/domain/app.md](domain/app.md) — `AppSession` domain object `AppSessionContext` binds
+- [docs/guides/errors.md](errors.md) — `TiferetError`/`ServiceError`/`ModelError` families raised and handled across contexts
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting rules

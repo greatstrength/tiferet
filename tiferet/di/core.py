@@ -79,6 +79,7 @@ def normalize_flags(*flags) -> List[str]:
 # *** classes
 
 # ** class: service_container
+# >> see: @guides/di.md#the-servicecontainer-contract
 class ServiceContainer(ABC):
     '''
     The abstract dependency-injection container contract for the framework.
@@ -183,6 +184,7 @@ class ServiceContainer(ABC):
         raise NotImplementedError('load_container method is required for ServiceContainer.')
 
 # ** class: service_resolver
+# >> see: @guides/di.md#the-serviceresolver-contract
 class ServiceResolver(ABC):
     '''
     The abstract application service resolver. It maintains a per-flag cache of

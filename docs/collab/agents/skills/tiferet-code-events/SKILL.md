@@ -45,6 +45,7 @@ Event-specific labels:
 - `DomainEvent.handle(EventClass, dependencies={...}, middleware=None, **kwargs)` — standard invocation pattern in tests and contexts. `middleware` is an optional outermost-first list of `(event, kwargs, next_fn)` callables.
 - `DomainEvent.handle_async(...)` — async equivalent; use when driving `AsyncDomainEvent` subclasses.
 - **`AsyncDomainEvent`** — extend this instead of `DomainEvent` when `execute` is a coroutine (`async def execute`). Inherits `verify`, `raise_error`, and `parameters_required` unchanged.
+- **Docstrings & guides:** Event class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/events/<module>.md#<anchor>` to the corresponding `docs/guides/events/*.md` entry, which carries the full CRUD-operation distillation detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Example
 

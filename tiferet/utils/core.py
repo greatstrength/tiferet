@@ -13,6 +13,7 @@ from ..interfaces.middleware import MiddlewareService
 # *** utils
 
 # ** util: logging_middleware
+# >> see: @guides/utils/core.md#loggingmiddleware
 class LoggingMiddleware(MiddlewareService):
     '''
     Infrastructure middleware that logs domain event execution.
@@ -79,6 +80,7 @@ class LoggingMiddleware(MiddlewareService):
 
 
 # ** util: cache_middleware
+# >> see: @guides/utils/core.md#cachemiddleware
 class CacheMiddleware(MiddlewareService):
     '''
     Infrastructure middleware that injects a cache snapshot into event kwargs.
@@ -136,6 +138,7 @@ class CacheMiddleware(MiddlewareService):
 
 
 # ** util: timing_middleware
+# >> see: @guides/utils/core.md#timingmiddleware
 class TimingMiddleware(MiddlewareService):
     '''
     Infrastructure middleware that times domain event execution.

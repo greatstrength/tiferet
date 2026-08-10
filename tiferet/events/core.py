@@ -14,9 +14,12 @@ from .. import assets as a
 # *** classes
 
 # ** class: domain_event
+# >> see: @guides/events.md#the-domainevent-contract
 class DomainEvent(object):
     '''
-    A base class for a domain event object.
+    The foundational instantiate-and-execute contract for every domain
+    operation, unifying declarative validation, structured error raising, and
+    the standard invocation pattern into one testable abstraction.
     '''
 
     # * method: execute
@@ -357,6 +360,7 @@ class DomainEvent(object):
         return await chain()
 
 # ** class: async_domain_event
+# >> see: @guides/events.md#the-domainevent-contract
 class AsyncDomainEvent(DomainEvent):
     '''
     A base class for an asynchronous domain event object.

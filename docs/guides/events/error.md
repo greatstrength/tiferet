@@ -7,7 +7,12 @@
 
 ## Overview
 
-The error event module provides the full CRUD surface for `Error` domain objects — the structured error definitions that power Tiferet's multilingual error handling. Every event in this module depends on an injected `ErrorService` and operates on `Error` domain objects through the `ErrorAggregate` mapper.
+The error event module provides the full CRUD surface for `Error` domain objects — the structured error definitions that power Tiferet's multilingual error handling. Every event extends the shared `ErrorEvent` base event (which injects `ErrorService`) and operates on `Error` domain objects through the `ErrorAggregate` mapper. **Vision:** see the `ErrorEvent` class docstring in `tiferet/events/error.py` for the value statement this guide distills.
+
+## Ubiquitous Language
+
+- **Catalogued error** — an `Error` resolvable through `ErrorService`/`ErrorContext`, formatted as a `TiferetAPIError` when raised (see [docs/guides/errors.md](../errors.md)).
+- **Message translation** — one localized message entry (`lang`, `text`) on an `Error`'s `message` list; every error must retain at least one.
 
 ## Events at a Glance
 
@@ -23,6 +28,7 @@ The error event module provides the full CRUD surface for `Error` domain objects
 
 ## Dependency
 
+<a id="errorevent"></a>
 All events inject a single dependency:
 
 - **`error_service: ErrorService`** — the service interface for persisting and retrieving `Error` objects.
@@ -215,8 +221,15 @@ An error must always have at least one message. This invariant is enforced after
 
 `GetError` and `ListErrors` are repository-only — they never fall back to the framework's built-in error catalog. Built-in defaults (`CORE_DEFAULT_ERRORS` / `ADMIN_DEFAULT_ERRORS` in `tiferet/assets/error.py`) are seeded once into the shared cache by `build_cache`, and the runtime `get_error` handler (`tiferet/blueprints/core.py`) checks that cache before ever calling `GetError` — so a built-in code is resolved without touching the event at all. A consumer that overrides a built-in ID in their own configuration takes precedence, since the repository is consulted first at the handler level.
 
+## Boundaries
+
+**Inside this domain:** the CRUD operations for catalogued `Error` objects and their multilingual messages.
+**Outside this domain:** the declared `Error`/`ErrorMessage` shape and code-derivation ([docs/guides/domain/error.md](../domain/error.md)); the response-envelope assembly and cache-first resolution (`ErrorContext`, `get_error` — [docs/guides/errors.md](../errors.md)); uncatalogued failures (`ModelError`, `ServiceError` — [docs/guides/errors.md](../errors.md)) that never reach this module at all.
+
 ## Related Documentation
 
+- [docs/guides/domain/error.md](../domain/error.md) — `Error`/`ErrorMessage` domain objects
+- [docs/guides/errors.md](../errors.md) — The three error families and resolution flow
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
 - [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) — Mapper strategies

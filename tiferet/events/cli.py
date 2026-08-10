@@ -14,6 +14,7 @@ from ..mappers import CliCommandAggregate
 # *** events
 
 # ** event: cli_event
+# >> see: @guides/events/cli.md#clievent
 class CliEvent(DomainEvent):
     '''
     Base event providing the shared CliService dependency for CLI domain events.
@@ -35,6 +36,7 @@ class CliEvent(DomainEvent):
         self.cli_service = cli_service
 
 # ** event: list_cli_commands
+# >> see: @guides/events/cli.md#listclicommands
 class ListCliCommands(CliEvent):
     '''
     A domain event to list all CLI commands.
@@ -55,6 +57,7 @@ class ListCliCommands(CliEvent):
         return self.cli_service.list()
 
 # ** event: get_parent_arguments
+# >> see: @guides/events/cli.md#getparentarguments
 class GetParentArguments(CliEvent):
     '''
     A domain event to retrieve parent-level CLI arguments.
@@ -75,6 +78,7 @@ class GetParentArguments(CliEvent):
         return self.cli_service.get_parent_arguments()
 
 # ** event: add_cli_command
+# >> see: @guides/events/cli.md#addclicommand
 class AddCliCommand(CliEvent):
     '''
     A domain event to add a new CLI command.
@@ -136,6 +140,7 @@ class AddCliCommand(CliEvent):
         return command
 
 # ** event: add_cli_argument
+# >> see: @guides/events/cli.md#addcliargument
 class AddCliArgument(CliEvent):
     '''
     A domain event to add an argument to an existing CLI command.

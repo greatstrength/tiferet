@@ -22,6 +22,7 @@ DEFAULT_CLASS_NAME = 'AppSessionContext'
 # *** classes
 
 # ** class: aggregate
+# >> see: @guides/mappers.md#aggregate
 class Aggregate(DomainObject):
     '''
     A mutable, validated representation of a domain aggregate.
@@ -87,6 +88,7 @@ class Aggregate(DomainObject):
         return self.model_dump(**kwargs)
 
 # ** class: transfer_object
+# >> see: @guides/mappers.md#transferobject
 class TransferObject(DomainObject):
     '''
     A serialization and mapping layer for domain data.

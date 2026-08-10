@@ -8,6 +8,7 @@ from typing import Any, Dict, Tuple
 # *** contexts
 
 # ** context: cache_context
+# >> see: @guides/contexts.md#cachecontext
 class CacheContext(object):
     '''
     A context for managing cache operations within Tiferet applications.

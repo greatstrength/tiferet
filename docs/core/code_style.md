@@ -257,13 +257,18 @@ ADMIN_DEFAULT_SERVICES = {**CORE_DEFAULT_SERVICES}
 
 Annotation artifacts are **transient lifecycle markers** — a fourth tier below the structural `# ***` / `# **` / `# *` hierarchy. Unlike structural comments, annotations describe *state* rather than *shape* and are expected to be resolved over time.
 
-Two annotation types are defined:
+Three annotation types are defined:
 
 ### `# ++ todo: <message>`
 Signals deferred work attached to a specific artifact. The `++` prefix is semantic: *something needs to be added or grown here*. Use it to leave a machine-scannable note for the next agent or developer who touches this artifact.
 
 ### `# -- obsolete: <reason or target version>`
 Signals that an artifact is deprecated and slated for removal. The `--` prefix is semantic: *this is being reduced or removed*. Replaces the informal `# NOTE:` docstring approach with a single, consistently placed annotation line.
+
+### `# >> see: <path>#<anchor>`
+Links a public class, method, or attribute to the distillation-tier guide content that documents it. The `>>` prefix is semantic: *the fuller story lives elsewhere*. The docstring on the annotated artifact stays vision-tier (a class-level value statement, or the plain mechanical `:param`/`:return` contract for a method) — narrative depth, rationale, and cross-domain relationships live in the linked guide instead. The target is always a path plus an explicit anchor id, never a signature-derived anchor, so a renamed parameter never breaks the link. Apply it only to **public** artifacts that have corresponding guide coverage — do not add it preemptively to artifacts with no guide entry yet. See `.handoff/docstring-guide-doc-reorganization.handoff.md` for the full docstring↔guide mechanism this annotation is part of.
+
+**The `@guides/` shorthand** — since every `# >> see:` target is rooted at `docs/guides/`, write it as `@guides/<rest-of-path>#<anchor>` (e.g. `@guides/domain/error.md#error-format-message`) instead of spelling out `docs/guides/domain/error.md#error-format-message`. `@guides/` is a source-code-only shorthand for this annotation target — it is not a real path and must never appear in a clickable Markdown link; links between guide documents keep using normal relative paths (e.g. `[docs/guides/errors.md](../errors.md)`) so they render and navigate correctly on GitHub.
 
 **Placement grammar** — annotations appear immediately after the structural comment they annotate, on their own line, before the code body:
 
@@ -276,9 +281,19 @@ def remove_service(self, service_id: str | None = None, attribute_id: str | None
 # * attribute: return_to_data
 # -- obsolete: superseded by data_key; remove in v2.1
 return_to_data: bool = Field(default=False, ...)
+
+# ** model: error
+# >> see: @guides/domain/error.md#error
+class Error(DomainObject):
+    ...
+
+    # * method: format_message
+    # >> see: @guides/domain/error.md#error-format-message
+    def format_message(self, lang: str = 'en_US', **kwargs) -> str:
+        ...
 ```
 
-Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo or obsolescence applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment.
+Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo, obsolescence, or guide link applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment. Multiple annotations may stack on the same artifact (e.g. a `# >> see:` link on a method also carrying a `# ++ todo:`); order them in a fixed sequence — `# >> see:` first, then `# ++ todo:` / `# -- obsolete:` — for scannability.
 
 **Label-level shorthand** — the `(obsolete)` parenthetical suffix on a `# *` or `# **` label remains valid shorthand when no further reason is needed:
 
@@ -291,15 +306,16 @@ When a reason or target version is meaningful, prefer `# -- obsolete:` on its ow
 **Resolution expectations**
 - `# ++ todo:` annotations should be removed once the described work is complete. Reference the GitHub issue number in the message when the work is tracked (`# ++ todo: #123 — remove attribute_id once ...`).
 - `# -- obsolete:` annotations should be removed together with the artifact they annotate. Verify no callers remain before deletion.
-- Both types should be surfaced in Collaboration Reports when introduced or resolved during a session.
+- `# >> see:` annotations should be updated whenever the target guide's anchor id changes, and removed if the guide section they point to is deleted rather than left dangling.
+- All three types should be surfaced in Collaboration Reports when introduced or resolved during a session.
 
 **Agent scan procedure** — before beginning any implementation session, scan affected files for open annotations:
 
 ```bash
-grep -rn "# ++\|# --" tiferet/
+grep -rn "# ++\|# --\|# >>" tiferet/
 ```
 
-This gives an immediate picture of outstanding technical debt and deprecated code in scope.
+This gives an immediate picture of outstanding technical debt, deprecated code, and docstring↔guide link coverage in scope.
 
 ## Example: Complete Class with Formatting
 

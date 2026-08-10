@@ -11,6 +11,7 @@ import json
 # *** classes
 
 # ** class: service_error
+# >> see: @guides/interfaces.md#infrastructural-failures-serviceerror
 class ServiceError(Exception):
     '''
     The exception raised for an infrastructural failure inside a service.
@@ -160,9 +161,12 @@ class ServiceError(Exception):
 # *** interfaces
 
 # ** interface: service
+# >> see: @guides/interfaces.md#service
 class Service(ABC):
     '''
-    The service interface as an abstract base class.
+    The unified vertical contract every infrastructure concern extends -
+    data access, file I/O, or middleware - so consumers depend on a
+    swappable abstraction rather than a concrete implementation.
     '''
 
     pass

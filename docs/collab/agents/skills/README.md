@@ -16,6 +16,9 @@ Canonical, version-controlled copies of the reusable agent **skills** for Tifere
 
 Collaboration skills are thin wrappers that reference `docs/collab/` and `docs/core/` as the source of truth — they don't copy that content, so the docs stay authoritative.
 
+## Documentation skills
+- **`tiferet-guide-docs`** — apply the docstring (vision-tier) / guide-doc (distillation-tier) convention: what belongs in a docstring vs. a `docs/guides/` entry, the four genre-specific guide templates (`docs/guides/templates/`) and how to pick between them, and the anchor/`# >> see:` linking convention. Use when writing/upgrading a docstring, authoring or remediating a guide, or adding a `# >> see:` annotation.
+
 ## Code style skills
 
 Thirteen self-contained code style skills that embed artifact comment labels, naming conventions, spacing rules, layer boundary import rules, and a minimal working example so an implementation agent can apply the conventions without fetching any external URL. Each skill's **Canonical source** section links to the full `docs/core/` guide as a fallback.

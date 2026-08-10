@@ -14,9 +14,12 @@ from .core import DomainObject
 # *** models
 
 # ** model: feature_step
+# >> see: @guides/domain/feature.md#featurestep
 class FeatureStep(DomainObject):
     '''
-    A base step in a feature workflow.
+    The base shape every step in a feature workflow shares, carrying a
+    ``type`` discriminator so the workflow can grow new step kinds (e.g. a
+    loop or branch) without breaking existing ones.
     '''
 
     # * attribute: type
@@ -26,9 +29,12 @@ class FeatureStep(DomainObject):
     name: str = Field(..., description='The name of the feature step.')
 
 # ** model: event_feature_step
+# >> see: @guides/domain/feature.md#eventfeaturestep
 class EventFeatureStep(FeatureStep):
     '''
-    An event feature step that executes a domain event from the container.
+    A single unit of work in a feature workflow — a resolvable domain event
+    plus the flags, parameters, result routing, and error-handling
+    configuration needed to execute it as one step of a larger pipeline.
     '''
 
     # * attribute: service_id
@@ -65,6 +71,7 @@ class EventFeatureStep(FeatureStep):
     )
 
 # ** model: parameter_specification
+# >> see: @guides/domain/feature.md#parameterspecification
 class ParameterSpecification(DomainObject):
     '''
     A value object describing one expected request parameter, including its
@@ -108,6 +115,7 @@ class ParameterSpecification(DomainObject):
     choices: List[Any] | None = Field(default=None, description='Enumerated set of valid values.')
 
     # * method: get_type
+    # >> see: @guides/domain/feature.md#parameterspecification-get-type
     def get_type(self) -> type:
         '''
         Map the declared type string to a Python type.
@@ -130,6 +138,7 @@ class ParameterSpecification(DomainObject):
         return type_map.get(self.type, str)
 
     # * method: field_definition
+    # >> see: @guides/domain/feature.md#parameterspecification-field-definition
     def field_definition(self) -> Tuple[Any, Any]:
         '''
         Build the ``(annotation, default)`` pair consumed by
@@ -172,11 +181,13 @@ class ParameterSpecification(DomainObject):
         return (annotation, Field(default, **constraints))
 
 # ** model: request_specification
+# >> see: @guides/domain/feature.md#requestspecification
 class RequestSpecification(DomainObject):
     '''
-    A feature-level Specification object that dynamically reconstitutes the
-    request configuration as a Pydantic model to validate and coerce request
-    data, failing fast with a single aggregated error.
+    A feature's declared request contract — dynamically reconstituting its
+    parameter specifications into a Pydantic model lets a feature validate
+    and coerce its request data fail-fast, with a single aggregated error,
+    before any step runs.
     '''
 
     # * attribute: parameters
@@ -186,6 +197,7 @@ class RequestSpecification(DomainObject):
     )
 
     # * method: normalize_parameters (validator)
+    # >> see: @guides/domain/feature.md#requestspecification-normalize-parameters
     @model_validator(mode='before')
     @classmethod
     def normalize_parameters(cls, data: Any) -> Any:
@@ -226,6 +238,7 @@ class RequestSpecification(DomainObject):
         return {'parameters': parameters}
 
     # * method: build_model
+    # >> see: @guides/domain/feature.md#requestspecification-build-model
     def build_model(self, model_name: str = 'RequestModel') -> type:
         '''
         Dynamically create a standalone Pydantic model from the parameter
@@ -254,6 +267,7 @@ class RequestSpecification(DomainObject):
         )
 
     # * method: coerce
+    # >> see: @guides/domain/feature.md#requestspecification-coerce
     def coerce(self, data: Dict[str, Any]) -> Dict[str, Any]:
         '''
         Validate and coerce ``data`` against the schema, returning the original
@@ -280,6 +294,7 @@ class RequestSpecification(DomainObject):
         return {**(data or {}), **validated.model_dump()}
 
     # * method: is_satisfied_by
+    # >> see: @guides/domain/feature.md#requestspecification-is-satisfied-by
     def is_satisfied_by(self, data: Dict[str, Any]) -> bool:
         '''
         Report whether ``data`` satisfies the specification.
@@ -298,9 +313,13 @@ class RequestSpecification(DomainObject):
             return False
 
 # ** model: feature
+# >> see: @guides/domain/feature.md#feature
 class Feature(DomainObject):
     '''
-    A feature object.
+    A complete, named workflow definition — the orchestration unit that binds
+    an ordered pipeline of domain-event steps (and an optional request
+    schema) to a single resolvable id so a CLI command, API route, or
+    scheduled job can execute it as one call.
     '''
 
     # * attribute: id
@@ -394,6 +413,7 @@ class Feature(DomainObject):
         return data
 
     # * method: get_step
+    # >> see: @guides/domain/feature.md#feature-get-step
     def get_step(self, position: int) -> FeatureStep | None:
         '''
         Get the feature step at the given position, or None if the

@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="yamlloader"></a>
 ## Overview
 
 `YamlLoader` is a format-specific utility for loading and saving YAML files in Tiferet.  
@@ -13,6 +14,11 @@ It extends `FileLoader` (`tiferet/utils/file.py`), inheriting full context-manag
 Use `YamlLoader` (or its alias `Yaml`) directly when you need to read or write YAML files inside domain events, scripts, or tests. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
 `YamlLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+
+## Ubiquitous Language
+
+- **`start_node`/`data_factory`** — the two optional transformation callables `load()` applies in sequence: navigate to a sub-key, then reshape the navigated result.
+- **Empty-file coercion** — `YamlLoader`'s choice to return `{}` for an empty file rather than `None` or an error, distinguishing it from `JsonLoader`'s stricter behavior.
 
 ## When to Use YamlLoader vs. Injected Service
 
@@ -192,9 +198,15 @@ Note that a `ServiceError` is **not** skippable via a feature step's
 `pass_on_error`, which passes on domain errors only. An event that wants to treat
 a missing file as a no-op must catch the `ServiceError` and return `None` itself.
 
+## Boundaries
+
+**Inside this domain:** YAML parsing/serialization (`safe_load`/`safe_dump`) and pre-flight file validation.
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); YAML-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+
 ## Related Documentation
 
 - [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
 - [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules

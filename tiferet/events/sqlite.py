@@ -32,6 +32,7 @@ def is_valid_identifier(name: str) -> bool:
 # *** events
 
 # ** event: sqlite_event
+# >> see: @guides/events/sqlite.md#sqliteevent
 class SqliteEvent(DomainEvent):
     '''
     Base event providing the shared SqliteService dependency for SQLite domain events.
@@ -53,6 +54,7 @@ class SqliteEvent(DomainEvent):
         self.sqlite_service = sqlite_service
 
 # ** event: mutate_sql
+# >> see: @guides/events/sqlite.md#mutatesql
 class MutateSql(SqliteEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement and return operation metadata.
@@ -98,6 +100,7 @@ class MutateSql(SqliteEvent):
             }
 
 # ** event: query_sql
+# >> see: @guides/events/sqlite.md#querysql
 class QuerySql(SqliteEvent):
     '''
     Execute a read-only SQL query and return results as list of dictionaries.
@@ -141,6 +144,7 @@ class QuerySql(SqliteEvent):
                 return sql.fetch_all(query, parameters)
 
 # ** event: bulk_mutate_sql
+# >> see: @guides/events/sqlite.md#bulkmutatesql
 class BulkMutateSql(SqliteEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement across multiple parameter sets.
@@ -195,6 +199,7 @@ class BulkMutateSql(SqliteEvent):
             }
 
 # ** event: execute_script_sql
+# >> see: @guides/events/sqlite.md#executescriptsql
 class ExecuteScriptSql(SqliteEvent):
     '''
     Execute a multi-statement SQL script (DDL + DML) in a single operation.
@@ -227,6 +232,7 @@ class ExecuteScriptSql(SqliteEvent):
             }
 
 # ** event: backup_sql
+# >> see: @guides/events/sqlite.md#backupsql
 class BackupSql(SqliteEvent):
     '''
     Perform an online backup of the current SQLite database to a target file.
@@ -264,6 +270,7 @@ class BackupSql(SqliteEvent):
             }
 
 # ** event: create_table_sql
+# >> see: @guides/events/sqlite.md#createtablesql
 class CreateTableSql(SqliteEvent):
     '''
     Event to create a table with specified columns and constraints.
@@ -368,6 +375,7 @@ class CreateTableSql(SqliteEvent):
             }
 
 # ** event: drop_table_sql
+# >> see: @guides/events/sqlite.md#droptablesql
 class DropTableSql(SqliteEvent):
     '''
     Event to drop a table safely with optional IF EXISTS clause.

@@ -26,6 +26,7 @@ YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
 # *** utils
 
 # ** util: yaml_loader
+# >> see: @guides/utils/yaml.md#yamlloader
 class YamlLoader(FileLoader):
     '''
     Utility for loading and saving YAML files with structured error handling.

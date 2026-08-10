@@ -12,6 +12,7 @@ from ..domain import Request
 # *** contexts
 
 # ** context: request_context
+# >> see: @guides/contexts.md#requestcontext
 class RequestContext(BaseContext):
     '''
     The request context carries the session, feature, headers, data, and result

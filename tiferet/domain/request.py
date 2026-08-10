@@ -15,6 +15,7 @@ from .core import DomainObject
 # *** models
 
 # ** model: request
+# >> see: @guides/domain/request.md#request
 class Request(DomainObject):
     '''
     A request value object carrying the session, feature, headers, and data for
@@ -47,6 +48,7 @@ class Request(DomainObject):
     )
 
     # * method: derive_session_id (validator)
+    # >> see: @guides/domain/request.md#request-derive-session-id
     @model_validator(mode='before')
     @classmethod
     def derive_session_id(cls, data: Any) -> Any:
