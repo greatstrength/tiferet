@@ -173,7 +173,7 @@ class UpdateAppSession(AppEvent):
             expression=app_session is not None,
             error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
-            interface_id=id,
+            id=id,
         )
 
         # Update each provided scalar attribute via the aggregate method.
@@ -463,7 +463,6 @@ class ListAppInterfaces(AppEvent):
         return self.app_service.list()
 
 # ** event: set_service_dependency
-# -- obsolete: Retire in Parity V Story 13.
 class SetServiceDependency(AppEvent):
     '''
     A domain event to set or update a service dependency on an app session.
@@ -525,7 +524,6 @@ class SetServiceDependency(AppEvent):
         return id
 
 # ** event: remove_service_dependency
-# -- obsolete: Retire in Parity V Story 13.
 class RemoveServiceDependency(AppEvent):
     '''
     A domain event to remove a service dependency from an app session (idempotent).
