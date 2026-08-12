@@ -108,18 +108,18 @@ class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
         'to_data': {'by_alias': True, 'exclude': {'type'}},
     }
 
-    # * attribute: middleware
-    middleware: List[str] = Field(
-        default_factory=list,
-        description='Ordered list of middleware service IDs for this step.',
-    )
-
     # * attribute: parameters
     parameters: Dict[str, str] = Field(
         default_factory=dict,
         serialization_alias='params',
         validation_alias=AliasChoices('params', 'parameters'),
         description='The parameters for the event feature step.',
+    )
+
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of middleware service IDs for this step.',
     )
 
     # * method: map
@@ -170,6 +170,8 @@ class FeatureAggregate(Feature, Aggregate):
         pass_on_error: bool = False,
         condition: str | None = None,
         middleware: List[str] | None = None,
+        is_async: bool = False,
+        flags: List[str] | None = None,
         position: int | None = None,
     ) -> EventFeatureStep:
         '''
@@ -189,6 +191,10 @@ class FeatureAggregate(Feature, Aggregate):
         :type condition: str | None
         :param middleware: Optional ordered list of middleware service IDs.
         :type middleware: list[str] | None
+        :param is_async: Whether this step executes asynchronously.
+        :type is_async: bool
+        :param flags: Optional list of feature flags that activate this step.
+        :type flags: list[str] | None
         :param position: Insertion position (None to append).
         :type position: int | None
         :return: Created EventFeatureStep instance.
@@ -204,6 +210,8 @@ class FeatureAggregate(Feature, Aggregate):
             pass_on_error=pass_on_error,
             condition=condition,
             middleware=middleware or [],
+            is_async=is_async,
+            flags=flags or [],
         )
 
         # Copy steps to a local list, insert or append, then reassign.
