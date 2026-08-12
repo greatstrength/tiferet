@@ -24,7 +24,7 @@ If a domain object is only ever used as a **nested sub-object** inside a parent 
 
 | Domain Object | Has Aggregate? | Reason |
 |---|---|---|
-| `AppInterface` | Yes (`AppInterfaceAggregate`) | Multi-field mutations (`set_service`, `set_constants`, gated `set_attribute`) |
+| `AppSession` | Yes (`AppSessionAggregate`) | Multi-field mutations (`set_service`, `set_constants`, gated `set_attribute`) |
 | `AppServiceDependency` | No | 1:1 field mapping; parent manages mutations |
 | `Feature` | Yes (`FeatureAggregate`) | Complex `new` factory with ID derivation; step ordering and insertion |
 | `FeatureEvent` | Yes (`FeatureEventAggregate`) | Specialized setters for `pass_on_error` and parameter merging |
@@ -62,7 +62,7 @@ aggregate = FeatureAggregate(id='calc.add', name='Add Number')
 Used when the caller already has a dict (e.g., from YAML loading):
 
 ```python
-aggregate = AppInterfaceAggregate(**app_interface_data)
+aggregate = AppSessionAggregate(**app_session_data)
 ```
 
 Choose the pattern that fits the domain. Derivation via `@model_validator` is useful when an ID is composed from multiple parts; dict-wrapper construction is useful when the aggregate is populated from configuration data.
@@ -74,11 +74,11 @@ When a domain object has no aggregate, the parent aggregate creates instances di
 ### Creation in the parent aggregate
 
 ```python
-# AppInterfaceAggregate.add_service
+# AppSessionAggregate.add_service
 dependency = AppServiceDependency(
     module_path=module_path,
     class_name=class_name,
-    attribute_id=attribute_id,
+    service_id=service_id,
     parameters=parameters,
 )
 self.services.append(dependency)
@@ -89,13 +89,13 @@ self.services.append(dependency)
 The transfer object is responsible for any structural differences between the configuration format and the domain model. The most common pattern is **dict↔list conversion**, where YAML stores sub-objects as a dictionary keyed by an identifier, but the domain model stores them as a list with that identifier as a field.
 
 ```python
-# AppInterfaceYamlObject.map — dict keys become attribute_id fields
-services=[dep.map(attribute_id=dep_id) for dep_id, dep in self.services.items()]
+# AppSessionConfigObject.map — dict keys become service_id fields
+services=[dep.map(service_id=dep_id) for dep_id, dep in self.services.items()]
 
-# AppInterfaceYamlObject.from_model — list items become dict entries
+# AppSessionConfigObject.from_model — list items become dict entries
 services={
-    dep.attribute_id: TransferObject.from_model(AppServiceDependencyYamlObject, dep)
-    for dep in app_interface.services
+    dep.service_id: TransferObject.from_model(AppServiceDependencyConfigObject, dep)
+    for dep in app_session.services
 }
 ```
 

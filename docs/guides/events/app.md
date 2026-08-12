@@ -1,4 +1,4 @@
-# Events – App Interface Management
+# Events – App Session Management
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,36 +7,36 @@
 
 ## Overview
 
-The app event module provides the full CRUD surface for `AppInterface` configurations — the blueprints that define how a Tiferet application is assembled at runtime. Every event in this module depends on an injected `AppService` and operates on `AppInterface` domain objects through the `AppInterfaceAggregate` mapper.
+The app event module provides the full CRUD surface for `AppSession` configurations — the runtime entry-point definitions that describe how a Tiferet application session is assembled. Every event in this module depends on an injected `AppService` and operates on `AppSession` domain objects through the `AppSessionAggregate` mapper.
 
-These events are consumed by `AppManagerContext` during bootstrapping and by management tooling that creates, updates, and removes interface configurations.
+These events are consumed by the `build_app` blueprint chain during bootstrapping and by management tooling that creates, updates, and removes session configurations.
 
 ## Events at a Glance
 
 | Event | Operation | Required Parameters | Returns |
 |---|---|---|---|
-| `AddAppInterface` | Create | `id`, `name`, `module_path`, `class_name` | `AppInterface` |
-| `GetAppInterface` | Read | `interface_id` | `AppInterface` |
-| `ListAppInterfaces` | Read (all) | *(none)* | `List[AppInterface]` |
-| `UpdateAppInterface` | Update (scalar) | `id`, `attribute` | `str` (ID) |
+| `AddAppSession` | Create | `id`, `name` | `AppSession` |
+| `GetAppSession` | Read | `id` | `AppSession` |
+| `UpdateAppSession` | Update (scalar) | `id` | `AppSession` |
+| `ListAppSessions` | Read (all) | *(none)* | `List[AppSession]` |
+| `RemoveAppSession` | Delete | `id` | `None` |
 | `SetAppConstants` | Update (constants) | `id` | `str` (ID) |
 | `SetServiceDependency` | Update (service dep) | `id`, `service_id`, `module_path`, `class_name` | `str` (ID) |
 | `RemoveServiceDependency` | Delete (service dep) | `id`, `service_id` | `str` (ID) |
-| `RemoveAppInterface` | Delete | `id` | `str` (ID) |
 
 ## Dependency
 
 All events inject a single dependency:
 
-- **`app_service: AppService`** — the service interface for persisting and retrieving `AppInterface` configurations.
+- **`app_service: AppService`** — the service interface for persisting and retrieving `AppSession` configurations.
 
 ## Event Details
 
-### AddAppInterface
+### AddAppSession
 
-Creates a new `AppInterface` and persists it via `AppService.save()`.
+Creates a new `AppSession` and persists it via `AppService.save()`.
 
-**Required:** `id`, `name`, `module_path`, `class_name`
+**Required:** `id`, `name`
 
 **Optional parameters:**
 
@@ -48,21 +48,19 @@ Creates a new `AppInterface` and persists it via `AppService.save()`.
 | `services` | `List[Dict]` | `[]` | Service dependency definitions (each dict has `service_id`, `module_path`, `class_name`, optional `parameters`) |
 | `constants` | `Dict[str, str]` | `{}` | Constant values for the DI injector |
 
-**Returns:** The created `AppInterface` instance.
+**Returns:** The created `AppSession` instance.
 
 **Behavior:**
-1. Collects all parameters into a data dict.
-2. Creates an `AppInterfaceAggregate` via the Pydantic constructor for creation and validation.
-3. Saves via `app_service.save(interface)`.
+1. Coerces optional arguments that argparse may pass as `None` to their defaults.
+2. Creates an `AppSessionAggregate` via the Pydantic constructor for creation and validation.
+3. Saves via `app_service.save(app_session)`.
 
 ```python
 result = DomainEvent.handle(
-    AddAppInterface,
+    AddAppSession,
     dependencies={'app_service': app_service},
     id='my_app',
     name='My Application',
-    module_path='myapp.contexts.main',
-    class_name='MainContext',
     services=[{
         'service_id': 'db_service',
         'module_path': 'myapp.repos.db',
@@ -72,76 +70,88 @@ result = DomainEvent.handle(
 )
 ```
 
-### GetAppInterface
+### GetAppSession
 
-Retrieves an `AppInterface` by ID from the app service. It is a repository-only read — it returns the stored interface unchanged and does not merge any defaults.
+Retrieves an `AppSession` by ID via the `AppService` abstraction.
 
-**Required:** `interface_id`
+**Required:** `id`
 
-**Returns:** The loaded `AppInterface` instance.
+**Returns:** The loaded `AppSession` instance.
 
-**Error:** Raises `APP_INTERFACE_NOT_FOUND` if the interface does not exist.
+**Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
 **Behavior:**
-1. Retrieves the interface via `app_service.get(interface_id)`.
+1. Retrieves the session via `app_service.get(id)`.
 2. Raises a structured error if `None`.
-3. Returns the loaded interface.
+3. Returns the loaded session.
 
 ```python
-interface = DomainEvent.handle(
-    GetAppInterface,
+app_session = DomainEvent.handle(
+    GetAppSession,
     dependencies={'app_service': app_service},
-    interface_id='my_app',
+    id='my_app',
 )
 ```
 
-### ListAppInterfaces
+### UpdateAppSession
 
-Lists all configured app interfaces. No required parameters.
+Updates scalar attributes of an existing app session. Each provided attribute is updated via `AppSessionAggregate.set_attribute()`, which enforces a gated allowlist of mutable fields.
 
-**Returns:** `List[AppInterface]` — may be empty.
-
-```python
-interfaces = DomainEvent.handle(
-    ListAppInterfaces,
-    dependencies={'app_service': app_service},
-)
-```
-
-### UpdateAppInterface
-
-Updates a single scalar attribute on an existing app interface. The attribute is updated via `AppInterfaceAggregate.set_attribute()`, which enforces a gated allowlist of mutable fields.
-
-**Required:** `id`, `attribute`
+**Required:** `id`
 
 **Optional parameters:**
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `value` | `Any` | — | The new value for the attribute |
+| `name` | `str \| None` | `None` | The new name value, or `None` to leave unchanged |
+| `description` | `str \| None` | `None` | The new description value, or `None` to leave unchanged |
+| `logger_id` | `str \| None` | `None` | The new logger id value, or `None` to leave unchanged |
 
-**Returns:** `str` — the interface ID.
+**Returns:** The updated `AppSession` instance.
 
-**Errors:**
-- `APP_INTERFACE_NOT_FOUND` if the interface does not exist.
-- `INVALID_MODEL_ATTRIBUTE` if the attribute name is not in the supported set.
-- `INVALID_APP_INTERFACE_TYPE` if `module_path` or `class_name` is set to an empty string.
-
-**Supported attributes:** `name`, `description`, `module_path`, `class_name`, `logger_id`, `flags`.
+**Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
 ```python
 DomainEvent.handle(
-    UpdateAppInterface,
+    UpdateAppSession,
     dependencies={'app_service': app_service},
     id='my_app',
-    attribute='description',
-    value='Updated description',
+    description='Updated description',
+)
+```
+
+### ListAppSessions
+
+Lists all configured application sessions. No required parameters.
+
+**Returns:** `List[AppSession]` — may be empty.
+
+```python
+app_sessions = DomainEvent.handle(
+    ListAppSessions,
+    dependencies={'app_service': app_service},
+)
+```
+
+### RemoveAppSession
+
+Removes an app session configuration by ID. The operation is **idempotent** — removing a non-existent session does not raise an error.
+
+**Required:** `id`
+
+**Returns:** `None`
+
+```python
+DomainEvent.handle(
+    RemoveAppSession,
+    dependencies={'app_service': app_service},
+    id='my_app',
 )
 ```
 
 ### SetAppConstants
 
-Sets, merges, or clears constants on an app interface.
+Sets, merges, or clears constants on an app session.
 
 **Required:** `id`
 
@@ -151,11 +161,11 @@ Sets, merges, or clears constants on an app interface.
 |---|---|---|---|
 | `constants` | `dict[str, Any] \| None` | `None` | Constants to apply. `None` clears all constants. Dict keys with `None` values are removed; others are merged. |
 
-**Returns:** `str` — the interface ID.
+**Returns:** `str` — the session ID.
 
-**Error:** Raises `APP_INTERFACE_NOT_FOUND` if the interface does not exist.
+**Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
-**Merge semantics** (delegated to `AppInterfaceAggregate.set_constants`):
+**Merge semantics** (delegated to `AppSessionAggregate.set_constants`):
 - `constants=None` → clears all constants.
 - `constants={'KEY': 'val'}` → merges into existing; existing keys are overwritten.
 - `constants={'KEY': None}` → removes `KEY` from the constants dict.
@@ -180,7 +190,7 @@ DomainEvent.handle(
 
 ### SetServiceDependency
 
-Adds or updates a service dependency on an app interface. Uses PUT semantics — if the `service_id` already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
+Adds or updates a service dependency on an app session. Uses PUT semantics — if the `service_id` already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
 
 **Required:** `id`, `service_id`, `module_path`, `class_name`
 
@@ -190,9 +200,9 @@ Adds or updates a service dependency on an app interface. Uses PUT semantics —
 |---|---|---|---|
 | `parameters` | `dict[str, Any] \| None` | `None` | Parameters for the service dependency. `None` clears existing parameters. Dict keys with `None` values are pruned. |
 
-**Returns:** `str` — the interface ID.
+**Returns:** `str` — the session ID.
 
-**Error:** Raises `APP_INTERFACE_NOT_FOUND` if the interface does not exist.
+**Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
 ```python
 DomainEvent.handle(
@@ -208,13 +218,13 @@ DomainEvent.handle(
 
 ### RemoveServiceDependency
 
-Removes a service dependency from an app interface by `service_id`. The operation is **idempotent** — removing a non-existent service does not raise an error.
+Removes a service dependency from an app session by `service_id`. The operation is **idempotent** — removing a non-existent service does not raise an error.
 
 **Required:** `id`, `service_id`
 
-**Returns:** `str` — the interface ID.
+**Returns:** `str` — the session ID.
 
-**Error:** Raises `APP_INTERFACE_NOT_FOUND` if the interface does not exist.
+**Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
 ```python
 DomainEvent.handle(
@@ -225,47 +235,22 @@ DomainEvent.handle(
 )
 ```
 
-### RemoveAppInterface
-
-Deletes an entire app interface configuration by ID. The operation is **idempotent** — removing a non-existent interface does not raise an error.
-
-**Required:** `id`
-
-**Returns:** `str` — the removed interface ID.
-
-```python
-DomainEvent.handle(
-    RemoveAppInterface,
-    dependencies={'app_service': app_service},
-    id='my_app',
-)
-```
-
 ## Common Patterns
 
 ### Retrieve → Verify → Mutate → Save
 
 Most mutation events follow the same four-step pattern:
 
-1. **Retrieve** the `AppInterface` via `app_service.get(id)`.
-2. **Verify** it exists using `self.verify()` or `self.raise_error()`.
+1. **Retrieve** the `AppSession` via `app_service.get(id)`.
+2. **Verify** it exists using `self.verify()`.
 3. **Mutate** the aggregate via its domain methods (`set_attribute`, `set_service`, `set_constants`, etc.).
-4. **Save** the updated aggregate via `app_service.save(interface)`.
+4. **Save** the updated aggregate via `app_service.save(app_session)`.
 
 This pattern ensures that domain rules are enforced by the aggregate, not the event, and that persistence is always explicit.
 
 ### Idempotent Deletes
 
-Both `RemoveServiceDependency` and `RemoveAppInterface` are idempotent — they succeed silently if the target does not exist. This simplifies orchestration workflows where deletions may be retried.
-
-### Default Service Merging
-
-Bootstrap default merging is no longer a concern of `GetAppInterface`; the event is a plain repository read. Framework-level defaults (error repository, feature repository, etc.) are applied outside the event by two dedicated helpers:
-
-- **`AppInterface.apply_defaults(default_services, default_constants)`** (`tiferet/domain/app.py`) — a non-mutating domain helper that returns a new interface with default services added for any missing `service_id` and default constants added for any missing key (existing values win).
-- **`resolve_default_interface(interface_id, default_interfaces)`** (`tiferet/contexts/app.py`) — the context bootstrap helper that resolves an interface and applies its defaults during startup.
-
-Neither helper re-wraps `AppInterfaceAggregate`.
+Both `RemoveServiceDependency` and `RemoveAppSession` are idempotent — they delegate to `AppService.delete()`/aggregate removal, which succeeds silently if the target does not exist. This simplifies orchestration workflows where deletions may be retried.
 
 ## Related Documentation
 

@@ -63,7 +63,7 @@ dep = config.get_dependency('sqlite', 'yaml')
 
 Flags flow into the DI container from multiple sources:
 
-1. **`AppInterface.flags`** — interface-level flags set in `app/configs/app.yml` (e.g., `['yaml']`, `['sqlite', 'yaml']`).
+1. **`AppSession.flags`** — session-level flags set in `app/configs/app.yml` (e.g., `['yaml']`, `['sqlite', 'yaml']`).
 2. **`Feature.flags`** — feature-level flag overrides defined in `feature.yml`.
 3. **`EventFeatureStep.flags`** — step-level flag overrides within a feature workflow.
 
@@ -134,7 +134,7 @@ Concrete implementations (e.g., `DIYamlRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **App:** `AppInterface.flags` provides the primary set of runtime flags used during dependency resolution.
+- **App:** `AppSession.flags` provides the primary set of runtime flags used during dependency resolution.
 - **Feature:** `Feature.flags` and `EventFeatureStep.flags` can override or extend the active flag set for specific workflows.
 - **Error:** Error service implementations are resolved through the DI container, making `ServiceRegistration` entries for `error_service` a common pattern.
 
@@ -165,6 +165,6 @@ config = ServiceRegistration(
 
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (AppInterface, flags)
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (AppSession, flags)
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
