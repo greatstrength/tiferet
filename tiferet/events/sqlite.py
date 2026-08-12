@@ -4,7 +4,6 @@
 
 # ** core
 from typing import List, Dict, Any, Sequence, Optional, Callable
-import sqlite3
 
 # ** app
 from .core import DomainEvent, a
@@ -90,20 +89,13 @@ class MutateSql(SqliteEvent):
             command='MutateSql'
         )
 
-        try:
-            with self.sqlite_service as sql:
-                cursor = sql.execute(statement, parameters)
-                
-                return {
-                    "rowcount": cursor.rowcount,
-                    "lastrowid": cursor.lastrowid if clean_statement.startswith("INSERT") else None
-                }
-        except sqlite3.Error as e:
-            self.raise_error(
-                'APP_ERROR',
-                f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
-            )
+        with self.sqlite_service as sql:
+            cursor = sql.execute(statement, parameters)
+
+            return {
+                "rowcount": cursor.rowcount,
+                "lastrowid": cursor.lastrowid if clean_statement.startswith("INSERT") else None
+            }
 
 # ** event: query_sql
 class QuerySql(SqliteEvent):
@@ -142,19 +134,11 @@ class QuerySql(SqliteEvent):
         )
 
         # Execute the SQL query.
-        # An APP_ERROR shall be raised in case of error.
-        try:
-            with self.sqlite_service as sql:
-                if fetch_one:
-                    return sql.fetch_one(query, parameters)
-                else:
-                    return sql.fetch_all(query, parameters)
-        except sqlite3.Error as e:
-            self.raise_error(
-                'APP_ERROR',
-                f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
-            )
+        with self.sqlite_service as sql:
+            if fetch_one:
+                return sql.fetch_one(query, parameters)
+            else:
+                return sql.fetch_all(query, parameters)
 
 # ** event: bulk_mutate_sql
 class BulkMutateSql(SqliteEvent):
@@ -202,20 +186,13 @@ class BulkMutateSql(SqliteEvent):
             command='BulkMutateSql'
         )
 
-        try:
-            with self.sqlite_service as sql:
-                cursor = sql.executemany(statement, parameters_list)
-                
-                return {
-                    "total_rowcount": cursor.rowcount,
-                    "lastrowids": [cursor.lastrowid] if clean_statement.startswith("INSERT") else None
-                }
-        except sqlite3.Error as e:
-            self.raise_error(
-                'APP_ERROR',
-                f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
-            )
+        with self.sqlite_service as sql:
+            cursor = sql.executemany(statement, parameters_list)
+
+            return {
+                "total_rowcount": cursor.rowcount,
+                "lastrowids": [cursor.lastrowid] if clean_statement.startswith("INSERT") else None
+            }
 
 # ** event: execute_script_sql
 class ExecuteScriptSql(SqliteEvent):
@@ -242,19 +219,12 @@ class ExecuteScriptSql(SqliteEvent):
         :param script: Multi-statement SQL script
         :return: {"success": bool}
         '''
-        try:
-            with self.sqlite_service as sql:
-                sql.executescript(script)
-                
-                return {
-                    "success": True
-                }
-        except sqlite3.Error as e:
-            self.raise_error(
-                'APP_ERROR',
-                f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
-            )
+        with self.sqlite_service as sql:
+            sql.executescript(script)
+
+            return {
+                "success": True
+            }
 
 # ** event: backup_sql
 class BackupSql(SqliteEvent):
@@ -285,21 +255,13 @@ class BackupSql(SqliteEvent):
         :param progress: Optional callback(status, remaining, total)
         :return: {"success": bool, "message": str | None}
         '''
-        try:
-            with self.sqlite_service as sql:
-                sql.backup(target_path, pages=pages, progress=progress)
-                
-                return {
-                    "success": True,
-                    "message": None
-                }
-        except sqlite3.Error as e:
-            self.raise_error(
-                a.error.SQLITE_BACKUP_FAILED_ID,
-                f'Backup to {target_path} failed: {str(e)}',
-                target_path=target_path,
-                original_error=str(e)
-            )
+        with self.sqlite_service as sql:
+            sql.backup(target_path, pages=pages, progress=progress)
+
+            return {
+                "success": True,
+                "message": None
+            }
 
 # ** event: create_table_sql
 class CreateTableSql(SqliteEvent):
@@ -398,19 +360,12 @@ class CreateTableSql(SqliteEvent):
         generated_sql = '\n'.join(sql_parts)
 
         # Execute the SQL statement
-        try:
-            with self.sqlite_service as sql:
-                sql.execute(generated_sql)
-                
-                return {
-                    "success": True
-                }
-        except sqlite3.Error as e:
-            self.raise_error(
-                'APP_ERROR',
-                f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
-            )
+        with self.sqlite_service as sql:
+            sql.execute(generated_sql)
+
+            return {
+                "success": True
+            }
 
 # ** event: drop_table_sql
 class DropTableSql(SqliteEvent):
@@ -458,16 +413,9 @@ class DropTableSql(SqliteEvent):
             generated_sql = f'DROP TABLE "{table_name}"'
 
         # Execute the SQL statement
-        try:
-            with self.sqlite_service as sql:
-                sql.execute(generated_sql)
+        with self.sqlite_service as sql:
+            sql.execute(generated_sql)
 
-                return {
-                    "success": True
-                }
-        except sqlite3.Error as e:
-            self.raise_error(
-                'APP_ERROR',
-                f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
-            )
+            return {
+                "success": True
+            }

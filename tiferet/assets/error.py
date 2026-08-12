@@ -66,12 +66,6 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 # ** constant: feature_step_loading_failed_id
 FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
 
-# ** constant: file_already_open_id
-FILE_ALREADY_OPEN_ID = 'FILE_ALREADY_OPEN'
-
-# ** constant: file_not_found_id
-FILE_NOT_FOUND_ID = 'FILE_NOT_FOUND'
-
 # ** constant: import_dependency_failed_id
 IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
 
@@ -81,32 +75,14 @@ INVALID_APP_SESSION_TYPE_ID = 'INVALID_APP_SESSION_TYPE'
 # ** constant: invalid_dependency_error_id
 INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
 
-# ** constant: invalid_encoding_id
-INVALID_ENCODING_ID = 'INVALID_ENCODING'
-
-# ** constant: invalid_file_id
-INVALID_FILE_ID = 'INVALID_FILE'
-
-# ** constant: invalid_file_mode_id
-INVALID_FILE_MODE_ID = 'INVALID_FILE_MODE'
-
 # ** constant: invalid_json_file_id
 INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
-
-# ** constant: invalid_json_path_id
-INVALID_JSON_PATH_ID = 'INVALID_JSON_PATH'
 
 # ** constant: invalid_model_attribute_id
 INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 
 # ** constant: invalid_yaml_file_id
 INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
-
-# ** constant: json_file_load_error_id
-JSON_FILE_LOAD_ERROR_ID = 'JSON_FILE_LOAD_ERROR'
-
-# ** constant: json_file_not_found_id
-JSON_FILE_NOT_FOUND_ID = 'JSON_FILE_NOT_FOUND'
 
 # ** constant: logger_creation_failed_id
 LOGGER_CREATION_FAILED_ID = 'LOGGER_CREATION_FAILED'
@@ -128,15 +104,6 @@ REQUEST_NOT_FOUND_ID = 'REQUEST_NOT_FOUND'
 
 # ** constant: request_validation_failed_id
 REQUEST_VALIDATION_FAILED_ID = 'REQUEST_VALIDATION_FAILED'
-
-# ** constant: unsupported_config_file_type_id
-UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
-
-# ** constant: yaml_file_load_error_id
-YAML_FILE_LOAD_ERROR_ID = 'YAML_FILE_LOAD_ERROR'
-
-# ** constant: yaml_file_not_found_id
-YAML_FILE_NOT_FOUND_ID = 'YAML_FILE_NOT_FOUND'
 
 # *** constants (ids_admin)
 
@@ -173,9 +140,6 @@ INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 # ** constant: invalid_service_registration_id
 INVALID_SERVICE_REGISTRATION_ID = 'INVALID_SERVICE_REGISTRATION'
 
-# ** constant: json_file_save_error_id
-JSON_FILE_SAVE_ERROR_ID = 'JSON_FILE_SAVE_ERROR'
-
 # ** constant: no_error_messages_id
 NO_ERROR_MESSAGES_ID = 'NO_ERROR_MESSAGES'
 
@@ -185,61 +149,23 @@ SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 # ** constant: service_registration_not_found_id
 SERVICE_REGISTRATION_NOT_FOUND_ID = 'SERVICE_REGISTRATION_NOT_FOUND'
 
-# ** constant: yaml_file_save_error_id
-YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
-
 # *** constants (ids_sqlite)
-
-# ** constant: sqlite_backup_failed_id
-SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
-
-# ** constant: sqlite_conn_already_open_id
-SQLITE_CONN_ALREADY_OPEN_ID = 'SQLITE_CONN_ALREADY_OPEN'
-
-# ** constant: sqlite_conn_failed_id
-SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
-
-# ** constant: sqlite_conn_not_initialized_id
-SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
 
 # Legacy constants — present on main pending rename or retirement in later parity stories.
 
 # ** constant: sqlite_file_not_found_or_readonly_id
 SQLITE_FILE_NOT_FOUND_OR_READONLY_ID = 'SQLITE_FILE_NOT_FOUND_OR_READONLY'
 
-# ** constant: sqlite_invalid_mode_id
-SQLITE_INVALID_MODE_ID = 'SQLITE_INVALID_MODE'
-
-# *** constants (ids_toml)
-
-# ** constant: invalid_toml_file_id
-INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
-
-# ** constant: toml_file_load_error_id
-TOML_FILE_LOAD_ERROR_ID = 'TOML_FILE_LOAD_ERROR'
-
-# ** constant: toml_file_not_found_id
-TOML_FILE_NOT_FOUND_ID = 'TOML_FILE_NOT_FOUND'
-
 # *** constants (ids_csv)
 
 # ** constant: csv_dict_no_header_id
 CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
-
-# ** constant: csv_fieldnames_required_id
-CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
 
 # ** constant: csv_handle_not_initialized_id
 CSV_HANDLE_NOT_INITIALIZED_ID = 'CSV_HANDLE_NOT_INITIALIZED'
 
 # ** constant: csv_invalid_mode_id
 CSV_INVALID_MODE_ID = 'CSV_INVALID_MODE'
-
-# ** constant: csv_invalid_read_mode_id
-CSV_INVALID_READ_MODE_ID = 'CSV_INVALID_READ_MODE'
-
-# ** constant: csv_invalid_write_mode_id
-CSV_INVALID_WRITE_MODE_ID = 'CSV_INVALID_WRITE_MODE'
 
 # *** constants (models)
 
@@ -369,20 +295,6 @@ FEATURE_STEP_LOADING_FAILED = create_default_error(
     [(EN_US, 'Failed to load feature step: {service_id}. Error: {exception}.')],
 )
 
-# ** constant: file_already_open
-FILE_ALREADY_OPEN = create_default_error(
-    FILE_ALREADY_OPEN_ID,
-    'File Already Open',
-    [(EN_US, 'File is already open: {path}.')],
-)
-
-# ** constant: file_not_found
-FILE_NOT_FOUND = create_default_error(
-    FILE_NOT_FOUND_ID,
-    'File Not Found',
-    [(EN_US, 'File not found: {path}.')],
-)
-
 # ** constant: import_dependency_failed
 IMPORT_DEPENDENCY_FAILED = create_default_error(
     IMPORT_DEPENDENCY_FAILED_ID,
@@ -404,39 +316,11 @@ INVALID_DEPENDENCY_ERROR = create_default_error(
     [(EN_US, 'Dependency {dependency} could not be resolved: {reason}.')],
 )
 
-# ** constant: invalid_encoding
-INVALID_ENCODING = create_default_error(
-    INVALID_ENCODING_ID,
-    'Invalid Encoding',
-    [(EN_US, 'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.')],
-)
-
-# ** constant: invalid_file
-INVALID_FILE = create_default_error(
-    INVALID_FILE_ID,
-    'Invalid File',
-    [(EN_US, 'Path is not a file: {path}.')],
-)
-
-# ** constant: invalid_file_mode
-INVALID_FILE_MODE = create_default_error(
-    INVALID_FILE_MODE_ID,
-    'Invalid File Mode',
-    [(EN_US, 'Invalid file mode: {mode}. Valid modes include {modes}')],
-)
-
 # ** constant: invalid_json_file
 INVALID_JSON_FILE = create_default_error(
     INVALID_JSON_FILE_ID,
     'Invalid JSON File',
     [(EN_US, 'File is not a valid JSON file: {path}.')],
-)
-
-# ** constant: invalid_json_path
-INVALID_JSON_PATH = create_default_error(
-    INVALID_JSON_PATH_ID,
-    'Invalid JSON Path',
-    [(EN_US, 'Invalid JSON path: {path}. Failed at segment: {part}.')],
 )
 
 # ** constant: invalid_model_attribute
@@ -451,20 +335,6 @@ INVALID_YAML_FILE = create_default_error(
     INVALID_YAML_FILE_ID,
     'Invalid YAML File',
     [(EN_US, 'File is not a valid YAML file: {path}.')],
-)
-
-# ** constant: json_file_load_error
-JSON_FILE_LOAD_ERROR = create_default_error(
-    JSON_FILE_LOAD_ERROR_ID,
-    'JSON Load Failure',
-    [(EN_US, 'Failed to parse JSON: {error}. Path: {path}.')],
-)
-
-# ** constant: json_file_not_found
-JSON_FILE_NOT_FOUND = create_default_error(
-    JSON_FILE_NOT_FOUND_ID,
-    'JSON File Not Found',
-    [(EN_US, 'The specified JSON file could not be found at {path}.')],
 )
 
 # ** constant: logger_creation_failed
@@ -514,27 +384,6 @@ REQUEST_VALIDATION_FAILED = create_default_error(
     REQUEST_VALIDATION_FAILED_ID,
     'Request Validation Failed',
     [(EN_US, 'Request validation failed for feature {feature_id}: {violations}.')],
-)
-
-# ** constant: unsupported_config_file_type
-UNSUPPORTED_CONFIG_FILE_TYPE = create_default_error(
-    UNSUPPORTED_CONFIG_FILE_TYPE_ID,
-    'Unsupported Configuration File Type',
-    [(EN_US, 'Unsupported configuration file type: {file_extension}.')],
-)
-
-# ** constant: yaml_file_load_error
-YAML_FILE_LOAD_ERROR = create_default_error(
-    YAML_FILE_LOAD_ERROR_ID,
-    'YAML Load Failure',
-    [(EN_US, 'Failed to parse YAML file: {error}. Path: {path}.')],
-)
-
-# ** constant: yaml_file_not_found
-YAML_FILE_NOT_FOUND = create_default_error(
-    YAML_FILE_NOT_FOUND_ID,
-    'YAML File Not Found',
-    [(EN_US, 'The specified YAML file could not be found at {path}.')],
 )
 
 # *** constants (models_admin)
@@ -620,13 +469,6 @@ INVALID_SERVICE_REGISTRATION = create_default_error(
       '(module_path/class_name) or at least one flagged dependency.')],
 )
 
-# ** constant: json_file_save_error
-JSON_FILE_SAVE_ERROR = create_default_error(
-    JSON_FILE_SAVE_ERROR_ID,
-    'JSON Save Failure',
-    [(EN_US, 'Failed to serialize/write JSON: {error}. Path: {path}.')],
-)
-
 # ** constant: no_error_messages
 NO_ERROR_MESSAGES = create_default_error(
     NO_ERROR_MESSAGES_ID,
@@ -648,42 +490,7 @@ SERVICE_REGISTRATION_NOT_FOUND = create_default_error(
     [(EN_US, 'Service registration with ID {id} not found.')],
 )
 
-# ** constant: yaml_file_save_error
-YAML_FILE_SAVE_ERROR = create_default_error(
-    YAML_FILE_SAVE_ERROR_ID,
-    'YAML Save Failure',
-    [(EN_US, 'Failed to write YAML file: {error}. Path: {path}.')],
-)
-
 # *** constants (models_sqlite)
-
-# ** constant: sqlite_backup_failed
-SQLITE_BACKUP_FAILED = create_default_error(
-    SQLITE_BACKUP_FAILED_ID,
-    'SQLite Backup Failed',
-    [(EN_US, 'Backup to {target_path} failed: {original_error}')],
-)
-
-# ** constant: sqlite_conn_already_open
-SQLITE_CONN_ALREADY_OPEN = create_default_error(
-    SQLITE_CONN_ALREADY_OPEN_ID,
-    'SQLite Connection Already Open',
-    [(EN_US, 'Connection already open for path: {path}.')],
-)
-
-# ** constant: sqlite_conn_failed
-SQLITE_CONN_FAILED = create_default_error(
-    SQLITE_CONN_FAILED_ID,
-    'SQLite Connection Failed',
-    [(EN_US, 'Failed to connect to SQLite database at {path}: {original_error}')],
-)
-
-# ** constant: sqlite_conn_not_initialized
-SQLITE_CONN_NOT_INITIALIZED = create_default_error(
-    SQLITE_CONN_NOT_INITIALIZED_ID,
-    'SQLite Connection Not Initialized',
-    [(EN_US, 'SQLite connection not initialized. Must be used within a "with" block.')],
-)
 
 # ** constant: sqlite_file_not_found_or_readonly
 SQLITE_FILE_NOT_FOUND_OR_READONLY = create_default_error(
@@ -694,36 +501,6 @@ SQLITE_FILE_NOT_FOUND_OR_READONLY = create_default_error(
       'Check path exists and is writable (use mode=rwc to create).')],
 )
 
-# ** constant: sqlite_invalid_mode
-SQLITE_INVALID_MODE = create_default_error(
-    SQLITE_INVALID_MODE_ID,
-    'Invalid SQLite Mode',
-    [(EN_US, 'Invalid SQLite mode: {mode}. Supported: ro, rw, rwc (or None for default auto-create).')],
-)
-
-# *** constants (models_toml)
-
-# ** constant: invalid_toml_file
-INVALID_TOML_FILE = create_default_error(
-    INVALID_TOML_FILE_ID,
-    'Invalid TOML File',
-    [(EN_US, 'File is not a valid TOML file: {path}.')],
-)
-
-# ** constant: toml_file_load_error
-TOML_FILE_LOAD_ERROR = create_default_error(
-    TOML_FILE_LOAD_ERROR_ID,
-    'TOML Load Failure',
-    [(EN_US, 'Failed to parse TOML file: {error}. Path: {path}.')],
-)
-
-# ** constant: toml_file_not_found
-TOML_FILE_NOT_FOUND = create_default_error(
-    TOML_FILE_NOT_FOUND_ID,
-    'TOML File Not Found',
-    [(EN_US, 'The specified TOML file could not be found at {path}.')],
-)
-
 # *** constants (models_csv)
 
 # ** constant: csv_dict_no_header
@@ -731,13 +508,6 @@ CSV_DICT_NO_HEADER = create_default_error(
     CSV_DICT_NO_HEADER_ID,
     'CSV Dict Reader Without Header',
     [(EN_US, 'Dict reader expects header row; file appears to lack one or was not read correctly.')],
-)
-
-# ** constant: csv_fieldnames_required
-CSV_FIELDNAMES_REQUIRED = create_default_error(
-    CSV_FIELDNAMES_REQUIRED_ID,
-    'CSV Fieldnames Required',
-    [(EN_US, 'Fieldnames must be provided when writing dict-based CSV rows.')],
 )
 
 # ** constant: csv_handle_not_initialized
@@ -752,20 +522,6 @@ CSV_INVALID_MODE = create_default_error(
     CSV_INVALID_MODE_ID,
     'Invalid CSV Mode',
     [(EN_US, 'Invalid file mode for CSV operation: {mode}. Expected r, w, a, etc.')],
-)
-
-# ** constant: csv_invalid_read_mode
-CSV_INVALID_READ_MODE = create_default_error(
-    CSV_INVALID_READ_MODE_ID,
-    'Invalid CSV Read Mode',
-    [(EN_US, 'File not opened in readable mode for CSV reading.')],
-)
-
-# ** constant: csv_invalid_write_mode
-CSV_INVALID_WRITE_MODE = create_default_error(
-    CSV_INVALID_WRITE_MODE_ID,
-    'Invalid CSV Write Mode',
-    [(EN_US, 'File not opened in writable mode for CSV writing.')],
 )
 
 # *** constants (groups)
@@ -790,20 +546,12 @@ CORE_DEFAULT_ERRORS = {
     FEATURE_CONFIG_LOADING_FAILED_ID: FEATURE_CONFIG_LOADING_FAILED,
     FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND,
     FEATURE_STEP_LOADING_FAILED_ID: FEATURE_STEP_LOADING_FAILED,
-    FILE_ALREADY_OPEN_ID: FILE_ALREADY_OPEN,
-    FILE_NOT_FOUND_ID: FILE_NOT_FOUND,
     IMPORT_DEPENDENCY_FAILED_ID: IMPORT_DEPENDENCY_FAILED,
     INVALID_APP_SESSION_TYPE_ID: INVALID_APP_SESSION_TYPE,
     INVALID_DEPENDENCY_ERROR_ID: INVALID_DEPENDENCY_ERROR,
-    INVALID_ENCODING_ID: INVALID_ENCODING,
-    INVALID_FILE_ID: INVALID_FILE,
-    INVALID_FILE_MODE_ID: INVALID_FILE_MODE,
     INVALID_JSON_FILE_ID: INVALID_JSON_FILE,
-    INVALID_JSON_PATH_ID: INVALID_JSON_PATH,
     INVALID_MODEL_ATTRIBUTE_ID: INVALID_MODEL_ATTRIBUTE,
     INVALID_YAML_FILE_ID: INVALID_YAML_FILE,
-    JSON_FILE_LOAD_ERROR_ID: JSON_FILE_LOAD_ERROR,
-    JSON_FILE_NOT_FOUND_ID: JSON_FILE_NOT_FOUND,
     LOGGER_CREATION_FAILED_ID: LOGGER_CREATION_FAILED,
     LOGGING_CONFIG_FAILED_ID: LOGGING_CONFIG_FAILED,
     MIDDLEWARE_LOADING_FAILED_ID: MIDDLEWARE_LOADING_FAILED,
@@ -811,9 +559,6 @@ CORE_DEFAULT_ERRORS = {
     PARAMETER_PARSING_FAILED_ID: PARAMETER_PARSING_FAILED,
     REQUEST_NOT_FOUND_ID: REQUEST_NOT_FOUND,
     REQUEST_VALIDATION_FAILED_ID: REQUEST_VALIDATION_FAILED,
-    UNSUPPORTED_CONFIG_FILE_TYPE_ID: UNSUPPORTED_CONFIG_FILE_TYPE,
-    YAML_FILE_LOAD_ERROR_ID: YAML_FILE_LOAD_ERROR,
-    YAML_FILE_NOT_FOUND_ID: YAML_FILE_NOT_FOUND,
 }
 
 # ** constant: admin_default_errors
@@ -830,38 +575,24 @@ ADMIN_DEFAULT_ERRORS = {
     INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: INVALID_FEATURE_COMMAND_ATTRIBUTE,
     INVALID_FLAGGED_DEPENDENCY_ID: INVALID_FLAGGED_DEPENDENCY,
     INVALID_SERVICE_REGISTRATION_ID: INVALID_SERVICE_REGISTRATION,
-    JSON_FILE_SAVE_ERROR_ID: JSON_FILE_SAVE_ERROR,
     NO_ERROR_MESSAGES_ID: NO_ERROR_MESSAGES,
     SERVICE_REGISTRATION_ALREADY_EXISTS_ID: SERVICE_REGISTRATION_ALREADY_EXISTS,
     SERVICE_REGISTRATION_NOT_FOUND_ID: SERVICE_REGISTRATION_NOT_FOUND,
-    YAML_FILE_SAVE_ERROR_ID: YAML_FILE_SAVE_ERROR,
 }
 
 # ** constant: sqlite_default_errors
 SQLITE_DEFAULT_ERRORS = {
-    SQLITE_BACKUP_FAILED_ID: SQLITE_BACKUP_FAILED,
-    SQLITE_CONN_ALREADY_OPEN_ID: SQLITE_CONN_ALREADY_OPEN,
-    SQLITE_CONN_FAILED_ID: SQLITE_CONN_FAILED,
-    SQLITE_CONN_NOT_INITIALIZED_ID: SQLITE_CONN_NOT_INITIALIZED,
     SQLITE_FILE_NOT_FOUND_OR_READONLY_ID: SQLITE_FILE_NOT_FOUND_OR_READONLY,
-    SQLITE_INVALID_MODE_ID: SQLITE_INVALID_MODE,
 }
 
 # ** constant: toml_default_errors
-TOML_DEFAULT_ERRORS = {
-    INVALID_TOML_FILE_ID: INVALID_TOML_FILE,
-    TOML_FILE_LOAD_ERROR_ID: TOML_FILE_LOAD_ERROR,
-    TOML_FILE_NOT_FOUND_ID: TOML_FILE_NOT_FOUND,
-}
+TOML_DEFAULT_ERRORS = {}
 
 # ** constant: csv_default_errors
 CSV_DEFAULT_ERRORS = {
     CSV_DICT_NO_HEADER_ID: CSV_DICT_NO_HEADER,
-    CSV_FIELDNAMES_REQUIRED_ID: CSV_FIELDNAMES_REQUIRED,
     CSV_HANDLE_NOT_INITIALIZED_ID: CSV_HANDLE_NOT_INITIALIZED,
     CSV_INVALID_MODE_ID: CSV_INVALID_MODE,
-    CSV_INVALID_READ_MODE_ID: CSV_INVALID_READ_MODE,
-    CSV_INVALID_WRITE_MODE_ID: CSV_INVALID_WRITE_MODE,
 }
 
 # ** constant: default_errors

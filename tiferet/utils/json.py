@@ -9,9 +9,22 @@ from typing import Any, Callable, Optional
 import json
 
 # ** app
-from .file import FileLoader
-from ..events import RaiseError, a
-from ..events.core import TiferetError
+from .file import FileLoader, INVALID_FILE_ID
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: json_file_not_found_id
+JSON_FILE_NOT_FOUND_ID = 'JSON_FILE_NOT_FOUND'
+
+# ** constant: json_file_load_error_id
+JSON_FILE_LOAD_ERROR_ID = 'JSON_FILE_LOAD_ERROR'
+
+# ** constant: json_file_save_error_id
+JSON_FILE_SAVE_ERROR_ID = 'JSON_FILE_SAVE_ERROR'
+
+# ** constant: invalid_json_path_id
+INVALID_JSON_PATH_ID = 'INVALID_JSON_PATH'
 
 # *** utils
 
@@ -65,16 +78,18 @@ class JsonLoader(FileLoader):
             if default_path and default_path.suffix.lower() == '.json':
                 path = default_path
             else:
-                RaiseError.execute(
-                    error_code=a.error.INVALID_FILE_ID,
+                ServiceError.raise_for(
+                    JsonLoader,
+                    INVALID_FILE_ID,
                     message="File must have .json extension",
                     path=str(loader.path),
                 )
 
         # Verify the resolved path exists.
         if not path.exists():
-            RaiseError.execute(
-                error_code=a.error.JSON_FILE_NOT_FOUND_ID,
+            ServiceError.raise_for(
+                JsonLoader,
+                JSON_FILE_NOT_FOUND_ID,
                 path=str(path),
             )
 
@@ -109,27 +124,31 @@ class JsonLoader(FileLoader):
                 # Apply the data_factory and return.
                 return data_factory(transformed)
 
-        except TiferetError:
+        except ServiceError:
 
             # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
             raise
 
         except json.JSONDecodeError as e:
 
-            # Wrap JSON parsing errors as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.JSON_FILE_LOAD_ERROR_ID,
+            # Wrap JSON parsing errors as a ServiceError.
+            ServiceError.raise_for(
+                self,
+                JSON_FILE_LOAD_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
+                cause=e,
             )
 
         except Exception as e:
 
-            # Wrap all other exceptions as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.JSON_FILE_LOAD_ERROR_ID,
+            # Wrap all other exceptions as a ServiceError.
+            ServiceError.raise_for(
+                self,
+                JSON_FILE_LOAD_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
+                cause=e,
             )
 
     # * method: save
@@ -159,18 +178,20 @@ class JsonLoader(FileLoader):
             with self:
                 self.file.write(content)
 
-        except TiferetError:
+        except ServiceError:
 
             # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
             raise
 
         except Exception as e:
 
-            # Wrap write errors as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.JSON_FILE_SAVE_ERROR_ID,
+            # Wrap write errors as a ServiceError.
+            ServiceError.raise_for(
+                self,
+                JSON_FILE_SAVE_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
+                cause=e,
             )
 
     # * method: parse_json_path (static)
@@ -202,8 +223,9 @@ class JsonLoader(FileLoader):
 
             # Raise on invalid navigation.
             else:
-                RaiseError.execute(
-                    error_code=a.error.INVALID_JSON_PATH_ID,
+                ServiceError.raise_for(
+                    JsonLoader,
+                    INVALID_JSON_PATH_ID,
                     path=path,
                     part=part,
                 )

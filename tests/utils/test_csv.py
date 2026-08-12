@@ -9,9 +9,15 @@ from pathlib import Path
 import pytest
 
 # ** app
-from tiferet.utils.csv import CsvLoader, CsvDictLoader
-from tiferet.events import a
-from tiferet.events.core import TiferetError
+from tiferet.utils.csv import (
+    CsvLoader,
+    CsvDictLoader,
+    CSV_FIELDNAMES_REQUIRED_ID,
+    CSV_INVALID_READ_MODE_ID,
+    CSV_INVALID_WRITE_MODE_ID,
+)
+from tiferet.utils.file import FILE_NOT_FOUND_ID
+from tiferet.interfaces.core import ServiceError
 
 # *** fixtures
 
@@ -307,11 +313,11 @@ def test_csv_loader_save_rows_dict_no_fieldnames(tmp_path):
     file_path = tmp_path / 'dict_no_fields.csv'
     data = [{'name': 'Alice'}]
 
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         CsvLoader.save_rows(file_path, data)
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_loader_append_row_static
 def test_csv_loader_append_row_static(tmp_path):
@@ -382,11 +388,11 @@ def test_csv_loader_invalid_read_mode(tmp_path):
     # Open in write mode and attempt to build a reader.
     file_path = tmp_path / 'write_only.csv'
     with CsvLoader(path=file_path, mode='w') as loader:
-        with pytest.raises(TiferetError) as exc_info:
+        with pytest.raises(ServiceError) as exc_info:
             loader.build_reader()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.CSV_INVALID_READ_MODE_ID
+    assert exc_info.value.error_code == CSV_INVALID_READ_MODE_ID
 
 # ** test: csv_loader_invalid_write_mode
 def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
@@ -399,11 +405,11 @@ def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
 
     # Open in read mode and attempt to build a writer.
     with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        with pytest.raises(TiferetError) as exc_info:
+        with pytest.raises(ServiceError) as exc_info:
             loader.build_writer()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.CSV_INVALID_WRITE_MODE_ID
+    assert exc_info.value.error_code == CSV_INVALID_WRITE_MODE_ID
 
 # ** test: csv_loader_file_not_found
 def test_csv_loader_file_not_found(tmp_path):
@@ -415,12 +421,12 @@ def test_csv_loader_file_not_found(tmp_path):
     '''
 
     # Attempt to open a non-existent file.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         with CsvLoader(path=tmp_path / 'missing.csv', mode='r') as loader:
             loader.read_all()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 
 # ** test: csv_loader_empty_file
 def test_csv_loader_empty_file(temp_empty_csv_file: Path):
@@ -569,11 +575,11 @@ def test_csv_dict_loader_save_rows_no_fieldnames(tmp_path):
     file_path = tmp_path / 'no_fields.csv'
     data = [{'a': '1'}]
 
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         CsvDictLoader.save_rows(file_path, data)
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_dict_loader_fieldnames_required_on_build_writer
 def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
@@ -587,11 +593,11 @@ def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
     # Open in write mode without fieldnames.
     file_path = tmp_path / 'no_fieldnames.csv'
     with CsvDictLoader(path=file_path, mode='w') as loader:
-        with pytest.raises(TiferetError) as exc_info:
+        with pytest.raises(ServiceError) as exc_info:
             loader.build_writer()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_dict_loader_yield_rows
 def test_csv_dict_loader_yield_rows(temp_dict_csv_file: Path):
