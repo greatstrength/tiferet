@@ -94,7 +94,7 @@ def test_tier_sizes():
 
     # Verify the core tier and the admin-only remainder.
     assert len(CORE_DEFAULT_ERRORS) == 42
-    assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 18
+    assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 16
 
     # Verify the three optional utility tiers.
     assert len(SQLITE_DEFAULT_ERRORS) == 6
@@ -102,7 +102,7 @@ def test_tier_sizes():
     assert len(CSV_DEFAULT_ERRORS) == 6
 
     # Verify the composite catalog preserves the full pre-tiering key count.
-    assert len(DEFAULT_ERRORS) == 75
+    assert len(DEFAULT_ERRORS) == 73
 
 # ** test: every_entry_id_matches_its_key
 def test_every_entry_id_matches_its_key():

@@ -12,14 +12,6 @@ from pydantic import BaseModel, ConfigDict
 from ..domain import DomainObject
 from ..events import RaiseError, a
 
-# *** constants
-
-# ** constant: default_module_path
-DEFAULT_MODULE_PATH = 'tiferet.contexts.app'
-
-# ** constant: default_class_name
-DEFAULT_CLASS_NAME = 'AppInterfaceContext'
-
 # *** classes
 
 # ** class: aggregate

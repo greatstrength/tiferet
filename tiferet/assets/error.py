@@ -140,10 +140,6 @@ YAML_FILE_NOT_FOUND_ID = 'YAML_FILE_NOT_FOUND'
 
 # *** constants (ids_admin)
 
-# ** constant: app_interface_not_found_id
-# -- obsolete: Retire in Parity V Story 13.
-APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
-
 # ** constant: cli_command_already_exists_id
 CLI_COMMAND_ALREADY_EXISTS_ID = 'CLI_COMMAND_ALREADY_EXISTS'
 
@@ -164,10 +160,6 @@ FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
 
 # ** constant: feature_name_required_id
 FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
-
-# ** constant: invalid_app_interface_type_id
-# -- obsolete: Retire in Parity V Story 13.
-INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
 
 # ** constant: invalid_feature_attribute_id
 INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
@@ -547,14 +539,6 @@ YAML_FILE_NOT_FOUND = create_default_error(
 
 # *** constants (models_admin)
 
-# ** constant: app_interface_not_found
-# -- obsolete: Retire in Parity V Story 13.
-APP_INTERFACE_NOT_FOUND = create_default_error(
-    APP_INTERFACE_NOT_FOUND_ID,
-    'App Interface Not Found',
-    [(EN_US, 'App interface with ID {interface_id} not found.')],
-)
-
 # ** constant: cli_command_already_exists
 CLI_COMMAND_ALREADY_EXISTS = create_default_error(
     CLI_COMMAND_ALREADY_EXISTS_ID,
@@ -602,14 +586,6 @@ FEATURE_NAME_REQUIRED = create_default_error(
     FEATURE_NAME_REQUIRED_ID,
     'Feature Name Required',
     [(EN_US, 'A feature name is required when updating the name attribute.')],
-)
-
-# ** constant: invalid_app_interface_type
-# -- obsolete: Retire in Parity V Story 13.
-INVALID_APP_INTERFACE_TYPE = create_default_error(
-    INVALID_APP_INTERFACE_TYPE_ID,
-    'Invalid App Interface Type',
-    [(EN_US, '{attribute} must be a non-empty string.')],
 )
 
 # ** constant: invalid_feature_attribute
@@ -843,7 +819,6 @@ CORE_DEFAULT_ERRORS = {
 # ** constant: admin_default_errors
 ADMIN_DEFAULT_ERRORS = {
     **CORE_DEFAULT_ERRORS,
-    APP_INTERFACE_NOT_FOUND_ID: APP_INTERFACE_NOT_FOUND,
     CLI_COMMAND_ALREADY_EXISTS_ID: CLI_COMMAND_ALREADY_EXISTS,
     CLI_COMMAND_NOT_FOUND_ID: CLI_COMMAND_NOT_FOUND,
     CLI_CONFIG_LOADING_FAILED_ID: CLI_CONFIG_LOADING_FAILED,
@@ -851,7 +826,6 @@ ADMIN_DEFAULT_ERRORS = {
     FEATURE_ALREADY_EXISTS_ID: FEATURE_ALREADY_EXISTS,
     FEATURE_COMMAND_NOT_FOUND_ID: FEATURE_COMMAND_NOT_FOUND,
     FEATURE_NAME_REQUIRED_ID: FEATURE_NAME_REQUIRED,
-    INVALID_APP_INTERFACE_TYPE_ID: INVALID_APP_INTERFACE_TYPE,
     INVALID_FEATURE_ATTRIBUTE_ID: INVALID_FEATURE_ATTRIBUTE,
     INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: INVALID_FEATURE_COMMAND_ATTRIBUTE,
     INVALID_FLAGGED_DEPENDENCY_ID: INVALID_FLAGGED_DEPENDENCY,
