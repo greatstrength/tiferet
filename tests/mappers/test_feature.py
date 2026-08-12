@@ -235,6 +235,25 @@ class TestFeatureAggregate(AggregateTestBase):
         assert step.service_id == 'step_one_event'
         assert step.middleware == ['log']
 
+    # ** test: add_step_async_flags
+    def test_add_step_async_flags(self, aggregate):
+        '''
+        Verifies is_async and flags passthrough.
+        '''
+
+        # Add a step with is_async and flags set to non-default values.
+        step = aggregate.add_step(
+            name='Step One',
+            service_id='step_one_event',
+            is_async=True,
+            flags=['beta'],
+        )
+
+        # Assert the values landed on the appended step.
+        assert aggregate.steps[0] is step
+        assert step.is_async is True
+        assert step.flags == ['beta']
+
     # ** test: add_step_position
     def test_add_step_position(self, aggregate):
         '''
