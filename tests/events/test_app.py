@@ -1101,8 +1101,8 @@ class TestUpdateAppSession(ServiceEventTestBase):
         # Assert the correct error code was raised.
         assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
 
-        # Assert the error carries the interface_id kwarg the message template formats on.
-        assert exc_info.value.kwargs.get('interface_id') == 'missing.session'
+        # Assert the error carries the id kwarg the message template formats on.
+        assert exc_info.value.kwargs.get('id') == 'missing.session'
 
         # Assert no save was attempted for a missing session.
         mock_dependencies['app_service'].save.assert_not_called()
