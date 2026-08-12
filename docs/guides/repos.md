@@ -64,8 +64,8 @@ error_data = self._load(
 )
 
 # Entire section.
-interfaces_data = self._load(
-    start_node=lambda data: data.get('interfaces', {})
+sessions_data = self._load(
+    start_node=lambda data: data.get('sessions', {})
 )
 ```
 
