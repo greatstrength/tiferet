@@ -130,7 +130,9 @@ def derive_feature_request(parsed: Dict[str, Any]) -> Tuple[str, Dict[str, str]]
     # Return the derived feature id and headers.
     return feature_id, headers
 
-# ** function: parse_cli_args_handler
+# *** blueprints
+
+# ** blueprint: parse_cli_args_handler
 def parse_cli_args_handler(list_commands_evt: Any,
         get_parent_args_evt: Any,
         default_commands_list: List[CliCommand] = None) -> Callable:
@@ -205,7 +207,7 @@ def parse_cli_args_handler(list_commands_evt: Any,
     # Return the closure.
     return handler
 
-# ** function: create_cli_request_context
+# ** blueprint: create_cli_request_context
 def create_cli_request_context(interface_id: str,
         feature_id: str,
         headers: Dict[str, str] = None,
@@ -236,7 +238,7 @@ def create_cli_request_context(interface_id: str,
         feature_id=feature_id,
     )
 
-# ** function: cli_response_handler
+# ** blueprint: cli_response_handler
 def cli_response_handler(request: RequestContext) -> Any:
     '''
     Extract the handled response from a completed CLI request context.
@@ -253,8 +255,6 @@ def cli_response_handler(request: RequestContext) -> Any:
 
     # Delegate to the request context's response handler.
     return request.handle_response()
-
-# *** blueprints
 
 # ** blueprint: build_cli_cache
 @add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)

@@ -74,7 +74,7 @@ class AddError(ErrorEvent):
             expression=exists is False,
             error_code=a.error.ERROR_ALREADY_EXISTS_ID,
             message=f'An error with ID {id} already exists.',
-            id=id
+            id=id,
         )
 
         # Create the Error aggregate.
@@ -82,7 +82,7 @@ class AddError(ErrorEvent):
         new_error = ErrorAggregate(
             id=id,
             name=name,
-            message=error_messages
+            message=error_messages,
         )
 
         # Save the new error.
