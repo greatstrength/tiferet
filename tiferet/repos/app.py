@@ -15,9 +15,6 @@ from .core import ConfigurationRepository
 
 # *** repos
 
-# ++ todo: Update context type-hints (AppInterfaceContext hub, build_app blueprint)
-#          to consume AppSession instead of AppInterface in Parity V Story 13.
-
 # ** repo: app_config_repository
 class AppConfigRepository(AppService, ConfigurationRepository):
     '''

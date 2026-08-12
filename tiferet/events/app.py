@@ -5,9 +5,9 @@ from typing import List, Dict, Any
 
 # ** app
 from .core import DomainEvent, a
-from ..domain import AppInterface, AppSession
+from ..domain import AppSession
 from ..interfaces import AppService
-from ..mappers import AppInterfaceAggregate, AppSessionAggregate
+from ..mappers import AppSessionAggregate
 
 # *** events
 
@@ -234,166 +234,6 @@ class RemoveAppSession(AppEvent):
         # Delegate deletion to the app service (idempotent operation).
         self.app_service.delete(id)
 
-# ** event: add_app_interface
-# -- obsolete: Superseded by AddAppSession. Retire in Parity V Story 13.
-class AddAppInterface(AppEvent):
-    '''
-    A domain event to add a new application interface configuration via the AppService.
-    '''
-
-    # * method: execute
-    @DomainEvent.parameters_required(['id', 'name', 'module_path', 'class_name'])
-    def execute(
-        self,
-        id: str,
-        name: str,
-        module_path: str,
-        class_name: str,
-        description: str | None = None,
-        logger_id: str = 'default',
-        flags: List[str] = ['default'],
-        services: List[Dict[str, Any]] = [],
-        constants: Dict[str, str] = {},
-        **kwargs,
-    ) -> AppInterface:
-        '''
-        Create and save a new AppInterface using the injected AppService.
-
-        Required parameters: ``id``, ``name``, ``module_path``, ``class_name``.
-
-        :param id: Unique identifier for the app interface.
-        :type id: str
-        :param name: Human readable name of the interface.
-        :type name: str
-        :param module_path: Python module path of the app context class.
-        :type module_path: str
-        :param class_name: Name of the app context class.
-        :type class_name: str
-        :param description: Optional description.
-        :type description: str | None
-        :param logger_id: Optional logger identifier, defaults to ``'default'``.
-        :type logger_id: str | None
-        :param flags: Optional list of flags, defaults to ``['default']``.
-        :type flags: List[str]
-        :param services: Optional list of service dependency definitions; each item is a
-            dict with keys ``service_id``, ``module_path``, ``class_name`` and
-            optional ``parameters``.
-        :type services: List[Dict[str, Any]] | None
-        :param constants: Optional dictionary of constant values.
-        :type constants: Dict[str, str] | None
-        :return: The created AppInterface.
-        :rtype: AppInterface
-        '''
-
-        # Coerce optional arguments that argparse may pass as None to their defaults.
-        logger_id = logger_id or 'default'
-        flags = flags or ['default']
-        services = services or []
-        constants = constants or {}
-
-        # Collect the app interface data.
-        app_interface_data = {
-            'id': id,
-            'name': name,
-            'module_path': module_path,
-            'class_name': class_name,
-            'description': description,
-            'logger_id': logger_id,
-            'flags': flags,
-            'services': services,
-            'constants': constants,
-        }
-
-        # Create the AppInterface model; flags defaults to ['default'].
-        interface = AppInterfaceAggregate(**app_interface_data)
-
-        # Persist the new interface via the app service.
-        self.app_service.save(interface)
-
-        # Return the created AppInterface instance.
-        return interface
-
-# ** event: get_app_interface
-# -- obsolete: Superseded by GetAppSession. Retire in Parity V Story 13.
-class GetAppInterface(AppEvent):
-    '''
-    A domain event to retrieve an app interface using the ``AppService`` abstraction.
-    '''
-
-    # * method: execute
-    @DomainEvent.parameters_required(['interface_id'])
-    def execute(self, interface_id: str, **kwargs) -> AppInterface:
-        '''
-        Execute the event to load the application interface.
-
-        :param interface_id: The ID of the application interface to load.
-        :type interface_id: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The loaded application interface.
-        :rtype: AppInterface
-        :raises TiferetError: If the interface cannot be found.
-        '''
-
-        # Retrieve the app interface via the app service.
-        interface = self.app_service.get(interface_id)
-
-        # Raise an error if the interface is not found.
-        if not interface:
-            self.raise_error(
-                a.error.APP_INTERFACE_NOT_FOUND_ID,
-                f'App interface with ID {interface_id} not found.',
-                interface_id=interface_id,
-            )
-
-        # Return the loaded application interface.
-        return interface
-
-# ** event: update_app_interface
-# -- obsolete: Superseded by UpdateAppSession. Retire in Parity V Story 13 (#911).
-class UpdateAppInterface(AppEvent):
-    '''
-    A domain event to update scalar attributes of an existing app interface.
-    '''
-
-    # * method: execute
-    @DomainEvent.parameters_required(['id', 'attribute'])
-    def execute(self, id: str, attribute: str, value: Any, **kwargs) -> str:
-        '''
-        Update a scalar attribute on an existing app interface.
-
-        :param id: The unique identifier for the app interface to update.
-        :type id: str
-        :param attribute: The attribute name to update.
-        :type attribute: str
-        :param value: The new value for the attribute.
-        :type value: Any
-        :param kwargs: Additional keyword arguments (unused).
-        :type kwargs: dict
-        :return: The ID of the updated app interface.
-        :rtype: str
-        '''
-
-        # Retrieve the app interface via the app service.
-        interface = self.app_service.get(id)
-
-        # Verify that the interface exists.
-        self.verify(
-            expression=interface is not None,
-            error_code=a.error.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
-            interface_id=id,
-        )
-
-        # Update the attribute via the model method.
-        interface.set_attribute(attribute, value)
-
-        # Persist the updated interface.
-        self.app_service.save(interface)
-
-        # Return the interface ID.
-        return id
-
 # ** event: set_app_constants
 class SetAppConstants(AppEvent):
     '''
@@ -440,27 +280,6 @@ class SetAppConstants(AppEvent):
 
         # Return the interface ID.
         return id
-
-# ** event: list_app_interfaces
-# -- obsolete: Superseded by ListAppSessions. Retire in Parity V Story 13.
-class ListAppInterfaces(AppEvent):
-    '''
-    A domain event to list all configured app interfaces.
-    '''
-
-    # * method: execute
-    def execute(self, **kwargs) -> List[AppInterface]:
-        '''
-        List all app interfaces.
-
-        :param kwargs: Additional keyword arguments (unused).
-        :type kwargs: dict
-        :return: List of AppInterface models.
-        :rtype: List[AppInterface]
-        '''
-
-        # Delegate to the app service to retrieve all interfaces.
-        return self.app_service.list()
 
 # ** event: set_service_dependency
 class SetServiceDependency(AppEvent):
@@ -565,29 +384,3 @@ class RemoveServiceDependency(AppEvent):
         # Return the interface ID.
         return id
 
-# ** event: remove_app_interface
-# -- obsolete: Superseded by RemoveAppSession. Retire in Parity V Story 13.
-class RemoveAppInterface(AppEvent):
-    '''
-    A domain event to remove an entire app interface configuration by ID (idempotent).
-    '''
-
-    # * method: execute
-    @DomainEvent.parameters_required(['id'])
-    def execute(self, id: str, **kwargs) -> str:
-        '''
-        Remove an app interface by ID.
-
-        :param id: The interface ID.
-        :type id: str
-        :param kwargs: Additional keyword arguments (unused).
-        :type kwargs: dict
-        :return: The removed interface ID.
-        :rtype: str
-        '''
-
-        # Delegate deletion to the app service (idempotent operation).
-        self.app_service.delete(id)
-
-        # Return the interface ID.
-        return id
