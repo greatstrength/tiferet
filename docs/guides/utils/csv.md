@@ -173,7 +173,6 @@ All errors are raised via `ServiceError.raise_for(self, ...)`. `CSV_INVALID_READ
 - `CSV_INVALID_READ_MODE_ID`
 - `CSV_INVALID_WRITE_MODE_ID`
 - `CSV_FIELDNAMES_REQUIRED_ID`
-- `a.const.CSV_DICT_NO_HEADER_ID`
 
 Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
 - `FILE_NOT_FOUND_ID`
