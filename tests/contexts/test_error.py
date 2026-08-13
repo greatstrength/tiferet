@@ -82,7 +82,7 @@ def error() -> Error:
     '''
 
     # Build and return the ERROR_NOT_FOUND error.
-    return Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
+    return Error(id=ERROR_NOT_FOUND_ID, **DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
 
 # *** tests
 

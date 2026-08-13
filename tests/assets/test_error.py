@@ -82,15 +82,18 @@ def test_tier_sizes():
     # TOML_DEFAULT_ERRORS tiers entirely.
     assert len(DEFAULT_ERRORS) == 29
 
-# ** test: every_entry_id_matches_its_key
-def test_every_entry_id_matches_its_key():
+# ** test: every_entry_omits_redundant_id
+def test_every_entry_omits_redundant_id():
     '''
-    Verify each catalog entry carries an id equal to its dict key.
+    Verify no catalog entry embeds a redundant id inside its value dict.
+
+    The id is carried solely by the dict key; ``create_default_error_data``
+    intentionally omits it from the returned definition (issue #1007).
 
     :return: None
     :rtype: None
     '''
 
-    # Verify no entry was filed under a mismatched key during the restructure.
-    for error_id, definition in DEFAULT_ERRORS.items():
-        assert definition['id'] == error_id
+    # Verify no entry restates its own key inside the value dict.
+    for definition in DEFAULT_ERRORS.values():
+        assert 'id' not in definition

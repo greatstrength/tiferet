@@ -62,7 +62,7 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
             for service_id, service_data in services.items():
                 cache.set(
                     service_id,
-                    AppServiceDependency.model_validate(service_data),
+                    AppServiceDependency.model_validate({**service_data, 'service_id': service_id}),
                     *APP_SERVICE_CACHE_PREFIX,
                 )
 
@@ -161,7 +161,7 @@ def add_default_admin_services(services: Dict[str, Any]) -> Callable:
             for service_id, service_data in services.items():
                 cache.set(
                     service_id,
-                    AppServiceDependency.model_validate(service_data),
+                    AppServiceDependency.model_validate({**service_data, 'service_id': service_id}),
                     *ADMIN_SERVICE_CACHE_PREFIX,
                 )
 
@@ -260,7 +260,7 @@ def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
             for session_id, session_data in sessions.items():
                 cache.set(
                     session_id,
-                    AppSession.model_validate(session_data),
+                    AppSession.model_validate({**session_data, 'id': session_id}),
                     *APP_SESSION_CACHE_PREFIX,
                 )
 
