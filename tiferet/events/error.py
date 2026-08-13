@@ -123,7 +123,7 @@ class GetError(ErrorEvent):
         if include_defaults:
             error_data = a.DEFAULT_ERRORS.get(id)
             if error_data:
-                return ErrorAggregate(**error_data)
+                return ErrorAggregate(id=id, **error_data)
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
@@ -156,7 +156,7 @@ class ListErrors(ErrorEvent):
             return self.error_service.list()
 
         # If defaults are included, merge repository and default errors.
-        errors = {id: ErrorAggregate(**data) for id, data in a.DEFAULT_ERRORS.items()}
+        errors = {id: ErrorAggregate(id=id, **data) for id, data in a.DEFAULT_ERRORS.items()}
         repo_errors = self.error_service.list()
         errors.update({error.id: error for error in repo_errors})
 

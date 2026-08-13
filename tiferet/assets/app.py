@@ -12,8 +12,8 @@ from typing import Any, Dict
 
 # ** app
 from .core import (
-    create_app_service_dependency,
-    create_default_app_session,
+    create_app_service_dependency_data,
+    create_default_app_session_data,
     create_service_module_path,
     TIFERET,
     TIFERET_EVENTS_PATH,
@@ -120,116 +120,100 @@ DEFAULT_APP_SERVICE_PARAMETERS = {
 
 # *** constants (sessions)
 
-# ** constant: default_admin_app_session
-DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
-    TIFERET_ADMIN_ID,
+# ** constant: default_admin_app_session_data
+DEFAULT_ADMIN_APP_SESSION_DATA = create_default_app_session_data(
     'Admin App',
     description='Default built-in admin application session',
 )
 
-# ** constant: default_admin_cli_session
-DEFAULT_ADMIN_CLI_SESSION = create_default_app_session(
-    TIFERET_ADMIN_CLI_ID,
+# ** constant: default_admin_cli_session_data
+DEFAULT_ADMIN_CLI_SESSION_DATA = create_default_app_session_data(
     'Admin CLI',
     description='Built-in CLI for managing Tiferet application configurations',
 )
 
 # *** constants (services)
 
-# ** constant: di_service
-DI_SERVICE = create_app_service_dependency(
-    DI_SERVICE_ID,
+# ** constant: di_service_data
+DI_SERVICE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_REPOS_PATH, DI_DOMAIN_PATH),
     'DIConfigRepository',
 )
 
-# ** constant: error_service
-ERROR_SERVICE = create_app_service_dependency(
-    ERROR_SERVICE_ID,
+# ** constant: error_service_data
+ERROR_SERVICE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_REPOS_PATH, ERROR_DOMAIN_PATH),
     'ErrorConfigRepository',
 )
 
-# ** constant: logging_service
-LOGGING_SERVICE = create_app_service_dependency(
-    LOGGING_SERVICE_ID,
+# ** constant: logging_service_data
+LOGGING_SERVICE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_REPOS_PATH, LOGGING_DOMAIN_PATH),
     'LoggingConfigRepository',
 )
 
-# ** constant: feature_service
-FEATURE_SERVICE = create_app_service_dependency(
-    FEATURE_SERVICE_ID,
+# ** constant: feature_service_data
+FEATURE_SERVICE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_REPOS_PATH, FEATURE_DOMAIN_PATH),
     'FeatureConfigRepository',
 )
 
-# ** constant: get_error_evt
-GET_ERROR_EVT = create_app_service_dependency(
-    GET_ERROR_EVT_ID,
+# ** constant: get_error_evt_data
+GET_ERROR_EVT_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'GetError',
 )
 
-# ** constant: get_feature_evt
-GET_FEATURE_EVT = create_app_service_dependency(
-    GET_FEATURE_EVT_ID,
+# ** constant: get_feature_evt_data
+GET_FEATURE_EVT_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'GetFeature',
 )
 
-# ** constant: logging_list_all_evt
-LOGGING_LIST_ALL_EVT = create_app_service_dependency(
-    LOGGING_LIST_ALL_EVT_ID,
+# ** constant: logging_list_all_evt_data
+LOGGING_LIST_ALL_EVT_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'ListAllLoggingConfigs',
 )
 
-# ** constant: cli_service
-CLI_SERVICE = create_app_service_dependency(
-    CLI_SERVICE_ID,
+# ** constant: cli_service_data
+CLI_SERVICE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_REPOS_PATH, CLI_DOMAIN_PATH),
     'CliConfigRepository',
 )
 
-# ** constant: list_commands_evt
-LIST_COMMANDS_EVT = create_app_service_dependency(
-    LIST_COMMANDS_EVT_ID,
+# ** constant: list_commands_evt_data
+LIST_COMMANDS_EVT_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
     'ListCliCommands',
 )
 
-# ** constant: get_parent_args_evt
-GET_PARENT_ARGS_EVT = create_app_service_dependency(
-    GET_PARENT_ARGS_EVT_ID,
+# ** constant: get_parent_args_evt_data
+GET_PARENT_ARGS_EVT_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
     'GetParentArguments',
 )
 
-# ** constant: di_list_all_configs_evt
-DI_LIST_ALL_CONFIGS_EVT = create_app_service_dependency(
-    DI_LIST_ALL_CONFIGS_EVT_ID,
+# ** constant: di_list_all_configs_evt_data
+DI_LIST_ALL_CONFIGS_EVT_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'ListAllSettings',
 )
 
-# ** constant: logging_middleware
-LOGGING_MIDDLEWARE = create_app_service_dependency(
-    LOGGING_MIDDLEWARE_ID,
+# ** constant: logging_middleware_data
+LOGGING_MIDDLEWARE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_UTILS_PATH, CORE_DOMAIN_PATH),
     'LoggingMiddleware',
 )
 
-# ** constant: timing_middleware
-TIMING_MIDDLEWARE = create_app_service_dependency(
-    TIMING_MIDDLEWARE_ID,
+# ** constant: timing_middleware_data
+TIMING_MIDDLEWARE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_UTILS_PATH, CORE_DOMAIN_PATH),
     'TimingMiddleware',
 )
 
-# ** constant: cache_middleware
-CACHE_MIDDLEWARE = create_app_service_dependency(
-    CACHE_MIDDLEWARE_ID,
+# ** constant: cache_middleware_data
+CACHE_MIDDLEWARE_DATA = create_app_service_dependency_data(
     create_service_module_path(TIFERET, TIFERET_UTILS_PATH, CORE_DOMAIN_PATH),
     'CacheMiddleware',
 )
@@ -238,20 +222,20 @@ CACHE_MIDDLEWARE = create_app_service_dependency(
 
 # ** constant: core_default_services
 CORE_DEFAULT_SERVICES: Dict[str, Dict[str, Any]] = {
-    DI_SERVICE_ID: DI_SERVICE,
-    ERROR_SERVICE_ID: ERROR_SERVICE,
-    LOGGING_SERVICE_ID: LOGGING_SERVICE,
-    FEATURE_SERVICE_ID: FEATURE_SERVICE,
-    GET_ERROR_EVT_ID: GET_ERROR_EVT,
-    GET_FEATURE_EVT_ID: GET_FEATURE_EVT,
-    LOGGING_LIST_ALL_EVT_ID: LOGGING_LIST_ALL_EVT,
-    CLI_SERVICE_ID: CLI_SERVICE,
-    LIST_COMMANDS_EVT_ID: LIST_COMMANDS_EVT,
-    GET_PARENT_ARGS_EVT_ID: GET_PARENT_ARGS_EVT,
-    DI_LIST_ALL_CONFIGS_EVT_ID: DI_LIST_ALL_CONFIGS_EVT,
-    LOGGING_MIDDLEWARE_ID: LOGGING_MIDDLEWARE,
-    TIMING_MIDDLEWARE_ID: TIMING_MIDDLEWARE,
-    CACHE_MIDDLEWARE_ID: CACHE_MIDDLEWARE,
+    DI_SERVICE_ID: DI_SERVICE_DATA,
+    ERROR_SERVICE_ID: ERROR_SERVICE_DATA,
+    LOGGING_SERVICE_ID: LOGGING_SERVICE_DATA,
+    FEATURE_SERVICE_ID: FEATURE_SERVICE_DATA,
+    GET_ERROR_EVT_ID: GET_ERROR_EVT_DATA,
+    GET_FEATURE_EVT_ID: GET_FEATURE_EVT_DATA,
+    LOGGING_LIST_ALL_EVT_ID: LOGGING_LIST_ALL_EVT_DATA,
+    CLI_SERVICE_ID: CLI_SERVICE_DATA,
+    LIST_COMMANDS_EVT_ID: LIST_COMMANDS_EVT_DATA,
+    GET_PARENT_ARGS_EVT_ID: GET_PARENT_ARGS_EVT_DATA,
+    DI_LIST_ALL_CONFIGS_EVT_ID: DI_LIST_ALL_CONFIGS_EVT_DATA,
+    LOGGING_MIDDLEWARE_ID: LOGGING_MIDDLEWARE_DATA,
+    TIMING_MIDDLEWARE_ID: TIMING_MIDDLEWARE_DATA,
+    CACHE_MIDDLEWARE_ID: CACHE_MIDDLEWARE_DATA,
 }
 
 # ** constant: core_default_constants
@@ -278,6 +262,6 @@ ADMIN_DEFAULT_CONSTANTS = {
 # ** constant: core_default_app_sessions
 # Built-in session definitions seeded into the cache by build_cache.
 CORE_DEFAULT_APP_SESSIONS = {
-    TIFERET_ADMIN_ID: DEFAULT_ADMIN_APP_SESSION,
-    TIFERET_ADMIN_CLI_ID: DEFAULT_ADMIN_CLI_SESSION,
+    TIFERET_ADMIN_ID: DEFAULT_ADMIN_APP_SESSION_DATA,
+    TIFERET_ADMIN_CLI_ID: DEFAULT_ADMIN_CLI_SESSION_DATA,
 }

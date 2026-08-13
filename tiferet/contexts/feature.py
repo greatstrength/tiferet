@@ -60,7 +60,11 @@ def add_default_features(features: Dict[str, Any]) -> Callable:
             # Reconstitute each raw feature dict into a Feature domain object and
             # cache it under the feature namespace keyed by feature id.
             for feature_id, feature_data in features.items():
-                cache.set(feature_id, Feature.model_validate(feature_data), *FEATURE_CACHE_PREFIX)
+                cache.set(
+                    feature_id,
+                    Feature.model_validate({**feature_data, 'id': feature_id}),
+                    *FEATURE_CACHE_PREFIX,
+                )
 
             # Return the populated cache context.
             return cache

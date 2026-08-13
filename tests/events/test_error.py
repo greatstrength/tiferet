@@ -60,7 +60,7 @@ def default_errors() -> List[Error]:
 
     # Return a list of default Error aggregates.
     return [
-        ErrorAggregate(**data) for data in a.DEFAULT_ERRORS.values()
+        ErrorAggregate(id=error_id, **data) for error_id, data in a.DEFAULT_ERRORS.items()
     ]
 
 # *** tests
@@ -268,7 +268,7 @@ class TestGetError(ServiceEventTestBase):
         )
 
         # Assert the result matches the expected default error.
-        expected = ErrorAggregate(**a.DEFAULT_ERRORS.get(error_id))
+        expected = ErrorAggregate(id=error_id, **a.DEFAULT_ERRORS.get(error_id))
         assert result == expected
         mock_dependencies['error_service'].get.assert_called_once_with(error_id)
 

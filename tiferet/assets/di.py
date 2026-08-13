@@ -4,7 +4,7 @@ Three-section catalog for the built-in Tiferet CLI service registrations.
 Each section follows the pattern established by ``assets/error.py``:
 - ``constants (ids)`` — 37 individually named service ID string constants.
 - ``constants (services)`` — 37 individually named service registration
-  dicts, each built via ``create_service_registration``.
+  dicts, each built via ``create_service_registration_data``.
 - ``constants (groups)`` — the ``DEFAULT_ADMIN_SERVICES`` catalog dict
   keyed by ID constants.
 """
@@ -16,7 +16,7 @@ from typing import Any, Dict
 
 # ** app
 from .core import (
-    create_service_registration,
+    create_service_registration_data,
     create_service_module_path,
     TIFERET,
     TIFERET_EVENTS_PATH,
@@ -144,261 +144,224 @@ REMOVE_LOGGER_EVT_ID = 'remove_logger_evt'
 
 # *** constants (services)
 
-# ** constant: app_service
-APP_SERVICE = create_service_registration(
-    APP_SERVICE_ID,
+# ** constant: app_service_data
+APP_SERVICE_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_REPOS_PATH, APP_DOMAIN_PATH),
     'AppConfigRepository',
 )
 
-# ** constant: add_feature_evt
-ADD_FEATURE_EVT = create_service_registration(
-    ADD_FEATURE_EVT_ID,
+# ** constant: add_feature_evt_data
+ADD_FEATURE_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'AddFeature',
 )
 
-# ** constant: list_features_evt
-LIST_FEATURES_EVT = create_service_registration(
-    LIST_FEATURES_EVT_ID,
+# ** constant: list_features_evt_data
+LIST_FEATURES_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'ListFeatures',
 )
 
-# ** constant: remove_feature_evt
-REMOVE_FEATURE_EVT = create_service_registration(
-    REMOVE_FEATURE_EVT_ID,
+# ** constant: remove_feature_evt_data
+REMOVE_FEATURE_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'RemoveFeature',
 )
 
-# ** constant: update_feature_evt
-UPDATE_FEATURE_EVT = create_service_registration(
-    UPDATE_FEATURE_EVT_ID,
+# ** constant: update_feature_evt_data
+UPDATE_FEATURE_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'UpdateFeature',
 )
 
-# ** constant: add_feature_step_evt
-ADD_FEATURE_STEP_EVT = create_service_registration(
-    ADD_FEATURE_STEP_EVT_ID,
+# ** constant: add_feature_step_evt_data
+ADD_FEATURE_STEP_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'AddFeatureStep',
 )
 
-# ** constant: update_feature_step_evt
-UPDATE_FEATURE_STEP_EVT = create_service_registration(
-    UPDATE_FEATURE_STEP_EVT_ID,
+# ** constant: update_feature_step_evt_data
+UPDATE_FEATURE_STEP_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'UpdateFeatureStep',
 )
 
-# ** constant: remove_feature_step_evt
-REMOVE_FEATURE_STEP_EVT = create_service_registration(
-    REMOVE_FEATURE_STEP_EVT_ID,
+# ** constant: remove_feature_step_evt_data
+REMOVE_FEATURE_STEP_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'RemoveFeatureStep',
 )
 
-# ** constant: reorder_feature_step_evt
-REORDER_FEATURE_STEP_EVT = create_service_registration(
-    REORDER_FEATURE_STEP_EVT_ID,
+# ** constant: reorder_feature_step_evt_data
+REORDER_FEATURE_STEP_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'ReorderFeatureStep',
 )
 
-# ** constant: add_error_evt
-ADD_ERROR_EVT = create_service_registration(
-    ADD_ERROR_EVT_ID,
+# ** constant: add_error_evt_data
+ADD_ERROR_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'AddError',
 )
 
-# ** constant: list_errors_evt
-LIST_ERRORS_EVT = create_service_registration(
-    LIST_ERRORS_EVT_ID,
+# ** constant: list_errors_evt_data
+LIST_ERRORS_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'ListErrors',
 )
 
-# ** constant: rename_error_evt
-RENAME_ERROR_EVT = create_service_registration(
-    RENAME_ERROR_EVT_ID,
+# ** constant: rename_error_evt_data
+RENAME_ERROR_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'RenameError',
 )
 
-# ** constant: set_error_message_evt
-SET_ERROR_MESSAGE_EVT = create_service_registration(
-    SET_ERROR_MESSAGE_EVT_ID,
+# ** constant: set_error_message_evt_data
+SET_ERROR_MESSAGE_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'SetErrorMessage',
 )
 
-# ** constant: remove_error_message_evt
-REMOVE_ERROR_MESSAGE_EVT = create_service_registration(
-    REMOVE_ERROR_MESSAGE_EVT_ID,
+# ** constant: remove_error_message_evt_data
+REMOVE_ERROR_MESSAGE_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'RemoveErrorMessage',
 )
 
-# ** constant: remove_error_evt
-REMOVE_ERROR_EVT = create_service_registration(
-    REMOVE_ERROR_EVT_ID,
+# ** constant: remove_error_evt_data
+REMOVE_ERROR_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'RemoveError',
 )
 
-# ** constant: add_service_registration_evt
-ADD_SERVICE_REGISTRATION_EVT = create_service_registration(
-    ADD_SERVICE_REGISTRATION_EVT_ID,
+# ** constant: add_service_registration_evt_data
+ADD_SERVICE_REGISTRATION_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'AddServiceRegistration',
 )
 
-# ** constant: set_default_service_registration_evt
-SET_DEFAULT_SERVICE_REGISTRATION_EVT = create_service_registration(
-    SET_DEFAULT_SERVICE_REGISTRATION_EVT_ID,
+# ** constant: set_default_service_registration_evt_data
+SET_DEFAULT_SERVICE_REGISTRATION_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'SetDefaultServiceRegistration',
 )
 
-# ** constant: set_di_service_dependency_evt
-SET_DI_SERVICE_DEPENDENCY_EVT = create_service_registration(
-    SET_DI_SERVICE_DEPENDENCY_EVT_ID,
+# ** constant: set_di_service_dependency_evt_data
+SET_DI_SERVICE_DEPENDENCY_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'SetServiceDependency',
 )
 
-# ** constant: remove_di_service_dependency_evt
-REMOVE_DI_SERVICE_DEPENDENCY_EVT = create_service_registration(
-    REMOVE_DI_SERVICE_DEPENDENCY_EVT_ID,
+# ** constant: remove_di_service_dependency_evt_data
+REMOVE_DI_SERVICE_DEPENDENCY_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'RemoveServiceDependency',
 )
 
-# ** constant: remove_service_registration_evt
-REMOVE_SERVICE_REGISTRATION_EVT = create_service_registration(
-    REMOVE_SERVICE_REGISTRATION_EVT_ID,
+# ** constant: remove_service_registration_evt_data
+REMOVE_SERVICE_REGISTRATION_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'RemoveServiceRegistration',
 )
 
-# ** constant: set_service_constants_evt
-SET_SERVICE_CONSTANTS_EVT = create_service_registration(
-    SET_SERVICE_CONSTANTS_EVT_ID,
+# ** constant: set_service_constants_evt_data
+SET_SERVICE_CONSTANTS_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'SetServiceConstants',
 )
 
-# ** constant: add_app_session_evt
-ADD_APP_SESSION_EVT = create_service_registration(
-    ADD_APP_SESSION_EVT_ID,
+# ** constant: add_app_session_evt_data
+ADD_APP_SESSION_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'AddAppSession',
 )
 
-# ** constant: get_app_session_evt
-GET_APP_SESSION_EVT = create_service_registration(
-    GET_APP_SESSION_EVT_ID,
+# ** constant: get_app_session_evt_data
+GET_APP_SESSION_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'GetAppSession',
 )
 
-# ** constant: update_app_session_evt
-UPDATE_APP_SESSION_EVT = create_service_registration(
-    UPDATE_APP_SESSION_EVT_ID,
+# ** constant: update_app_session_evt_data
+UPDATE_APP_SESSION_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'UpdateAppSession',
 )
 
-# ** constant: set_app_constants_evt
-SET_APP_CONSTANTS_EVT = create_service_registration(
-    SET_APP_CONSTANTS_EVT_ID,
+# ** constant: set_app_constants_evt_data
+SET_APP_CONSTANTS_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'SetAppConstants',
 )
 
-# ** constant: list_app_sessions_evt
-LIST_APP_SESSIONS_EVT = create_service_registration(
-    LIST_APP_SESSIONS_EVT_ID,
+# ** constant: list_app_sessions_evt_data
+LIST_APP_SESSIONS_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'ListAppSessions',
 )
 
-# ** constant: set_app_service_dependency_evt
-SET_APP_SERVICE_DEPENDENCY_EVT = create_service_registration(
-    SET_APP_SERVICE_DEPENDENCY_EVT_ID,
+# ** constant: set_app_service_dependency_evt_data
+SET_APP_SERVICE_DEPENDENCY_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'SetServiceDependency',
 )
 
-# ** constant: remove_app_service_dependency_evt
-REMOVE_APP_SERVICE_DEPENDENCY_EVT = create_service_registration(
-    REMOVE_APP_SERVICE_DEPENDENCY_EVT_ID,
+# ** constant: remove_app_service_dependency_evt_data
+REMOVE_APP_SERVICE_DEPENDENCY_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'RemoveServiceDependency',
 )
 
-# ** constant: remove_app_session_evt
-REMOVE_APP_SESSION_EVT = create_service_registration(
-    REMOVE_APP_SESSION_EVT_ID,
+# ** constant: remove_app_session_evt_data
+REMOVE_APP_SESSION_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'RemoveAppSession',
 )
 
-# ** constant: add_cli_command_evt
-ADD_CLI_COMMAND_EVT = create_service_registration(
-    ADD_CLI_COMMAND_EVT_ID,
+# ** constant: add_cli_command_evt_data
+ADD_CLI_COMMAND_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
     'AddCliCommand',
 )
 
-# ** constant: add_cli_argument_evt
-ADD_CLI_ARGUMENT_EVT = create_service_registration(
-    ADD_CLI_ARGUMENT_EVT_ID,
+# ** constant: add_cli_argument_evt_data
+ADD_CLI_ARGUMENT_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
     'AddCliArgument',
 )
 
-# ** constant: add_formatter_evt
-ADD_FORMATTER_EVT = create_service_registration(
-    ADD_FORMATTER_EVT_ID,
+# ** constant: add_formatter_evt_data
+ADD_FORMATTER_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'AddFormatter',
 )
 
-# ** constant: remove_formatter_evt
-REMOVE_FORMATTER_EVT = create_service_registration(
-    REMOVE_FORMATTER_EVT_ID,
+# ** constant: remove_formatter_evt_data
+REMOVE_FORMATTER_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'RemoveFormatter',
 )
 
-# ** constant: add_handler_evt
-ADD_HANDLER_EVT = create_service_registration(
-    ADD_HANDLER_EVT_ID,
+# ** constant: add_handler_evt_data
+ADD_HANDLER_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'AddHandler',
 )
 
-# ** constant: remove_handler_evt
-REMOVE_HANDLER_EVT = create_service_registration(
-    REMOVE_HANDLER_EVT_ID,
+# ** constant: remove_handler_evt_data
+REMOVE_HANDLER_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'RemoveHandler',
 )
 
-# ** constant: add_logger_evt
-ADD_LOGGER_EVT = create_service_registration(
-    ADD_LOGGER_EVT_ID,
+# ** constant: add_logger_evt_data
+ADD_LOGGER_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'AddLogger',
 )
 
-# ** constant: remove_logger_evt
-REMOVE_LOGGER_EVT = create_service_registration(
-    REMOVE_LOGGER_EVT_ID,
+# ** constant: remove_logger_evt_data
+REMOVE_LOGGER_EVT_DATA = create_service_registration_data(
     create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'RemoveLogger',
 )
@@ -407,41 +370,41 @@ REMOVE_LOGGER_EVT = create_service_registration(
 
 # ** constant: default_admin_services
 DEFAULT_ADMIN_SERVICES: Dict[str, Dict] = {
-    APP_SERVICE_ID: APP_SERVICE,
-    ADD_FEATURE_EVT_ID: ADD_FEATURE_EVT,
-    LIST_FEATURES_EVT_ID: LIST_FEATURES_EVT,
-    REMOVE_FEATURE_EVT_ID: REMOVE_FEATURE_EVT,
-    UPDATE_FEATURE_EVT_ID: UPDATE_FEATURE_EVT,
-    ADD_FEATURE_STEP_EVT_ID: ADD_FEATURE_STEP_EVT,
-    UPDATE_FEATURE_STEP_EVT_ID: UPDATE_FEATURE_STEP_EVT,
-    REMOVE_FEATURE_STEP_EVT_ID: REMOVE_FEATURE_STEP_EVT,
-    REORDER_FEATURE_STEP_EVT_ID: REORDER_FEATURE_STEP_EVT,
-    ADD_ERROR_EVT_ID: ADD_ERROR_EVT,
-    LIST_ERRORS_EVT_ID: LIST_ERRORS_EVT,
-    RENAME_ERROR_EVT_ID: RENAME_ERROR_EVT,
-    SET_ERROR_MESSAGE_EVT_ID: SET_ERROR_MESSAGE_EVT,
-    REMOVE_ERROR_MESSAGE_EVT_ID: REMOVE_ERROR_MESSAGE_EVT,
-    REMOVE_ERROR_EVT_ID: REMOVE_ERROR_EVT,
-    ADD_SERVICE_REGISTRATION_EVT_ID: ADD_SERVICE_REGISTRATION_EVT,
-    SET_DEFAULT_SERVICE_REGISTRATION_EVT_ID: SET_DEFAULT_SERVICE_REGISTRATION_EVT,
-    SET_DI_SERVICE_DEPENDENCY_EVT_ID: SET_DI_SERVICE_DEPENDENCY_EVT,
-    REMOVE_DI_SERVICE_DEPENDENCY_EVT_ID: REMOVE_DI_SERVICE_DEPENDENCY_EVT,
-    REMOVE_SERVICE_REGISTRATION_EVT_ID: REMOVE_SERVICE_REGISTRATION_EVT,
-    SET_SERVICE_CONSTANTS_EVT_ID: SET_SERVICE_CONSTANTS_EVT,
-    ADD_APP_SESSION_EVT_ID: ADD_APP_SESSION_EVT,
-    GET_APP_SESSION_EVT_ID: GET_APP_SESSION_EVT,
-    UPDATE_APP_SESSION_EVT_ID: UPDATE_APP_SESSION_EVT,
-    SET_APP_CONSTANTS_EVT_ID: SET_APP_CONSTANTS_EVT,
-    LIST_APP_SESSIONS_EVT_ID: LIST_APP_SESSIONS_EVT,
-    SET_APP_SERVICE_DEPENDENCY_EVT_ID: SET_APP_SERVICE_DEPENDENCY_EVT,
-    REMOVE_APP_SERVICE_DEPENDENCY_EVT_ID: REMOVE_APP_SERVICE_DEPENDENCY_EVT,
-    REMOVE_APP_SESSION_EVT_ID: REMOVE_APP_SESSION_EVT,
-    ADD_CLI_COMMAND_EVT_ID: ADD_CLI_COMMAND_EVT,
-    ADD_CLI_ARGUMENT_EVT_ID: ADD_CLI_ARGUMENT_EVT,
-    ADD_FORMATTER_EVT_ID: ADD_FORMATTER_EVT,
-    REMOVE_FORMATTER_EVT_ID: REMOVE_FORMATTER_EVT,
-    ADD_HANDLER_EVT_ID: ADD_HANDLER_EVT,
-    REMOVE_HANDLER_EVT_ID: REMOVE_HANDLER_EVT,
-    ADD_LOGGER_EVT_ID: ADD_LOGGER_EVT,
-    REMOVE_LOGGER_EVT_ID: REMOVE_LOGGER_EVT,
+    APP_SERVICE_ID: APP_SERVICE_DATA,
+    ADD_FEATURE_EVT_ID: ADD_FEATURE_EVT_DATA,
+    LIST_FEATURES_EVT_ID: LIST_FEATURES_EVT_DATA,
+    REMOVE_FEATURE_EVT_ID: REMOVE_FEATURE_EVT_DATA,
+    UPDATE_FEATURE_EVT_ID: UPDATE_FEATURE_EVT_DATA,
+    ADD_FEATURE_STEP_EVT_ID: ADD_FEATURE_STEP_EVT_DATA,
+    UPDATE_FEATURE_STEP_EVT_ID: UPDATE_FEATURE_STEP_EVT_DATA,
+    REMOVE_FEATURE_STEP_EVT_ID: REMOVE_FEATURE_STEP_EVT_DATA,
+    REORDER_FEATURE_STEP_EVT_ID: REORDER_FEATURE_STEP_EVT_DATA,
+    ADD_ERROR_EVT_ID: ADD_ERROR_EVT_DATA,
+    LIST_ERRORS_EVT_ID: LIST_ERRORS_EVT_DATA,
+    RENAME_ERROR_EVT_ID: RENAME_ERROR_EVT_DATA,
+    SET_ERROR_MESSAGE_EVT_ID: SET_ERROR_MESSAGE_EVT_DATA,
+    REMOVE_ERROR_MESSAGE_EVT_ID: REMOVE_ERROR_MESSAGE_EVT_DATA,
+    REMOVE_ERROR_EVT_ID: REMOVE_ERROR_EVT_DATA,
+    ADD_SERVICE_REGISTRATION_EVT_ID: ADD_SERVICE_REGISTRATION_EVT_DATA,
+    SET_DEFAULT_SERVICE_REGISTRATION_EVT_ID: SET_DEFAULT_SERVICE_REGISTRATION_EVT_DATA,
+    SET_DI_SERVICE_DEPENDENCY_EVT_ID: SET_DI_SERVICE_DEPENDENCY_EVT_DATA,
+    REMOVE_DI_SERVICE_DEPENDENCY_EVT_ID: REMOVE_DI_SERVICE_DEPENDENCY_EVT_DATA,
+    REMOVE_SERVICE_REGISTRATION_EVT_ID: REMOVE_SERVICE_REGISTRATION_EVT_DATA,
+    SET_SERVICE_CONSTANTS_EVT_ID: SET_SERVICE_CONSTANTS_EVT_DATA,
+    ADD_APP_SESSION_EVT_ID: ADD_APP_SESSION_EVT_DATA,
+    GET_APP_SESSION_EVT_ID: GET_APP_SESSION_EVT_DATA,
+    UPDATE_APP_SESSION_EVT_ID: UPDATE_APP_SESSION_EVT_DATA,
+    SET_APP_CONSTANTS_EVT_ID: SET_APP_CONSTANTS_EVT_DATA,
+    LIST_APP_SESSIONS_EVT_ID: LIST_APP_SESSIONS_EVT_DATA,
+    SET_APP_SERVICE_DEPENDENCY_EVT_ID: SET_APP_SERVICE_DEPENDENCY_EVT_DATA,
+    REMOVE_APP_SERVICE_DEPENDENCY_EVT_ID: REMOVE_APP_SERVICE_DEPENDENCY_EVT_DATA,
+    REMOVE_APP_SESSION_EVT_ID: REMOVE_APP_SESSION_EVT_DATA,
+    ADD_CLI_COMMAND_EVT_ID: ADD_CLI_COMMAND_EVT_DATA,
+    ADD_CLI_ARGUMENT_EVT_ID: ADD_CLI_ARGUMENT_EVT_DATA,
+    ADD_FORMATTER_EVT_ID: ADD_FORMATTER_EVT_DATA,
+    REMOVE_FORMATTER_EVT_ID: REMOVE_FORMATTER_EVT_DATA,
+    ADD_HANDLER_EVT_ID: ADD_HANDLER_EVT_DATA,
+    REMOVE_HANDLER_EVT_ID: REMOVE_HANDLER_EVT_DATA,
+    ADD_LOGGER_EVT_ID: ADD_LOGGER_EVT_DATA,
+    REMOVE_LOGGER_EVT_ID: REMOVE_LOGGER_EVT_DATA,
 }

@@ -4,39 +4,36 @@
 
 # ** app
 from tiferet.assets import app
-from tiferet.assets.core import create_app_service_dependency
+from tiferet.assets.core import create_app_service_dependency_data
 
 # *** tests
 
-# ** test: create_app_service_dependency_structure
-def test_create_app_service_dependency_structure():
+# ** test: create_app_service_dependency_data_structure
+def test_create_app_service_dependency_data_structure():
     '''
-    Verify create_app_service_dependency returns a dict with the expected keys.
+    Verify create_app_service_dependency_data returns a dict with the expected keys.
     '''
 
     # Create a test service dependency.
-    result = create_app_service_dependency(
-        'test_service',
+    result = create_app_service_dependency_data(
         'tiferet.repos.test',
         'TestRepository',
     )
 
     # Verify the result has all expected keys.
-    assert 'service_id' in result
     assert 'module_path' in result
     assert 'class_name' in result
     assert 'parameters' in result
 
 
-# ** test: create_app_service_dependency_default_parameters
-def test_create_app_service_dependency_default_parameters():
+# ** test: create_app_service_dependency_data_default_parameters
+def test_create_app_service_dependency_data_default_parameters():
     '''
     Verify omitting parameters yields an empty dict.
     '''
 
     # Create a dependency without explicit parameters.
-    result = create_app_service_dependency(
-        'test_service',
+    result = create_app_service_dependency_data(
         'tiferet.repos.test',
         'TestRepository',
     )
