@@ -18,7 +18,6 @@ from ..domain import (
 )
 from .app import AppSessionContext
 from .cache import CacheContext
-from .logging import LoggingContext
 from .request import RequestContext
 
 # *** constants
@@ -191,9 +190,9 @@ class CliSessionContext(AppSessionContext):
     # * init
     def __init__(self,
             get_dependency: Callable,
-            logging_context: LoggingContext = None,
             parse_cli_args: Callable = None,
             cache: CacheContext = None,
+            build_logger_handler: Callable = None,
             execute_feature_handler: Callable = None,
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
@@ -203,28 +202,28 @@ class CliSessionContext(AppSessionContext):
 
         :param get_dependency: The DI resolution handler injected by the blueprint.
         :type get_dependency: Callable
-        :param logging_context: The logging context bound at bootstrap.
-        :type logging_context: LoggingContext
         :param parse_cli_args: The injected callable that parses argv and returns
             a (feature_id, headers, data) tuple.
         :type parse_cli_args: Callable
         :param cache: The shared bootstrap cache.
         :type cache: CacheContext
-        :param execute_feature_handler: The FE4 feature-execution handler.
+        :param build_logger_handler: The logger-construction handler.
+        :type build_logger_handler: Callable
+        :param execute_feature_handler: The feature-execution handler.
         :type execute_feature_handler: Callable
-        :param create_request_handler: The FE4 request-construction handler.
+        :param create_request_handler: The request-construction handler.
         :type create_request_handler: Callable
-        :param raise_error_handler: The FE4 error-handling handler.
+        :param raise_error_handler: The error-handling handler.
         :type raise_error_handler: Callable
-        :param response_handler: The FE4 response-building handler.
+        :param response_handler: The response-building handler.
         :type response_handler: Callable
         '''
 
         # Initialize the base application session hub.
         super().__init__(
             get_dependency=get_dependency,
-            logging_context=logging_context,
             cache=cache,
+            build_logger_handler=build_logger_handler,
             execute_feature_handler=execute_feature_handler,
             create_request_handler=create_request_handler,
             raise_error_handler=raise_error_handler,
@@ -239,9 +238,9 @@ class CliSessionContext(AppSessionContext):
         '''
         Build and, when appropriate, print the CLI response.
 
-        Delegates to the injected response handler when one is wired in,
-        otherwise falls back to the request context directly. The formatted or
-        stringified result is printed only when the request is a
+        Extends the hub response step via ``super().build_response`` so an
+        unwired ``response_handler`` raises through the hub guard. The
+        formatted or stringified result is printed only when the request is a
         ``CliRequestContext``; the legacy path leaves printing to the caller.
 
         :param request: The completed request context.
@@ -250,11 +249,8 @@ class CliSessionContext(AppSessionContext):
         :rtype: Any
         '''
 
-        # Use the injected response handler when available, otherwise fall through.
-        if self._build_response is not None:
-            model = self._build_response(request)
-        else:
-            model = request.handle_response()
+        # Delegate response extraction to the hub template method.
+        model = super().build_response(request)
 
         # Only print when using the CLI request context.
         if isinstance(request, CliRequestContext):

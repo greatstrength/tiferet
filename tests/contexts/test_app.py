@@ -12,6 +12,7 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
+from tiferet.assets.error import APP_ERROR_ID
 from tiferet.contexts.app import (
     AppSessionContext,
     add_default_app_services,
@@ -32,10 +33,8 @@ from tiferet.contexts.app import (
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.core import BaseContext
-from tiferet.contexts.feature import FeatureContext
-from tiferet.contexts.logging import LoggingContext
 from tiferet.contexts.request import RequestContext
-from tiferet.domain import AppSession, AppServiceDependency, Feature
+from tiferet.domain import AppSession, AppServiceDependency
 from tiferet.interfaces import AppService
 
 # *** fixtures
@@ -102,20 +101,18 @@ def get_dependency() -> Callable:
     # Return a plain mock callable.
     return mock.Mock()
 
-# ** fixture: logging_context
+# ** fixture: build_logger_handler
 @pytest.fixture
-def logging_context() -> LoggingContext:
+def build_logger_handler() -> Callable:
     '''
-    Fixture to create a mock LoggingContext instance.
+    Fixture providing a mock logger-construction handler.
 
-    :return: A mock instance of LoggingContext.
-    :rtype: LoggingContext
+    :return: A mock callable that returns a mock logger.
+    :rtype: Callable
     '''
 
-    # Create a mock LoggingContext whose build_logger returns a mock logger.
-    context = mock.Mock(spec=LoggingContext)
-    context.build_logger.return_value = mock.Mock(spec=logging.Logger)
-    return context
+    # Return a mock logger-construction handler.
+    return mock.Mock(return_value=mock.Mock(spec=logging.Logger))
 
 # ** fixture: execute_feature_handler
 @pytest.fixture
@@ -178,7 +175,7 @@ def response_handler() -> Callable:
 def app_session_context(
         app_session: AppSession,
         get_dependency: Callable,
-        logging_context: LoggingContext,
+        build_logger_handler: Callable,
         execute_feature_handler: Callable,
         create_request_handler: Callable,
         raise_error_handler: Callable,
@@ -195,7 +192,7 @@ def app_session_context(
     return AppSessionContext.from_domain(
         app_session,
         get_dependency=get_dependency,
-        logging_context=logging_context,
+        build_logger_handler=build_logger_handler,
         execute_feature_handler=execute_feature_handler,
         create_request_handler=create_request_handler,
         raise_error_handler=raise_error_handler,
@@ -207,7 +204,7 @@ def app_session_context(
 # ** test: app_session_context_init
 def test_app_session_context_init(app_session_context: AppSessionContext,
         get_dependency: Callable,
-        logging_context: LoggingContext,
+        build_logger_handler: Callable,
         execute_feature_handler: Callable,
         create_request_handler: Callable,
         raise_error_handler: Callable,
@@ -218,11 +215,12 @@ def test_app_session_context_init(app_session_context: AppSessionContext,
 
     # Assert all collaborators are stored.
     assert app_session_context.get_dependency is get_dependency
-    assert app_session_context._logging is logging_context
+    assert app_session_context._build_logger is build_logger_handler
     assert app_session_context._execute_feature is execute_feature_handler
     assert app_session_context._create_request is create_request_handler
     assert app_session_context._raise_error is raise_error_handler
     assert app_session_context._build_response is response_handler
+    assert not hasattr(app_session_context, '_logging')
 
 # ** test: app_session_context_init_default_cache
 def test_app_session_context_init_default_cache(get_dependency: Callable):
@@ -289,14 +287,65 @@ def test_app_session_context_load_not_found():
     # Assert the structured not-found error is raised.
     assert exc_info.value.error_code == 'APP_SESSION_NOT_FOUND'
 
-# ** test: app_session_context_load_logging_context
-def test_app_session_context_load_logging_context(app_session_context: AppSessionContext, logging_context: LoggingContext):
+# ** test: app_session_context_build_logger_wired
+def test_app_session_context_build_logger_wired(
+        app_session_context: AppSessionContext,
+        build_logger_handler: Callable,
+    ):
     '''
-    Test that load_logging_context returns the bound logging context.
+    Test that build_logger delegates to the injected handler when wired.
     '''
 
-    # Assert the bound logging context is returned unchanged.
-    assert app_session_context.load_logging_context() is logging_context
+    # Build the logger through the wired handler.
+    logger = app_session_context.build_logger()
+
+    # Assert the handler was invoked with the session logger id.
+    build_logger_handler.assert_called_once_with(app_session_context.domain.logger_id)
+    assert logger is build_logger_handler.return_value
+
+# ** test: app_session_context_build_logger_unwired
+def test_app_session_context_build_logger_unwired(app_session: AppSession, get_dependency: Callable):
+    '''
+    Test that build_logger raises APP_ERROR when the handler is unwired.
+    '''
+
+    # Construct a context without a logger-construction handler.
+    context = AppSessionContext.from_domain(app_session, get_dependency=get_dependency)
+
+    # Assert an unwired handler fails loudly with APP_ERROR.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.build_logger()
+
+    # Assert the structured app error names the missing handler.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'build_logger_handler' in exc_info.value.message
+
+# ** test: app_session_context_build_logger_formats_tiferet_error
+def test_app_session_context_build_logger_formats_tiferet_error(
+        app_session: AppSession,
+        get_dependency: Callable,
+        raise_error_handler: Callable,
+    ):
+    '''
+    Test that build_logger formats a TiferetError from the handler via handle_error.
+    '''
+
+    # Configure the logger handler to raise a domain error.
+    domain_error = TiferetError('LOGGER_CREATION_FAILED', 'Logger failed.')
+    build_logger = mock.Mock(side_effect=domain_error)
+
+    # Construct a context with a failing logger handler and a wired error handler.
+    context = AppSessionContext.from_domain(
+        app_session,
+        get_dependency=get_dependency,
+        build_logger_handler=build_logger,
+        raise_error_handler=raise_error_handler,
+    )
+
+    # Assert the domain error is formatted through handle_error.
+    result = context.build_logger()
+    raise_error_handler.assert_called_once_with(domain_error)
+    assert result == {'error_code': 'TEST_ERROR'}
 
 # ** test: app_session_context_build_request_wired
 def test_app_session_context_build_request_wired(app_session_context: AppSessionContext, create_request_handler: Callable):
@@ -317,21 +366,19 @@ def test_app_session_context_build_request_wired(app_session_context: AppSession
 # ** test: app_session_context_build_request_unwired
 def test_app_session_context_build_request_unwired(app_session: AppSession, get_dependency: Callable):
     '''
-    Test that build_request constructs a RequestContext directly when unwired.
+    Test that build_request raises APP_ERROR when the handler is unwired.
     '''
 
     # Construct a context without a request-construction handler.
     context = AppSessionContext.from_domain(app_session, get_dependency=get_dependency)
 
-    # Build the request via the default fallback path.
-    request = context.build_request('test.feature', headers={'X-Test': '1'}, data={'key': 'value'})
+    # Assert an unwired handler fails loudly with APP_ERROR.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.build_request('test.feature', headers={'X-Test': '1'}, data={'key': 'value'})
 
-    # Assert a RequestContext was constructed with the interface id stamped in.
-    assert isinstance(request, RequestContext)
-    assert request.headers.get('interface_id') == app_session.id
-    assert request.headers.get('X-Test') == '1'
-    assert request.data == {'key': 'value'}
-    assert request.feature_id == 'test.feature'
+    # Assert the structured app error names the missing handler.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'create_request_handler' in exc_info.value.message
 
 # ** test: app_session_context_execute_feature_wired
 def test_app_session_context_execute_feature_wired(app_session_context: AppSessionContext, execute_feature_handler: Callable):
@@ -349,24 +396,20 @@ def test_app_session_context_execute_feature_wired(app_session_context: AppSessi
 # ** test: app_session_context_execute_feature_unwired
 def test_app_session_context_execute_feature_unwired(app_session: AppSession, get_dependency: Callable):
     '''
-    Test that execute_feature resolves the registered FeatureContext when unwired.
+    Test that execute_feature raises APP_ERROR when the handler is unwired.
     '''
 
-    # Seed the cache with a Feature domain object under the feature namespace.
-    cache = CacheContext()
-    feature = Feature(id='test.feature', name='Test Feature')
-    cache.set('test.feature', feature, 'app', 'features')
-
     # Construct a context without a feature-execution handler.
-    context = AppSessionContext.from_domain(app_session, get_dependency=get_dependency, cache=cache)
+    context = AppSessionContext.from_domain(app_session, get_dependency=get_dependency)
     request = RequestContext(feature_id='test.feature')
 
-    # Execute the feature via the default fallback path.
-    with mock.patch.object(FeatureContext, 'execute_feature') as mock_execute:
+    # Assert an unwired handler fails loudly with APP_ERROR.
+    with pytest.raises(TiferetAPIError) as exc_info:
         context.execute_feature('test.feature', request)
 
-    # Assert the registered FeatureContext was driven with the cached feature.
-    mock_execute.assert_called_once_with(feature, request)
+    # Assert the structured app error names the missing handler.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'execute_feature_handler' in exc_info.value.message
 
 # ** test: app_session_context_handle_error_wired
 def test_app_session_context_handle_error_wired(app_session_context: AppSessionContext, raise_error_handler: Callable):
@@ -382,41 +425,46 @@ def test_app_session_context_handle_error_wired(app_session_context: AppSessionC
     raise_error_handler.assert_called_once_with(error)
     assert result == {'error_code': 'TEST_ERROR'}
 
-# ** test: app_session_context_handle_error_unwired_tiferet_error
-def test_app_session_context_handle_error_unwired_tiferet_error(app_session: AppSession, get_dependency: Callable):
+# ** test: app_session_context_handle_error_api_error_passthrough
+def test_app_session_context_handle_error_api_error_passthrough(
+        app_session_context: AppSessionContext,
+        raise_error_handler: Callable,
+    ):
     '''
-    Test that handle_error wraps a TiferetError into a TiferetAPIError when unwired.
+    Test that handle_error re-raises an incoming TiferetAPIError verbatim.
+    '''
+
+    # Build an already-formatted API error.
+    api_error = TiferetAPIError(
+        error_code=APP_ERROR_ID,
+        name='App Error',
+        message='Already formatted.',
+    )
+
+    # Assert the same instance is re-raised without consulting the handler.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_session_context.handle_error(api_error)
+
+    assert exc_info.value is api_error
+    raise_error_handler.assert_not_called()
+
+# ** test: app_session_context_handle_error_unwired
+def test_app_session_context_handle_error_unwired(app_session: AppSession, get_dependency: Callable):
+    '''
+    Test that handle_error raises APP_ERROR when the handler is unwired.
     '''
 
     # Construct a context without an error-handling handler.
     context = AppSessionContext.from_domain(app_session, get_dependency=get_dependency)
 
-    # Handle a structured error.
-    error = TiferetError('SOME_ERROR', 'Some error message.', extra='value')
+    # Handle a structured error with no wired handler.
+    error = TiferetError('SOME_ERROR', 'Some error message.')
     with pytest.raises(TiferetAPIError) as exc_info:
         context.handle_error(error)
 
-    # Assert the raised API error carries the original error's data.
-    assert exc_info.value.error_code == 'SOME_ERROR'
-    assert exc_info.value.name == 'SOME_ERROR'
-    assert exc_info.value.kwargs.get('extra') == 'value'
-
-# ** test: app_session_context_handle_error_unwired_bare_exception
-def test_app_session_context_handle_error_unwired_bare_exception(app_session: AppSession, get_dependency: Callable):
-    '''
-    Test that handle_error wraps a bare exception into a generic TiferetAPIError when unwired.
-    '''
-
-    # Construct a context without an error-handling handler.
-    context = AppSessionContext.from_domain(app_session, get_dependency=get_dependency)
-
-    # Handle a plain exception.
-    with pytest.raises(TiferetAPIError) as exc_info:
-        context.handle_error(Exception('boom'))
-
-    # Assert the generic app error code is used.
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert 'An error occurred in the app' in exc_info.value.message
+    # Assert the structured app error names the missing handler.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'raise_error_handler' in exc_info.value.message
 
 # ** test: app_session_context_build_response_wired
 def test_app_session_context_build_response_wired(app_session_context: AppSessionContext, response_handler: Callable):
@@ -435,18 +483,20 @@ def test_app_session_context_build_response_wired(app_session_context: AppSessio
 # ** test: app_session_context_build_response_unwired
 def test_app_session_context_build_response_unwired(app_session: AppSession, get_dependency: Callable):
     '''
-    Test that build_response delegates directly to the request context when unwired.
+    Test that build_response raises APP_ERROR when the handler is unwired.
     '''
 
     # Construct a context without a response-building handler.
     context = AppSessionContext.from_domain(app_session, get_dependency=get_dependency)
-
-    # Build a request and set its result.
     request = RequestContext(feature_id='test.feature')
-    request.set_result({'status': 'success'})
 
-    # Assert the response is the request's result.
-    assert context.build_response(request) == {'status': 'success'}
+    # Assert an unwired handler fails loudly with APP_ERROR.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.build_response(request)
+
+    # Assert the structured app error names the missing handler.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'response_handler' in exc_info.value.message
 
 # ** test: app_session_context_run_success
 def test_app_session_context_run_success(
@@ -454,23 +504,24 @@ def test_app_session_context_run_success(
         create_request_handler: Callable,
         execute_feature_handler: Callable,
         response_handler: Callable,
-        logging_context: LoggingContext,
+        build_logger_handler: Callable,
     ):
     '''
-    Test that run calls build_request, execute_feature, and build_response in sequence.
+    Test that run calls build_logger, build_request, execute_feature, and build_response.
     '''
 
     # Run the app session context.
     result = app_session_context.run('test.feature', headers={'X-Test': '1'}, data={'key': 'value'})
 
-    # Assert all four template methods were driven and the response returned.
+    # Assert all five template methods were driven and the response returned.
+    build_logger_handler.assert_called_once_with(app_session_context.domain.logger_id)
     create_request_handler.assert_called_once()
     execute_feature_handler.assert_called_once()
     response_handler.assert_called_once()
     assert result == {'status': 'success'}
 
     # Assert the logger logged the successful execution with duration.
-    logger = logging_context.build_logger.return_value
+    logger = build_logger_handler.return_value
     info_calls = [call[0][0] for call in logger.info.call_args_list]
     assert len(info_calls) == 1
     assert info_calls[0].startswith('Executed Feature - test.feature (')
@@ -480,7 +531,7 @@ def test_app_session_context_run_error(
         app_session_context: AppSessionContext,
         execute_feature_handler: Callable,
         raise_error_handler: Callable,
-        logging_context: LoggingContext,
+        build_logger_handler: Callable,
     ):
     '''
     Test that a TiferetError during execute_feature triggers handle_error.
@@ -497,7 +548,7 @@ def test_app_session_context_run_error(
     assert result == {'error_code': 'TEST_ERROR'}
 
     # Assert the logger logged the error.
-    logger = logging_context.build_logger.return_value
+    logger = build_logger_handler.return_value
     logger.error.assert_called_once()
 
 # ** test: add_default_app_services_seeds_cache

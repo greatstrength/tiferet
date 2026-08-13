@@ -146,12 +146,13 @@ Tiferet provides built-in logging defaults in `assets/logging.py`. These define 
 
 The Logging domain objects participate in runtime configuration through the following flow:
 
-1. `LoggingContext.build_logger()` is called during application interface initialization.
-2. `LoggingService` loads all `Formatter`, `Handler`, and `Logger` domain objects from `logging.yml`.
-3. `LoggingContext.build_logger` wraps the loaded formatters, handlers, and loggers in a `LoggingSettings` value object (applying the built-in defaults as the per-section fallback).
-4. `LoggingSettings.format_config()` assembles a complete `dictConfig` dictionary with `formatters`, `handlers`, `loggers`, and `root` sections.
-5. `logging.config.dictConfig(config)` is called to configure the Python logging system.
-6. The configured logger is available for use throughout the application.
+1. The session hub calls `AppSessionContext.build_logger()`, which delegates to the injected `build_logger_handler` (required fifth handler — there is no long-lived `logging_context` constructor keyword on the hub).
+2. `blueprints/core.py::build_logger_handler` checks the shared cache under `LOGGER_CACHE_PREFIX` (`('logging', 'loggers')`) for a previously built logger id.
+3. On a miss, `logging_list_all_evt` loads repository `Formatter` / `Handler` / `Logger` objects; `merge_logging_settings` merges them over cache-seeded defaults by `.id`.
+4. `LoggingContext.from_domain(settings, logger_id=...)` binds the merged `LoggingSettings`; `LoggingContext.build_logger` calls `LoggingSettings.format_config()` and `create_logger`.
+5. The built logger is stored under `LOGGER_CACHE_PREFIX` so `dictConfig` runs once per logger id per process.
+
+Logging CRUD (`logging.add_formatter` / `remove_formatter`, `logging.add_handler` / `remove_handler`, `logging.add_logger` / `remove_logger`, and `logging.list`) is one of the six admin catalog domains managed by `AdminApp` / `AdminCLI`. See [docs/guides/admin.md](../admin.md) for the full management surface and worked examples.
 
 ## Configuration Mapping
 
@@ -194,6 +195,8 @@ The following domain events interact with `Formatter`, `Handler`, and `Logger`:
 | `AddFormatter`            | Creates and persists a new `Formatter`.               |
 | `AddHandler`              | Creates and persists a new `Handler`.                 |
 | `AddLogger`               | Creates and persists a new `Logger`.                  |
+| `RemoveFormatter` / `RemoveHandler` / `RemoveLogger` | Idempotent removals used by admin CRUD. |
+| `ListAllLoggingConfigs`   | Lists formatters, handlers, and loggers (also wired as `logging_list_all_evt`). |
 
 These events depend on the `LoggingService` interface for persistence operations.
 
@@ -212,7 +215,9 @@ Concrete implementations (e.g., `LoggingYamlRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **App:** `LoggingContext` is loaded as part of the application interface bootstrap, receiving `LoggingService` via dependency injection. Every application interface can have its own logging configuration.
+- **App:** Logger construction is a first-class hub template method (`build_logger` / `build_logger_handler`). Every application session can select its own `logger_id` and logging configuration.
+- **Blueprints:** `merge_logging_settings` and `build_logger_handler` in `tiferet/blueprints/core.py` own the list → merge → cache path; `LoggingContext` remains the ephemeral assembler.
+- **Admin:** Logging CRUD is one of the six admin catalog domains — see [docs/guides/admin.md](../admin.md).
 - **All Contexts:** Once configured, the Python logging system is available globally to all contexts, domain events, and services throughout the application lifecycle.
 
 ## Instantiation
@@ -259,3 +264,5 @@ lgr = Logger(
 - [docs/guides/domain/feature.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/feature.md) — Feature domain guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) — Admin Logging CRUD domain
+- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — `build_logger_handler` five-handler slot

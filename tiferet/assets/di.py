@@ -5,7 +5,7 @@ Each section follows the pattern established by ``assets/error.py``:
 - ``constants (ids)`` — 37 individually named service ID string constants.
 - ``constants (services)`` — 37 individually named service registration
   dicts, each built via ``create_service_registration_data``.
-- ``constants (groups)`` — the ``DEFAULT_ADMIN_SERVICES`` catalog dict
+- ``constants (groups)`` — the ``ADMIN_DEFAULT_SERVICES`` catalog dict
   keyed by ID constants.
 """
 
@@ -368,8 +368,8 @@ REMOVE_LOGGER_EVT_DATA = create_service_registration_data(
 
 # *** constants (groups)
 
-# ** constant: default_admin_services
-DEFAULT_ADMIN_SERVICES: Dict[str, Dict] = {
+# ** constant: admin_default_services
+ADMIN_DEFAULT_SERVICES: Dict[str, Dict] = {
     APP_SERVICE_ID: APP_SERVICE_DATA,
     ADD_FEATURE_EVT_ID: ADD_FEATURE_EVT_DATA,
     LIST_FEATURES_EVT_ID: LIST_FEATURES_EVT_DATA,

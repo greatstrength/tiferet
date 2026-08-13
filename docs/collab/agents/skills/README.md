@@ -4,6 +4,7 @@ Canonical, version-controlled copies of the reusable agent **skills** for Tifere
 
 ## Collaboration skills
 - **`tiferet-annotation-artifacts`** — scan, add, and resolve `# ++ todo:` / `# -- obsolete:` annotation artifacts; covers the pre-session scan, resolution procedure, and Collaboration Report integration. **Use at the start of every implementation session.**
+- **`tiferet-admin-config`** — use the Admin App or Admin CLI to add/update errors, service registrations, and features in a consumer's `config.yml`. Directly useful when a TRD introduces a new domain event module and needs an accompanying error, service registration, and feature entry.
 - **`tiferet-create-milestone`** — create or format a GitHub milestone.
 - **`tiferet-author-trd`** — author a Technical Requirements Document.
 - **`tiferet-collab-report`** — generate a Collaboration Report when an issue is confirmed complete.

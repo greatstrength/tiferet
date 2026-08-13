@@ -21,7 +21,8 @@ from tiferet.blueprints.core import (
     load_cache,
     get_error,
     get_feature,
-    build_logging_context,
+    merge_logging_settings,
+    build_logger_handler,
     create_app_service,
     get_app_session,
     create_request_context,
@@ -43,10 +44,14 @@ from tiferet.contexts.app import (
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
-from tiferet.contexts.logging import LoggingContext, add_default_logging_settings, get_default_logging_settings
+from tiferet.contexts.logging import (
+    LOGGER_CACHE_PREFIX,
+    add_default_logging_settings,
+    get_default_logging_settings,
+)
 from tiferet.contexts.request import RequestContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
-from tiferet.domain import AppSession, AppServiceDependency, Error, Feature, LoggingSettings
+from tiferet.domain import AppSession, AppServiceDependency, Error, Feature, LoggingSettings, Formatter
 from tiferet.events import ParseParameter
 from tiferet.repos.app import AppConfigRepository
 from tiferet.utils.core import CacheMiddleware
@@ -351,17 +356,67 @@ def test_get_feature_returns_cached():
     assert handler('test.feature') is feature
     get_dependency.assert_not_called()
 
-# ** test: build_logging_context_returns_logging_context
-def test_build_logging_context_returns_logging_context():
+# ** test: merge_logging_settings_overrides_by_id
+def test_merge_logging_settings_overrides_by_id():
     '''
-    Test that build_logging_context returns a LoggingContext bound to a merged LoggingSettings.
+    Test that merge_logging_settings keeps unmatched defaults and overrides by id.
     '''
 
-    # Seed the cache with default logging settings.
+    # Seed the cache with a single default formatter.
     cache = add_default_logging_settings({
         'formatters': [{'id': 'default', 'name': 'Default', 'format': '%(message)s'}],
         'handlers': [],
         'loggers': [],
+    })(lambda: CacheContext())()
+
+    # Merge a repository formatter that overrides the default id plus a new one.
+    override = Formatter(id='default', name='Override', format='%(levelname)s %(message)s')
+    extra = Formatter(id='extra', name='Extra', format='%(message)s')
+    settings = merge_logging_settings(cache, [override, extra], [], [])
+
+    # Assert the merge result is a LoggingSettings with override and unmatched defaults preserved.
+    assert isinstance(settings, LoggingSettings)
+    formatters_by_id = {formatter.id: formatter for formatter in settings.formatters}
+    assert formatters_by_id['default'].name == 'Override'
+    assert formatters_by_id['extra'].name == 'Extra'
+
+# ** test: merge_logging_settings_tolerates_empty_defaults
+def test_merge_logging_settings_tolerates_empty_defaults():
+    '''
+    Test that merge_logging_settings accepts a cache with no seeded defaults.
+    '''
+
+    # Merge repository sections against an empty cache.
+    formatter = Formatter(id='repo', name='Repo', format='%(message)s')
+    settings = merge_logging_settings(CacheContext(), [formatter], [], [])
+
+    # Assert the repository entry is the sole formatter.
+    assert [item.id for item in settings.formatters] == ['repo']
+
+# ** test: build_logger_handler_caches_by_logger_id
+def test_build_logger_handler_caches_by_logger_id():
+    '''
+    Test that build_logger_handler builds once per logger id and returns the cache hit.
+    '''
+
+    # Seed the cache with default logging settings sufficient for dictConfig.
+    cache = add_default_logging_settings({
+        'formatters': [{'id': 'default', 'name': 'Default', 'format': '%(message)s'}],
+        'handlers': [{
+            'id': 'default',
+            'name': 'Default',
+            'module_path': 'logging',
+            'class_name': 'StreamHandler',
+            'level': 'CRITICAL',
+            'formatter': 'default',
+            'stream': 'ext://sys.stderr',
+        }],
+        'loggers': [{
+            'id': 'default',
+            'name': 'Default',
+            'level': 'CRITICAL',
+            'handlers': ['default'],
+        }],
     })(lambda: CacheContext())()
 
     # Configure a mock resolver returning empty repository-configured settings.
@@ -369,12 +424,16 @@ def test_build_logging_context_returns_logging_context():
     mock_event.execute.return_value = ([], [], [])
     get_dependency = mock.Mock(return_value=mock_event)
 
-    # Build the logging context and assert it is bound to the merged settings.
-    logging_context = build_logging_context(cache, get_dependency, 'root')
-    assert isinstance(logging_context, LoggingContext)
-    assert isinstance(logging_context.domain, LoggingSettings)
-    assert len(logging_context.domain.formatters) == 1
+    # Build the handler and resolve the same logger id twice.
+    handler = build_logger_handler(cache, get_dependency)
+    first = handler('default')
+    second = handler('default')
+
+    # Assert the logger is cached and the list-all event ran only once.
+    assert first is second
+    assert cache.get('default', *LOGGER_CACHE_PREFIX) is first
     get_dependency.assert_called_once_with('logging_list_all_evt', 'app')
+    mock_event.execute.assert_called_once_with()
 
 # ** test: create_app_service_default
 def test_create_app_service_default():
@@ -452,7 +511,7 @@ def test_create_request_context_sets_interface_id_header():
 # ** test: create_feature_context_resolves_and_binds
 def test_create_feature_context_resolves_and_binds():
     '''
-    Test that create_feature_context resolves the feature and binds a FeatureContext.
+    Test that create_feature_context returns a FeatureContext bound via from_domain.
     '''
 
     # Seed the cache with a Feature domain object.
@@ -461,11 +520,10 @@ def test_create_feature_context_resolves_and_binds():
     cache.set('test.feature', feature, *FEATURE_CACHE_PREFIX)
     get_dependency = mock.Mock()
 
-    # Resolve the feature and its bound context.
-    resolved_feature, feature_context = create_feature_context(get_dependency, cache, 'test.feature')
+    # Resolve the bound feature context.
+    feature_context = create_feature_context(get_dependency, cache, 'test.feature')
 
-    # Assert the resolved feature and bound context.
-    assert resolved_feature is feature
+    # Assert a single FeatureContext is returned with the feature bound as domain.
     assert isinstance(feature_context, FeatureContext)
     assert feature_context.domain is feature
 
@@ -483,7 +541,7 @@ def test_create_session_request_sets_interface_id_header():
 # ** test: execute_feature_handler_drives_feature_context
 def test_execute_feature_handler_drives_feature_context():
     '''
-    Test that the execute_feature_handler closure calls FeatureContext.execute_feature with the resolved feature.
+    Test that the execute_feature_handler closure calls FeatureContext.execute_feature without a feature arg.
     '''
 
     # Seed the cache with a Feature domain object.
@@ -498,8 +556,8 @@ def test_execute_feature_handler_drives_feature_context():
     with mock.patch.object(FeatureContext, 'execute_feature') as mock_execute:
         result = handler('test.feature', request)
 
-    # Assert the feature context was driven with the resolved feature.
-    mock_execute.assert_called_once_with(feature, request)
+    # Assert the feature context was driven with the request only.
+    mock_execute.assert_called_once_with(request)
 
     # Assert the handler is void; the result accrues on the request context.
     assert result is None
@@ -523,7 +581,7 @@ def test_execute_feature_handler_forwards_flags():
         handler('test.feature', request, 'flag_one', 'flag_two', logger=None)
 
     # Assert the execution flags were forwarded positionally to the feature context.
-    mock_execute.assert_called_once_with(feature, request, 'flag_one', 'flag_two', logger=None)
+    mock_execute.assert_called_once_with(request, 'flag_one', 'flag_two', logger=None)
 
 # ** test: raise_error_handler_formats_and_raises
 def test_raise_error_handler_formats_and_raises():
@@ -577,7 +635,7 @@ def test_raise_error_handler_wraps_bare_exception():
 # ** test: build_app_session_context_wires_handlers
 def test_build_app_session_context_wires_handlers():
     '''
-    Test that build_app_session_context returns an AppSessionContext with all FE4 handlers wired.
+    Test that build_app_session_context returns an AppSessionContext with all five handlers wired.
     '''
 
     # Seed the cache with a minimal di_service default.
@@ -591,13 +649,13 @@ def test_build_app_session_context_wires_handlers():
     app_session = AppSession(id='test.session', name='Test Session')
 
     # Bypass the real logging pipeline; this test targets handler wiring only.
-    fake_logging_context = mock.Mock(spec=LoggingContext)
-    with mock.patch('tiferet.blueprints.core.build_logging_context', return_value=fake_logging_context):
+    fake_build_logger = mock.Mock(name='build_logger_handler')
+    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
         context = build_app_session_context(app_session, cache)
 
-    # Assert the context is fully wired with all four FE4 handlers.
+    # Assert the context is fully wired with all five template-method handlers.
     assert isinstance(context, AppSessionContext)
-    assert context._logging is fake_logging_context
+    assert context._build_logger is fake_build_logger
     assert context._execute_feature is not None
     assert context._raise_error is not None
     assert context._build_response is response_handler
@@ -656,14 +714,14 @@ def test_build_app_end_to_end_wires_session_context(session_config_file):
     assert context.domain.id == 'test_session'
     assert context.domain.name == 'Test Session'
 
-    # Assert all four FE4 handlers were wired by the composition chain.
+    # Assert all five template-method handlers were wired by the composition chain.
+    assert context._build_logger is not None
     assert context._execute_feature is not None
     assert context._raise_error is not None
     assert context._create_request is create_session_request
     assert context._build_response is response_handler
 
-    # Assert the logging context and shared cache were composed for real.
-    assert isinstance(context._logging, LoggingContext)
+    # Assert the shared cache was composed for real.
     assert isinstance(context.cache, CacheContext)
 
 # ** test: build_app_end_to_end_resolves_default_services

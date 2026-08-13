@@ -301,9 +301,6 @@ def build_cli_session_context(app_session: AppSession, cache: CacheContext) -> C
     app_container = core.build_app_service_container(cache, app_session)
     resolver = core.build_service_resolver(app_container)
 
-    # Build the logging context once at session startup, as the core path does.
-    logging_ctx = core.build_logging_context(cache, resolver.get_dependency, app_session.logger_id)
-
     # Resolve the CLI event collaborators from the app container.
     list_commands_evt = app_container.get_dependency('list_commands_evt')
     get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
@@ -318,13 +315,13 @@ def build_cli_session_context(app_session: AppSession, cache: CacheContext) -> C
     # Resolve any remaining injectable collaborators the context class declares.
     collaborators = core.resolve_collaborators(CliSessionContext, app_container)
 
-    # Construct and return the CLI session context, overriding the request and
-    # response handler slots with their CLI-specific implementations.
+    # Construct and return the CLI session context, wiring the five template-method
+    # handlers and overriding the request/response slots with CLI implementations.
     return CliSessionContext.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
-        logging_context=logging_ctx,
+        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
         parse_cli_args=parse_cli_args,
         execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
         create_request_handler=create_cli_request_context,

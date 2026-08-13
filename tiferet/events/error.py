@@ -6,7 +6,6 @@
 from typing import (
     List,
     Dict,
-    Any
 )
 
 # ** app
@@ -51,7 +50,7 @@ class AddError(ErrorEvent):
             name: str,
             message: str,
             lang: str = 'en_US',
-            additional_messages: List[Dict[str, Any]] = []
+            additional_messages: Dict[str, str] = {},
         ) -> None:
         '''
         Add a new Error to the app.
@@ -64,8 +63,8 @@ class AddError(ErrorEvent):
         :type message: str
         :param lang: The language of the primary error message (default is 'en_US').
         :type lang: str
-        :param additional_messages: Additional error messages in different languages.
-        :type additional_messages: List[Dict[str, Any]]
+        :param additional_messages: A language-code to message-text mapping of additional messages beyond the primary one.
+        :type additional_messages: Dict[str, str]
         '''
 
         # Check if an error with the same ID already exists.
@@ -78,7 +77,10 @@ class AddError(ErrorEvent):
         )
 
         # Create the Error aggregate.
-        error_messages = [{'lang': lang, 'text': message}] + additional_messages
+        error_messages = [{'lang': lang, 'text': message}] + [
+            {'lang': lang_key, 'text': text}
+            for lang_key, text in additional_messages.items()
+        ]
         new_error = ErrorAggregate(
             id=id,
             name=name,
