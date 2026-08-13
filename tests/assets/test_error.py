@@ -7,7 +7,6 @@ from tiferet.assets.error import (
     ADMIN_DEFAULT_ERRORS,
     CORE_DEFAULT_ERRORS,
     DEFAULT_ERRORS,
-    TOML_DEFAULT_ERRORS,
 )
 
 # *** tests
@@ -15,7 +14,7 @@ from tiferet.assets.error import (
 # ** test: default_errors_is_union_of_all_tiers
 def test_default_errors_is_union_of_all_tiers():
     '''
-    Verify DEFAULT_ERRORS is exactly the union of the three capability tiers.
+    Verify DEFAULT_ERRORS is exactly the union of the two capability tiers.
 
     :return: None
     :rtype: None
@@ -25,7 +24,6 @@ def test_default_errors_is_union_of_all_tiers():
     union = (
         set(CORE_DEFAULT_ERRORS)
         | set(ADMIN_DEFAULT_ERRORS)
-        | set(TOML_DEFAULT_ERRORS)
     )
 
     # Verify the composite catalog adds and omits nothing.
@@ -65,18 +63,6 @@ def test_admin_default_errors_extends_core():
     for error_id, definition in CORE_DEFAULT_ERRORS.items():
         assert ADMIN_DEFAULT_ERRORS[error_id] is definition
 
-# ** test: utility_tiers_are_disjoint_from_core
-def test_utility_tiers_are_disjoint_from_core():
-    '''
-    Verify the optional utility tiers share no keys with the core tier.
-
-    :return: None
-    :rtype: None
-    '''
-
-    # Verify each utility tier is fully outside the core runtime tier.
-    assert not set(TOML_DEFAULT_ERRORS) & set(CORE_DEFAULT_ERRORS)
-
 # ** test: tier_sizes
 def test_tier_sizes():
     '''
@@ -90,13 +76,10 @@ def test_tier_sizes():
     assert len(CORE_DEFAULT_ERRORS) == 16
     assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 13
 
-    # Verify the remaining optional utility tier.
-    assert len(TOML_DEFAULT_ERRORS) == 0
-
     # Verify the composite catalog reflects the removal of 19 orphaned error
     # codes with zero raisers anywhere in tiferet/ (issue #1003), and the
-    # elimination of the now-empty SQLITE_DEFAULT_ERRORS/CSV_DEFAULT_ERRORS
-    # tiers entirely.
+    # elimination of the now-empty SQLITE_DEFAULT_ERRORS/CSV_DEFAULT_ERRORS/
+    # TOML_DEFAULT_ERRORS tiers entirely.
     assert len(DEFAULT_ERRORS) == 29
 
 # ** test: every_entry_id_matches_its_key
