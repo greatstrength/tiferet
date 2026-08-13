@@ -1,4 +1,4 @@
-"""Tests for the tiered default-error catalog in tiferet.assets.error."""
+"""Tests for Error Assets"""
 
 # *** imports
 
