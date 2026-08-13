@@ -8,15 +8,15 @@ import pytest
 # ** app
 from tiferet.assets.core import (
     create_default_cli_argument,
-    create_default_cli_command,
-    create_default_error,
-    create_default_feature,
+    create_default_cli_command_data,
+    create_default_error_data,
+    create_default_feature_data,
     create_params_schema,
     create_service_module_path,
     create_service_dependency,
-    create_service_registration,
-    create_app_service_dependency,
-    create_default_app_session,
+    create_service_registration_data,
+    create_app_service_dependency_data,
+    create_default_app_session_data,
     create_default_formatter,
     create_default_handler,
     create_default_logger,
@@ -43,34 +43,32 @@ def test_en_us_constant():
     # Verify the constant carries the expected locale.
     assert EN_US == 'en_US'
 
-# ** test: create_default_error_single_message
-def test_create_default_error_single_message():
+# ** test: create_default_error_data_single_message
+def test_create_default_error_data_single_message():
     '''
-    Verify create_default_error returns the expected structure for a single message pair.
+    Verify create_default_error_data returns the expected structure for a single message pair.
 
     :return: None
     :rtype: None
     '''
 
     # Build a default error with one message.
-    result = create_default_error(
-        'TEST_ERROR',
+    result = create_default_error_data(
         'Test Error',
         [(EN_US, 'Something went wrong: {detail}.')],
     )
 
     # Verify the top-level fields.
-    assert result['id'] == 'TEST_ERROR'
     assert result['name'] == 'Test Error'
 
     # Verify the message list shape.
     assert len(result['message']) == 1
     assert result['message'][0] == {'lang': 'en_US', 'text': 'Something went wrong: {detail}.'}
 
-# ** test: create_default_error_preserves_message_order
-def test_create_default_error_preserves_message_order():
+# ** test: create_default_error_data_preserves_message_order
+def test_create_default_error_data_preserves_message_order():
     '''
-    Verify create_default_error preserves the order of multiple message pairs.
+    Verify create_default_error_data preserves the order of multiple message pairs.
 
     :return: None
     :rtype: None
@@ -84,7 +82,7 @@ def test_create_default_error_preserves_message_order():
     ]
 
     # Build the error.
-    result = create_default_error('MULTI_LANG', 'Multi-Language Error', messages)
+    result = create_default_error_data('Multi-Language Error', messages)
 
     # Verify the messages are emitted in the supplied order.
     assert len(result['message']) == 3
@@ -92,20 +90,19 @@ def test_create_default_error_preserves_message_order():
     assert result['message'][1] == {'lang': 'fr_FR', 'text': 'Deuxième message.'}
     assert result['message'][2] == {'lang': 'de_DE', 'text': 'Dritte Nachricht.'}
 
-# ** test: create_default_error_empty_messages
-def test_create_default_error_empty_messages():
+# ** test: create_default_error_data_empty_messages
+def test_create_default_error_data_empty_messages():
     '''
-    Verify create_default_error yields an empty message list when no pairs are supplied.
+    Verify create_default_error_data yields an empty message list when no pairs are supplied.
 
     :return: None
     :rtype: None
     '''
 
     # Build an error with no messages.
-    result = create_default_error('EMPTY_ERROR', 'Empty Error', [])
+    result = create_default_error_data('Empty Error', [])
 
-    # Verify id and name are retained.
-    assert result['id'] == 'EMPTY_ERROR'
+    # Verify name is retained.
     assert result['name'] == 'Empty Error'
 
     # Verify the message list is empty.
@@ -180,10 +177,10 @@ def test_create_service_dependency_with_parameters():
     # Verify the parameters dict is preserved unchanged.
     assert result['parameters'] == {'feature_config': 'config.yml'}
 
-# ** test: create_app_service_dependency_returns_expected_shape
-def test_create_app_service_dependency_returns_expected_shape():
+# ** test: create_app_service_dependency_data_returns_expected_shape
+def test_create_app_service_dependency_data_returns_expected_shape():
     '''
-    Verify create_app_service_dependency returns a dict with the expected keys and values,
+    Verify create_app_service_dependency_data returns a dict with the expected keys and values,
     and that parameters defaults to an empty dict when omitted.
 
     :return: None
@@ -191,31 +188,28 @@ def test_create_app_service_dependency_returns_expected_shape():
     '''
 
     # Create a service dependency without explicit parameters.
-    result = create_app_service_dependency(
-        'test_service',
+    result = create_app_service_dependency_data(
         'tiferet.repos.test',
         'TestRepository',
     )
 
     # Verify the result has all expected keys and correct values.
-    assert set(result.keys()) == {'service_id', 'module_path', 'class_name', 'parameters'}
-    assert result['service_id'] == 'test_service'
+    assert set(result.keys()) == {'module_path', 'class_name', 'parameters'}
     assert result['module_path'] == 'tiferet.repos.test'
     assert result['class_name'] == 'TestRepository'
     assert result['parameters'] == {}
 
-# ** test: create_app_service_dependency_omitting_parameters_yields_empty_dict
-def test_create_app_service_dependency_omitting_parameters_yields_empty_dict():
+# ** test: create_app_service_dependency_data_omitting_parameters_yields_empty_dict
+def test_create_app_service_dependency_data_omitting_parameters_yields_empty_dict():
     '''
-    Verify omitting parameters in create_app_service_dependency yields an empty dict, not None.
+    Verify omitting parameters in create_app_service_dependency_data yields an empty dict, not None.
 
     :return: None
     :rtype: None
     '''
 
     # Create a dependency without explicit parameters.
-    result = create_app_service_dependency(
-        'test_service',
+    result = create_app_service_dependency_data(
         'tiferet.repos.test',
         'TestRepository',
     )
@@ -224,10 +218,10 @@ def test_create_app_service_dependency_omitting_parameters_yields_empty_dict():
     assert result['parameters'] == {}
     assert result['parameters'] is not None
 
-# ** test: create_default_app_session_returns_required_fields
-def test_create_default_app_session_returns_required_fields():
+# ** test: create_default_app_session_data_returns_required_fields
+def test_create_default_app_session_data_returns_required_fields():
     '''
-    Verify create_default_app_session returns a dict with id and name; description is
+    Verify create_default_app_session_data returns a dict with name; description is
     absent when not provided.
 
     :return: None
@@ -235,25 +229,23 @@ def test_create_default_app_session_returns_required_fields():
     '''
 
     # Build a session with required fields only.
-    result = create_default_app_session('admin', 'Admin App')
+    result = create_default_app_session_data('Admin App')
 
-    # Verify id and name are present and description is absent.
-    assert result['id'] == 'admin'
+    # Verify name is present and description is absent.
     assert result['name'] == 'Admin App'
     assert 'description' not in result
 
-# ** test: create_default_app_session_includes_description_when_provided
-def test_create_default_app_session_includes_description_when_provided():
+# ** test: create_default_app_session_data_includes_description_when_provided
+def test_create_default_app_session_data_includes_description_when_provided():
     '''
-    Verify create_default_app_session includes description in the returned dict when supplied.
+    Verify create_default_app_session_data includes description in the returned dict when supplied.
 
     :return: None
     :rtype: None
     '''
 
     # Build a session with an explicit description.
-    result = create_default_app_session(
-        'admin',
+    result = create_default_app_session_data(
         'Admin App',
         'Default built-in admin application session',
     )
@@ -378,10 +370,10 @@ def test_create_default_logger_returns_required_fields():
     assert result['is_root'] is False
     assert 'description' not in result
 
-# ** test: create_default_feature_returns_required_fields
-def test_create_default_feature_returns_required_fields():
+# ** test: create_default_feature_data_returns_required_fields
+def test_create_default_feature_data_returns_required_fields():
     '''
-    Verify create_default_feature returns required fields and omits optional
+    Verify create_default_feature_data returns required fields and omits optional
     fields when description and params_schema are not provided.
 
     :return: None
@@ -389,8 +381,7 @@ def test_create_default_feature_returns_required_fields():
     '''
 
     # Call the factory with only required arguments.
-    result = create_default_feature(
-        id='test.feature',
+    result = create_default_feature_data(
         name='Test Feature',
         group_id='test',
         feature_key='feature',
@@ -398,7 +389,6 @@ def test_create_default_feature_returns_required_fields():
     )
 
     # Assert all required fields are present with correct values.
-    assert result['id'] == 'test.feature'
     assert result['name'] == 'Test Feature'
     assert result['group_id'] == 'test'
     assert result['feature_key'] == 'feature'
@@ -408,10 +398,10 @@ def test_create_default_feature_returns_required_fields():
     assert 'description' not in result
     assert 'params_schema' not in result
 
-# ** test: create_default_feature_includes_optional_fields_when_provided
-def test_create_default_feature_includes_optional_fields_when_provided():
+# ** test: create_default_feature_data_includes_optional_fields_when_provided
+def test_create_default_feature_data_includes_optional_fields_when_provided():
     '''
-    Verify create_default_feature includes description and params_schema
+    Verify create_default_feature_data includes description and params_schema
     when they are supplied.
 
     :return: None
@@ -422,8 +412,7 @@ def test_create_default_feature_includes_optional_fields_when_provided():
     schema = create_params_schema(name='str', count='int')
 
     # Call the factory with all optional arguments supplied.
-    result = create_default_feature(
-        id='test.optional',
+    result = create_default_feature_data(
         name='Test Optional',
         group_id='test',
         feature_key='optional',
@@ -458,38 +447,35 @@ def test_create_params_schema_returns_expected_dict():
         'count': {'type': 'int', 'required': True},
     }
 
-# ** test: create_service_registration_returns_expected_shape
-def test_create_service_registration_returns_expected_shape():
+# ** test: create_service_registration_data_returns_expected_shape
+def test_create_service_registration_data_returns_expected_shape():
     '''
-    Verify create_service_registration returns a dict with keys
-    ``{'id', 'module_path', 'class_name', 'parameters'}``; ``id`` matches
-    the first argument; values match inputs; and ``parameters`` defaults
-    to an empty dict when omitted.
+    Verify create_service_registration_data returns a dict with keys
+    ``{'module_path', 'class_name', 'parameters'}``; values match inputs;
+    and ``parameters`` defaults to an empty dict when omitted.
 
     :return: None
     :rtype: None
     '''
 
     # Create a service registration without explicit parameters.
-    result = create_service_registration(
-        'feature_config_repo',
+    result = create_service_registration_data(
         'tiferet.repos.feature',
         'FeatureConfigRepository',
     )
 
     # Verify all expected keys are present.
-    assert set(result.keys()) == {'id', 'module_path', 'class_name', 'parameters'}
+    assert set(result.keys()) == {'module_path', 'class_name', 'parameters'}
 
     # Verify each value matches the input.
-    assert result['id'] == 'feature_config_repo'
     assert result['module_path'] == 'tiferet.repos.feature'
     assert result['class_name'] == 'FeatureConfigRepository'
     assert result['parameters'] == {}
 
-# ** test: create_service_registration_omitting_parameters_yields_empty_dict
-def test_create_service_registration_omitting_parameters_yields_empty_dict():
+# ** test: create_service_registration_data_omitting_parameters_yields_empty_dict
+def test_create_service_registration_data_omitting_parameters_yields_empty_dict():
     '''
-    Verify omitting ``parameters`` in create_service_registration yields
+    Verify omitting ``parameters`` in create_service_registration_data yields
     an empty dict, not ``None``.
 
     :return: None
@@ -497,8 +483,7 @@ def test_create_service_registration_omitting_parameters_yields_empty_dict():
     '''
 
     # Create a registration without explicit parameters.
-    result = create_service_registration(
-        'test_service',
+    result = create_service_registration_data(
         'tiferet.repos.test',
         'TestRepository',
     )
@@ -553,10 +538,10 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided():
     assert result['nargs'] == '?'
     assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
 
-# ** test: create_default_cli_command_returns_required_fields
-def test_create_default_cli_command_returns_required_fields():
+# ** test: create_default_cli_command_data_returns_required_fields
+def test_create_default_cli_command_data_returns_required_fields():
     '''
-    Verify create_default_cli_command returns a dict with ``id``, ``key``,
+    Verify create_default_cli_command_data returns a dict with ``key``,
     ``group_key``, and ``name``; ``description`` and ``arguments`` are absent
     when not provided.
 
@@ -565,25 +550,23 @@ def test_create_default_cli_command_returns_required_fields():
     '''
 
     # Call the factory with only the required arguments.
-    result = create_default_cli_command(
-        id='app.list',
+    result = create_default_cli_command_data(
         key='list',
         group_key='app',
         name='List App Interfaces',
     )
 
     # Assert required fields are present and optional fields are absent.
-    assert result['id'] == 'app.list'
     assert result['key'] == 'list'
     assert result['group_key'] == 'app'
     assert result['name'] == 'List App Interfaces'
     assert 'description' not in result
     assert 'arguments' not in result
 
-# ** test: create_default_cli_command_includes_optional_fields_when_provided
-def test_create_default_cli_command_includes_optional_fields_when_provided():
+# ** test: create_default_cli_command_data_includes_optional_fields_when_provided
+def test_create_default_cli_command_data_includes_optional_fields_when_provided():
     '''
-    Verify create_default_cli_command includes ``description`` and ``arguments``
+    Verify create_default_cli_command_data includes ``description`` and ``arguments``
     when they are supplied.
 
     :return: None
@@ -597,8 +580,7 @@ def test_create_default_cli_command_includes_optional_fields_when_provided():
     )
 
     # Call the factory with all optional arguments supplied.
-    result = create_default_cli_command(
-        id='app.get',
+    result = create_default_cli_command_data(
         key='get',
         group_key='app',
         name='Get App Interface',
