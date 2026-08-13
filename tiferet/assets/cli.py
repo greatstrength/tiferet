@@ -374,13 +374,6 @@ ERROR_LIST_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     group_key='error',
     name='List Errors',
     description='List all error definitions.',
-    arguments=[
-        create_default_cli_argument(
-            name_or_flags=['--include-defaults'],
-            description='Include built-in default error definitions.',
-            type='bool',
-        ),
-    ],
 )
 
 # ** constant: error_get_cli_cmd_data
