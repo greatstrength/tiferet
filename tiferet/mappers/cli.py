@@ -9,8 +9,7 @@ from typing import Any, ClassVar, Dict, List
 from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import CliArgument, CliCommand
-from ..events import RaiseError, a
+from ..domain import ATTRIBUTE_NOT_SETTABLE_ID, CliArgument, CliCommand, ModelError
 from .core import Aggregate, TransferObject
 
 # *** mappers
@@ -48,11 +47,13 @@ class CliArgumentAggregate(CliArgument, Aggregate):
 
         # Validate the attribute name.
         if attribute not in supported:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            supported_names = ', '.join(sorted(supported))
+            ModelError.raise_error(
+                ATTRIBUTE_NOT_SETTABLE_ID,
+                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+                model=self,
                 attribute=attribute,
-                supported=', '.join(sorted(supported)),
+                supported=supported_names,
             )
 
         # Apply the update; validate_assignment=True triggers field validation.
@@ -141,11 +142,13 @@ class CliCommandAggregate(CliCommand, Aggregate):
 
         # Validate the attribute name.
         if attribute not in supported:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            supported_names = ', '.join(sorted(supported))
+            ModelError.raise_error(
+                ATTRIBUTE_NOT_SETTABLE_ID,
+                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+                model=self,
                 attribute=attribute,
-                supported=', '.join(sorted(supported)),
+                supported=supported_names,
             )
 
         # Apply the update; validate_assignment=True triggers field validation.

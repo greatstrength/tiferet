@@ -3,8 +3,7 @@
 # *** imports
 
 # ** app
-from tiferet.domain import FlaggedDependency
-from tiferet.events import a
+from tiferet.domain import FlaggedDependency, INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.di import (
     FlaggedDependencyAggregate,
     FlaggedDependencyConfigObject,
@@ -102,7 +101,7 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
         ('module_path', 'new.module.path', None),
         ('class_name',  'NewClassName',    None),
         # invalid
-        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate
@@ -171,7 +170,7 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         ('module_path',  'updated.module',  None),
         ('class_name',   'UpdatedClass',    None),
         # invalid
-        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate

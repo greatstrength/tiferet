@@ -93,7 +93,7 @@ def test_tier_sizes():
     '''
 
     # Verify the core tier and the admin-only remainder.
-    assert len(CORE_DEFAULT_ERRORS) == 31
+    assert len(CORE_DEFAULT_ERRORS) == 30
     assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 14
 
     # Verify the three optional utility tiers.
@@ -101,8 +101,9 @@ def test_tier_sizes():
     assert len(TOML_DEFAULT_ERRORS) == 0
     assert len(CSV_DEFAULT_ERRORS) == 3
 
-    # Verify the composite catalog reflects the infra-code relocation to ServiceError.
-    assert len(DEFAULT_ERRORS) == 49
+    # Verify the composite catalog reflects the retirement of INVALID_MODEL_ATTRIBUTE_ID
+    # to the domain-layer ModelError protocol.
+    assert len(DEFAULT_ERRORS) == 48
 
 # ** test: every_entry_id_matches_its_key
 def test_every_entry_id_matches_its_key():

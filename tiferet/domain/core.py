@@ -4,12 +4,206 @@
 
 # ** core
 from importlib import import_module
-from typing import Dict
+import json
+from typing import Any, Dict, List
 
 # ** infra
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+# *** constants
+
+# ** constant: invalid_model_attribute_id
+INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
+
+# ** constant: invalid_model_value_id
+INVALID_MODEL_VALUE_ID = 'INVALID_MODEL_VALUE'
+
+# ** constant: attribute_not_settable_id
+ATTRIBUTE_NOT_SETTABLE_ID = 'ATTRIBUTE_NOT_SETTABLE'
+
+# ** constant: model_identity_fields
+MODEL_IDENTITY_FIELDS = (
+    'id',
+    'name',
+    'key',
+)
+
+# *** functions
+
+# ** function: describe_model
+def describe_model(model: Any) -> Dict[str, Any]:
+    '''
+    Build a safe descriptor for a model instance, naming its type and any
+    identity fields it exposes as primitive values.
+
+    :param model: The model instance to describe.
+    :type model: Any
+    :return: A descriptor dict with type/module and identity field values.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Start with the model's type and module.
+    descriptor: Dict[str, Any] = {
+        'type': type(model).__name__,
+        'module': type(model).__module__,
+    }
+
+    # Include each identity field the model exposes as a primitive value.
+    for field in MODEL_IDENTITY_FIELDS:
+        value = getattr(model, field, None)
+        if isinstance(value, (bool, float, int, str)):
+            descriptor[field] = value
+
+    # Return the descriptor.
+    return descriptor
+
+# ** function: unpack_validation_error
+def unpack_validation_error(error: ValidationError) -> List[Dict[str, Any]]:
+    '''
+    Flatten a Pydantic ValidationError into a list of violation descriptors.
+
+    :param error: The validation error to unpack.
+    :type error: ValidationError
+    :return: A list of violation dicts with field, type, and message keys.
+    :rtype: List[Dict[str, Any]]
+    '''
+
+    # Flatten each underlying error into a comparable descriptor.
+    return [
+        {
+            'field': '.'.join(str(loc) for loc in err['loc']),
+            'type': err['type'],
+            'message': err['msg'],
+        }
+        for err in error.errors()
+    ]
 
 # *** classes
+
+# ** class: model_error
+class ModelError(Exception):
+    '''
+    The ModelError is a standalone exception (not a TiferetError subclass)
+    raised when a mutation on a domain model or aggregate violates its
+    Pydantic schema, naming the offending model instance and classifying
+    whether the violation was an unknown attribute or an invalid value.
+    '''
+
+    # * attribute: error_code
+    error_code: str
+
+    # * attribute: model
+    model: Dict[str, Any]
+
+    # * attribute: violations
+    violations: List[Dict[str, Any]]
+
+    # * attribute: kwargs
+    kwargs: Dict[str, Any]
+
+    # * init
+    def __init__(
+        self,
+        error_code: str,
+        message: str = None,
+        model: Dict[str, Any] = None,
+        violations: List[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        '''
+        Initialize the ModelError with an error code, message, model descriptor,
+        violations, and additional arguments.
+
+        :param error_code: The error code.
+        :type error_code: str
+        :param message: The error message.
+        :type message: str
+        :param model: A descriptor for the offending model instance.
+        :type model: Dict[str, Any]
+        :param violations: The flattened validation violations.
+        :type violations: List[Dict[str, Any]]
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Set the error code, model descriptor, violations, and additional arguments.
+        self.error_code = error_code
+        self.model = model
+        self.violations = violations
+        self.kwargs = kwargs
+
+        # Initialize base exception with error data.
+        super().__init__(
+            json.dumps({
+                'error_code': error_code,
+                'message': message,
+                'model': model,
+                'violations': violations,
+                **kwargs,
+            })
+        )
+
+    # * method: raise_error
+    @classmethod
+    def raise_error(cls, error_code: str, message: str = None, model: Any = None, **kwargs) -> None:
+        '''
+        Raise a ModelError, describing the offending model instance when provided.
+
+        :param error_code: The error code to raise.
+        :type error_code: str
+        :param message: The error message to raise.
+        :type message: str
+        :param model: The offending model instance to describe.
+        :type model: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Raise a ModelError, describing the model instance when one is provided.
+        raise cls(
+            error_code,
+            message=message,
+            model=describe_model(model) if model is not None else None,
+            **kwargs,
+        )
+
+    # * method: raise_for_validation
+    @classmethod
+    def raise_for_validation(cls, error: ValidationError, message: str = None, model: Any = None, **kwargs) -> None:
+        '''
+        Convert a Pydantic ValidationError into a classified ModelError.
+
+        :param error: The Pydantic validation error to convert.
+        :type error: ValidationError
+        :param message: The error message to raise.
+        :type message: str
+        :param model: The offending model instance to describe.
+        :type model: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Flatten the validation error into a list of violations.
+        violations = unpack_validation_error(error)
+
+        # Describe the offending model instance, falling back to the error's title.
+        descriptor = describe_model(model) if model is not None else {'type': error.title}
+
+        # Classify the error code by whether any violation names an unknown attribute.
+        error_code = (
+            INVALID_MODEL_ATTRIBUTE_ID
+            if any(violation['type'] == 'no_such_attribute' for violation in violations)
+            else INVALID_MODEL_VALUE_ID
+        )
+
+        # Raise the classified ModelError, chaining the original validation error.
+        raise cls(
+            error_code,
+            message=message or f'{descriptor["type"]} validation failed: {violations}.',
+            model=descriptor,
+            violations=violations,
+            **kwargs,
+        ) from error
 
 # ** class: domain_object
 class DomainObject(BaseModel):

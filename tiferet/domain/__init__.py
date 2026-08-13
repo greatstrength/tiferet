@@ -3,7 +3,16 @@
 # *** imports
 
 # ** app
-from .core import DomainObject, ServiceDependency
+from .core import (
+    ATTRIBUTE_NOT_SETTABLE_ID,
+    INVALID_MODEL_ATTRIBUTE_ID,
+    INVALID_MODEL_VALUE_ID,
+    ModelError,
+    describe_model,
+    unpack_validation_error,
+    DomainObject,
+    ServiceDependency,
+)
 from .app import (
     AppServiceDependency,
     AppSession,
@@ -43,6 +52,12 @@ from .logging import (
 # *** exports
 
 __all__ = [
+    'ATTRIBUTE_NOT_SETTABLE_ID',
+    'INVALID_MODEL_ATTRIBUTE_ID',
+    'INVALID_MODEL_VALUE_ID',
+    'ModelError',
+    'describe_model',
+    'unpack_validation_error',
     'DomainObject',
     'ServiceDependency',
     'AppServiceDependency',

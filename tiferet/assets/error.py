@@ -78,9 +78,6 @@ INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
 # ** constant: invalid_json_file_id
 INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
 
-# ** constant: invalid_model_attribute_id
-INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
-
 # ** constant: invalid_yaml_file_id
 INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
 
@@ -323,13 +320,6 @@ INVALID_JSON_FILE = create_default_error(
     [(EN_US, 'File is not a valid JSON file: {path}.')],
 )
 
-# ** constant: invalid_model_attribute
-INVALID_MODEL_ATTRIBUTE = create_default_error(
-    INVALID_MODEL_ATTRIBUTE_ID,
-    'Invalid Model Attribute',
-    [(EN_US, 'Invalid attribute: {attribute}. Supported attributes are {supported}.')],
-)
-
 # ** constant: invalid_yaml_file
 INVALID_YAML_FILE = create_default_error(
     INVALID_YAML_FILE_ID,
@@ -550,7 +540,6 @@ CORE_DEFAULT_ERRORS = {
     INVALID_APP_SESSION_TYPE_ID: INVALID_APP_SESSION_TYPE,
     INVALID_DEPENDENCY_ERROR_ID: INVALID_DEPENDENCY_ERROR,
     INVALID_JSON_FILE_ID: INVALID_JSON_FILE,
-    INVALID_MODEL_ATTRIBUTE_ID: INVALID_MODEL_ATTRIBUTE,
     INVALID_YAML_FILE_ID: INVALID_YAML_FILE,
     LOGGER_CREATION_FAILED_ID: LOGGER_CREATION_FAILED,
     LOGGING_CONFIG_FAILED_ID: LOGGING_CONFIG_FAILED,

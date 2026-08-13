@@ -3,8 +3,7 @@
 # *** imports
 
 # ** app
-from tiferet.domain import CliArgument, CliCommand, DomainObject
-from tiferet.events import a
+from tiferet.domain import ATTRIBUTE_NOT_SETTABLE_ID, CliArgument, CliCommand, DomainObject
 from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandConfigObject
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
@@ -105,8 +104,8 @@ class TestCliArgumentAggregate(AggregateTestBase):
         ('required', True, None),
         ('default', 'new_default', None),
         # invalid
-        ('name_or_flags', ['b'], a.error.INVALID_MODEL_ATTRIBUTE_ID),
-        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('name_or_flags', ['b'], ATTRIBUTE_NOT_SETTABLE_ID),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
 
@@ -131,7 +130,7 @@ class TestCliCommandAggregate(AggregateTestBase):
         ('key', 'subtract', None),
         ('group_key', 'math', None),
         # invalid
-        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
     # ** test: add_argument_appends

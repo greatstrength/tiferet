@@ -6,11 +6,10 @@
 from typing import Any, ClassVar, Dict
 
 # ** infra
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 # ** app
-from ..domain import DomainObject
-from ..events import RaiseError, a
+from ..domain import DomainObject, ModelError
 
 # *** classes
 
@@ -28,7 +27,8 @@ class Aggregate(DomainObject):
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
-        Update an attribute on the aggregate, raising an error if it is unknown.
+        Update an attribute on the aggregate, converting any Pydantic validation
+        failure (unknown attribute or invalid value) into a ModelError.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -38,15 +38,11 @@ class Aggregate(DomainObject):
         :rtype: None
         '''
 
-        # Reject unknown attribute names by raising a structured error.
-        if attribute not in type(self).model_fields:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
-                attribute=attribute,
-            )
-
         # Apply the update; validate_assignment=True triggers field validation.
-        setattr(self, attribute, value)
+        try:
+            setattr(self, attribute, value)
+        except ValidationError as error:
+            ModelError.raise_for_validation(error, model=self, attribute=attribute)
 
     # * method: to_dict
     def to_dict(self, role: str = None, **overrides) -> Dict[str, Any]:

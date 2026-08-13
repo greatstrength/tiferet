@@ -6,8 +6,8 @@
 from tiferet.domain import (
     Error,
     ErrorMessage,
+    INVALID_MODEL_ATTRIBUTE_ID,
 )
-from tiferet.events import a
 from tiferet.mappers.error import (
     ErrorAggregate,
     ErrorConfigObject,
@@ -51,7 +51,7 @@ class TestErrorAggregate(AggregateTestBase):
         ('name', 'Updated Error', None),
         ('description', 'A new description', None),
         # invalid
-        ('invalid_attribute', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # *** domain-specific mutation tests

@@ -3,8 +3,7 @@
 # *** imports
 
 # ** app
-from tiferet.domain import EventFeatureStep
-from tiferet.events import a
+from tiferet.domain import EventFeatureStep, INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.feature import (
     EventFeatureStepAggregate,
     EventFeatureStepConfigObject,
@@ -190,7 +189,7 @@ class TestFeatureAggregate(AggregateTestBase):
         ('middleware', ['log'], None),
         ('is_async', True, None),
         # invalid
-        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate

@@ -10,9 +10,8 @@ import pytest
 from pydantic import Field, ValidationError
 
 # ** app
-from tiferet.domain import DomainObject
+from tiferet.domain import DomainObject, ModelError
 from tiferet.mappers.core import Aggregate, TransferObject
-from tiferet.assets import TiferetError
 
 # *** fixtures
 
@@ -148,7 +147,7 @@ def test_aggregate_set_attribute_success(test_aggregate: type):
 # ** test: aggregate_set_attribute_invalid
 def test_aggregate_set_attribute_invalid(test_aggregate: type):
     '''
-    Test setting an invalid attribute raises TiferetError.
+    Test setting an invalid attribute raises ModelError.
 
     :param test_aggregate: The Aggregate subclass to test.
     :type test_aggregate: type
@@ -158,7 +157,7 @@ def test_aggregate_set_attribute_invalid(test_aggregate: type):
     aggregate = test_aggregate(id='test_id', name='Test Name')
 
     # Attempt to set an invalid attribute.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ModelError) as exc_info:
         aggregate.set_attribute('invalid_attribute', 'value')
 
     # Assert the correct error is raised.
@@ -167,7 +166,8 @@ def test_aggregate_set_attribute_invalid(test_aggregate: type):
 # ** test: aggregate_set_attribute_validates_assignment
 def test_aggregate_set_attribute_validates_assignment(test_aggregate: type):
     '''
-    Test that set_attribute triggers Pydantic validate_assignment on invalid type.
+    Test that set_attribute converts a Pydantic validate_assignment failure on a
+    valid attribute name into a ModelError classified as an invalid value.
 
     :param test_aggregate: The Aggregate subclass to test.
     :type test_aggregate: type
@@ -176,9 +176,12 @@ def test_aggregate_set_attribute_validates_assignment(test_aggregate: type):
     # Create an aggregate instance.
     aggregate = test_aggregate(id='test_id', name='Test Name')
 
-    # Assigning a non-coercible type should raise ValidationError.
-    with pytest.raises(ValidationError):
+    # Assigning a non-coercible type should raise a classified ModelError.
+    with pytest.raises(ModelError) as exc_info:
         aggregate.set_attribute('name', ['not', 'a', 'string'])
+
+    # Assert the correct error is raised.
+    assert exc_info.value.error_code == 'INVALID_MODEL_VALUE'
 
 # ** test: transfer_object_from_data
 def test_transfer_object_from_data(test_data_object: type):
