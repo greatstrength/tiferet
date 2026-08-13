@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from tiferet.events import *
-from tiferet import Json
+from tiferet.utils import Json
 
 class RecordCalculation(DomainEvent):
     """Append the most recent calculation to a JSON history file."""

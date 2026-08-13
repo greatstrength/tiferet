@@ -342,38 +342,34 @@ All query/mutation methods guard against uninitialized connections with `SQLITE_
 
 ## Package Exports
 
-The top-level `tiferet/__init__.py` exports:
+The top-level `tiferet/__init__.py` exports only core runtime entrypoints and DDD vocabulary:
 
-**Core:**
+**Runtime:**
 - `App` (alias for `build_app`)
 - `CLI` (alias for `build_cli`)
 - `TiferetError`, `TiferetAPIError`
 
-**Domain:**
+**Domain / events / interfaces / mappers:**
 - `DomainObject`
+- `DomainEvent`
+- `Service`
+- `Aggregate`, `TransferObject`
 
-**Events:**
-- `DomainEvent`, `ParseParameter` (from `tiferet.events`)
+Everything else is imported from its owning package, for example:
 
-**Interfaces:**
-- `Service` (from `tiferet.interfaces`)
-
-**Mappers:**
-- `Aggregate`, `TransferObject` (from `tiferet.mappers`)
-
-**Utils:**
-- `File`/`FileLoader`, `Yaml`/`YamlLoader`, `Json`/`JsonLoader`, `Csv`/`CsvLoader`, `CsvDict`/`CsvDictLoader`, `Sqlite`/`SqliteClient`
+- `from tiferet.events import AsyncDomainEvent, ParseParameter`
+- `from tiferet.interfaces import MiddlewareService`
+- `from tiferet.utils import File, Yaml, Json, Toml, Csv, CsvDict, Sqlite, LoggingMiddleware, TimingMiddleware`
 
 ## Key Files for Orientation
 
 - `tiferet/__init__.py` — Version and public exports
 - `tiferet/domain/core.py` — `DomainObject` base class (extends `pydantic.BaseModel`) and `ServiceDependency` core model
-- `tiferet/events/settings.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
+- `tiferet/events/core.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
 - `tiferet/di/core.py` — `ServiceContainer` / `ServiceResolver` ABCs + `injectable_parameter_names` / `normalize_flags`
 - `tiferet/di/dependency_injector.py` — `DIDynamicServiceContainer` (Factory), `DIAppServiceContainer` (Singleton), `DIDynamicServiceResolver` (per-flag)
-- `tiferet/di/settings.py` — legacy `ServiceContainer` (DI engine) and `ServiceResolver` (public provider), still wired by `build_app`
 - `tiferet/blueprints/core.py` — `build_app` (public app orchestration entry point, exported as `App`) plus the composition chain: `build_cache`, `create_app_service`, `get_app_session`, `build_app_service_container`, `build_service_resolver`, `build_app_session_context`
 - `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`; calls `core.build_app` then `run_cli`)
 - `tiferet/blueprints/tiferet_cli.py` — `build_tiferet_cli` (`TiferetCLI`) plus the relocated module-private legacy feature-DI bootstrap (`_wire_services`, `_load_app_instance`, `_resolve_collaborators`, `_resolve_bootstrap_session`, ...)
