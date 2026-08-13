@@ -14,6 +14,12 @@ description: Use the Tiferet Admin App or Admin CLI to add or update errors, ser
 
 The **Admin App** (`AdminApp` / `build_admin_app`) is the strongly recommended primary path for programmatic configuration management.
 
+Import from the blueprints package (not the package root):
+
+```python
+from tiferet.blueprints import AdminApp, AdminCLI
+```
+
 ### Why Admin App is preferred
 
 - **In-process objects**: Manipulates rich domain objects directly in Python without string serialization or parsing overhead.
@@ -23,13 +29,13 @@ The **Admin App** (`AdminApp` / `build_admin_app`) is the strongly recommended p
 ### Canonical usage pattern
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 # Instantiate the admin app (defaults to app_config='config.yml')
 admin = AdminApp()
 
 # Execute a management feature against config.yml
-response = admin.run('feature_id', data={'key': 'value'})
+response = admin.run('feature.list', data={})
 ```
 
 To target a specific configuration file other than `config.yml`:
@@ -46,46 +52,62 @@ The **Admin CLI** (`AdminCLI` / `build_admin_cli` / `tiferet`) is the secondary 
 
 ```bash
 # Target default config.yml in current working directory
-tiferet <group> <command> [options...]
+tiferet <group> <command> [args...]
 
 # Target a specific configuration file
-tiferet --config custom_config.yml <group> <command> [options...]
+tiferet --config custom_config.yml <group> <command> [args...]
 ```
 
 ### Key-value dict syntax
 
-Every flat-map/dict-typed argument on the Admin CLI accepts `key=value` pairs directly on the command line — raw JSON strings are **never** required.
+Every flat-map/dict-typed argument on the Admin CLI accepts `key=value` pairs directly on the command line — raw JSON strings are **never** required for dict args (only for the few `type: json` args such as `cli.add_argument --name-or-flags`).
 
 ```bash
-# Correct: flat-map key=value pairs
-tiferet error add --id INVALID_TOKEN_ID --name "Invalid Token" --message "Token is invalid." --additional-messages es_ES="El token no es válido."
+# Correct: positional id/name/message; flat-map additional messages
+tiferet error add INVALID_TOKEN_ID "Invalid Token" "Token is invalid." --additional-messages es_ES="El token no es válido."
 
-# Correct: flat-map parameters
-tiferet feature add-step --feature-id user.create --service-id validate_user_evt --name "Validate User" --parameters mode=strict timeout=5.0
+# Correct: positional feature id + step name + service_id; flat-map parameters
+tiferet feature add-step user.create "Validate User" validate_user_evt --parameters mode=strict timeout=5.0
 ```
+
+## Catalog source of truth
+
+Landed IDs come from:
+- `ADMIN_DEFAULT_FEATURES` — `tiferet/assets/feature.py` (41 features)
+- `ADMIN_DEFAULT_COMMANDS` — `tiferet/assets/cli.py` (40 commands; `feature.get` is Python-only)
+
+Do **not** invent verbs such as `app.add_session`, `list-sessions`, `list-errors`, `list-features`, or `delete_*`. Use the pairs below.
 
 ## The Six Admin Domains
 
-The admin surface spans six configuration management domains.
-
 ### 1. App Domain (`app`)
 
-Manages application interface definitions, session parameters, and app constants.
+Manages application interface / session definitions, constants, and app-level service dependencies.
 
-- **Available features**: `app.add_session`, `app.list_sessions`, `app.get_session`, `app.delete_session`
-- **CLI group**: `tiferet app <command>`
+| Feature | Purpose | CLI |
+| --- | --- | --- |
+| `app.add` | Add a new application session configuration | `tiferet app add <id> <name> <module_path> <class_name> [--description] [--logger-id] [--flags] [--constants]` |
+| `app.get` | Retrieve an app session by ID | `tiferet app get <interface_id>` |
+| `app.list` | List all configured app sessions | `tiferet app list` |
+| `app.update` | Update a scalar attribute on an app session | `tiferet app update <id> <attribute> <value>` |
+| `app.set_constants` | Set or clear constants on an app session | `tiferet app set-constants <id> [--constants]` |
+| `app.set_service` | Set or update a service dependency on an app session | `tiferet app set-service <id> <service_id> <module_path> <class_name> [--parameters]` |
+| `app.remove_service` | Remove a service dependency from an app session | `tiferet app remove-service <id> <service_id>` |
+| `app.remove` | Remove an app session by ID | `tiferet app remove <id>` |
 
 #### Python (`AdminApp`)
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 admin = AdminApp()
 admin.run(
-    'app.add_session',
+    'app.add',
     data={
         'id': 'web_api',
         'name': 'Web API Session',
+        'module_path': 'app.contexts.api',
+        'class_name': 'ApiSessionContext',
         'description': 'Main web API application session',
     },
 )
@@ -94,30 +116,35 @@ admin.run(
 #### CLI (`tiferet`)
 
 ```bash
-tiferet app add-session --id web_api --name "Web API Session" --description "Main web API application session"
+tiferet app add web_api "Web API Session" app.contexts.api ApiSessionContext --description "Main web API application session"
+tiferet app list
 ```
 
 ---
 
 ### 2. CLI Domain (`cli`)
 
-Manages CLI command definitions, command groups, and argument specifications.
+Manages CLI command definitions and argument specifications.
 
-- **Available features**: `cli.add_command`, `cli.list_commands`, `cli.get_command`, `cli.delete_command`
-- **CLI group**: `tiferet cli <command>`
+| Feature | Purpose | CLI |
+| --- | --- | --- |
+| `cli.list_commands` | List all configured CLI commands | `tiferet cli list-commands` |
+| `cli.add_command` | Add a new CLI command definition | `tiferet cli add-command <id> <name> <key> <group_key> [--description]` |
+| `cli.add_argument` | Add an argument to an existing CLI command | `tiferet cli add-argument <command_id> --name-or-flags <json> [--description]` |
 
 #### Python (`AdminApp`)
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 admin = AdminApp()
 admin.run(
     'cli.add_command',
     data={
-        'group_key': 'reports',
-        'key': 'generate',
+        'id': 'reports.generate',
         'name': 'Generate Report',
+        'key': 'generate',
+        'group_key': 'reports',
         'description': 'Generate summary report',
     },
 )
@@ -126,22 +153,30 @@ admin.run(
 #### CLI (`tiferet`)
 
 ```bash
-tiferet cli add-command --group-key reports --key generate --name "Generate Report" --description "Generate summary report"
+tiferet cli add-command reports.generate "Generate Report" generate reports --description "Generate summary report"
+tiferet cli list-commands
 ```
 
 ---
 
 ### 3. Error Domain (`error`)
 
-Manages structured error definitions, multilingual error messages, and error codes.
+Manages structured error definitions and multilingual messages.
 
-- **Available features**: `error.add`, `error.list_errors`, `error.get_error`, `error.delete_error`
-- **CLI group**: `tiferet error <command>`
+| Feature | Purpose | CLI |
+| --- | --- | --- |
+| `error.list` | List all error definitions | `tiferet error list [--include-defaults]` |
+| `error.add` | Add a new error definition | `tiferet error add <id> <name> <message> [--lang] [--additional-messages]` |
+| `error.get` | Retrieve an error by ID | `tiferet error get <id>` |
+| `error.rename` | Rename an existing error definition | `tiferet error rename <id> <new_name>` |
+| `error.set_message` | Set the message text on an existing error | `tiferet error set-message <id> <message> [--lang]` |
+| `error.remove_message` | Remove a language message from an error | `tiferet error remove-message <id> [--lang]` |
+| `error.remove` | Remove an error definition | `tiferet error remove <id>` |
 
 #### Python (`AdminApp`)
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 admin = AdminApp()
 admin.run(
@@ -160,22 +195,32 @@ admin.run(
 #### CLI (`tiferet`)
 
 ```bash
-tiferet error add --id INVALID_TOKEN_ID --name "Invalid Token" --message "The provided authentication token is invalid." --additional-messages es_ES="El token de autenticación proporcionado no es válido."
+tiferet error add INVALID_TOKEN_ID "Invalid Token" "The provided authentication token is invalid." --additional-messages es_ES="El token de autenticación proporcionado no es válido."
+tiferet error list
 ```
 
 ---
 
 ### 4. Feature Domain (`feature`)
 
-Manages feature workflow definitions, steps, and feature parameters.
+Manages feature workflow definitions and steps.
 
-- **Available features**: `feature.add`, `feature.add_step`, `feature.list_features`, `feature.get_feature`, `feature.delete_feature`
-- **CLI group**: `tiferet feature <command>`
+| Feature | Purpose | CLI |
+| --- | --- | --- |
+| `feature.list` | List all feature workflow definitions | `tiferet feature list [--group-id]` |
+| `feature.add` | Add a new feature workflow definition | `tiferet feature add <name> <group_id> [--feature-key] [--description]` |
+| `feature.get` | Retrieve a feature by ID | *(Python only — no CLI command)* |
+| `feature.update` | Update a metadata attribute on a feature | `tiferet feature update <id> <attribute> <value>` |
+| `feature.add_step` | Add a step to an existing feature workflow | `tiferet feature add-step <id> <name> <service_id> [--parameters] [--data-key] [--pass-on-error] [--position]` |
+| `feature.update_step` | Update an attribute on an existing feature step | `tiferet feature update-step <id> <position> <attribute> [--value]` |
+| `feature.remove_step` | Remove a step from an existing feature workflow | `tiferet feature remove-step <id> <position>` |
+| `feature.reorder_step` | Reorder a step within an existing feature workflow | `tiferet feature reorder-step <id> <start_position> <end_position>` |
+| `feature.remove` | Remove an existing feature workflow definition | `tiferet feature remove <id>` |
 
 #### Python (`AdminApp`)
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 admin = AdminApp()
 
@@ -183,8 +228,9 @@ admin = AdminApp()
 admin.run(
     'feature.add',
     data={
-        'id': 'user.create',
         'name': 'Create User Workflow',
+        'group_id': 'user',
+        'feature_key': 'create',
         'description': 'Validates and registers a new user',
     },
 )
@@ -193,9 +239,9 @@ admin.run(
 admin.run(
     'feature.add_step',
     data={
-        'feature_id': 'user.create',
-        'service_id': 'validate_user_evt',
+        'id': 'user.create',
         'name': 'Validate User Step',
+        'service_id': 'validate_user_evt',
         'parameters': {'mode': 'strict'},
     },
 )
@@ -204,32 +250,49 @@ admin.run(
 #### CLI (`tiferet`)
 
 ```bash
-tiferet feature add --id user.create --name "Create User Workflow" --description "Validates and registers a new user"
-tiferet feature add-step --feature-id user.create --service-id validate_user_evt --name "Validate User Step" --parameters mode=strict
+tiferet feature add "Create User Workflow" user --feature-key create --description "Validates and registers a new user"
+tiferet feature add-step user.create "Validate User Step" validate_user_evt --parameters mode=strict
+tiferet feature list
 ```
 
 ---
 
 ### 5. Service / DI Domain (`service`)
 
-Manages feature-level service registrations, constructor parameters, and flagged overrides.
+Manages feature-level service registrations, flagged dependencies, and DI constants.
 
-- **Available features**: `service.set_dependency`, `service.list_services`, `service.get_service`, `service.delete_service`
-- **CLI group**: `tiferet service <command>`
+| Feature | Purpose | CLI |
+| --- | --- | --- |
+| `service.list` | List all DI service registrations and constants | `tiferet service list` |
+| `service.add` | Add a new DI service registration | `tiferet service add <id> [--module-path] [--class-name] [--parameters]` |
+| `service.set_default` | Set or update the default type for a registration | `tiferet service set-default <id> [--module-path] [--class-name] [--parameters]` |
+| `service.set_dependency` | Set or update a flagged dependency on a registration | `tiferet service set-dependency <id> <flag> <module_path> <class_name> [--parameters]` |
+| `service.remove_dependency` | Remove a flagged dependency from a registration | `tiferet service remove-dependency <id> <flag>` |
+| `service.set_constants` | Set or clear DI service constants | `tiferet service set-constants [--constants]` |
+| `service.remove` | Remove a DI service registration | `tiferet service remove <id>` |
 
 #### Python (`AdminApp`)
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 admin = AdminApp()
 admin.run(
-    'service.set_dependency',
+    'service.add',
     data={
-        'registration_id': 'validate_user_evt',
+        'id': 'validate_user_evt',
         'module_path': 'app.events.user',
         'class_name': 'ValidateUserEvent',
         'parameters': {'timeout': '5.0'},
+    },
+)
+admin.run(
+    'service.set_dependency',
+    data={
+        'id': 'validate_user_evt',
+        'flag': 'test',
+        'module_path': 'app.events.user',
+        'class_name': 'StubValidateUserEvent',
     },
 )
 ```
@@ -237,30 +300,40 @@ admin.run(
 #### CLI (`tiferet`)
 
 ```bash
-tiferet service set-dependency --registration-id validate_user_evt --module-path app.events.user --class-name ValidateUserEvent --parameters timeout=5.0
+tiferet service add validate_user_evt --module-path app.events.user --class-name ValidateUserEvent --parameters timeout=5.0
+tiferet service set-dependency validate_user_evt test app.events.user StubValidateUserEvent
+tiferet service list
 ```
 
 ---
 
 ### 6. Logging Domain (`logging`)
 
-Manages logging formatters, handlers, loggers, and logging configuration.
+Manages logging formatters, handlers, and loggers.
 
-- **Available features**: `logging.add_logger`, `logging.list_loggers`, `logging.get_logger`, `logging.delete_logger`
-- **CLI group**: `tiferet logging <command>`
+| Feature | Purpose | CLI |
+| --- | --- | --- |
+| `logging.add_formatter` | Add a new logging formatter configuration | `tiferet logging add-formatter <id> <name> <format> [--description] [--datefmt]` |
+| `logging.remove_formatter` | Remove a logging formatter by ID | `tiferet logging remove-formatter <id>` |
+| `logging.add_handler` | Add a new logging handler configuration | `tiferet logging add-handler <id> <name> <module_path> <class_name> <level> <formatter> [--description] [--stream] [--filename]` |
+| `logging.remove_handler` | Remove a logging handler by ID | `tiferet logging remove-handler <id>` |
+| `logging.add_logger` | Add a new logger configuration | `tiferet logging add-logger <id> <name> <level> <handlers> [--description] [--no-propagate]` |
+| `logging.remove_logger` | Remove a logger by ID | `tiferet logging remove-logger <id>` |
+| `logging.list` | List all logging configurations | `tiferet logging list` |
 
 #### Python (`AdminApp`)
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 admin = AdminApp()
 admin.run(
     'logging.add_logger',
     data={
-        'logger_id': 'app.audit',
+        'id': 'app.audit',
+        'name': 'app.audit',
         'level': 'INFO',
-        'handlers': ['console', 'file'],
+        'handlers': 'console,file',
     },
 )
 ```
@@ -268,7 +341,8 @@ admin.run(
 #### CLI (`tiferet`)
 
 ```bash
-tiferet logging add-logger --logger-id app.audit --level INFO --handlers console file
+tiferet logging add-logger app.audit app.audit INFO console,file
+tiferet logging list
 ```
 
 ---
@@ -278,13 +352,13 @@ tiferet logging add-logger --logger-id app.audit --level INFO --handlers console
 When a new domain event module is authored (e.g. `VerifyPaymentEvent`), three corresponding entries must be configured in `config.yml` to make it operational:
 
 1. **Error Definition** (`error.add`): Error constant and localized message for failure modes.
-2. **Service Registration** (`service.set_dependency`): DI registration mapping the event ID to its class.
-3. **Feature Step** (`feature.add_step`): Step entry referencing the service ID within a feature workflow.
+2. **Service Registration** (`service.add` / optional `service.set_dependency`): DI registration mapping the event ID to its class (and any flagged override).
+3. **Feature Step** (`feature.add` / `feature.add_step`): Feature workflow plus step entry referencing the service ID.
 
 ### Complete Python script
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 # Initialize AdminApp against the target configuration file
 admin = AdminApp(app_config='config.yml')
@@ -302,11 +376,11 @@ admin.run(
     },
 )
 
-# 2. Register service dependency in DI
+# 2. Register the service (default type)
 admin.run(
-    'service.set_dependency',
+    'service.add',
     data={
-        'registration_id': 'verify_payment_evt',
+        'id': 'verify_payment_evt',
         'module_path': 'app.events.payment',
         'class_name': 'VerifyPaymentEvent',
         'parameters': {'gateway_timeout': '10.0'},
@@ -317,8 +391,9 @@ admin.run(
 admin.run(
     'feature.add',
     data={
-        'id': 'payment.checkout',
         'name': 'Payment Checkout Feature',
+        'group_id': 'payment',
+        'feature_key': 'checkout',
     },
 )
 
@@ -326,9 +401,9 @@ admin.run(
 admin.run(
     'feature.add_step',
     data={
-        'feature_id': 'payment.checkout',
-        'service_id': 'verify_payment_evt',
+        'id': 'payment.checkout',
         'name': 'Verify Payment Step',
+        'service_id': 'verify_payment_evt',
         'parameters': {'require_3ds': 'true'},
     },
 )

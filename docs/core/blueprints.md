@@ -178,11 +178,13 @@ Feature steps therefore resolve from the admin container unless they explicitly 
 | `build_admin_cli` / `AdminCLI` | Resolves `TIFERET_ADMIN_CLI_ID`, re-seeds all `*_config` constants to the consumer path, runs `cli_context.run(argv)` |
 | `main` | Console entry for the `tiferet` script; pre-parses `--config` without consuming help/remaining argv |
 
-Exports (from `tiferet.blueprints` / top-level `tiferet`):
+Exports:
 
 ```python
-from tiferet import App, CLI, AdminApp, AdminCLI
+from tiferet import App, CLI
+from tiferet.blueprints import AdminApp, AdminCLI
 # also: build_app, build_cli, build_admin_app, build_admin_cli
+# AdminApp / AdminCLI are blueprints-package exports only (not package-root).
 ```
 
 Full catalog reference: [docs/guides/admin.md](../guides/admin.md).

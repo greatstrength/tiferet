@@ -130,7 +130,7 @@ The admin blueprints expose the framework's built-in configuration-management se
 ### Admin App (`build_admin_app` / `AdminApp`)
 
 ```python
-from tiferet import AdminApp
+from tiferet.blueprints import AdminApp
 
 admin = AdminApp()  # defaults to TIFERET_ADMIN_ID
 response = admin.run('app.list')
@@ -154,17 +154,17 @@ resolver.add_container(admin_container)  # default
 ### Admin CLI (`build_admin_cli` / `AdminCLI`)
 
 ```python
-from tiferet import AdminCLI
+from tiferet.blueprints import AdminCLI
 
-AdminCLI(app_config='config.yml', argv=['feature', 'list-features'])
+AdminCLI(app_config='config.yml', argv=['feature', 'list'])
 ```
 
 Console usage (via `pyproject.toml` → `tiferet.blueprints.admin_cli:main`):
 
 ```bash
-tiferet app list-sessions
-tiferet --config custom_config.yml error list-errors
-tiferet feature add-step --feature-id user.create --service-id validate_user_evt --name "Validate" --parameters mode=strict
+tiferet app list
+tiferet --config custom_config.yml error list
+tiferet feature add-step user.create "Validate" validate_user_evt --parameters mode=strict
 ```
 
 What it does:
@@ -205,6 +205,9 @@ Blueprints are **application-level**; contexts are **session-level**.
 ### 1. Single-call Entry Point
 
 ```python
+from tiferet import App
+from tiferet.blueprints import AdminApp
+
 app = App('basic_calc', app_config='config.yml')
 admin = AdminApp()
 ```

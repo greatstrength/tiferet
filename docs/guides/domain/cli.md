@@ -70,11 +70,11 @@ Admin catalog commands that pass structured maps use `'dict'` (not a new type). 
 
 ```bash
 # Flat-map dict syntax (key=value), not JSON strings
-tiferet feature add-step --feature-id user.create --service-id validate_user_evt \
-  --name "Validate User" --parameters mode=strict
-tiferet error add --id INVALID_TOKEN_ID --name "Invalid Token" \
-  --message "Token invalid." --additional-messages es_ES="Token inválido."
-tiferet app set-constants --id web_api --constants timeout=30 retries=3
+tiferet feature add-step user.create "Validate User" validate_user_evt \
+  --parameters mode=strict
+tiferet error add INVALID_TOKEN_ID "Invalid Token" "Token invalid." \
+  --additional-messages es_ES="Token inválido."
+tiferet app set-constants web_api --constants timeout=30 retries=3
 ```
 
 `build_admin_cli` / `AdminCLI` (`tiferet/blueprints/admin_cli.py`) is the primary consumer of these admin arguments; see [docs/guides/admin.md](../admin.md).
