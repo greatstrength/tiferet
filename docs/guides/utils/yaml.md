@@ -81,18 +81,18 @@ Pre-flight validation that checks:
 - **`yaml.YAMLError`** — caught and wrapped as `YAML_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
 - **All other exceptions** during load/save — caught and wrapped as `YAML_FILE_LOAD_ERROR_ID` or `YAML_FILE_SAVE_ERROR_ID` respectively.
 
-All errors are raised via `ServiceError.raise_for(self, ...)` with these constants (import via `from tiferet import a`):
+All errors are raised via `ServiceError.raise_for(self, ...)` with these local module constants (defined in `tiferet/utils/yaml.py`, with `INVALID_FILE_ID` imported from `tiferet/utils/file.py`):
 
-- `a.const.YAML_FILE_NOT_FOUND_ID`
-- `a.const.YAML_FILE_LOAD_ERROR_ID`
-- `a.const.YAML_FILE_SAVE_ERROR_ID`
-- `a.const.INVALID_FILE_ID` (extension mismatch in `verify_yaml_file`)
+- `YAML_FILE_NOT_FOUND_ID`
+- `YAML_FILE_LOAD_ERROR_ID`
+- `YAML_FILE_SAVE_ERROR_ID`
+- `INVALID_FILE_ID` (extension mismatch in `verify_yaml_file`)
 
-Inherited from `FileLoader`:
-- `a.const.FILE_NOT_FOUND_ID`
-- `a.const.INVALID_FILE_MODE_ID`
-- `a.const.INVALID_ENCODING_ID`
-- `a.const.FILE_ALREADY_OPEN_ID`
+Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
+- `FILE_NOT_FOUND_ID`
+- `INVALID_FILE_MODE_ID`
+- `INVALID_ENCODING_ID`
+- `FILE_ALREADY_OPEN_ID`
 
 ## Example – Domain Event with Direct Usage
 
@@ -173,7 +173,7 @@ def test_load_app_config_file_not_found(tmp_path):
             config_path=str(tmp_path / 'missing.yaml'),
         )
 
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID  # local constant in tiferet/utils/file.py
 ```
 
 ## Related Documentation

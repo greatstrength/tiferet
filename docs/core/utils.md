@@ -177,7 +177,11 @@ import tomllib
 # ** app
 from .file import FileLoader
 from ..interfaces.core import ServiceError
-from .. import assets as a
+
+# *** constants
+
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 
 # *** utils
 
@@ -203,7 +207,7 @@ class TomlLoader(FileLoader):
         except tomllib.TOMLDecodeError as e:
             ServiceError.raise_for(
                 self,
-                a.const.INVALID_TOML_FILE_ID,
+                INVALID_TOML_FILE_ID,
                 error=str(e),
                 path=str(self.path),
             )
@@ -288,7 +292,7 @@ def test_file_loader_invalid_mode(temp_file):
     loader = FileLoader(path=temp_file, mode='z')
     with pytest.raises(TiferetError) as exc_info:
         loader.open_file()
-    assert exc_info.value.error_code == a.const.INVALID_FILE_MODE_ID
+    assert exc_info.value.error_code == INVALID_FILE_MODE_ID  # local constant in tiferet/utils/file.py
 ```
 
 **Key testing patterns:**

@@ -168,18 +168,18 @@ CSV utilities follow a layered error strategy:
 - **`CSV_INVALID_WRITE_MODE_ID`** — raised when `build_writer()` is called in a non-writable mode.
 - **`CSV_FIELDNAMES_REQUIRED_ID`** — raised when writing dicts without providing `fieldnames`.
 
-All errors are raised via `ServiceError.raise_for(self, ...)` with constants from `tiferet.assets.constants`:
+All errors are raised via `ServiceError.raise_for(self, ...)`. `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, and `CSV_FIELDNAMES_REQUIRED_ID` are local module constants defined in `tiferet/utils/csv.py` (not `tiferet.assets.constants`):
 
-- `a.const.CSV_INVALID_READ_MODE_ID`
-- `a.const.CSV_INVALID_WRITE_MODE_ID`
-- `a.const.CSV_FIELDNAMES_REQUIRED_ID`
+- `CSV_INVALID_READ_MODE_ID`
+- `CSV_INVALID_WRITE_MODE_ID`
+- `CSV_FIELDNAMES_REQUIRED_ID`
 - `a.const.CSV_DICT_NO_HEADER_ID`
 
-Inherited from `FileLoader`:
-- `a.const.FILE_NOT_FOUND_ID`
-- `a.const.INVALID_FILE_MODE_ID`
-- `a.const.INVALID_ENCODING_ID`
-- `a.const.FILE_ALREADY_OPEN_ID`
+Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
+- `FILE_NOT_FOUND_ID`
+- `INVALID_FILE_MODE_ID`
+- `INVALID_ENCODING_ID`
+- `FILE_ALREADY_OPEN_ID`
 
 ## Example – Domain Event with Direct Usage
 
@@ -257,7 +257,7 @@ def test_import_csv_records_file_not_found(tmp_path):
             csv_path=str(tmp_path / 'missing.csv'),
         )
 
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID  # local constant in tiferet/utils/file.py
 ```
 
 ## Deviations from YamlLoader / JsonLoader
@@ -267,7 +267,7 @@ def test_import_csv_records_file_not_found(tmp_path):
 - **Two-class design**: `CsvDictLoader` extends `CsvLoader` for dict-based operations, whereas YAML and JSON each have a single class. This reflects CSV's dual nature (positional vs. header-based).
 - **Rich static helpers**: `load_rows`, `save_rows`, `append_row` provide convenience without requiring context management. `save_rows` on `CsvLoader` auto-detects dict datasets and switches to `DictWriter` when `fieldnames` is provided.
 - **`newline=''` default**: CSV files are opened with `newline=''` per Python `csv` module requirements, ensuring correct newline handling across platforms.
-- **New CSV-specific error constants**: `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, `CSV_FIELDNAMES_REQUIRED_ID`, `CSV_DICT_NO_HEADER_ID` were added to `constants.py` for CSV-specific guard conditions.
+- **New CSV-specific error constants**: `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, and `CSV_FIELDNAMES_REQUIRED_ID` are local module constants in `tiferet/utils/csv.py` for CSV-specific guard conditions.
 - **Documentation guide**: A `docs/guides/utils/csv.md` guide was created alongside the implementation, following the pattern of the existing `yaml.md` and `json.md` guides. This was not in the original TRD scope but adds consistency to the documentation suite.
 
 ## Related Documentation

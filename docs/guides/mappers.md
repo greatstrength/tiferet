@@ -174,16 +174,18 @@ Broad `AliasChoices` lists provide backward compatibility with older configurati
 Some aggregates override `set_attribute` with a gated version that restricts which attributes can be updated. This prevents accidental mutation of identity fields or fields that have dedicated mutation methods.
 
 ```python
+# ATTRIBUTE_NOT_SETTABLE_ID and ModelError are domain-layer imports (from ..domain),
+# never assets/a.const — see AppSessionAggregate / CliArgumentAggregate / CliCommandAggregate.
 def set_attribute(self, attribute: str, value: Any) -> None:
     supported = {'name', 'description', 'module_path', 'class_name', 'logger_id', 'flags'}
     if attribute not in supported:
         ModelError.raise_error(
-            a.const.ATTRIBUTE_NOT_SETTABLE_ID,
+            ATTRIBUTE_NOT_SETTABLE_ID,
             model=self,
             attribute=attribute,
             supported=', '.join(sorted(supported)),
         )
-    super().set_attribute(attribute, value)
+    setattr(self, attribute, value)
 ```
 
 **When to gate:** when the aggregate has fields that should only change through dedicated methods (e.g., `services` via `add_service`/`remove_service`, `constants` via `set_constants`).
