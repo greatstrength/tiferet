@@ -23,7 +23,6 @@ __all__ = [
 from .core import TiferetError, TiferetAPIError
 from . import core
 from .error import ERROR_NOT_FOUND_ID, DEFAULT_ERRORS
-from . import app
 from . import error
 from . import app
 from . import feature as feat
