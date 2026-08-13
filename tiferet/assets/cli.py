@@ -10,7 +10,7 @@ IDs, individually named command constants, and the ADMIN_DEFAULT_COMMANDS group 
 from typing import Any, Dict, List
 
 # ** app
-from .core import create_default_cli_argument, create_default_cli_command
+from .core import create_default_cli_argument, create_default_cli_command_data
 
 # *** constants (ids)
 
@@ -136,18 +136,16 @@ LOGGING_LIST_CLI_CMD_ID = 'logging.list'
 
 # *** constants (commands)
 
-# ** constant: app_list_cli_cmd
-APP_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_LIST_CLI_CMD_ID,
+# ** constant: app_list_cli_cmd_data
+APP_LIST_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='list',
     group_key='app',
     name='List App Interfaces',
     description='List all configured application interfaces.',
 )
 
-# ** constant: app_get_cli_cmd
-APP_GET_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_GET_CLI_CMD_ID,
+# ** constant: app_get_cli_cmd_data
+APP_GET_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='get',
     group_key='app',
     name='Get App Interface',
@@ -160,9 +158,8 @@ APP_GET_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: app_add_cli_cmd
-APP_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_ADD_CLI_CMD_ID,
+# ** constant: app_add_cli_cmd_data
+APP_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add',
     group_key='app',
     name='Add App Interface',
@@ -205,9 +202,8 @@ APP_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: app_update_cli_cmd
-APP_UPDATE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_UPDATE_CLI_CMD_ID,
+# ** constant: app_update_cli_cmd_data
+APP_UPDATE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='update',
     group_key='app',
     name='Update App Interface',
@@ -228,9 +224,8 @@ APP_UPDATE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: app_set_service_cli_cmd
-APP_SET_SERVICE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_SET_SERVICE_CLI_CMD_ID,
+# ** constant: app_set_service_cli_cmd_data
+APP_SET_SERVICE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='set-service',
     group_key='app',
     name='Set App Service Dependency',
@@ -260,9 +255,8 @@ APP_SET_SERVICE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: app_remove_service_cli_cmd
-APP_REMOVE_SERVICE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_REMOVE_SERVICE_CLI_CMD_ID,
+# ** constant: app_remove_service_cli_cmd_data
+APP_REMOVE_SERVICE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove-service',
     group_key='app',
     name='Remove App Service Dependency',
@@ -279,9 +273,8 @@ APP_REMOVE_SERVICE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: app_set_constants_cli_cmd
-APP_SET_CONSTANTS_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_SET_CONSTANTS_CLI_CMD_ID,
+# ** constant: app_set_constants_cli_cmd_data
+APP_SET_CONSTANTS_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='set-constants',
     group_key='app',
     name='Set App Constants',
@@ -299,9 +292,8 @@ APP_SET_CONSTANTS_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: app_remove_cli_cmd
-APP_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=APP_REMOVE_CLI_CMD_ID,
+# ** constant: app_remove_cli_cmd_data
+APP_REMOVE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove',
     group_key='app',
     name='Remove App Interface',
@@ -314,18 +306,16 @@ APP_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: cli_list_commands_cli_cmd
-CLI_LIST_COMMANDS_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=CLI_LIST_COMMANDS_CLI_CMD_ID,
+# ** constant: cli_list_commands_cli_cmd_data
+CLI_LIST_COMMANDS_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='list-commands',
     group_key='cli',
     name='List CLI Commands',
     description='List all configured CLI commands.',
 )
 
-# ** constant: cli_add_command_cli_cmd
-CLI_ADD_COMMAND_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=CLI_ADD_COMMAND_CLI_CMD_ID,
+# ** constant: cli_add_command_cli_cmd_data
+CLI_ADD_COMMAND_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add-command',
     group_key='cli',
     name='Add CLI Command',
@@ -354,9 +344,8 @@ CLI_ADD_COMMAND_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: cli_add_argument_cli_cmd
-CLI_ADD_ARGUMENT_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=CLI_ADD_ARGUMENT_CLI_CMD_ID,
+# ** constant: cli_add_argument_cli_cmd_data
+CLI_ADD_ARGUMENT_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add-argument',
     group_key='cli',
     name='Add CLI Argument',
@@ -379,9 +368,8 @@ CLI_ADD_ARGUMENT_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: error_list_cli_cmd
-ERROR_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=ERROR_LIST_CLI_CMD_ID,
+# ** constant: error_list_cli_cmd_data
+ERROR_LIST_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='list',
     group_key='error',
     name='List Errors',
@@ -395,9 +383,8 @@ ERROR_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: error_get_cli_cmd
-ERROR_GET_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=ERROR_GET_CLI_CMD_ID,
+# ** constant: error_get_cli_cmd_data
+ERROR_GET_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='get',
     group_key='error',
     name='Get Error',
@@ -410,9 +397,8 @@ ERROR_GET_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: error_add_cli_cmd
-ERROR_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=ERROR_ADD_CLI_CMD_ID,
+# ** constant: error_add_cli_cmd_data
+ERROR_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add',
     group_key='error',
     name='Add Error',
@@ -437,9 +423,8 @@ ERROR_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: error_rename_cli_cmd
-ERROR_RENAME_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=ERROR_RENAME_CLI_CMD_ID,
+# ** constant: error_rename_cli_cmd_data
+ERROR_RENAME_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='rename',
     group_key='error',
     name='Rename Error',
@@ -456,9 +441,8 @@ ERROR_RENAME_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: error_set_message_cli_cmd
-ERROR_SET_MESSAGE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=ERROR_SET_MESSAGE_CLI_CMD_ID,
+# ** constant: error_set_message_cli_cmd_data
+ERROR_SET_MESSAGE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='set-message',
     group_key='error',
     name='Set Error Message',
@@ -479,9 +463,8 @@ ERROR_SET_MESSAGE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: error_remove_message_cli_cmd
-ERROR_REMOVE_MESSAGE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=ERROR_REMOVE_MESSAGE_CLI_CMD_ID,
+# ** constant: error_remove_message_cli_cmd_data
+ERROR_REMOVE_MESSAGE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove-message',
     group_key='error',
     name='Remove Error Message',
@@ -498,9 +481,8 @@ ERROR_REMOVE_MESSAGE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: error_remove_cli_cmd
-ERROR_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=ERROR_REMOVE_CLI_CMD_ID,
+# ** constant: error_remove_cli_cmd_data
+ERROR_REMOVE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove',
     group_key='error',
     name='Remove Error',
@@ -513,9 +495,8 @@ ERROR_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_list_cli_cmd
-FEATURE_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_LIST_CLI_CMD_ID,
+# ** constant: feature_list_cli_cmd_data
+FEATURE_LIST_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='list',
     group_key='feature',
     name='List Features',
@@ -528,9 +509,8 @@ FEATURE_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_add_cli_cmd
-FEATURE_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_ADD_CLI_CMD_ID,
+# ** constant: feature_add_cli_cmd_data
+FEATURE_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add',
     group_key='feature',
     name='Add Feature',
@@ -555,9 +535,8 @@ FEATURE_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_update_cli_cmd
-FEATURE_UPDATE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_UPDATE_CLI_CMD_ID,
+# ** constant: feature_update_cli_cmd_data
+FEATURE_UPDATE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='update',
     group_key='feature',
     name='Update Feature',
@@ -578,9 +557,8 @@ FEATURE_UPDATE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_add_step_cli_cmd
-FEATURE_ADD_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_ADD_STEP_CLI_CMD_ID,
+# ** constant: feature_add_step_cli_cmd_data
+FEATURE_ADD_STEP_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add-step',
     group_key='feature',
     name='Add Feature Step',
@@ -620,9 +598,8 @@ FEATURE_ADD_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_update_step_cli_cmd
-FEATURE_UPDATE_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_UPDATE_STEP_CLI_CMD_ID,
+# ** constant: feature_update_step_cli_cmd_data
+FEATURE_UPDATE_STEP_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='update-step',
     group_key='feature',
     name='Update Feature Step',
@@ -648,9 +625,8 @@ FEATURE_UPDATE_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_remove_step_cli_cmd
-FEATURE_REMOVE_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_REMOVE_STEP_CLI_CMD_ID,
+# ** constant: feature_remove_step_cli_cmd_data
+FEATURE_REMOVE_STEP_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove-step',
     group_key='feature',
     name='Remove Feature Step',
@@ -668,9 +644,8 @@ FEATURE_REMOVE_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_reorder_step_cli_cmd
-FEATURE_REORDER_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_REORDER_STEP_CLI_CMD_ID,
+# ** constant: feature_reorder_step_cli_cmd_data
+FEATURE_REORDER_STEP_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='reorder-step',
     group_key='feature',
     name='Reorder Feature Step',
@@ -693,9 +668,8 @@ FEATURE_REORDER_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_remove_cli_cmd
-FEATURE_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=FEATURE_REMOVE_CLI_CMD_ID,
+# ** constant: feature_remove_cli_cmd_data
+FEATURE_REMOVE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove',
     group_key='feature',
     name='Remove Feature',
@@ -708,18 +682,16 @@ FEATURE_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: service_list_cli_cmd
-SERVICE_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=SERVICE_LIST_CLI_CMD_ID,
+# ** constant: service_list_cli_cmd_data
+SERVICE_LIST_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='list',
     group_key='service',
     name='List Services',
     description='List all DI service registrations and constants.',
 )
 
-# ** constant: service_add_cli_cmd
-SERVICE_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=SERVICE_ADD_CLI_CMD_ID,
+# ** constant: service_add_cli_cmd_data
+SERVICE_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add',
     group_key='service',
     name='Add Service',
@@ -745,9 +717,8 @@ SERVICE_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: service_set_default_cli_cmd
-SERVICE_SET_DEFAULT_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=SERVICE_SET_DEFAULT_CLI_CMD_ID,
+# ** constant: service_set_default_cli_cmd_data
+SERVICE_SET_DEFAULT_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='set-default',
     group_key='service',
     name='Set Default Service Registration',
@@ -773,9 +744,8 @@ SERVICE_SET_DEFAULT_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: service_set_dependency_cli_cmd
-SERVICE_SET_DEPENDENCY_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=SERVICE_SET_DEPENDENCY_CLI_CMD_ID,
+# ** constant: service_set_dependency_cli_cmd_data
+SERVICE_SET_DEPENDENCY_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='set-dependency',
     group_key='service',
     name='Set Service Dependency',
@@ -805,9 +775,8 @@ SERVICE_SET_DEPENDENCY_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: service_remove_dependency_cli_cmd
-SERVICE_REMOVE_DEPENDENCY_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=SERVICE_REMOVE_DEPENDENCY_CLI_CMD_ID,
+# ** constant: service_remove_dependency_cli_cmd_data
+SERVICE_REMOVE_DEPENDENCY_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove-dependency',
     group_key='service',
     name='Remove Service Dependency',
@@ -824,9 +793,8 @@ SERVICE_REMOVE_DEPENDENCY_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: service_set_constants_cli_cmd
-SERVICE_SET_CONSTANTS_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=SERVICE_SET_CONSTANTS_CLI_CMD_ID,
+# ** constant: service_set_constants_cli_cmd_data
+SERVICE_SET_CONSTANTS_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='set-constants',
     group_key='service',
     name='Set Service Constants',
@@ -840,9 +808,8 @@ SERVICE_SET_CONSTANTS_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: service_remove_cli_cmd
-SERVICE_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=SERVICE_REMOVE_CLI_CMD_ID,
+# ** constant: service_remove_cli_cmd_data
+SERVICE_REMOVE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove',
     group_key='service',
     name='Remove Service',
@@ -855,9 +822,8 @@ SERVICE_REMOVE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_add_formatter_cli_cmd
-LOGGING_ADD_FORMATTER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=LOGGING_ADD_FORMATTER_CLI_CMD_ID,
+# ** constant: logging_add_formatter_cli_cmd_data
+LOGGING_ADD_FORMATTER_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add-formatter',
     group_key='logging',
     name='Add Formatter',
@@ -886,9 +852,8 @@ LOGGING_ADD_FORMATTER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_remove_formatter_cli_cmd
-LOGGING_REMOVE_FORMATTER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=LOGGING_REMOVE_FORMATTER_CLI_CMD_ID,
+# ** constant: logging_remove_formatter_cli_cmd_data
+LOGGING_REMOVE_FORMATTER_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove-formatter',
     group_key='logging',
     name='Remove Formatter',
@@ -901,9 +866,8 @@ LOGGING_REMOVE_FORMATTER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_add_handler_cli_cmd
-LOGGING_ADD_HANDLER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=LOGGING_ADD_HANDLER_CLI_CMD_ID,
+# ** constant: logging_add_handler_cli_cmd_data
+LOGGING_ADD_HANDLER_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add-handler',
     group_key='logging',
     name='Add Handler',
@@ -949,9 +913,8 @@ LOGGING_ADD_HANDLER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_remove_handler_cli_cmd
-LOGGING_REMOVE_HANDLER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=LOGGING_REMOVE_HANDLER_CLI_CMD_ID,
+# ** constant: logging_remove_handler_cli_cmd_data
+LOGGING_REMOVE_HANDLER_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove-handler',
     group_key='logging',
     name='Remove Handler',
@@ -964,9 +927,8 @@ LOGGING_REMOVE_HANDLER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_add_logger_cli_cmd
-LOGGING_ADD_LOGGER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=LOGGING_ADD_LOGGER_CLI_CMD_ID,
+# ** constant: logging_add_logger_cli_cmd_data
+LOGGING_ADD_LOGGER_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='add-logger',
     group_key='logging',
     name='Add Logger',
@@ -1001,9 +963,8 @@ LOGGING_ADD_LOGGER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_remove_logger_cli_cmd
-LOGGING_REMOVE_LOGGER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=LOGGING_REMOVE_LOGGER_CLI_CMD_ID,
+# ** constant: logging_remove_logger_cli_cmd_data
+LOGGING_REMOVE_LOGGER_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='remove-logger',
     group_key='logging',
     name='Remove Logger',
@@ -1016,9 +977,8 @@ LOGGING_REMOVE_LOGGER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_list_cli_cmd
-LOGGING_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
-    id=LOGGING_LIST_CLI_CMD_ID,
+# ** constant: logging_list_cli_cmd_data
+LOGGING_LIST_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
     key='list',
     group_key='logging',
     name='List Logging Configs',
@@ -1029,44 +989,44 @@ LOGGING_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
 
 # ** constant: admin_default_commands
 ADMIN_DEFAULT_COMMANDS: Dict[str, Dict[str, Any]] = {
-    APP_LIST_CLI_CMD_ID: APP_LIST_CLI_CMD,
-    APP_GET_CLI_CMD_ID: APP_GET_CLI_CMD,
-    APP_ADD_CLI_CMD_ID: APP_ADD_CLI_CMD,
-    APP_UPDATE_CLI_CMD_ID: APP_UPDATE_CLI_CMD,
-    APP_SET_SERVICE_CLI_CMD_ID: APP_SET_SERVICE_CLI_CMD,
-    APP_REMOVE_SERVICE_CLI_CMD_ID: APP_REMOVE_SERVICE_CLI_CMD,
-    APP_SET_CONSTANTS_CLI_CMD_ID: APP_SET_CONSTANTS_CLI_CMD,
-    APP_REMOVE_CLI_CMD_ID: APP_REMOVE_CLI_CMD,
-    CLI_LIST_COMMANDS_CLI_CMD_ID: CLI_LIST_COMMANDS_CLI_CMD,
-    CLI_ADD_COMMAND_CLI_CMD_ID: CLI_ADD_COMMAND_CLI_CMD,
-    CLI_ADD_ARGUMENT_CLI_CMD_ID: CLI_ADD_ARGUMENT_CLI_CMD,
-    ERROR_LIST_CLI_CMD_ID: ERROR_LIST_CLI_CMD,
-    ERROR_GET_CLI_CMD_ID: ERROR_GET_CLI_CMD,
-    ERROR_ADD_CLI_CMD_ID: ERROR_ADD_CLI_CMD,
-    ERROR_RENAME_CLI_CMD_ID: ERROR_RENAME_CLI_CMD,
-    ERROR_SET_MESSAGE_CLI_CMD_ID: ERROR_SET_MESSAGE_CLI_CMD,
-    ERROR_REMOVE_MESSAGE_CLI_CMD_ID: ERROR_REMOVE_MESSAGE_CLI_CMD,
-    ERROR_REMOVE_CLI_CMD_ID: ERROR_REMOVE_CLI_CMD,
-    FEATURE_LIST_CLI_CMD_ID: FEATURE_LIST_CLI_CMD,
-    FEATURE_ADD_CLI_CMD_ID: FEATURE_ADD_CLI_CMD,
-    FEATURE_UPDATE_CLI_CMD_ID: FEATURE_UPDATE_CLI_CMD,
-    FEATURE_ADD_STEP_CLI_CMD_ID: FEATURE_ADD_STEP_CLI_CMD,
-    FEATURE_UPDATE_STEP_CLI_CMD_ID: FEATURE_UPDATE_STEP_CLI_CMD,
-    FEATURE_REMOVE_STEP_CLI_CMD_ID: FEATURE_REMOVE_STEP_CLI_CMD,
-    FEATURE_REORDER_STEP_CLI_CMD_ID: FEATURE_REORDER_STEP_CLI_CMD,
-    FEATURE_REMOVE_CLI_CMD_ID: FEATURE_REMOVE_CLI_CMD,
-    SERVICE_LIST_CLI_CMD_ID: SERVICE_LIST_CLI_CMD,
-    SERVICE_ADD_CLI_CMD_ID: SERVICE_ADD_CLI_CMD,
-    SERVICE_SET_DEFAULT_CLI_CMD_ID: SERVICE_SET_DEFAULT_CLI_CMD,
-    SERVICE_SET_DEPENDENCY_CLI_CMD_ID: SERVICE_SET_DEPENDENCY_CLI_CMD,
-    SERVICE_REMOVE_DEPENDENCY_CLI_CMD_ID: SERVICE_REMOVE_DEPENDENCY_CLI_CMD,
-    SERVICE_SET_CONSTANTS_CLI_CMD_ID: SERVICE_SET_CONSTANTS_CLI_CMD,
-    SERVICE_REMOVE_CLI_CMD_ID: SERVICE_REMOVE_CLI_CMD,
-    LOGGING_ADD_FORMATTER_CLI_CMD_ID: LOGGING_ADD_FORMATTER_CLI_CMD,
-    LOGGING_REMOVE_FORMATTER_CLI_CMD_ID: LOGGING_REMOVE_FORMATTER_CLI_CMD,
-    LOGGING_ADD_HANDLER_CLI_CMD_ID: LOGGING_ADD_HANDLER_CLI_CMD,
-    LOGGING_REMOVE_HANDLER_CLI_CMD_ID: LOGGING_REMOVE_HANDLER_CLI_CMD,
-    LOGGING_ADD_LOGGER_CLI_CMD_ID: LOGGING_ADD_LOGGER_CLI_CMD,
-    LOGGING_REMOVE_LOGGER_CLI_CMD_ID: LOGGING_REMOVE_LOGGER_CLI_CMD,
-    LOGGING_LIST_CLI_CMD_ID: LOGGING_LIST_CLI_CMD,
+    APP_LIST_CLI_CMD_ID: APP_LIST_CLI_CMD_DATA,
+    APP_GET_CLI_CMD_ID: APP_GET_CLI_CMD_DATA,
+    APP_ADD_CLI_CMD_ID: APP_ADD_CLI_CMD_DATA,
+    APP_UPDATE_CLI_CMD_ID: APP_UPDATE_CLI_CMD_DATA,
+    APP_SET_SERVICE_CLI_CMD_ID: APP_SET_SERVICE_CLI_CMD_DATA,
+    APP_REMOVE_SERVICE_CLI_CMD_ID: APP_REMOVE_SERVICE_CLI_CMD_DATA,
+    APP_SET_CONSTANTS_CLI_CMD_ID: APP_SET_CONSTANTS_CLI_CMD_DATA,
+    APP_REMOVE_CLI_CMD_ID: APP_REMOVE_CLI_CMD_DATA,
+    CLI_LIST_COMMANDS_CLI_CMD_ID: CLI_LIST_COMMANDS_CLI_CMD_DATA,
+    CLI_ADD_COMMAND_CLI_CMD_ID: CLI_ADD_COMMAND_CLI_CMD_DATA,
+    CLI_ADD_ARGUMENT_CLI_CMD_ID: CLI_ADD_ARGUMENT_CLI_CMD_DATA,
+    ERROR_LIST_CLI_CMD_ID: ERROR_LIST_CLI_CMD_DATA,
+    ERROR_GET_CLI_CMD_ID: ERROR_GET_CLI_CMD_DATA,
+    ERROR_ADD_CLI_CMD_ID: ERROR_ADD_CLI_CMD_DATA,
+    ERROR_RENAME_CLI_CMD_ID: ERROR_RENAME_CLI_CMD_DATA,
+    ERROR_SET_MESSAGE_CLI_CMD_ID: ERROR_SET_MESSAGE_CLI_CMD_DATA,
+    ERROR_REMOVE_MESSAGE_CLI_CMD_ID: ERROR_REMOVE_MESSAGE_CLI_CMD_DATA,
+    ERROR_REMOVE_CLI_CMD_ID: ERROR_REMOVE_CLI_CMD_DATA,
+    FEATURE_LIST_CLI_CMD_ID: FEATURE_LIST_CLI_CMD_DATA,
+    FEATURE_ADD_CLI_CMD_ID: FEATURE_ADD_CLI_CMD_DATA,
+    FEATURE_UPDATE_CLI_CMD_ID: FEATURE_UPDATE_CLI_CMD_DATA,
+    FEATURE_ADD_STEP_CLI_CMD_ID: FEATURE_ADD_STEP_CLI_CMD_DATA,
+    FEATURE_UPDATE_STEP_CLI_CMD_ID: FEATURE_UPDATE_STEP_CLI_CMD_DATA,
+    FEATURE_REMOVE_STEP_CLI_CMD_ID: FEATURE_REMOVE_STEP_CLI_CMD_DATA,
+    FEATURE_REORDER_STEP_CLI_CMD_ID: FEATURE_REORDER_STEP_CLI_CMD_DATA,
+    FEATURE_REMOVE_CLI_CMD_ID: FEATURE_REMOVE_CLI_CMD_DATA,
+    SERVICE_LIST_CLI_CMD_ID: SERVICE_LIST_CLI_CMD_DATA,
+    SERVICE_ADD_CLI_CMD_ID: SERVICE_ADD_CLI_CMD_DATA,
+    SERVICE_SET_DEFAULT_CLI_CMD_ID: SERVICE_SET_DEFAULT_CLI_CMD_DATA,
+    SERVICE_SET_DEPENDENCY_CLI_CMD_ID: SERVICE_SET_DEPENDENCY_CLI_CMD_DATA,
+    SERVICE_REMOVE_DEPENDENCY_CLI_CMD_ID: SERVICE_REMOVE_DEPENDENCY_CLI_CMD_DATA,
+    SERVICE_SET_CONSTANTS_CLI_CMD_ID: SERVICE_SET_CONSTANTS_CLI_CMD_DATA,
+    SERVICE_REMOVE_CLI_CMD_ID: SERVICE_REMOVE_CLI_CMD_DATA,
+    LOGGING_ADD_FORMATTER_CLI_CMD_ID: LOGGING_ADD_FORMATTER_CLI_CMD_DATA,
+    LOGGING_REMOVE_FORMATTER_CLI_CMD_ID: LOGGING_REMOVE_FORMATTER_CLI_CMD_DATA,
+    LOGGING_ADD_HANDLER_CLI_CMD_ID: LOGGING_ADD_HANDLER_CLI_CMD_DATA,
+    LOGGING_REMOVE_HANDLER_CLI_CMD_ID: LOGGING_REMOVE_HANDLER_CLI_CMD_DATA,
+    LOGGING_ADD_LOGGER_CLI_CMD_ID: LOGGING_ADD_LOGGER_CLI_CMD_DATA,
+    LOGGING_REMOVE_LOGGER_CLI_CMD_ID: LOGGING_REMOVE_LOGGER_CLI_CMD_DATA,
+    LOGGING_LIST_CLI_CMD_ID: LOGGING_LIST_CLI_CMD_DATA,
 }
