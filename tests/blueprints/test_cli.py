@@ -28,7 +28,6 @@ from tiferet.contexts.cli import (
     CliSessionContext,
     CLI_COMMAND_CACHE_PREFIX,
 )
-from tiferet.contexts.logging import LoggingContext
 from tiferet.domain import AppSession, CliArgument, CliCommand
 from tiferet.events.cli import GetParentArguments, ListCliCommands
 
@@ -315,8 +314,8 @@ def test_build_cli_session_context_wires_cli_handlers() -> None:
     })(lambda: CacheContext())()
 
     # Bypass the real logging pipeline; this test targets handler wiring only.
-    fake_logging_context = mock.Mock(spec=LoggingContext)
-    with mock.patch('tiferet.blueprints.core.build_logging_context', return_value=fake_logging_context):
+    fake_build_logger = mock.Mock(name='build_logger_handler')
+    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
         context = build_cli_session_context(
             AppSession(id='test_cli', name='Test CLI Session'),
             cache,
@@ -327,7 +326,7 @@ def test_build_cli_session_context_wires_cli_handlers() -> None:
     assert context._create_request is create_cli_request_context
     assert context._build_response is cli_response_handler
     assert context._parse_cli_args is not None
-    assert context._logging is fake_logging_context
+    assert context._build_logger is fake_build_logger
 
 # ** test: build_app_delegates_to_context
 def test_build_app_delegates_to_context() -> None:

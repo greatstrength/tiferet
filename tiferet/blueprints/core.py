@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict
 
 # ** app
 from .. import assets as a
@@ -22,7 +22,12 @@ from ..contexts.cache import CacheContext
 from ..contexts.core import BaseContext
 from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX
 from ..contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
-from ..contexts.logging import LoggingContext, add_default_logging_settings, get_default_logging_settings
+from ..contexts.logging import (
+    LOGGER_CACHE_PREFIX,
+    LoggingContext,
+    add_default_logging_settings,
+    get_default_logging_settings,
+)
 from ..contexts.request import RequestContext
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver, injectable_parameter_names
@@ -37,7 +42,7 @@ from ..events import ParseParameter
 RESERVED_CONTEXT_PARAMETERS = (
     'get_dependency',
     'cache',
-    'logging_context',
+    'build_logger_handler',
     'parse_cli_args',
     'execute_feature_handler',
     'create_request_handler',
@@ -74,6 +79,51 @@ def resolve_collaborators(context_cls: type, app_container: DIAppServiceContaine
         and not name.startswith('default_')
         and app_container.has_dependency(name)
     }
+
+# ** function: merge_logging_settings
+def merge_logging_settings(cache: CacheContext,
+        formatters: list,
+        handlers: list,
+        loggers: list) -> LoggingSettings:
+    '''
+    Merge repository-configured logging sections over cache-seeded defaults.
+
+    Each section is keyed by ``.id``; repository entries override the default
+    sharing their id, and unmatched defaults survive. Tolerates a cache with
+    no seeded defaults.
+
+    :param cache: The bootstrap cache holding default logging settings.
+    :type cache: CacheContext
+    :param formatters: Repository-configured formatters.
+    :type formatters: list
+    :param handlers: Repository-configured handlers.
+    :type handlers: list
+    :param loggers: Repository-configured loggers.
+    :type loggers: list
+    :return: The merged logging settings value object.
+    :rtype: LoggingSettings
+    '''
+
+    # Retrieve the cache-seeded default logging settings, tolerating none.
+    defaults = get_default_logging_settings(cache)
+    default_formatters = defaults.formatters if defaults else []
+    default_handlers = defaults.handlers if defaults else []
+    default_loggers = defaults.loggers if defaults else []
+
+    # Merge retrieved configs over the defaults, keyed by id (retrieved wins).
+    merged_formatters = {formatter.id: formatter for formatter in default_formatters}
+    merged_formatters.update({formatter.id: formatter for formatter in formatters})
+    merged_handlers = {handler.id: handler for handler in default_handlers}
+    merged_handlers.update({handler.id: handler for handler in handlers})
+    merged_loggers = {logger.id: logger for logger in default_loggers}
+    merged_loggers.update({logger.id: logger for logger in loggers})
+
+    # Return the merged logging settings value object.
+    return LoggingSettings(
+        formatters=list(merged_formatters.values()),
+        handlers=list(merged_handlers.values()),
+        loggers=list(merged_loggers.values()),
+    )
 
 # *** blueprints
 
@@ -274,47 +324,48 @@ def get_feature(cache: CacheContext, get_dependency: Callable) -> Callable:
     # Return the closure.
     return handler
 
-# ** blueprint: build_logging_context
-def build_logging_context(cache: CacheContext, get_dependency: Callable, logger_id: str) -> LoggingContext:
+# ** blueprint: build_logger_handler
+def build_logger_handler(cache: CacheContext, get_dependency: Callable) -> Callable:
     '''
-    Build the logging context from the merged default and repository-configured
-    logging settings.
+    Build a logger-construction handler that caches loggers by logger id.
 
-    :param cache: The bootstrap cache holding the default logging settings.
+    On a cache hit under ``LOGGER_CACHE_PREFIX``, the previously built logger
+    is returned. On a miss, repository logging configs are listed, merged over
+    cache-seeded defaults, applied via ``LoggingContext``, and cached so
+    ``dictConfig`` runs once per logger id per process.
+
+    :param cache: The bootstrap cache used for lazy logger caching.
     :type cache: CacheContext
     :param get_dependency: The DI resolution handler.
     :type get_dependency: Callable
-    :param logger_id: The identifier of the logger configuration to bind.
-    :type logger_id: str
-    :return: The constructed logging context.
-    :rtype: LoggingContext
+    :return: A handler closure resolving a logger by logger id.
+    :rtype: Callable
     '''
 
-    # Resolve and execute the logging list-all event to retrieve configured settings.
-    list_all_evt = get_dependency('logging_list_all_evt', 'app')
-    formatters, handlers, loggers = list_all_evt.execute()
+    # Return the handler closure bound to the cache and resolver.
+    def handler(logger_id: str):
 
-    # Retrieve the cache-seeded default logging settings.
-    default_settings = get_default_logging_settings(cache)
-    default_formatters = default_settings.formatters if default_settings else []
-    default_handlers = default_settings.handlers if default_settings else []
-    default_loggers = default_settings.loggers if default_settings else []
+        # Return the cached logger when already built for this id.
+        cached = cache.get(logger_id, *LOGGER_CACHE_PREFIX)
+        if cached is not None:
+            return cached
 
-    # Merge retrieved configs over the defaults, keyed by id (retrieved wins).
-    merged_formatters = {formatter.id: formatter for formatter in default_formatters}
-    merged_formatters.update({formatter.id: formatter for formatter in formatters})
-    merged_handlers = {handler.id: handler for handler in default_handlers}
-    merged_handlers.update({handler.id: handler for handler in handlers})
-    merged_loggers = {logger.id: logger for logger in default_loggers}
-    merged_loggers.update({logger.id: logger for logger in loggers})
+        # Resolve and execute the logging list-all event on a cache miss.
+        list_all_evt = get_dependency('logging_list_all_evt', 'app')
+        formatters, handlers, loggers = list_all_evt.execute()
 
-    # Construct the merged logging settings and bind the logging context.
-    settings = LoggingSettings(
-        formatters=list(merged_formatters.values()),
-        handlers=list(merged_handlers.values()),
-        loggers=list(merged_loggers.values()),
-    )
-    return LoggingContext.from_domain(settings, logger_id=logger_id)
+        # Merge repository configs over cache-seeded defaults.
+        settings = merge_logging_settings(cache, formatters, handlers, loggers)
+
+        # Build the logger from the merged settings for the requested id.
+        logger = LoggingContext.from_domain(settings, logger_id=logger_id).build_logger()
+
+        # Cache the built logger and return it.
+        cache.set(logger_id, logger, *LOGGER_CACHE_PREFIX)
+        return logger
+
+    # Return the closure.
+    return handler
 
 # ** blueprint: create_app_service
 def create_app_service(module_path: str,
@@ -416,7 +467,7 @@ def create_request_context(interface_id: str,
 # ** blueprint: create_feature_context
 def create_feature_context(get_dependency: Callable,
         cache: CacheContext,
-        feature_id: str) -> Tuple[Feature, FeatureContext]:
+        feature_id: str) -> FeatureContext:
     '''
     Resolve a Feature domain object and bind it to a fresh FeatureContext.
 
@@ -426,18 +477,15 @@ def create_feature_context(get_dependency: Callable,
     :type cache: CacheContext
     :param feature_id: The identifier of the feature to resolve.
     :type feature_id: str
-    :return: A tuple of the resolved feature and its bound feature context.
-    :rtype: Tuple[Feature, FeatureContext]
+    :return: The feature context bound to the resolved feature domain object.
+    :rtype: FeatureContext
     '''
 
     # Resolve the feature via the lazy-caching get_feature handler.
     feature = get_feature(cache, get_dependency)(feature_id)
 
-    # Construct and bind the feature context in a single step.
-    feature_context = FeatureContext.from_domain(feature, get_dependency=get_dependency, cache=cache)
-
-    # Return the resolved feature and its bound context.
-    return feature, feature_context
+    # Construct and return the feature context bound to the resolved feature.
+    return FeatureContext.from_domain(feature, get_dependency=get_dependency, cache=cache)
 
 # ** blueprint: create_session_request
 def create_session_request(interface_id: str,
@@ -465,7 +513,7 @@ def create_session_request(interface_id: str,
 # ** blueprint: execute_feature_handler
 def execute_feature_handler(get_dependency: Callable, cache: CacheContext) -> Callable:
     '''
-    Build the FE4 feature-execution handler closure.
+    Build the feature-execution handler closure.
 
     :param get_dependency: The DI resolution handler.
     :type get_dependency: Callable
@@ -478,12 +526,12 @@ def execute_feature_handler(get_dependency: Callable, cache: CacheContext) -> Ca
     # Return the handler closure bound to the resolver and cache.
     def handler(feature_id: str, request: RequestContext, *flags, **kwargs) -> None:
 
-        # Resolve the feature and its bound context.
-        feature, feature_context = create_feature_context(get_dependency, cache, feature_id)
+        # Resolve the feature-bound context.
+        feature_context = create_feature_context(get_dependency, cache, feature_id)
 
         # Drive execution; the result is accumulated on the request context and
         # result extraction is the responsibility of the response step.
-        feature_context.execute_feature(feature, request, *flags, **kwargs)
+        feature_context.execute_feature(request, *flags, **kwargs)
 
     # Return the closure.
     return handler
@@ -491,7 +539,7 @@ def execute_feature_handler(get_dependency: Callable, cache: CacheContext) -> Ca
 # ** blueprint: raise_error_handler
 def raise_error_handler(get_error_handler: Callable) -> Callable:
     '''
-    Build the FE4 error-handling handler closure.
+    Build the error-handling handler closure.
 
     :param get_error_handler: The lazy-caching error-resolution handler.
     :type get_error_handler: Callable
@@ -525,7 +573,7 @@ def raise_error_handler(get_error_handler: Callable) -> Callable:
 # ** blueprint: response_handler
 def response_handler(request: RequestContext) -> Any:
     '''
-    Pure FE4 response-building function delegating to the request context.
+    Pure response-building function delegating to the request context.
 
     :param request: The request context object.
     :type request: RequestContext
@@ -555,12 +603,14 @@ def build_app_session_context(app_session: AppSession, cache: CacheContext, **co
     app_container = build_app_service_container(cache, app_session)
     resolver = build_service_resolver(app_container)
 
-    # Build the logging context bound to the session's logger id.
-    logging_ctx = build_logging_context(cache, resolver.get_dependency, app_session.logger_id)
-
-    # Build the four FE4 template-method handlers.
-    execute_feature = execute_feature_handler(resolver.get_dependency, cache)
-    raise_error = raise_error_handler(get_error(cache, resolver.get_dependency))
+    # Build the five template-method handlers.
+    handlers = dict(
+        build_logger_handler=build_logger_handler(cache, resolver.get_dependency),
+        execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
+        raise_error_handler=raise_error_handler(get_error(cache, resolver.get_dependency)),
+        response_handler=response_handler,
+        create_request_handler=create_session_request,
+    )
 
     # Resolve any remaining injectable collaborators the context class declares.
     collaborators = resolve_collaborators(AppSessionContext, app_container)
@@ -570,11 +620,7 @@ def build_app_session_context(app_session: AppSession, cache: CacheContext, **co
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
-        logging_context=logging_ctx,
-        execute_feature_handler=execute_feature,
-        raise_error_handler=raise_error,
-        response_handler=response_handler,
-        create_request_handler=create_session_request,
+        **handlers,
         **collaborators,
         **context_kwargs,
     )
