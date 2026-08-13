@@ -119,5 +119,9 @@ class CalculatorResult(DomainObject):
         return f'{self.operation}: {self.value:.{precision}f}'
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** A domain class's docstring opens with a 1–2 sentence vision-tier value statement (why the concept exists), linked via a `# >> see: @guides/domain/<module>.md#<anchor>` tag to the corresponding `docs/guides/domain/*.md` entry, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md

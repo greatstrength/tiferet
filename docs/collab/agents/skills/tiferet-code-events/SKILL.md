@@ -136,5 +136,9 @@ class ErrorEvent(DomainEvent):
         self.error_service = error_service
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** Event class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/events/<module>.md#<anchor>` to the corresponding `docs/guides/events/*.md` entry, which carries the full CRUD-operation distillation detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md

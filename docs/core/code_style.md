@@ -261,13 +261,18 @@ def remove_service(self, service_id: str | None = None, attribute_id: str | None
 # -- obsolete: superseded by data_key; remove in v2.1
 return_to_data: bool = Field(default=False, ...)
 
-# ** class: tiferet_error
-# >> see: @guides/errors.md#tiferet-error
-class TiferetError(Exception):
+# ** model: error
+# >> see: @guides/domain/error.md#error
+class Error(DomainObject):
     ...
+
+    # * method: format_message
+    # >> see: @guides/domain/error.md#error-format-message
+    def format_message(self, lang: str = 'en_US', **kwargs) -> str:
+        ...
 ```
 
-Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo, obsolescence, or guide link applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment. Multiple annotations may stack on the same artifact; order them in a fixed sequence — `# >> see:` first, then `# ++ todo:` / `# -- obsolete:` — for scannability.
+Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo, obsolescence, or guide link applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment. Multiple annotations may stack on the same artifact (e.g. a `# >> see:` link on a method also carrying a `# ++ todo:`); order them in a fixed sequence — `# >> see:` first, then `# ++ todo:` / `# -- obsolete:` — for scannability.
 
 **Label-level shorthand** — the `(obsolete)` parenthetical suffix on a `# *` or `# **` label remains valid shorthand when no further reason is needed:
 
