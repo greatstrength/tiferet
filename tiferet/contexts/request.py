@@ -88,24 +88,24 @@ class RequestContext(BaseContext):
 
     # * attribute: feature_id
     @property
-    def feature_id(self) -> str:
+    def feature_id(self) -> str | None:
         '''
         The identifier of the feature being executed.
 
         :return: The feature identifier, or None when unset.
-        :rtype: str
+        :rtype: str | None
         '''
 
         # Return the feature identifier from the bound request.
         return self.domain.feature_id
 
     @feature_id.setter
-    def feature_id(self, value: str):
+    def feature_id(self, value: str | None):
         '''
         Write the feature identifier through to the bound request.
 
         :param value: The feature identifier to set.
-        :type value: str
+        :type value: str | None
         '''
 
         # Write the feature identifier through to the bound request.

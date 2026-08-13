@@ -107,6 +107,9 @@ def test_for_domain_not_found():
     # Assert the structured CONTEXT_NOT_FOUND error code is raised.
     assert exc_info.value.error_code == 'CONTEXT_NOT_FOUND'
 
+    # Assert a descriptive message naming the unregistered domain type is included.
+    assert 'No context registered for domain type: UnregisteredDomain.' in str(exc_info.value)
+
 # ** test: test_from_domain_on_base
 def test_from_domain_on_base():
     '''
