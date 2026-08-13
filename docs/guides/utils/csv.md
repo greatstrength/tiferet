@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="csvloader"></a><a id="csvdictloader"></a>
 ## Overview
 
 `CsvLoader` and `CsvDictLoader` are format-specific utilities for reading and writing CSV files in Tiferet.  
@@ -14,7 +15,12 @@ Both extend `FileLoader` (`tiferet/utils/file.py`), inheriting full context-mana
 
 Use `CsvLoader` (or its alias `Csv`) for positional row data and `CsvDictLoader` (or its alias `CsvDict`) for header-based dict data. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-Neither class implements `ConfigurationService` — this is an intentional v2.0 design choice that keeps the utilities as a pure infrastructure layer.
+Neither class implements a configuration contract — both declare only `FileLoader`. This is an intentional v2.0 design choice that keeps the utilities as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+
+## Ubiquitous Language
+
+- **Reader/writer (lazy)** — the underlying `csv.reader`/`csv.writer` (or `DictReader`/`DictWriter`) objects, built on first use rather than at construction, so a file opened `r+` can serve both roles.
+- **Row** — a `List[str]` (`CsvLoader`) or `Dict[str, Any]` (`CsvDictLoader`) representing one CSV line.
 
 ## When to Use CsvLoader vs. CsvDictLoader vs. Injected Service
 
@@ -24,7 +30,6 @@ Neither class implements `ConfigurationService` — this is an intentional v2.0 
 | Header-based CSV data                           | `CsvDict(path).read_all()`         | Dict-based rows with automatic header inference                        |
 | One-shot bulk load                              | `CsvLoader.load_rows(path)`        | Static helper, no context manager needed                               |
 | One-shot bulk save                              | `CsvLoader.save_rows(path, data)`  | Static helper, supports both list and dict datasets                    |
-| Configurable / swappable config loading          | Inject `ConfigurationService`       | Allows mocking, swapping implementations, dependency management       |
 | Domain object CRUD (features, errors, etc.)     | Inject corresponding `*Service`     | Keeps domain events decoupled from concrete file paths & formats       |
 
 ## CsvLoader – Basic Usage
@@ -161,20 +166,30 @@ On `__exit__`, the reader, writer, and file stream are all reset to `None`.
 
 ## Error Handling
 
-CSV utilities follow a layered error strategy:
+CSV utilities follow a layered error strategy. Every failure is a `ServiceError`
+(`tiferet.interfaces.core`), which is deliberately **not** a `TiferetError`: an
+infrastructural failure is not a domain outcome, so it is never resolved through
+the error catalog or formatted into an API response.
 
 - **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is.
 - **`CSV_INVALID_READ_MODE_ID`** — raised when `build_reader()` is called in a non-readable mode.
 - **`CSV_INVALID_WRITE_MODE_ID`** — raised when `build_writer()` is called in a non-writable mode.
 - **`CSV_FIELDNAMES_REQUIRED_ID`** — raised when writing dicts without providing `fieldnames`.
 
-All errors are raised via `ServiceError.raise_for(self, ...)`. `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, and `CSV_FIELDNAMES_REQUIRED_ID` are local module constants defined in `tiferet/utils/csv.py` (not `tiferet.assets.constants`):
+Codes are hosted by the module that raises them, not by the error catalog. Because
+these three messages take no placeholders and repeat across raise sites, each has a
+companion module-level message constant:
 
-- `CSV_INVALID_READ_MODE_ID`
-- `CSV_INVALID_WRITE_MODE_ID`
-- `CSV_FIELDNAMES_REQUIRED_ID`
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.csv import (
+    CSV_INVALID_READ_MODE_ID,
+    CSV_INVALID_WRITE_MODE_ID,
+    CSV_FIELDNAMES_REQUIRED_ID,
+)
+```
 
-Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
+Inherited from `FileLoader` (`tiferet.utils.file`):
 - `FILE_NOT_FOUND_ID`
 - `INVALID_FILE_MODE_ID`
 - `INVALID_ENCODING_ID`
@@ -256,7 +271,7 @@ def test_import_csv_records_file_not_found(tmp_path):
             csv_path=str(tmp_path / 'missing.csv'),
         )
 
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID  # local constant in tiferet/utils/file.py
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 ```
 
 ## Deviations from YamlLoader / JsonLoader
@@ -266,13 +281,18 @@ def test_import_csv_records_file_not_found(tmp_path):
 - **Two-class design**: `CsvDictLoader` extends `CsvLoader` for dict-based operations, whereas YAML and JSON each have a single class. This reflects CSV's dual nature (positional vs. header-based).
 - **Rich static helpers**: `load_rows`, `save_rows`, `append_row` provide convenience without requiring context management. `save_rows` on `CsvLoader` auto-detects dict datasets and switches to `DictWriter` when `fieldnames` is provided.
 - **`newline=''` default**: CSV files are opened with `newline=''` per Python `csv` module requirements, ensuring correct newline handling across platforms.
-- **New CSV-specific error constants**: `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, and `CSV_FIELDNAMES_REQUIRED_ID` are local module constants in `tiferet/utils/csv.py` for CSV-specific guard conditions.
 - **Documentation guide**: A `docs/guides/utils/csv.md` guide was created alongside the implementation, following the pattern of the existing `yaml.md` and `json.md` guides. This was not in the original TRD scope but adds consistency to the documentation suite.
+
+## Boundaries
+
+**Inside this domain:** CSV row-level parsing/serialization, both positional (`CsvLoader`) and header-based (`CsvDictLoader`).
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); CSV-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
 
 ## Related Documentation
 
 - [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
 - [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
 - [docs/guides/utils/json.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/json.md) — JsonLoader guide (sibling utility)
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

@@ -5,6 +5,7 @@
 **Date:** May 22, 2026  
 **Version:** 2.0.0
 
+<a id="tomlloader"></a>
 ## Overview
 
 `TomlLoader` is a format-specific utility for loading TOML files in Tiferet.  
@@ -14,14 +15,18 @@ Use `TomlLoader` (or its alias `Toml`) directly when you need to read TOML files
 
 **TOML is read-only in this utility** — the `tomllib` / `tomli` library only provides parsing, so there is no `save()` method. Use a third-party library (e.g., `tomlkit`) if you need to write TOML files.
 
-`TomlLoader` does **not** implement `ConfigurationService` — this is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer.
+`TomlLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+
+## Ubiquitous Language
+
+- **Read-only loader** — `TomlLoader`'s defining constraint: no `save()` method, since `tomllib`/`tomli` only parse.
+- **`start_node`/`data_factory`** — the same two-stage transformation pattern shared with `YamlLoader`/`JsonLoader`.
 
 ## When to Use TomlLoader vs. Injected Service
 
 | Scenario                                        | Recommended Approach                | Reason                                                                 |
 |-------------------------------------------------|-------------------------------------|------------------------------------------------------------------------|
 | One-shot TOML read in an event or script        | `Toml(path).load()`                | Simple, no dependency injection required                               |
-| Configurable / swappable config loading          | Inject `ConfigurationService`       | Allows mocking, swapping implementations, dependency management       |
 | Domain object CRUD (features, errors, etc.)     | Inject corresponding `*Service`     | Keeps domain events decoupled from concrete file paths & formats       |
 | Pre-flight TOML file validation                 | `TomlLoader.verify_toml_file()`     | Static check for extension + existence before opening                  |
 
@@ -70,16 +75,28 @@ Pre-flight validation that checks:
 
 `TomlLoader` follows a layered error strategy:
 
-- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
 - **`tomllib.TOMLDecodeError`** and other exceptions — caught and wrapped as `TOML_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
 
-All errors are raised via `ServiceError.raise_for(self, ...)` with these local module constants (defined in `tiferet/utils/toml.py`):
+Every failure is a `ServiceError` (`tiferet.interfaces.core`), which is deliberately
+**not** a `TiferetError`: an infrastructural failure is not a domain outcome, so it
+is never resolved through the error catalog or formatted into an API response. A
+wrapped driver exception is preserved as `__cause__`, and each error carries the
+provenance of the failing service (`module_path`, `class_name`, `target_method`).
 
-- `TOML_FILE_NOT_FOUND_ID`
-- `TOML_FILE_LOAD_ERROR_ID`
-- `INVALID_TOML_FILE_ID` (extension mismatch in `verify_toml_file`)
+Codes are hosted by the module that raises them (`tiferet.utils.toml`, with the
+file-level codes in `tiferet.utils.file`), not by the error catalog:
 
-Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.toml import (
+    TOML_FILE_NOT_FOUND_ID,
+    TOML_FILE_LOAD_ERROR_ID,
+    INVALID_TOML_FILE_ID,    # extension mismatch in verify_toml_file
+)
+```
+
+Inherited from `FileLoader` (`tiferet.utils.file`):
 - `FILE_NOT_FOUND_ID`
 - `INVALID_FILE_MODE_ID`
 - `INVALID_ENCODING_ID`
@@ -160,7 +177,7 @@ def test_load_project_config_file_not_found(tmp_path):
             config_path=str(tmp_path / 'missing.toml'),
         )
 
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID  # local constant in tiferet/utils/file.py
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 ```
 
 ## Deviations from YamlLoader / JsonLoader
@@ -169,11 +186,17 @@ def test_load_project_config_file_not_found(tmp_path):
 - **Binary mode default**: The constructor defaults to `mode='rb'` and forces `encoding=None`, since `tomllib` requires binary streams. YAML and JSON default to text mode (`'r'`) with `encoding='utf-8'`.
 - **Python version compatibility**: Uses `tomllib` (stdlib, Python 3.11+) with a `tomli` fallback for Python 3.10. YAML and JSON use `PyYAML` and `json` (stdlib) respectively, with no version-conditional imports.
 
+## Boundaries
+
+**Inside this domain:** read-only TOML parsing.
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); TOML writing (not supported by this utility — use a third-party library); TOML-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+
 ## Related Documentation
 
 - [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
 - [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
 - [docs/guides/utils/json.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/json.md) — JsonLoader guide (sibling utility)
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
 - [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

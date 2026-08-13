@@ -7,9 +7,15 @@
 
 ## Overview
 
-The feature event module provides the full CRUD surface for `Feature` domain objects — the configuration-driven workflow definitions that power Tiferet's feature execution engine. Every event in this module extends the shared `FeatureEvent` base event (which holds the injected `FeatureService`) and operates on `Feature` domain objects through the `FeatureAggregate` mapper.
+The feature event module provides the full CRUD surface for `Feature` domain objects — the configuration-driven workflow definitions that power Tiferet's feature execution engine. Every event in this module extends the shared `FeatureEvent` base event (which holds the injected `FeatureService`) and operates on `Feature` domain objects through the `FeatureAggregate` mapper. **Vision:** see the `FeatureEvent` class docstring in `tiferet/events/feature.py` for the value statement this guide distills.
 
 Features are composed of ordered **steps** (`EventFeatureStep` instances), each referencing a `service_id` that maps to a service registration in the dependency injection container.
+
+## Ubiquitous Language
+
+- **Feature** — a `Feature` domain object: a configuration-driven, ordered workflow of steps, identified by `group_id.feature_key`.
+- **Feature step** — an `EventFeatureStep` entry referencing a `service_id`; resolved and executed in order by `FeatureContext`.
+- **Position** — the zero-based index of a step within `Feature.steps`, used by `UpdateFeatureStep`/`RemoveFeatureStep`/`ReorderFeatureStep`.
 
 ## Events at a Glance
 
@@ -27,6 +33,7 @@ Features are composed of ordered **steps** (`EventFeatureStep` instances), each 
 
 ## Base Event and Dependency
 
+<a id="featureevent"></a>
 All events extend the shared `FeatureEvent` base event, which declares the single injected dependency and its constructor. Concrete events (`AddFeature`, `GetFeature`, etc.) define only their `execute` method:
 
 - **`FeatureEvent(DomainEvent)`** — declares **`feature_service: FeatureService`** (the service interface for persisting and retrieving `Feature` objects) and the `__init__` that injects it.
@@ -264,17 +271,25 @@ DomainEvent.handle(
 )
 ```
 
-## Migration Notes
+## Common Patterns
 
-### v2.0.0a6 Changes
+### Retrieve → Verify → Mutate → Save
 
-- **Class renames:** `AddFeatureCommand` → `AddFeatureStep`, `UpdateFeatureCommand` → `UpdateFeatureStep`, `RemoveFeatureCommand` → `RemoveFeatureStep`, `ReorderFeatureCommand` → `ReorderFeatureStep`.
-- **Parameter renames:** `attribute_id` → `service_id` in `AddFeatureStep.execute()` and `UpdateFeatureStep` valid attributes.
-- **Parameter renames:** `commands` → `steps` in `AddFeature.execute()`.
-- **Artifact comments:** Updated from `# *** commands` / `# ** command:` to `# *** events` / `# ** event:`.
-- **Unused imports removed:** `Aggregate` and `FeatureEventAggregate` no longer imported.
+Most mutation events (`UpdateFeature`, `AddFeatureStep`, `UpdateFeatureStep`, `RemoveFeatureStep`, `ReorderFeatureStep`) follow the standard four-step pattern: retrieve the feature via `feature_service.get(id)`, verify it exists, mutate it via a `Feature`/`EventFeatureStep` model helper, and save the updated aggregate.
 
-### Core DDD Parity II Changes
+### Idempotent Deletes
 
-- **Base event introduced:** `FeatureEvent(DomainEvent)` now holds the shared `feature_service` and its constructor; concrete events keep only `execute`.
-- **Domain-object rename:** the former `FeatureEvent` domain object (a feature workflow step) is renamed to `EventFeatureStep`, with mappers `EventFeatureStepAggregate` and `EventFeatureStepConfigObject`. This frees the `FeatureEvent` name for the base event above.
+`RemoveFeature` and `RemoveFeatureStep` are idempotent — removing a non-existent feature or an invalid step position is a silent no-op rather than an error.
+
+## Boundaries
+
+**Inside this domain:** the CRUD operations for `Feature` workflow configurations and their steps.
+**Outside this domain:** the declared `Feature`/`EventFeatureStep`/`RequestSpecification` shape ([docs/guides/domain/feature.md](../domain/feature.md)); actually resolving and executing a step's domain event (`FeatureContext` — [docs/guides/contexts.md](../contexts.md)).
+
+## Related Documentation
+
+- [docs/guides/domain/feature.md](../domain/feature.md) — `Feature`/`EventFeatureStep` domain objects
+- [docs/guides/contexts.md](../contexts.md) — `FeatureContext`, which resolves and executes these steps
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
+- [docs/guides/mappers.md](../mappers.md) — Mapper strategies

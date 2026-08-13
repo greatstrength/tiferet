@@ -196,7 +196,7 @@ def load_feature(self, feature_id: str) -> Feature:
 
     # If not in cache, retrieve via command and cache the result.
     if not feature:
-        feature = self.get_feature_handler(id=feature_id)
+        feature = self.get_feature(id=feature_id)
         self.cache.set(feature_id, feature)
 
     # Return the loaded feature.
