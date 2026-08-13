@@ -26,7 +26,7 @@ Represents a single command-line argument or flag.
 |-----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
 | `name_or_flags` | `List[str]`            | Yes      | —       | The name or flags of the argument (e.g., `["-f", "--flag"]`).                     |
 | `description`   | `str \| None`          | No       | `None`  | A brief description of the argument.                                              |
-| `type`          | `str \| None`          | No       | `'str'` | The type: `"str"`, `"int"`, or `"float"`.                                         |
+| `type`          | `str \| None`          | No       | `'str'` | The type: `"str"`, `"int"`, `"float"`, `"bool"`, `"list"`, `"dict"`, etc.          |
 | `required`      | `bool \| None`         | No       | `None`  | Whether the argument is required.                                                 |
 | `default`       | `str \| None`          | No       | `None`  | The default value if not provided.                                                |
 | `choices`       | `List[str] \| None`    | No       | `None`  | Valid choices for the argument.                                                   |
@@ -35,14 +35,49 @@ Represents a single command-line argument or flag.
 
 #### Methods
 
-**`get_type() -> str | int | float`**
+**`get_type() -> type | callable`**
 
-Maps the stored `type` string to a Python type object. Falls back to `str` if the type is `None` or unrecognized.
+Maps the stored `type` string to a Python type or converter callable. Falls back to `str` if the type is `None` or unrecognized. The `'dict'` type resolves to a flat-map converter that accepts repeated `key=value` tokens from argparse.
 
 ```python
 arg = CliArgument(name_or_flags=['--count'], type='int')
 assert arg.get_type() is int
 ```
+
+#### Argument type reference (including `'dict'`)
+
+| `type` value | Runtime conversion | Typical use |
+| --- | --- | --- |
+| `'str'` (default) | `str` | Free-text flags and positional strings |
+| `'int'` / `'float'` | `int` / `float` | Numeric operands |
+| `'bool'` | boolean converter | Explicit true/false values |
+| `'list'` | list accumulation | Multi-value flags |
+| `'dict'` | flat-map `key=value` pairs → `Dict[str, str]` | Nested parameter/constant maps without raw JSON |
+
+Admin catalog commands that pass structured maps use `'dict'` (not a new type). Worked examples from the built-in admin CLI:
+
+| Command | Flag | Role of the dict payload |
+| --- | --- | --- |
+| `app.add` | `--constants` | Session constant map |
+| `app.set-constants` | `--constants` | Replacement constant map |
+| `app.set-service` | `--parameters` | App service constructor parameters |
+| `feature.add-step` | `--parameters` | Step parameter map |
+| `service.add` | `--parameters` | Registration constructor parameters |
+| `service.set-default` | `--parameters` | Default service parameters |
+| `service.set-dependency` | `--parameters` | Flagged dependency parameters |
+| `service.set-constants` | `--constants` | Service-scoped constants |
+| `error.add` | `--additional-messages` | Extra locale → message pairs |
+
+```bash
+# Flat-map dict syntax (key=value), not JSON strings
+tiferet feature add-step --feature-id user.create --service-id validate_user_evt \
+  --name "Validate User" --parameters mode=strict
+tiferet error add --id INVALID_TOKEN_ID --name "Invalid Token" \
+  --message "Token invalid." --additional-messages es_ES="Token inválido."
+tiferet app set-constants --id web_api --constants timeout=30 retries=3
+```
+
+`build_admin_cli` / `AdminCLI` (`tiferet/blueprints/admin_cli.py`) is the primary consumer of these admin arguments; see [docs/guides/admin.md](../admin.md).
 
 **`to_argparse_kwargs() -> Dict[str, Any]`**
 
@@ -104,13 +139,14 @@ This 1:1 mapping ensures CLI commands are thin entry points that delegate all bu
 
 ## Runtime Role
 
-The `build_cli` blueprint (`tiferet/blueprints/cli.py`) is the primary consumer of the CLI domain at runtime:
+The `build_cli` blueprint (`tiferet/blueprints/cli.py`) and the admin sibling `build_admin_cli` / `AdminCLI` (`tiferet/blueprints/admin_cli.py`) are the primary consumers of the CLI domain at runtime:
 
-1. **`get_commands(service_provider)`** resolves all `CliCommand` entries from the configuration via `CliService`.
-2. **`build_parser()`** iterates each `CliCommand`, registering subparsers and arguments with `argparse` using `CliArgument` attributes (`name_or_flags`, `type`, `required`, `default`, `choices`, `nargs`, `action`).
-3. **`parse_argv()`** parses the user's CLI input and returns the matched command group and key.
-4. **`derive_feature_request()`** maps the parsed arguments to a feature ID (`group_key.key`) and dispatches to `AppInterfaceContext.run()`.
-5. **`FeatureContext`** executes the corresponding feature with the parsed data.
+1. The blueprint wires a `CliSessionContext` with the five required handlers (including `build_logger_handler`) and an injected `parse_cli_args` closure.
+2. **`parse_cli_args`** resolves `CliCommand` entries (repository + cache-seeded defaults), builds the argparse parser from each command's `CliArgument` attributes (`name_or_flags`, `type`, `required`, `default`, `choices`, `nargs`, `action` — including `'dict'` converters), and derives `(feature_id, headers, data)`.
+3. **`CliSessionContext.run(argv)`** dispatches through the hub `run` path.
+4. A domain-bound **`FeatureContext`** executes the corresponding feature with the parsed data (`execute_feature(request)` — no explicit `feature` argument).
+
+Admin CLI additionally re-seeds every `*_config` constant to the consumer `--config` path so management commands edit the target file.
 
 ## Configuration Mapping
 
@@ -171,8 +207,9 @@ Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
 ## Relationships to Other Domains
 
 - **Feature:** `CliCommand.id` maps 1:1 to feature IDs in `feature.yml`. CLI commands are thin entry points that delegate to the feature layer.
-- **App:** The CLI interface in the configuration specifies `CliService` as a service dependency. The `build_cli` blueprint handles argparse wiring and dispatches to `AppInterfaceContext`.
-- **Error:** CLI error responses are formatted via `ErrorContext`, providing user-friendly messages for validation failures and domain errors.
+- **App:** The CLI session in the configuration specifies `CliService` as a service dependency. The `build_cli` / `build_admin_cli` blueprints handle argparse wiring and dispatch to `CliSessionContext` / `AppSessionContext`.
+- **Error:** CLI error responses are formatted via the hub's `raise_error_handler` / `ErrorContext`, providing user-friendly messages for validation failures and domain errors.
+- **Admin:** Built-in management commands and `'dict'` flat-map arguments are documented in [docs/guides/admin.md](../admin.md).
 
 ## Instantiation
 

@@ -43,6 +43,8 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 | `data_key`       | `str \| None`           | No       | `None`  | Data key to store the result in.                                   |
 | `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event fails.               |
 | `condition`      | `str \| None`           | No       | `None`  | Boolean expression evaluated against request data before execution. If `False`, the step is silently skipped. |
+| `is_async`       | `bool`                  | No       | `False` | When `True`, the step is driven via `run_coroutine` even inside a sync feature. |
+| `middleware`     | `List[str]`             | No       | `[]`    | Step-level middleware service ids composed inside feature-level middleware. |
 
 Inherits `type` (defaults to `'event'`) and `name` from `FeatureStep`.
 
@@ -71,6 +73,8 @@ Immutable value object representing a complete feature workflow definition.
 | `feature_key`  | `str`                           | Yes      | —       | The key of the feature.                              |
 | `steps`        | `List[EventFeatureStep]`        | No       | `[]`    | The ordered step workflow for the feature.            |
 | `log_params`   | `Dict[str, str]`                | No       | `{}`    | Parameters to log for the feature.                   |
+| `is_async`     | `bool`                          | No       | `False` | When `True`, the entire step loop runs via `run_coroutine(self._execute_async(...))`. |
+| `middleware`   | `List[str]`                     | No       | `[]`    | Feature-level middleware service ids.                |
 
 #### Methods
 
@@ -89,12 +93,17 @@ step = feature.get_step('x')  # None (invalid type)
 
 The Feature domain objects participate in runtime workflow execution through the following flow:
 
-1. `FeatureContext.execute_feature(feature_id, data)` receives a feature ID from the application interface.
-2. The `Feature` is loaded from the `FeatureService` (backed by `feature.yml` configuration).
-3. `FeatureContext` iterates over `feature.steps`, resolving each `EventFeatureStep.service_id` from the DI container.
-4. Each resolved domain event is executed with the merged request data and step parameters.
-5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
-6. If `pass_on_error` is `True`, errors from that step are caught and the workflow continues.
+1. The hub's `execute_feature_handler` resolves the `Feature` (cache-backed via `get_feature`) and constructs a domain-bound `FeatureContext` with `FeatureContext.from_domain(feature, get_dependency=..., cache=...)`.
+2. `FeatureContext.execute_feature(request, *flags, **kwargs)` takes **no** `feature` parameter — it reads `self.domain`. The same is true of `resolve_feature_steps(request, *execution_flags)` and the internal `_execute_async(request, ...)` path.
+3. Request data is validated against the feature schema (`validate_request`) before any step runs.
+4. Async dispatch:
+   - `feature.is_async=True` — the entire step loop runs via `run_coroutine(self._execute_async(...))`.
+   - otherwise, each `step.is_async=True` step is driven individually via `run_coroutine(self._execute_step_async(...))`.
+   - both flags `False` — fully synchronous `execute_step`.
+5. For each yielded step from `resolve_feature_steps`, the context resolves `EventFeatureStep.service_id` from DI (execution + feature + step flags combined additively), parses parameters (including `$r.` request-backed values), evaluates `condition`, and executes through composed middleware.
+6. If `data_key` is set, the result is stored on the `RequestContext` for downstream steps. If `pass_on_error` is `True`, step errors are swallowed and the workflow continues.
+
+There is no separate `AsyncFeatureContext` class. Admin bootstrap seeds the management workflow catalog as `assets/feature.py::ADMIN_DEFAULT_FEATURES` (consumed by `admin.build_cache`); see [docs/guides/admin.md](../admin.md).
 
 ## Configuration Mapping
 
@@ -148,7 +157,8 @@ Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **App:** `FeatureContext` is loaded as part of the application interface bootstrap, receiving `FeatureService` and container resolution via dependency injection.
+- **App:** `FeatureContext` is constructed per feature run by the blueprint's `execute_feature_handler`, receiving `get_dependency` and a shared `CacheContext`.
+- **Admin:** `ADMIN_DEFAULT_FEATURES` seeds the six-domain management catalog used by `AdminApp` / `AdminCLI` — see [docs/guides/admin.md](../admin.md).
 - **DI:** `EventFeatureStep.service_id` references a `ServiceRegistration` entry in the `services` section of the configuration, which is resolved at runtime by the DI container.
 - **Error:** Domain events use `verify()` and `raise_error()` to raise `TiferetError` when features are not found or parameters are invalid. These are resolved to `Error` domain objects for formatted responses.
 - **CLI:** CLI commands map to features via `group_key` and `key`, enabling command-line execution of feature workflows.
@@ -185,3 +195,5 @@ feature = Feature(
 - [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) — Admin feature catalog (`ADMIN_DEFAULT_FEATURES`)
+- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Domain-bound `FeatureContext` and five-handler hub
