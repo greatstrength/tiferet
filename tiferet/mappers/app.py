@@ -10,10 +10,11 @@ from pydantic import AliasChoices, Field
 
 # ** app
 from ..domain import (
+    ATTRIBUTE_NOT_SETTABLE_ID,
     AppServiceDependency,
     AppSession,
+    ModelError,
 )
-from ..events import RaiseError, a
 from .core import (
     Aggregate,
     TransferObject,
@@ -204,11 +205,13 @@ class AppSessionAggregate(AppSession, Aggregate):
 
         # Validate the attribute name.
         if attribute not in supported:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            supported_names = ', '.join(sorted(supported))
+            ModelError.raise_error(
+                ATTRIBUTE_NOT_SETTABLE_ID,
+                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+                model=self,
                 attribute=attribute,
-                supported=', '.join(sorted(supported)),
+                supported=supported_names,
             )
 
         # Apply the update; validate_assignment=True handles re-validation.

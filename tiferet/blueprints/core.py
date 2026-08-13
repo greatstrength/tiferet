@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Tuple
 
 # ** app
 from .. import assets as a
-from ..assets import RaiseError, TiferetAPIError, TiferetError
+from ..assets import TiferetAPIError, TiferetError
 from ..contexts.app import (
     AppSession,
     AppSessionContext,
@@ -614,7 +614,7 @@ def build_app(interface_id: str,
 
     # Verify the resolved context is a valid AppSessionContext.
     if not isinstance(context, AppSessionContext):
-        RaiseError.execute(
+        TiferetError.raise_error(
             a.error.INVALID_APP_SESSION_TYPE_ID,
             interface_id=interface_id,
         )

@@ -8,7 +8,24 @@ from typing import IO, Any, Optional
 
 # ** app
 from ..interfaces.file import FileService
-from ..events import RaiseError, a
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: file_not_found_id
+FILE_NOT_FOUND_ID = 'FILE_NOT_FOUND'
+
+# ** constant: file_already_open_id
+FILE_ALREADY_OPEN_ID = 'FILE_ALREADY_OPEN'
+
+# ** constant: invalid_file_id
+INVALID_FILE_ID = 'INVALID_FILE'
+
+# ** constant: invalid_file_mode_id
+INVALID_FILE_MODE_ID = 'INVALID_FILE_MODE'
+
+# ** constant: invalid_encoding_id
+INVALID_ENCODING_ID = 'INVALID_ENCODING'
 
 # *** utils
 
@@ -90,16 +107,18 @@ class FileLoader(FileService):
         # For write, append, or exclusive modes, verify the parent directory exists.
         if any(c in mode for c in ('w', 'a', 'x')):
             if not path.parent.exists():
-                RaiseError.execute(
-                    error_code=a.error.FILE_NOT_FOUND_ID,
+                ServiceError.raise_for(
+                    FileLoader,
+                    FILE_NOT_FOUND_ID,
                     path=str(path),
                 )
 
         # For read modes, verify the file itself exists.
         else:
             if not path.exists():
-                RaiseError.execute(
-                    error_code=a.error.FILE_NOT_FOUND_ID,
+                ServiceError.raise_for(
+                    FileLoader,
+                    FILE_NOT_FOUND_ID,
                     path=str(path),
                 )
 
@@ -119,8 +138,9 @@ class FileLoader(FileService):
 
         # Raise an error if the mode is not valid.
         if self.mode not in valid:
-            RaiseError.execute(
-                error_code=a.error.INVALID_FILE_MODE_ID,
+            ServiceError.raise_for(
+                self,
+                INVALID_FILE_MODE_ID,
                 mode=self.mode,
             )
 
@@ -134,8 +154,9 @@ class FileLoader(FileService):
 
         # Raise an error if encoding is missing for a text mode.
         if 'b' not in self.mode and self.encoding is None:
-            RaiseError.execute(
-                error_code=a.error.INVALID_ENCODING_ID,
+            ServiceError.raise_for(
+                self,
+                INVALID_ENCODING_ID,
                 encoding=None,
             )
 
@@ -152,8 +173,9 @@ class FileLoader(FileService):
 
         # Raise an error if the file is already open.
         if self.file is not None:
-            RaiseError.execute(
-                error_code=a.error.FILE_ALREADY_OPEN_ID,
+            ServiceError.raise_for(
+                self,
+                FILE_ALREADY_OPEN_ID,
                 path=str(self.path),
             )
 

@@ -257,19 +257,19 @@ class TestQuerySql(SqliteEventTestBase):
     # * method: test_execution_error
     def test_execution_error(self, mock_dependencies):
         '''
-        Test handling of underlying SQLite errors.
+        Test that an underlying SQLite error now propagates unwrapped.
+
+        SqliteClient itself converts driver failures to ServiceError; the
+        event no longer wraps sqlite3.Error, so a mocked service failure
+        surfaces here as the raw exception.
         '''
 
         # Arrange the service to raise a sqlite3.Error.
         mock_dependencies['sqlite_service'].fetch_all.side_effect = sqlite3.Error("no such table: invalid_table")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies, query="SELECT * FROM invalid_table")
-
-        # Assert the error code and original error.
-        assert exc_info.value.error_code == 'APP_ERROR'
-        assert exc_info.value.kwargs.get('original_error') == "no such table: invalid_table"
 
 
 # ** test: TestMutateSql
@@ -377,18 +377,15 @@ class TestMutateSql(SqliteEventTestBase):
     # * method: test_execution_error
     def test_execution_error(self, mock_dependencies):
         '''
-        Test handling of underlying SQLite errors.
+        Test that an underlying SQLite error now propagates unwrapped.
         '''
 
         # Arrange the service to raise a sqlite3.Error.
         mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("constraint failed")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies, statement="INSERT INTO users VALUES (1)")
-
-        # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
 
 
 # ** test: TestBulkMutateSql
@@ -479,18 +476,15 @@ class TestBulkMutateSql(SqliteEventTestBase):
     # * method: test_execution_error
     def test_execution_error(self, mock_dependencies):
         '''
-        Test handling of underlying SQLite errors during bulk mutation.
+        Test that an underlying SQLite error now propagates unwrapped.
         '''
 
         # Arrange the service to raise a sqlite3.Error.
         mock_dependencies['sqlite_service'].executemany.side_effect = sqlite3.Error("constraint failed")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies)
-
-        # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
 
 
 # ** test: TestExecuteScriptSql
@@ -540,18 +534,15 @@ class TestExecuteScriptSql(SqliteEventTestBase):
     # * method: test_execution_error
     def test_execution_error(self, mock_dependencies):
         '''
-        Test handling of underlying SQLite errors during script execution.
+        Test that an underlying SQLite error now propagates unwrapped.
         '''
 
         # Arrange the service to raise a sqlite3.Error.
         mock_dependencies['sqlite_service'].executescript.side_effect = sqlite3.Error("syntax error")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies, script="INVALID SQL;")
-
-        # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
 
 
 # ** test: TestBackupSql
@@ -606,18 +597,18 @@ class TestBackupSql(SqliteEventTestBase):
     # * method: test_execution_error
     def test_execution_error(self, mock_dependencies):
         '''
-        Test handling of underlying SQLite errors during backup.
+        Test that an underlying SQLite error now propagates unwrapped.
+
+        SQLITE_BACKUP_FAILED is now raised by SqliteClient.backup itself
+        (as a ServiceError); the event no longer wraps sqlite3.Error.
         '''
 
         # Arrange the service to raise a sqlite3.Error.
         mock_dependencies['sqlite_service'].backup.side_effect = sqlite3.Error("permission denied")
 
-        # Execute and expect a SQLITE_BACKUP_FAILED error.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies, target_path='/invalid/path/backup.db')
-
-        # Assert the error code.
-        assert exc_info.value.error_code == a.error.SQLITE_BACKUP_FAILED_ID
 
 
 # ** test: TestCreateTableSql
@@ -726,17 +717,14 @@ class TestCreateTableSql(SqliteEventTestBase):
         # Arrange the service to raise on duplicate table.
         mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("table existing_table already exists")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(
                 mock_dependencies,
                 table_name='existing_table',
                 columns={'id': 'INTEGER'},
                 if_not_exists=False,
             )
-
-        # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
 
     # * method: test_invalid_table_name
     def test_invalid_table_name(self, mock_dependencies):
@@ -801,18 +789,15 @@ class TestCreateTableSql(SqliteEventTestBase):
     # * method: test_execution_error
     def test_execution_error(self, mock_dependencies):
         '''
-        Test handling of underlying SQLite errors during table creation.
+        Test that an underlying SQLite error now propagates unwrapped.
         '''
 
         # Arrange the service to raise a sqlite3.Error.
         mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("syntax error")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies, columns={'id': 'INVALID_TYPE'})
-
-        # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
 
 
 # ** test: TestDropTableSql
@@ -885,13 +870,9 @@ class TestDropTableSql(SqliteEventTestBase):
         # Arrange the service to raise on missing table.
         mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("no such table: non_existent_table")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies, table_name='non_existent_table', if_exists=False)
-
-        # Assert the error code and original error.
-        assert exc_info.value.error_code == 'APP_ERROR'
-        assert exc_info.value.kwargs.get('original_error') == "no such table: non_existent_table"
 
     # * method: test_invalid_table_name
     def test_invalid_table_name(self, mock_dependencies):
@@ -926,16 +907,12 @@ class TestDropTableSql(SqliteEventTestBase):
     # * method: test_execution_error
     def test_execution_error(self, mock_dependencies):
         '''
-        Test handling of underlying SQLite errors during table drop.
+        Test that an underlying SQLite error now propagates unwrapped.
         '''
 
         # Arrange the service to raise a sqlite3.Error.
         mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("database is locked")
 
-        # Execute and expect an APP_ERROR.
-        with pytest.raises(TiferetError) as exc_info:
+        # Execute and expect the raw sqlite3.Error to propagate.
+        with pytest.raises(sqlite3.Error):
             self.handle(mock_dependencies, table_name='test_table')
-
-        # Assert the error code and original error.
-        assert exc_info.value.error_code == 'APP_ERROR'
-        assert exc_info.value.kwargs.get('original_error') == "database is locked"

@@ -73,9 +73,11 @@ The error formatting flow in Tiferet follows this path:
 
 1. A domain event calls `self.verify(expression, error_code, ...)` or `self.raise_error(error_code, ...)`.
 2. A `TiferetError` is raised with the `error_code` and contextual kwargs.
-3. `AppInterfaceContext.handle_error()` catches the error and loads the `Error` domain object via the hub's `load_error_domain` (backed by `GetError`/`ErrorService`).
-4. `ErrorContext.format_response(error, exception, lang)` produces the structured error response from the loaded `Error`.
+3. `AppSessionContext.run()` (`tiferet/contexts/app.py`) catches the `TiferetError` and calls `self.handle_error(e)`, which delegates to the injected `raise_error_handler` closure (built by the `raise_error_handler`/`get_error` blueprints in `tiferet/blueprints/core.py`).
+4. The handler resolves the `Error` domain object by `error_code` (checking the shared cache first, falling back to the `get_error_evt`/`ErrorService` event on a miss and caching the result), then calls `ErrorContext.format_response(error, exception)` to produce the structured response.
 5. The response is wrapped in `TiferetAPIError` and returned to the caller (API response, CLI output, etc.).
+
+Note that this flow always re-resolves the raised error through the catalog, even when a `TiferetAPIError` is raised directly — there is no pass-through special case for an already-formatted error.
 
 ## Built-In Defaults
 
@@ -83,7 +85,9 @@ Tiferet provides built-in error definitions in `assets/constants.py::DEFAULT_ERR
 
 - `COMMAND_PARAMETER_REQUIRED` — missing required parameters
 - `FEATURE_NOT_FOUND` — unknown feature ID
-- `INVALID_MODEL_ATTRIBUTE` — invalid attribute on a domain object
+- `REQUEST_VALIDATION_FAILED` — request data that fails a feature's `params_schema`
+
+`INVALID_MODEL_ATTRIBUTE` is **not** in this catalog — it is a `ModelError` code (see [docs/guides/domain/core.md](core.md)), not a catalogued `TiferetError`.
 
 Application-specific errors are defined in the `errors` section of the configuration file (typically `config.yml`, though per-file configs such as `error.yml` are also supported) and loaded via `ErrorService`.
 
@@ -160,6 +164,8 @@ error = Error(
 
 ## Related Documentation
 
+- [docs/guides/errors.md](../errors.md) — The three unrelated exception families (`TiferetError`, `ServiceError`, `ModelError`) and when each applies
+- [docs/guides/domain/core.md](core.md) — `ModelError`, deliberately excluded from this catalog
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide

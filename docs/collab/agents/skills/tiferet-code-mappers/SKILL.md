@@ -35,7 +35,7 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended), `events` (`RaiseError`, `a`). Never import from `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
+**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion and any relevant error constants, e.g. `ATTRIBUTE_NOT_SETTABLE_ID`). Never import from `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, or `events`.
 
 **Naming:**
 - `<Domain>Aggregate` — mutable extension of a domain object (e.g. `ErrorAggregate`, `FeatureAggregate`).
@@ -46,7 +46,7 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
 - Combine the domain object + `Aggregate`: `class ErrorAggregate(Error, Aggregate)`.
 - Instantiate via direct Pydantic constructor: `ErrorAggregate(id='ERR', name='Error')`.
 - Add mutation methods; `validate_assignment=True` (inherited) triggers field validation on every `setattr`.
-- Use `set_attribute(attr, value)` for safe mutations with unknown-field checking; raises `INVALID_MODEL_ATTRIBUTE_ID` for unknown attrs.
+- Use `set_attribute(attr, value)` for safe mutations; converts any resulting Pydantic `ValidationError` into a `ModelError` via `ModelError.raise_for_validation` (classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID` — never a `TiferetError`).
 - No `Aggregate.new()` factory — use the constructor directly.
 - `to_dict(role=None, **overrides)` — serialize an aggregate to a dict; mirrors `TransferObject.to_primitive` for consistent serialization without going through a transfer object.
 

@@ -13,8 +13,10 @@ from tiferet.di.dependency_injector import (
     DIAppServiceContainer,
     DIDynamicServiceContainer,
     DIDynamicServiceResolver,
+    DI_DEPENDENCY_NOT_REGISTERED_ID,
 )
 from tiferet.domain import AppServiceDependency, ServiceDependency, ServiceRegistration
+from tiferet.interfaces.core import ServiceError
 
 # *** classes
 
@@ -210,6 +212,24 @@ def test_di_dynamic_container_remove_dependency_idempotent(dynamic_container):
 
     # Removing a nonexistent id should be a no-op.
     dynamic_container.remove_dependency('missing')
+
+# ** test: di_dynamic_container_get_dependency_not_registered
+def test_di_dynamic_container_get_dependency_not_registered(dynamic_container):
+    '''
+    get_dependency raises a ServiceError, not a raw TypeError, when no
+    provider is registered under the given id.
+
+    :param dynamic_container: The empty dynamic container fixture.
+    :type dynamic_container: DIDynamicServiceContainer
+    '''
+
+    # Resolving an unregistered id should raise a structured ServiceError.
+    with pytest.raises(ServiceError) as exc_info:
+        dynamic_container.get_dependency('nonexistent')
+
+    # Verify the error code and dependency id context.
+    assert exc_info.value.error_code == DI_DEPENDENCY_NOT_REGISTERED_ID
+    assert exc_info.value.kwargs.get('dependency_id') == 'nonexistent'
 
 # ** test: di_app_service_container_add_service_singleton
 def test_di_app_service_container_add_service_singleton(app_container):

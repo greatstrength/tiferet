@@ -11,7 +11,33 @@ import sqlite3
 # ** app
 from .file import FileLoader
 from ..interfaces.sqlite import SqliteService
-from ..events import RaiseError, a
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: sqlite_conn_already_open_id
+SQLITE_CONN_ALREADY_OPEN_ID = 'SQLITE_CONN_ALREADY_OPEN'
+
+# ** constant: sqlite_conn_failed_id
+SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
+
+# ** constant: sqlite_conn_not_initialized_id
+SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
+
+# ** constant: sqlite_invalid_mode_id
+SQLITE_INVALID_MODE_ID = 'SQLITE_INVALID_MODE'
+
+# ** constant: sqlite_backup_failed_id
+SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
+
+# ** constant: sqlite_statement_failed_id
+SQLITE_STATEMENT_FAILED_ID = 'SQLITE_STATEMENT_FAILED'
+
+# ** constant: sqlite_query_failed_id
+SQLITE_QUERY_FAILED_ID = 'SQLITE_QUERY_FAILED'
+
+# ** constant: sqlite_transaction_failed_id
+SQLITE_TRANSACTION_FAILED_ID = 'SQLITE_TRANSACTION_FAILED'
 
 # *** utils
 
@@ -83,8 +109,9 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Raise an error if the mode is not valid.
         if self.mode not in valid_modes:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_INVALID_MODE_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_INVALID_MODE_ID,
                 mode=self.mode,
             )
 
@@ -99,8 +126,9 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Raise an error if the connection is already open.
         if self.conn is not None:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_ALREADY_OPEN_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_ALREADY_OPEN_ID,
                 path=str(self.path),
             )
 
@@ -127,13 +155,15 @@ class SqliteClient(FileLoader, SqliteService):
             # Create a cursor for query execution.
             self.cursor = self.conn.cursor()
 
-        except sqlite3.OperationalError as e:
+        except sqlite3.Error as e:
 
-            # Wrap connection failures as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_FAILED_ID,
+            # Wrap connection failures as a ServiceError.
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_FAILED_ID,
                 original_error=str(e),
                 path=str(self.path),
+                cause=e,
             )
 
     # * method: close_file
@@ -163,12 +193,21 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Guard against uninitialized connection.
         if self.cursor is None:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Execute the SQL statement and return the cursor.
-        return self.cursor.execute(sql, parameters)
+        try:
+            return self.cursor.execute(sql, parameters)
+        except sqlite3.Error as e:
+            ServiceError.raise_for(
+                self,
+                SQLITE_STATEMENT_FAILED_ID,
+                original_error=str(e),
+                cause=e,
+            )
 
     # * method: executemany
     def executemany(self, sql: str, seq_of_parameters: Iterable[Iterable[Any]]) -> sqlite3.Cursor:
@@ -185,12 +224,21 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Guard against uninitialized connection.
         if self.cursor is None:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Execute the SQL with multiple parameter sets and return the cursor.
-        return self.cursor.executemany(sql, seq_of_parameters)
+        try:
+            return self.cursor.executemany(sql, seq_of_parameters)
+        except sqlite3.Error as e:
+            ServiceError.raise_for(
+                self,
+                SQLITE_STATEMENT_FAILED_ID,
+                original_error=str(e),
+                cause=e,
+            )
 
     # * method: executescript
     def executescript(self, sql_script: str) -> sqlite3.Cursor:
@@ -205,12 +253,21 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Guard against uninitialized connection.
         if self.cursor is None:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Execute the SQL script and return the cursor.
-        return self.cursor.executescript(sql_script)
+        try:
+            return self.cursor.executescript(sql_script)
+        except sqlite3.Error as e:
+            ServiceError.raise_for(
+                self,
+                SQLITE_STATEMENT_FAILED_ID,
+                original_error=str(e),
+                cause=e,
+            )
 
     # * method: fetch_one
     def fetch_one(self, query: str, parameters: Iterable[Any] = ()) -> Optional[tuple]:
@@ -229,7 +286,15 @@ class SqliteClient(FileLoader, SqliteService):
         self.execute(query, parameters)
 
         # Fetch and return the next row.
-        return self.cursor.fetchone()
+        try:
+            return self.cursor.fetchone()
+        except sqlite3.Error as e:
+            ServiceError.raise_for(
+                self,
+                SQLITE_QUERY_FAILED_ID,
+                original_error=str(e),
+                cause=e,
+            )
 
     # * method: fetch_all
     def fetch_all(self, query: str, parameters: Iterable[Any] = ()) -> List[tuple]:
@@ -248,7 +313,15 @@ class SqliteClient(FileLoader, SqliteService):
         self.execute(query, parameters)
 
         # Fetch and return all rows.
-        return self.cursor.fetchall()
+        try:
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            ServiceError.raise_for(
+                self,
+                SQLITE_QUERY_FAILED_ID,
+                original_error=str(e),
+                cause=e,
+            )
 
     # * method: commit
     def commit(self) -> None:
@@ -258,12 +331,21 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Guard against uninitialized connection.
         if self.conn is None:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Commit the transaction.
-        self.conn.commit()
+        try:
+            self.conn.commit()
+        except sqlite3.Error as e:
+            ServiceError.raise_for(
+                self,
+                SQLITE_TRANSACTION_FAILED_ID,
+                original_error=str(e),
+                cause=e,
+            )
 
     # * method: rollback
     def rollback(self) -> None:
@@ -273,12 +355,21 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Guard against uninitialized connection.
         if self.conn is None:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Roll back the transaction.
-        self.conn.rollback()
+        try:
+            self.conn.rollback()
+        except sqlite3.Error as e:
+            ServiceError.raise_for(
+                self,
+                SQLITE_TRANSACTION_FAILED_ID,
+                original_error=str(e),
+                cause=e,
+            )
 
     # * method: backup
     def backup(self,
@@ -299,8 +390,9 @@ class SqliteClient(FileLoader, SqliteService):
 
         # Guard against uninitialized source connection.
         if self.conn is None:
-            RaiseError.execute(
-                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
+            ServiceError.raise_for(
+                self,
+                SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Open a target connection for the backup.
@@ -321,11 +413,13 @@ class SqliteClient(FileLoader, SqliteService):
 
         except sqlite3.Error as e:
 
-            # Wrap backup failures as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.SQLITE_BACKUP_FAILED_ID,
+            # Wrap backup failures as a ServiceError.
+            ServiceError.raise_for(
+                self,
+                SQLITE_BACKUP_FAILED_ID,
                 original_error=str(e),
                 target_path=str(target_path),
+                cause=e,
             )
 
         finally:

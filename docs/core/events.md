@@ -121,7 +121,7 @@ The framework defines seven base events, one per single-service event module:
 - `LoggingEvent` (`logging_service`) — `tiferet/events/logging.py`
 - `SqliteEvent` (`sqlite_service`) — `tiferet/events/sqlite.py`
 
-The static utility events (`ParseParameter`, `ImportDependency`, `RaiseError` in `tiferet/events/static.py`) take no injected service and therefore use no base event.
+The static utility events (`ParseParameter`, `ImportDependency` in `tiferet/events/core.py`) take no injected service and therefore use no base event.
 
 > **Naming note:** The `FeatureEvent` base event reuses the name freed by the `FeatureEvent` → `EventFeatureStep` domain-object rename. The former `FeatureEvent` domain object (a feature workflow step) is now `EventFeatureStep`; the name `FeatureEvent` now denotes the feature module's base event.
 
@@ -403,8 +403,7 @@ For built-in middleware, the `MiddlewareService` interface, ordering, `config.ym
 
 Domain events are defined in `tiferet/events/`:
 
-- `core.py` – `DomainEvent` base class, `@parameters_required` decorator.
-- `static.py` – Static utility events (`ParseParameter`, `ImportDependency`, `RaiseError`).
+- `core.py` – `DomainEvent` base class, `@parameters_required` decorator, and the static utility events (`ParseParameter`, `ImportDependency`).
 - `app.py` – `AppEvent` base + app interface management events.
 - `cli.py` – `CliEvent` base + CLI command management events.
 - `di.py` – `DIEvent` base + DI service registration events.

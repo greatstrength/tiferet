@@ -8,7 +8,12 @@ from typing import Any, Callable
 
 # ** app
 from ..utils import YamlLoader, JsonLoader
-from ..events import RaiseError, a
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: unsupported_config_file_type_id
+UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
 # *** classes
 
@@ -71,8 +76,10 @@ class ConfigurationRepository:
             return JsonLoader(self.config_file, mode=mode, encoding=self.encoding)
 
         # Raise a structured error for any unsupported file type.
-        RaiseError.execute(
-            error_code=a.error.UNSUPPORTED_CONFIG_FILE_TYPE_ID,
+        ServiceError.raise_for(
+            self,
+            UNSUPPORTED_CONFIG_FILE_TYPE_ID,
+            f'Unsupported configuration file type: {ext}.',
             file_extension=ext,
         )
 

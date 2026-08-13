@@ -159,7 +159,7 @@ app = App('basic_calc', app_yaml_file='config.yml')
 
 ### 2. Consistent Error Handling
 
-Use framework constants and `RaiseError.execute()` for all failure paths.
+Use framework constants and `TiferetError.raise_error()` for all domain-outcome failure paths (e.g. `TiferetError.raise_error(a.error.INVALID_APP_SESSION_TYPE_ID, interface_id=interface_id)`).
 
 ### 3. Keep Blueprints Thin
 

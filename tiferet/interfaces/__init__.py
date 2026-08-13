@@ -4,7 +4,7 @@
 
 __all__ = [
     'Service',
-    'ConfigurationService',
+    'ServiceError',
     'FileService',
     'SqliteService',
     'AppService',
@@ -17,8 +17,7 @@ __all__ = [
 ]
 
 # ** app
-from .core import Service
-from .config import ConfigurationService
+from .core import Service, ServiceError
 from .file import FileService
 from .sqlite import SqliteService
 from .app import AppService

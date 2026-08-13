@@ -10,7 +10,7 @@ The mappers layer (`tiferet.mappers`) provides the bridge between persistent con
 1. **Aggregate**  
    - Extends `DomainObject` (which extends `pydantic.BaseModel`).
    - Inherits the strict `extra='forbid'` and `validate_assignment=True` config from `DomainObject`.
-   - Provides mutation-safe attribute updates via `set_attribute` with validation using `model_fields` and `RaiseError`.
+   - Provides mutation-safe attribute updates via `set_attribute`, converting any resulting `ValidationError` into a `ModelError` via `ModelError.raise_for_validation`.
    - Concrete aggregates combine a domain object with `Aggregate` to add mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
 
 2. **TransferObject**  
@@ -51,23 +51,19 @@ class Aggregate(DomainObject):
 
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
-        '''Update an attribute, raising an error if it is unknown.'''
-
-        # Reject unknown attribute names by raising a structured error.
-        if attribute not in type(self).model_fields:
-            RaiseError.execute(
-                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
-                attribute=attribute,
-            )
+        '''Update an attribute, converting any validation failure into a ModelError.'''
 
         # Apply the update; validate_assignment=True triggers field validation.
-        setattr(self, attribute, value)
+        try:
+            setattr(self, attribute, value)
+        except ValidationError as error:
+            ModelError.raise_for_validation(error, model=self, attribute=attribute)
 ```
 
 Key characteristics:
 - Aggregates are instantiated directly via the Pydantic constructor: `ErrorAggregate(id='...', name='...')`.
-- **`set_attribute`** checks `model_fields` to verify the attribute exists before mutation; `validate_assignment=True` (inherited from `DomainObject`) triggers field validation on every `setattr`.
-- Invalid attribute mutations raise `TiferetError` via `RaiseError.execute` with `INVALID_MODEL_ATTRIBUTE_ID`.
+- **`set_attribute`** relies on `validate_assignment=True` (inherited from `DomainObject`) to trigger field validation on every `setattr`, and converts the resulting Pydantic `ValidationError` into a `ModelError` via `ModelError.raise_for_validation`.
+- Invalid attribute mutations (unknown field or invalid value) raise a `ModelError` — not a `TiferetError` — classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID`. See [docs/guides/errors.md](../guides/errors.md) for why `ModelError` is a deliberately uncatalogued, unrelated exception family.
 
 ## The TransferObject Base Class
 

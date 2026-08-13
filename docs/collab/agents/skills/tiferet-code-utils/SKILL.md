@@ -34,9 +34,9 @@ Util-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `interfaces` (to implement a Service contract), `events` (`RaiseError`, `a`). Never import from `domain`, `mappers`, `repos`, `di`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** `interfaces` (to implement a Service contract; also the source of `ServiceError`); sibling utility modules (e.g. `.file` for `FileLoader`). Error codes are declared as local module constants (e.g. `tiferet/utils/toml.py::INVALID_TOML_FILE_ID`), not imported from `assets`. Never import from `domain`, `mappers`, `repos`, `di`, `contexts`, `blueprints`, or `events`.
 - Implementing a **Service** contract from `tiferet/interfaces/` is **optional** — required only when the utility needs to be DI-injectable (resolved from the container). Utilities called statically or directly do not need a Service interface.
-- Use `RaiseError.execute(error_code, ...)` from `tiferet/events/static.py` for all error paths — never raise raw exceptions from utilities.
+- Use `ServiceError.raise_for(self, error_code, ...)` from `tiferet/interfaces/core.py` for all error paths — never raise raw exceptions from utilities. `ServiceError` derives its `module_path`/`class_name`/`target_method` provenance from the failing service instance and the calling frame.
 - **Resource-owning utilities** implement the context manager protocol: `__enter__` (open/connect) and `__exit__` (close/disconnect; commit or rollback on error).
 - **Static one-shot helpers** on utilities (e.g. `CsvLoader.load_rows(path)`) provide a convenience API that opens, reads, closes in a single call.
 - Export from `tiferet/utils/__init__.py` with both the full class name and a short alias (e.g. `FileLoader` / `File`, `YamlLoader` / `Yaml`).
@@ -68,8 +68,12 @@ from pathlib import Path
 
 # ** app
 from .file import FileLoader
-from ..events.static import RaiseError
-from .. import assets as a
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 
 # *** utils
 
@@ -118,8 +122,9 @@ class TomlLoader(FileLoader):
             try:
                 data = tomllib.load(self.file)
             except tomllib.TOMLDecodeError as e:
-                RaiseError.execute(
-                    error_code=a.const.INVALID_TOML_FILE_ID,
+                ServiceError.raise_for(
+                    self,
+                    INVALID_TOML_FILE_ID,
                     message=str(e),
                     path=str(self.path),
                 )

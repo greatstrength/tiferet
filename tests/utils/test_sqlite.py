@@ -11,9 +11,14 @@ import sqlite3
 import pytest
 
 # ** app
-from tiferet.utils.sqlite import SqliteClient
-from tiferet.events import a
-from tiferet.events.core import TiferetError
+from tiferet.utils.sqlite import (
+    SqliteClient,
+    SQLITE_INVALID_MODE_ID,
+    SQLITE_CONN_ALREADY_OPEN_ID,
+    SQLITE_CONN_NOT_INITIALIZED_ID,
+    SQLITE_CONN_FAILED_ID,
+)
+from tiferet.interfaces.core import ServiceError
 
 # *** fixtures
 
@@ -112,11 +117,11 @@ def test_sqlite_client_invalid_mode():
     client = SqliteClient(path=':memory:', mode='invalid')
 
     # Attempt to open; expect SQLITE_INVALID_MODE error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         client.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_INVALID_MODE_ID
+    assert exc_info.value.error_code == SQLITE_INVALID_MODE_ID
 
 # ** test: sqlite_client_already_open
 def test_sqlite_client_already_open(memory_client: SqliteClient):
@@ -133,11 +138,11 @@ def test_sqlite_client_already_open(memory_client: SqliteClient):
     try:
 
         # Attempt to open again; expect SQLITE_CONN_ALREADY_OPEN error.
-        with pytest.raises(TiferetError) as exc_info:
+        with pytest.raises(ServiceError) as exc_info:
             memory_client.open_file()
 
         # Verify the error code.
-        assert exc_info.value.error_code == a.error.SQLITE_CONN_ALREADY_OPEN_ID
+        assert exc_info.value.error_code == SQLITE_CONN_ALREADY_OPEN_ID
 
     finally:
 
@@ -424,11 +429,11 @@ def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient, tmp_p
     backup_path = tmp_path / 'backup_fail.db'
 
     # Attempt backup with source closed; expect error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         memory_client.backup(str(backup_path))
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_execute_not_initialized
 def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
@@ -440,11 +445,11 @@ def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
     '''
 
     # Attempt to execute without opening; expect error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         memory_client.execute('SELECT 1')
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_commit_not_initialized
 def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
@@ -456,11 +461,11 @@ def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
     '''
 
     # Attempt to commit without opening; expect error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         memory_client.commit()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_conn_failed
 def test_sqlite_client_conn_failed(tmp_path: Path):
@@ -475,11 +480,11 @@ def test_sqlite_client_conn_failed(tmp_path: Path):
     client = SqliteClient(path=tmp_path / 'nonexistent.db', mode='rw')
 
     # Attempt to open; expect SQLITE_CONN_FAILED error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         client.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_FAILED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_FAILED_ID
 
 # ** test: sqlite_client_isolation_level_propagation
 def test_sqlite_client_isolation_level_propagation():

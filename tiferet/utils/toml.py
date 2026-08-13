@@ -13,8 +13,18 @@ except ModuleNotFoundError:
 
 # ** app
 from .file import FileLoader
-from ..events import RaiseError, a
-from ..events.core import TiferetError
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
+
+# ** constant: toml_file_not_found_id
+TOML_FILE_NOT_FOUND_ID = 'TOML_FILE_NOT_FOUND'
+
+# ** constant: toml_file_load_error_id
+TOML_FILE_LOAD_ERROR_ID = 'TOML_FILE_LOAD_ERROR'
 
 # *** utils
 
@@ -68,16 +78,18 @@ class TomlLoader(FileLoader):
             if default_path and default_path.suffix.lower() == '.toml':
                 path = default_path
             else:
-                RaiseError.execute(
-                    error_code=a.error.INVALID_TOML_FILE_ID,
+                ServiceError.raise_for(
+                    TomlLoader,
+                    INVALID_TOML_FILE_ID,
                     message="File must have .toml extension",
                     path=str(loader.path),
                 )
 
         # Verify the resolved path exists.
         if not path.exists():
-            RaiseError.execute(
-                error_code=a.error.TOML_FILE_NOT_FOUND_ID,
+            ServiceError.raise_for(
+                TomlLoader,
+                TOML_FILE_NOT_FOUND_ID,
                 path=str(path),
             )
 
@@ -112,16 +124,18 @@ class TomlLoader(FileLoader):
                 # Apply the data_factory and return.
                 return data_factory(transformed)
 
-        except TiferetError:
+        except ServiceError:
 
             # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
             raise
 
         except Exception as e:
 
-            # Wrap TOML parsing errors as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.TOML_FILE_LOAD_ERROR_ID,
+            # Wrap TOML parsing errors as a ServiceError.
+            ServiceError.raise_for(
+                self,
+                TOML_FILE_LOAD_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
+                cause=e,
             )

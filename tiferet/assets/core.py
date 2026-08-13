@@ -3,7 +3,8 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, NoReturn, Tuple
+import json
 
 # *** constants
 
@@ -485,3 +486,104 @@ def create_default_logger(id: str,
 
     # Return the assembled logger definition.
     return logger
+
+# *** classes
+
+# ** class: tiferet_error
+# >> see: @guides/errors.md#tiferet-error
+class TiferetError(Exception):
+    '''
+    The base exception for every catalogued, resolvable domain outcome — the
+    contract that lets a business-rule failure be resolved back into a
+    localized, user-facing message instead of leaking as raw exception state.
+    '''
+
+    # * attribute: error_code
+    error_code: str
+
+    # * attribute: kwargs
+    kwargs: Dict[str, Any]
+
+    # * init
+    def __init__(self, error_code: str, message: str = None, **kwargs):
+        '''
+        Initialize the TiferetError with an error code, message, and additional arguments.
+
+        :param error_code: The error code.
+        :type error_code: str
+        :param message: The error message.
+        :type message: str
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Set the error code and additional arguments.
+        self.error_code = error_code
+        self.kwargs = kwargs
+
+        # Initialize base exception with error data.
+        super().__init__(
+            json.dumps({
+                'error_code': error_code,
+                'message': message,
+                **kwargs,
+            })
+        )
+
+    # * method: raise_error (class)
+    @classmethod
+    def raise_error(cls, error_code: str, message: str = None, **kwargs) -> NoReturn:
+        '''
+        Raise a structured TiferetError (or subclass) with the given error code.
+
+        :param error_code: The error code to raise.
+        :type error_code: str
+        :param message: The error message to raise.
+        :type message: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Raise the error with the specified code and arguments.
+        raise cls(error_code, message, **kwargs)
+
+# ** class: tiferet_api_error
+# >> see: @guides/errors.md#tiferet-api-error
+class TiferetAPIError(TiferetError):
+    '''
+    The catalogued domain outcome in its already-formatted, consumer-facing
+    shape — the representation raised back to the caller once an error code
+    has been resolved through the error catalog.
+    '''
+
+    # * attribute: name
+    name: str
+
+    # * attribute: message
+    message: str
+
+    # * init
+    def __init__(self, error_code: str, message: str = None, name: str = None, **kwargs):
+        '''
+        Initialize the TiferetAPIError with an error code, message, name, and additional arguments.
+
+        :param error_code: The error code.
+        :type error_code: str
+        :param message: The error message.
+        :type message: str
+        :param name: A descriptive name for the error; defaults to the error code.
+        :type name: str
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Set the name, defaulting to the error code, and the message.
+        self.name = name or error_code
+        self.message = message
+
+        # Initialize base exception with error data.
+        super().__init__(
+            error_code=error_code,
+            message=message,
+            **kwargs,
+        )

@@ -5,9 +5,10 @@
 **Module:** `tiferet/interfaces/`  
 **Version:** 2.0.0
 
+<a id="service"></a>
 ## Overview
 
-The interfaces layer defines abstract service contracts that domain events, contexts, and repositories depend on. Every interface extends `Service` (ABC) from `tiferet/interfaces/settings.py` and declares the expected behavior for a vertical concern — data access, configuration management, file I/O, or database operations — without prescribing how it is implemented.
+The interfaces layer defines abstract service contracts that domain events, contexts, and repositories depend on. Every interface extends `Service` (ABC) from `tiferet/interfaces/core.py` and declares the expected behavior for a vertical concern — data access, configuration management, file I/O, or database operations — without prescribing how it is implemented. **Vision:** see the `Service` and `ServiceError` class docstrings in `tiferet/interfaces/core.py` for the value statements this guide distills.
 
 There are two categories of service interfaces in Tiferet:
 
@@ -126,7 +127,11 @@ self.feature_service.save(feature)
 
 If the interface declared a plain `Feature` return type, domain events would need to convert it to an aggregate before mutation, creating unnecessary overhead and reducing clarity.
 
-Infrastructure services (`FileService`, `ConfigurationService`, `SqliteService`) are the exception — they have no domain aggregate concept and return raw I/O types (`IO[Any]`, `Any`).
+Infrastructure services (`FileService`, `ConfigurationService`, `SqliteService`) are the exception — they have no domain aggregate concept and return raw I/O types (`IO[Any]`, `Any`). They raise a `ServiceError` rather than a `TiferetError` when they fail, since an infrastructural failure is not a domain outcome (see below).
+
+## Infrastructural Failures: ServiceError
+
+Every interface method that can fail for an infrastructural reason (a missing file, a lost database connection, a misconfigured dependency) raises `ServiceError` (`tiferet/interfaces/core.py`), not `TiferetError` — an infrastructural failure is not a domain outcome the caller should resolve to a localized message. `ServiceError.raise_for(service, error_code, message, cause=None, **kwargs)` derives `module_path`/`class_name` from the failing service instance (or class, at a static raise site) and `target_method` from the calling frame, then optionally chains `cause` as `__cause__`. Representative raise sites include `utils/file.py`, `utils/yaml.py`, `utils/json.py`, `utils/toml.py`, `utils/csv.py`, and `repos/core.py`. See [docs/guides/errors.md](errors.md) for the full three-error-family picture (`TiferetError`, `ServiceError`, `ModelError`) and when to reach for each.
 
 ## How Services Are Consumed by Domain Events
 
@@ -231,6 +236,7 @@ class MyService(Service):
 
 ## Related Documentation
 
+- [docs/guides/errors.md](errors.md) — `ServiceError` alongside `TiferetError`/`ModelError`
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service base class reference and artifact comment conventions
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and conventions
 - [docs/core/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md) — Aggregate and TransferObject base class reference

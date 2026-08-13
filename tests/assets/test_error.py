@@ -93,16 +93,17 @@ def test_tier_sizes():
     '''
 
     # Verify the core tier and the admin-only remainder.
-    assert len(CORE_DEFAULT_ERRORS) == 42
-    assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 16
+    assert len(CORE_DEFAULT_ERRORS) == 30
+    assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 14
 
     # Verify the three optional utility tiers.
-    assert len(SQLITE_DEFAULT_ERRORS) == 6
-    assert len(TOML_DEFAULT_ERRORS) == 3
-    assert len(CSV_DEFAULT_ERRORS) == 6
+    assert len(SQLITE_DEFAULT_ERRORS) == 1
+    assert len(TOML_DEFAULT_ERRORS) == 0
+    assert len(CSV_DEFAULT_ERRORS) == 3
 
-    # Verify the composite catalog preserves the full pre-tiering key count.
-    assert len(DEFAULT_ERRORS) == 73
+    # Verify the composite catalog reflects the retirement of INVALID_MODEL_ATTRIBUTE_ID
+    # to the domain-layer ModelError protocol.
+    assert len(DEFAULT_ERRORS) == 48
 
 # ** test: every_entry_id_matches_its_key
 def test_every_entry_id_matches_its_key():

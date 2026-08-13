@@ -38,7 +38,7 @@ DI-specific labels:
 ## Key conventions
 
 - **Layer boundary — valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces.di` (`DIService`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
-- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di`. Never import `RaiseError`, `TiferetError`, `a.error`, or any other event/asset.
+- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di`. Never import `TiferetError`, `ServiceError`, `a.error`, or any other event/asset.
 - Raw exceptions surface from DI classes; callers with event access convert them to structured errors.
 - **All new DI components must extend either `ServiceContainer` or `ServiceResolver`** — there is no valid DI class that does not inherit from one of these two ABCs.
 - **DI inverts the domain event principle:** Domain events expose a minimal interface (`execute`) to serve unlimited domain use cases. DI components expose a richer interface to solve one highly specific concern — dependency resolution. Both are injection targets, but in opposite directions of interface breadth vs. domain breadth.

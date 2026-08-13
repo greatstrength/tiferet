@@ -60,17 +60,17 @@ with File('data/audit.log', 'a', encoding='utf-8') as f:
 
 - File is opened on `__enter__`
 - File is properly closed on `__exit__` (even on exceptions)
-- Any method call after the `with` block raises `TiferetError(FILE_ALREADY_OPEN_ID)`
+- Any method call after the `with` block raises `ServiceError` (`FILE_ALREADY_OPEN_ID`)
 
 ## Common Error Codes
 
-All errors are raised via `RaiseError.execute()` with these constants (import via `from tiferet import a`):
+All errors are raised via `ServiceError.raise_for(self, ...)` with these local module constants (defined in `tiferet/utils/file.py`):
 
-- `a.const.FILE_NOT_FOUND_ID`  
-- `a.const.INVALID_FILE_MODE_ID`  
-- `a.const.INVALID_ENCODING_ID`  
-- `a.const.FILE_ALREADY_OPEN_ID`  
-- `a.const.FILE_PERMISSION_DENIED_ID` (OS level)
+- `FILE_NOT_FOUND_ID`  
+- `INVALID_FILE_MODE_ID`  
+- `INVALID_ENCODING_ID`  
+- `FILE_ALREADY_OPEN_ID`  
+- `FILE_PERMISSION_DENIED_ID` (illustrative; OS-level `PermissionError`, not currently a defined Tiferet constant)
 
 ## Example – Domain Event with Direct Usage
 

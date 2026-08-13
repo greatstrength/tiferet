@@ -90,23 +90,23 @@ Navigates nested JSON structures using dot-separated paths with array index supp
 
 `JsonLoader` follows a layered error strategy:
 
-- **`TiferetError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
 - **`json.JSONDecodeError`** — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
 - **All other exceptions** during load/save — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` or `JSON_FILE_SAVE_ERROR_ID` respectively.
 
-All errors are raised via `RaiseError.execute()` with these constants (import via `from tiferet import a`):
+All errors are raised via `ServiceError.raise_for(self, ...)` with these local module constants (defined in `tiferet/utils/json.py`, with `INVALID_FILE_ID` imported from `tiferet/utils/file.py`):
 
-- `a.const.JSON_FILE_NOT_FOUND_ID`
-- `a.const.JSON_FILE_LOAD_ERROR_ID`
-- `a.const.JSON_FILE_SAVE_ERROR_ID`
-- `a.const.INVALID_JSON_PATH_ID`
-- `a.const.INVALID_FILE_ID` (extension mismatch in `verify_json_file`)
+- `JSON_FILE_NOT_FOUND_ID`
+- `JSON_FILE_LOAD_ERROR_ID`
+- `JSON_FILE_SAVE_ERROR_ID`
+- `INVALID_JSON_PATH_ID`
+- `INVALID_FILE_ID` (extension mismatch in `verify_json_file`)
 
-Inherited from `FileLoader`:
-- `a.const.FILE_NOT_FOUND_ID`
-- `a.const.INVALID_FILE_MODE_ID`
-- `a.const.INVALID_ENCODING_ID`
-- `a.const.FILE_ALREADY_OPEN_ID`
+Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
+- `FILE_NOT_FOUND_ID`
+- `INVALID_FILE_MODE_ID`
+- `INVALID_ENCODING_ID`
+- `FILE_ALREADY_OPEN_ID`
 
 ## Example – Domain Event with Direct Usage
 
@@ -204,7 +204,7 @@ def test_load_json_config_success(tmp_path):
 
 # ** test: load_json_config_file_not_found
 def test_load_json_config_file_not_found(tmp_path):
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         DomainEvent.handle(
             LoadJsonConfig,
             config_path=str(tmp_path / 'missing.json'),

@@ -6,9 +6,14 @@
 import pytest
 
 # ** app
-from tiferet.utils.file import FileLoader
-from tiferet.events import a
-from tiferet.events.core import TiferetError
+from tiferet.utils.file import (
+    FileLoader,
+    FILE_ALREADY_OPEN_ID,
+    FILE_NOT_FOUND_ID,
+    INVALID_ENCODING_ID,
+    INVALID_FILE_MODE_ID,
+)
+from tiferet.interfaces.core import ServiceError
 
 # *** fixtures
 
@@ -139,11 +144,11 @@ def test_file_loader_invalid_mode(temp_text_file):
     loader = FileLoader(path=temp_text_file, mode='z', encoding='utf-8')
 
     # Attempt to open the file.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.error.INVALID_FILE_MODE_ID
+    assert exc_info.value.error_code == INVALID_FILE_MODE_ID
     assert exc_info.value.kwargs.get('mode') == 'z'
 
 # ** test: file_loader_missing_encoding_text_mode
@@ -159,11 +164,11 @@ def test_file_loader_missing_encoding_text_mode(temp_text_file):
     loader = FileLoader(path=temp_text_file, mode='r', encoding=None)
 
     # Attempt to open the file.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.INVALID_ENCODING_ID
+    assert exc_info.value.error_code == INVALID_ENCODING_ID
 
 # ** test: file_loader_already_open
 def test_file_loader_already_open(file_loader_read: FileLoader):
@@ -178,11 +183,11 @@ def test_file_loader_already_open(file_loader_read: FileLoader):
     with file_loader_read as f:
 
         # Attempt to open again.
-        with pytest.raises(TiferetError) as exc_info:
+        with pytest.raises(ServiceError) as exc_info:
             file_loader_read.open_file()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.error.FILE_ALREADY_OPEN_ID
+    assert exc_info.value.error_code == FILE_ALREADY_OPEN_ID
     assert exc_info.value.kwargs.get('path') is not None
 
 # ** test: file_loader_file_not_found_read
@@ -198,11 +203,11 @@ def test_file_loader_file_not_found_read(tmp_path):
     loader = FileLoader(path=tmp_path / 'does_not_exist.txt', mode='r', encoding='utf-8')
 
     # Attempt to open the file.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
     assert 'does_not_exist.txt' in exc_info.value.kwargs.get('path', '')
 
 # ** test: file_loader_missing_parent_dir_write
@@ -222,11 +227,11 @@ def test_file_loader_missing_parent_dir_write(tmp_path):
     )
 
     # Attempt to open the file.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 
 # ** test: file_loader_binary_mode_no_encoding
 def test_file_loader_binary_mode_no_encoding(temp_text_file):

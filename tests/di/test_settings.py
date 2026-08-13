@@ -7,7 +7,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from tiferet.assets.exceptions import TiferetError
+from tiferet.assets import TiferetError
 from tiferet.domain import FlaggedDependency, ServiceRegistration
 from tiferet.interfaces.di import DIService
 from tiferet.di.core import ServiceContainer as ServiceContainerABC, ServiceResolver as ServiceResolverABC
