@@ -20,8 +20,8 @@ from ..assets.error import (
 )
 from ..events import (
     DomainEvent,
-    RaiseError,
-    ParseParameter
+    ParseParameter,
+    TiferetError,
 )
 from ..domain import Feature, EventFeatureStep
 
@@ -277,7 +277,7 @@ def parse_request_parameter(parameter: str, request: RequestContext = None) -> s
 
     # Raise an error if the request is not provided for a request-backed parameter.
     if not request:
-        RaiseError.execute(
+        TiferetError.raise_error(
             REQUEST_NOT_FOUND_ID,
             'Request data is not available for parameter parsing.',
             parameter=parameter
@@ -288,7 +288,7 @@ def parse_request_parameter(parameter: str, request: RequestContext = None) -> s
 
     # Raise an error if the parameter key is not found in the request data.
     if result is None:
-        RaiseError.execute(
+        TiferetError.raise_error(
             PARAMETER_NOT_FOUND_ID,
             f'Parameter {parameter} not found in request data.',
             parameter=parameter
@@ -451,7 +451,7 @@ class FeatureContext(BaseContext):
 
         # If the event is not found, raise a structured error.
         except Exception as e:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 FEATURE_STEP_LOADING_FAILED_ID,
                 f'Failed to load feature step: {service_id}. Ensure the container is configured with the appropriate default settings/flags.',
                 service_id=service_id,
@@ -482,7 +482,7 @@ class FeatureContext(BaseContext):
 
             # If the middleware cannot be loaded, raise an error.
             except Exception as e:
-                RaiseError.execute(
+                TiferetError.raise_error(
                     MIDDLEWARE_LOADING_FAILED_ID,
                     f'Failed to load middleware: {mid_id}. Ensure the container is configured with the appropriate default settings/flags.',
                     service_id=mid_id,

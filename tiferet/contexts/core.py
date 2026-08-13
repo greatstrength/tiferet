@@ -7,7 +7,8 @@ from typing import Any, ClassVar, Dict, Optional, Type
 
 # ** app
 from ..domain import DomainObject
-from ..events import RaiseError, a
+from ..assets import TiferetError
+from .. import assets as a
 
 # *** classes
 
@@ -101,7 +102,7 @@ class BaseContext(metaclass=ContextMeta):
         # Look up the registered context class; raise if absent.
         context_cls = ContextMeta.registry.get(domain_cls)
         if context_cls is None:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 a.error.CONTEXT_NOT_FOUND_ID,
                 domain_type=getattr(domain_cls, '__name__', str(domain_cls)),
             )

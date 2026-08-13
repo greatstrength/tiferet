@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet.assets.core import (
     create_default_cli_argument,
@@ -22,6 +25,8 @@ from tiferet.assets.core import (
     TIFERET_EVENTS_PATH,
     TIFERET_REPOS_PATH,
     FEATURE_DOMAIN_PATH,
+    TiferetError,
+    TiferetAPIError,
 )
 
 # *** tests
@@ -629,3 +634,73 @@ def test_create_default_logger_includes_optional_fields_when_provided():
     assert result['propagate'] is False
     assert result['is_root'] is True
     assert result['description'] == 'The root logger.'
+
+# ** test: tiferet_error_carries_code_message_and_kwargs
+def test_tiferet_error_carries_code_message_and_kwargs():
+    '''
+    Verify TiferetError stores the error code, kwargs, and includes the
+    message in its string representation.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Construct the error directly.
+    error = TiferetError('SOME_CODE', 'Something failed.', detail='extra')
+
+    # Verify the stored fields and string representation.
+    assert error.error_code == 'SOME_CODE'
+    assert error.kwargs == {'detail': 'extra'}
+    assert 'Something failed.' in str(error)
+
+# ** test: tiferet_error_raise_error_raises_self
+def test_tiferet_error_raise_error_raises_self():
+    '''
+    Verify TiferetError.raise_error raises a TiferetError with the given
+    error code, message, and kwargs.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Raise via the classmethod and capture the exception.
+    with pytest.raises(TiferetError) as exc_info:
+        TiferetError.raise_error('SOME_CODE', 'msg', foo='bar')
+
+    # Verify the raised error carries the expected data.
+    assert exc_info.value.error_code == 'SOME_CODE'
+    assert exc_info.value.kwargs.get('foo') == 'bar'
+
+# ** test: tiferet_api_error_raise_error_raises_subclass
+def test_tiferet_api_error_raise_error_raises_subclass():
+    '''
+    Verify the inherited raise_error classmethod raises the subclass type
+    (TiferetAPIError) rather than the base TiferetError.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Raise via the subclass's inherited classmethod.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        TiferetAPIError.raise_error('SOME_CODE', 'msg', name='Some Code')
+
+    # Verify the raised error is the subclass with the expected fields.
+    assert exc_info.value.error_code == 'SOME_CODE'
+    assert exc_info.value.name == 'Some Code'
+
+# ** test: tiferet_api_error_name_defaults_to_error_code
+def test_tiferet_api_error_name_defaults_to_error_code():
+    '''
+    Verify TiferetAPIError defaults name to the error code when omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Construct without an explicit name.
+    error = TiferetAPIError(error_code='SOME_CODE', message='Something failed.')
+
+    # Verify name defaults to the error code.
+    assert error.name == 'SOME_CODE'
+    assert error.message == 'Something failed.'

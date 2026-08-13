@@ -441,8 +441,8 @@ def test_parse_request_parameter_delegates_to_parse_parameter(monkeypatch: pytes
     :type monkeypatch: pytest.MonkeyPatch
     '''
 
-    # Import the static events module to patch the parameter parser.
-    from tiferet.events import static as static_events
+    # Import ParseParameter to patch its static execute method.
+    from tiferet.events.core import ParseParameter
 
     # Capture the parameter forwarded to the static event.
     called = {}
@@ -451,8 +451,8 @@ def test_parse_request_parameter_delegates_to_parse_parameter(monkeypatch: pytes
         called['parameter'] = parameter
         return 'parsed-value'
 
-    # Patch the static parameter parser.
-    monkeypatch.setattr(static_events.ParseParameter, 'execute', staticmethod(fake_execute))
+    # Patch the parameter parser.
+    monkeypatch.setattr(ParseParameter, 'execute', staticmethod(fake_execute))
 
     # Assert the non-prefixed parameter was delegated and its result returned.
     assert parse_request_parameter('$env.MY_VAR', RequestContext(data={})) == 'parsed-value'
