@@ -5,7 +5,7 @@ Each section follows the pattern established by ``assets/error.py``:
 - ``constants (ids)`` — 41 individually named feature ID string constants.
 - ``constants (features)`` — 41 individually named feature definition dicts,
   each built via ``create_default_feature_data``.
-- ``constants (groups)`` — the ``DEFAULT_ADMIN_FEATURES`` catalog dict
+- ``constants (groups)`` — the ``ADMIN_DEFAULT_FEATURES`` catalog dict
   keyed by ID constants.
 """
 
@@ -515,8 +515,8 @@ LOGGING_LIST_DATA = create_default_feature_data(
 
 # *** constants (groups)
 
-# ** constant: default_admin_features
-DEFAULT_ADMIN_FEATURES: Dict[str, Any] = {
+# ** constant: admin_default_features
+ADMIN_DEFAULT_FEATURES: Dict[str, Any] = {
     APP_ADD_ID: APP_ADD_DATA,
     APP_GET_ID: APP_GET_DATA,
     APP_LIST_ID: APP_LIST_DATA,

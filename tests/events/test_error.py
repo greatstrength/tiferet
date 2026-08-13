@@ -130,7 +130,7 @@ class TestAddError(DomainEventTestBase):
         name='New Error',
         message='This is a new error message.',
         lang='en_US',
-        additional_messages=[],
+        additional_messages={},
     )
 
     # * attribute: required_params
@@ -173,10 +173,10 @@ class TestAddError(DomainEventTestBase):
         Test adding a new error with additional language messages.
         '''
 
-        # Execute with additional messages.
+        # Execute with additional messages as a language-code to text mapping.
         result = self.handle(
             mock_dependencies,
-            additional_messages=[{'lang': 'es_ES', 'text': 'Este es un nuevo error.'}],
+            additional_messages={'es_ES': 'Este es un nuevo error.'},
         )
 
         # Assert both messages are present.

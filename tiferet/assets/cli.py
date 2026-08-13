@@ -196,8 +196,8 @@ APP_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
         ),
         create_default_cli_argument(
             name_or_flags=['--constants'],
-            description='Optional JSON-encoded constants dictionary.',
-            type='json',
+            description='Optional constants as key=value pairs.',
+            type='dict',
         ),
     ],
 )
@@ -249,8 +249,8 @@ APP_SET_SERVICE_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
         ),
         create_default_cli_argument(
             name_or_flags=['--parameters'],
-            description='Optional JSON-encoded parameters dictionary.',
-            type='json',
+            description='Optional parameters as key=value pairs.',
+            type='dict',
         ),
     ],
 )
@@ -286,8 +286,8 @@ APP_SET_CONSTANTS_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data
         ),
         create_default_cli_argument(
             name_or_flags=['--constants'],
-            description='Optional JSON-encoded constants dictionary. Omit to clear all constants.',
-            type='json',
+            description='Optional constants as key=value pairs. Omit to clear all constants.',
+            type='dict',
         ),
     ],
 )
@@ -419,6 +419,11 @@ ERROR_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
         create_default_cli_argument(
             name_or_flags=['--lang'],
             description='Language code for the message. Defaults to "en_US".',
+        ),
+        create_default_cli_argument(
+            name_or_flags=['--additional-messages'],
+            description='Additional messages beyond the primary one, as lang=text pairs.',
+            type='dict',
         ),
     ],
 )
@@ -578,8 +583,8 @@ FEATURE_ADD_STEP_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
         ),
         create_default_cli_argument(
             name_or_flags=['--parameters'],
-            description='Optional JSON-encoded step parameters.',
-            type='json',
+            description='Optional step parameters as key=value pairs.',
+            type='dict',
         ),
         create_default_cli_argument(
             name_or_flags=['--data-key'],
@@ -711,8 +716,8 @@ SERVICE_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
         ),
         create_default_cli_argument(
             name_or_flags=['--parameters'],
-            description='Optional JSON-encoded parameters dictionary.',
-            type='json',
+            description='Optional parameters as key=value pairs.',
+            type='dict',
         ),
     ],
 )
@@ -738,8 +743,8 @@ SERVICE_SET_DEFAULT_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_da
         ),
         create_default_cli_argument(
             name_or_flags=['--parameters'],
-            description='Optional JSON-encoded parameters dictionary.',
-            type='json',
+            description='Optional parameters as key=value pairs.',
+            type='dict',
         ),
     ],
 )
@@ -769,8 +774,8 @@ SERVICE_SET_DEPENDENCY_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command
         ),
         create_default_cli_argument(
             name_or_flags=['--parameters'],
-            description='Optional JSON-encoded parameters dictionary.',
-            type='json',
+            description='Optional parameters as key=value pairs.',
+            type='dict',
         ),
     ],
 )
@@ -802,8 +807,8 @@ SERVICE_SET_CONSTANTS_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_
     arguments=[
         create_default_cli_argument(
             name_or_flags=['--constants'],
-            description='Optional JSON-encoded constants dictionary. Omit to clear all.',
-            type='json',
+            description='Optional constants as key=value pairs. Omit to clear all.',
+            type='dict',
         ),
     ],
 )
