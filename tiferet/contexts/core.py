@@ -104,6 +104,7 @@ class BaseContext(metaclass=ContextMeta):
         if context_cls is None:
             TiferetError.raise_error(
                 a.error.CONTEXT_NOT_FOUND_ID,
+                f'No context registered for domain type: {getattr(domain_cls, "__name__", domain_cls)}.',
                 domain_type=getattr(domain_cls, '__name__', str(domain_cls)),
             )
 

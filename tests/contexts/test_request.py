@@ -224,3 +224,19 @@ def test_request_context_session_id_auto_generated():
     # Assert a session id was generated on the bound request.
     assert request_context.session_id
     assert request_context.session_id == request_context.domain.session_id
+
+# ** test: request_context_feature_id_none_when_unset
+def test_request_context_feature_id_none_when_unset():
+    '''
+    Test that feature_id is None when a request is constructed without one.
+    '''
+
+    # Create a request context without a feature id.
+    request_context = RequestContext()
+
+    # Assert the feature id proxy reads through as None.
+    assert request_context.feature_id is None
+
+    # Assert None can be written back through the proxy setter.
+    request_context.feature_id = None
+    assert request_context.feature_id is None
