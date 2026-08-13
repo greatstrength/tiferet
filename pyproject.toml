@@ -21,7 +21,7 @@ Repository = "https://github.com/greatstrength/tiferet"
 Download = "https://github.com/greatstrength/tiferet"
 
 [project.scripts]
-tiferet = "tiferet.blueprints.tiferet_cli:main"
+tiferet = "tiferet.blueprints.admin_cli:main"
 
 [project.optional-dependencies]
 test = [
