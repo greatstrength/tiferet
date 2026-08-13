@@ -490,9 +490,12 @@ def create_default_logger(id: str,
 # *** classes
 
 # ** class: tiferet_error
+# >> see: @guides/errors.md#tiferet-error
 class TiferetError(Exception):
     '''
-    The base exception for all Tiferet-related errors.
+    The base exception for every catalogued, resolvable domain outcome — the
+    contract that lets a business-rule failure be resolved back into a
+    localized, user-facing message instead of leaking as raw exception state.
     '''
 
     # * attribute: error_code
@@ -545,9 +548,12 @@ class TiferetError(Exception):
         raise cls(error_code, message, **kwargs)
 
 # ** class: tiferet_api_error
+# >> see: @guides/errors.md#tiferet-api-error
 class TiferetAPIError(TiferetError):
     '''
-    The exception returned for all Tiferet API-related errors by default.
+    The catalogued domain outcome in its already-formatted, consumer-facing
+    shape — the representation raised back to the caller once an error code
+    has been resolved through the error catalog.
     '''
 
     # * attribute: name

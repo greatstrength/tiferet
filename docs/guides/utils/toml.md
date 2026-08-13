@@ -70,10 +70,10 @@ Pre-flight validation that checks:
 
 `TomlLoader` follows a layered error strategy:
 
-- **`TiferetError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
 - **`tomllib.TOMLDecodeError`** and other exceptions — caught and wrapped as `TOML_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
 
-All errors are raised via `RaiseError.execute()` with these constants (import via `from tiferet import a`):
+All errors are raised via `ServiceError.raise_for(self, ...)` with these constants (import via `from tiferet import a`):
 
 - `a.const.TOML_FILE_NOT_FOUND_ID`
 - `a.const.TOML_FILE_LOAD_ERROR_ID`
@@ -154,7 +154,7 @@ def test_load_project_config_success(tmp_path):
 
 # ** test: load_project_config_file_not_found
 def test_load_project_config_file_not_found(tmp_path):
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         DomainEvent.handle(
             LoadProjectConfig,
             config_path=str(tmp_path / 'missing.toml'),

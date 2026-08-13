@@ -31,6 +31,7 @@ MODEL_IDENTITY_FIELDS = (
 # *** functions
 
 # ** function: describe_model
+# >> see: @guides/domain/core.md#core-describe-model
 def describe_model(model: Any) -> Dict[str, Any]:
     '''
     Build a safe descriptor for a model instance, naming its type and any
@@ -58,6 +59,7 @@ def describe_model(model: Any) -> Dict[str, Any]:
     return descriptor
 
 # ** function: unpack_validation_error
+# >> see: @guides/domain/core.md#core-unpack-validation-error
 def unpack_validation_error(error: ValidationError) -> List[Dict[str, Any]]:
     '''
     Flatten a Pydantic ValidationError into a list of violation descriptors.
@@ -81,12 +83,16 @@ def unpack_validation_error(error: ValidationError) -> List[Dict[str, Any]]:
 # *** classes
 
 # ** class: model_error
+# >> see: @guides/domain/core.md#modelerror
 class ModelError(Exception):
     '''
-    The ModelError is a standalone exception (not a TiferetError subclass)
-    raised when a mutation on a domain model or aggregate violates its
-    Pydantic schema, naming the offending model instance and classifying
-    whether the violation was an unknown attribute or an invalid value.
+    The vocabulary for naming a defect within a single domain model instance,
+    distinct from a domain outcome or an infrastructural failure.
+
+    Deliberately not a TiferetError subclass: a model inconsistency is a
+    consumer defect rather than a domain outcome, so it is never catalogued,
+    localized, or formatted as an API response -- it leaks to the top as an
+    unhandled exception, naming the offending instance along the way.
     '''
 
     # * attribute: error_code
@@ -144,6 +150,7 @@ class ModelError(Exception):
         )
 
     # * method: raise_error
+    # >> see: @guides/domain/core.md#modelerror-raise-error
     @classmethod
     def raise_error(cls, error_code: str, message: str = None, model: Any = None, **kwargs) -> None:
         '''
@@ -168,6 +175,7 @@ class ModelError(Exception):
         )
 
     # * method: raise_for_validation
+    # >> see: @guides/domain/core.md#modelerror-raise-for-validation
     @classmethod
     def raise_for_validation(cls, error: ValidationError, message: str = None, model: Any = None, **kwargs) -> None:
         '''
@@ -206,9 +214,12 @@ class ModelError(Exception):
         ) from error
 
 # ** class: domain_object
+# >> see: @guides/domain/core.md#domainobject
 class DomainObject(BaseModel):
     '''
-    The base domain model object for Tiferet, backed by Pydantic v2.
+    The shared foundation every domain object builds on -- a single,
+    consistent contract for validation and read-only design so no domain
+    module has to redefine what a domain object is.
 
     Subclasses declare fields with idiomatic ``name: T = Field(...)`` annotations.
     Domain objects are intended to be read-only at the base level; mutation logic
@@ -227,10 +238,12 @@ class DomainObject(BaseModel):
 # *** models
 
 # ** model: service_dependency
+# >> see: @guides/domain/core.md#servicedependency
 class ServiceDependency(DomainObject):
     '''
-    A core service dependency that defines the module, class, and parameters
-    for a service implementation.
+    The minimal, reusable shape for describing "a service implementation,
+    named" -- the common contract every domain-specific dependency extends
+    instead of redeclaring module/class/parameter fields itself.
     '''
 
     # * attribute: module_path
@@ -252,6 +265,7 @@ class ServiceDependency(DomainObject):
     )
 
     # * method: get_service_type
+    # >> see: @guides/domain/core.md#servicedependency-get-service-type
     def get_service_type(self) -> type:
         '''
         Import and return the service class identified by this dependency.

@@ -163,12 +163,12 @@ On `__exit__`, the reader, writer, and file stream are all reset to `None`.
 
 CSV utilities follow a layered error strategy:
 
-- **`TiferetError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is.
 - **`CSV_INVALID_READ_MODE_ID`** — raised when `build_reader()` is called in a non-readable mode.
 - **`CSV_INVALID_WRITE_MODE_ID`** — raised when `build_writer()` is called in a non-writable mode.
 - **`CSV_FIELDNAMES_REQUIRED_ID`** — raised when writing dicts without providing `fieldnames`.
 
-All errors are raised via `RaiseError.execute()` with constants from `tiferet.assets.constants`:
+All errors are raised via `ServiceError.raise_for(self, ...)` with constants from `tiferet.assets.constants`:
 
 - `a.const.CSV_INVALID_READ_MODE_ID`
 - `a.const.CSV_INVALID_WRITE_MODE_ID`
@@ -251,7 +251,7 @@ def test_import_csv_records_success(tmp_path):
 
 # ** test: import_csv_records_file_not_found
 def test_import_csv_records_file_not_found(tmp_path):
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         DomainEvent.handle(
             ImportCsvRecords,
             csv_path=str(tmp_path / 'missing.csv'),

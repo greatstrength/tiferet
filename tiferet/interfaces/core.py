@@ -13,12 +13,15 @@ from abc import ABC
 # *** classes
 
 # ** class: service_error
+# >> see: @guides/interfaces.md#infrastructural-failures-serviceerror
 class ServiceError(Exception):
     '''
-    Infrastructural failure signal raised by an injectable service.
+    The exception raised for an infrastructural failure inside a service.
 
-    Deliberately not a TiferetError subclass, so it is never catalogued,
-    localized, or API-formatted -- it is an unhandled exception by design.
+    Deliberately not a TiferetError subclass: an infrastructural failure --
+    typically faulty configuration or a lost connection -- is not a domain
+    outcome, so it is never catalogued, localized, or API-formatted. It
+    reaches the top of the stack as an unhandled exception by design.
     '''
 
     # * attribute: error_code
@@ -131,9 +134,12 @@ class ServiceError(Exception):
 # *** interfaces
 
 # ** interface: service
+# >> see: @guides/interfaces.md#service
 class Service(ABC):
     '''
-    The service interface as an abstract base class.
+    The unified vertical contract every infrastructure concern extends --
+    data access, file I/O, or middleware -- so consumers depend on a
+    swappable abstraction rather than a concrete implementation.
     '''
 
     pass

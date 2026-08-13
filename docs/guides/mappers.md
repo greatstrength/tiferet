@@ -177,13 +177,13 @@ Some aggregates override `set_attribute` with a gated version that restricts whi
 def set_attribute(self, attribute: str, value: Any) -> None:
     supported = {'name', 'description', 'module_path', 'class_name', 'logger_id', 'flags'}
     if attribute not in supported:
-        RaiseError.execute(
-            error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+        ModelError.raise_error(
+            a.const.ATTRIBUTE_NOT_SETTABLE_ID,
+            model=self,
             attribute=attribute,
             supported=', '.join(sorted(supported)),
         )
-    setattr(self, attribute, value)
-    self.validate()
+    super().set_attribute(attribute, value)
 ```
 
 **When to gate:** when the aggregate has fields that should only change through dedicated methods (e.g., `services` via `add_service`/`remove_service`, `constants` via `set_constants`).

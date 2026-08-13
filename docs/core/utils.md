@@ -17,7 +17,7 @@ A **Utility** in Tiferet is a concrete class that implements one or more Service
 
 - Implements a Service contract (e.g., `FileLoader` implements `FileService`, `SqliteClient` implements `SqliteService`).
 - Encapsulates infrastructure concerns — both **physical** (file I/O, database connections, network calls) and **computational** (algorithms, heuristics, model inference, data transformation pipelines).
-- Uses `RaiseError.execute()` from `tiferet/events/static.py` for structured error handling with framework-defined error codes.
+- Uses `ServiceError.raise_for(self, ...)` from `tiferet/interfaces/core.py` for structured error handling with framework-defined error codes.
 - Provides both instance methods (for stateful or lifecycle-managed operations) and static convenience methods (for one-shot operations).
 - Is exported from `tiferet/utils/__init__.py` with both full names and shorthand aliases (e.g., `FileLoader` / `File`, `YamlLoader` / `Yaml`).
 
@@ -176,7 +176,8 @@ import tomllib
 
 # ** app
 from .file import FileLoader
-from ..events import RaiseError, a
+from ..interfaces.core import ServiceError
+from .. import assets as a
 
 # *** utils
 
@@ -200,8 +201,9 @@ class TomlLoader(FileLoader):
                 data = tomllib.load(self.file)
                 return data_factory(start_node(data))
         except tomllib.TOMLDecodeError as e:
-            RaiseError.execute(
-                error_code=a.const.INVALID_TOML_FILE_ID,
+            ServiceError.raise_for(
+                self,
+                a.const.INVALID_TOML_FILE_ID,
                 error=str(e),
                 path=str(self.path),
             )
@@ -214,7 +216,7 @@ class TomlLoader(FileLoader):
 
 # ** app
 from ..interfaces.embedding import EmbeddingService
-from ..events import RaiseError, a
+from ..interfaces.core import ServiceError
 
 # *** utils
 
@@ -241,7 +243,7 @@ class EmbeddingClient(EmbeddingService):
 ## Best Practices
 
 - Use artifact comments (`# *** utils` / `# ** util:` / `# * method:`) consistently.
-- Raise errors only via `RaiseError.execute()` — never raise raw exceptions from utilities.
+- Raise errors only via `ServiceError.raise_for(self, ...)` — never raise raw exceptions from utilities.
 - Implement context manager protocol (`__enter__` / `__exit__`) for resource-owning utilities.
 - Provide static one-shot helpers for common operations (e.g., `CsvLoader.load_rows()`).
 - Keep utilities focused on infrastructure — domain logic belongs in domain events and contexts.
@@ -326,7 +328,7 @@ Future utilities follow the same pattern: define a Service interface in `tiferet
 
 ## Conclusion
 
-Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes — both physical and computational — behind injectable Service contracts. Their consistent pattern — Service implementation, `RaiseError` handling, context-manager lifecycle, and artifact organization — ensures reliability, testability, and alignment with the framework's DDD architecture.
+Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes — both physical and computational — behind injectable Service contracts. Their consistent pattern — Service implementation, `ServiceError` handling, context-manager lifecycle, and artifact organization — ensures reliability, testability, and alignment with the framework's DDD architecture.
 
 Explore source in `tiferet/utils/`, contracts in `tiferet/interfaces/`, and tests in `tiferet/utils/tests/`.
 

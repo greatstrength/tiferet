@@ -88,19 +88,19 @@ These rules govern what is valid in the `# ** app` import group of each package.
 - ✗ Never: `repos`, `utils`, `contexts`, `blueprints`.
 
 **`mappers`** — mutation and serialization bridge
-- `# ** app`: `domain` (the domain object being extended), `events` (`RaiseError`, `a`).
-- ✗ Never: `interfaces`, `repos`, `utils`, `contexts`, `blueprints`.
+- `# ** app`: `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion), `assets` (`a`).
+- ✗ Never: `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, `events`.
 
 **`di`** — dependency injection (event-free, asset-free)
 - `# ** app`: `domain` (`ServiceDependency`), `interfaces.di` (`DIService`).
 - ✗ Never: `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`utils`** — infrastructure implementations
-- `# ** app`: `interfaces` (to implement a Service contract), `mappers` (for aggregate and transfer types).
+- `# ** app`: `interfaces` (to implement a Service contract, and the source of `ServiceError`), `mappers` (for aggregate and transfer types).
 - ✗ Never: `events`, `domain`, `repos`, `di`, `contexts`, `blueprints`.
 
 **`repos`** — configuration and database persistence
-- `# ** app`: `interfaces` (the Service to implement), `mappers` (transfer objects and aggregates), `utils` (loader utilities).
+- `# ** app`: `interfaces` (the Service to implement, and the source of `ServiceError`), `mappers` (transfer objects and aggregates), `utils` (loader utilities).
 - ✗ Never: `events`, `domain` directly (use `mappers` instead), `di`, `contexts`, `blueprints`.
 
 **`contexts`** — runtime orchestration
