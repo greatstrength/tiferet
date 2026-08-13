@@ -101,10 +101,6 @@ SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 # ** constant: service_registration_not_found_id
 SERVICE_REGISTRATION_NOT_FOUND_ID = 'SERVICE_REGISTRATION_NOT_FOUND'
 
-# *** constants (ids_sqlite)
-
-# *** constants (ids_csv)
-
 # *** constants (models)
 
 # ** constant: app_error
@@ -316,10 +312,6 @@ SERVICE_REGISTRATION_NOT_FOUND = create_default_error(
     [(EN_US, 'Service registration with ID {id} not found.')],
 )
 
-# *** constants (models_sqlite)
-
-# *** constants (models_csv)
-
 # *** constants (groups)
 
 # ** constant: core_default_errors
@@ -360,20 +352,12 @@ ADMIN_DEFAULT_ERRORS = {
     SERVICE_REGISTRATION_NOT_FOUND_ID: SERVICE_REGISTRATION_NOT_FOUND,
 }
 
-# ** constant: sqlite_default_errors
-SQLITE_DEFAULT_ERRORS = {}
-
 # ** constant: toml_default_errors
 TOML_DEFAULT_ERRORS = {}
-
-# ** constant: csv_default_errors
-CSV_DEFAULT_ERRORS = {}
 
 # ** constant: default_errors
 DEFAULT_ERRORS = {
     **CORE_DEFAULT_ERRORS,
     **ADMIN_DEFAULT_ERRORS,
-    **SQLITE_DEFAULT_ERRORS,
     **TOML_DEFAULT_ERRORS,
-    **CSV_DEFAULT_ERRORS,
 }
