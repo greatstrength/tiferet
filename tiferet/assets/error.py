@@ -12,53 +12,20 @@ from .core import EN_US, create_default_error
 
 # *** constants (ids)
 
-# ** constant: app_config_loading_failed_id
-APP_CONFIG_LOADING_FAILED_ID = 'APP_CONFIG_LOADING_FAILED'
-
 # ** constant: app_error_id
 APP_ERROR_ID = 'APP_ERROR'
-
-# ** constant: app_repository_import_failed_id
-APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
-
-# ** constant: app_service_import_failed_id
-APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
-
-# ** constant: app_service_not_loaded_id
-APP_SERVICE_NOT_LOADED_ID = 'APP_SERVICE_NOT_LOADED'
 
 # ** constant: app_session_not_found_id
 APP_SESSION_NOT_FOUND_ID = 'APP_SESSION_NOT_FOUND'
 
-# ** constant: attribute_already_exists_id
-ATTRIBUTE_ALREADY_EXISTS_ID = 'ATTRIBUTE_ALREADY_EXISTS'
-
 # ** constant: command_parameter_required_id
 COMMAND_PARAMETER_REQUIRED_ID = 'COMMAND_PARAMETER_REQUIRED'
-
-# ** constant: config_file_not_found_id
-CONFIG_FILE_NOT_FOUND_ID = 'CONFIG_FILE_NOT_FOUND'
-
-# ** constant: container_config_loading_failed_id
-CONTAINER_CONFIG_LOADING_FAILED_ID = 'CONTAINER_CONFIG_LOADING_FAILED'
 
 # ** constant: context_not_found_id
 CONTEXT_NOT_FOUND_ID = 'CONTEXT_NOT_FOUND'
 
-# ** constant: dependency_type_not_found_id
-DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
-
-# ** constant: di_service_not_configured_id
-DI_SERVICE_NOT_CONFIGURED_ID = 'DI_SERVICE_NOT_CONFIGURED'
-
-# ** constant: error_config_loading_failed_id
-ERROR_CONFIG_LOADING_FAILED_ID = 'ERROR_CONFIG_LOADING_FAILED'
-
 # ** constant: error_not_found_id
 ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
-
-# ** constant: feature_config_loading_failed_id
-FEATURE_CONFIG_LOADING_FAILED_ID = 'FEATURE_CONFIG_LOADING_FAILED'
 
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
@@ -71,15 +38,6 @@ IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
 
 # ** constant: invalid_app_session_type_id
 INVALID_APP_SESSION_TYPE_ID = 'INVALID_APP_SESSION_TYPE'
-
-# ** constant: invalid_dependency_error_id
-INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
-
-# ** constant: invalid_json_file_id
-INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
-
-# ** constant: invalid_yaml_file_id
-INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
 
 # ** constant: logger_creation_failed_id
 LOGGER_CREATION_FAILED_ID = 'LOGGER_CREATION_FAILED'
@@ -109,9 +67,6 @@ CLI_COMMAND_ALREADY_EXISTS_ID = 'CLI_COMMAND_ALREADY_EXISTS'
 
 # ** constant: cli_command_not_found_id
 CLI_COMMAND_NOT_FOUND_ID = 'CLI_COMMAND_NOT_FOUND'
-
-# ** constant: cli_config_loading_failed_id
-CLI_CONFIG_LOADING_FAILED_ID = 'CLI_CONFIG_LOADING_FAILED'
 
 # ** constant: error_already_exists_id
 ERROR_ALREADY_EXISTS_ID = 'ERROR_ALREADY_EXISTS'
@@ -146,59 +101,13 @@ SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 # ** constant: service_registration_not_found_id
 SERVICE_REGISTRATION_NOT_FOUND_ID = 'SERVICE_REGISTRATION_NOT_FOUND'
 
-# *** constants (ids_sqlite)
-
-# Legacy constants — present on main pending rename or retirement in later parity stories.
-
-# ** constant: sqlite_file_not_found_or_readonly_id
-SQLITE_FILE_NOT_FOUND_OR_READONLY_ID = 'SQLITE_FILE_NOT_FOUND_OR_READONLY'
-
-# *** constants (ids_csv)
-
-# ** constant: csv_dict_no_header_id
-CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
-
-# ** constant: csv_handle_not_initialized_id
-CSV_HANDLE_NOT_INITIALIZED_ID = 'CSV_HANDLE_NOT_INITIALIZED'
-
-# ** constant: csv_invalid_mode_id
-CSV_INVALID_MODE_ID = 'CSV_INVALID_MODE'
-
 # *** constants (models)
-
-# ** constant: app_config_loading_failed
-APP_CONFIG_LOADING_FAILED = create_default_error(
-    APP_CONFIG_LOADING_FAILED_ID,
-    'App Configuration Loading Failed',
-    [(EN_US, 'Unable to load app configuration file {file_path}: {exception}.')],
-)
 
 # ** constant: app_error
 APP_ERROR = create_default_error(
     APP_ERROR_ID,
     'App Error',
     [(EN_US, 'An error occurred in the app: {error_message}.')],
-)
-
-# ** constant: app_repository_import_failed
-APP_REPOSITORY_IMPORT_FAILED = create_default_error(
-    APP_REPOSITORY_IMPORT_FAILED_ID,
-    'App Repository Import Failed',
-    [(EN_US, 'Failed to import app repository: {exception}.')],
-)
-
-# ** constant: app_service_import_failed
-APP_SERVICE_IMPORT_FAILED = create_default_error(
-    APP_SERVICE_IMPORT_FAILED_ID,
-    'App Service Import Failed',
-    [(EN_US, 'Failed to import app service dependencies: {exception}.')],
-)
-
-# ** constant: app_service_not_loaded
-APP_SERVICE_NOT_LOADED = create_default_error(
-    APP_SERVICE_NOT_LOADED_ID,
-    'App Service Not Loaded',
-    [(EN_US, 'App service must be loaded before loading interface {interface_id}.')],
 )
 
 # ** constant: app_session_not_found
@@ -208,32 +117,11 @@ APP_SESSION_NOT_FOUND = create_default_error(
     [(EN_US, 'App session with ID {interface_id} not found.')],
 )
 
-# ** constant: attribute_already_exists
-ATTRIBUTE_ALREADY_EXISTS = create_default_error(
-    ATTRIBUTE_ALREADY_EXISTS_ID,
-    'Attribute Already Exists',
-    [(EN_US, 'A container attribute with ID {id} already exists.')],
-)
-
 # ** constant: command_parameter_required
 COMMAND_PARAMETER_REQUIRED = create_default_error(
     COMMAND_PARAMETER_REQUIRED_ID,
     'Command Parameter Required',
     [(EN_US, 'The required parameter {parameter} for command {command} is missing.')],
-)
-
-# ** constant: config_file_not_found
-CONFIG_FILE_NOT_FOUND = create_default_error(
-    CONFIG_FILE_NOT_FOUND_ID,
-    'Configuration File Not Found',
-    [(EN_US, 'Configuration file {file_path} not found.')],
-)
-
-# ** constant: container_config_loading_failed
-CONTAINER_CONFIG_LOADING_FAILED = create_default_error(
-    CONTAINER_CONFIG_LOADING_FAILED_ID,
-    'Container Configuration Loading Failed',
-    [(EN_US, 'Unable to load container configuration file {file_path}: {exception}.')],
 )
 
 # ** constant: context_not_found
@@ -243,39 +131,11 @@ CONTEXT_NOT_FOUND = create_default_error(
     [(EN_US, 'No context registered for domain type: {domain_type}.')],
 )
 
-# ** constant: dependency_type_not_found
-DEPENDENCY_TYPE_NOT_FOUND = create_default_error(
-    DEPENDENCY_TYPE_NOT_FOUND_ID,
-    'Dependency Type Not Found',
-    [(EN_US, 'No dependency type found for service configuration {configuration_id} with flags {flags}.')],
-)
-
-# ** constant: di_service_not_configured
-DI_SERVICE_NOT_CONFIGURED = create_default_error(
-    DI_SERVICE_NOT_CONFIGURED_ID,
-    'DI Service Not Configured',
-    [(EN_US, 'No di_service dependency is configured for interface {interface_id}.')],
-)
-
-# ** constant: error_config_loading_failed
-ERROR_CONFIG_LOADING_FAILED = create_default_error(
-    ERROR_CONFIG_LOADING_FAILED_ID,
-    'Error Configuration Loading Failed',
-    [(EN_US, 'Unable to load error configuration file {file_path}: {exception}.')],
-)
-
 # ** constant: error_not_found
 ERROR_NOT_FOUND = create_default_error(
     ERROR_NOT_FOUND_ID,
     'Error Not Found',
     [(EN_US, 'Error not found: {id}.')],
-)
-
-# ** constant: feature_config_loading_failed
-FEATURE_CONFIG_LOADING_FAILED = create_default_error(
-    FEATURE_CONFIG_LOADING_FAILED_ID,
-    'Feature Configuration Loading Failed',
-    [(EN_US, 'Unable to load feature configuration file {file_path}: {exception}.')],
 )
 
 # ** constant: feature_not_found
@@ -304,27 +164,6 @@ INVALID_APP_SESSION_TYPE = create_default_error(
     INVALID_APP_SESSION_TYPE_ID,
     'Invalid App Session Type',
     [(EN_US, 'App context for interface is not valid: {interface_id}.')],
-)
-
-# ** constant: invalid_dependency_error
-INVALID_DEPENDENCY_ERROR = create_default_error(
-    INVALID_DEPENDENCY_ERROR_ID,
-    'Invalid Dependency Error',
-    [(EN_US, 'Dependency {dependency} could not be resolved: {reason}.')],
-)
-
-# ** constant: invalid_json_file
-INVALID_JSON_FILE = create_default_error(
-    INVALID_JSON_FILE_ID,
-    'Invalid JSON File',
-    [(EN_US, 'File is not a valid JSON file: {path}.')],
-)
-
-# ** constant: invalid_yaml_file
-INVALID_YAML_FILE = create_default_error(
-    INVALID_YAML_FILE_ID,
-    'Invalid YAML File',
-    [(EN_US, 'File is not a valid YAML file: {path}.')],
 )
 
 # ** constant: logger_creation_failed
@@ -390,13 +229,6 @@ CLI_COMMAND_NOT_FOUND = create_default_error(
     CLI_COMMAND_NOT_FOUND_ID,
     'CLI Command Not Found',
     [(EN_US, 'CLI command {command_id} not found.')],
-)
-
-# ** constant: cli_config_loading_failed
-CLI_CONFIG_LOADING_FAILED = create_default_error(
-    CLI_CONFIG_LOADING_FAILED_ID,
-    'CLI Configuration Loading Failed',
-    [(EN_US, 'Unable to load CLI configuration file {file_path}: {exception}.')],
 )
 
 # ** constant: error_already_exists
@@ -480,67 +312,19 @@ SERVICE_REGISTRATION_NOT_FOUND = create_default_error(
     [(EN_US, 'Service registration with ID {id} not found.')],
 )
 
-# *** constants (models_sqlite)
-
-# ** constant: sqlite_file_not_found_or_readonly
-SQLITE_FILE_NOT_FOUND_OR_READONLY = create_default_error(
-    SQLITE_FILE_NOT_FOUND_OR_READONLY_ID,
-    'SQLite File Not Found or Read-Only',
-    [(EN_US,
-      'Unable to open SQLite database at {path}: {original_error}. '
-      'Check path exists and is writable (use mode=rwc to create).')],
-)
-
-# *** constants (models_csv)
-
-# ** constant: csv_dict_no_header
-CSV_DICT_NO_HEADER = create_default_error(
-    CSV_DICT_NO_HEADER_ID,
-    'CSV Dict Reader Without Header',
-    [(EN_US, 'Dict reader expects header row; file appears to lack one or was not read correctly.')],
-)
-
-# ** constant: csv_handle_not_initialized
-CSV_HANDLE_NOT_INITIALIZED = create_default_error(
-    CSV_HANDLE_NOT_INITIALIZED_ID,
-    'CSV Handle Not Initialized',
-    [(EN_US, 'CSV file must be opened before reading/writing.')],
-)
-
-# ** constant: csv_invalid_mode
-CSV_INVALID_MODE = create_default_error(
-    CSV_INVALID_MODE_ID,
-    'Invalid CSV Mode',
-    [(EN_US, 'Invalid file mode for CSV operation: {mode}. Expected r, w, a, etc.')],
-)
-
 # *** constants (groups)
 
 # ** constant: core_default_errors
 CORE_DEFAULT_ERRORS = {
-    APP_CONFIG_LOADING_FAILED_ID: APP_CONFIG_LOADING_FAILED,
     APP_ERROR_ID: APP_ERROR,
-    APP_REPOSITORY_IMPORT_FAILED_ID: APP_REPOSITORY_IMPORT_FAILED,
-    APP_SERVICE_IMPORT_FAILED_ID: APP_SERVICE_IMPORT_FAILED,
-    APP_SERVICE_NOT_LOADED_ID: APP_SERVICE_NOT_LOADED,
     APP_SESSION_NOT_FOUND_ID: APP_SESSION_NOT_FOUND,
-    ATTRIBUTE_ALREADY_EXISTS_ID: ATTRIBUTE_ALREADY_EXISTS,
     COMMAND_PARAMETER_REQUIRED_ID: COMMAND_PARAMETER_REQUIRED,
-    CONFIG_FILE_NOT_FOUND_ID: CONFIG_FILE_NOT_FOUND,
-    CONTAINER_CONFIG_LOADING_FAILED_ID: CONTAINER_CONFIG_LOADING_FAILED,
     CONTEXT_NOT_FOUND_ID: CONTEXT_NOT_FOUND,
-    DEPENDENCY_TYPE_NOT_FOUND_ID: DEPENDENCY_TYPE_NOT_FOUND,
-    DI_SERVICE_NOT_CONFIGURED_ID: DI_SERVICE_NOT_CONFIGURED,
-    ERROR_CONFIG_LOADING_FAILED_ID: ERROR_CONFIG_LOADING_FAILED,
     ERROR_NOT_FOUND_ID: ERROR_NOT_FOUND,
-    FEATURE_CONFIG_LOADING_FAILED_ID: FEATURE_CONFIG_LOADING_FAILED,
     FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND,
     FEATURE_STEP_LOADING_FAILED_ID: FEATURE_STEP_LOADING_FAILED,
     IMPORT_DEPENDENCY_FAILED_ID: IMPORT_DEPENDENCY_FAILED,
     INVALID_APP_SESSION_TYPE_ID: INVALID_APP_SESSION_TYPE,
-    INVALID_DEPENDENCY_ERROR_ID: INVALID_DEPENDENCY_ERROR,
-    INVALID_JSON_FILE_ID: INVALID_JSON_FILE,
-    INVALID_YAML_FILE_ID: INVALID_YAML_FILE,
     LOGGER_CREATION_FAILED_ID: LOGGER_CREATION_FAILED,
     LOGGING_CONFIG_FAILED_ID: LOGGING_CONFIG_FAILED,
     MIDDLEWARE_LOADING_FAILED_ID: MIDDLEWARE_LOADING_FAILED,
@@ -555,7 +339,6 @@ ADMIN_DEFAULT_ERRORS = {
     **CORE_DEFAULT_ERRORS,
     CLI_COMMAND_ALREADY_EXISTS_ID: CLI_COMMAND_ALREADY_EXISTS,
     CLI_COMMAND_NOT_FOUND_ID: CLI_COMMAND_NOT_FOUND,
-    CLI_CONFIG_LOADING_FAILED_ID: CLI_CONFIG_LOADING_FAILED,
     ERROR_ALREADY_EXISTS_ID: ERROR_ALREADY_EXISTS,
     FEATURE_ALREADY_EXISTS_ID: FEATURE_ALREADY_EXISTS,
     FEATURE_COMMAND_NOT_FOUND_ID: FEATURE_COMMAND_NOT_FOUND,
@@ -569,26 +352,8 @@ ADMIN_DEFAULT_ERRORS = {
     SERVICE_REGISTRATION_NOT_FOUND_ID: SERVICE_REGISTRATION_NOT_FOUND,
 }
 
-# ** constant: sqlite_default_errors
-SQLITE_DEFAULT_ERRORS = {
-    SQLITE_FILE_NOT_FOUND_OR_READONLY_ID: SQLITE_FILE_NOT_FOUND_OR_READONLY,
-}
-
-# ** constant: toml_default_errors
-TOML_DEFAULT_ERRORS = {}
-
-# ** constant: csv_default_errors
-CSV_DEFAULT_ERRORS = {
-    CSV_DICT_NO_HEADER_ID: CSV_DICT_NO_HEADER,
-    CSV_HANDLE_NOT_INITIALIZED_ID: CSV_HANDLE_NOT_INITIALIZED,
-    CSV_INVALID_MODE_ID: CSV_INVALID_MODE,
-}
-
 # ** constant: default_errors
 DEFAULT_ERRORS = {
     **CORE_DEFAULT_ERRORS,
     **ADMIN_DEFAULT_ERRORS,
-    **SQLITE_DEFAULT_ERRORS,
-    **TOML_DEFAULT_ERRORS,
-    **CSV_DEFAULT_ERRORS,
 }
