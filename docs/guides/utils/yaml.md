@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="yamlloader"></a>
 ## Overview
 
 `YamlLoader` is a format-specific utility for loading and saving YAML files in Tiferet.  
@@ -12,14 +13,18 @@ It extends `FileLoader` (`tiferet/utils/file.py`), inheriting full context-manag
 
 Use `YamlLoader` (or its alias `Yaml`) directly when you need to read or write YAML files inside domain events, scripts, or tests. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-`YamlLoader` does **not** implement `ConfigurationService` — this is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer.
+`YamlLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+
+## Ubiquitous Language
+
+- **`start_node`/`data_factory`** — the two optional transformation callables `load()` applies in sequence: navigate to a sub-key, then reshape the navigated result.
+- **Empty-file coercion** — `YamlLoader`'s choice to return `{}` for an empty file rather than `None` or an error, distinguishing it from `JsonLoader`'s stricter behavior.
 
 ## When to Use YamlLoader vs. Injected Service
 
 | Scenario                                        | Recommended Approach                | Reason                                                                 |
 |-------------------------------------------------|-------------------------------------|------------------------------------------------------------------------|
 | One-shot YAML read/write in an event or script  | `Yaml(path, mode='r').load()`       | Simple, no dependency injection required                               |
-| Configurable / swappable config loading          | Inject `ConfigurationService`       | Allows mocking, swapping implementations, dependency management       |
 | Domain object CRUD (features, errors, etc.)     | Inject corresponding `*Service`     | Keeps domain events decoupled from concrete file paths & formats       |
 | Pre-flight YAML file validation                 | `YamlLoader.verify_yaml_file()`     | Static check for extension + existence before opening                  |
 
@@ -75,24 +80,37 @@ Pre-flight validation that checks:
 
 ## Error Handling
 
-`YamlLoader` follows a layered error strategy:
+`YamlLoader` follows a layered error strategy. Every failure is a `ServiceError`
+(`tiferet.interfaces.core`), which is deliberately **not** a `TiferetError`: an
+infrastructural failure is not a domain outcome, so it is never resolved through
+the error catalog or formatted into an API response.
 
-- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
-- **`yaml.YAMLError`** — caught and wrapped as `YAML_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
+- **`yaml.YAMLError`** — caught and wrapped as `YAML_FILE_LOAD_ERROR_ID`, with the parser exception preserved as `__cause__` so its line and column marks survive.
 - **All other exceptions** during load/save — caught and wrapped as `YAML_FILE_LOAD_ERROR_ID` or `YAML_FILE_SAVE_ERROR_ID` respectively.
 
-All errors are raised via `ServiceError.raise_for(self, ...)` with these local module constants (defined in `tiferet/utils/yaml.py`, with `INVALID_FILE_ID` imported from `tiferet/utils/file.py`):
+Codes are hosted by the module that raises them, not by the error catalog. Import
+them from the utility module:
 
-- `YAML_FILE_NOT_FOUND_ID`
-- `YAML_FILE_LOAD_ERROR_ID`
-- `YAML_FILE_SAVE_ERROR_ID`
-- `INVALID_FILE_ID` (extension mismatch in `verify_yaml_file`)
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.yaml import (
+    YAML_FILE_NOT_FOUND_ID,
+    YAML_FILE_LOAD_ERROR_ID,
+    YAML_FILE_SAVE_ERROR_ID,
+)
+from tiferet.utils.file import INVALID_FILE_ID    # extension mismatch in verify_yaml_file
+```
 
-Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
+Inherited from `FileLoader` (`tiferet.utils.file`):
 - `FILE_NOT_FOUND_ID`
 - `INVALID_FILE_MODE_ID`
 - `INVALID_ENCODING_ID`
 - `FILE_ALREADY_OPEN_ID`
+
+Each error also carries the provenance of the failing service — `module_path`,
+`class_name`, and `target_method` — naming the instance and the method that
+failed.
 
 ## Example – Domain Event with Direct Usage
 
@@ -173,12 +191,22 @@ def test_load_app_config_file_not_found(tmp_path):
             config_path=str(tmp_path / 'missing.yaml'),
         )
 
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID  # local constant in tiferet/utils/file.py
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 ```
+
+Note that a `ServiceError` is **not** skippable via a feature step's
+`pass_on_error`, which passes on domain errors only. An event that wants to treat
+a missing file as a no-op must catch the `ServiceError` and return `None` itself.
+
+## Boundaries
+
+**Inside this domain:** YAML parsing/serialization (`safe_load`/`safe_dump`) and pre-flight file validation.
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); YAML-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
 
 ## Related Documentation
 
 - [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
 - [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules

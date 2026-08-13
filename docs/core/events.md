@@ -397,7 +397,7 @@ class AsyncAuditMiddleware(MiddlewareService):
 
 **Configuration-driven middleware.** Beyond programmatic use, middleware can be declared in `config.yml` and resolved from the DI container by `FeatureContext` during `execute_feature` / `execute_feature_async`. Feature-level middleware wraps every step in the feature; step-level middleware applies to a single command.
 
-For built-in middleware, the `MiddlewareService` interface, ordering, `config.yml` registration, and testing, see the [Middleware guide](../guides/middleware.md).
+For built-in middleware, the `MiddlewareService` interface, ordering, `config.yml` registration, and testing, see the [Utils strategy guide](../guides/utils.md#the-middlewareservice-pattern) and the [utils/core cookbook](../guides/utils/core.md).
 
 ## Package Layout
 

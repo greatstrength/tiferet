@@ -159,5 +159,9 @@ class FeatureConfigObject(Feature, TransferObject):
         )
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** Mapper class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/mappers.md#<anchor>` to `docs/guides/mappers.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md

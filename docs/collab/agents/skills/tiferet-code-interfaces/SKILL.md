@@ -124,5 +124,9 @@ class ErrorService(Service):
         raise NotImplementedError()
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** Interface class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/interfaces.md#<anchor>` to `docs/guides/interfaces.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md

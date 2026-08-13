@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="jsonloader"></a>
 ## Overview
 
 `JsonLoader` is a format-specific utility for loading and saving JSON files in Tiferet.  
@@ -12,14 +13,18 @@ It extends `FileLoader` (`tiferet/utils/file.py`), inheriting full context-manag
 
 Use `JsonLoader` (or its alias `Json`) directly when you need to read or write JSON files inside domain events, scripts, or tests. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-`JsonLoader` does **not** implement `ConfigurationService` — this is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer.
+`JsonLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+
+## Ubiquitous Language
+
+- **`start_node`/`data_factory`** — the two optional transformation callables `load()` applies in sequence, identical in spirit to `YamlLoader`'s.
+- **`parse_json_path`** — the dot-notation-with-array-index navigation helper unique to `JsonLoader` among the file-format loaders.
 
 ## When to Use JsonLoader vs. Injected Service
 
 | Scenario                                        | Recommended Approach                | Reason                                                                 |
 |-------------------------------------------------|-------------------------------------|------------------------------------------------------------------------|
 | One-shot JSON read/write in an event or script  | `Json(path, mode='r').load()`       | Simple, no dependency injection required                               |
-| Configurable / swappable config loading          | Inject `ConfigurationService`       | Allows mocking, swapping implementations, dependency management       |
 | Domain object CRUD (features, errors, etc.)     | Inject corresponding `*Service`     | Keeps domain events decoupled from concrete file paths & formats       |
 | Pre-flight JSON file validation                 | `JsonLoader.verify_json_file()`     | Static check for extension + existence before opening                  |
 | Navigating nested JSON structures               | `JsonLoader.parse_json_path()`      | Static helper with dot-notation and array index support                |
@@ -90,19 +95,31 @@ Navigates nested JSON structures using dot-separated paths with array index supp
 
 `JsonLoader` follows a layered error strategy:
 
-- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
 - **`json.JSONDecodeError`** — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
 - **All other exceptions** during load/save — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` or `JSON_FILE_SAVE_ERROR_ID` respectively.
 
-All errors are raised via `ServiceError.raise_for(self, ...)` with these local module constants (defined in `tiferet/utils/json.py`, with `INVALID_FILE_ID` imported from `tiferet/utils/file.py`):
+Every failure is a `ServiceError` (`tiferet.interfaces.core`), which is deliberately
+**not** a `TiferetError`: an infrastructural failure is not a domain outcome, so it
+is never resolved through the error catalog or formatted into an API response. A
+wrapped driver exception is preserved as `__cause__`, and each error carries the
+provenance of the failing service (`module_path`, `class_name`, `target_method`).
 
-- `JSON_FILE_NOT_FOUND_ID`
-- `JSON_FILE_LOAD_ERROR_ID`
-- `JSON_FILE_SAVE_ERROR_ID`
-- `INVALID_JSON_PATH_ID`
-- `INVALID_FILE_ID` (extension mismatch in `verify_json_file`)
+Codes are hosted by the module that raises them (`tiferet.utils.json`, with the
+file-level codes in `tiferet.utils.file`), not by the error catalog:
 
-Inherited from `FileLoader` (local module constants in `tiferet/utils/file.py`):
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.json import (
+    JSON_FILE_NOT_FOUND_ID,
+    JSON_FILE_LOAD_ERROR_ID,
+    JSON_FILE_SAVE_ERROR_ID,
+    INVALID_JSON_PATH_ID,
+)
+from tiferet.utils.file import INVALID_FILE_ID    # extension mismatch in verify_json_file
+```
+
+Inherited from `FileLoader` (`tiferet.utils.file`):
 - `FILE_NOT_FOUND_ID`
 - `INVALID_FILE_MODE_ID`
 - `INVALID_ENCODING_ID`
@@ -210,7 +227,7 @@ def test_load_json_config_file_not_found(tmp_path):
             config_path=str(tmp_path / 'missing.json'),
         )
 
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 ```
 
 ## Deviations from YamlLoader
@@ -219,9 +236,15 @@ def test_load_json_config_file_not_found(tmp_path):
 - **Additional static method**: `parse_json_path` is unique to `JsonLoader`, providing dot-notation navigation with array index support — a pattern common in JSON tooling but not applicable to YAML's typical use cases in Tiferet.
 - **New error constants**: `JSON_FILE_NOT_FOUND_ID` and `INVALID_JSON_PATH_ID` were added to `constants.py` beyond the TRD's original error codes (`JSON_FILE_LOAD_ERROR_ID`, `JSON_FILE_SAVE_ERROR_ID`), aligning with the `YamlLoader` pattern of having a dedicated file-not-found error for the `verify_*_file` static method.
 
+## Boundaries
+
+**Inside this domain:** JSON parsing/serialization and nested-path navigation (`parse_json_path`).
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); JSON-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+
 ## Related Documentation
 
 - [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
 - [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

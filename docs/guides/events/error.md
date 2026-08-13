@@ -7,7 +7,12 @@
 
 ## Overview
 
-The error event module provides the full CRUD surface for `Error` domain objects — the structured error definitions that power Tiferet's multilingual error handling. Every event in this module depends on an injected `ErrorService` and operates on `Error` domain objects through the `ErrorAggregate` mapper.
+The error event module provides the full CRUD surface for `Error` domain objects — the structured error definitions that power Tiferet's multilingual error handling. Every event extends the shared `ErrorEvent` base event (which injects `ErrorService`) and operates on `Error` domain objects through the `ErrorAggregate` mapper. **Vision:** see the `ErrorEvent` class docstring in `tiferet/events/error.py` for the value statement this guide distills.
+
+## Ubiquitous Language
+
+- **Catalogued error** — an `Error` resolvable through `ErrorService`/`ErrorContext`, formatted as a `TiferetAPIError` when raised (see [docs/guides/errors.md](../errors.md)).
+- **Message translation** — one localized message entry (`lang`, `text`) on an `Error`'s `message` list; every error must retain at least one.
 
 ## Events at a Glance
 
@@ -23,6 +28,7 @@ The error event module provides the full CRUD surface for `Error` domain objects
 
 ## Dependency
 
+<a id="errorevent"></a>
 All events inject a single dependency:
 
 - **`error_service: ErrorService`** — the service interface for persisting and retrieving `Error` objects.
@@ -40,7 +46,7 @@ Creates a new `Error` with a primary message and optional additional language me
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `lang` | `str` | `'en_US'` | Language code for the primary message |
-| `additional_messages` | `List[Dict[str, Any]]` | `[]` | Additional messages (each with `lang` and `text`) |
+| `additional_messages` | `Dict[str, str]` | `{}` | Additional messages, keyed by language code, mapped to message text |
 
 **Returns:** The created `Error` instance.
 
@@ -54,9 +60,9 @@ result = DomainEvent.handle(
     id='CUSTOM_VALIDATION_ERROR',
     name='Custom Validation Error',
     message='Input validation failed for field {field}.',
-    additional_messages=[
-        {'lang': 'es_ES', 'text': 'La validación falló para el campo {field}.'}
-    ],
+    additional_messages={
+        'es_ES': 'La validación falló para el campo {field}.',
+    },
 )
 ```
 
@@ -244,8 +250,15 @@ An error must always have at least one message. This invariant is enforced after
 
 `GetError` and `ListErrors` support an `include_defaults` flag that incorporates the built-in `DEFAULT_ERRORS` dict from `tiferet/assets/constants.py`. Repository errors always take precedence over defaults with the same ID.
 
+## Boundaries
+
+**Inside this domain:** the CRUD operations for catalogued `Error` objects and their multilingual messages.
+**Outside this domain:** the declared `Error`/`ErrorMessage` shape and code-derivation ([docs/guides/domain/error.md](../domain/error.md)); the response-envelope assembly and cache-first resolution (`ErrorContext`, `get_error` — [docs/guides/errors.md](../errors.md)); uncatalogued failures (`ModelError`, `ServiceError` — [docs/guides/errors.md](../errors.md)) that never reach this module at all.
+
 ## Related Documentation
 
+- [docs/guides/domain/error.md](../domain/error.md) — `Error`/`ErrorMessage` domain objects
+- [docs/guides/errors.md](../errors.md) — The three error families and resolution flow
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
 - [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) — Mapper strategies

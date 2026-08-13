@@ -50,6 +50,7 @@ Key points:
 
 - Read **`tiferet-code-style`** before writing any code — artifact comments, spacing rules, RST docstrings, and snippet conventions are enforced across the codebase. If the skill is not installed, use [docs/core/code_style.md](docs/core/code_style.md) directly.
 - Read the **`tiferet-code-<component>`** skill for each layer you’re modifying (see the Code Style Skills list in **Working with AI Agents** above). If the skill is not installed, use the corresponding `docs/core/<component>.md` guide directly.
+- When writing or upgrading a docstring, or authoring/remediating a `docs/guides/` entry, read **`tiferet-guide-docs`** and start from the matching genre template in [docs/guides/templates/](docs/guides/templates/) rather than authoring from scratch.
 - Write tests using `pytest`.
 
 ### Commit Hygiene
@@ -92,6 +93,10 @@ Warp/AI agents contributing to Tiferet follow the same conventions described abo
 - **`tiferet-collab-report`** — generate a Collaboration Report once an issue is confirmed complete ([collab_report.md](docs/collab/collab_report.md)).
 - **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop ([main.md](docs/collab/main.md)).
 - **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments ([code_review.md](docs/collab/code_review.md)).
+
+**Documentation skills** handle the docstring ↔ guide-doc convention:
+
+- **`tiferet-guide-docs`** — what belongs in a docstring (vision-tier) vs. a `docs/guides/` entry (distillation-tier), the four genre-specific guide templates (`docs/guides/templates/`) and how to choose between them, and the anchor/`# >> see:` linking convention ([code_style.md § Annotation Artifacts](docs/core/code_style.md)).
 
 **Super-TRD skills** handle multi-child implementation workflows (XL+ issues decomposed into sequenced children). See [docs/collab/super_trd_workflow.md](docs/collab/super_trd_workflow.md) for the complete workflow reference.
 

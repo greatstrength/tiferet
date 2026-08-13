@@ -7,7 +7,13 @@
 
 ## Overview
 
-The SQLite event module provides domain events for executing SQL operations against a SQLite database through an injected `SqliteService`. All events use the context manager protocol (`with self.sqlite_service as sql:`) to ensure proper connection lifecycle management, auto-commit on success, and auto-rollback on failure.
+The SQLite event module provides domain events for executing SQL operations against a SQLite database, extending the shared `SqliteEvent` base event (which injects `SqliteService`). All events use the context manager protocol (`with self.sqlite_service as sql:`) to ensure proper connection lifecycle management, auto-commit on success, and auto-rollback on failure. **Vision:** see the `SqliteEvent` class docstring in `tiferet/events/sqlite.py` for the value statement this guide distills.
+
+**No event-level error wrapping.** Unlike every other event module, none of these events catch database exceptions — `SqliteClient` (`tiferet/utils/sqlite.py`) already wraps every driver call as a `ServiceError` before it reaches the event, so a raw `sqlite3.Error` never surfaces here. See [docs/guides/errors.md](../errors.md) for the `ServiceError` family.
+
+## Ubiquitous Language
+
+- **Statement validation** — the module-level `is_valid_identifier` helper plus each event's `self.verify()` prefix check (e.g. `MutateSql` requires `INSERT`/`UPDATE`/`DELETE`), guarding against the wrong SQL verb reaching the driver rather than validating SQL syntax itself.
 
 ## Events at a Glance
 
@@ -23,6 +29,7 @@ The SQLite event module provides domain events for executing SQL operations agai
 
 ## Dependency
 
+<a id="sqliteevent"></a>
 All events inject a single dependency:
 
 - **`sqlite_service: SqliteService`** — the service interface for SQLite database operations, implementing the context manager protocol.
@@ -141,7 +148,7 @@ Performs an online backup of the current SQLite database to a target file.
 
 **Returns:** `{"success": bool, "message": str | None}`
 
-**Errors:** `SQLITE_BACKUP_FAILED` on failure.
+**Errors:** none raised by the event itself — a failing `sql.backup()` call surfaces as a `ServiceError` (`SQLITE_BACKUP_FAILED`, raised inside `SqliteClient.backup`), not caught here.
 
 ```python
 result = DomainEvent.handle(
@@ -204,10 +211,14 @@ result = DomainEvent.handle(
 )
 ```
 
-## Migration Notes (v2.0)
+## Boundaries
 
-- **Module docstring:** Added `"""Tiferet SQLite Events"""`.
-- **Artifact comments:** `# *** commands` → `# *** events`; `# ** command:` → `# ** event:`.
-- **Docstrings:** "Helper command to" → "Event to" for `CreateTableSql` and `DropTableSql`.
-- **No parameter renames** — SQLite events do not use `attribute_id`.
-- **Tests:** Converted from 42 function-based tests to 7 harness classes using `SqliteEventTestBase` (a `DomainEventTestBase` subclass with MagicMock context manager support). Result: 49 pass, 0 skip.
+**Inside this domain:** dispatching validated SQL statements/scripts to `SqliteService` and shaping the result as a plain dict.
+**Outside this domain:** the SQLite connection lifecycle, driver-exception wrapping, and context-manager protocol (`SqliteClient` — [docs/guides/utils/sqlite.md](../utils/sqlite.md); [docs/guides/errors.md](../errors.md) for the `ServiceError` family); SQL statement generation beyond the two DDL convenience events (`CreateTableSql`/`DropTableSql`) is the caller's responsibility for `MutateSql`/`QuerySql`.
+
+## Related Documentation
+
+- [docs/guides/utils/sqlite.md](../utils/sqlite.md) — `SqliteClient`, which wraps every driver call as a `ServiceError`
+- [docs/guides/errors.md](../errors.md) — `ServiceError`, raised by `SqliteClient` for all driver failures
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions

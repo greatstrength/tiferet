@@ -188,5 +188,9 @@ class ServiceContainer(ABC):
         raise NotImplementedError()
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** DI class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/di.md#<anchor>` (ABCs) or `@guides/di/dependency_injector.md#<anchor>` (concrete engines) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md

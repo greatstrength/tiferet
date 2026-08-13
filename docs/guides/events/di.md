@@ -7,9 +7,13 @@
 
 ## Overview
 
-The DI event module provides the full CRUD surface for `ServiceRegistration` objects — the dependency injection blueprints that define how services are resolved and wired at runtime. Every event in this module depends on an injected `DIService` and operates on `ServiceRegistration` domain objects through the `ServiceRegistrationAggregate` mapper.
+The DI event module provides the full CRUD surface for `ServiceRegistration` objects — the dependency injection blueprints that define how services are resolved and wired at runtime. Every event extends the shared `DIEvent` base event (which injects `DIService`) and operates on `ServiceRegistration` domain objects through the `ServiceRegistrationAggregate` mapper. **Vision:** see the `DIEvent` class docstring in `tiferet/events/di.py` for the value statement this guide distills.
 
-These events are the forward-compatible successors to the container events in `tiferet/events/container.py`, using DI-specific terminology (`ServiceRegistration`, `DIService`, `registration_exists`, etc.) instead of container-centric naming (`ContainerAttribute`, `ContainerService`, `attribute_exists`).
+## Ubiquitous Language
+
+- **Service registration** — a `ServiceRegistration` domain object: an id-keyed DI entry with an optional default type and zero or more flagged dependencies.
+- **Type source** — either a default type (`module_path` + `class_name`) or a flagged dependency; a registration must always retain at least one, enforced on create and on dependency removal.
+- **Flagged dependency** — a `FlaggedDependency` override keyed by `flag`, resolved in preference to the default type when that flag is active (see [docs/guides/domain/di.md](../domain/di.md)).
 
 ## Events at a Glance
 
@@ -25,6 +29,7 @@ These events are the forward-compatible successors to the container events in `t
 
 ## Dependency
 
+<a id="dievent"></a>
 All events inject a single dependency:
 
 - **`di_service: DIService`** — the service interface for persisting and retrieving `ServiceRegistration` objects and constants.
@@ -247,19 +252,11 @@ A service registration must always have at least one type source — either a de
 
 Both `RemoveServiceDependency` (at the model level) and `RemoveServiceRegistration` are idempotent — they succeed silently if the target does not exist.
 
-### Container vs DI Events
+## Boundaries
 
-The DI events mirror the container events but use forward-compatible DI terminology:
+**Inside this domain:** the CRUD operations for `ServiceRegistration` objects and service-level constants.
+**Outside this domain:** the declared `ServiceRegistration`/`FlaggedDependency` shape and flag-resolution precedence ([docs/guides/domain/di.md](../domain/di.md)); actually resolving a registration to a live instance for a given flag set (`ServiceResolver`/`get_dependency` — [docs/guides/di.md](../di.md)).
 
-| Container (legacy) | DI (forward) |
-|---|---|
-| `ContainerService` | `DIService` |
-| `ContainerAttribute` | `ServiceRegistration` |
-| `attribute_exists()` | `registration_exists()` |
-| `get_attribute()` | `get_registration()` |
-| `save_attribute()` | `save_registration()` |
-| `delete_attribute()` | `delete_registration()` |
-| `ATTRIBUTE_ALREADY_EXISTS` | `SERVICE_REGISTRATION_ALREADY_EXISTS` |
 
 ## Related Documentation
 

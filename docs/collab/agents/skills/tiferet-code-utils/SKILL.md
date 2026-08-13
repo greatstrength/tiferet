@@ -152,5 +152,9 @@ class TomlLoader(FileLoader):
         return TomlLoader(path).load(start_node=start_node, data_factory=data_factory)
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** Utility class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/utils.md#<anchor>` (strategy) or `@guides/utils/<module>.md#<anchor>` (cookbook detail) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md

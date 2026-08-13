@@ -214,5 +214,9 @@ def pytest_generate_tests(metafunc):
     register_event_hooks(metafunc)
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** The testing harness has no `docs/guides/` entry of its own — when a test module's harness usage is worth distilling, add it to the guide of the component under test (per `tiferet-guide-docs`) rather than inventing a testing-specific guide.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md

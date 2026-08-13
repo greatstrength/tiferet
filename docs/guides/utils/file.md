@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="fileloader"></a>
 ## Overview
 
 `FileLoader` is the foundational utility for all file-based operations in Tiferet.  
@@ -13,6 +14,11 @@ It implements the `FileService` interface (`tiferet/interfaces/file.py`) and pro
 All format-specific loaders (`YamlLoader`, `JsonLoader`, `CsvLoader`, etc.) inherit from `FileLoader` and override behavior such as file extension verification and content parsing/dumping.
 
 Use `FileLoader` (or its alias `File`) directly when you need low-level file I/O inside domain events, scripts, or tests. For domain-model persistence use the corresponding repositories and injected services.
+
+## Ubiquitous Language
+
+- **Loader** — a `FileLoader` subclass exposing static, one-shot helpers for a specific file format.
+- **Path/encoding validation** — the shared existence/mode/encoding checks `FileLoader` performs before any format-specific parsing runs, so every subclass gets `FILE_NOT_FOUND`/`INVALID_ENCODING` behavior for free.
 
 ## When to Use FileLoader vs. Injected FileService
 
@@ -60,17 +66,36 @@ with File('data/audit.log', 'a', encoding='utf-8') as f:
 
 - File is opened on `__enter__`
 - File is properly closed on `__exit__` (even on exceptions)
-- Any method call after the `with` block raises `ServiceError` (`FILE_ALREADY_OPEN_ID`)
+- Reopening an already-open loader raises `ServiceError(FILE_ALREADY_OPEN_ID)`
 
 ## Common Error Codes
 
-All errors are raised via `ServiceError.raise_for(self, ...)` with these local module constants (defined in `tiferet/utils/file.py`):
+Every failure is a `ServiceError` (`tiferet.interfaces.core`), raised via
+`ServiceError.raise_for`. It is deliberately **not** a `TiferetError`: an
+infrastructural failure is not a domain outcome, so it is never resolved through
+the error catalog or formatted into an API response, and it is not skippable via a
+feature step's `pass_on_error`.
 
-- `FILE_NOT_FOUND_ID`  
-- `INVALID_FILE_MODE_ID`  
-- `INVALID_ENCODING_ID`  
-- `FILE_ALREADY_OPEN_ID`  
-- `FILE_PERMISSION_DENIED_ID` (illustrative; OS-level `PermissionError`, not currently a defined Tiferet constant)
+Codes are hosted by `tiferet/utils/file.py` — the module that raises them — rather
+than by the error catalog:
+
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.file import (
+    FILE_NOT_FOUND_ID,
+    FILE_ALREADY_OPEN_ID,
+    INVALID_FILE_ID,
+    INVALID_FILE_MODE_ID,
+    INVALID_ENCODING_ID,
+)
+```
+
+`INVALID_FILE_ID` is hosted here because both `YamlLoader` and `JsonLoader` raise it
+for their extension checks and both already import from this module.
+
+Each error carries the provenance of the failing service — `module_path`,
+`class_name`, and `target_method` — so it names the loader subclass and the method
+that failed.
 
 ## Example – Domain Event with Direct Usage
 
@@ -138,8 +163,14 @@ def test_count_file_lines_success(tmp_path):
     assert result == 2   # only non-empty lines
 ```
 
+## Boundaries
+
+**Inside this domain:** low-level file stream lifecycle (open/close, path/mode/encoding validation) and the `FileService` contract implementation.
+**Outside this domain:** format-specific parsing/serialization (`YamlLoader`, `JsonLoader`, `CsvLoader`, `TomlLoader` — their own guides); domain-object persistence (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)); the broader physical-vs-computational utility split ([docs/guides/utils.md](../utils.md)).
+
 ## Related Documentation
 
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide (physical vs. computational families)
 - [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — `FileService` contract definition
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules

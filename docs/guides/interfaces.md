@@ -12,10 +12,16 @@ The interfaces layer defines abstract service contracts that domain events, cont
 
 There are two categories of service interfaces in Tiferet:
 
-- **Infrastructure services** — abstract low-level I/O operations that are independent of any domain model (`FileService`, `ConfigurationService`, `SqliteService`). These are general-purpose contracts consumed by middleware, repositories, and utilities.
+- **Infrastructure services** — abstract low-level I/O operations that are independent of any domain model (`FileService`, `SqliteService`). These are general-purpose contracts consumed by middleware, repositories, and utilities.
 - **Domain services** — abstract persistence and query operations scoped to a specific domain aggregate (`AppService`, `CliService`, `DIService`, `ErrorService`, `FeatureService`, `LoggingService`). These are the primary contracts consumed by domain events.
 
 This guide covers the cross-cutting strategies and design decisions that apply across all interface modules.
+
+## Ubiquitous Language
+
+- **Vertical contract** — a `Service` subclass abstracting one concern (data access, file I/O, middleware) behind a fixed method set, without prescribing an implementation.
+- **Infrastructural failure** — the condition `ServiceError` names: faulty configuration or a lost connection, raised via `ServiceError.raise_for(service, error_code, ...)`. Deliberately not a `TiferetError`, so it is never catalogued, localized, or formatted — it reaches the top as an unhandled exception by design.
+- **Provenance** — the `module_path`/`class_name`/`target_method` a `ServiceError` derives from the failing service instance and the calling frame, tracing the failure back to its `services:` configuration entry.
 
 ## The Standard CRUD Pattern
 
@@ -74,18 +80,18 @@ def get_parent_arguments(self) -> List[CliArgumentAggregate]: ...
 
 ### DIService — Non-Standard Naming
 
-`DIService` manages two distinct resources: service configurations and constants. Because both live in the same configuration file but require separate operations, the method names are domain-specific rather than generic CRUD:
+`DIService` manages two distinct resources: service registrations and constants. Because both live in the same configuration file but require separate operations, the method names are domain-specific rather than generic CRUD:
 
 | Standard | DIService equivalent |
 |---|---|
-| `exists` | `configuration_exists` |
-| `get` | `get_configuration` |
+| `exists` | `registration_exists` |
+| `get` | `get_registration` |
 | `list` | `list_all` (returns a tuple: configurations + constants dict) |
-| `save` | `save_configuration` |
-| `delete` | `delete_configuration` |
+| `save` | `save_registration` |
+| `delete` | `delete_registration` |
 | *(none)* | `save_constants` |
 
-The `list_all` return type is `Tuple[List[ServiceConfigurationAggregate], Dict[str, str]]` — a paired result that loads the full DI container state in one call. `save_constants` has no CRUD equivalent because constants are a flat key-value dict, not an aggregate.
+The `list_all` return type is `Tuple[List[ServiceRegistrationAggregate], Dict[str, str]]` — a paired result that loads the full DI container state in one call. `save_constants` has no CRUD equivalent because constants are a flat key-value dict, not an aggregate.
 
 ### LoggingService — Split by Sub-Entity Type
 
@@ -103,13 +109,21 @@ def delete_logger(self, logger_id: str) -> None: ...
 
 There are no `exists` or `get` methods on `LoggingService` because the standard usage is to load all logging configuration at once and configure the logging system in a single pass.
 
+### CliService — save_parent_arguments
+
+`CliService` also pairs `get_parent_arguments()` with `save_parent_arguments(parent_arguments)`, since parent-level arguments are a flat list rather than an id-keyed aggregate the standard `save` could target.
+
+## Infrastructural Failures: ServiceError
+
+Every interface method that can fail for an infrastructural reason (a missing file, a lost database connection, a misconfigured dependency) raises `ServiceError`, not `TiferetError` — an infrastructural failure is not a domain outcome the caller should resolve to a localized message. `ServiceError.raise_for(service, error_code, message, cause=None, **kwargs)` derives `module_path`/`class_name` from the failing service instance (or class, at a static raise site) and `target_method` from the calling frame, then optionally chains `cause` as `__cause__`. See [docs/guides/errors.md](errors.md) for the full three-error-family picture (`TiferetError`, `ServiceError`, `ModelError`) and when to reach for each.
+
 ## The `NotImplementedError` Message Convention
 
 Every abstract method body raises `NotImplementedError` with a descriptive string in the format `'<method> method is required for <ServiceClass>.'`. This makes errors from unimplemented concrete classes immediately actionable:
 
 ```python
 raise NotImplementedError('get method is required for ErrorService.')
-raise NotImplementedError('configuration_exists method is required for DIService.')
+raise NotImplementedError('registration_exists method is required for DIService.')
 ```
 
 The message pattern is consistent across all interfaces. Deviating from it (e.g., using a generic `'Not implemented'` message) reduces debuggability when a concrete class forgets to implement a method.
@@ -120,18 +134,14 @@ Domain service interfaces always declare return types as **Aggregates**, not pla
 
 ```python
 # Domain event calls service, receives an aggregate, and mutates it directly.
-feature = self.feature_service.get(id)           # returns FeatureAggregate
-feature.add_step(attribute_id=attribute_id, ...)  # mutation method on aggregate
+feature = self.feature_service.get(id)                      # returns FeatureAggregate
+feature.add_step(name='Add', service_id='add_number_event')  # mutation method on aggregate
 self.feature_service.save(feature)
 ```
 
 If the interface declared a plain `Feature` return type, domain events would need to convert it to an aggregate before mutation, creating unnecessary overhead and reducing clarity.
 
-Infrastructure services (`FileService`, `ConfigurationService`, `SqliteService`) are the exception — they have no domain aggregate concept and return raw I/O types (`IO[Any]`, `Any`). They raise a `ServiceError` rather than a `TiferetError` when they fail, since an infrastructural failure is not a domain outcome (see below).
-
-## Infrastructural Failures: ServiceError
-
-Every interface method that can fail for an infrastructural reason (a missing file, a lost database connection, a misconfigured dependency) raises `ServiceError` (`tiferet/interfaces/core.py`), not `TiferetError` — an infrastructural failure is not a domain outcome the caller should resolve to a localized message. `ServiceError.raise_for(service, error_code, message, cause=None, **kwargs)` derives `module_path`/`class_name` from the failing service instance (or class, at a static raise site) and `target_method` from the calling frame, then optionally chains `cause` as `__cause__`. Representative raise sites include `utils/file.py`, `utils/yaml.py`, `utils/json.py`, `utils/toml.py`, `utils/csv.py`, and `repos/core.py`. See [docs/guides/errors.md](errors.md) for the full three-error-family picture (`TiferetError`, `ServiceError`, `ModelError`) and when to reach for each.
+Infrastructure services (`FileService`, `SqliteService`) are the exception — they have no domain aggregate concept and return raw I/O types (`IO[Any]`, `Any`). They raise a `ServiceError` rather than a `TiferetError`, since an infrastructural failure is not a domain outcome.
 
 ## How Services Are Consumed by Domain Events
 
@@ -166,7 +176,7 @@ class GetFeature(DomainEvent):
         return feature
 ```
 
-The concrete implementation (`FeatureYamlRepository`, or a mock in tests) is wired at runtime by the dependency injection container. Tests always mock the service interface:
+The concrete implementation (`FeatureConfigRepository`, or a mock in tests) is wired at runtime by the dependency injection container. Tests always mock the service interface:
 
 ```python
 mock_feature_service = mock.Mock(spec=FeatureService)
@@ -185,14 +195,14 @@ Use the standard `exists / get / list / save / delete` names whenever possible. 
 
 1. **The domain manages multiple sub-entities of different types** and a single generic name would be ambiguous (`LoggingService` splits by formatter/handler/logger).
 2. **The resource is not an aggregate** — constants are a plain dict, not a model with an ID, so `save_constants` is appropriate and `save(constants)` would be misleading.
-3. **A meaningful qualifier adds clarity** — `configuration_exists` is clearer than `exists` when a service manages both configurations and constants under the same contract.
+3. **A meaningful qualifier adds clarity** — `registration_exists` is clearer than `exists` when a service manages both configurations and constants under the same contract.
 
 Do not rename standard methods for stylistic reasons. If `get` and `exists` cover the use case, use them.
 
 ## Adding a New Service Interface
 
 1. Create a new module in `tiferet/interfaces/` (e.g., `tiferet/interfaces/myservice.py`).
-2. Extend `Service` from `.settings`.
+2. Extend `Service` from `.core`.
 3. Import the relevant aggregate type(s) from `..mappers`.
 4. Define all methods with `@abstractmethod`, RST docstrings, and a descriptive `NotImplementedError` message.
 5. Export the new service class from `tiferet/interfaces/__init__.py` under `# ** app`.
@@ -209,7 +219,7 @@ from typing import List
 
 # ** app
 from ..mappers import MyAggregate
-from .settings import Service
+from .core import Service
 
 # *** interfaces
 
@@ -234,10 +244,16 @@ class MyService(Service):
         raise NotImplementedError('exists method is required for MyService.')
 ```
 
+## Boundaries
+
+**Inside this domain:** declaring vertical service contracts (`Service` subclasses) and the `ServiceError` infrastructural-failure vocabulary.
+**Outside this domain:** implementing a contract (`ConfigurationRepository` and its concrete repos — [docs/guides/repos.md](repos.md); utilities — [docs/guides/utils.md](utils.md)); the domain-outcome error vocabulary a concrete implementation's caller might still need (`TiferetError`/`ModelError` — [docs/guides/errors.md](errors.md)).
+
 ## Related Documentation
 
-- [docs/guides/errors.md](errors.md) — `ServiceError` alongside `TiferetError`/`ModelError`
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service base class reference and artifact comment conventions
+- [docs/guides/errors.md](errors.md) — `ServiceError` alongside `TiferetError`/`ModelError`
+- [docs/guides/repos.md](repos.md) — Concrete `ConfigurationRepository` implementations of these contracts
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and conventions
 - [docs/core/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md) — Aggregate and TransferObject base class reference
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and dependency injection

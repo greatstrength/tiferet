@@ -32,7 +32,7 @@ No methods — `DomainObject` is pure configuration. Subclasses declare fields w
 
 ### ServiceDependency
 
-The core, minimal shape describing "a service implementation, named" — reused wherever the framework needs to dynamically import and describe a service.
+The core, minimal shape describing "a service implementation, named" — shared by `AppServiceDependency` (`domain/app.py`) and `ServiceRegistration`/`FlaggedDependency` (`domain/di.py`), each of which extends it with domain-specific identity fields.
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -115,13 +115,14 @@ except ValidationError as error:
 
 ## Relationships to Other Domains
 
-- **Mappers:** `Aggregate.set_attribute` ([docs/guides/mappers.md](../mappers.md)) wraps `setattr` and converts any resulting `ValidationError` via `raise_for_validation`.
+- **Mappers:** `Aggregate.set_attribute` ([docs/guides/mappers.md](../mappers.md)) wraps `setattr` and converts any resulting `ValidationError` via `raise_for_validation`; whitelist overrides raise `ATTRIBUTE_NOT_SETTABLE` with the same descriptor.
 - **Contexts/Feature:** `RequestSpecification.validate` (`domain/feature.py`) flattens Pydantic violations inline (the same shape as `unpack_validation_error`, but not a shared call) and raises `REQUEST_VALIDATION_FAILED` — a catalogued `TiferetError`, unlike `ModelError` itself.
+- **App / DI:** `AppServiceDependency` ([docs/guides/domain/app.md](app.md)) and `ServiceRegistration`/`FlaggedDependency` ([docs/guides/domain/di.md](di.md)) both extend `ServiceDependency` rather than duplicating its three fields.
 - **Errors:** see [docs/guides/errors.md](../errors.md) for how `ModelError` relates to `TiferetError` and `ServiceError` as the framework's third, unrelated error family.
 
 ## Boundaries
 
-**Inside this domain:** the base `DomainObject` configuration every domain object shares, the `ServiceDependency` shape, and the vocabulary for describing a model-level defect (`ModelError`, `describe_model`, `unpack_validation_error`).
+**Inside this domain:** the base `DomainObject` configuration every domain object shares, the `ServiceDependency` shape reused by `app`/`di`, and the vocabulary for describing a model-level defect (`ModelError`, `describe_model`, `unpack_validation_error`).
 **Outside this domain:** mutation logic (owned by `Aggregate` subclasses in `mappers`), catalogued domain outcomes (`TiferetError`, see [docs/guides/errors.md](../errors.md)), and infrastructural failures (`ServiceError`, same guide). `ModelError` is deliberately excluded from all of those — it leaks as an unhandled exception by design.
 
 ## Instantiation
@@ -142,5 +143,7 @@ except ModelError as e:
 
 - [docs/guides/errors.md](../errors.md) — The three unrelated error families (`TiferetError`, `ServiceError`, `ModelError`) and when each applies
 - [docs/guides/mappers.md](../mappers.md) — `Aggregate.set_attribute` and the gated-attribute pattern
+- [docs/guides/domain/app.md](app.md) — `AppServiceDependency`, which extends `ServiceDependency`
+- [docs/guides/domain/di.md](di.md) — `ServiceRegistration`/`FlaggedDependency`, which extend `ServiceDependency`
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model code-style conventions
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules

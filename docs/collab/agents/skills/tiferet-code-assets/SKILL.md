@@ -174,5 +174,9 @@ class TiferetError(Exception):
         )
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** Standalone class docstrings (e.g. `TiferetError`) open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/assets.md#<anchor>` to `docs/guides/assets.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md

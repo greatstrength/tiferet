@@ -112,5 +112,9 @@ def build_cli(interface_id: str,
     return cli_context.run_cli(resolved_argv)
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** Blueprint docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/blueprints.md#<anchor>` to `docs/guides/blueprints.md`, which carries the composition-chain detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md

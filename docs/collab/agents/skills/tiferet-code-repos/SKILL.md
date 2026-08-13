@@ -176,5 +176,9 @@ class ErrorConfigRepository(ErrorService, ConfigurationRepository):
         self._save(full_data)
 ```
 
+## Docstrings & guides
+
+- **Docstrings & guides:** Repository class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/repos.md#<anchor>` to `docs/guides/repos.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md
