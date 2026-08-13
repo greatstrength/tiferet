@@ -68,70 +68,41 @@ result = DomainEvent.handle(
 
 ### GetError
 
-Retrieves an `Error` by ID from the repository. Optionally falls back to built-in default errors defined in `assets/constants.py`.
+Retrieves an `Error` by ID from the repository.
 
 **Optional parameters:**
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `id` | `str` | — | The error identifier |
-| `include_defaults` | `bool` | `False` | If `True`, search `DEFAULT_ERRORS` when not found in repository |
 
 **Returns:** The `Error` instance.
 
 **Errors:**
-- `ERROR_NOT_FOUND` if the error is not found in the repository (and not in defaults when `include_defaults=True`).
+- `ERROR_NOT_FOUND` if the error is not found in the repository.
 
 **Behavior:**
 1. Attempts to retrieve from the repository via `error_service.get(id)`.
-2. If not found and `include_defaults=True`, checks `DEFAULT_ERRORS`.
-3. If still not found, raises `ERROR_NOT_FOUND`.
+2. If not found, raises `ERROR_NOT_FOUND`.
 
 ```python
-# From repository only
 error = DomainEvent.handle(
     GetError,
     dependencies={'error_service': error_service},
     id='CUSTOM_VALIDATION_ERROR',
 )
-
-# With default fallback
-error = DomainEvent.handle(
-    GetError,
-    dependencies={'error_service': error_service},
-    id='COMMAND_PARAMETER_REQUIRED',
-    include_defaults=True,
-)
 ```
 
 ### ListErrors
 
-Lists all `Error` objects from the repository. Optionally merges with built-in defaults, where repository errors override defaults with the same ID.
-
-**Optional parameters:**
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `include_defaults` | `bool` | `False` | If `True`, merge repository errors with `DEFAULT_ERRORS` |
+Lists all `Error` objects from the repository.
 
 **Returns:** `List[Error]` — the list of error objects.
 
-**Merge semantics:**
-- Defaults are loaded first as a base dict keyed by ID.
-- Repository errors are merged on top, overriding any defaults with matching IDs.
-
 ```python
-# Repository only
 errors = DomainEvent.handle(
     ListErrors,
     dependencies={'error_service': error_service},
-)
-
-# Including defaults
-errors = DomainEvent.handle(
-    ListErrors,
-    dependencies={'error_service': error_service},
-    include_defaults=True,
 )
 ```
 
@@ -246,9 +217,9 @@ Most mutation events (`RenameError`, `SetErrorMessage`, `RemoveErrorMessage`) fo
 
 An error must always have at least one message. This invariant is enforced after message removal (`RemoveErrorMessage`) via a `verify` check on `len(error.message) > 0`.
 
-### Default Error Fallback
+### Built-In Default Errors
 
-`GetError` and `ListErrors` support an `include_defaults` flag that incorporates the built-in `DEFAULT_ERRORS` dict from `tiferet/assets/constants.py`. Repository errors always take precedence over defaults with the same ID.
+`GetError` and `ListErrors` are repository-only — they never fall back to the framework's built-in error catalog. Built-in defaults (`CORE_DEFAULT_ERRORS` / `ADMIN_DEFAULT_ERRORS` in `tiferet/assets/error.py`) are seeded once into the shared cache by `build_cache`, and the runtime `get_error` handler (`tiferet/blueprints/core.py`) checks that cache before ever calling `GetError` — so a built-in code is resolved without touching the event at all. A consumer that overrides a built-in ID in their own configuration takes precedence, since the repository is consulted first at the handler level.
 
 ## Boundaries
 

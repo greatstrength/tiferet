@@ -165,7 +165,7 @@ Manages structured error definitions and multilingual messages.
 
 | Feature | Purpose | CLI |
 | --- | --- | --- |
-| `error.list` | List all error definitions | `tiferet error list [--include-defaults]` |
+| `error.list` | List all error definitions | `tiferet error list` |
 | `error.add` | Add a new error definition | `tiferet error add <id> <name> <message> [--lang] [--additional-messages]` |
 | `error.get` | Retrieve an error by ID | `tiferet error get <id>` |
 | `error.rename` | Rename an existing error definition | `tiferet error rename <id> <new_name>` |
