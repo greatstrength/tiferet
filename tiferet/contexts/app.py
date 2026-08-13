@@ -3,19 +3,19 @@
 # *** imports
 
 # ** core
+import logging
 import time
 from typing import Any, Callable, Dict, List, Tuple
 
 # ** app
 from ..assets import TiferetError, TiferetAPIError
-from ..domain import AppSession, AppServiceDependency, Feature
+from ..assets.error import APP_ERROR_ID
+from ..domain import AppSession, AppServiceDependency
 from ..events import DomainEvent
 from ..events.app import GetAppSession
 from ..interfaces import AppService
 from .core import BaseContext
 from .cache import CacheContext
-from .feature import FeatureContext, FEATURE_CACHE_PREFIX
-from .logging import LoggingContext
 from .request import RequestContext
 
 # *** constants
@@ -36,6 +36,35 @@ ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'constants')
 APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = ('app', 'sessions')
 
 # *** functions
+
+# ** function: raise_unwired_handler_error
+def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
+    '''
+    Raise a structured API error when a required hub handler is unwired.
+
+    Always raises; never returns. Callers treat this as a terminal statement.
+
+    :param handler_name: The name of the missing handler slot.
+    :type handler_name: str
+    :param session_id: The app session id that expected the handler.
+    :type session_id: str
+    :param kwargs: Additional context forwarded onto the API error.
+    :type kwargs: dict
+    '''
+
+    # Compose a message naming the missing handler and the session that needed it.
+    message = (
+        f'No {handler_name} is wired on the app session context for session '
+        f'{session_id}; the blueprint must supply {handler_name}.'
+    )
+
+    # Raise a structured API error; this function never returns.
+    raise TiferetAPIError(
+        error_code=APP_ERROR_ID,
+        name='App Error',
+        message=message,
+        **kwargs,
+    )
 
 # ** function: add_default_app_services
 def add_default_app_services(services: Dict[str, Any]) -> Callable:
@@ -296,7 +325,8 @@ class AppSessionContext(BaseContext):
     '''
     The application session hub binds a loaded ``AppSession`` domain object
     and delegates feature execution, error handling, request construction,
-    and response building to four injected FE4 template-method handlers.
+    response building, and logger construction to five injected template-method
+    handlers. An unwired handler is a composition bug and fails loudly.
     '''
 
     # * attribute: domain_type
@@ -308,8 +338,8 @@ class AppSessionContext(BaseContext):
     # * attribute: cache
     cache: CacheContext
 
-    # * attribute: logging (private)
-    _logging: LoggingContext
+    # * attribute: build_logger (private)
+    _build_logger: Callable
 
     # * attribute: execute_feature (private)
     _execute_feature: Callable
@@ -326,8 +356,8 @@ class AppSessionContext(BaseContext):
     # * init
     def __init__(self,
             get_dependency: Callable,
-            logging_context: LoggingContext = None,
             cache: CacheContext = None,
+            build_logger_handler: Callable = None,
             execute_feature_handler: Callable = None,
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
@@ -337,17 +367,17 @@ class AppSessionContext(BaseContext):
 
         :param get_dependency: The DI resolution handler injected by the blueprint.
         :type get_dependency: Callable
-        :param logging_context: The logging context bound at bootstrap.
-        :type logging_context: LoggingContext
         :param cache: The shared bootstrap cache.
         :type cache: CacheContext
-        :param execute_feature_handler: The FE4 feature-execution handler.
+        :param build_logger_handler: The logger-construction handler.
+        :type build_logger_handler: Callable
+        :param execute_feature_handler: The feature-execution handler.
         :type execute_feature_handler: Callable
-        :param create_request_handler: The FE4 request-construction handler.
+        :param create_request_handler: The request-construction handler.
         :type create_request_handler: Callable
-        :param raise_error_handler: The FE4 error-handling handler.
+        :param raise_error_handler: The error-handling handler.
         :type raise_error_handler: Callable
-        :param response_handler: The FE4 response-building handler.
+        :param response_handler: The response-building handler.
         :type response_handler: Callable
         '''
 
@@ -358,10 +388,8 @@ class AppSessionContext(BaseContext):
         self.get_dependency = get_dependency
         self.cache = cache or CacheContext()
 
-        # Store the logging context.
-        self._logging = logging_context
-
-        # Store the FE4 template-method handlers.
+        # Store the five template-method handlers (validated lazily on first use).
+        self._build_logger = build_logger_handler
         self._execute_feature = execute_feature_handler
         self._create_request = create_request_handler
         self._raise_error = raise_error_handler
@@ -388,17 +416,31 @@ class AppSessionContext(BaseContext):
             id=interface_id,
         )
 
-    # * method: load_logging_context
-    def load_logging_context(self) -> LoggingContext:
+    # * method: build_logger
+    def build_logger(self) -> logging.Logger:
         '''
-        Return the logging context bound at bootstrap.
+        Build the logger for this session run.
 
-        :return: The bound logging context.
-        :rtype: LoggingContext
+        Delegates to the injected handler; fails loudly via
+        ``raise_unwired_handler_error`` when unwired. Domain errors raised by
+        the handler are formatted through ``handle_error`` so the pre-try
+        region of ``run`` surfaces only ``TiferetAPIError``.
+
+        :return: The configured logger instance.
+        :rtype: logging.Logger
         '''
 
-        # Return the bound logging context.
-        return self._logging
+        # Fail loudly when the logger-construction handler is unwired.
+        if self._build_logger is None:
+            raise_unwired_handler_error('build_logger_handler', self.domain.id)
+
+        # Delegate to the injected handler, formatting domain errors as API errors.
+        try:
+            return self._build_logger(self.domain.logger_id)
+
+        # Format domain errors through handle_error rather than propagating raw.
+        except TiferetError as e:
+            return self.handle_error(e)
 
     # * method: build_request
     def build_request(self,
@@ -407,6 +449,9 @@ class AppSessionContext(BaseContext):
             data: Dict[str, Any] = {}) -> RequestContext:
         '''
         Build the request context for a feature execution.
+
+        Delegates to the injected handler; fails loudly via
+        ``raise_unwired_handler_error`` when unwired.
 
         :param feature_id: The identifier of the feature to execute.
         :type feature_id: str
@@ -418,25 +463,26 @@ class AppSessionContext(BaseContext):
         :rtype: RequestContext
         '''
 
-        # Delegate to the injected request-construction handler when wired.
-        if self._create_request:
-            return self._create_request(self.domain.id, feature_id, headers, data)
+        # Fail loudly when the request-construction handler is unwired.
+        if self._create_request is None:
+            raise_unwired_handler_error(
+                'create_request_handler',
+                self.domain.id,
+                feature_id=feature_id,
+            )
 
-        # Otherwise construct the request context directly, stamping the
-        # interface id onto the request headers.
-        return RequestContext(
-            headers={**(headers or {}), 'interface_id': self.domain.id},
-            data=data,
-            feature_id=feature_id,
-        )
+        # Delegate to the injected request-construction handler.
+        return self._create_request(self.domain.id, feature_id, headers, data)
 
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute a feature against the given request.
 
-        The execution result is accumulated on the request context; result
-        extraction is the responsibility of the response step.
+        Delegates to the injected handler; fails loudly via
+        ``raise_unwired_handler_error`` when unwired. The execution result is
+        accumulated on the request context; result extraction is the
+        responsibility of the response step.
 
         :param feature_id: The identifier of the feature to execute.
         :type feature_id: str
@@ -446,22 +492,25 @@ class AppSessionContext(BaseContext):
         :type kwargs: dict
         '''
 
-        # Delegate to the injected feature-execution handler when wired.
-        if self._execute_feature:
-            self._execute_feature(feature_id, request, **kwargs)
-            return
+        # Fail loudly when the feature-execution handler is unwired.
+        if self._execute_feature is None:
+            raise_unwired_handler_error(
+                'execute_feature_handler',
+                self.domain.id,
+                feature_id=feature_id,
+            )
 
-        # Otherwise resolve the registered FeatureContext and drive it directly
-        # against a feature pre-seeded on the shared cache.
-        feature_context_cls = BaseContext.for_domain(Feature)
-        feature_context = feature_context_cls(get_dependency=self.get_dependency, cache=self.cache)
-        feature = self.cache.get(feature_id, *FEATURE_CACHE_PREFIX)
-        feature_context.execute_feature(feature, request, **kwargs)
+        # Delegate to the injected feature-execution handler.
+        self._execute_feature(feature_id, request, **kwargs)
 
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:
         '''
         Handle an error raised during feature execution.
+
+        Re-raises an incoming ``TiferetAPIError`` verbatim. Otherwise delegates
+        to the injected handler; fails loudly via ``raise_unwired_handler_error``
+        when unwired.
 
         :param error: The error to handle.
         :type error: Exception
@@ -471,30 +520,29 @@ class AppSessionContext(BaseContext):
         :rtype: Any
         '''
 
-        # Delegate to the injected error-handling handler when wired.
-        if self._raise_error:
-            return self._raise_error(error, **kwargs)
+        # Pass through an already-formatted API error without modification.
+        if isinstance(error, TiferetAPIError):
+            raise error
 
-        # Wrap bare exceptions in a TiferetError.
-        if not isinstance(error, TiferetError):
-            error = TiferetError(
-                'APP_ERROR',
-                f'An error occurred in the app: {str(error)}',
-                error=str(error),
+        # Fail loudly when the error-handling handler is unwired.
+        if self._raise_error is None:
+            raise_unwired_handler_error(
+                'raise_error_handler',
+                self.domain.id,
+                original_error_code=getattr(error, 'error_code', None),
+                original_error_message=str(error),
             )
 
-        # Raise a structured API error built from the wrapped error.
-        raise TiferetAPIError(
-            error_code=error.error_code,
-            name=error.error_code,
-            message=str(error),
-            **error.kwargs,
-        )
+        # Delegate to the injected error-handling handler.
+        return self._raise_error(error, **kwargs)
 
     # * method: build_response
     def build_response(self, request: RequestContext) -> Any:
         '''
         Build the final response from the executed request.
+
+        Delegates to the injected handler; fails loudly via
+        ``raise_unwired_handler_error`` when unwired.
 
         :param request: The request context object.
         :type request: RequestContext
@@ -502,12 +550,12 @@ class AppSessionContext(BaseContext):
         :rtype: Any
         '''
 
-        # Delegate to the injected response-building handler when wired.
-        if self._build_response:
-            return self._build_response(request)
+        # Fail loudly when the response-building handler is unwired.
+        if self._build_response is None:
+            raise_unwired_handler_error('response_handler', self.domain.id)
 
-        # Otherwise delegate directly to the request context.
-        return request.handle_response()
+        # Delegate to the injected response-building handler.
+        return self._build_response(request)
 
     # * method: run
     def run(self,
@@ -534,7 +582,7 @@ class AppSessionContext(BaseContext):
         start_time = time.perf_counter()
 
         # Build the logger for this session run.
-        logger = self.load_logging_context().build_logger()
+        logger = self.build_logger()
 
         # Build the request context.
         logger.debug(f'Building request for feature: {feature_id}')
