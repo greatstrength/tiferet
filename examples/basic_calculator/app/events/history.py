@@ -7,7 +7,7 @@ from typing import Any
 
 # ** infra
 from tiferet.events import *
-from tiferet import Json
+from tiferet.utils import Json
 
 # *** functions
 

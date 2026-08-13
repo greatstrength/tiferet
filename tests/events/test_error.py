@@ -3,8 +3,6 @@
 # *** imports
 
 # ** core
-from typing import List
-
 # ** infra
 import pytest
 from unittest import mock
@@ -47,21 +45,6 @@ def error() -> ErrorAggregate:
             'text': 'This is a test error message.'
         }]
     )
-
-# ** fixture: default_errors
-@pytest.fixture
-def default_errors() -> List[Error]:
-    '''
-    A list of default Error instances from constants.
-
-    :return: A list of default Error instances.
-    :rtype: List[Error]
-    '''
-
-    # Return a list of default Error aggregates.
-    return [
-        ErrorAggregate(id=error_id, **data) for error_id, data in a.DEFAULT_ERRORS.items()
-    ]
 
 # *** tests
 
@@ -250,26 +233,24 @@ class TestGetError(ServiceEventTestBase):
         assert result == error
         mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
 
-    # * method: test_found_in_defaults
-    def test_found_in_defaults(self, mock_dependencies):
+    # * method: test_not_found_ignores_built_in_catalog
+    def test_not_found_ignores_built_in_catalog(self, mock_dependencies):
         '''
-        Test retrieving an error from built-in defaults when not in repository.
+        Test that a code present in CORE_DEFAULT_ERRORS but absent from the
+        repository still raises ERROR_NOT_FOUND; the event never falls back
+        to the built-in catalog.
         '''
 
         # Configure the service to return None (not in repo).
         mock_dependencies['error_service'].get.return_value = None
 
-        # Execute with include_defaults and a known default error ID.
+        # Execute with a code that exists in the built-in catalog.
         error_id = a.error.ERROR_NOT_FOUND_ID
-        result = self.handle(
-            mock_dependencies,
-            id=error_id,
-            include_defaults=True,
-        )
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, id=error_id)
 
-        # Assert the result matches the expected default error.
-        expected = ErrorAggregate(id=error_id, **a.DEFAULT_ERRORS.get(error_id))
-        assert result == expected
+        # Assert the not-found error is raised rather than a default resolved.
+        assert exc_info.value.error_code == a.error.ERROR_NOT_FOUND_ID
         mock_dependencies['error_service'].get.assert_called_once_with(error_id)
 
 
@@ -306,77 +287,6 @@ class TestListErrors(DomainEventTestBase):
         # Assert the result matches.
         assert result == [error]
         mock_dependencies['error_service'].list.assert_called_once()
-
-    # * method: test_with_defaults
-    def test_with_defaults(self, mock_dependencies, default_errors):
-        '''
-        Test listing errors including default errors.
-        '''
-
-        # Configure the mock to return a list with an additional error.
-        existing_error = ErrorAggregate(
-            id='EXISTING_ERROR',
-            name='Existing Error',
-            message=[{
-                'lang': 'en_US',
-                'text': 'This is an existing error message.'
-            }]
-        )
-        mock_dependencies['error_service'].list.return_value = [existing_error]
-
-        # Execute with include_defaults.
-        result = self.handle(mock_dependencies, include_defaults=True)
-
-        # Assert the result includes both existing and default errors.
-        expected_errors = [existing_error] + default_errors
-        assert len(result) == len(expected_errors)
-        for err in expected_errors:
-            assert err in result
-
-    # * method: test_with_defaults_and_override
-    def test_with_defaults_and_override(self, mock_dependencies, default_errors):
-        '''
-        Test listing errors with a repository error that overrides a default.
-        '''
-
-        # Create a repo error that overrides the default ERROR_NOT_FOUND.
-        overriding_error = ErrorAggregate(
-            id=a.error.ERROR_NOT_FOUND_ID,
-            name='Overriding Not Found Error',
-            message=[{
-                'lang': 'en_US',
-                'text': 'This is an overridden not found error message.'
-            }]
-        )
-        mock_dependencies['error_service'].list.return_value = [overriding_error]
-
-        # Execute with include_defaults.
-        result = self.handle(mock_dependencies, include_defaults=True)
-
-        # Assert the override replaces the default.
-        expected_errors = [overriding_error] + [
-            err for err in default_errors if err.id != a.error.ERROR_NOT_FOUND_ID
-        ]
-        assert len(result) == len(expected_errors)
-        for err in expected_errors:
-            assert err in result
-
-    # * method: test_no_errors_with_defaults
-    def test_no_errors_with_defaults(self, mock_dependencies, default_errors):
-        '''
-        Test listing errors when repository is empty and only defaults exist.
-        '''
-
-        # Configure the mock to return an empty list.
-        mock_dependencies['error_service'].list.return_value = []
-
-        # Execute with include_defaults.
-        result = self.handle(mock_dependencies, include_defaults=True)
-
-        # Assert only default errors are returned.
-        assert len(result) == len(default_errors)
-        for err in default_errors:
-            assert err in result
 
 
 # ** test: TestRenameError
