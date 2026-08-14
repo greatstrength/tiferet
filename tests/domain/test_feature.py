@@ -4,6 +4,7 @@
 
 # ** infra
 import pytest
+from pydantic import ValidationError
 
 # ** app
 from tiferet.domain.feature import (
@@ -13,7 +14,6 @@ from tiferet.domain.feature import (
     ParameterSpecification,
     RequestSpecification,
 )
-from tiferet.assets import TiferetError
 
 # *** fixtures
 
@@ -281,17 +281,17 @@ def test_request_specification_normalizes_expanded() -> None:
     assert param.default == 1.0
     assert param.minimum == 0.0
 
-# ** test: request_specification_validate_coerces_and_preserves_extra
-def test_request_specification_validate_coerces_and_preserves_extra() -> None:
+# ** test: request_specification_coerce_coerces_and_preserves_extra
+def test_request_specification_coerce_coerces_and_preserves_extra() -> None:
     '''
-    Test that validate coerces typed fields, applies defaults, and preserves extra keys.
+    Test that coerce coerces typed fields, applies defaults, and preserves extra keys.
     '''
 
-    # Validate a payload against a schema with a defaulted optional field.
+    # Coerce a payload against a schema with a defaulted optional field.
     spec = RequestSpecification.model_validate(
         {'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}}
     )
-    result = spec.validate({'a': '5', 'extra': 'keep'})
+    result = spec.coerce({'a': '5', 'extra': 'keep'})
 
     # Assert coercion, default application, and extra-key preservation.
     assert result['a'] == 5
@@ -299,52 +299,49 @@ def test_request_specification_validate_coerces_and_preserves_extra() -> None:
     assert result['b'] == 1.0
     assert result['extra'] == 'keep'
 
-# ** test: request_specification_validate_missing_required_raises
-def test_request_specification_validate_missing_required_raises() -> None:
+# ** test: request_specification_coerce_missing_required_raises
+def test_request_specification_coerce_missing_required_raises() -> None:
     '''
-    Test that missing required parameters raise a single REQUEST_VALIDATION_FAILED error.
+    Test that missing required parameters raise a Pydantic ValidationError.
     '''
 
-    # Validate an empty payload against a required schema.
+    # Coerce an empty payload against a required schema.
     spec = RequestSpecification.model_validate({'a': 'int'})
-    with pytest.raises(TiferetError) as exc_info:
-        spec.validate({}, feature_id='calc.add')
+    with pytest.raises(ValidationError) as exc_info:
+        spec.coerce({})
 
-    # Assert the structured validation error with one violation.
-    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
-    assert exc_info.value.kwargs.get('feature_id') == 'calc.add'
-    assert len(exc_info.value.kwargs.get('violations')) == 1
+    # Assert one field error is reported by Pydantic.
+    assert len(exc_info.value.errors()) == 1
 
-# ** test: request_specification_validate_aggregates_multiple_errors
-def test_request_specification_validate_aggregates_multiple_errors() -> None:
+# ** test: request_specification_coerce_aggregates_multiple_errors
+def test_request_specification_coerce_aggregates_multiple_errors() -> None:
     '''
-    Test that multiple validation failures are aggregated into one error.
+    Test that multiple validation failures are aggregated into one ValidationError.
     '''
 
-    # Validate a payload that fails two fields.
+    # Coerce a payload that fails two fields.
     spec = RequestSpecification.model_validate({'a': 'int', 'b': 'int'})
-    with pytest.raises(TiferetError) as exc_info:
-        spec.validate({'a': 'x', 'b': 'y'}, feature_id='calc.add')
+    with pytest.raises(ValidationError) as exc_info:
+        spec.coerce({'a': 'x', 'b': 'y'})
 
-    # Assert both violations are aggregated.
-    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
-    assert len(exc_info.value.kwargs.get('violations')) == 2
+    # Assert both field errors are aggregated.
+    assert len(exc_info.value.errors()) == 2
 
-# ** test: request_specification_validate_choices
-def test_request_specification_validate_choices() -> None:
+# ** test: request_specification_coerce_choices
+def test_request_specification_coerce_choices() -> None:
     '''
     Test that choices restrict values via a Literal annotation.
     '''
 
-    # Validate a payload constrained by choices.
+    # Coerce a payload constrained by choices.
     spec = RequestSpecification.model_validate(
         {'mode': {'type': 'str', 'choices': ['add', 'sub']}}
     )
 
     # Assert a valid choice passes and an invalid choice fails.
-    assert spec.validate({'mode': 'add'})['mode'] == 'add'
-    with pytest.raises(TiferetError):
-        spec.validate({'mode': 'bad'})
+    assert spec.coerce({'mode': 'add'})['mode'] == 'add'
+    with pytest.raises(ValidationError):
+        spec.coerce({'mode': 'bad'})
 
 # ** test: request_specification_is_satisfied_by
 def test_request_specification_is_satisfied_by() -> None:
