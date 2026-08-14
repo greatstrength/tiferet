@@ -22,7 +22,6 @@ from tiferet.contexts.feature import (
     merge_step_kwargs,
     build_step_chain,
     compose_step_middleware,
-    parse_request_parameter,
     evaluate_condition,
     validate_request,
 )
@@ -396,35 +395,35 @@ def test_compose_step_middleware_partial_inputs():
     assert compose_step_middleware([], [middleware]) == [middleware]
 
 # ** test: parse_request_parameter_request_ref
-def test_parse_request_parameter_request_ref():
+def test_parse_request_parameter_request_ref(feature_context: FeatureContext):
     '''
-    Test that parse_request_parameter extracts a $r.-prefixed value from request data.
+    Test that FeatureContext.parse_request_parameter extracts a $r.-prefixed value from request data.
     '''
 
     # Create a request containing the referenced key.
     request = RequestContext(data={'key': 'value'})
 
     # Assert the referenced value is returned.
-    assert parse_request_parameter('$r.key', request) == 'value'
+    assert feature_context.parse_request_parameter('$r.key', request) == 'value'
 
 # ** test: parse_request_parameter_request_not_found
-def test_parse_request_parameter_request_not_found():
+def test_parse_request_parameter_request_not_found(feature_context: FeatureContext):
     '''
-    Test that parse_request_parameter raises REQUEST_NOT_FOUND when no request is given.
+    Test that FeatureContext.parse_request_parameter raises REQUEST_NOT_FOUND when no request is given.
     '''
 
     # Assert the structured error is raised when no request is provided.
     with pytest.raises(TiferetError) as exc_info:
-        parse_request_parameter('$r.key', None)
+        feature_context.parse_request_parameter('$r.key', None)
 
     # Assert the error carries the offending parameter.
     assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.key'
 
 # ** test: parse_request_parameter_key_missing
-def test_parse_request_parameter_key_missing():
+def test_parse_request_parameter_key_missing(feature_context: FeatureContext):
     '''
-    Test that parse_request_parameter raises PARAMETER_NOT_FOUND when the key is absent.
+    Test that FeatureContext.parse_request_parameter raises PARAMETER_NOT_FOUND when the key is absent.
     '''
 
     # Create a request that does not contain the referenced key.
@@ -432,37 +431,48 @@ def test_parse_request_parameter_key_missing():
 
     # Assert the structured error is raised when the key is missing.
     with pytest.raises(TiferetError) as exc_info:
-        parse_request_parameter('$r.missing', request)
+        feature_context.parse_request_parameter('$r.missing', request)
 
     # Assert the error carries the offending parameter.
     assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.missing'
 
 # ** test: parse_request_parameter_delegates_to_parse_parameter
-def test_parse_request_parameter_delegates_to_parse_parameter(monkeypatch: pytest.MonkeyPatch):
+def test_parse_request_parameter_delegates_to_parse_parameter(feature_context: FeatureContext, monkeypatch: pytest.MonkeyPatch):
     '''
-    Test that non-$r. parameters are forwarded to ParseParameter.execute.
+    Test that non-$r. parameters are forwarded to the injected parse_parameter.
 
+    :param feature_context: The feature context fixture.
+    :type feature_context: FeatureContext
     :param monkeypatch: The pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
     '''
 
-    # Import ParseParameter to patch its static execute method.
-    from tiferet.events.core import ParseParameter
-
-    # Capture the parameter forwarded to the static event.
+    # Capture the parameter forwarded to the injected callable.
     called = {}
 
-    def fake_execute(parameter: str):
+    def fake_parser(parameter: str):
         called['parameter'] = parameter
         return 'parsed-value'
 
-    # Patch the parameter parser.
-    monkeypatch.setattr(ParseParameter, 'execute', staticmethod(fake_execute))
+    # Rebind the parser on the context.
+    feature_context.parse_parameter = fake_parser
 
     # Assert the non-prefixed parameter was delegated and its result returned.
-    assert parse_request_parameter('$env.MY_VAR', RequestContext(data={})) == 'parsed-value'
+    assert feature_context.parse_request_parameter('$env.MY_VAR', RequestContext(data={})) == 'parsed-value'
     assert called['parameter'] == '$env.MY_VAR'
+
+# ** test: parse_request_parameter_defaults_to_identity
+def test_parse_request_parameter_defaults_to_identity():
+    '''
+    Test that FeatureContext defaults to an identity parser when none is injected.
+    '''
+
+    # Construct without an explicit parser.
+    ctx = FeatureContext.from_domain(Feature(id='t.f', name='T', steps=[]), get_dependency=lambda *a, **k: None)
+
+    # Non-$r. values pass through unchanged.
+    assert ctx.parse_request_parameter('plain_value', RequestContext(data={})) == 'plain_value'
 
 # ** test: evaluate_condition_empty
 def test_evaluate_condition_empty():

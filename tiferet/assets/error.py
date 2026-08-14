@@ -33,9 +33,6 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 # ** constant: feature_step_loading_failed_id
 FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
 
-# ** constant: import_dependency_failed_id
-IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
-
 # ** constant: invalid_app_session_type_id
 INVALID_APP_SESSION_TYPE_ID = 'INVALID_APP_SESSION_TYPE'
 
@@ -143,12 +140,6 @@ FEATURE_NOT_FOUND_DATA = create_default_error_data(
 FEATURE_STEP_LOADING_FAILED_DATA = create_default_error_data(
     'Feature Step Loading Failed',
     [(EN_US, 'Failed to load feature step: {service_id}. Error: {exception}.')],
-)
-
-# ** constant: import_dependency_failed_data
-IMPORT_DEPENDENCY_FAILED_DATA = create_default_error_data(
-    'Import Dependency Failed',
-    [(EN_US, 'Failed to import {class_name} from {module_path}. Error: {exception}.')],
 )
 
 # ** constant: invalid_app_session_type_data
@@ -294,7 +285,6 @@ CORE_DEFAULT_ERRORS = {
     ERROR_NOT_FOUND_ID: ERROR_NOT_FOUND_DATA,
     FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND_DATA,
     FEATURE_STEP_LOADING_FAILED_ID: FEATURE_STEP_LOADING_FAILED_DATA,
-    IMPORT_DEPENDENCY_FAILED_ID: IMPORT_DEPENDENCY_FAILED_DATA,
     INVALID_APP_SESSION_TYPE_ID: INVALID_APP_SESSION_TYPE_DATA,
     LOGGER_CREATION_FAILED_ID: LOGGER_CREATION_FAILED_DATA,
     LOGGING_CONFIG_FAILED_ID: LOGGING_CONFIG_FAILED_DATA,
