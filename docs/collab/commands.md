@@ -3,6 +3,10 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet
 
+Process index: [process.md](process.md). Binding (repo, proto branch, project ids): [binding.md](binding.md).
+
+Proto → trunk git is forbidden. Trunk → proto git is permitted when a human asks; it is not a default step.
+
 This document lists key commands used across all contribution workflow streams. Each entry notes whether the operation is available via **Warp/Oz GitHub MCP tools** (preferred when available) or requires the **`gh` CLI** directly.
 
 ## Branch Operations
@@ -13,8 +17,8 @@ This document lists key commands used across all contribution workflow streams. 
 # Create a feature branch from main
 git checkout -b <branch-name> main
 
-# Create a prototype worktree branch from the prototype branch
-git checkout -b v2.0.0b6-my-context v2.0-proto
+# Prototype worktree from the proto branch in binding.md
+git checkout -b v2.0.0b1-my-context v2.x-proto
 
 # Delete a local branch
 git branch -d <branch-name>
@@ -123,7 +127,7 @@ gh project item-edit --project-id PVT_kwDOCKXjws4A7Y85 --id <item-id> \
   --field-id PVTF_lADOCKXjws4A7Y85zgvs_n4 --date 2026-06-23
 ```
 
-Field and option IDs are unique per GitHub Project. For any other Tiferet project, resolve them with `gh project field-list <number> --owner <org> --format json` and record them here.
+Field and option IDs are unique per GitHub Project. Record this repo's ids in [binding.md](binding.md). For any other Tiferet project, resolve them with `gh project field-list <number> --owner <org> --format json` and record them in that repo's `docs/collab/binding.md`.
 
 ## Release Publishing
 
@@ -136,12 +140,12 @@ gh release create v2.1.0 \
   --title "Tiferet v2.1.0 – Release Title" \
   --notes-file release-notes.md
 
-# Create a pre-release (for alpha/beta tags)
-gh release create v2.0.0b6 \
+# Prototype alpha is a git tag on proto, usually not a GitHub Release.
+# Trunk release (no bN going forward):
+gh release create v2.0.1 \
   --repo greatstrength/tiferet \
-  --title "Tiferet v2.0.0b6" \
-  --prerelease \
-  --notes "Condensed release notes here."
+  --title "Tiferet v2.0.1 – Title" \
+  --notes-file release-notes.md
 
 # List recent releases
 gh release list --repo greatstrength/tiferet --limit 5
@@ -152,17 +156,17 @@ gh release list --repo greatstrength/tiferet --limit 5
 **Tool availability:** Git shell commands.
 
 ```bash
-# Create an annotated tag (beta release on prototype branch)
-git tag -a v2.0.0b6 -m "v2.0.0b6 – Condensed release notes here."
+# Alpha tag on proto after an RFP squash-merge (prototype strand only)
+git tag -a v2.0.0a17 -m "v2.0.0a17 — RFP-00N title"
 
-# Create an annotated tag (alpha release on worktree branch)
-git tag -a v2.0.0a11 -m "v2.0.0a11 – Detailed mini-release description."
+# Trunk release tag (vX.Y.Z — do not use bN on new trunk tags)
+git tag -a v2.0.1 -m "v2.0.1 – release notes"
 
 # Push tags to remote
 git push origin --tags
 
 # Push a single tag
-git push origin v2.0.0b6
+git push origin v2.0.1
 
 # List tags matching a pattern
 git tag --list 'v2.0.0*' --sort=-version:refname

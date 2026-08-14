@@ -522,7 +522,7 @@ These practices ensure Tiferet code remains consistent, maintainable, and AI-fri
 
 The Tiferet framework maintains a suite of focused documentation in `docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
 
-For implementation agents, the **`tiferet-code-<component>` skills** (see `docs/collab/agents/skills/`) are the preferred access path — they embed key conventions and a working example offline. Each entry below lists the companion skill alongside the full doc as the authoritative fallback.
+For implementation agents, the **`tiferet-code-<component>` skills** (see `.agents/skills/`) are the preferred access path — they embed key conventions and a working example offline. Each entry below lists the companion skill alongside the full doc as the authoritative fallback.
 
 - **`tiferet-code-assets`** / **[assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md)** – Assets layer conventions (imports, constants, functions, standalone classes, exports).
 - **`tiferet-code-blueprints`** / **[blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md)** – Blueprint orchestration conventions.

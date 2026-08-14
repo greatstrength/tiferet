@@ -1,148 +1,99 @@
 # Contributing to Tiferet
 
-Thank you for your interest in contributing to the Tiferet framework! This document outlines the process and expectations for contributing, whether you're fixing a bug, proposing a feature, or improving documentation.
+Thank you for wanting to contribute. This page is the front door. The map of how work actually moves is [docs/collab/process.md](docs/collab/process.md) — read that before you invent a branch name.
 
-## Getting Started
+## Getting started
 
-1. **Fork** the repository and clone your fork locally.
-2. Create a new branch from the appropriate base branch (see Contribution Streams below).
-3. Set up a virtual environment and install the package in development mode:
-   ```bash
-   python3.10 -m venv venv
-   source venv/bin/activate
-   pip install -e .
-   ```
+1. Fork the repository and clone your fork.
+2. Cut a branch from the right base (proto for an RFP, `main` for trunk or docs).
+3. Set up a virtual environment and install in development mode:
 
-## Contribution Workflow Streams
+```bash
+python3.10 -m venv venv
+source venv/bin/activate
+pip install -e .
+```
 
-Tiferet uses three distinct contribution workflow streams, each with its own branching, versioning, and review process:
+## How work is authorized
 
-- **[RFP — Request for Prototype](docs/collab/rfp.md)**: Exploratory and architectural work developed on prototype branches with alpha/beta versioning. Used for significant refactors and new architectural ideas.
-- **[Main — Feature Release](docs/collab/main.md)**: The primary path for feature releases. Work is organized into milestones, implemented on feature branches from `main`, and merged via pull requests.
-- **[Doc — Documentation Updates](docs/collab/doc.md)**: Standalone documentation changes merged directly into `main` via pull requests. No milestones or releases involved.
+Trunk and prototype are two independent histories of the same version family. What crosses from prototype to trunk is a **catalog** of named artifacts, never a git merge.
 
-Each stream guide covers branch naming, workflow steps, and versioning conventions in detail.
+| You want to… | You submit | It lands on | The guide |
+|---|---|---|---|
+| Test a domain theory | an **RFP** (public contributors welcome if it follows the genre) | the proto branch | [rfp.md](docs/collab/rfp.md) |
+| Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
+| Change docs or agent skills | a **Doc PR** — no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
-For a reference of git and `gh` CLI commands used across all streams, see **[docs/collab/commands.md](docs/collab/commands.md)**.
+Commands used across all of that: [docs/collab/commands.md](docs/collab/commands.md). Facts that belong only to this repo: [docs/collab/binding.md](docs/collab/binding.md).
 
-## Common Workflow Steps
+## Common practices
 
-Regardless of stream, all contributions share the following practices.
+### Issues
 
-### Open or Claim an Issue
+An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A Doc/skills PR may skip the issue if there is nothing to discuss first.
 
-All contributions should be tied to a GitHub issue (except internal RFPs and standalone doc changes). If one doesn't exist for the work you'd like to do, open an issue first to discuss the change with maintainers before starting.
+### Specifications
 
-### Write a Technical Requirements Document (TRD)
-
-For non-trivial changes (new features, refactors, architectural updates), a **Technical Requirements Document** is required before implementation begins. TRDs ensure clarity, alignment, and traceability across the project.
-
-See the full TRD authoring guide:
-**[docs/collab/tech_requirements.md](docs/collab/tech_requirements.md)**
-
-Key points:
-- Follow the standard structure (Overview, Scope, Components Affected, Detailed Requirements, Acceptance Criteria).
-- Include code signatures and behavior descriptions where applicable.
-- Reference the relevant [code style guides](docs/core/) for the components you're modifying.
-- Set the **Version** field according to the applicable stream (milestone version for Main, "Request for Prototype" for RFP, latest released version for Doc).
+- Prototype: the RFP genre in [rfp.md](docs/collab/rfp.md). No TRD.
+- Trunk reconstruction: a TRD that cites a **freeze id**. Written in the target language. Never "copy from proto."
+- Trunk hotfix: a TRD marked hotfix. No freeze.
+- Docs and skills: the PR body, using the words in process.md.
 
 ### Implement
 
-- Read **`tiferet-code-style`** before writing any code — artifact comments, spacing rules, RST docstrings, and snippet conventions are enforced across the codebase. If the skill is not installed, use [docs/core/code_style.md](docs/core/code_style.md) directly.
-- Read the **`tiferet-code-<component>`** skill for each layer you’re modifying (see the Code Style Skills list in **Working with AI Agents** above). If the skill is not installed, use the corresponding `docs/core/<component>.md` guide directly.
-- When writing or upgrading a docstring, or authoring/remediating a `docs/guides/` entry, read **`tiferet-guide-docs`** and start from the matching genre template in [docs/guides/templates/](docs/guides/templates/) rather than authoring from scratch.
-- Write tests using `pytest`.
+- Read **`tiferet-code-style`** before you write code. If the skill is missing, [docs/core/code_style.md](docs/core/code_style.md) is the fallback.
+- Read the **`tiferet-code-<component>`** skill for each layer you touch. More than one layer: also `tiferet-code-architecture`.
+- Docstrings and `docs/guides/`: **`tiferet-guide-docs`**.
+- Tests: `pytest`.
 
-### Commit Hygiene
+### Commit hygiene
 
-- Separate functional code changes from documentation, configuration, and packaging into distinct, atomic commits.
-- Title commits by scope (e.g., `Events – AddFeature Event`, `Docs/Packaging – Update Guides`).
-- Include `Co-Authored-By: <name> <email>` in commit messages when collaborating with AI agents or other contributors.
+Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, add `Co-Authored-By: <name> <email>`. Never commit or merge unless someone asked you to.
 
-### Open a Pull Request
+### Pull requests
 
-- Target the appropriate base branch for the stream (`main` for Main/Doc, prototype branch for RFP).
-- Reference the GitHub issue in the PR description.
-- Ensure all tests pass and the code follows project conventions.
-- Keep PRs focused — one logical change per PR.
-- After submitting, provide the PR URL to the user.
+RFPs target proto. Trunk and Doc target `main`. The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Session notes, conversation links, and Collaboration Reports belong on the **issue**.
 
-### Reviewing a Pull Request
+### Review
 
-When a PR is meant to bring a branch toward parity with a prototype **source of truth**, an agent can review it by comparing each changed file against that reference and posting only the **actionable** discrepancies — line-specific items as inline comments, and structural or whole-file changes in the PR-level comment.
-
-See the full guide:
-**[docs/collab/code_review.md](docs/collab/code_review.md)**
+Diff comments stay on the PR. Reconstruction review may look at proto only for artifacts the freeze and the TRD named — never "make trunk match proto." Prototype review is against the RFP and the distillation sections it cites. More in [code_review.md](docs/collab/code_review.md).
 
 ### Collaboration Report
 
-Upon completion of a story or issue, a **Collaboration Report** is published as a comment on the originating GitHub issue. This report documents the implementation, deviations from the TRD, git state, and a log of key decisions made during development.
+Posted on the originating **issue**. A Super-TRD child gets an implementation log when the code is pushed, and a verification addendum after combined review. See [collab_report.md](docs/collab/collab_report.md).
 
-See the full report format guide:
-**[docs/collab/collab_report.md](docs/collab/collab_report.md)**
+## Working with AI agents
 
-## Working with AI Agents
+Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in this checkout. Copying them to `~/.agents/skills/` is optional. If you do, delete stale `tiferet-*` copies first or they will shadow this repo. Every skill follows [docs/collab/agents/SKILL_TEMPLATE.md](docs/collab/agents/SKILL_TEMPLATE.md).
 
-Warp/AI agents contributing to Tiferet follow the same conventions described above and in the [`docs/collab/`](docs/collab/) stream guides. All common workflows and code style conventions are packaged as reusable agent **skills** so they're applied consistently across all Tiferet-family repositories.
+**Process**
 
-**Collaboration skills** handle process workflows:
+- `tiferet-annotation-artifacts` — scan `# ++ todo:` / `# -- obsolete:` at the start of every implementation session.
+- `tiferet-author-rfp` — draft or amend an RFP.
+- `tiferet-rfp-session` — implement an RFP on proto.
+- `tiferet-freeze-catalog` — record a catalog freeze after a human names the cluster.
+- `tiferet-author-trd` — trunk TRD (reconstruction needs a freeze id; a hotfix does not).
+- `tiferet-create-milestone` — proto beta milestone or trunk `vX.Y.Z`.
+- `tiferet-milestone-session` — proto-alpha loop, or trunk standalone / Super-TRD.
+- `tiferet-collab-report` — the report on the issue (log, addendum, or roll-up).
+- `tiferet-pr-code-review` — diff comments on the PR; measurement, not proto promotion.
 
-- **`tiferet-annotation-artifacts`** — scan, add, and resolve `# ++ todo:` / `# -- obsolete:` annotation artifacts; covers the pre-session scan, resolution procedure, and Collaboration Report integration ([code_style.md § Annotation Artifacts](docs/core/code_style.md)). **Use this at the start of every implementation session.**
-- **`tiferet-create-milestone`** — create or format a GitHub milestone (title and description conventions).
-- **`tiferet-author-trd`** — author a TRD in the standard structure ([tech_requirements.md](docs/collab/tech_requirements.md)).
-- **`tiferet-collab-report`** — generate a Collaboration Report once an issue is confirmed complete ([collab_report.md](docs/collab/collab_report.md)).
-- **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop ([main.md](docs/collab/main.md)).
-- **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments ([code_review.md](docs/collab/code_review.md)).
+**Super-TRD:** start with `tiferet-super-trd`, then the implementor, reviewer, or closer skill. The long form is [super_trd_workflow.md](docs/collab/super_trd_workflow.md).
 
-**Documentation skills** handle the docstring ↔ guide-doc convention:
+**Docs:** `tiferet-guide-docs`.
 
-- **`tiferet-guide-docs`** — what belongs in a docstring (vision-tier) vs. a `docs/guides/` entry (distillation-tier), the four genre-specific guide templates (`docs/guides/templates/`) and how to choose between them, and the anchor/`# >> see:` linking convention ([code_style.md § Annotation Artifacts](docs/core/code_style.md)).
+**Code style:** `tiferet-code-style` every session; `tiferet-code-architecture` when more than one component changes; then `tiferet-code-domain`, `events`, `mappers`, `interfaces`, `contexts`, `repos`, `assets`, `blueprints`, `utils`, `di`, `testing`.
 
-**Super-TRD skills** handle multi-child implementation workflows (XL+ issues decomposed into sequenced children). See [docs/collab/super_trd_workflow.md](docs/collab/super_trd_workflow.md) for the complete workflow reference.
+A global rule you can paste into your agent: [docs/collab/agent_rule.md](docs/collab/agent_rule.md).
 
-- **`tiferet-super-trd`** — dispatch skill; read first to self-identify your role via the state machine.
-- **`tiferet-super-trd-implementor`** — Starter and Implementor roles: branch creation, implementation, human-in-the-loop PR gate, review comment addressing.
-- **`tiferet-super-trd-reviewer`** — Reviewer role: AC-first verification of the combined PR, before-posting checklist, AC update authority.
-- **`tiferet-super-trd-closer`** — Closer role: address Reviewer findings, post Collaboration Report, rename parent TRD, verify automation.
+## Code style
 
-**Code style skills** (`tiferet-code-*`) handle implementation conventions — read `tiferet-code-style` at the start of every implementation session, then the component skill(s) for what you’re modifying:
+Artifact comments (`# ***`, `# **`, `# *`), RST docstrings, commented snippets, consistent spacing. The full guide is [docs/core/code_style.md](docs/core/code_style.md).
 
-- **`tiferet-code-architecture`** — layer graph, import rules, runtime flow; read for any multi-component task.
-- **`tiferet-code-style`** — artifact comment hierarchy, spacing, docstrings, annotation artifacts; read every session.
-- **`tiferet-code-domain`** — domain object conventions ([domain.md](docs/core/domain.md)).
-- **`tiferet-code-events`** — domain event conventions ([events.md](docs/core/events.md)).
-- **`tiferet-code-mappers`** — aggregate and transfer object conventions ([mappers.md](docs/core/mappers.md)).
-- **`tiferet-code-interfaces`** — service interface conventions ([interfaces.md](docs/core/interfaces.md)).
-- **`tiferet-code-contexts`** — context conventions ([contexts.md](docs/core/contexts.md)).
-- **`tiferet-code-repos`** — repository conventions ([repos.md](docs/core/repos.md)).
-- **`tiferet-code-assets`** — assets constants, errors, and exceptions ([assets.md](docs/core/assets.md)).
-- **`tiferet-code-blueprints`** — blueprint orchestration conventions ([blueprints.md](docs/core/blueprints.md)).
-- **`tiferet-code-utils`** — utility and infrastructure conventions ([utils.md](docs/core/utils.md)).
-- **`tiferet-code-di`** — DI layer conventions ([di.md](docs/core/di.md)).
-- **`tiferet-code-testing`** — test harness conventions ([testing.md](docs/core/testing.md)).
+## Reporting issues
 
-A ready-to-apply **global agent rule** is preserved at [docs/collab/agent_rule.md](docs/collab/agent_rule.md) — copy it into your agent's global/user rules to apply these standards across every Tiferet repo.
-
-Skills and AI rules treat `docs/collab/` and the [code style guides](docs/core/) as the **single source of truth** — they reference these documents rather than copying them. The skills' canonical copies live in [docs/collab/agents/skills/](docs/collab/agents/skills/); follow that folder's README to copy them into `~/.agents/skills/` (global) or a repo's `.agents/skills/` (project) so your agent auto-discovers them.
-
-## Code Style
-
-Tiferet enforces a structured code style across all modules. The essentials:
-
-- **Artifact comments** (`# ***`, `# **`, `# *`) organize code into predictable, machine-readable sections.
-- **RST docstrings** with `:param`, `:type`, `:return`, `:rtype` on all public methods.
-- **Commented code snippets** — each logical step is a separate snippet preceded by a descriptive comment.
-- **Consistent spacing** — one empty line between sections, comments, and code blocks.
-
-Full details: **[docs/core/code_style.md](docs/core/code_style.md)**
-
-## Reporting Issues
-
-When reporting bugs or requesting features:
-- Use the GitHub issue tracker.
-- Include a clear description, steps to reproduce (for bugs), and the expected vs. actual behavior.
-- Reference relevant files, configurations, or error messages where applicable.
+Use the GitHub issue tracker. Bugs need steps to reproduce and expected versus actual. RFPs need to follow [rfp.md](docs/collab/rfp.md).
 
 ## License
 
-By contributing to Tiferet, you agree that your contributions will be licensed under the [BSD 3-Clause License](LICENSE) that covers the project.
+Contributions are licensed under the [BSD 3-Clause License](LICENSE).

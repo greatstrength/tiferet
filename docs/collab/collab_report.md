@@ -1,95 +1,68 @@
-### Guide: How to Generate a Collaboration Summary Report (AI Agent Instructions)
+# Collaboration Report
 
-**Trigger Condition**  
-Generate this report **only** when the human explicitly confirms that the GitHub issue (story or subtask) is complete — for example, by stating “issue is completed”, “work is done”, “merged and ready”, or similar clear language. Do not generate it proactively.
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-**Objective**  
-Produce a concise, professional, structured summary documenting:  
-- The original story/TRD goal  
-- Key code components modified (with important implementation highlights)  
-- Any intentional deviations or clarifications from the TRD  
-- Current Git/branch state  
-- Chronological record of significant AI ↔ Human decisions
+This is the session diary, not the review. It always lives on an **issue**. [process.md](process.md) is the index if you are not sure which issue.
 
-**Required Format**  
-Use **pure Markdown** and follow this exact structure and heading levels:
+## When to write one
+
+| Kind | When | Where |
+|---|---|---|
+| Standalone trunk | the human says the work is done / merged | that issue |
+| Super-TRD child **implementation log** | the child's code has been pushed | the **child** issue |
+| Super-TRD child **verification addendum** | after combined review and merge, or the Reviewer accepts that child's AC | the same child issue |
+| Super-TRD parent roll-up | after merge | the **parent** issue |
+| Prototype / RFP | after the alpha lands | the **RFP** issue |
+
+Please do not post this as a PR conversation comment. The PR is already doing a different job.
+
+An implementation log is a record of what landed. It is not combined-review acceptance, and it is not permission to close the child as Done. Wait for the addendum — or for the Reviewer to accept that child's AC out loud.
+
+## The shape
 
 ```markdown
 # Collaboration Report: [Exact Story Title] (greatstrength/tiferet#[issue-number])
 
-**Project:** Tiferet Framework  
-**Repository:** https://github.com/greatstrength/tiferet  
-**Date:** [Current date — e.g., February 23, 2026]  
-**Version:** [Milestone version — e.g., 1.9.0. For RFP work, use "Request for Prototype".]
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
+**Date:** [a real calendar date — e.g., August 14, 2026]
+**Version:** [trunk milestone `2.0.1` | proto alpha `v2.0.0a17`]
+**Kind:** Implementation log | Verification addendum | Standalone | Parent roll-up | RFP alpha
 
-## 1. Story / TRD Summary
-- **Issue:** `[exact title]` (greatstrength/tiferet#[issue-number])
-- **Goal:** One concise sentence summarizing the purpose, followed by a bullet list of the core requirements from the TRD.
+## 1. Story summary
+- **Issue:** `[title]` (greatstrength/tiferet#[n])
+- **Authorizing document:** TRD path / freeze id, or RFP id
+- **Goal:** one sentence, then bullets of the core requirements
 
-## 2. Code Components Touched
-### 2.1 [Component Name or Domain Area]
-**File:** `path/to/file.py`  
-**Class / Artifact:** `ClassName` (if applicable)  
-**Implements / Changes:**
-- Bullet list of the most important methods, attributes, or behavioral changes
-- Use **bold** for method names and file paths
-- Include short, relevant inline code snippets only for critical logic
+## 2. Code components touched
+### 2.1 [Area]
+**File:** `path`  **Artifact:** `Name`
+**Changes:**
+- …
 
-(Repeat 2.1, 2.2, … for each major area touched. Group logically — avoid listing every file.)
+## 3. Deviations
+1. **Specified:** … **Implemented:** … **Rationale:** …
+(If nothing drifted: "No deviations were required.")
 
-## 3. Deviations / Clarifications vs TRD
-Numbered list of intentional differences (only include meaningful ones):
+## 4. Git / branch state
+- **Branch:**
+- **Pull Request:** #N – url
+- **Commits:** message (abcdef1)
+- **Current state:**
+For an RFP, also list the proto branch, the alpha tag, and the beta milestone.
+For reconstruction, also list the freeze id.
 
-1. **TRD expectation:** Brief quote or paraphrase from the TRD.
-   **Implemented behavior:** What was actually done.
-   **Rationale:** Why the change was made (e.g., better alignment with existing patterns, bug prevention, consistency, performance).
+## 5. Collaboration log (AI ↔ Human)
+1. **AI** – …
+2. **Human** – …
+3. **AI** – …
 
-(If no deviations occurred, state: “No deviations from the TRD were required.”)
-
-## 4. Git / Branch State
-- **Branch:** `feature/…` or `main` (include full name)
-- **Pull Request:** #NNN – [link to PR]
-- **Commits created in this work:**
-  1. `short commit message` (abcdef1) – [optional Co-Authored-By note]
-  2. …
-- **Current state:** pushed / merged / up-to-date with main / tagged, etc.
-
-**RFP-specific fields** (include when the report covers RFP stream work):
-- **Prototype worktree branch:** full branch name (e.g., `v2.0.0b6-dicontext-varargs`)
-- **Alpha tags:** list any alpha tags created on the worktree branch (e.g., `v2.0.0a11`, `v2.0.0a12`)
-- **Beta tag:** the final beta tag applied to the main prototype branch (e.g., `v2.0.0b6`)
-
-## 5. Collaboration Log (AI ↔ Human)
-Chronological numbered list of key decision points:
-
-1. **AI** – [brief description of proposal, code suggestion, or question]
-2. **Human** – [brief summary of feedback, approval, or clarification]
-3. **AI** – [how the response was adjusted or implemented]
-
-End the log with:  
-“This log captures the essential iterative collaboration between AI and human that produced the final implementation.”
-
-**Tone & Style Rules**
-- Professional, concise, factual, neutral
-- Prefer bullet points and numbered lists for readability
-- Include only short, high-signal code snippets (with file path comment when helpful)
-- Never include full files or large blocks of code
-- The Collaboration Log section is **mandatory** — even if short
-
-**Length**  
-Target 1–2 pages when rendered. Be thorough yet avoid unnecessary detail.
-
-**Output**  
-Return **only** the final Markdown report. No additional commentary, explanations, or chat text.
-
-**Delivery Destination**
-- Post as a comment on the originating GitHub issue once triggered.
-- If the issue is locked or comments restricted → post to the associated PR and include a cross-link to the issue.
-- If neither channel is available → return the report in chat and ask the human for preferred delivery method.
+End with: "This log captures the essential iterative collaboration between AI and human that produced the final implementation."
 ```
 
-### Process Conventions (for report generation)
-- Use exact calendar dates (e.g., February 23, 2026) — never relative terms like “today” or “yesterday”.
-- Include full PR link and short commit hashes (7 characters) in section 4.
-- When a release is part of the story, include links to the annotated tag and published GitHub release.
-- Keep the report focused on signal: prioritize decisions, changes, and rationale over exhaustive lists.
+A verification addendum can be short: which AC passed, which AC the Reviewer amended, anything still open. A parent roll-up should *link* each child's log and addendum rather than rewriting section 5 for every child. Nobody wants to read the same argument three times.
+
+## Voice
+
+Professional and factual, but it can sound like a person wrote it. Use a real calendar date. Keep snippets short. The collaboration log is mandatory even when it is only a few lines. Aim for a page or two on a full report; an addendum may be a paragraph. When you post, post the report — not a preamble about the report.

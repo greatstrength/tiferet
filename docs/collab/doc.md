@@ -1,36 +1,38 @@
-# Doc — Documentation Updates Stream
+# Doc — Documentation and Skills
 
-**Project:** Tiferet Framework  
+**Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-## Purpose
+[process.md](process.md) is the index. This page is the lightest of the three strands: you are changing the words we use to work, not the software those words describe.
 
-The Doc stream is for standalone documentation changes — guides, style docs, collaboration docs, README updates, tutorials, and similar content — that are not tied to a milestone or release. It is the simplest of the three contribution streams.
+## What belongs here
 
-## Branch Conventions
+Standalone documentation and agent-skill changes — collaboration guides, style docs, the README, tutorials, the committed skills in `.agents/skills/`. Not a reconstruction. Not a hotfix.
 
-Documentation branches are created from `main`:
+**You do not need a TRD.** You do not need a milestone or a release. The pull request *is* the authorizing document. Write the title and body in the language of this process — trunk, prototype, catalog, freeze, RFP, TRD, issue versus PR — so someone six months from now can tell what you did without a specification sitting next to it.
 
-- Format: `docs-<lowercase-hyphenated-context>`
-- Examples: `docs-contribution-streams`, `docs-toml-guide`, `docs-tutorial-cli`
+An issue is optional. Open one if the discussion needs a place to live before there is a PR. Otherwise the PR is enough.
 
-## Version Field
+## The branch
 
-When documentation references a version (e.g., in a TRD header or guide metadata), use the **latest released version** of the project to match surrounding files, unless the user specifies a different version.
+From `main`: `docs-<lowercase-hyphenated-context>`.
 
-## Workflow
+`docs-process-collab-and-agents-skills` and `docs-contribution-streams` are the idea.
 
-1. **Create branch** from `main`: `docs-<context>`.
-2. **Author** and commit the documentation changes.
-3. **Submit PR** targeting `main` with the title format: `Docs – <Capitalized Semantic Title>` (e.g., `Docs – Contribution Stream Guidelines`). Return the PR URL to the user.
-4. **PR review** follows the same process as the Main stream: if comments are received, address them and re-push.
-5. The user **squash-merges** the PR.
-6. **Local cleanup:** pull latest from `main` and delete the local docs branch.
+## The loop
 
-## Guide-Doc Changes
+1. Cut the branch from `main`.
+2. Write the docs or skills. New or rewritten skills follow [agents/SKILL_TEMPLATE.md](agents/SKILL_TEMPLATE.md). Skills stay terse; these guides may take a breath.
+3. Open a PR targeting `main`. Title it `Docs – <Capitalized Semantic Title>`.
+4. Review comments that point at a diff stay on the PR. If you did open an issue, session notes and any Collaboration Report go there.
+5. After the squash-merge, pull `main` and delete the local branch.
 
-When a documentation change adds or updates a `docs/guides/**/*.md` entry, start from the matching genre template in [docs/guides/templates/](../guides/templates/) rather than authoring from scratch or copying a sibling guide. See the **`tiferet-guide-docs`** skill for the docstring (vision-tier) vs. guide-doc (distillation-tier) convention, how to pick among the four templates, and the `# >> see:` / anchor linking rules.
+## Guide-doc changes
 
-## No Milestone or Release
+If you are adding or updating something under `docs/guides/`, start from the matching genre template in [docs/guides/templates/](../guides/templates/) rather than inventing a sibling from memory. The **`tiferet-guide-docs`** skill is the short version of that advice.
 
-Doc stream changes do not require a milestone, release tag, or GitHub Release. They are merged directly into `main` via pull request.
+## Distillation on proto is not this stream
+
+When an RFP settles a decision and you fold it into the distillation **on the prototype branch**, that is prototype work. It rides with the RFP, not with a Doc PR on trunk.
+
+Bringing that distillation onto trunk happens after a catalog freeze — either as a Doc PR, or as part of the reconstruction milestone. Either way, do not introduce proto vocabulary on trunk that the freeze did not name. Trunk should not have to guess.

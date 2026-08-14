@@ -5,7 +5,7 @@
 
 ## Purpose
 
-This document defines the canonical GitHub Project field set used across all Tiferet-related projects (`greatstrength/tiferet`, `tiferet-*`, `Tiferet.*`). It complements the Status states and project assignment in [main.md](main.md) and the field/option IDs and example commands in [commands.md](commands.md). The goal is a single, consistent triage model — Priority, Size, story points, and dates — that an agent or human can apply identically on every project.
+This document defines the canonical GitHub Project field set used across Tiferet-family projects. Status and assignment follow [main.md](main.md) (trunk) and [rfp.md](rfp.md) (prototype). Field/option **ids** live in [binding.md](binding.md); example commands in [commands.md](commands.md). The goal is a single, consistent triage model — Priority, Size, story points, and dates — that an agent or human can apply identically on every project.
 
 ## Field Set
 
@@ -31,8 +31,8 @@ Status tracks each issue through its lifecycle. Transitions are driven by branch
 
 1. **Ready** — issue created and ready to implement. Set **Priority**, **Size**, and **Estimate** at creation.
 2. **In progress** — work has started / the feature branch is cut. Set the **Start date**.
-3. **In review** — the PR is opened (targeting `main`). If review comments arrive, move back to **In progress**, address them, then return to **In review**.
-4. **Done** — the PR is merged. Set the **End date** and **close the issue**.
+3. **In review** — the PR is opened (trunk → `main`, proto → proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
+4. **Done** — the PR is merged **and** the Collaboration Report (standalone / RFP) or verification addendum (Super-TRD child) is posted. Set the **End date** and close the issue.
 
 In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged → **Done** + issue closed. **Backlog** is available but not used for new issues — blocked-by relationships communicate dependency ordering without reflecting it in Status.
 
@@ -85,8 +85,17 @@ Together these give per-issue and per-milestone cycle time; the automatic **Crea
 ## Cross-Project Standardization
 
 1. **Same field set everywhere.** Field names, types, option sets, semantics, and the Size→points map above are identical across all Tiferet projects.
-2. **IDs are per-project.** Field and option node IDs are unique to each GitHub Project, so automation must resolve them at runtime via `gh project field-list <number> --owner <org> --format json`. Known IDs are recorded in [commands.md](commands.md).
-3. **Bootstrapping a new project.** Create the same fields on a fresh project: single-selects for Status, Priority, and Size; a number field for Estimate; and two date fields (Start date, End date). Leave Iteration unused. Then record the resolved IDs in [commands.md](commands.md).
+2. **IDs are per-project.** Resolve them with `gh project field-list <number> --owner <org> --format json` and record them in that repo's [binding.md](binding.md).
+3. **Bootstrapping a new project.** Same field set: Status, Priority, Size, Estimate, Start date, End date. Leave Iteration unused. Record ids in that repo's `docs/collab/binding.md`.
+
+## Milestones vs fields
+
+GitHub Milestone is the scope boundary. Two title shapes ([process.md](process.md)):
+
+- Prototype drafting round: `vX.Y.0bN`
+- Trunk release: `vX.Y.Z`
+
+Priority, Size, and Estimate apply to issues on both strands. Reconstruction issues also cite a freeze id in the TRD; that is not a project field.
 
 ## Worked Example — Milestone 1 (#28)
 

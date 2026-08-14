@@ -1,92 +1,41 @@
-# Code Review — Agent-Assisted PR Review
+# Code Review
 
-**Project:** Tiferet Framework  
+**Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-## Purpose
+[process.md](process.md) is the index. A pull request is where we argue about the diff. An issue is where we remember the session. Mixing those two jobs makes both worse.
 
-The Code Review process uses an AI agent to review an open pull request by comparing the contents of its feature branch against a prototype **"source of truth"** branch, then posting only the **actionable** discrepancies back to the PR as review comments. It complements — it does not replace — human review: the agent performs the mechanical, exhaustive file-by-file comparison and drafts precise, well-placed comments for a human to act on and merge.
+## Two kinds of review
 
-This process emerged from parity work, where a feature branch is meant to bring `main` (or another base) into line with a prototype branch (e.g., `v2.0-proto`). The agent's job is to find where the branch and the source of truth disagree **in ways that need action** — and to ignore the differences that don't.
+### A prototype PR (an RFP)
 
-## When to Use
+Read the RFP. Review the proposal, the acceptance criteria, and the distillation sections it cites. Do not review it against trunk. Do not ask the author to make proto look like `main`. That is the opposite of what this strand is for.
 
-Use this process when:
+### A trunk PR (reconstruction or hotfix)
 
-- A PR claims to bring a branch toward parity with a prototype/source-of-truth branch, and you want to verify that claim file by file.
-- You want a thorough, line-anchored review of a PR against a known-good reference.
-- A human asks an agent to "review PR #N against `<prototype>`" or to "compare the branch to the source of truth and comment."
+The first question is always the TRD's acceptance criteria — each child TRD, if this is a Super-TRD.
 
-If there is **no** prototype source of truth to compare against, say so explicitly and fall back to a standard diff-against-base review — the comparative method below does not apply.
+For reconstruction you *may* open proto, but only for artifacts the freeze and the TRD actually named. You are measuring, not merging. "Make trunk match proto" is almost never the right comment. If trunk is ahead — a later name, a cleaner shape — keep trunk and say so once.
 
-## Inputs
+A hotfix is reviewed against the hotfix TRD. Proto does not get a vote.
 
-Before starting, establish:
+A Doc or skills PR has no TRD and no RFP. Review the diff against the intent in the PR and the vocabulary in [process.md](process.md).
 
-- The **PR number** and its **head (feature) branch** and **base branch** (`gh pr view <n> --json number,headRefName,baseRefName,files`).
-- The **source-of-truth branch**, if one exists (e.g., `v2.0-proto`). Fetch it so the comparison uses the latest: `git fetch origin <source-of-truth>`.
-- The **files changed** in the PR — these scope the comparison.
+## How to leave a diff comment
 
-## Method
+1. `gh pr view <n> --json number,headRefName,baseRefName,files` so you know what you are looking at.
+2. Reconstruction measurement only: `git fetch origin <proto>` using the branch in [binding.md](binding.md), then `git diff origin/<proto>..HEAD -- <path>` restricted to AC-named artifacts.
+3. Sort what you see:
+   - **AC fail** — say so.
+   - **Behind proto on a named artifact** — only a finding if it is also an AC fail, or the freeze named that artifact.
+   - **Ahead** — note it once, do not ask anyone to revert it.
+   - **Out of scope** — leave it alone.
+4. A comment about a line goes on that line, and the line has to be in the PR diff. A comment about a missing file or a whole package goes in the review body.
+5. Tell the human what you found and wait for a go-ahead before you post anything to GitHub.
+6. One consolidated review via the reviews API (`path` + `position`, not `line`). The review body gets the findings summary and `Co-Authored-By: Oz <oz-agent@warp.dev>`. On a Super-TRD, the conversation link belongs on the **parent issue**, not as extra PR chatter.
 
-### 1. Compare each changed file against the source of truth
-
-For every file the PR touches, diff the feature branch against the source of truth:
-
-```bash
-git diff origin/<source-of-truth>..HEAD -- <path>
-```
-
-Confirm the **direction** of every difference before drawing conclusions (`-` lines are the source of truth, `+` lines are the feature branch). When a diff is ambiguous, read the actual file on both sides — do not infer naming or intent from the diff alone. Account for files that moved (e.g., relocated tests): map each PR file to its counterpart on the source of truth even when the path differs.
-
-### 2. Classify every discrepancy
-
-Sort each difference into one of:
-
-- **Behind** — the branch is missing a change the source of truth has. Actionable: align the branch.
-- **Ahead** — the branch is *more* correct than the source of truth (e.g., a later naming decision). Do **not** revert it; instead flag the source of truth as the thing to reconcile.
-- **Out of scope** — a real difference that belongs to other work and is already acknowledged in the PR description. Do **not** comment on these; they are noise.
-
-Only **Behind** and **Ahead** items are actionable. Everything else is excluded.
-
-### 3. Place comments by granularity
-
-- **Line-specific** discrepancies (a wrong description, a stale docstring, an assertion style, a renamed symbol) → **inline review comments** anchored to the exact file and line.
-- **Global / structural** discrepancies (adding or removing an entire file, package-level export structure, a missing or extra `__init__.py` / `conftest.py`, anything not tied to a single line) → the **global PR review body**.
-
-Inline comments must anchor to a line that is part of the PR's diff against its base. If the relevant line was **not** changed by the PR (so it falls outside the diff), anchor to the nearest changed line and name the exact line in the comment text, or move the item to the global body.
-
-### 4. Post one consolidated review
-
-Submit a single review so the comments arrive together. Use the GitHub reviews API with the PR head commit and an array of inline comments plus the global body:
-
-```bash
-gh api --method POST /repos/greatstrength/tiferet/pulls/<n>/reviews --input review.json
-```
-
-`review.json` contains `commit_id` (the PR head OID), `event: "COMMENT"`, a `body` (the global/structural items), and a `comments[]` array where each entry has `path`, `line`, `side` (usually `"RIGHT"`), and `body`. See [commands.md](commands.md) for the surrounding `gh` operations.
-
-## What Counts as Actionable
-
-Comment on differences that change behavior, correctness, public API, naming consistency, or test integrity — for example:
-
-- Stale or inconsistent naming left behind by an incomplete rename.
-- Docstrings or field descriptions that disagree with the source of truth.
-- Test assertions or structure that diverge from the reference in a way that changes what is verified.
-- Duplicated, missing, or shadowed tests.
-- Export lists or package markers that change the importable surface.
-
-Do **not** comment on:
-
-- Differences the PR description already declares out of scope.
-- Pure formatting that already matches the project's [code style](../core/code_style.md).
-- Cases where the branch is correct and the difference is the source of truth being stale — except to note, once, that the source of truth should be reconciled.
+Do not put implementor session notes, conversation-only logs, or Collaboration Reports on the PR. That is what the issue is for.
 
 ## Guardrails
 
-- **Actionable only.** A noisy review is worse than a short one. Exclude acknowledged, out-of-scope differences.
-- **Respect "ahead" branches.** Never recommend reverting a branch that is more correct than the source of truth; flag the reference instead.
-- **Verify before claiming.** When a finding hinges on behavior (imports, test resolution, identity), confirm it in the code rather than asserting it.
-- **Place comments correctly.** Line items inline; structural and whole-file items in the PR body.
-- **Attribution.** When an AI agent authors the review, include a `Co-Authored-By:` line in the review body.
-- **Never commit or merge** as part of a review unless explicitly asked — a review only comments.
+A short, accurate review is kinder than a long one. Never recommend proto → trunk git. Never recommend reverting trunk that is ahead of proto. Check the code before you claim a behavior. Never commit or merge as part of a review.
