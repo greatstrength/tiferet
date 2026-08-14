@@ -71,6 +71,9 @@ ERROR_REMOVE_CLI_CMD_ID = 'error.remove'
 # ** constant: feature_list_cli_cmd_id
 FEATURE_LIST_CLI_CMD_ID = 'feature.list'
 
+# ** constant: feature_get_cli_cmd_id
+FEATURE_GET_CLI_CMD_ID = 'feature.get'
+
 # ** constant: feature_add_cli_cmd_id
 FEATURE_ADD_CLI_CMD_ID = 'feature.add'
 
@@ -503,6 +506,20 @@ FEATURE_LIST_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
         create_default_cli_argument(
             name_or_flags=['--group-id'],
             description='Optional group identifier to filter results.',
+        ),
+    ],
+)
+
+# ** constant: feature_get_cli_cmd_data
+FEATURE_GET_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
+    key='get',
+    group_key='feature',
+    name='Get Feature',
+    description='Retrieve a feature by ID.',
+    arguments=[
+        create_default_cli_argument(
+            name_or_flags=['id'],
+            description='The feature identifier (e.g. calc.add).',
         ),
     ],
 )
@@ -1006,6 +1023,7 @@ ADMIN_DEFAULT_COMMANDS: Dict[str, Dict[str, Any]] = {
     ERROR_REMOVE_MESSAGE_CLI_CMD_ID: ERROR_REMOVE_MESSAGE_CLI_CMD_DATA,
     ERROR_REMOVE_CLI_CMD_ID: ERROR_REMOVE_CLI_CMD_DATA,
     FEATURE_LIST_CLI_CMD_ID: FEATURE_LIST_CLI_CMD_DATA,
+    FEATURE_GET_CLI_CMD_ID: FEATURE_GET_CLI_CMD_DATA,
     FEATURE_ADD_CLI_CMD_ID: FEATURE_ADD_CLI_CMD_DATA,
     FEATURE_UPDATE_CLI_CMD_ID: FEATURE_UPDATE_CLI_CMD_DATA,
     FEATURE_ADD_STEP_CLI_CMD_ID: FEATURE_ADD_STEP_CLI_CMD_DATA,
