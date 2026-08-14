@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict
 from .. import assets as a
 from ..assets import TiferetAPIError, TiferetError
 from ..contexts.app import (
+    AppServiceDependency,
     AppSession,
     AppSessionContext,
     add_default_app_constants,
@@ -21,18 +22,18 @@ from ..contexts.app import (
 )
 from ..contexts.cache import CacheContext
 from ..contexts.core import BaseContext
-from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX
-from ..contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
+from ..contexts.error import Error, add_default_errors, ERROR_CACHE_PREFIX
+from ..contexts.feature import Feature, FeatureContext, FEATURE_CACHE_PREFIX
 from ..contexts.logging import (
     LOGGER_CACHE_PREFIX,
     LoggingContext,
+    LoggingSettings,
     add_default_logging_settings,
     get_default_logging_settings,
 )
 from ..contexts.request import RequestContext
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver, injectable_parameter_names
-from ..domain import Error, Feature, LoggingSettings, ServiceDependency
 
 # *** constants
 
@@ -416,7 +417,8 @@ def create_app_service(module_path: str,
 
     # Build a function-scoped container describing the single app service.
     container = service_container(services={
-        'app_service': ServiceDependency(
+        'app_service': AppServiceDependency(
+            service_id='app_service',
             module_path=module_path,
             class_name=class_name,
             parameters=parameters,
