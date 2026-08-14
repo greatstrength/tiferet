@@ -164,7 +164,7 @@ Full grammar and resolution expectations: [`docs/core/code_style.md § Annotatio
 
 ### Code Style Skills
 
-The `tiferet-code-*` skill suite provides self-contained, offline-capable style guidance for each component layer. Skills embed key conventions and a working example — no external URLs required. Install them from `docs/collab/agents/skills/` (see that folder's README for activation instructions).
+The `tiferet-code-*` skill suite provides self-contained, offline-capable style guidance for each component layer. Skills embed key conventions and a working example — no external URLs required. They are committed at `.agents/skills/` and auto-discovered in this repo.
 
 **Read `tiferet-code-style` at the start of every implementation session** (same standing as `tiferet-annotation-artifacts`). **Read `tiferet-code-architecture` before any multi-component implementation.**
 
@@ -535,11 +535,10 @@ The v2.0.0b1 release completed the migration from `schematics` to Pydantic v2. K
 
 ## Contributing
 
-See `CONTRIBUTING.md` for the full workflow:
+See `CONTRIBUTING.md` and `docs/collab/process.md` for the full workflow:
 
-1. Tie work to a GitHub issue.
-2. Write a TRD (Technical Requirements Document) for non-trivial changes.
-3. Implement following structured code style and component-specific guides in `docs/core/`.
-4. Separate functional changes from docs/config in distinct commits.
-5. Include `Co-Authored-By:` lines when collaborating with AI agents.
-6. Publish a Collaboration Report on the issue upon completion.
+1. Prototype work is an RFP on the proto branch. Trunk reconstruction is a TRD that cites a catalog freeze. Hotfixes are trunk TRDs. Docs/skills PRs need no TRD.
+2. Implement following structured code style and the `tiferet-code-*` skills in `.agents/skills/` (fallback: `docs/core/`).
+3. Separate functional changes from docs/config in distinct commits.
+4. Include `Co-Authored-By:` lines when collaborating with AI agents.
+5. Publish a Collaboration Report on the **issue** (not the PR) when the work completes.

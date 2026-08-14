@@ -1,98 +1,89 @@
-# RFP — Request for Prototype
+# RFP — Prototype Strand
 
-**Project:** Tiferet Framework  
+**Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
+
+The process index is [process.md](process.md). This file is only the prototype strand.
 
 ## Purpose
 
-The RFP (Request for Prototype) stream is used for exploratory, experimental, or architectural work that is developed on a prototype branch before being promoted to a stable release. RFPs allow new ideas and significant refactors to be iterated on in isolation, with incremental alpha releases tracking progress and a beta release marking completion.
+An RFP (Request for Prototype) tests a domain theory on the long-lived prototype branch. It settles vocabulary against the distillation, lands as an **alpha** on proto, and leaves a Suggested TRD slicing list for a later **catalog freeze**. It is not a sloppy TRD and it is not a way to ship trunk.
 
-An RFP may originate from a submitted GitHub issue (**external RFP**) or be initiated internally by a maintainer or AI agent without a prior issue (**internal RFP**).
+A public contributor or a maintainer may submit an RFP. Drive-by code against proto with no RFP is out of process.
 
-## TRD Version Field
+No TRD is required to implement on proto.
 
-When a TRD is written for an RFP, the **Version** field must be set to:
+## Preconditions
+
+- A domain vision and core-domain distillation exist on trunk (or are being updated in the same proto work when the RFP amends them). RFPs cite numbered distillation sections.
+- The repo's [binding.md](binding.md) names the proto branch and the RFP id prefix.
+
+## Identifier
 
 ```
-Version: Request for Prototype
+<PREFIX><major>-RFP-<nnn>
 ```
 
-Do not use the target release version. The actual version is determined during the tagging process.
+Examples: `TLY1-RFP-001`, `TIF2-RFP-001`. Prefix and major come from [binding.md](binding.md). Numbers are sequential per prefix and do not reset between betas.
 
-## Branch Conventions
+Issue title: `RFP-00N — <Plain Title>`.
 
-### Main Prototype Branch
+## Document genre
 
-Each major version line maintains a long-lived prototype branch:
+Local source: gitignored `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.md`.
+Public copy: the GitHub issue body (same markdown).
 
-- Format: `v<major>.<minor>-proto`
-- Examples: `v0.1-proto`, `v1.0-proto`, `v2.0-proto`
+### Header
 
-This branch serves as the integration target for all prototype worktree branches within that version line.
+```markdown
+# TIF2-RFP-001 — <Plain Title>
 
-### Prototype Worktree Branch
-
-For each RFP, a short-lived worktree branch is created from the main prototype branch:
-
-- Format: `v<major>.<minor>.<patch>b<next_beta>-<context>`
-- Examples: `v2.0.0b6-dicontext-varargs`, `v1.0.0b2-mappers-refactor`
-- The `<context>` portion is lowercase and hyphen-separated.
-
-The worktree branch is created from and targets the main prototype branch.
-
-## Versioning and Tagging Rules
-
-### Beta Tags
-
-A beta tag is applied to the **main prototype branch** after the worktree branch is rebased into it. The tag marks the completion of the RFP.
-
-- Format: `v<major>.<minor>.<patch>b<N>` (e.g., `v2.0.0b6`)
-- The tag description contains condensed release notes summarizing the work.
-
-### Alpha Tags
-
-When a prototype worktree branch requires more than one commit, each commit is tagged with an incremental alpha release on the worktree branch itself.
-
-- Format: `v<major>.<minor>.<patch>a<N>` (e.g., `v2.0.0a11`, `v2.0.0a12`)
-- Each alpha tag includes a detailed description of the specific work in that commit (a "mini-release doc").
-
-### Alpha Increment Rules
-
-The alpha counter is **global** to the `<major>.<minor>.<patch>` version and does **not** reset between betas.
-
-**Example:** If `v1.0.0b1` consumed alphas `a1`–`a4`, then a new worktree branch for `v1.0.0b2` starts its first alpha at `a5` (not `a1`).
-
-The alpha and beta counters **reset to 1** only when the major or minor version changes (e.g., moving from `v1.0.x` to `v1.1.x` or `v2.0.x`).
-
-### Discovering the Next Version
-
-To determine the next alpha or beta increment, query existing tags:
-
-```bash
-# Find the latest alpha for v2.0.0
-git tag --list 'v2.0.0a*' --sort=-version:refname | head -1
-
-# Find the latest beta for v2.0.0
-git tag --list 'v2.0.0b*' --sort=-version:refname | head -1
+**Status:** Draft | Amended | Frozen for reconstruction · **Domain:** `tiferet` ·
+**Branch:** `v2.x-proto` · **Issue:** #N
+**Related:** `docs/…` §… ; skill names as needed
+**Depends on:** none | RFP-00N (amended) — one-line reason
+**Blocks:** RFP-00N — one-line reason
 ```
 
-## External RFP Workflow (Issue-Driven)
+### Body sections (in this order)
 
-When an RFP originates from a GitHub issue:
+1. **Amendment note** — only when Status is Amended. What changed, what survived, why the same issue.
+2. **Summary** — the shape being settled, in ubiquitous language.
+3. **Motivation** — why this RFP exists now; which downstream RFPs read this shape.
+4. **Current state** — what proto (or trunk) actually has, plus concrete precedents.
+5. **Proposal** — numbered design items. Resolve questions here. Name rejected alternatives.
+6. **Out of scope** — named and assigned to a later RFP or explicitly deferred.
+7. **Risks and open questions** — mark each **resolved** or still open. Do not leave a resolved item looking open.
+8. **Acceptance criteria** — binary assertions a proto implementor and reviewer can check without taste.
+9. **Suggested TRD slicing** — reconstruction debt. Re-read this list at freeze time; do not treat the first draft as the trunk backlog.
 
-1. **Create worktree branch** from the main prototype branch and link it to the originating GitHub issue.
-2. **Implement** the changes. If multiple commits are needed, tag each with an incremental alpha release.
-3. **Submit PR** against the main prototype branch. Return the PR URL to the user.
-4. After PR approval, **rebase-merge** the worktree branch into the main prototype branch.
-5. **Delete** the worktree branch (both local and remote).
-6. **Tag** the beta release on the main prototype branch with condensed release notes.
+Amendments happen **in place** on the same issue. The superseded alpha tag remains a historical record.
 
-## Internal RFP Workflow (No Submitted Issue)
+## Versioning on this strand
 
-When an RFP is initiated internally (no prior GitHub issue):
+- A drafting round for a major.minor **creates** GitHub milestone `vX.Y.0bN` when the RFPs exist, not when the last one has shipped.
+- Later drafts of the same line (bugs, refactors, missed features) are `b2`…`bN`. Multiple betas are expected.
+- Each landed RFP (or amended re-implementation) is the next **alpha** tag / package version on proto: `vX.Y.0aN`. Alphas do not reset between betas of the same major.minor.
+- `bN` is prototype-only going forward. Trunk releases are `vX.Y.Z`.
 
-1. **Create worktree branch** from the main prototype branch.
-2. **Implement** the changes, tagging alpha releases per commit if multi-commit.
-3. **Rebase** the worktree branch directly into the main prototype branch (no PR).
-4. **Delete** the worktree branch (both local and remote).
-5. **Tag** the beta release on the main prototype branch with condensed release notes.
+Discover the next alpha with `git tag --list 'vX.Y.0a*' --sort=-version:refname`. The next beta milestone is the next unused `bN` on that major.minor, independent of historical trunk tags that reused the `bN` shape.
+
+## Implementation on proto
+
+1. Publish the RFP as a GitHub issue. Assign it to the open beta milestone.
+2. Cut `vX.Y.0bN-<kebab-context>` from the proto branch in [binding.md](binding.md). PR targets proto.
+3. Implement against the RFP proposal and AC (and cited distillation sections). Review is against those, not against trunk.
+4. PR title: `vX.Y.0aN — <Plain Title> (RFP-00N)`.
+5. After squash-merge: bump the package version to that alpha, tag it, post a Collaboration Report on the **RFP issue** (cite RFP id, alpha tag, beta milestone). Session notes also go on the issue. The PR stays a review surface.
+
+Suggested TRD slicing is not a gate. Reconstruction waits for a [catalog freeze](process.md#catalog-freeze).
+
+## Freeze and thaw
+
+See [process.md](process.md). A freeze note on this issue sets Status to `Frozen for reconstruction` and records a freeze id plus refreshed slicing. A later shape amendment thaws that freeze.
+
+## What this strand does not do
+
+- Does not merge, rebase, or cherry-pick proto onto trunk.
+- Does not require Super-TRD child issues. Implement the RFP. If a single RFP is itself XL with a seam, split it into more RFPs rather than inventing a proto Super-TRD by default.
+- Does not invent "internal RFPs" with no issue. Every RFP is an issue.
