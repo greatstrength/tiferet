@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import os
 from typing import Any, Callable, Dict
 
 # ** app
@@ -32,7 +33,6 @@ from ..contexts.request import RequestContext
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver, injectable_parameter_names
 from ..domain import Error, Feature, LoggingSettings, ServiceDependency
-from ..events import ParseParameter
 
 # *** constants
 
@@ -130,19 +130,42 @@ def merge_logging_settings(cache: CacheContext,
 # ** blueprint: parse_parameter
 def parse_parameter(parameter: Any) -> Any:
     '''
-    Thin, injectable wrapper over the ParseParameter static event.
+    Parse a configuration parameter value, resolving environment references.
 
-    Passed as the injected parameter-parser to DIDynamicServiceResolver so the
-    DI layer never imports from the events layer directly.
+    Resolves ``$env.``-prefixed values from the process environment and returns
+    any other value unchanged. Parameter parsing is owned by the blueprint layer
+    and injected into both the DI resolver and FeatureContext.
 
-    :param parameter: The parameter to parse.
+    :param parameter: The parameter value to parse.
     :type parameter: Any
-    :return: The parsed parameter.
+    :return: The parsed parameter value.
     :rtype: Any
     '''
 
-    # Delegate to the static parse parameter event.
-    return ParseParameter.execute(parameter)
+    # Resolve the parameter, wrapping any failure in a structured error.
+    try:
+
+        # Resolve an environment reference from the process environment.
+        if isinstance(parameter, str) and parameter.startswith(a.core.ENV_VAR_PREFIX):
+            result = os.getenv(parameter[len(a.core.ENV_VAR_PREFIX):])
+
+            # Treat an unset or empty environment variable as a failure.
+            if not result:
+                raise Exception('Environment variable not found.')
+
+            # Return the resolved environment value.
+            return result
+
+        # Return any non-environment parameter unchanged.
+        return parameter
+
+    # Raise a structured error when parsing fails.
+    except Exception as e:
+        TiferetError.raise_error(
+            a.error.PARAMETER_PARSING_FAILED_ID,
+            parameter=parameter,
+            exception=str(e),
+        )
 
 # ** blueprint: build_app_service_container
 def build_app_service_container(cache,
@@ -485,7 +508,12 @@ def create_feature_context(get_dependency: Callable,
     feature = get_feature(cache, get_dependency)(feature_id)
 
     # Construct and return the feature context bound to the resolved feature.
-    return FeatureContext.from_domain(feature, get_dependency=get_dependency, cache=cache)
+    return FeatureContext.from_domain(
+        feature,
+        get_dependency=get_dependency,
+        cache=cache,
+        parse_parameter=parse_parameter,
+    )
 
 # ** blueprint: create_session_request
 def create_session_request(interface_id: str,

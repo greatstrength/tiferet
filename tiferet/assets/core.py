@@ -48,6 +48,14 @@ CLI_DOMAIN_PATH = 'cli'
 # ** constant: core_domain_path
 CORE_DOMAIN_PATH = 'core'
 
+# *** constants (parameter_prefixes)
+
+# ** constant: env_var_prefix
+ENV_VAR_PREFIX = '$env.'
+
+# ** constant: request_ref_prefix
+REQUEST_REF_PREFIX = '$r.'
+
 # *** functions
 
 # ** function: create_default_error_data

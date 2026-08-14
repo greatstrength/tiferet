@@ -16,11 +16,11 @@ from ..assets.error import (
     FEATURE_STEP_LOADING_FAILED_ID,
     MIDDLEWARE_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
-    PARAMETER_NOT_FOUND_ID
+    PARAMETER_NOT_FOUND_ID,
 )
+from ..assets.core import REQUEST_REF_PREFIX
 from ..events import (
     DomainEvent,
-    ParseParameter,
     TiferetError,
 )
 from ..domain import Feature, EventFeatureStep
@@ -275,9 +275,10 @@ def parse_request_parameter(parameter: str, request: RequestContext = None) -> s
     :rtype: str
     '''
 
-    # Delegate non-prefixed parameters to the ParseParameter static event.
-    if not parameter.startswith('$r.'):
-        return ParseParameter.execute(parameter)
+    # Delegate non-$r. parameters to the injected parser (or identity if not overridden).
+    if not isinstance(parameter, str) or not parameter.startswith(REQUEST_REF_PREFIX):
+        # For backwards-compat in any direct calls, fall back to identity for non-$r.
+        return parameter
 
     # Raise an error if the request is not provided for a request-backed parameter.
     if not request:
@@ -288,7 +289,7 @@ def parse_request_parameter(parameter: str, request: RequestContext = None) -> s
         )
 
     # Extract the value from the request data using the key after the $r. prefix.
-    result = request.data.get(parameter[3:], None)
+    result = request.data.get(parameter[len(REQUEST_REF_PREFIX):], None)
 
     # Raise an error if the parameter key is not found in the request data.
     if result is None:
@@ -396,11 +397,15 @@ class FeatureContext(BaseContext):
     # * attribute: context_data
     context_data: Dict[str, Any]
 
+    # * attribute: parse_parameter
+    parse_parameter: Callable
+
     # * init
     def __init__(self,
             get_dependency: Callable,
             cache: CacheContext = None,
-            context_data: Dict[str, Any] = None):
+            context_data: Dict[str, Any] = None,
+            parse_parameter: Callable = None):
         '''
         Initialize the feature context.
 
@@ -412,11 +417,13 @@ class FeatureContext(BaseContext):
         :param context_data: Lowest-priority context defaults merged into every
             command execution.
         :type context_data: Dict[str, Any]
+        :param parse_parameter: Callable used to parse non-$r. parameters.
+            Defaults to the identity function.
+        :type parse_parameter: Callable
         '''
 
         # Initialize the base context.
         super().__init__()
-
         # Wire in the shared cache context, defaulting to a fresh one.
         self.cache = cache if cache is not None else CacheContext()
 
@@ -425,6 +432,9 @@ class FeatureContext(BaseContext):
 
         # Store the context-level execution defaults.
         self.context_data = context_data if context_data is not None else {}
+
+        # Store the parameter parser (identity by default).
+        self.parse_parameter = parse_parameter if parse_parameter is not None else (lambda parameter: parameter)
 
     # * method: resolve_step_event
     def resolve_step_event(self, step: EventFeatureStep, feature_flags: List[str] = None) -> DomainEvent:
@@ -461,6 +471,50 @@ class FeatureContext(BaseContext):
                 service_id=service_id,
                 exception=str(e)
             )
+
+    # * method: parse_request_parameter
+    def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
+        '''
+        Parse a request-aware parameter value.
+
+        Delegates non-$r. parameters to the injected ``parse_parameter`` callable.
+        For ``$r.``-prefixed references, extracts the value keyed by the suffix
+        from ``request.data``, raising a structured error when the request is
+        absent or the key is missing.
+
+        :param parameter: The parameter value to parse.
+        :type parameter: str
+        :param request: The request context object containing data for parameter parsing.
+        :type request: RequestContext
+        :return: The parsed parameter value.
+        :rtype: str
+        '''
+
+        # Delegate non-$r. parameters to the injected parser.
+        if not isinstance(parameter, str) or not parameter.startswith(REQUEST_REF_PREFIX):
+            return self.parse_parameter(parameter)
+
+        # Raise an error if the request is not provided for a request-backed parameter.
+        if not request:
+            TiferetError.raise_error(
+                REQUEST_NOT_FOUND_ID,
+                'Request data is not available for parameter parsing.',
+                parameter=parameter
+            )
+
+        # Extract the value from the request data using the key after the $r. prefix.
+        result = request.data.get(parameter[len(REQUEST_REF_PREFIX):], None)
+
+        # Raise an error if the parameter key is not found in the request data.
+        if result is None:
+            TiferetError.raise_error(
+                PARAMETER_NOT_FOUND_ID,
+                f'Parameter {parameter} not found in request data.',
+                parameter=parameter
+            )
+
+        # Return the parsed parameter value.
+        return result
 
     # * method: resolve_middleware
     def resolve_middleware(self, middleware_ids: list) -> list:

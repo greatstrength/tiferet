@@ -52,7 +52,6 @@ from tiferet.contexts.logging import (
 from tiferet.contexts.request import RequestContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
 from tiferet.domain import AppSession, AppServiceDependency, Error, Feature, LoggingSettings, Formatter
-from tiferet.events import ParseParameter
 from tiferet.repos.app import AppConfigRepository
 from tiferet.utils.core import CacheMiddleware
 
@@ -120,19 +119,46 @@ def session_config_file(tmp_path) -> str:
 
 # *** tests
 
-# ** test: parse_parameter_delegates_to_parse_parameter_event
-def test_parse_parameter_delegates_to_parse_parameter_event():
+# ** test: parse_parameter_literal_passthrough
+def test_parse_parameter_literal_passthrough():
     '''
-    Test that parse_parameter delegates to ParseParameter.execute.
+    Test that parse_parameter passes through a plain string unchanged.
     '''
 
-    # Patch the static event and invoke the blueprint wrapper.
-    with mock.patch.object(ParseParameter, 'execute', return_value='parsed') as mock_execute:
-        result = parse_parameter('raw')
+    # A non-$env. value is returned verbatim.
+    assert parse_parameter('plain_value') == 'plain_value'
 
-    # Assert the wrapper delegated to the event with the same argument.
-    mock_execute.assert_called_once_with('raw')
-    assert result == 'parsed'
+
+# ** test: parse_parameter_resolves_env
+def test_parse_parameter_resolves_env(monkeypatch: pytest.MonkeyPatch):
+    '''
+    Test that parse_parameter resolves an existing $env. variable.
+    '''
+
+    # Arrange env and invoke.
+    monkeypatch.setenv('TIFERET_TEST_VAR', 'hello_world')
+    result = parse_parameter('$env.TIFERET_TEST_VAR')
+
+    # Assert resolution.
+    assert result == 'hello_world'
+
+
+# ** test: parse_parameter_missing_env_raises
+def test_parse_parameter_missing_env_raises(monkeypatch: pytest.MonkeyPatch):
+    '''
+    Test that parse_parameter raises PARAMETER_PARSING_FAILED for a missing env var.
+    '''
+
+    # Ensure absent.
+    monkeypatch.delenv('TIFERET_NONEXISTENT_VAR', raising=False)
+
+    # Call and assert structured error.
+    with pytest.raises(TiferetError) as exc_info:
+        parse_parameter('$env.TIFERET_NONEXISTENT_VAR')
+
+    assert exc_info.value.error_code == a.error.PARAMETER_PARSING_FAILED_ID
+    assert exc_info.value.kwargs.get('parameter') == '$env.TIFERET_NONEXISTENT_VAR'
+
 
 # ** test: build_app_service_container_merges_defaults
 def test_build_app_service_container_merges_defaults():
