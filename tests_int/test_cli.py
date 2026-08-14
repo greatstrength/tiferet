@@ -18,19 +18,19 @@ TEST_CALC_CONFIG = {
     'services': {
         'add_number_cmd': {
             'class_name': 'TestAddNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'subtract_number_cmd': {
             'class_name': 'TestSubtractNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'multiply_number_cmd': {
             'class_name': 'TestMultiplyNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'divide_number_cmd': {
             'class_name': 'TestDivideNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
     },
     'errors': {
@@ -360,7 +360,7 @@ def cli_subprocess_env():
     '''
     Build the environment for CLI subprocesses with PYTHONPATH set to the
     repository root so the spawned interpreter can resolve the
-    ``tiferet`` package and its ``tests_int`` subpackage even when the
+    ``tiferet`` package and the top-level ``tests_int`` package even when the
     package is not installed in the active interpreter.
 
     :return: A copy of the current environment with PYTHONPATH prefixed by
@@ -369,14 +369,14 @@ def cli_subprocess_env():
     '''
 
     # Resolve the repository root from this test module's location
-    # (tiferet/tests_int/test_cli.py -> repository root is two parents up).
-    repo_root = str(Path(__file__).resolve().parents[2])
+    # (tests_int/test_cli.py -> repository root is one parent up).
+    repo_root = str(Path(__file__).resolve().parents[1])
 
     # Copy the current environment to avoid mutating the test process env.
     env = os.environ.copy()
 
     # Prefix the existing PYTHONPATH with the repository root so the
-    # subprocess can import tiferet and tiferet.tests_int regardless of
+    # subprocess can import tiferet and tests_int regardless of
     # whether the package is installed in the active interpreter.
     existing_pythonpath = env.get('PYTHONPATH', '')
     env['PYTHONPATH'] = (
