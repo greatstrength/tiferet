@@ -36,3 +36,17 @@ def test_admin_default_features_keys_match_id_constants():
         feature_assets.LOGGING_LIST_ID,
     ):
         assert feature_id in feature_assets.ADMIN_DEFAULT_FEATURES
+
+# ** test: admin_feature_params_schema_presence
+def test_admin_feature_params_schema_presence():
+    '''
+    Verify params_schema is attached to input features and omitted from list-style ones.
+    '''
+
+    # Assert representative updated constants expose a params_schema key.
+    assert 'params_schema' in feature_assets.FEATURE_GET_DATA
+    assert 'params_schema' in feature_assets.APP_ADD_DATA
+    assert 'params_schema' in feature_assets.FEATURE_LIST_DATA
+
+    # Assert list-style features stay schema-less.
+    assert 'params_schema' not in feature_assets.APP_LIST_DATA

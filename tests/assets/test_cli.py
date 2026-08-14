@@ -95,3 +95,28 @@ def test_list_shaped_json_arguments_remain_json():
     )
     assert name_or_flags_arg is not None
     assert name_or_flags_arg['type'] == 'json'
+
+# ** test: feature_get_cli_command_registered
+def test_feature_get_cli_command_registered():
+    '''
+    Verify feature.get CLI artifacts exist and sit after feature.list in the catalog.
+    '''
+
+    # Assert the feature.get command id and catalog entry.
+    assert cli_assets.FEATURE_GET_CLI_CMD_ID == 'feature.get'
+    assert cli_assets.FEATURE_GET_CLI_CMD_ID in cli_assets.ADMIN_DEFAULT_COMMANDS
+    assert (
+        cli_assets.ADMIN_DEFAULT_COMMANDS[cli_assets.FEATURE_GET_CLI_CMD_ID]
+        is cli_assets.FEATURE_GET_CLI_CMD_DATA
+    )
+
+    # Assert command identity fields.
+    assert cli_assets.FEATURE_GET_CLI_CMD_DATA['key'] == 'get'
+    assert cli_assets.FEATURE_GET_CLI_CMD_DATA['group_key'] == 'feature'
+
+    # Assert insertion order: list, get, add.
+    command_ids = list(cli_assets.ADMIN_DEFAULT_COMMANDS)
+    list_index = command_ids.index(cli_assets.FEATURE_LIST_CLI_CMD_ID)
+    get_index = command_ids.index(cli_assets.FEATURE_GET_CLI_CMD_ID)
+    add_index = command_ids.index(cli_assets.FEATURE_ADD_CLI_CMD_ID)
+    assert list_index < get_index < add_index
