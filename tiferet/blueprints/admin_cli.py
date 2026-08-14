@@ -99,9 +99,10 @@ def build_admin_cli_session_context(
     # reserved and supplied explicitly.
     collaborators = core.resolve_collaborators(CliSessionContext, app_container)
 
-    # Build the four FE4 handlers, overriding the request and response slots
+    # Build the five handlers, overriding the request and response slots
     # with CLI-specific implementations.
     handlers = dict(
+        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
         execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
         create_request_handler=create_cli_request_context,
         raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
@@ -208,3 +209,6 @@ def main() -> None:
 
     # Delegate to build_admin_cli with the resolved config path.
     build_admin_cli(app_config=pre_args.config, argv=remaining)
+
+# ** blueprint: admin_cli (alias)
+AdminCLI = build_admin_cli

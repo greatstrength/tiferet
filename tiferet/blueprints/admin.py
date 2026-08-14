@@ -150,8 +150,9 @@ def build_admin_app_session_context(
     # Resolve the context's collaborators from the app container by id.
     collaborators = core.resolve_collaborators(context_cls, app_container)
 
-    # Build the four FE4 template-method handlers.
+    # Build the five template-method handlers.
     handlers = dict(
+        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
         execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
         create_request_handler=core.create_session_request,
         raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
@@ -159,7 +160,7 @@ def build_admin_app_session_context(
     )
 
     # Construct the context via from_domain, injecting the resolver handler,
-    # cache, all collaborators, and the four FE4 handlers.
+    # cache, all collaborators, and the five handlers.
     return context_cls.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,
@@ -217,4 +218,7 @@ def build_admin_app(
 
     # Return the validated admin app session context.
     return app_session_context
+
+# ** blueprint: admin_app (alias)
+AdminApp = build_admin_app
 

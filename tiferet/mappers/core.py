@@ -11,14 +11,6 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 # ** app
 from ..domain import DomainObject, ModelError
 
-# *** constants
-
-# ** constant: default_module_path
-DEFAULT_MODULE_PATH = 'tiferet.contexts.app'
-
-# ** constant: default_class_name
-DEFAULT_CLASS_NAME = 'AppSessionContext'
-
 # *** classes
 
 # ** class: aggregate
