@@ -8,6 +8,9 @@ import re
 import threading
 from typing import Any, Callable, Dict, Generator, List, Tuple
 
+# ** infra
+from pydantic import ValidationError
+
 # ** app
 from .core import BaseContext
 from .cache import CacheContext
@@ -17,13 +20,14 @@ from ..assets.error import (
     MIDDLEWARE_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
     PARAMETER_NOT_FOUND_ID,
+    REQUEST_VALIDATION_FAILED_ID,
 )
 from ..assets.core import REQUEST_REF_PREFIX
 from ..events import (
     DomainEvent,
     TiferetError,
 )
-from ..domain import Feature, EventFeatureStep
+from ..domain import Feature, EventFeatureStep, unpack_validation_error
 
 # *** constants
 
@@ -362,11 +366,19 @@ def validate_request(feature: Feature, request: RequestContext) -> None:
     if feature.params_schema is None:
         return
 
-    # Validate and coerce the request data, assigning the merged result back.
-    request.data = feature.params_schema.validate(
-        request.data,
-        feature_id=feature.id,
-    )
+    # Coerce the request data, assigning the merged result back.
+    try:
+        request.data = feature.params_schema.coerce(request.data)
+
+    # Name the schema failure in the framework's request vocabulary.
+    except ValidationError as error:
+        violations = unpack_validation_error(error)
+        TiferetError.raise_error(
+            REQUEST_VALIDATION_FAILED_ID,
+            f'Request validation failed for feature {feature.id}: {violations}.',
+            feature_id=feature.id,
+            violations=violations,
+        )
 
 # *** contexts
 

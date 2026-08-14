@@ -574,8 +574,10 @@ def test_validate_request_invalid_data_raises():
     with pytest.raises(TiferetError) as exc_info:
         validate_request(feature, request)
 
-    # Assert the error code identifies the validation failure.
+    # Assert the error code and unpacked violations identify the validation failure.
     assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+    assert exc_info.value.kwargs.get('feature_id') == 'calc.add'
+    assert len(exc_info.value.kwargs.get('violations')) == 1
 
 # ** test: feature_context_init
 def test_feature_context_init(services: mock.Mock):
