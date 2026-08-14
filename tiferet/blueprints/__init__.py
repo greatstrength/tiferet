@@ -7,6 +7,10 @@ __all__ = [
     'App',
     'build_cli',
     'CLI',
+    'build_admin_app',
+    'AdminApp',
+    'build_admin_cli',
+    'AdminCLI',
 ]
 
 # ** app
