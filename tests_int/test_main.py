@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 # ** app
-from .. import App, TiferetAPIError
+from tiferet import App, TiferetAPIError
 
 # *** constants
 
@@ -17,19 +17,19 @@ TEST_CALC_CONFIG = {
     'services': {
         'add_number_cmd': {
             'class_name': 'TestAddNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'subtract_number_cmd': {
             'class_name': 'TestSubtractNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'multiply_number_cmd': {
             'class_name': 'TestMultiplyNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'divide_number_cmd': {
             'class_name': 'TestDivideNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
     },
     'errors': {
