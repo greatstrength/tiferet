@@ -16,8 +16,9 @@ from ..assets.error import (
     FEATURE_STEP_LOADING_FAILED_ID,
     MIDDLEWARE_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
-    PARAMETER_NOT_FOUND_ID
+    PARAMETER_NOT_FOUND_ID,
 )
+from ..assets.core import REQUEST_REF_PREFIX
 from ..events import (
     DomainEvent,
     TiferetError,
@@ -274,9 +275,10 @@ def parse_request_parameter(parameter: str, request: RequestContext = None) -> s
     :rtype: str
     '''
 
-    # Delegate non-prefixed parameters to the ParseParameter static event.
-    if not parameter.startswith('$r.'):
-        return ParseParameter.execute(parameter)
+    # Delegate non-$r. parameters to the injected parser (or identity if not overridden).
+    if not isinstance(parameter, str) or not parameter.startswith(REQUEST_REF_PREFIX):
+        # For backwards-compat in any direct calls, fall back to identity for non-$r.
+        return parameter
 
     # Raise an error if the request is not provided for a request-backed parameter.
     if not request:
@@ -287,7 +289,7 @@ def parse_request_parameter(parameter: str, request: RequestContext = None) -> s
         )
 
     # Extract the value from the request data using the key after the $r. prefix.
-    result = request.data.get(parameter[3:], None)
+    result = request.data.get(parameter[len(REQUEST_REF_PREFIX):], None)
 
     # Raise an error if the parameter key is not found in the request data.
     if result is None:
@@ -489,7 +491,7 @@ class FeatureContext(BaseContext):
         '''
 
         # Delegate non-$r. parameters to the injected parser.
-        if not isinstance(parameter, str) or not parameter.startswith('$r.'):
+        if not isinstance(parameter, str) or not parameter.startswith(REQUEST_REF_PREFIX):
             return self.parse_parameter(parameter)
 
         # Raise an error if the request is not provided for a request-backed parameter.
@@ -501,7 +503,7 @@ class FeatureContext(BaseContext):
             )
 
         # Extract the value from the request data using the key after the $r. prefix.
-        result = request.data.get(parameter[3:], None)
+        result = request.data.get(parameter[len(REQUEST_REF_PREFIX):], None)
 
         # Raise an error if the parameter key is not found in the request data.
         if result is None:

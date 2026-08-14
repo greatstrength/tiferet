@@ -146,8 +146,8 @@ def parse_parameter(parameter: Any) -> Any:
     try:
 
         # Resolve an environment reference from the process environment.
-        if isinstance(parameter, str) and parameter.startswith('$env.'):
-            result = os.getenv(parameter[5:])
+        if isinstance(parameter, str) and parameter.startswith(a.core.ENV_VAR_PREFIX):
+            result = os.getenv(parameter[len(a.core.ENV_VAR_PREFIX):])
 
             # Treat an unset or empty environment variable as a failure.
             if not result:
