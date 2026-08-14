@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-Repo-local facts only. Skills read this file in the current repository if present; otherwise they fall back to https://github.com/greatstrength/tiferet/blob/main/docs/collab/binding.md.
+This file is the local phone book, not the process. Skills should read `docs/collab/binding.md` in whatever repo they are standing in. If that file is missing, they fall back to https://github.com/greatstrength/tiferet/blob/main/docs/collab/binding.md.
 
 ## Strands
 

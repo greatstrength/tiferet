@@ -3,35 +3,37 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-The process index is [process.md](process.md). This file is only the prototype strand.
+Start from [process.md](process.md) if you have not already. This page is only the prototype strand — how we test a domain theory before anyone is asked to rebuild it on trunk.
 
-## Purpose
+## What an RFP is for
 
-An RFP (Request for Prototype) tests a domain theory on the long-lived prototype branch. It settles vocabulary against the distillation, lands as an **alpha** on proto, and leaves a Suggested TRD slicing list for a later **catalog freeze**. It is not a sloppy TRD and it is not a way to ship trunk.
+An RFP (Request for Prototype) is a bet you are willing to run on the long-lived proto branch. You settle vocabulary against the distillation, you implement it, you land it as an **alpha**, and you leave a Suggested TRD slicing list behind for a later **catalog freeze**.
 
-A public contributor or a maintainer may submit an RFP. Drive-by code against proto with no RFP is out of process.
+It is not a TRD you wrote in a hurry. It is not how trunk ships.
 
-No TRD is required to implement on proto.
+Anyone may submit one — a maintainer, or a public contributor who wants a theory tested — as long as the draft follows the genre below. Opening a proto PR with no RFP behind it is out of process.
 
-## Preconditions
+You do not need a TRD to implement on proto. The RFP *is* the specification for that strand.
 
-- A domain vision and core-domain distillation exist on trunk (or are being updated in the same proto work when the RFP amends them). RFPs cite numbered distillation sections.
-- The repo's [binding.md](binding.md) names the proto branch and the RFP id prefix.
+## Before you start
 
-## Identifier
+The domain should already have a vision statement and a core-domain distillation on trunk. If this RFP is amending that distillation, say so and do the amendment in the same proto work. Cite numbered distillation sections; a later reader should be able to walk from the RFP to the claim it is testing.
+
+This repo's [binding.md](binding.md) tells you the proto branch name and the RFP id prefix. Read it before you invent either.
+
+## How we name them
 
 ```
 <PREFIX><major>-RFP-<nnn>
 ```
 
-Examples: `TLY1-RFP-001`, `TIF2-RFP-001`. Prefix and major come from [binding.md](binding.md). Numbers are sequential per prefix and do not reset between betas.
+`TLY1-RFP-001` and `TIF2-RFP-001` are the shape. Prefix and major come from [binding.md](binding.md). Numbers count up for that prefix and do not reset when you open the next beta.
 
-Issue title: `RFP-00N — <Plain Title>`.
+The GitHub issue title is the short form people will actually say out loud: `RFP-00N — <Plain Title>`.
 
-## Document genre
+## The document
 
-Local source: gitignored `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.md`.
-Public copy: the GitHub issue body (same markdown).
+Keep a local copy at `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.md`. That folder is gitignored on purpose — it is a working draft, not a committed artifact. The public copy is the GitHub issue body. Keep them in sync.
 
 ### Header
 
@@ -45,45 +47,52 @@ Public copy: the GitHub issue body (same markdown).
 **Blocks:** RFP-00N — one-line reason
 ```
 
-### Body sections (in this order)
+### Body, in this order
 
-1. **Amendment note** — only when Status is Amended. What changed, what survived, why the same issue.
-2. **Summary** — the shape being settled, in ubiquitous language.
-3. **Motivation** — why this RFP exists now; which downstream RFPs read this shape.
-4. **Current state** — what proto (or trunk) actually has, plus concrete precedents.
-5. **Proposal** — numbered design items. Resolve questions here. Name rejected alternatives.
-6. **Out of scope** — named and assigned to a later RFP or explicitly deferred.
-7. **Risks and open questions** — mark each **resolved** or still open. Do not leave a resolved item looking open.
-8. **Acceptance criteria** — binary assertions a proto implementor and reviewer can check without taste.
-9. **Suggested TRD slicing** — reconstruction debt. Re-read this list at freeze time; do not treat the first draft as the trunk backlog.
+1. **Amendment note** — only when Status is Amended. What changed, what survived, and why you kept the same issue instead of opening a new one.
+2. **Summary** — the shape you are settling, in the language the distillation already uses.
+3. **Motivation** — why this RFP exists *now*, and which later RFPs will have to read whatever you decide here.
+4. **Current state** — what proto (or trunk) actually has today, plus the concrete precedents you are borrowing from.
+5. **Proposal** — numbered design items. Resolve the questions here. Name the alternatives you considered and set down.
+6. **Out of scope** — named, and either handed to a later RFP or explicitly deferred. "We'll see" is not a section.
+7. **Risks and open questions** — mark each one **resolved** or still open. A resolved item that still looks open will be relitigated.
+8. **Acceptance criteria** — binary assertions. A proto implementor and a reviewer should be able to check them without taste.
+9. **Suggested TRD slicing** — reconstruction debt, not a gate. Re-read this list at freeze time. The first draft is almost never the backlog you actually want.
 
-Amendments happen **in place** on the same issue. The superseded alpha tag remains a historical record.
+When the design is wrong, amend **in place** on the same issue. The alpha that already shipped stays in the tag history. You are not rewriting the past; you are saying what the next alpha replaces.
 
 ## Versioning on this strand
 
-- A drafting round for a major.minor **creates** GitHub milestone `vX.Y.0bN` when the RFPs exist, not when the last one has shipped.
-- Later drafts of the same line (bugs, refactors, missed features) are `b2`…`bN`. Multiple betas are expected.
-- Each landed RFP (or amended re-implementation) is the next **alpha** tag / package version on proto: `vX.Y.0aN`. Alphas do not reset between betas of the same major.minor.
-- `bN` is prototype-only going forward. Trunk releases are `vX.Y.Z`.
+A drafting round for a major.minor **creates** GitHub milestone `vX.Y.0bN` when the RFPs exist — not when the last one has shipped. The milestone is the plan container, not a trophy for finishing.
 
-Discover the next alpha with `git tag --list 'vX.Y.0a*' --sort=-version:refname`. The next beta milestone is the next unused `bN` on that major.minor, independent of historical trunk tags that reused the `bN` shape.
+The next time the same line needs another draft (a bug, a refactor, a feature you missed), that is `b2`, then `b3`, and so on. Multiple betas are normal. Tiferet's own history is the proof.
 
-## Implementation on proto
+Each landed RFP — or each amended re-implementation — is the next **alpha** on proto: `vX.Y.0aN`. Alphas do not reset between betas of the same major.minor.
 
-1. Publish the RFP as a GitHub issue. Assign it to the open beta milestone.
-2. Cut `vX.Y.0bN-<kebab-context>` from the proto branch in [binding.md](binding.md). PR targets proto.
-3. Implement against the RFP proposal and AC (and cited distillation sections). Review is against those, not against trunk.
-4. PR title: `vX.Y.0aN — <Plain Title> (RFP-00N)`.
-5. After squash-merge: bump the package version to that alpha, tag it, post a Collaboration Report on the **RFP issue** (cite RFP id, alpha tag, beta milestone). Session notes also go on the issue. The PR stays a review surface.
+`bN` is prototype-only from here forward. Trunk releases are `vX.Y.Z`.
 
-Suggested TRD slicing is not a gate. Reconstruction waits for a [catalog freeze](process.md#catalog-freeze).
+To find the next alpha: `git tag --list 'vX.Y.0a*' --sort=-version:refname`. The next beta milestone is the next unused `bN` on that major.minor. Ignore historical trunk tags that happened to use the same shape.
+
+## Implementing on proto
+
+1. Publish the RFP as a GitHub issue and put it on the open beta milestone.
+2. Cut `vX.Y.0bN-<kebab-context>` from the proto branch in [binding.md](binding.md). The PR targets proto, not `main`.
+3. Implement against the proposal, the acceptance criteria, and the distillation sections you cited. Review is against those. Nobody should be asking whether this matches trunk.
+4. Title the PR `vX.Y.0aN — <Plain Title> (RFP-00N)`.
+5. After the squash-merge: bump the package version to that alpha, tag it, and post a Collaboration Report on the **RFP issue** (RFP id, alpha tag, beta milestone). Session notes go on the issue too. The PR is just the review surface.
+
+Suggested TRD slicing does not block the alpha. Reconstruction waits for a [catalog freeze](process.md#catalog-freeze).
 
 ## Freeze and thaw
 
-See [process.md](process.md). A freeze note on this issue sets Status to `Frozen for reconstruction` and records a freeze id plus refreshed slicing. A later shape amendment thaws that freeze.
+The freeze itself is described in [process.md](process.md). On this issue it looks like a freeze note: Status becomes `Frozen for reconstruction`, and the note records a freeze id plus the refreshed slicing.
 
-## What this strand does not do
+If you later amend the *shape* of a frozen RFP, that freeze is thawed. Say so. Do not let a trunk TRD keep reconstructing the old catalog as if nothing happened.
 
-- Does not merge, rebase, or cherry-pick proto onto trunk.
-- Does not require Super-TRD child issues. Implement the RFP. If a single RFP is itself XL with a seam, split it into more RFPs rather than inventing a proto Super-TRD by default.
-- Does not invent "internal RFPs" with no issue. Every RFP is an issue.
+## What this strand will not do
+
+It will not merge, rebase, or cherry-pick proto onto trunk.
+
+It will not spawn Super-TRD child issues. Implement the RFP. If a single RFP is itself XL and has a seam, that is a hint to write more RFPs, not to invent a proto Super-TRD.
+
+It will not invent "internal RFPs" that never become issues. If it is an RFP, it has an issue.

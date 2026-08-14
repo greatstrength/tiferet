@@ -1,6 +1,6 @@
 # Tiferet Contribution Standards — Global Agent Rule
 
-Template for a **global** AI rule across Tiferet-family repos. Thin pointer — do not copy process law into the rule.
+A paste-able global rule for Tiferet-family repos. Keep it thin. The law lives in `docs/collab/process.md`; this file only points there so it cannot drift.
 
 ## How to apply it
 

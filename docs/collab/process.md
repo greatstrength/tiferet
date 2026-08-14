@@ -3,106 +3,114 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-## The metaphor, then the rules
+If you only read one collaboration doc, make it this one. The rest of `docs/collab/` is detail. This page is the shape of the work.
 
-Trunk and prototype are two strands of one version family — a **double helix**. That image is useful once: the strands stay in phase by shared vocabulary, not by wrapping around each other. After this paragraph the rest of this corpus uses operational words: trunk, prototype, catalog, freeze, milestone, issue, and pull request.
+## A picture, then the real words
 
-The real rules are git history, GitHub objects, and which document authorizes work.
+Trunk and prototype are two strands of the same version family. The picture we use is a **double helix**: they stay in phase by sharing a vocabulary, not by wrapping around each other. That image is useful once. After this paragraph we drop it and talk like engineers — trunk, prototype, catalog, freeze, milestone, issue, pull request.
 
-## What each strand is for
+The rules underneath are ordinary. Git history is real. GitHub issues, PRs, and milestones are real. And every kind of work has a document that authorizes it. If you cannot name that document, you are not ready to open a branch.
 
-| Strand | Authorizing document | Lands on | Version objects |
+## Three kinds of work, not three ways to ship the same change
+
+| You are… | The authorizing document is… | It lands on… | Versioning |
 |---|---|---|---|
-| **Prototype** | Request for Prototype (RFP) | long-lived proto branch | beta milestone (`vX.Y.0bN`) + alpha tags |
-| **Trunk** | Technical Requirements Document (TRD), after a catalog freeze — or a hotfix TRD | `main` | release milestone `vX.Y.Z` |
-| **Doc** | the pull request itself | `main` | none |
+| **Testing a domain theory** | a Request for Prototype (RFP) | the long-lived proto branch | a beta milestone (`vX.Y.0bN`) and alpha tags |
+| **Rebuilding that theory on the release line, or fixing a small mechanical bug** | a Technical Requirements Document (TRD) — reconstruction after a catalog freeze, or a hotfix with no freeze | `main` | a release milestone `vX.Y.Z` |
+| **Changing docs or agent skills** | the pull request itself | `main` | none |
 
-They are not three interchangeable ways to ship the same change.
+An RFP is not a sloppy TRD. A TRD is not "the RFP, but for `main`." A Doc PR is not a TRD you were too busy to write.
 
-- An **RFP** tests a domain theory on prototype. It may be submitted by a maintainer or a public contributor, if it follows the RFP genre.
-- A **reconstruction TRD** implements a **frozen** catalog on trunk. It names artifacts. It does not say "copy from proto."
-- A **hotfix TRD** fixes a small mechanical defect on trunk. Prototype is not consulted.
-- A **Doc / skills** change needs **no TRD**. Open a `docs-<context>` branch from trunk and describe the change in the PR using this process's vocabulary.
+- An **RFP** asks: is this the right language? You (or a public contributor) may submit one, as long as it follows the genre in [rfp.md](rfp.md).
+- A **reconstruction TRD** asks: can we rebuild that frozen language on trunk, artifact by artifact? It names those artifacts. It never says "copy from proto."
+- A **hotfix TRD** asks: can we fix this small, already-understood defect on trunk? Prototype is not consulted.
+- A **Doc / skills** change needs **no TRD**. Cut `docs-<context>` from trunk and describe the change in the PR, using the words on this page, so a later reader does not have to reverse-engineer your intent.
 
-Stream guides: [rfp.md](rfp.md), [main.md](main.md), [doc.md](doc.md). TRD genre: [tech_requirements.md](tech_requirements.md).
+The long forms live here: [rfp.md](rfp.md), [main.md](main.md), [doc.md](doc.md). The TRD genre is [tech_requirements.md](tech_requirements.md).
 
 ## The two histories never merge
 
-Prototype discovers and amends vocabulary. Trunk reconstructs a cooled catalog of named artifacts.
+Prototype is where vocabulary is discovered and amended. Trunk is where a cooled catalog of named artifacts is rebuilt so a release can stand on it.
 
-- Nothing from prototype lands on trunk as git — not a merge, rebase, or cherry-pick.
-- What crosses the gap is a **catalog**: settled RFP language, later written as TRDs an implementor can execute without reading the proto branch.
-- Git **may** flow trunk → prototype (cherry-pick or a manual port) when prototype has not absorbed a mechanical trunk fix. That is permitted, not routine. Skills do not cherry-pick by default. Identifier drift is likely; treat a port as a translation, not a patch apply.
-- Pacing may diverge for a long time. Prototype can run many alphas inside many betas. Trunk waits until a named cluster is cool enough to reconstruct.
+They do not become each other.
+
+Nothing from prototype lands on trunk as git. Not a merge, not a rebase, not "just this one cherry-pick." What crosses the gap is a **catalog**: the settled RFP language, later written as TRDs an implementor can execute without ever opening the proto branch.
+
+Git *may* flow the other way — trunk → prototype — when proto has not yet absorbed a mechanical fix that already shipped on trunk. That is allowed. It is not a habit. Skills do not cherry-pick unless a human asks. And because proto has often renamed the thing you just fixed, treat a port as a translation, not as `git cherry-pick` and a shrug.
+
+Pacing is allowed to look unfair. Prototype can run many alphas inside many betas for a long time. Trunk waits. That is cheaper than reconstructing a language that is still moving.
 
 ## Catalog freeze
 
-A freeze is **not** a branch lock and **not** "prototype is finished." It is a named, human-declared snapshot of an **RFP cluster** whose shape is stable enough to reconstruct. Prototype may keep moving on everything outside that cluster.
+A freeze is not "lock the proto branch" and it is not "prototype is finished." It is a named, human-declared snapshot of an **RFP cluster** whose *shape* is stable enough to rebuild on trunk. Everything outside that cluster may keep moving.
 
-**Freeze the smallest cluster whose Depends-on / Blocks graph is closed on shape** — the model plus whatever exists only to persist or select it. Do not freeze a whole version line or an entire product. Example: freeze "Token / Production / Grammar models and their persistence," not "v1" and not "the compiler."
+Freeze the smallest cluster whose Depends-on / Blocks graph is closed on shape — the model, plus whatever exists only to persist or select it. Freeze "Token / Production / Grammar, and how they are stored," not "v1," and not "the compiler."
 
-**Ready-to-freeze checklist** (human; all boxes required):
+You are ready to freeze when every box below is true:
 
 1. The cluster's RFPs have landed as alphas on prototype (or an amendment has re-landed).
-2. No open *shape* amendment on those issues. Remaining work consumes the cluster; it does not rewrite it.
-3. Cited distillation sections no longer contradict the amended RFP bodies.
-4. Suggested TRD slicing has been re-read against the **current** amended RFPs.
-5. Downstream RFPs are no longer blocked on a missing field, renamed aggregate, or root-node shape inside the cluster.
+2. Nobody is still rewriting the shape of those issues. Remaining work *consumes* the cluster; it does not rename it.
+3. The distillation sections those RFPs cite no longer contradict the amended bodies.
+4. Someone has re-read Suggested TRD slicing against the **current** RFPs, not the first draft.
+5. Downstream RFPs are no longer blocked on a missing field, a renamed aggregate, or a YAML root-node shape inside the cluster.
 
-If any box fails, do not freeze. Amend in place or open the next beta milestone.
+If any box fails, do not freeze. Amend in place, or open the next beta milestone.
 
-**Recording a freeze:**
+When you do freeze:
 
-1. A human names the cluster and the RFP issue numbers.
-2. A freeze note is posted on each included RFP issue: status `Frozen for reconstruction`, freeze id (e.g. `TIF2-FREEZE-001`), alpha tags, distillation sections, and the **refreshed** Suggested TRD slicing. That slicing is the reconstruction backlog.
-3. Open a trunk milestone (`vX.Y.Z`) and author TRDs only from that freeze note. Reconstruction TRDs cite the freeze id in §7. `tiferet-author-trd` refuses reconstruction work without one.
-4. A later shape amendment of a frozen RFP **thaws** the freeze. In-flight reconstruction TRDs stop. Re-freeze after the amendment lands.
+1. A human names the cluster and the RFP issue numbers. An agent does not invent this.
+2. A freeze note goes on each included RFP issue: status `Frozen for reconstruction`, a freeze id (for example `TIF2-FREEZE-001`), the alpha tags, the distillation sections, and the **refreshed** Suggested TRD slicing. That slicing is now the reconstruction backlog.
+3. Open a trunk milestone (`vX.Y.Z`) and write TRDs only from that freeze note. Reconstruction TRDs cite the freeze id in §7. `tiferet-author-trd` should refuse the work without one.
+4. A later shape amendment of a frozen RFP **thaws** the freeze. In-flight reconstruction TRDs stop. You re-freeze after the amendment lands. You do not quietly keep building the old catalog.
 
-Hotfix TRDs do not need a freeze. They name a mechanical defect already understood on trunk.
+Hotfixes do not need a freeze. They name a mechanical defect already understood on trunk.
 
-Cross-repo: a reconstruction may depend on another family's **catalogued** computations (distillation + frozen RFPs), never on that repo's prototype git.
+Across repositories, a reconstruction may depend on another family's **catalogued** computations — their distillation plus their frozen RFPs — never on that repo's prototype git.
 
-## Versioning from this point forward
+## Versioning from here forward
 
 | Object | Strand | Shape | Meaning |
 |---|---|---|---|
 | Beta milestone | Prototype | `vX.Y.0bN` | one RFP drafting round on a major.minor line |
-| Alpha tag / package version | Prototype | `vX.Y.0aN` | one RFP (or amended re-implementation) landed on proto |
-| Trunk milestone and release | Trunk | `vX.Y.Z` | reconstructed or hotfixed release; patch allowed |
+| Alpha tag / package version | Prototype | `vX.Y.0aN` | one RFP (or an amended re-implementation) landed on proto |
+| Trunk milestone and release | Trunk | `vX.Y.Z` | a reconstructed or hotfixed release; patch is allowed |
 
-`bN` is prototype-strand only. Multiple betas on the same major.minor are expected (bugs, refactors, missed features). Historical trunk tags such as `v2.0.0b16` keep their old meaning; new trunk releases do not use `bN`.
+`bN` belongs to prototype now. Multiple betas on the same major.minor are expected — bugs, refactors, the feature you realized you missed. Tiferet itself ran through a long string of them.
 
-Alphas increment inside the open beta and do not reset between betas of the same major.minor.
+Historical trunk tags such as `v2.0.0b16` keep the meaning they had when they were cut. New trunk releases do not reuse `bN`.
+
+Alphas increment inside the open beta. They do not reset when you open `b2` on the same major.minor.
 
 ## Who may submit what
 
-- **RFP** — a public contributor or maintainer who wants a domain theory tested. The draft must follow [rfp.md](rfp.md). Drive-by code against proto with no RFP is out of process.
-- **Reconstruction TRD** — implement a frozen catalog on trunk.
-- **Hotfix TRD** — a small mechanical fix on trunk.
-- **Doc / skills PR** — documentation and agent-skill changes. No issue required unless useful; no TRD. The PR title and body use this process's ubiquitous language.
+If you want a domain theory tested, submit an **RFP**. Maintainers and public contributors are both welcome; the draft has to follow [rfp.md](rfp.md). Opening a proto PR with no RFP is out of process.
 
-## Where comments live
+If you want a frozen catalog rebuilt on trunk, submit a **reconstruction TRD**.
 
-Pull requests are a **review surface**. Issues are the **session record**.
+If you want a small mechanical bug fixed on trunk, submit a **hotfix TRD**.
 
-- **On the PR:** change description, AC checkboxes, `Closes` line, and review comments that point at a diff.
-- **On the issue** (the one issue, or the Super-TRD child issue): implementor session notes, conversation links, Collaboration Reports, and reviewer/closer narrative that is not a line comment.
+If you want the docs or the skills changed, open a **Doc PR**. No issue unless the discussion needs a home first. No TRD. Use the vocabulary on this page in the PR title and body.
 
-Do not post session notes or Collaboration Reports as PR conversation comments.
+## Where the conversation lives
 
-## Trunk execution fork
+Pull requests are for reviewing code. Issues are for remembering the session.
 
-Size the story, then choose a path. Detail lives in [main.md](main.md) and [tech_requirements.md](tech_requirements.md).
+- **On the PR:** what changed, AC checkboxes, the `Closes` line, and review comments that point at a diff.
+- **On the issue** (the one issue, or the Super-TRD child issue): implementor session notes, conversation links, Collaboration Reports, and any reviewer or closer narrative that is not a line comment.
 
-- **Standalone TRD** — XL or below, or XL with no seam. One issue, one branch, one PR. Session record on that issue.
-- **Super-TRD** — XL+ *and* a seam. Parent + children, one combined branch, one PR. Each child gets an implementation-log Collaboration Report on the **child issue** when pushed, and a verification addendum after combined review. Closing a child as Done waits for that addendum (or explicit Reviewer acceptance of that child's AC).
+Please do not leave the session diary as PR conversation comments. Future you will thank present you when the review thread is only about the diff.
 
-## Binding
+## Two ways to execute trunk work
 
-Repo-local facts — proto branch name, RFP prefix, GitHub project ids — live in [binding.md](binding.md). Skills read the current repo's `docs/collab/binding.md` if present; otherwise they fall back to this repository's file.
+Size the story, then pick a path. The detail is in [main.md](main.md) and [tech_requirements.md](tech_requirements.md).
 
-## Agent skills
+- **Standalone TRD** — XL or smaller, or XL with no natural seam. One issue, one branch, one PR. The session record lives on that issue.
+- **Super-TRD** — XL or larger *and* a seam you can name (a layer, a concern, a sequence). Parent plus children, one combined branch, one PR. Each child gets an implementation-log Collaboration Report on the **child issue** when the code is pushed, and a verification addendum after combined review. A child is not Done when the log is posted. It is Done when the addendum lands, or when the Reviewer explicitly accepts that child's acceptance criteria.
 
-Canonical, auto-discovered skills live at [`.agents/skills/`](../../.agents/skills/). They are committed. Copying them to `~/.agents/skills/` is optional (global convenience). Every skill follows [agents/SKILL_TEMPLATE.md](agents/SKILL_TEMPLATE.md).
+## Binding, and where the skills live
 
-Working copies of RFPs and TRDs stay local: `.rfp/` and `.trd/` are gitignored. The published GitHub issue body is the public copy.
+Facts that belong to *this* repo — proto branch name, RFP prefix, GitHub project ids — live in [binding.md](binding.md). Skills should read the current repo's `docs/collab/binding.md` if it exists, and fall back to this repository's file if it does not.
+
+The skills themselves are committed at [`.agents/skills/`](../../.agents/skills/) so an agent in this checkout can find them. Copying them to `~/.agents/skills/` is optional, and only useful if you want them in every repo. If you do that, delete stale `tiferet-*` copies first or they will shadow what is in this tree. Every skill follows [agents/SKILL_TEMPLATE.md](agents/SKILL_TEMPLATE.md).
+
+Working copies of RFPs and TRDs stay on your machine: `.rfp/` and `.trd/` are gitignored. The published GitHub issue body is the public copy.

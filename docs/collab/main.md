@@ -3,34 +3,34 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-The process index is [process.md](process.md). This file is the trunk strand.
+[process.md](process.md) is the index. This page is trunk: the history a release can stand on.
 
-## Purpose
+## What trunk will accept
 
-Trunk is the reconstructed, releasable history. It accepts:
+Three things, and only three:
 
-- **Reconstruction TRDs** that implement a **frozen** RFP cluster. They name artifacts. They do not say "copy from proto."
-- **Hotfix TRDs** for small mechanical defects already understood on trunk. Prototype is not consulted. No freeze id.
-- **Doc / skills PRs** (see [doc.md](doc.md)) — no TRD.
+- **Reconstruction TRDs** that implement a **frozen** RFP cluster. They name artifacts. They do not say "copy from proto," and they do not send the implementor to the proto branch.
+- **Hotfix TRDs** for small mechanical defects already understood on trunk. Prototype is not consulted. There is no freeze id, because there is nothing left to discover.
+- **Doc / skills PRs** — see [doc.md](doc.md). No TRD.
 
-Nothing from prototype lands on trunk as git.
+Nothing from prototype lands on trunk as git. If you find yourself reaching for a merge from proto, stop. The catalog is how that work crosses.
 
 ## Milestones
 
-Titles use the version number only:
+The title is the version number. Nothing else.
 
 - Format: `v<version>`
 - Examples: `v2.0.1`, `v2.1.0`
 
-Patch is allowed. New trunk milestones do **not** use `bN`. Historical titles such as `v2.0.0b3` keep their old meaning.
+Patch versions are welcome. New trunk milestones do **not** use `bN`. Older titles such as `v2.0.0b3` mean what they meant when they were created; we are not going back to rename them.
 
-**Exception — domain-scoped tracking milestones** (legacy parity work): a descriptive title with no version, or `v2.0.0` with no alpha/beta suffix. Prefer versioned reconstruction milestones going forward.
+There is a leftover exception for domain-scoped tracking milestones from the parity era: a descriptive title with no version, or `v2.0.0` with no alpha/beta suffix. Prefer an ordinary `vX.Y.Z` reconstruction milestone when you can.
 
-The description carries the semantic context: goal, freeze id(s) if this is reconstruction, and a list of linked issues (`Area (#issue): short intent`).
+The description is where the story lives — the goal, the freeze id if this is reconstruction, and a list of issues in the form `Area (#issue): short intent`.
 
-Minor reconstruction releases typically hold 3–7 issues. Larger catalogs use Super-TRDs inside the milestone rather than a second title scheme.
+A small reconstruction release is usually three to seven issues. A larger catalog does not get a fancier milestone title; it gets Super-TRDs inside the same milestone.
 
-Each issue is assigned to the **Tiferet Framework** project. Field semantics: [project_fields.md](project_fields.md). Repo-local ids: [binding.md](binding.md).
+Every issue goes on the **Tiferet Framework** project. What the fields mean is in [project_fields.md](project_fields.md). The ids for *this* repo are in [binding.md](binding.md).
 
 ## Issue titles
 
@@ -38,53 +38,54 @@ Each issue is assigned to the **Tiferet Framework** project. Field semantics: [p
 <Component Group> – <Brief Capitalized Title>
 ```
 
-Five to eight words after the en-dash. Examples: `Domain – Feature Model Condition Evaluation`, `Utils – SQLite Client Connection Lifecycle`.
+Five to eight words after the en-dash is about right. `Domain – Feature Model Condition Evaluation` and `Utils – SQLite Client Connection Lifecycle` are the tone.
 
-## Project status
+## Status on the board
 
-- **Ready** — created, triaged (Priority, Size, Estimate set).
-- **In Progress** — branch cut / work started. Set Start date.
-- **In Review** — PR open. Review comments that require code send status back to In Progress, then return to In Review.
-- **Done** — merged. Set End date. Close the issue after the Collaboration Report (standalone) or verification addendum (Super-TRD child).
+- **Ready** — the issue exists and has been triaged (Priority, Size, Estimate).
+- **In Progress** — someone cut a branch or otherwise started. Set the Start date.
+- **In Review** — the PR is open. If a review comment needs code, come back to In Progress, then return to In Review when you push.
+- **Done** — merged, *and* the Collaboration Report (standalone) or verification addendum (Super-TRD child) is on the issue. Set the End date, then close.
 
-New issues start at Ready. Use blocked-by for ordering, not Backlog.
+New issues start at Ready. If one issue is waiting on another, use blocked-by. Do not park new work in Backlog just to show a dependency.
 
-## Two execution paths
+## Two ways to do the work
 
-Size first ([project_fields.md](project_fields.md)). Then choose.
+Size the story first — [project_fields.md](project_fields.md) has the rubric — then choose a path. Do not start a Super-TRD because the work "feels big." Do not stay standalone because splitting seemed like ceremony.
 
 ### Standalone TRD
 
-Use when the story is XL or below, **or** XL with no natural seam.
+Use this when the story is XL or smaller, **or** it is XL but you cannot name a seam.
 
-1. Author the TRD ([tech_requirements.md](tech_requirements.md)). Reconstruction TRDs cite a freeze id in §7. Hotfix TRDs say hotfix and skip the freeze.
-2. Create the issue. Cut `<issue-number>-<lowercase-hyphenated-title>` from `main`.
-3. Implement and test. Open a PR targeting `main`. The PR is for code review only.
-4. Post implementation notes, conversation link, and the Collaboration Report on the **issue**, not the PR.
-5. The user squash-merges. Agent: pull `main`, delete the local branch, rename the `.trd/` file to `.complete.md`. Trunk→proto git only if a human asks.
+1. Write the TRD ([tech_requirements.md](tech_requirements.md)). Reconstruction cites a freeze id in §7. A hotfix says it is a hotfix and skips the freeze.
+2. Open the issue. Cut `<issue-number>-<lowercase-hyphenated-title>` from `main`.
+3. Implement and test. Open a PR targeting `main`. That PR is for reviewing the diff, not for narrating the session.
+4. Put implementation notes, the conversation link, and the Collaboration Report on the **issue**.
+5. After the squash-merge: pull `main`, delete the local branch, rename the `.trd/` file to `.complete.md`. Port to proto only if a human asks.
 
 ### Super-TRD
 
-Use when the story is XL+ **and** has a seam (layer, concern, sequencing). Full workflow: [super_trd_workflow.md](super_trd_workflow.md).
+Use this when the story is XL or larger **and** you can name the seam — a layer, a concern, a sequence. The full loop is in [super_trd_workflow.md](super_trd_workflow.md). The short version:
 
-- Parent issue + child sub-issues. One combined branch `<parent-issue>-<slug>`. One PR. `Closes #<parent>` only.
-- Child TRDs stay at most Medium (one primary module + tests + at most 1–2 dependency touches).
-- Starter writes the PR body covering **all** children up front (unchecked AC for later children).
-- When a child is pushed: check off that child's AC on the PR, set the child to In Review, and on the **child issue** post a session note plus a Collaboration Report labeled **implementation log**. That log is not combined-review acceptance.
-- Reviewer verifies every child AC on the combined PR. Diff findings stay on the PR. Narrative and conversation link go on the **parent issue**. Child AC failures are also noted on that **child issue**.
-- After merge: verification **addendum** on each child issue, then a parent roll-up Collaboration Report on the parent. Close a child as Done only after the addendum (or explicit Reviewer acceptance of that child's AC).
+- One parent issue, several child sub-issues, one branch named for the parent, one PR. `Closes #<parent>` only. Children are never auto-closed by the PR.
+- Each child stays at most Medium: one primary module, its tests, and at most a couple of non-testable dependency touches.
+- The Starter writes the PR body for **every** child up front, with later AC still unchecked. That is a gate, not a courtesy. A PR that only describes child 1 forces every later agent to invent a format.
+- When a child's code is pushed: check off that child's AC on the PR, set the child to In Review, and on the **child issue** post a session note plus a Collaboration Report labeled **implementation log**. That log means "this is what landed," not "combined review passed."
+- The Reviewer checks every child AC against the combined PR. Comments that point at a line stay on the PR. The narrative and the conversation link go on the **parent issue**. If a child AC fails, say so on that **child issue** as well, so the log is not the last word.
+- After merge: a short **verification addendum** on each child issue, then a parent roll-up Collaboration Report. A child becomes Done after the addendum — or after the Reviewer explicitly accepts that child's AC — not when the log was posted.
 
-## Review on trunk
+## Reviewing trunk
 
-- Reconstruction review may glance at proto **only** for artifacts named in the frozen catalog / TRD AC. That is measurement, not a merge source. Never recommend "make trunk match proto" as a general rule.
-- Hotfix review is against the hotfix TRD only.
-- Comments that point at a diff stay on the PR. Session record stays on the issue. See [code_review.md](code_review.md) and [process.md](process.md#where-comments-live).
+For reconstruction, you may look at proto, but only at artifacts the freeze and the TRD actually named. You are measuring, not merging. "Make trunk match proto" is the wrong advice in almost every case. If trunk is *ahead* of proto — a later, better name, a cleaner shape — keep trunk.
 
-## Closing a milestone and releasing
+A hotfix is reviewed against the hotfix TRD. Proto has nothing to say about it.
+
+Anything that points at a diff stays on the PR. The session record stays on the issue. [code_review.md](code_review.md) and [process.md](process.md#where-the-conversation-lives) are the longer versions of that sentence.
+
+## Closing the milestone
 
 When every issue is Done, close the milestone. Tag `vX.Y.Z` on `main` and publish a GitHub Release.
 
-Release title may add a subtitle: `Tiferet v<version> – <Brief Title>`.
-Body: header block (version, tag, date, branch, repo), Highlights, What's Changed (by area, with issue links), Breaking Changes, Upgrade Notes, Installation.
+The release title may carry a subtitle: `Tiferet v<version> – <Brief Title>`. The body is the usual changelog: header (version, tag, date, branch, repo), Highlights, What's Changed by area with issue links, Breaking Changes, Upgrade Notes, Installation.
 
-Canonical formatting example: the [v2.0.0b3 release](https://github.com/greatstrength/tiferet/releases/tag/v2.0.0b3) (historical `bN` on trunk — do not reuse that shape for new trunk tags).
+The [v2.0.0b3 release](https://github.com/greatstrength/tiferet/releases/tag/v2.0.0b3) is still a good *formatting* example. It is not a template for new tag *names* — that `bN` on trunk is historical.

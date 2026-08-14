@@ -3,9 +3,11 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-Trunk-only. Process index: [process.md](process.md). Path choice: [main.md](main.md). TRD format: [tech_requirements.md](tech_requirements.md).
+This page is trunk-only, and only for the large stories. [process.md](process.md) is the index, [main.md](main.md) is how you choose this path, and [tech_requirements.md](tech_requirements.md) is the TRD shape.
 
-A Super-TRD is an XL+ story with a seam, decomposed into sequenced child sub-issues, implemented on **one** feature branch named for the parent. Prototype work does not use this workflow.
+A Super-TRD is what you reach for when a story is XL or larger *and* you can name the seam — a layer, a concern, a sequence that would be dishonest to pretend is one issue. You split it into child sub-issues and implement all of them on **one** feature branch named for the parent. Prototype work does not do this. If an RFP is that large, write more RFPs.
+
+The rest of this page is the operating loop: who does what, where the comments go, and when a child is actually Done. The skills are the terse version of the same loop.
 
 ## Single-branch strategy
 
@@ -43,7 +45,7 @@ Every child In Review with an implementation-log report?
                     └─ Yes → CLOSER (addenda after merge)
 ```
 
-Children are **not** closed before combined review. Done waits for the verification addendum.
+Children stay open through combined review. Done waits for the verification addendum. An implementation log is a diary entry, not a verdict.
 
 ## Starter
 

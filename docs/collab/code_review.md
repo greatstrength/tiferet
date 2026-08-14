@@ -3,40 +3,39 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-Process index: [process.md](process.md). The PR is a **review surface**. Session notes and Collaboration Reports belong on the **issue**.
+[process.md](process.md) is the index. A pull request is where we argue about the diff. An issue is where we remember the session. Mixing those two jobs makes both worse.
 
-## Two review kinds
+## Two kinds of review
 
-### Prototype PR (RFP)
+### A prototype PR (an RFP)
 
-Review against the RFP proposal, acceptance criteria, and cited distillation sections. Do not review against trunk. Do not ask the author to match `main`.
+Read the RFP. Review the proposal, the acceptance criteria, and the distillation sections it cites. Do not review it against trunk. Do not ask the author to make proto look like `main`. That is the opposite of what this strand is for.
 
-### Trunk PR (reconstruction or hotfix)
+### A trunk PR (reconstruction or hotfix)
 
-Primary criterion is the TRD Acceptance Criteria (each child TRD, for a Super-TRD).
+The first question is always the TRD's acceptance criteria — each child TRD, if this is a Super-TRD.
 
-Reconstruction review **may** glance at proto only for artifacts **named in the frozen catalog / TRD AC**. That is measurement, not a merge source. Never recommend "make trunk match proto" as a general rule. An "ahead" trunk (more correct than proto) is kept.
+For reconstruction you *may* open proto, but only for artifacts the freeze and the TRD actually named. You are measuring, not merging. "Make trunk match proto" is almost never the right comment. If trunk is ahead — a later name, a cleaner shape — keep trunk and say so once.
 
-Hotfix review is against the hotfix TRD only. Proto is not consulted.
+A hotfix is reviewed against the hotfix TRD. Proto does not get a vote.
 
-If there is no TRD and no RFP (Doc/skills PR), review the diff against [process.md](process.md) vocabulary and the stated PR intent.
+A Doc or skills PR has no TRD and no RFP. Review the diff against the intent in the PR and the vocabulary in [process.md](process.md).
 
-## Method (diff comments)
+## How to leave a diff comment
 
-1. Establish PR number, head, base, files: `gh pr view <n> --json number,headRefName,baseRefName,files`.
-2. For reconstruction measurement only: `git fetch origin <proto>` from [binding.md](binding.md), then `git diff origin/<proto>..HEAD -- <path>` restricted to AC-named artifacts.
-3. Classify: **AC fail** (actionable), **behind proto on a named artifact** (actionable only if it is also an AC fail or the freeze named that artifact), **ahead** (note once, do not revert), **out of scope** (no comment).
-4. Line-specific items → inline review comments on a line in the PR diff. Structural / whole-file items → the review body.
-5. Present findings to the human and wait for go-ahead before posting.
-6. One consolidated review via the reviews API (`path` + `position`, not `line`). Include conversation link and `Co-Authored-By: Oz <oz-agent@warp.dev>` in the review body.
+1. `gh pr view <n> --json number,headRefName,baseRefName,files` so you know what you are looking at.
+2. Reconstruction measurement only: `git fetch origin <proto>` using the branch in [binding.md](binding.md), then `git diff origin/<proto>..HEAD -- <path>` restricted to AC-named artifacts.
+3. Sort what you see:
+   - **AC fail** — say so.
+   - **Behind proto on a named artifact** — only a finding if it is also an AC fail, or the freeze named that artifact.
+   - **Ahead** — note it once, do not ask anyone to revert it.
+   - **Out of scope** — leave it alone.
+4. A comment about a line goes on that line, and the line has to be in the PR diff. A comment about a missing file or a whole package goes in the review body.
+5. Tell the human what you found and wait for a go-ahead before you post anything to GitHub.
+6. One consolidated review via the reviews API (`path` + `position`, not `line`). The review body gets the findings summary and `Co-Authored-By: Oz <oz-agent@warp.dev>`. On a Super-TRD, the conversation link belongs on the **parent issue**, not as extra PR chatter.
 
-Do **not** put implementor session notes, conversation-only logs, or Collaboration Reports on the PR.
+Do not put implementor session notes, conversation-only logs, or Collaboration Reports on the PR. That is what the issue is for.
 
 ## Guardrails
 
-- Actionable only. A noisy review is worse than a short one.
-- Never recommend proto → trunk git.
-- Never recommend reverting trunk that is ahead of proto.
-- Verify behavior in code before claiming it.
-- Attribution on the review body.
-- Never commit or merge as part of a review.
+A short, accurate review is kinder than a long one. Never recommend proto → trunk git. Never recommend reverting trunk that is ahead of proto. Check the code before you claim a behavior. Never commit or merge as part of a review.

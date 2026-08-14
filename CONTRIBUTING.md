@@ -1,102 +1,98 @@
 # Contributing to Tiferet
 
-Thank you for your interest in contributing to the Tiferet framework.
+Thank you for wanting to contribute. This page is the front door. The map of how work actually moves is [docs/collab/process.md](docs/collab/process.md) — read that before you invent a branch name.
 
-## Getting Started
+## Getting started
 
-1. **Fork** the repository and clone your fork locally.
-2. Create a branch from the correct base (see streams below).
+1. Fork the repository and clone your fork.
+2. Cut a branch from the right base (proto for an RFP, `main` for trunk or docs).
 3. Set up a virtual environment and install in development mode:
-   ```bash
-   python3.10 -m venv venv
-   source venv/bin/activate
-   pip install -e .
-   ```
+
+```bash
+python3.10 -m venv venv
+source venv/bin/activate
+pip install -e .
+```
 
 ## How work is authorized
 
-Read **[docs/collab/process.md](docs/collab/process.md)** first. Trunk and prototype are two independent histories of one version family. What crosses from prototype to trunk is a **catalog** of named artifacts, never a git merge.
+Trunk and prototype are two independent histories of the same version family. What crosses from prototype to trunk is a **catalog** of named artifacts, never a git merge.
 
-| You want to… | You submit | Lands on | Guide |
+| You want to… | You submit | It lands on | The guide |
 |---|---|---|---|
-| Test a domain theory | an **RFP** (public contributors welcome if it follows the genre) | proto branch | [rfp.md](docs/collab/rfp.md) |
-| Reconstruct a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
+| Test a domain theory | an **RFP** (public contributors welcome if it follows the genre) | the proto branch | [rfp.md](docs/collab/rfp.md) |
+| Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
 | Change docs or agent skills | a **Doc PR** — no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
-Commands used across streams: **[docs/collab/commands.md](docs/collab/commands.md)**. Repo-local ids: **[docs/collab/binding.md](docs/collab/binding.md)**.
+Commands used across all of that: [docs/collab/commands.md](docs/collab/commands.md). Facts that belong only to this repo: [docs/collab/binding.md](docs/collab/binding.md).
 
 ## Common practices
 
 ### Issues
 
-Prototype work always has an RFP issue. Trunk reconstruction and hotfixes have a TRD issue. Doc/skills PRs may skip an issue.
+An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A Doc/skills PR may skip the issue if there is nothing to discuss first.
 
 ### Specifications
 
-- Prototype: RFP genre in [rfp.md](docs/collab/rfp.md). No TRD.
-- Trunk reconstruction: TRD that cites a **freeze id**. Branch-agnostic. Never "copy from proto."
-- Trunk hotfix: TRD marked hotfix. No freeze.
-- Docs/skills: the PR body, in this process's vocabulary.
+- Prototype: the RFP genre in [rfp.md](docs/collab/rfp.md). No TRD.
+- Trunk reconstruction: a TRD that cites a **freeze id**. Written in the target language. Never "copy from proto."
+- Trunk hotfix: a TRD marked hotfix. No freeze.
+- Docs and skills: the PR body, using the words in process.md.
 
 ### Implement
 
-- Read **`tiferet-code-style`** before writing code. If the skill is missing, use [docs/core/code_style.md](docs/core/code_style.md).
-- Read the **`tiferet-code-<component>`** skill for each layer you touch. Multi-component: also `tiferet-code-architecture`.
-- Docstrings / `docs/guides/`: **`tiferet-guide-docs`**.
+- Read **`tiferet-code-style`** before you write code. If the skill is missing, [docs/core/code_style.md](docs/core/code_style.md) is the fallback.
+- Read the **`tiferet-code-<component>`** skill for each layer you touch. More than one layer: also `tiferet-code-architecture`.
+- Docstrings and `docs/guides/`: **`tiferet-guide-docs`**.
 - Tests: `pytest`.
 
 ### Commit hygiene
 
-- Separate functional changes from docs/config/packaging.
-- Title by scope (`Events – AddFeature Event`, `Docs – Process and Skills`).
-- `Co-Authored-By: <name> <email>` when an AI agent collaborates.
-- Never commit or merge unless asked.
+Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, add `Co-Authored-By: <name> <email>`. Never commit or merge unless someone asked you to.
 
 ### Pull requests
 
-- Target proto for RFPs, `main` for trunk and Doc.
-- The PR is a **review surface** (description, AC checkboxes, diff comments).
-- Session notes, conversation links, and Collaboration Reports go on the **issue**.
+RFPs target proto. Trunk and Doc target `main`. The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Session notes, conversation links, and Collaboration Reports belong on the **issue**.
 
 ### Review
 
-Diff comments stay on the PR. Reconstruction review may measure proto only for artifacts named in the frozen catalog / TRD AC — never "make trunk match proto." Prototype review is against the RFP and cited distillation sections. See [code_review.md](docs/collab/code_review.md).
+Diff comments stay on the PR. Reconstruction review may look at proto only for artifacts the freeze and the TRD named — never "make trunk match proto." Prototype review is against the RFP and the distillation sections it cites. More in [code_review.md](docs/collab/code_review.md).
 
 ### Collaboration Report
 
-Posted on the originating **issue**. Super-TRD children get an implementation log when pushed and a verification addendum after combined review. See [collab_report.md](docs/collab/collab_report.md).
+Posted on the originating **issue**. A Super-TRD child gets an implementation log when the code is pushed, and a verification addendum after combined review. See [collab_report.md](docs/collab/collab_report.md).
 
-## Working with AI Agents
+## Working with AI agents
 
-Skills are committed at [`.agents/skills/`](.agents/skills/) and auto-discovered in this repo. Copying them to `~/.agents/skills/` is optional. Every skill follows [docs/collab/agents/SKILL_TEMPLATE.md](docs/collab/agents/SKILL_TEMPLATE.md). Drop stale `~/.agents/skills/tiferet-*` copies or they will shadow this repo.
+Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in this checkout. Copying them to `~/.agents/skills/` is optional. If you do, delete stale `tiferet-*` copies first or they will shadow this repo. Every skill follows [docs/collab/agents/SKILL_TEMPLATE.md](docs/collab/agents/SKILL_TEMPLATE.md).
 
-**Process skills**
+**Process**
 
 - `tiferet-annotation-artifacts` — scan `# ++ todo:` / `# -- obsolete:` at the start of every implementation session.
 - `tiferet-author-rfp` — draft or amend an RFP.
 - `tiferet-rfp-session` — implement an RFP on proto.
 - `tiferet-freeze-catalog` — record a catalog freeze after a human names the cluster.
-- `tiferet-author-trd` — trunk TRD (reconstruction needs a freeze id; hotfix does not).
+- `tiferet-author-trd` — trunk TRD (reconstruction needs a freeze id; a hotfix does not).
 - `tiferet-create-milestone` — proto beta milestone or trunk `vX.Y.Z`.
-- `tiferet-milestone-session` — proto-alpha loop or trunk standalone / Super-TRD.
-- `tiferet-collab-report` — report on the issue (log / addendum / roll-up).
-- `tiferet-pr-code-review` — diff comments on the PR; AC/freeze measurement, not proto promotion.
+- `tiferet-milestone-session` — proto-alpha loop, or trunk standalone / Super-TRD.
+- `tiferet-collab-report` — the report on the issue (log, addendum, or roll-up).
+- `tiferet-pr-code-review` — diff comments on the PR; measurement, not proto promotion.
 
-**Super-TRD:** `tiferet-super-trd` (dispatch) → implementor / reviewer / closer. [super_trd_workflow.md](docs/collab/super_trd_workflow.md).
+**Super-TRD:** start with `tiferet-super-trd`, then the implementor, reviewer, or closer skill. The long form is [super_trd_workflow.md](docs/collab/super_trd_workflow.md).
 
 **Docs:** `tiferet-guide-docs`.
 
-**Code style:** `tiferet-code-style` every session; `tiferet-code-architecture` for multi-component; then `tiferet-code-domain`, `events`, `mappers`, `interfaces`, `contexts`, `repos`, `assets`, `blueprints`, `utils`, `di`, `testing`.
+**Code style:** `tiferet-code-style` every session; `tiferet-code-architecture` when more than one component changes; then `tiferet-code-domain`, `events`, `mappers`, `interfaces`, `contexts`, `repos`, `assets`, `blueprints`, `utils`, `di`, `testing`.
 
-Global rule template: [docs/collab/agent_rule.md](docs/collab/agent_rule.md).
+A global rule you can paste into your agent: [docs/collab/agent_rule.md](docs/collab/agent_rule.md).
 
-## Code Style
+## Code style
 
-Artifact comments (`# ***`, `# **`, `# *`), RST docstrings, commented snippets, consistent spacing. Full details: [docs/core/code_style.md](docs/core/code_style.md).
+Artifact comments (`# ***`, `# **`, `# *`), RST docstrings, commented snippets, consistent spacing. The full guide is [docs/core/code_style.md](docs/core/code_style.md).
 
-## Reporting Issues
+## Reporting issues
 
-Use the GitHub issue tracker. Bugs: steps to reproduce, expected vs actual. RFPs: follow [rfp.md](docs/collab/rfp.md).
+Use the GitHub issue tracker. Bugs need steps to reproduce and expected versus actual. RFPs need to follow [rfp.md](docs/collab/rfp.md).
 
 ## License
 

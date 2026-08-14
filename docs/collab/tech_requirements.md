@@ -3,14 +3,16 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-The process index is [process.md](process.md). A TRD is a **trunk** specification. Prototype work uses an [RFP](rfp.md), not this genre. Doc and skills changes use a [Doc PR](doc.md) — **no TRD**.
+A TRD is how trunk gets specific. [process.md](process.md) is the index. Prototype work uses an [RFP](rfp.md), which is a different genre on purpose. Docs and skills use a [Doc PR](doc.md) and do not get a TRD — if you are writing one for a README, stop.
+
+The sections below are the contract: named artifacts, complete tables, binary acceptance criteria. The voice can be human. The tables still have to be complete.
 
 ## When a TRD is required
 
-- **Reconstruction** — implement a **frozen** RFP cluster on trunk. Cite the freeze id in §7. Refuse to author if there is no freeze id.
-- **Hotfix** — a small mechanical defect already understood on trunk. No freeze. Prototype is not consulted. Header: `**Type:** Hotfix`.
+- **Reconstruction** — rebuild a **frozen** RFP cluster on trunk. Cite the freeze id in §7. If there is no freeze id, do not write the TRD. Point at `tiferet-freeze-catalog` instead.
+- **Hotfix** — a small mechanical defect already understood on trunk. No freeze. Prototype is not consulted. Mark the header `**Type:** Hotfix` so nobody goes looking for a cluster.
 
-Do not write a TRD that says "copy from proto" or `Version: Request for Prototype`.
+Do not write a TRD that says "copy from proto." Do not put `Version: Request for Prototype` in the header. That version field was from a process we no longer run.
 
 ## Kinds, then size, then path
 
@@ -22,10 +24,7 @@ Do not write a TRD that says "copy from proto" or `Version: Request for Prototyp
 
 ## General guidelines
 
-- Tone: professional, precise, active voice.
-- Pure Markdown. Date is a real calendar date, never "today."
-- **Version:** the trunk milestone (`2.0.1`, `2.1.0`). Not an RFP label.
-- Typical rendered length: 1–3 pages for a standalone or child TRD.
+Write like a careful colleague. Precise, active voice, no throat-clearing. Pure Markdown. Use a real calendar date, never "today." The **Version** field is the trunk milestone (`2.0.1`, `2.1.0`), not an RFP label. A standalone or child TRD is usually one to three pages once rendered; if it is much longer, you probably wanted a Super-TRD.
 
 ## Standard structure (standalone and child)
 
