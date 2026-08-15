@@ -5,7 +5,11 @@
 
 ## Overview
 
-Domain objects are the structural core of the Tiferet framework. Every domain concept — errors, features, containers, app interfaces, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.core`.
+Domain objects are read-only nouns. They house data and offer read-only behavior. They do not mutate themselves. Mutation lives on the aggregate in `mappers`. That position is **Gevurah**.
+
+Legal `# ** app` imports: none of the framework. Used by `contexts`, `events`, and `di`. Blueprints reference domain types only through context re-exports. See [architecture.md](architecture.md).
+
+Every domain concept — errors, features, app sessions, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.core`.
 
 Domain objects serve a **dual role**:
 

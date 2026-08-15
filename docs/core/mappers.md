@@ -5,7 +5,14 @@
 
 ## Overview
 
-The mappers layer (`tiferet.mappers`) provides the bridge between persistent configuration and runtime domain objects. It introduces two base classes:
+A mapper extends a domain type and adds either mutation or representation. That position is **Hod**.
+
+- **Aggregate** — internal state. Factory and mutation methods. `ModelError` on validation failure.
+- **TransferObject** — cross-platform state: how the same noun is represented for a database, a domain file format, or a custom event response, without breaking the model.
+
+Legal `# ** app` imports: `domain` only. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` and receive a util function at runtime. Mappers do not import `utils`. See [architecture.md](architecture.md).
+
+The mappers layer (`tiferet.mappers`) introduces two base classes:
 
 1. **Aggregate**  
    - Extends `DomainObject` (which extends `pydantic.BaseModel`).

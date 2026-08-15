@@ -1,6 +1,10 @@
 # Contexts in Tiferet
 
-Contexts are a core component of the Tiferet framework, representing the structural "body" of an application in runtime "graph space." While blueprints (`tiferet/blueprints/`) control the timing, execution, and procedure of the app, Contexts define its shape and behavior, encapsulating user interactions, internal orchestration, and supporting services. In Tiferet, Contexts are the primary runtime components safely accessible to blueprints, making their methods and attributes extensible for developers (human or AI). This document explores the structured code design behind Contexts, how to write and extend them, and how to test them, using the calculator application as an example and adhering to Tiferet's code style ([docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
+Contexts are the runtime graph. A context binds a domain object (`from_domain`) and exposes operational behavior. The hub must be able to run without knowing how it was assembled. That position is **Binah**.
+
+Legal `# ** app` imports: `assets` (one way); `domain`; sibling contexts; `events` as the client surface. Illegal: `blueprints`, `interfaces`, `di`, `mappers`, `utils`, `repos`. Blueprints are the factory; contexts are the client. Prefer handler injection over constructing sibling contexts. See [architecture.md](architecture.md).
+
+This document explores the structured code design behind Contexts, how to write and extend them, and how to test them, adhering to Tiferet's code style ([code_style.md](code_style.md)).
 
 ## What is a Context?
 
@@ -238,6 +242,7 @@ Contexts define the runtime shape of Tiferet applications, orchestrating user in
 
 ## Related Documentation
 
+- [architecture.md](architecture.md) — Package import law
 - [docs/guides/contexts.md](../guides/contexts.md) — Context strategies and runtime patterns
 - [docs/core/blueprints.md](blueprints.md) — Blueprint composition and handler wiring
 - [docs/guides/blueprints.md](../guides/blueprints.md) — Blueprint strategies, including admin entry points

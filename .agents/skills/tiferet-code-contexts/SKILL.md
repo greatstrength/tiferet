@@ -34,7 +34,7 @@ Context-specific labels:
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `assets`, `domain`, `events`, `mappers`, `di`. Never import from `repos` or `utils` directly (resolved via DI at runtime), or from `blueprints`.
+**Layer boundary — valid `# ** app` imports:** `assets`, `domain`, sibling contexts, `events`. Never import from `mappers`, `di`, `interfaces`, `repos`, `utils`, or `blueprints`. Prefer blueprint handler injection over constructing sibling contexts. Contexts may call events as a client surface after the blueprint has built them.
 
 **Base class:** All contexts extend `BaseContext` from `tiferet/contexts/core.py`.
 - `BaseContext` provides a `ContextMeta` registry keyed by `domain_type`.
@@ -42,9 +42,9 @@ Context-specific labels:
 - `BaseContext.from_domain(domain_obj, **kwargs)` — constructs a context bound to a domain object; the object is exposed as `ctx.domain`.
 - Caching is NOT in the base — declare a `CacheContext` on contexts that need one.
 
-**High-level contexts** (user-facing, e.g. `CliContext`, `FlaskApiContext`):
+**High-level contexts** (user-facing, e.g. `CliSessionContext`, `FlaskApiContext`):
 - Extend `AppSessionContext` (the minimal hub in `tiferet/contexts/app.py`).
-- `AppSessionContext` receives blueprint-injected handler callables — `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler` — plus `get_dependency`, `logging_context`, and `cache`. These are wired by the blueprint during app initialization, not declared as named event collaborators.
+- `AppSessionContext` receives five required blueprint-injected handlers — `build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler` — plus `get_dependency` and `cache`. CLI adds `parse_cli_args`. These are wired by the blueprint during app initialization.
 - Override only the methods your interface specializes (e.g. `parse_request`, `build_response`).
 
 **Low-level contexts** (supporting any domain concern at the app-operation level):
@@ -55,9 +55,9 @@ Context-specific labels:
 **`domain_type` ClassVar:**
 - Declare on each context to register it in the `ContextMeta` registry.
 - `AppSessionContext` declares `domain_type = AppSession`.
-- `CliContext` intentionally omits `domain_type` — it is selected via the interface config's `module_path`/`class_name`, not the registry.
+- `CliSessionContext` is selected by the CLI blueprint, not by `module_path`/`class_name` on the session.
 
-**Construction:** The blueprint resolves the context class from `module_path`/`class_name`, then constructs via `BaseContext.from_domain(app_session, **collaborators)`. Never instantiate contexts directly with `ContextClass(...)`.
+**Construction:** The blueprint hardcodes the context class for the entry point, then constructs via `BaseContext.from_domain(app_session, **handlers)`. Never instantiate contexts directly with `ContextClass(...)`.
 
 **`run(feature_id, headers, data, **kwargs)`** is the standard high-level execution entry point (inherited from `AppSessionContext`).
 
@@ -77,8 +77,8 @@ from ..domain import AppSession
 
 # *** contexts
 
-# ** context: cli_context
-class CliContext(AppSessionContext):
+# ** context: cli_session_context
+class CliSessionContext(AppSessionContext):
     '''
     High-level context for CLI interfaces.
 
@@ -87,25 +87,24 @@ class CliContext(AppSessionContext):
     from_domain. CLI parsing is owned by this context, not the blueprint.
     '''
 
-    # * method: run_cli
-    def run_cli(self, argv: list | None = None) -> Any:
+    # * method: run
+    def run(self, argv: list | None = None, **kwargs) -> Any:
         '''
-        Parse argv and dispatch the resolved feature request.
+        Parse argv and dispatch through the inherited hub run.
 
         :param argv: Explicit argv list; defaults to sys.argv[1:].
         :type argv: list | None
+        :param kwargs: Unused; present for signature compatibility.
+        :type kwargs: dict
         :return: The feature execution result.
         :rtype: Any
         '''
 
-        # Resolve argv, falling back to sys.argv.
-        resolved = argv if argv is not None else sys.argv[1:]
+        # Parse argv via the injected callable.
+        feature_id, headers, data = self._parse_cli_args(argv)
 
-        # Parse the CLI request into feature_id and data.
-        feature_id, data = self.parse_cli_request(resolved)
-
-        # Delegate to the standard run entry point.
-        return self.run(feature_id=feature_id, data=data)
+        # Delegate to the hub run entry point.
+        return super().run(feature_id, headers=headers, data=data)
 ```
 
 ## Docstrings & guides

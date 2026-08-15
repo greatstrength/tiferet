@@ -327,27 +327,22 @@ flowchart LR
 
 ## 7. Relationships / cross-boundary rules
 
-Tiferet arranges its own packages in three layers, and dependencies may only
-run downward: **Accessor** (`assets`, `contexts`, `blueprints`), **Actor**
-(`domain`, `events`, `di`), **Infrastructure** (`interfaces`, `mappers`,
-`utils`, `repos`). Judging whether an import is legal requires knowing which
-layer the importing package sits in — the same asymmetry the compiler-domain
-distillation documents for Tiferet's own dialect, applied here to the
-framework's actual source rather than to a dialect it defines.
+Package import law lives in [`docs/core/architecture.md`](core/architecture.md).
+The ten packages are not Accessor / Actor / Infrastructure. Each package has
+a systems function (factory versus client, emit versus absorb, read-only noun
+versus mutable aggregate). Skills and this distillation use package names
+only.
 
-Concretely: `domain` depends on nothing else in the framework — it is pure
-Pydantic definitions plus the model-error vocabulary
-(`tiferet/domain/core.py`). `assets` is the root everyone may draw on. `events`
-is the hub of the Actor layer, consuming `assets`, `domain`, `interfaces`,
-`mappers`, and `di`, but never `contexts` or `blueprints`. `mappers` depends
-only on `domain` and `events`. `di` is deliberately event-free and
-asset-free: `domain` and `interfaces.di` only. `utils` and `repos` sit at the
-bottom of Infrastructure, resolved into the graph only through DI — `contexts`
-and `blueprints` never import them directly. `contexts` consumes `assets`,
-`domain`, and `events`, and receives DI resolution only through an injected
-`get_dependency` callable. `blueprints` sits at the top: it composes contexts
-and DI container/resolver classes, and reaches domain objects only via
-`contexts`, never by importing `domain` directly.
+Concretely: `domain` has no framework imports. `assets` emits to `blueprints`,
+`contexts`, and `events` only. `events` is the unit of work: inbound from
+`assets`, `blueprints` (bootstrap), and `contexts` (client surface); outbound
+to `domain`, `mappers`, `utils`, and `interfaces`. `mappers` import `domain`
+only. `interfaces` import aggregates from `mappers`. `di` is event-free and
+asset-free: `domain` and `interfaces` only. `utils` and `repos` are absorbed
+by events and repositories, not imported by `contexts` or `blueprints`.
+`contexts` consume `assets`, `domain`, siblings, and `events`, and receive DI
+resolution only through an injected `get_dependency` callable. `blueprints`
+compose contexts and DI classes and reach domain types only via `contexts`.
 
 This ordering is why dependency resolution (5.2) can be swapped or extended
 without touching request execution (5.4): a `FeatureContext` never imports
@@ -403,23 +398,11 @@ with, so any object satisfying that one-method contract is a legal resolver.
   keys are silently dropped on load rather than rejected or acted on. A
   reader of the shipped example has no way to discover, from the
   configuration alone, that these two keys do nothing.
-- **`docs/core/contexts.md` and `docs/core/di.md` describe an earlier
-  design.** The former documents `AppSessionContext` building
-  `FeatureContext` and `ErrorContext` on demand via `for_domain`; the current
-  hub instead composes from five externally injected template-method
-  handlers (`build_logger_handler`, `execute_feature_handler`,
-  `create_request_handler`, `raise_error_handler`, `response_handler`;
-  `tiferet/contexts/app.py:392`) and never imports `FeatureContext` or
-  `ErrorContext` directly. The latter documents a `tiferet/di/settings.py`
-  module and a declarative, event-driven bootstrap wiring
-  (`CreateServiceResolver` via `DomainEvent.handle`); the current `di/`
-  package contains only `core.py` and `dependency_injector.py`, and
-  `blueprints/core.py` composes the resolver directly via
-  `build_app_service_container` / `build_service_resolver`
-  (`tiferet/blueprints/core.py:432`, `tiferet/blueprints/core.py:532`)
-  without importing `events` at all. Both documents describe a real, earlier
-  stage of the framework's own evolution rather than an error, but neither
-  has been reconciled with the code a contributor will actually find.
+- **`docs/guides/` still describes an earlier design.** Core layer pages and
+  `docs/core/architecture.md` now state the current import law and five-handler
+  hub. The strategy guides (`docs/guides/contexts.md`, `docs/guides/mappers.md`,
+  and related) still use retired names (`AppInterfaceContext`, `DIContext`,
+  `ServiceConfiguration`, `*YamlObject`) and are a later remediation.
 
 None of these is a defect in the request-execution engine itself — 5.1–5.5
 work as described. They are defects in the framework's own claim, in its
@@ -454,17 +437,10 @@ either a result or a catalogued, formatted error.
    class from the session's declaration, or remove the vestigial
    `module_path` / `class_name` framing from example configuration and any
    documentation that still describes it as read.
-2. **Reconcile `docs/core/contexts.md` and `docs/core/di.md` with the current
-   `contexts/app.py` and `di/` package.** Both guides are the canonical
-   references contributors are told to read before touching these layers;
-   as written, following them would produce code that does not match the
-   surrounding codebase.
-3. **Decide whether `di/settings.py`'s retirement is complete.** The
-   `dependency_injector.py` / `core.py` split appears to fully replace it on
-   the `build_app` path; confirming no consumer-facing surface still expects
-   the retired module would let the documentation drop it outright rather
-   than describe two designs at once.
-4. **Audit other session-level configuration keys for the same silent-drop
+2. **Reconcile `docs/guides/` with `docs/core/architecture.md`.** Core layer
+   pages now match the current hub and `di/` package. The strategy guides still
+   describe retired names and are a later remediation.
+3. **Audit other session-level configuration keys for the same silent-drop
    pattern.** `AppSessionConfigObject`'s lenient parsing means any stale or
    misspelled key in a session's configuration fails silently rather than
    loudly; a validation pass (or a stricter parsing mode for known sections)

@@ -5,7 +5,11 @@
 
 ## Overview
 
-Domain events are the operational core of the Tiferet framework. Every focused domain action — validation, service interaction, computation, or orchestration — is expressed as a class extending `DomainEvent` from `tiferet/events/core.py`.
+Domain events are the unit of work. That position is **Tiferet**. Inbound: `assets` (`a`), `blueprints` (bootstrap), `contexts` (client). Outbound: `domain`, `mappers`, `utils`, `interfaces`. `di` does not import events.
+
+`execute` should return a domain model when one exists. Otherwise it may return anything it can legally reach beneath it — an aggregate or transfer object, a util result, or an interface-shaped value. It does not return contexts, blueprints, or repos. Error constants are `a.<submodule>.*`, never `a.const`. See [architecture.md](architecture.md).
+
+Every focused domain action — validation, service interaction, computation, or orchestration — is expressed as a class extending `DomainEvent` from `tiferet/events/core.py`.
 
 `DomainEvent` provides:
 - Core orchestration (`execute`, `handle`)
@@ -177,7 +181,7 @@ class AddError(ErrorEvent):
         # Check existence via the inherited service.
         self.verify(
             not self.error_service.exists(id),
-            a.const.ERROR_ALREADY_EXISTS_ID,
+            a.error.ERROR_ALREADY_EXISTS_ID,
             message=f'An error with ID {id} already exists.',
             id=id,
         )
@@ -217,7 +221,7 @@ def execute(self, **kwargs) -> Any:
 - **Falsy-but-valid** cases (pass validation):
   - `0`, `0.0`, `False`, `[]`, `{}`, `set()`, etc.
 - Collects **all** violations → raises **single** `TiferetError`.
-- Error uses constant `a.const.COMMAND_PARAMETER_REQUIRED_ID`.
+- Error uses constant `a.error.COMMAND_PARAMETER_REQUIRED_ID`.
 - Error `kwargs`: `{'parameters': ['id', 'name'], 'command': 'ClassName'}`.
 
 ### Comparison: `@parameters_required` vs `verify` vs `raise_error`
@@ -281,7 +285,7 @@ class TestGetError(ServiceEventTestBase):
     service_attr = 'error_service'
     sample_kwargs = dict(id='ERR_001')
     required_params = ['id']
-    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
     not_found_kwargs = dict(id='missing_error')
 
     def test_success(self, mock_dependencies):

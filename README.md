@@ -99,15 +99,18 @@ You should see:
 ## Documentation & Guides
 
 **Core architecture**  
+- [Architecture (import law)](docs/core/architecture.md)  
 - [Code Style & Artifact Comments](docs/core/code_style.md)  
 - [Blueprints (build_app)](docs/core/blueprints.md)  
+- [Contexts](docs/core/contexts.md)  
 - [Domain Objects](docs/core/domain.md)  
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
 - [Service Interfaces](docs/core/interfaces.md)  
-- [Dependency Injection (ServiceProvider)](docs/core/di.md)  
+- [Dependency Injection](docs/core/di.md)  
 - [Repositories](docs/core/repos.md)  
-- [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)
+- [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)  
+- [Assets](docs/core/assets.md)
 
 ### Practical Guides 
 **Domain Guides**  

@@ -1,8 +1,10 @@
 # Blueprints in Tiferet
 
-Blueprints are a core component of the Tiferet framework in v2.0+. They serve as the primary public entry point for applications, providing a clean, high-level API for loading services, preparing defaults, resolving sessions, wiring the five-handler context contract, and executing features.
+Blueprints are composition and factory. They wire a session; they do not implement domain logic. That position is **Chochmah**.
 
-While contexts define the runtime shape and behavior of an individual session, blueprints orchestrate the overall application lifecycle and wiring.
+Legal `# ** app` imports: `assets`; `contexts`; `di` for container and resolver classes; `events` for pre-DI bootstrap only (`DomainEvent.handle(...)` or a direct event-class import). Illegal as a direct import: `domain`, `interfaces`, `mappers`, `utils`, `repos`. Domain types reach a blueprint only through context re-exports. Service instances reach a blueprint only through `di`. See [architecture.md](architecture.md).
+
+Blueprints are the primary public entry point for applications: loading services, preparing defaults, resolving sessions, wiring the five-handler context contract, and executing features. Contexts define the runtime shape of a session after the blueprint has built it.
 
 ## What is a Blueprint?
 
@@ -262,6 +264,7 @@ Explore source in `tiferet/blueprints/` and blueprint tests in the top-level `te
 
 ## Related Documentation
 
+- [architecture.md](architecture.md) — Package import law
 - [docs/guides/blueprints.md](../guides/blueprints.md) — blueprint strategies and patterns
 - [docs/guides/admin.md](../guides/admin.md) — admin application and CLI catalog
 - [docs/core/contexts.md](contexts.md) — five-handler context contract

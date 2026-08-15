@@ -37,9 +37,9 @@ DI-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces.di` (`DIService`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
-- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di`. Never import `TiferetError`, `ServiceError`, `a.error`, or any other event/asset.
-- Raw exceptions surface from DI classes; callers with event access convert them to structured errors.
+- **Layer boundary — valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces` (`DIService`, `ServiceError`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
+- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces`. Never import `TiferetError`, `a.error`, or any event.
+- A missing provider raises `ServiceError.raise_for(...)`. A registered provider that fails during construction still surfaces the underlying exception.
 - **All new DI components must extend either `ServiceContainer` or `ServiceResolver`** — there is no valid DI class that does not inherit from one of these two ABCs.
 - **DI inverts the domain event principle:** Domain events expose a minimal interface (`execute`) to serve unlimited domain use cases. DI components expose a richer interface to solve one highly specific concern — dependency resolution. Both are injection targets, but in opposite directions of interface breadth vs. domain breadth.
 - **`injectable_parameter_names(service_type)`** — returns constructor parameter names eligible for automatic wiring (excludes `self`, `*args`, `**kwargs`). Uninspectable types are treated as no-arg.
@@ -105,7 +105,7 @@ class ServiceContainer(ABC):
     Defines core operations for registering service dependencies and constants,
     resolving them, and removing them. All new DI containers must extend this ABC.
 
-    Event-free: raw exceptions surface; callers convert to structured errors.
+    Event-free and asset-free. A missing provider raises ServiceError.
     '''
 
     # * method: add_service

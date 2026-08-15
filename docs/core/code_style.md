@@ -344,7 +344,7 @@ class GetFeature(DomainEvent):
         # If not found, raise structured error.
         if not feature:
             self.raise_error(
-                a.const.FEATURE_NOT_FOUND_ID,
+                a.error.FEATURE_NOT_FOUND_ID,
                 f'Feature not found: {id}',
                 feature_id=id
             )

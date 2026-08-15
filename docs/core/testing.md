@@ -89,7 +89,7 @@ class TestErrorAggregate(AggregateTestBase):
 
     set_attribute_params = [
         ('name', 'Updated Error', None),                                  # valid
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),  # invalid
+        ('invalid_attribute', 'value', 'INVALID_MODEL_ATTRIBUTE'),  # invalid
     ]
 
     # Domain-specific tests beyond the harness:

@@ -5,7 +5,11 @@
 
 ## Overview
 
-Repositories are the concrete data-access layer in the Tiferet framework. Every repository implements a Service interface from `tiferet/interfaces/` and inherits the shared `ConfigurationRepository` base, which handles format-specific file I/O and TransferObject serialization for the domain's aggregates.
+Repositories are persistence: assets inverted. Assets emit artifacts to `blueprints`, `contexts`, and `events`. Repositories only absorb artifacts from `mappers`, `utils`, and `interfaces`. Nothing else imports `repos`. They are never exported. That position is **Malkuth**.
+
+Legal `# ** app` imports: `interfaces` (the Service being implemented, and `ServiceError`); `mappers` (transfer objects and aggregates); `utils` (loaders). Illegal: `assets`, `domain` (use a mapper), `events`, `di`, `blueprints`, `contexts`. See [architecture.md](architecture.md).
+
+Every repository implements a Service interface from `tiferet/interfaces/` and inherits the shared `ConfigurationRepository` base, which handles format-specific file I/O and TransferObject serialization.
 
 Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service registration (`config.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. Consuming code depends only on the abstract Service interface, never on a concrete repository class.
 

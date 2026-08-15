@@ -36,7 +36,7 @@ Both sections may appear in the same module. `# *** functions` must appear first
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `assets`, `contexts`, `di`, `events`. Blueprints access domain models **via `contexts` or `di`**, not by importing directly from `domain`. Never import from `interfaces`, `mappers`, `utils`, or `repos`.
+- **Layer boundary — valid `# ** app` imports:** `assets`, `contexts`, `di`, `events`. Events are for pre-DI bootstrap only (`DomainEvent.handle` or a direct event-class import). Domain types come from the context that owns them, never `from ..domain`. Service instances arrive from `di` (`get_dependency`); never import `interfaces`. Never import from `mappers`, `utils`, or `repos`.
 - Blueprints are **module-level functions**, not classes.
 - Blueprints are **thin orchestrators** — they wire and delegate; they do not implement domain logic.
 - The canonical entry point is `build_app` in `tiferet/blueprints/core.py`, exported as `App`. The CLI entry point is `build_cli` in `tiferet/blueprints/cli.py`, exported as `CLI`.
@@ -44,7 +44,7 @@ Both sections may appear in the same module. `# *** functions` must appear first
   1. `build_cache()` — build the `CacheContext` pre-seeded with framework defaults
   2. `get_app_session(interface_id, cache, ...)` — resolve the app session via `GetAppSession`
   3. `build_app_session_context(app_session, cache)` — build the app service container, compose the `ServiceResolver`, import the context class, and construct via `from_domain`
-- `build_cli` is a thin entrypoint: call `core.build_app(...)` then `cli_context.run_cli(argv)`.
+- `build_cli` is a thin entrypoint: call `core.build_app(...)` then `cli_context.run(argv)`.
 - Always validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in single-call entry points.
 - Use `TiferetError.raise_error()` for domain-outcome error paths (e.g. `TiferetError.raise_error(a.error.INVALID_APP_SESSION_TYPE_ID, ...)`).
 - Module-private helpers are underscore-prefixed (`_resolve_bootstrap_session`).
@@ -90,7 +90,7 @@ def build_cli(interface_id: str,
     '''
     Build and run a CLI interface.
 
-    Delegates argparse parsing and feature dispatch to CliContext.run_cli.
+    Delegates argparse parsing and feature dispatch to CliSessionContext.run.
 
     :param interface_id: The interface identifier.
     :type interface_id: str
@@ -105,11 +105,11 @@ def build_cli(interface_id: str,
     # Resolve the argv list.
     resolved_argv = _derive_argv(argv)
 
-    # Build the app context (must resolve to a CliContext).
+    # Build the app context (must resolve to a CliSessionContext).
     cli_context = _core_build_app(interface_id, **kwargs)
 
     # Delegate CLI parsing and feature dispatch to the context.
-    return cli_context.run_cli(resolved_argv)
+    return cli_context.run(resolved_argv)
 ```
 
 ## Docstrings & guides

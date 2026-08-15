@@ -5,9 +5,11 @@
 
 ## Overview
 
-The assets package (`tiferet/assets/`) is the framework's foundational, dependency-light layer. It holds the primitive building blocks shared across every other layer — the structured exception types, error-code and default-configuration constants, bootstrap wiring definitions, and the package's public exports.
+Assets emit shared primitives and have no inbound framework edges. That position is **Keter**. Core assets may be used by other assets. Core and other assets may be used by `blueprints`, `contexts`, and `events`, typically via `from .. import assets as a`. Assets do not automatically flow to `domain`, `interfaces`, `mappers`, `di`, `utils`, or `repos`.
 
-Because it sits at the bottom of the dependency graph, assets modules import only the standard library and third-party primitives. They never import from `domain`, `events`, `mappers`, `interfaces`, `repos`, `contexts`, or `blueprints` — those layers depend on assets, not the other way around.
+The package (`tiferet/assets/`) holds structured exception types, namespaced error-code and default-configuration constants, bootstrap wiring definitions, and the package's public exports.
+
+Assets modules import only the standard library and third-party primitives. They never import from another Tiferet package. Legal `# ** app` imports: none. See [architecture.md](architecture.md).
 
 Assets modules are deliberately simple. Only five artifact kinds appear in the layer:
 
@@ -21,9 +23,9 @@ There are no domain objects, aggregates, services, events, or contexts here. Tha
 
 ## The Assets Layer's Role
 
-- **Exceptions** — `TiferetError` and `TiferetAPIError` (`exceptions.py`) are the structured error types raised throughout the framework.
-- **Constants** — error-code identifier constants (`constants.py`), the `DEFAULT_ERRORS` catalog (`error.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
-- **Exports** — `__init__.py` re-exports the commonly used symbols and exposes the `constants` and `blueprints` modules under the short aliases `const` and `bps`.
+- **Exceptions** — `TiferetError` and `TiferetAPIError` live in `core.py` and are the structured error types raised throughout the framework.
+- **Constants** — shared factories and path/prefix constants live in `core.py`. Namespaced catalogs live in `error.py`, `app.py`, `feature.py` (exported as `feat`), `cli.py`, `di.py`, and `logging.py`.
+- **Exports** — `__init__.py` re-exports the public exception types and exposes the namespaced modules as `a.core`, `a.error`, `a.app`, `a.feat`, `a.cli`, and `a.logging`. There is no `const` or `bps` alias.
 
 ## Structured Code Design
 
@@ -53,7 +55,7 @@ import json
 
 ### Constants
 
-Constants are `SCREAMING_SNAKE_CASE` module-level values. Each constant carries its own `# ** constant: <snake_case_name>` label — related constants are not grouped under a shared `# **` comment. A large constants section may instead be partitioned into top-level **sub-groups** (see [code_style.md](code_style.md)); for example, `constants.py` keeps language constants under `# *** constants` and error-id constants under `# *** constants (error)`:
+Constants are `SCREAMING_SNAKE_CASE` module-level values. Each constant carries its own `# ** constant: <snake_case_name>` label — related constants are not grouped under a shared `# **` comment. A large constants section may instead be partitioned into top-level **sub-groups** (see [code_style.md](code_style.md)); for example, `core.py` keeps language constants under `# *** constants` and path constants under `# *** constants (paths_packages)`:
 
 ```python
 # *** constants
@@ -85,13 +87,13 @@ DEFAULT_ERRORS = {
 
 ### Functions
 
-Assets functions are small, stateless helpers with no framework dependencies. For example, `create_default_error` (in `constants.py`) builds a default error definition from ordered `(lang, text)` message pairs:
+Assets functions are small, stateless helpers with no framework dependencies. For example, `create_default_error_data` (in `core.py`) builds a default error definition from ordered `(lang, text)` message pairs:
 
 ```python
 # *** functions
 
-# ** function: create_default_error
-def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
+# ** function: create_default_error_data
+def create_default_error_data(name: str, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
     '''
     Build a default error definition dictionary.
 
@@ -153,11 +155,13 @@ Only `__init__.py` carries an `# *** exports` section. It re-exports the public 
 # *** exports
 
 # ** app
-from .exceptions import TiferetError, TiferetAPIError
-from .constants import ERROR_NOT_FOUND_ID
-from .error import DEFAULT_ERRORS
-from . import constants as const
-from . import blueprints as bps
+from .core import TiferetError, TiferetAPIError
+from . import core
+from .error import ERROR_NOT_FOUND_ID
+from . import error
+from . import app
+from . import feature as feat
+from . import logging
 ```
 
 ## Creating and Extending Assets Modules
@@ -179,11 +183,13 @@ from . import blueprints as bps
 
 ```
 tiferet/assets/
-├── __init__.py      — Public exports; exposes `const` and `bps` module aliases
-├── constants.py     — Error-code identifier constants
-├── error.py         — The DEFAULT_ERRORS catalog (imports ids from constants.py)
-├── exceptions.py    — TiferetError and TiferetAPIError
-├── blueprints.py    — Bootstrap default constants and service wiring
+├── __init__.py      — Public exports; namespaced module aliases (`error`, `app`, `feat`, …)
+├── core.py          — TiferetError, TiferetAPIError, shared factories and path constants
+├── error.py         — Error-code ids and default error catalogs
+├── app.py           — Default app sessions, services, and constants
+├── feature.py       — Default feature catalogs (exported as `feat`)
+├── cli.py           — Default CLI command catalogs
+├── di.py            — Default service-registration catalogs
 └── logging.py       — Default logging formatters, handlers, and loggers
 ```
 
@@ -195,6 +201,7 @@ Explore `tiferet/assets/` for the error catalog, exception types, and bootstrap 
 
 ## Related Documentation
 
+- [architecture.md](architecture.md) — Package import law
 - [code_style.md](code_style.md) — General structured code style and artifact comments
 - [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error handling that consumes `TiferetError` and `DEFAULT_ERRORS`
 - [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — Bootstrap orchestration that consumes the `blueprints` defaults

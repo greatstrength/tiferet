@@ -5,7 +5,11 @@
 
 ## Overview
 
-Utilities are a core component of the Tiferet framework, providing concrete infrastructure implementations that satisfy the **Services** (unified vertical contracts) defined in `tiferet/interfaces/`. They form the infrastructure layer that bridges abstract Service contracts — consumed by domain events and contexts — with underlying repeatable processes, whether those processes involve file system I/O, database access, computational algorithms, or external system integrations.
+Utilities are domain-specific computation and physical infrastructure. That position is **Yesod**. Two shapes share the package: a Service-backed util that implements an interface and is therefore DI-injectable, and a raw computational container that events may import and call directly.
+
+Legal `# ** app` imports: `interfaces` (including `ServiceError`); `mappers`; sibling utils. Used by `events` (direct or via an interface), `repos` (loaders), and `mappers` only as a runtime visitor callable. See [architecture.md](architecture.md).
+
+They bridge abstract Service contracts with repeatable processes — file I/O, database access, algorithms, or external integrations.
 
 The utility pattern encapsulates **any reusable infrastructure concern** behind a consistent, injectable, and testable Service contract. While the current `tiferet/utils/` package contains file and data access utilities (YAML, JSON, CSV, SQLite), the architectural role extends to computational infrastructure as well — sorting algorithms, heuristics, AI model invocations, embedding pipelines, or any other repeatable process that domain events should consume without coupling to implementation details.
 
@@ -251,7 +255,7 @@ class EmbeddingClient(EmbeddingService):
 - Implement context manager protocol (`__enter__` / `__exit__`) for resource-owning utilities.
 - Provide static one-shot helpers for common operations (e.g., `CsvLoader.load_rows()`).
 - Keep utilities focused on infrastructure — domain logic belongs in domain events and contexts.
-- Align every utility with a Service contract from `tiferet/interfaces/`.
+- Align a utility with a Service contract from `tiferet/interfaces/` only when it must be DI-injectable. Raw computational containers may be imported and called by events directly.
 - Stateless computational utilities need not implement context managers.
 
 ## Testing Utilities

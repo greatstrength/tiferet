@@ -1,12 +1,16 @@
 # Interfaces in Tiferet
 
-Interfaces are a core component of the Tiferet framework, defining service contracts that specify the anticipated structure and behavior of services used by commands and domain events, aligning with Domain-Driven Design (DDD) principles. In the current evolution of Tiferet, **Services** serve as the **unified vertical contracts** — abstract base classes that act as the primary interface for all domain-specific orchestration, data access, configuration management, middleware, and utility behavior.
+Interfaces are `Service` ABCs: vertical contracts for persistence, files, middleware, and DI. That position is **Netzach**.
+
+Legal `# ** app` imports: `mappers` (aggregates) to type domain-related outputs, especially when the implementor will be a repository. Prefer the aggregate over the domain model when an aggregate exists. Sibling interface modules are legal. `contexts` and `blueprints` do not import `interfaces`; service instances reach a blueprint only through `di`. See [architecture.md](architecture.md).
+
+**Services** are the unified vertical contracts — abstract base classes for domain-specific orchestration, data access, configuration management, middleware, and utility behavior.
 
 This document focuses exclusively on **Services** as the vertical contracts.
 
 ## What is a Service?
 
-A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.settings.Service` (a minimal `ABC`) that defines the expected behavior for vertical concerns in the application. Services act as the contracts that:
+A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.core.Service` (a minimal `ABC`) that defines the expected behavior for vertical concerns in the application. Services act as the contracts that:
 
 - Abstract data access (CRUD operations, existence checks, listing)
 - Manage configuration persistence (loading/saving structured data from YAML/JSON/etc.)
@@ -62,7 +66,7 @@ class ErrorService(Service):
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> Error:
+    def get(self, id: str) -> ErrorAggregate:
         '''
         Retrieve an error by ID.
         '''
@@ -70,7 +74,7 @@ class ErrorService(Service):
 
     # * method: list
     @abstractmethod
-    def list(self) -> List[Error]:
+    def list(self) -> List[ErrorAggregate]:
         '''
         List all errors.
         '''
@@ -78,7 +82,7 @@ class ErrorService(Service):
 
     # * method: save
     @abstractmethod
-    def save(self, error: Error) -> None:
+    def save(self, error: ErrorAggregate) -> None:
         '''
         Persist an error.
         '''
@@ -147,7 +151,7 @@ class FileService(Service):
 
 1. **Define a New Service Interface**
    - Place under `# *** interfaces` in a domain-specific module.
-   - Extend `Service` from `tiferet.interfaces.settings`.
+   - Extend `Service` from `tiferet.interfaces.core`.
    - Define abstract methods with domain-appropriate signatures.
 
 2. **Implement the Service**
