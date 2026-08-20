@@ -327,11 +327,12 @@ flowchart LR
 
 ## 7. Relationships / cross-boundary rules
 
-Package import law lives in [`docs/core/architecture.md`](core/architecture.md).
-The ten packages are not Accessor / Actor / Infrastructure. Each package has
-a systems function (factory versus client, emit versus absorb, read-only noun
-versus mutable aggregate). Skills and this distillation use package names
-only.
+Package import law and the System Metaphor live in
+[`docs/core/architecture.md`](core/architecture.md): a published design of
+balance (factory versus client, emit versus absorb, noun versus aggregate,
+contract versus resolution) with Hebrew names and package names in one
+ubiquitous language. Each `docs/core/<layer>.md` is a chapter of that map.
+Skills and this distillation use package names only.
 
 Concretely: `domain` has no framework imports. `assets` emits to `blueprints`,
 `contexts`, and `events` only. `events` is the unit of work: inbound from

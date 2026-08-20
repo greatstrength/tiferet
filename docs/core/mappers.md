@@ -1,52 +1,25 @@
 # Mappers in Tiferet
 
-**Project:** Tiferet Framework  
-**Repository:** https://github.com/greatstrength/tiferet  
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-## Overview
+Splendor is form-giving: the same noun, given a body that can change or a face that can cross a boundary. A mapper extends a domain type and adds either mutation or representation. That position is **Hod**. Gevurah names the fact. Hod lets the fact be edited inside the system, or shown to a file, a database, or a response, without the noun learning either trade. See [architecture.md](architecture.md).
 
-A mapper extends a domain type and adds either mutation or representation. That position is **Hod**.
+Legal `# ** app` imports: `domain` only. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` and receive a util function at runtime. Mappers do not import `utils`. That visitor is reverse shape (3), not a general exemption.
 
-- **Aggregate** — internal state. Factory and mutation methods. `ModelError` on validation failure.
-- **TransferObject** — cross-platform state: how the same noun is represented for a database, a domain file format, or a custom event response, without breaking the model.
+## Life in the system
 
-Legal `# ** app` imports: `domain` only. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` and receive a util function at runtime. Mappers do not import `utils`. See [architecture.md](architecture.md).
+Two classes share the package, and they must not be collapsed.
 
-The mappers layer (`tiferet.mappers`) introduces two base classes:
+**Aggregate** is internal state. `ErrorAggregate(Error, Aggregate)` inherits the fields and adds `rename`, `set_message`, `set_attribute`. Assignment re-validates because `validate_assignment=True` is inherited from `DomainObject`. A failed mutation becomes a `ModelError` (`INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID`), not a `TiferetError`. Model errors are deliberately uncatalogued. They are form failing to hold, not a named domain outcome.
 
-1. **Aggregate**  
-   - Extends `DomainObject` (which extends `pydantic.BaseModel`).
-   - Inherits the strict `extra='forbid'` and `validate_assignment=True` config from `DomainObject`.
-   - Provides mutation-safe attribute updates via `set_attribute`, converting any resulting `ValidationError` into a `ModelError` via `ModelError.raise_for_validation`.
-   - Concrete aggregates combine a domain object with `Aggregate` to add mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
+**TransferObject** is cross-platform state. `ErrorConfigObject(Error, TransferObject)` loosens the config (`extra='ignore'`, `validate_assignment=False`) so a foreign document can be read without pretending it was born as a noun. `_ROLES` maps role names to `model_dump` kwargs. `to_model` feeds an aggregate. `to_data` feeds a file. `map` and `from_model` are the round trip.
 
-2. **TransferObject**  
-   - Extends `DomainObject` with a lenient `ConfigDict` (`extra='ignore'`, `validate_assignment=False`).
-   - Manages role-based serialization via a `_ROLES` ClassVar mapping role names to `model_dump` kwargs.
-   - Provides `to_primitive(role)`, `map(target)`, and `from_model` classmethod for mapping and transformation.
-   - Concrete transfer objects combine a domain object with `TransferObject` to add serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
+An event that needs to change an error constructs an aggregate, mutates, and saves through a service. A repo that needs to persist one maps through the transfer object and never lets the loader leak upward. Interfaces type their outputs as aggregates when an aggregate exists, because the implementor will be a repo that returns mutable form, not a frozen noun.
 
-Together, these classes provide a clear separation of mutation (Aggregate) and serialization (TransferObject) concerns.
+Hod does not import Yesod. If a mapper needs a computational visitor — a normalizer, a hash, a render function — the method takes a `Callable`. The util arrives at runtime. Importing `YamlLoader` into `mappers/` would turn form-giving into foundation.
 
-### Example: Error Domain
-
-- **Aggregate Use** (`ErrorAggregate`):
-  ```python
-  class ErrorAggregate(Error, Aggregate):
-      # Inherits fields/validation from Error
-      # Adds mutation methods (rename, set_message, remove_message)
-  ```
-
-- **TransferObject Use** (`ErrorConfigObject`):
-  ```python
-  class ErrorConfigObject(Error, TransferObject):
-      # Inherits fields/validation from Error
-      # Adds serialization roles and mapping logic
-  ```
-
-## The Aggregate Base Class
-
-`Aggregate` extends `DomainObject` and provides mutation-safe attribute updates:
+## The two bases
 
 ```python
 # tiferet/mappers/core.py
@@ -67,22 +40,9 @@ class Aggregate(DomainObject):
             ModelError.raise_for_validation(error, model=self, attribute=attribute)
 ```
 
-Key characteristics:
-- Aggregates are instantiated directly via the Pydantic constructor: `ErrorAggregate(id='...', name='...')`.
-- **`set_attribute`** relies on `validate_assignment=True` (inherited from `DomainObject`) to trigger field validation on every `setattr`, and converts the resulting Pydantic `ValidationError` into a `ModelError` via `ModelError.raise_for_validation`.
-- Invalid attribute mutations (unknown field or invalid value) raise a `ModelError` — not a `TiferetError` — classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID`. See [docs/guides/errors.md](../guides/errors.md) for why `ModelError` is a deliberately uncatalogued, unrelated exception family.
+What the reader just saw: mutation is a checked assignment, not a free `setattr` on a dict. Unknown fields and bad values fail as `ModelError`. Construct aggregates directly: `ErrorAggregate(id='...', name='...')`. There is no `Aggregate.new()`.
 
-## The TransferObject Base Class
-
-`TransferObject` extends `DomainObject` with a lenient config and provides:
-
-- **`to_primitive(role, **overrides)`** — Serializes via `model_dump`, applying role-specific kwargs from `_ROLES` and caller overrides.
-- **`map(target, **overrides)`** — Serializes via the `to_model` role, merges overrides, and constructs the target aggregate.
-- **`from_model(model, **overrides)`** — Classmethod that creates a transfer object from a domain model or aggregate via `model_dump` + `model_validate`.
-
-### Role-Based Serialization
-
-Transfer objects use a `_ROLES` ClassVar to control which fields are serialized for different contexts. Each role maps to a dict of `model_dump` kwargs:
+A transfer object declares how the same fields look in another medium:
 
 ```python
 class ErrorConfigObject(Error, TransferObject):
@@ -97,341 +57,18 @@ class ErrorConfigObject(Error, TransferObject):
     }
 ```
 
-The `to_primitive` method delegates to Pydantic `model_dump`, defaulting to `exclude_none=True` and merging role-specific and caller-supplied kwargs:
+`to_primitive(role)` merges `exclude_none=True` with the role and any caller overrides, then `model_dump`s. Nested children (`FeatureConfigObject.steps`) map themselves before the parent `map`s. Aliases (`serialization_alias`, `AliasChoices`) absorb the several names a config file has used for the same field. The noun never learns those names.
 
-```python
-def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
-    kwargs: Dict[str, Any] = {'exclude_none': True}
-    if role and role in type(self)._ROLES:
-        kwargs.update(type(self)._ROLES[role])
-    kwargs.update(overrides)
-    return self.model_dump(**kwargs)
-```
+Naming: `<Domain>Aggregate`; `<Domain>TransferObject` when the medium is general; a precision suffix when it is not (`ErrorConfigObject`, `FormulaSqliteObject`). `ConfigObject` is the framework’s own example of the pattern, not the only transfer object.
 
-## Structured Code Design
+## Structured code design
 
-Mapper classes follow the standard Tiferet artifact comment structure:
+Use `# *** mappers` / `# ** mapper:` (and `# *** classes` in `core.py`). Tests use `AggregateTestBase` and `TransferObjectTestBase` from `tiferet/testing/`. Full grammar: [code_style.md](code_style.md). Role-by-role walkthroughs live in [docs/guides/mappers.md](../guides/mappers.md).
 
-- `# *** mappers` — top-level section for mapper modules.
-- `# ** mapper: <name>` — individual mapper (snake_case).
-- `# * attribute: <name>` — instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
-- `# * method: <name>` — instance or class methods.
+## In short
 
-Use `# *** classes` in `core.py` for the base classes themselves.
-
-**Spacing rules:**
-- One empty line between `# *** mappers` and first `# ** mapper`.
-- One empty line between each `# *` section.
-- One empty line after docstrings and between code snippets.
-
-## Creating and Extending Mappers
-
-### 1. Define an Aggregate
-- Combine domain object + `Aggregate`.
-- Add mutation methods under `# * method: <name>`.
-- Instantiate directly via the Pydantic constructor.
-
-**Example** – `FeatureAggregate`:
-```python
-# *** mappers
-
-# ** mapper: feature_aggregate
-class FeatureAggregate(Feature, Aggregate):
-    '''
-    Aggregate for the Feature domain object.
-    '''
-
-    # * method: rename
-    def rename(self, name: str) -> None:
-        '''Rename the feature.'''
-        # validate_assignment=True handles re-validation.
-        self.name = name
-```
-
-### 2. Define a TransferObject
-- Combine domain object + `TransferObject`.
-- Define `_ROLES` ClassVar for role-based serialization with `model_dump` kwargs.
-- Use `serialization_alias` and `AliasChoices` / `validation_alias` for attribute aliasing.
-- Override `map()` to specify the target aggregate and handle nested mapping.
-- Override `from_model()` as a `@classmethod` to handle nested conversions.
-
-**Example** – `FeatureConfigObject`:
-```python
-# ** mapper: feature_config_object
-class FeatureConfigObject(Feature, TransferObject):
-    '''
-    Configuration data representation of the Feature domain object.
-    '''
-
-    # * attribute: _ROLES
-    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
-        'to_model': {'exclude': {'steps'}},
-        'to_data': {
-            'by_alias': True,
-            'exclude': {'feature_key', 'group_id', 'id'},
-        },
-    }
-
-    # * attribute: steps
-    steps: List[EventFeatureStepConfigObject] = Field(
-        default_factory=list,
-        validation_alias=AliasChoices('handlers', 'functions', 'commands', 'steps'),
-        description='The step workflow for the feature.',
-    )
-
-    # * method: map
-    def map(self, **overrides) -> FeatureAggregate:
-        '''Maps the feature data to a feature aggregate.'''
-        return super().map(
-            FeatureAggregate,
-            steps=[step.map() for step in (self.steps or [])],
-            **overrides,
-        )
-
-    # * method: from_model
-    @classmethod
-    def from_model(cls, feature: Feature, **overrides) -> 'FeatureConfigObject':
-        '''Creates a FeatureConfigObject from a Feature model.'''
-        return super().from_model(
-            feature,
-            steps=[
-                EventFeatureStepConfigObject.from_model(step)
-                for step in feature.steps
-            ],
-            **overrides,
-        )
-```
-
-### 3. Attribute Aliasing
-
-TransferObjects support `serialization_alias` for output aliasing and `validation_alias` (with `AliasChoices`) for accepting multiple input field names:
-
-```python
-# * attribute: parameters
-parameters: Dict[str, str] = Field(
-    default_factory=dict,
-    serialization_alias='params',
-    validation_alias=AliasChoices('params', 'parameters'),
-    description='The parameters for the feature event.',
-)
-```
-
-### 4. Use in Repositories
-Repositories use transfer objects to load from configuration and map to aggregates/domain objects.
-
-### Best Practices
-- Use artifact comments consistently (`# *** mappers`, `# ** mapper:`, `# *`).
-- Keep aggregates focused on mutation; keep transfer objects focused on serialization.
-- Instantiate aggregates directly via the Pydantic constructor.
-- Use `set_attribute` for validated mutations with unknown-field checking.
-- Define `_ROLES` ClassVar on all transfer objects for role-based serialization.
-- Use `model_dump` kwargs (`exclude`, `by_alias`, `include`) in `_ROLES` definitions.
-
-## Testing Mappers
-
-Tests validate factory creation, mutation, mapping, serialization, and error handling using `pytest`.
-
-**Structure:**
-- `# *** fixtures`
-- `# ** fixture: <name>`
-- `# *** tests`
-- `# ** test: <name>`
-
-**Example** – Aggregate tests cover constructor instantiation, `set_attribute` (success and invalid attribute error).
-
-#### `MapperAssertions` (mixin)
-Provides shared assertion helpers used by both base classes:
-- **`assert_model_matches(model, sample, equality_fields, field_normalizers)`** — Compares model attributes against a sample dict using configured fields. Per-field normalizers allow custom comparison logic for complex types.
-- **`assert_nested_list_matches(actual_list, expected_list, key_field, compare_fields)`** — Compares lists of domain objects by a key field (e.g., `service_id`, `flag`), useful for verifying nested collections through round-trips.
-
-#### `AggregateTestBase`
-Base class for testing Aggregate components. Subclasses define class attributes and inherit automatic tests.
-
-**Required class attributes:**
-- `aggregate_cls` — The Aggregate class under test.
-- `sample_data` — Dict of aggregate-format sample data.
-- `equality_fields` — List of field names to compare.
-- `set_attribute_params` — List of `(attr, value, expect_error_code | None)` tuples.
-
-**Optional class attributes:**
-- `field_normalizers` — Dict mapping field names to normalizer callables for complex comparisons.
-
-**Inherited tests:**
-- `test_new` — Verifies direct constructor instantiation and field values.
-- `test_set_attribute` — Parametrized test for valid and invalid attribute mutations. Parametrization is driven by `conftest.pytest_generate_tests`.
-
-**Override hook:**
-- `make_aggregate(data=None)` — Override when the aggregate has a custom constructor signature. The default implementation uses the standard Pydantic constructor: `self.aggregate_cls(**data)`.
-
-#### `TransferObjectTestBase`
-Base class for testing TransferObject components.
-
-**Required class attributes:**
-- `transfer_cls` — The TransferObject class under test.
-- `aggregate_cls` — The target Aggregate class.
-- `sample_data` — Dict of YAML-format sample data (as it appears in configuration).
-- `aggregate_sample_data` — Dict of aggregate-format expected data (with defaults filled in, lists instead of dicts, etc.).
-- `equality_fields` — List of field names to compare.
-
-**Optional class attributes:**
-- `field_normalizers` — Per-field normalizer callables.
-- `map_kwargs` — Extra kwargs to pass to `.map()`.
-
-**Inherited tests:**
-- `test_map` — Verifies `model_validate()` → `map()` produces a valid aggregate.
-- `test_from_model` — Verifies aggregate → TransferObject conversion via `from_model()` classmethod.
-- `test_round_trip` — Verifies aggregate → TransferObject → aggregate preserves data.
-
-**Override hook:**
-- `make_aggregate(data=None)` — Same purpose as `AggregateTestBase`.
-
-#### `conftest.py` Hook
-The `pytest_generate_tests` hook dynamically parametrizes `test_set_attribute` for any `AggregateTestBase` subclass, reading from the class's `set_attribute_params` attribute.
-
-### Test File Structure
-
-Harness-based test files follow this structure:
-
-```python
-"""Tiferet <Domain> Mapper Tests"""
-
-# *** imports
-
-# ** infra
-import pytest
-
-# ** app
-from ..core import TransferObject
-from ..<domain> import SomeAggregate, SomeConfigObject
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
-
-
-# *** constants
-
-# ** constant: aggregate_sample_data
-AGGREGATE_SAMPLE_DATA = { ... }
-
-# ** constant: equality_fields
-EQUALITY_FIELDS = [ ... ]
-
-# ** constant: item_tuple
-def ITEM_TUPLE(item):
-    '''Normalize a nested item (dict or domain object) into a comparable tuple.'''
-    ...
-
-# ** constant: field_normalizers
-FIELD_NORMALIZERS = {
-    'items': lambda items: tuple(sorted(ITEM_TUPLE(i) for i in (items or []))),
-}
-
-
-# *** classes
-
-# ** class: TestSomeAggregate
-class TestSomeAggregate(AggregateTestBase):
-    '''Tests for SomeAggregate.'''
-
-    aggregate_cls = SomeAggregate
-    sample_data = AGGREGATE_SAMPLE_DATA
-    equality_fields = EQUALITY_FIELDS
-    field_normalizers = FIELD_NORMALIZERS
-
-    set_attribute_params = [
-        ('name',         'Updated Name',  None),
-        ('invalid_attr', 'value',         'INVALID_MODEL_ATTRIBUTE'),
-    ]
-
-    # * method: make_aggregate
-    def make_aggregate(self, data=None):
-        '''Override for custom constructor signature.'''
-        return SomeAggregate(
-            **(data if data is not None else self.sample_data)
-        )
-
-    # *** domain-specific mutation tests
-
-    # ** test: rename
-    def test_rename(self, aggregate):
-        '''Test domain-specific mutation.'''
-        aggregate.rename('New Name')
-        assert aggregate.name == 'New Name'
-
-
-# ** class: TestSomeConfigObject
-class TestSomeConfigObject(TransferObjectTestBase):
-    '''Tests for SomeConfigObject.'''
-
-    transfer_cls = SomeConfigObject
-    aggregate_cls = SomeAggregate
-    sample_data = { ... }  # YAML-format
-    aggregate_sample_data = AGGREGATE_SAMPLE_DATA
-    equality_fields = EQUALITY_FIELDS
-    field_normalizers = FIELD_NORMALIZERS
-
-    # * method: make_aggregate
-    def make_aggregate(self, data=None):
-        '''Override for custom constructor signature.'''
-        return SomeAggregate(
-            **(data if data is not None else self.aggregate_sample_data)
-        )
-
-    # *** child mapper: ChildConfigObject
-
-    # ** test: child_yaml_map_basic
-    def test_child_yaml_map_basic(self):
-        '''Test child mapper mapping.'''
-        ...
-```
-
-### Key Patterns
-
-#### Module-Level Constants
-Shared sample data, equality fields, and normalizers are defined as module-level constants under `# *** constants`. This avoids duplication when both the Aggregate and TransferObject test classes need the same data.
-
-#### Normalizer Functions
-For fields containing nested domain objects (e.g., lists of services, arguments, dependencies), define a normalizer function that converts both dicts and domain objects into comparable tuples:
-
-```python
-# ** constant: svc_tuple
-def SVC_TUPLE(s):
-    '''Normalize a service (dict or domain object) into a comparable tuple.'''
-    if isinstance(s, dict):
-        return (s['service_id'], s['module_path'], s['class_name'],
-                tuple(sorted(s.get('parameters', {}).items())))
-    return (s.service_id, s.module_path, s.class_name,
-            tuple(sorted((s.parameters or {}).items())))
-
-# ** constant: field_normalizers
-FIELD_NORMALIZERS = {
-    'services': lambda svcs: tuple(sorted(SVC_TUPLE(s) for s in (svcs or []))),
-}
-```
-
-#### Child Mapper Tests
-When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppSessionConfigObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
-
-#### Standalone Tests
-Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject`) may use standalone test functions instead of the harness, placed after the class-based tests.
-
-## Package Layout
-
-Mappers are defined in `tiferet/mappers/`:
-
-- `core.py` — `Aggregate` and `TransferObject` base classes + constants.
-- `app.py` — `AppSessionAggregate`, `AppSessionConfigObject`.
-- `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
-- `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
-- `error.py` — `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
-- `feature.py` — `FeatureAggregate`, `FeatureConfigObject`, `EventFeatureStepAggregate`, `EventFeatureStepConfigObject`.
-- `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
-- `__init__.py` — Public exports.
-
-Tests live in `tests/mappers/`.
-
-## Conclusion
-
-The mappers layer provides the structural bridge between persistent configuration and runtime domain objects, with clear separation between mutation (`Aggregate`) and serialization (`TransferObject`). This design enables:
-- Validated, mutation-safe domain updates.
-- Role-based serialization for multiple output formats.
-
-Explore source in `tiferet/mappers/` and tests in `tests/mappers/` for implementation details.
+- Mappers give form: mutate inside, represent across a boundary. That splendor is Hod.
+- Import `domain` only. Never import `utils`; accept a `Callable` visitor instead.
+- Aggregates mutate and raise `ModelError`. Transfer objects serialize by role.
+- Used by events, interfaces, utils, and repos. Not by contexts or blueprints.
+- If the method is a read on the noun, it still belongs on the domain object.
