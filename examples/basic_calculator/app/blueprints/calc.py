@@ -35,10 +35,13 @@ def build_calculator_app_context(app_session: AppSession, cache: CacheContext) -
     collaborators = core.resolve_collaborators(CalculatorAppContext, app_container)
 
     # Construct and return the calculator app context, wiring the five template-method handlers.
+    # The resolver itself (not just its bound get_dependency) is passed through so
+    # future collaborators can resolve additional services without a signature change.
     return CalculatorAppContext.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
+        resolver=resolver,
         build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
         execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
         raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),

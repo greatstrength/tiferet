@@ -35,15 +35,27 @@ class CalculatorAppContext(AppSessionContext):
 
     It intentionally omits ``domain_type`` so the ``ContextMeta`` registry
     keeps mapping ``AppSession`` to ``AppSessionContext``.
+
+    No fluent operation currently needs a DI-resolved collaborator beyond
+    the inherited ``get_dependency`` handler -- every reduction dispatches
+    through ``self.run(...)`` against the already-configured ``calc.*``
+    features. The blueprint-composed ``resolver`` is still exposed as an
+    attribute (kept untyped here, since ``contexts`` never imports ``di``
+    directly) so future collaborators can resolve additional services
+    without a signature change.
     '''
 
     # * attribute: session_id (private)
     _session_id: str | None
 
+    # * attribute: resolver
+    resolver: Any
+
     # * init
     def __init__(self,
             get_dependency: Callable,
             cache: CacheContext = None,
+            resolver: Any = None,
             build_logger_handler: Callable = None,
             execute_feature_handler: Callable = None,
             create_request_handler: Callable = None,
@@ -56,6 +68,10 @@ class CalculatorAppContext(AppSessionContext):
         :type get_dependency: Callable
         :param cache: The shared bootstrap cache.
         :type cache: CacheContext
+        :param resolver: The blueprint-composed service resolver, exposed for
+            any future DI-resolved collaborator; not required today since
+            every reduction dispatches through the existing calc.* features.
+        :type resolver: Any
         :param build_logger_handler: The logger-construction handler.
         :type build_logger_handler: Callable
         :param execute_feature_handler: The feature-execution handler.
@@ -78,6 +94,9 @@ class CalculatorAppContext(AppSessionContext):
             raise_error_handler=raise_error_handler,
             response_handler=response_handler,
         )
+
+        # Expose the resolver for any future DI-resolved collaborator.
+        self.resolver = resolver
 
         # No expression is active until the first starter method is called.
         self._session_id = None
