@@ -79,7 +79,7 @@ The plain `(ids)` / `(models)` sub-groups (no suffix) hold the core/baseline gro
 - **Optional parameters in factory calls:** must always be passed as keyword arguments. Required positional parameters may be passed positionally. See `tiferet-code-style` for the general keyword-argument rule and example.
 - **Functions:** Small, stateless, no framework dependencies. Use RST docstrings.
 - **Classes:** Plain standalone classes (exception types, data primitives). Use `# *** classes` / `# ** class: <name>`, `# * attribute: <name>`, `# * init`.
-- **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import constants as const`).
+- **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import feature as feat`). There is no `const` or `bps` alias.
 
 ## Example
 

@@ -35,7 +35,7 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion and any relevant error constants, e.g. `ATTRIBUTE_NOT_SETTABLE_ID`). Never import from `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, or `events`.
+**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion). Never import from `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, or `events`. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` and receive a util function at runtime; never import `utils`.
 
 **Naming:**
 - `<Domain>Aggregate` — mutable extension of a domain object (e.g. `ErrorAggregate`, `FeatureAggregate`).

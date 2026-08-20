@@ -1,49 +1,27 @@
 # Interfaces in Tiferet
 
-Interfaces are a core component of the Tiferet framework, defining service contracts that specify the anticipated structure and behavior of services used by commands and domain events, aligning with Domain-Driven Design (DDD) principles. In the current evolution of Tiferet, **Services** serve as the **unified vertical contracts** — abstract base classes that act as the primary interface for all domain-specific orchestration, data access, configuration management, middleware, and utility behavior.
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-This document focuses exclusively on **Services** as the vertical contracts.
+Endurance is the promise that outlasts any one store. Interfaces are `Service` ABCs: vertical contracts for persistence, files, middleware, and DI. That position is **Netzach**. A service does not run a feature and does not open a file. It names what any implementor — a repo, a util, a test double — must be able to do. See [architecture.md](architecture.md).
 
-## What is a Service?
+Legal `# ** app` imports: `mappers` (aggregates) to type domain-related outputs, especially when the implementor will be a repository. Prefer the aggregate over the domain model when an aggregate exists. Sibling interface modules are legal. `contexts` and `blueprints` do not import this package. Service instances reach a blueprint only through `di`.
 
-A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.settings.Service` (a minimal `ABC`) that defines the expected behavior for vertical concerns in the application. Services act as the contracts that:
+## Life in the system
 
-- Abstract data access (CRUD operations, existence checks, listing)
-- Manage configuration persistence (loading/saving structured data from YAML/JSON/etc.)
-- Provide middleware and utility behavior (file handling, context management, validation, caching)
-- Coordinate domain logic while hiding infrastructure details
+`Service` (`tiferet/interfaces/core.py`) is a minimal ABC. Everything vertical converges on it: error catalogs, feature workflows, files, SQLite, configuration, cache, middleware, DI registrations. Commands and domain events depend on the contract (`error_service.save(error)`). They never name `ErrorConfigRepository`. Chesed expands the registration into an instance. Malkuth or Yesod satisfies it.
 
-**Commands** and **domain events** depend on Service instances to perform persistence, retrieval, or orchestration (e.g., `error_service.save(error)`, `configuration_service.load(...)`). Services encapsulate the infrastructure details, allowing commands and events to remain pure domain logic.
+That is why interfaces may import aggregates. `ErrorService.get` returns `ErrorAggregate` because the implementor is a repo that maps a transfer object into mutable form. Typing the method as `Error` would lie about what the caller can do next, or force the event to re-wrap the noun before it can mutate. Six interface modules already import `*Aggregate`. That is correct. The old skill line “never mappers” was inverted on purpose.
 
-### Role in Runtime
-- **Commands** and **domain events** are the primary consumers of Services.
-- Commands and events use Services to delegate vertical concerns (data access, configuration, file I/O, etc.).
-- Concrete implementations (YAML-backed repositories, middleware classes) satisfy the Service interfaces while hiding implementation details.
-- **Factories** (e.g., `ConfigurationFileRepository`) resolve the correct concrete Service at runtime based on context (file type, etc.).
+Binah does not import Netzach. The hub asks `get_dependency`. Chochmah does not import Netzach. The factory asks Chesed. If a context grows an `AppService` parameter, the contract has leaked into the client — the `AppSessionContext.load` violation, in other words.
 
-### Key Characteristics of Services as Vertical Contracts
-- **Vertical abstraction**: They cross the domain ↔ infrastructure boundary, hiding how data is stored, files are managed, or middleware is applied.
-- **Unified interface**: All vertical concerns (previously handled by repositories, configuration loaders, middleware, utilities) converge under `Service`.
-- **Swappable implementations**: Consumers depend only on the Service contract, so concrete implementations can be substituted without changing domain logic.
-- **Extensibility**: New concerns (e.g., authentication, logging, rate limiting) can be added as new Service interfaces or layered inside existing ones.
+`MiddlewareService` is the same endurance applied to the event chain. It is callable: `__call__(self, event, kwargs, next_fn)`. Async middleware awaits `next_fn()`. The event does not know it is wrapped. The contract endures around the heart without becoming the heart.
 
-In the error domain, `ErrorService` is the vertical contract that all error-related commands depend on. In configuration handling, `ConfigurationService` abstracts YAML/JSON loading and saving, with concrete middleware implementations satisfying the interface.
+## A vertical contract
 
-## Structured Code Design of Services
-
-Services follow Tiferet's structured code style using artifact comments for organization and readability.
-
-### Artifact Comments
-
-Services are organized under the `# *** interfaces` top-level comment, with individual Services under `# ** interface: <snake_case_name>`. Within each Service:
-
-- `# * attribute: <name>` — Declares expected instance attributes (type hints only).
-- `# * method: <name>` — Defines abstract methods marked with `@abstractmethod`.
-
-No `# * method: new` is used, as Services are interfaces.
-
-**Example** – `tiferet/interfaces/error.py`:
 ```python
+# tiferet/interfaces/error.py
+
 # *** interfaces
 
 # ** interface: error_service
@@ -62,143 +40,33 @@ class ErrorService(Service):
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> Error:
+    def get(self, id: str) -> ErrorAggregate:
         '''
         Retrieve an error by ID.
         '''
         raise NotImplementedError()
 
-    # * method: list
-    @abstractmethod
-    def list(self) -> List[Error]:
-        '''
-        List all errors.
-        '''
-        raise NotImplementedError()
-
     # * method: save
     @abstractmethod
-    def save(self, error: Error) -> None:
+    def save(self, error: ErrorAggregate) -> None:
         '''
         Persist an error.
         '''
         raise NotImplementedError()
-
-    # * method: delete
-    @abstractmethod
-    def delete(self, id: str) -> None:
-        '''
-        Delete an error by ID.
-        '''
-        raise NotImplementedError()
 ```
 
-**Example** – `tiferet/interfaces/config.py` (configuration):
-```python
-# ** interface: configuration_service
-class ConfigurationService(Service):
-    '''
-    Vertical interface for loading and saving structured configuration data.
-    '''
+What the reader just saw: every method is abstract. The return type is the aggregate, not the noun. `save` accepts the aggregate because mutation already happened in Hod. The repo will turn that into a transfer object. The event never sees the file.
 
-    # * method: load
-    @abstractmethod
-    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> Any:
-        '''
-        Load configuration data.
-        '''
-        raise NotImplementedError()
+`ConfigurationService` and `FileService` follow the same shape for loaders. `DIService` is the contract Chesed reads when it builds a container. `ServiceError` is the miss that Chesed raises — an interface error, not an asset catalog entry — so `di` can fail without importing `TiferetError`.
 
-    # * method: save
-    @abstractmethod
-    def save(self, data: Any, data_path: str = None, **kwargs):
-        '''
-        Save configuration data.
-        '''
-        raise NotImplementedError()
-```
+## Structured code design
 
-**Example** – `tiferet/interfaces/file.py` (low-level middleware/utility):
-```python
-# ** interface: file_service
-class FileService(Service):
-    '''
-    Vertical interface for low-level file stream management.
-    '''
+Use `# *** interfaces` / `# ** interface:` / `# * method` with `@abstractmethod`. No `# * method: new`. Implementors live in `repos/` or `utils/`, never in this package. Full grammar: [code_style.md](code_style.md). Pattern notes live in [docs/guides/interfaces.md](../guides/interfaces.md).
 
-    # * method: open_file
-    @abstractmethod
-    def open_file(self):
-        '''
-        Open the configured file stream.
-        '''
-        raise NotImplementedError()
+## In short
 
-    # * method: close_file
-    @abstractmethod
-    def close_file(self):
-        '''
-        Close the file stream.
-        '''
-        raise NotImplementedError()
-```
-
-## Creating New and Extending Services
-
-1. **Define a New Service Interface**
-   - Place under `# *** interfaces` in a domain-specific module.
-   - Extend `Service` from `tiferet.interfaces.settings`.
-   - Define abstract methods with domain-appropriate signatures.
-
-2. **Implement the Service**
-   - Concrete classes implement the Service interface.
-   - Middleware-style implementations often inherit from lower-level middleware while implementing the target Service.
-   - Use factories (e.g., `ConfigurationFileRepository.open_config()`) to resolve concrete implementations dynamically.
-
-3. **Use in Commands and Domain Events**
-   - Declare the Service as a constructor dependency (e.g., `error_service: ErrorService`).
-   - Depend only on the interface for all vertical operations.
-
-## Best Practices
-- Use artifact comments consistently (`# * method`, `# * attribute`).
-- Define methods with clear RST docstrings, type hints, and domain intent.
-- Use `@abstractmethod` to enforce implementation.
-- Keep services focused but composable (layer via inheritance or decoration).
-- Depend on Service contracts in commands and events — never hard-code concrete classes.
-- Maintain one empty line between sections, comments, and code blocks.
-
-## MiddlewareService
-
-`MiddlewareService` (`tiferet/interfaces/middleware.py`) is the abstract contract for domain event middleware — a cross-cutting concern that wraps the execution of a domain event. Middleware is composed into an ordered chain, where each one may run logic before and after delegating to the next, letting concerns such as validation, logging, or timing layer around an event without changing the event itself.
-
-```python
-# *** interfaces
-
-# ** interface: middleware_service
-class MiddlewareService(Service):
-    '''
-    Abstract service interface for domain event middleware.
-    '''
-
-    # * method: __call__
-    @abstractmethod
-    def __call__(self,
-            event: Any,
-            kwargs: Dict[str, Any],
-            next_fn: Callable[[], Any]) -> Any:
-        '''
-        Execute the middleware, calling next_fn() to continue the chain.
-
-        In async execution contexts next_fn is a coroutine function
-        and must be awaited.
-        '''
-        raise NotImplementedError()
-```
-
-For async middleware, implement `async def __call__` and `await next_fn()`. The interface is exported from `tiferet.interfaces` as `MiddlewareService`.
-
-## Conclusion
-
-Services are the unified vertical interfaces in Tiferet, serving as the primary interface for middleware, data access, configuration management, and utilities. Commands and domain events depend exclusively on these Service interfaces, achieving high decoupling, testability, and extensibility. Concrete implementations satisfy the Service interfaces while hiding infrastructure details.
-
-Explore `tiferet/interfaces/` for base definitions and `tiferet/repos/` for implementation patterns.
+- Interfaces are enduring Service ABCs. That contract is Netzach.
+- Import aggregates from `mappers` to type outputs. Do not type a domain model when an aggregate exists.
+- Used by events, di, utils (when injectable), and repos. Not imported by contexts or blueprints.
+- Depend on the contract in events. Never name the concrete repository.
+- `MiddlewareService` wraps `execute` without becoming an event.

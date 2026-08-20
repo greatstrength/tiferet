@@ -32,7 +32,7 @@ Interface-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `domain` (for type hints in abstract method signatures); sibling `interfaces` modules. Never import from `events`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** `mappers` (aggregates for output types); sibling `interfaces` modules. Prefer the aggregate over the domain model when an aggregate exists. Never import from `events`, `repos`, `utils`, `contexts`, or `blueprints`.
 - Extend `Service` from `tiferet.interfaces.core` (a minimal `ABC`).
 - Mark every method `@abstractmethod` and raise `NotImplementedError()` in the body.
 - Use RST docstrings with `:param`/`:type`/`:return`/`:rtype` on every method.
@@ -54,7 +54,7 @@ from typing import List, Optional
 
 # ** app
 from .core import Service
-from ..domain.error import Error
+from ..mappers import ErrorAggregate
 
 # *** interfaces
 
@@ -79,36 +79,36 @@ class ErrorService(Service):
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> Optional[Error]:
+    def get(self, id: str) -> Optional[ErrorAggregate]:
         '''
         Retrieve an Error by its ID.
 
         :param id: The error identifier.
         :type id: str
-        :return: The Error domain object, or None if not found.
-        :rtype: Optional[Error]
+        :return: The ErrorAggregate, or None if not found.
+        :rtype: Optional[ErrorAggregate]
         '''
         raise NotImplementedError()
 
     # * method: list
     @abstractmethod
-    def list(self) -> List[Error]:
+    def list(self) -> List[ErrorAggregate]:
         '''
         List all Error domain objects.
 
         :return: All stored errors.
-        :rtype: List[Error]
+        :rtype: List[ErrorAggregate]
         '''
         raise NotImplementedError()
 
     # * method: save
     @abstractmethod
-    def save(self, error: Error) -> None:
+    def save(self, error: ErrorAggregate) -> None:
         '''
         Persist an Error domain object.
 
-        :param error: The error to persist.
-        :type error: Error
+        :param error: The error aggregate to persist.
+        :type error: ErrorAggregate
         '''
         raise NotImplementedError()
 

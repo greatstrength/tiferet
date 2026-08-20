@@ -1,51 +1,25 @@
 # Domain Objects in Tiferet
 
-**Project:** Tiferet Framework  
-**Repository:** https://github.com/greatstrength/tiferet  
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-## Overview
+Severity is form: the noun that will not change itself. Domain objects house data and offer read-only behavior. They do not mutate. That position is **Gevurah**. A `rename` or `set_*` on a domain object is in the wrong package. Mutation is Hod’s job, on the aggregate in `mappers`. See [architecture.md](architecture.md).
 
-Domain objects are the structural core of the Tiferet framework. Every domain concept — errors, features, containers, app interfaces, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.core`.
+Legal `# ** app` imports: none of the framework. Used by `contexts`, `events`, and `di`. Blueprints reference domain types only through context re-exports (Da'ath). Current `tiferet/domain/` has no `from ..` imports. That is not an accident. A noun that imported a service or an event would already be doing someone else’s work.
 
-Domain objects serve a **dual role**:
+## Life in the system
 
-1. **Runtime Domain Models**  
-   - Active participants in application execution.
-   - Returned by domain events and commands (e.g., `GetError` returns an `Error`).
-   - Used by Contexts to perform domain-specific work (e.g., `ErrorContext` retrieves and formats an `Error` for response generation).
+Every domain concept — errors, features, app sessions, CLI commands, logging settings — extends `DomainObject` from `tiferet.domain.core`. The class is a Pydantic v2 model with a strict config: unknown fields are forbidden, assignment re-validates, names populate either by field or by alias. You construct it directly: `Error(id='invalid_input', name='Invalid Input')`. You do not call a framework factory. Derivation that used to live on `new()` now lives on `@model_validator(mode='before')`.
 
-2. **Structural Foundation for the Mappers Layer**  
-  - Aggregates extend domain objects with mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
-  - TransferObjects extend domain objects with serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
-   - Define the field shape mirrored in YAML/JSON configuration files.
-   - Enable reliable round-trip mapping between persistent configuration and runtime models.
+The noun has a dual life, and both lives are read-only from its own point of view.
 
-This duality ensures a single source of truth for domain structure and behavior, reducing duplication and maintaining consistency across runtime execution and persistent configuration.
+At runtime it is what an event prefers to return and what a context binds. `GetError` returns an `Error`. `ErrorContext.format_response` calls `error.format_message(lang, **exception.kwargs)` — a read, not a write. The hub loaded the noun; the context presents it.
 
-### Example: Error Domain
+As structure it is what Hod extends. `ErrorAggregate(Error, Aggregate)` inherits the fields and adds mutation. `ErrorConfigObject(Error, TransferObject)` inherits the fields and adds serialization roles. Configuration maps through the transfer object to the aggregate and back to the runtime noun. One shape, three lives: read, mutate, represent. Gevurah owns only the first.
 
-- **Runtime Use** (`ErrorContext`):
-  ```python
-  # The hub loads the Error; the context formats the response from it.
-  error_message = error.format_message(lang, **exception.kwargs)
-  ```
-  The `Error` domain object is retrieved via the hub's `get_error` (cache-first) and used by `ErrorContext.format_response` to assemble the structured response.
+That is the balance. Form without mutation keeps the ubiquitous language stable. If `Error` could rename itself, every reader of the noun would have to wonder whether they were holding a fact or a draft. The draft belongs on the aggregate.
 
-- **Mapper Layer Use** (`ErrorAggregate`, `ErrorConfigObject`):
-  ```python
-  class ErrorAggregate(Error, Aggregate):
-      # Inherits fields/validation from Error
-      # Adds mutation methods (rename, set_message, remove_message)
-
-  class ErrorConfigObject(Error, TransferObject):
-      # Inherits fields/validation from Error
-      # Adds serialization roles and mapping logic
-  ```
-  Configuration (`config.yml` errors section) maps through `ErrorConfigObject` to `ErrorAggregate`, which converts to/from the runtime `Error`.
-
-## The DomainObject Base Class
-
-`DomainObject` extends `pydantic.BaseModel` with a shared `ConfigDict`:
+## The DomainObject base
 
 ```python
 # tiferet/domain/core.py
@@ -67,47 +41,13 @@ class DomainObject(BaseModel):
     )
 ```
 
-Key characteristics:
-- **`extra='forbid'`** rejects unknown fields by default; subclasses may override (e.g., `TransferObject` uses `extra='ignore'`).
-- **`validate_assignment=True`** triggers field validation on every `setattr`, ensuring aggregates stay consistent after mutation.
-- **`populate_by_name=True`** allows construction by canonical field name even when aliases are defined.
-- Instantiate domain objects directly via the Pydantic constructor: `Error(id='invalid_input', name='Invalid Input')`.
-- For input from untrusted/external sources, use `model_validate(data_dict)` which applies all validators.
-- Domain-specific derivation logic uses `@model_validator(mode='before')` instead of custom factory methods (e.g., `Error._derive_error_code` computes `error_code` from `id`).
+What the reader just saw: `extra='forbid'` rejects surprise fields so a config typo cannot silently become state. `validate_assignment=True` is why an aggregate’s `setattr` is safe — the check is inherited, not reimplemented. Transfer objects later loosen this (`extra='ignore'`, `validate_assignment=False`) because representation must tolerate foreign shapes. The noun itself does not.
 
-## Structured Code Design
+Read-only behavior is allowed. Formatting, lookup, a derived display string — these do not change the object. `Error.format_message` is Gevurah. `ErrorAggregate.rename` is Hod.
 
-Domain objects follow a strict artifact comment structure for consistency and AI/human readability:
+A consumer noun looks like this:
 
-- `# *** models` – top-level section for domain object modules.
-- `# ** model: <name>` – individual domain object (snake_case).
-- `# * attribute: <name>` – instance attributes (Pydantic `Field(...)` annotations).
-- `# * method: <name>` – domain methods.
-- `# * method: _derive_* (validator)` – optional `@model_validator` for derivation logic.
-
-**Spacing rules:**
-- One empty line between `# *** models` and first `# ** model`.
-- One empty line between each `# *` section.
-- One empty line after docstrings and between code snippets.
-
-## Creating and Extending Domain Objects
-
-### 1. Define the Domain Object
-- Extend `DomainObject` from `tiferet.domain.core`.
-- Declare fields with Pydantic `Field(...)` annotations.
-- Instantiate directly via the constructor or `model_validate()`.
-- Use `@model_validator(mode='before')` for domain-specific derivation logic.
-
-**Example** – `CalculatorResult`:
 ```python
-# *** imports
-
-# ** infra
-from pydantic import Field
-
-# ** app
-from tiferet import DomainObject
-
 # *** models
 
 # ** model: calculator_result
@@ -130,52 +70,26 @@ class CalculatorResult(DomainObject):
         return f'{self.operation}: {self.value:.{precision}f}'
 ```
 
-### 2. Use in Context/Command
-Domain objects are consumed by Contexts (via command results) or directly in command and domain event logic.
+`format_result` reads. If the next method were `set_value`, the class would need to move.
 
-### 3. Extend in Mappers Layer
-Domain objects are extended in the mappers layer as Aggregates (with mutation methods) and TransferObjects (with serialization roles). See `tiferet/mappers/` for examples.
+## Structured code design
 
-### Best Practices
-- Use artifact comments consistently.
-- Declare fields with `Field(...)` including `description` metadata.
-- Keep domain objects focused on **structure and read-only behavior** (formatting, lookups).
-- Place **mutation logic** (e.g., `rename`, `add_command`, `set_message`) in Aggregate classes in the mappers layer.
-- Instantiate directly via the constructor or `model_validate()`.
-- Use `@model_validator(mode='before')` for domain-specific derivation logic (e.g., `Error._derive_error_code` computes `error_code` from `id`).
+Use `# *** models`, `# ** model: <name>` in snake_case, `# * attribute` for `Field(...)` declarations, `# * method` for read-only behavior, and `# * method: _derive_* (validator)` for `@model_validator` derivation. Spacing matches [code_style.md](code_style.md). Tests live in `tests/domain/` and cover construction, read behavior, and edge cases — not response assembly, which is a context test.
 
-## Testing Domain Objects
+## Package layout
 
-Tests validate instantiation, behavior, and edge cases using `pytest`.
+- `core.py` — `DomainObject`, `ServiceDependency`
+- `app.py` — `AppSession`, `AppServiceDependency`
+- `cli.py` — `CliCommand`, `CliArgument`
+- `di.py` — `ServiceRegistration`, `FlaggedDependency`
+- `error.py` — `Error`, `ErrorMessage`
+- `feature.py` — `Feature`, `FeatureStep`, `EventFeatureStep`
+- `logging.py` — `Formatter`, `Handler`, `Logger`, `LoggingSettings`
 
-**Structure:**
-- `# *** fixtures`
-- `# ** fixture: <name>`
-- `# *** tests`
-- `# ** test: <name>`
+## In short
 
-**Example** – Error domain object tests cover constructor instantiation, `format_message`, and multilingual support (structured response assembly is tested in `ErrorContext`).
-
-## Package Layout
-
-Domain objects are defined in `tiferet/domain/`:
-
-- `core.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`) and the shared `ServiceDependency` core model.
-- `app.py` – `AppSession`, `AppServiceDependency`.
-- `cli.py` – `CliCommand`, `CliArgument`.
-- `di.py` – `ServiceRegistration`, `FlaggedDependency`.
-- `error.py` – `Error`, `ErrorMessage`.
-- `feature.py` – `Feature`, `FeatureStep`, `EventFeatureStep`.
-- `logging.py` – `Formatter`, `Handler`, `Logger`, `LoggingSettings`.
-- `__init__.py` – Public exports for all domain objects.
-
-Tests live in `tests/domain/`.
-
-## Conclusion
-
-Domain objects provide the **structural foundation** for the entire Tiferet framework. They define the canonical shape of every domain concept, enabling:
-- Consistent runtime behavior via commands and contexts.
-- Reliable persistent configuration via Aggregate and TransferObject extensions.
-- A single source of truth shared across all layers.
-
-Explore source in `tiferet/domain/` and tests in `tests/domain/` for implementation details.
+- Domain objects are read-only nouns. That form is Gevurah.
+- No framework imports. Blueprints see these types only through context re-exports.
+- Construct with the Pydantic constructor or `model_validate`. Derive with `@model_validator`, not a custom `new()`.
+- Read-only behavior stays here. Mutation and representation live on mappers.
+- Prefer returning this noun from an event when one exists.

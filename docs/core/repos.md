@@ -1,400 +1,58 @@
 # Repositories in Tiferet
 
-**Project:** Tiferet Framework  
-**Repository:** https://github.com/greatstrength/tiferet  
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-## Overview
+Kingdom is Keter inverted. Assets emit artifacts to the three above them. Repositories only absorb artifacts from the three above them: `mappers`, `utils`, `interfaces`. Nothing else imports `repos`. They are never exported. That position is **Malkuth**. Persistence is the last node, not a voice that speaks back into the factory. See [architecture.md](architecture.md).
 
-Repositories are the concrete data-access layer in the Tiferet framework. Every repository implements a Service interface from `tiferet/interfaces/` and inherits the shared `ConfigurationRepository` base, which handles format-specific file I/O and TransferObject serialization for the domain's aggregates.
+Legal `# ** app` imports: `interfaces` (the Service being implemented, and `ServiceError`); `mappers` (transfer objects and aggregates); `utils` (loaders). Illegal: `assets`, `domain` (use a mapper), `events`, `di`, `blueprints`, `contexts`.
 
-Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service registration (`config.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. Consuming code depends only on the abstract Service interface, never on a concrete repository class.
+## Life in the system
 
-### Role in Runtime
-- **Service implementations**: Repositories are the concrete classes that satisfy the Service interfaces injected into domain events and contexts.
-- **Configuration-backed persistence**: Each repository inherits `ConfigurationRepository`, which dispatches reads and writes to a format-specific loader based on the configuration file extension.
-- **DI resolution**: Repositories are instantiated by the dependency injection container at runtime, not by direct import.
+A repository is the concrete class that satisfies a Service. `ErrorConfigRepository` implements `ErrorService` and extends `ConfigurationRepository`. Consuming code never imports it. DI configuration names `module_path` and `class_name`. The event depends on `ErrorService`. The kingdom absorbs the promise; it does not advertise itself.
 
-### Example: Error Domain
+That inversion is the whole philosophy of the package. Keter has no inbound edges and is re-exported as `a`. Malkuth has no outbound edges and is absent from `__init__.py`. If a repo were exported, the factory or the client would start depending on a store. If a repo imported `domain` directly, it would skip Hod’s form-giving and leak a noun that cannot survive a file round-trip. If a repo imported `events`, the last node would start commanding. None of those are granted.
 
-```python
-class ErrorConfigRepository(ErrorService, ConfigurationRepository):
-    # Implements ErrorService interface
-    # Inherits ConfigurationRepository for format-dispatched file I/O
-    # Uses ErrorConfigObject for serialization
-    # Returns ErrorAggregate instances
-```
+`ConfigurationRepository` (`tiferet/repos/core.py`) is the shared absorption pattern. It knows the file, the encoding, and the default transfer role (`to_data`). It dispatches `_load` / `_save` to `YamlLoader` or `JsonLoader` by extension, and raises `UNSUPPORTED_CONFIG_FILE_TYPE` for anything else. Concrete repos accept `<domain>_config` and forward it as `config_file`. They do not instantiate a loader themselves.
 
-## The ConfigurationRepository Base
+## Absorbing a document
 
-All concrete repositories inherit the shared `ConfigurationRepository` base (`tiferet/repos/core.py`), which makes persistence format-agnostic. The base dispatches to a format-specific loader by the configuration file extension:
-
-- `.yaml` / `.yml` → `YamlLoader`
-- `.json` → `JsonLoader`
-- any other extension → raises `UNSUPPORTED_CONFIG_FILE_TYPE`
-
-It supplies three inherited attributes — `config_file`, `encoding`, and `default_role` (fixed to `'to_data'`) — and the inherited `_load` / `_save` helpers that concrete repositories call instead of instantiating a loader directly:
+Reads navigate with a `start_node` lambda, then map through the transfer object:
 
 ```python
-# tiferet/repos/core.py
-
-# ** class: configuration_repository
-class ConfigurationRepository:
-    '''
-    A format-agnostic base for configuration repositories.
-    '''
-
-    # * attribute: config_file
-    config_file: str
-
-    # * attribute: encoding
-    encoding: str
-
-    # * attribute: default_role
-    default_role: str
-
-    # * init
-    def __init__(self, config_file: str, encoding: str = 'utf-8') -> None:
-        self.config_file = config_file
-        self.encoding = encoding
-        self.default_role = 'to_data'
-```
-
-Concrete repositories accept a domain-prefixed `<domain>_config` parameter and forward it to the base as `config_file`.
-
-## Structured Code Design
-
-Repository classes follow the standard Tiferet artifact comment structure:
-
-- `# *** repos` — top-level section for repository modules.
-- `# ** repo: <name>` — individual repository (snake_case).
-- `# * attribute: <name>` — instance attributes.
-- `# * init` — constructor.
-- `# * method: <name>` — methods implementing the Service interface.
-
-**Spacing rules:**
-- One empty line between `# *** repos` and first `# ** repo`.
-- One empty line between each `# *` section.
-- One empty line after docstrings and between code snippets within methods.
-
-**Example** — `tiferet/repos/error.py`:
-```python
-"""Tiferet Error Configuration Repository"""
-
-# *** imports
-
-# ** core
-from typing import List
-
-# ** app
-from ..interfaces import ErrorService
-from ..mappers import (
-    ErrorAggregate,
-    ErrorConfigObject,
-)
-from .core import ConfigurationRepository
-
-# *** repos
-
-# ** repo: error_config_repository
-class ErrorConfigRepository(ErrorService, ConfigurationRepository):
-    '''
-    The error configuration repository.
-    '''
-
-    # * init
-    def __init__(self, error_config: str, encoding: str = 'utf-8') -> None:
-        '''
-        Initialize the error configuration repository.
-
-        :param error_config: The configuration file path.
-        :type error_config: str
-        :param encoding: The file encoding (default is 'utf-8').
-        :type encoding: str
-        '''
-
-        # Initialize the configuration repository base.
-        ConfigurationRepository.__init__(self, config_file=error_config, encoding=encoding)
-
-    # * method: exists
-    def exists(self, id: str) -> bool:
-        '''
-        Check if an error exists by ID.
-
-        :param id: The error identifier.
-        :type id: str
-        :return: True if the error exists, otherwise False.
-        :rtype: bool
-        '''
-
-        # Load the errors mapping via the inherited loader.
-        errors_data = self._load(
-            start_node=lambda data: data.get('errors', {})
-        )
-
-        # Return whether the error id exists in the mapping.
-        return id in errors_data
-```
-
-## The Inherited Configuration Foundation
-
-Every repository inherits three instance attributes from `ConfigurationRepository`:
-
-- **`config_file`** (`str`) — Path to the configuration file (`.yaml`/`.yml` or `.json`).
-- **`encoding`** (`str`) — File encoding, defaulting to `'utf-8'`.
-- **`default_role`** (`str`) — The TransferObject serialization role used for writes, fixed to `'to_data'`.
-
-The constructor parameter follows the convention `<domain>_config` (e.g., `error_config`, `feature_config`, `cli_config`) and is forwarded to the base as `config_file`. This domain-prefixed naming enables clean DI wiring in `config.yml`.
-
-```python
-# * init
-def __init__(self, error_config: str, encoding: str = 'utf-8') -> None:
-    ConfigurationRepository.__init__(self, config_file=error_config, encoding=encoding)
-```
-
-## Import Organization
-
-Repositories follow the standard three-section import layout:
-
-```python
-# *** imports
-
-# ** core
-from typing import List
-
-# ** app
-from ..interfaces import ErrorService           # Service interface
-from ..mappers import (                          # Transfer objects and aggregates
-    ErrorAggregate,
-    ErrorConfigObject,
-)
-from .core import ConfigurationRepository    # Shared configuration base
-```
-
-The `# ** app` section imports three categories:
-1. The **Service interface** being implemented.
-2. The **transfer objects and aggregates** used for mapping (concrete classes only; no base-class imports needed).
-3. The **`ConfigurationRepository` base** that supplies format-dispatched file I/O.
-
-No `# ** infra` section is needed — repositories do not import third-party libraries directly; all external interaction flows through the inherited base and Tiferet utilities.
-
-## Method Patterns
-
-### Reading: `exists`, `get`, `list`
-
-All read methods call the inherited `_load` helper with a `start_node` lambda to navigate the configuration structure:
-
-```python
-# Load a section.
-errors_data = self._load(
-    start_node=lambda data: data.get('errors', {})
-)
-
-# Load a single entry by ID.
 error_data = self._load(
     start_node=lambda data: data.get('errors', {}).get(id)
 )
-```
-
-Mapping from raw configuration data to domain aggregates uses `model_validate` on the concrete TransferObject class with the dictionary key injected as the `id`:
-
-```python
 return ErrorConfigObject.model_validate(
     {**error_data, 'id': id}
 ).map()
 ```
 
-### Writing: `save`
+What the reader just saw: the repo never returns raw YAML. `model_validate` builds the transfer object; `map` builds the aggregate. The event receives form it can mutate. The noun, if needed, is a read of that form.
 
-Save methods follow a three-step sequence:
-1. **Serialize** the aggregate via the TransferObject's `from_model()` classmethod.
-2. **Load the full file** to preserve sibling sections.
-3. **Update** the target section with `setdefault` and persist via `to_primitive(role)`.
+Writes reverse the motion. `from_model` builds the transfer object. The full file is loaded so sibling sections survive. `to_primitive(self.default_role)` is what hits disk:
 
 ```python
-# Convert the error model to configuration data.
 error_data = ErrorConfigObject.from_model(error)
-
-# Load the full configuration file.
 full_data = self._load()
-
-# Update or insert the error entry.
 full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.default_role)
-
-# Persist the updated configuration file.
 self._save(full_data)
 ```
 
-### Deleting: `delete`
+Deletes are idempotent. `pop(id, None)` on a missing key is success. The kingdom does not punish a second request to remove what is already gone.
 
-Delete operations are always **idempotent** — deleting a non-existent entry must not raise an error:
+Naming is `<Domain>ConfigRepository`. The `Config` suffix is the shared base, not a claim that every future store will be a YAML file. A SQLite repo would still absorb the same three packages and still not be exported.
 
-```python
-# Load the full configuration file.
-full_data = self._load()
+Tests are integration tests against real temporary files (`tmp_path`). The value of a repo is the loader-plus-mapper interaction. Mocking that away tests nothing Malkuth is for.
 
-# Remove the entry if it exists (idempotent).
-full_data.get('errors', {}).pop(id, None)
+## Structured code design
 
-# Persist the updated configuration file.
-self._save(full_data)
-```
+Use `# *** repos` / `# ** repo:` / `# * init` / `# * method`. Import the Service, the concrete mappers, and `ConfigurationRepository`. No `# ** infra` — third-party I/O flows through the inherited loader. Register via DI. Do not add an `__init__.py` export. Full grammar: [code_style.md](code_style.md). Persistence strategies live in [docs/guides/repos.md](../guides/repos.md).
 
-## Naming Convention
+## In short
 
-Repository classes follow the pattern `<Domain>ConfigRepository`:
-
-- `AppConfigRepository` implements `AppService`
-- `CliConfigRepository` implements `CliService`
-- `DIConfigRepository` implements `DIService`
-- `ErrorConfigRepository` implements `ErrorService`
-- `FeatureConfigRepository` implements `FeatureService`
-- `LoggingConfigRepository` implements `LoggingService`
-
-The `Config` suffix identifies the shared `ConfigurationRepository` base, which resolves the backing loader (`YamlLoader` or `JsonLoader`) from the configuration file extension at runtime.
-
-## Creating and Extending Repositories
-
-### 1. Define the Repository
-
-- Place under `# *** repos` and `# ** repo: <name>` in a domain-specific module.
-- Extend the corresponding Service interface from `tiferet/interfaces/` together with `ConfigurationRepository`.
-- Forward the `<domain>_config` path to the `ConfigurationRepository` base in `__init__`.
-- Implement each Service method using the read/write patterns described above.
-
-**Example** — `CalculatorConfigRepository`:
-```python
-"""Tiferet Calculator Configuration Repository"""
-
-# *** imports
-
-# ** core
-from typing import List
-
-# ** app
-from ..interfaces.calculator import CalculatorService
-from ..mappers.calculator import (
-    CalculatorResultAggregate,
-    CalculatorResultConfigObject,
-)
-from .core import ConfigurationRepository
-
-# *** repos
-
-# ** repo: calculator_config_repository
-class CalculatorConfigRepository(CalculatorService, ConfigurationRepository):
-    '''
-    The calculator configuration repository.
-    '''
-
-    # * init
-    def __init__(self, calculator_config: str, encoding: str = 'utf-8') -> None:
-        '''
-        Initialize the calculator configuration repository.
-
-        :param calculator_config: The configuration file path.
-        :type calculator_config: str
-        :param encoding: The file encoding (default is 'utf-8').
-        :type encoding: str
-        '''
-
-        # Initialize the configuration repository base.
-        ConfigurationRepository.__init__(self, config_file=calculator_config, encoding=encoding)
-
-    # * method: exists
-    def exists(self, id: str) -> bool:
-        '''
-        Check if a calculator result exists by ID.
-
-        :param id: The result identifier.
-        :type id: str
-        :return: True if the result exists, otherwise False.
-        :rtype: bool
-        '''
-
-        # Load the results mapping via the inherited loader.
-        results_data = self._load(
-            start_node=lambda data: data.get('results', {})
-        )
-
-        # Return whether the result id exists in the mapping.
-        return id in results_data
-```
-
-### 2. Register via DI
-
-Add the repository to the DI configuration file (`config.yml` or equivalent) with `module_path` and `class_name`. No `__init__.py` export is needed:
-
-```yaml
-services:
-  calculator_service:
-    module_path: tiferet.repos.calculator
-    class_name: CalculatorConfigRepository
-    params:
-      calculator_config: app/configs/calculator.yml
-```
-
-### 3. Write Tests
-
-Create tests in `tests/repos/test_<domain>.py` using `tmp_path` fixtures with real temporary configuration files.
-
-### Best Practices
-- Use artifact comments consistently (`# *** repos`, `# ** repo:`, `# *`).
-- Extend `ConfigurationRepository` and forward `<domain>_config` to the base for all repos.
-- Use `ConfigObject.model_validate({**data, 'id': id}).map()` for reads.
-- Use `ConfigObject.from_model(aggregate)` classmethod for writes, then `to_primitive(self.default_role)` to serialize.
-- Make delete operations idempotent.
-- Use `self._load()` with `start_node` lambdas for reads, and `self._save()` for writes.
-- Include RST docstrings with `:param`, `:type`, `:return`, `:rtype`.
-
-## Testing Repositories
-
-Repository tests are **integration tests** that operate against real temporary configuration files, not mocks. This is because the repository's value lies in the specific interaction between the loader and the transfer objects.
-
-**Structure:**
-- `# *** constants` — sample data dictionaries.
-- `# *** fixtures` / `# ** fixture: <name>` — `tmp_path`-based configuration file and repository instance.
-- `# *** tests` / `# ** test_int: <name>` — integration test cases.
-
-**Example** — Error repository test fixture:
-```python
-# ** fixture: error_config
-@pytest.fixture
-def error_config(tmp_path) -> str:
-    file_path = tmp_path / 'test_error.yaml'
-    with open(file_path, 'w', encoding='utf-8') as f:
-        yaml.safe_dump(ERROR_DATA, f)
-    return str(file_path)
-
-# ** fixture: error_config_repo
-@pytest.fixture
-def error_config_repo(error_config: str) -> ErrorConfigRepository:
-    return ErrorConfigRepository(error_config)
-```
-
-Standard test cases cover:
-- **exists** — positive and negative lookups.
-- **get** — retrieval by ID; `None` for missing entries.
-- **list** — full enumeration with count and field assertions.
-- **save** — round-trip: save then retrieve and verify fields.
-- **delete** — delete then confirm `exists` returns `False`; idempotent delete of non-existent IDs.
-
-## Package Layout
-
-Repositories are defined in `tiferet/repos/`:
-
-- `__init__.py` — Empty exports (repositories are never exported).
-- `core.py` — `ConfigurationRepository` (shared format-dispatch base).
-- `app.py` — `AppConfigRepository`.
-- `cli.py` — `CliConfigRepository`.
-- `di.py` — `DIConfigRepository`.
-- `error.py` — `ErrorConfigRepository`.
-- `feature.py` — `FeatureConfigRepository`.
-- `logging.py` — `LoggingConfigRepository`.
-
-Tests live in `tests/repos/`.
-
-## Conclusion
-
-Repositories provide the concrete data-access layer for the Tiferet framework, implementing Service interfaces with utility-backed persistence. Their structured design ensures consistency, testability, and clean DI resolution. Repositories are never exported directly — consuming code depends only on the abstract Service interface.
-
-Explore source in `tiferet/repos/` and tests in `tiferet/repos/tests/` for implementation details.
+- Repos persist and are never exported. That absorption is Malkuth, Keter inverted.
+- Legal imports: `interfaces`, `mappers`, `utils`. Never `assets`, `domain`, `events`, `di`, `blueprints`, or `contexts`.
+- Implement the Service. Map through transfer objects and aggregates. Do not leak a loader or a path.
+- Deletes are idempotent. Reads return aggregates, not raw documents.
+- Dependents see the contract, not this package.

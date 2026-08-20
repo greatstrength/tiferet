@@ -11,45 +11,59 @@
 
 ## Architecture
 
-### Layer Overview
+Import law lives in [`docs/core/architecture.md`](docs/core/architecture.md). Skills and this file use **package names only**. Read `tiferet-code-architecture` before any multi-component change.
 
-The v2.0 codebase is a clean, single-layer architecture. All legacy packages have been removed.
+### Package overview
 
 ```
 tiferet/
-├── assets/               # Constants, exceptions (TiferetError), shared config
-├── blueprints/           # build_app, build_cli and top-level runtime orchestration
-├── contexts/             # Runtime orchestration: BaseContext registry + AppSessionContext hub (Feature, Error, Logging) + CliContext
-├── di/                   # DI: core.py ABCs + dependency_injector.py impls (DIAppServiceContainer, DIDynamicServiceResolver) + legacy settings.py
-├── domain/               # DomainObject base class and domain modules
-├── events/               # DomainEvent base class and domain event modules
-├── interfaces/           # Service ABC and domain service interfaces
-├── mappers/              # Aggregate + TransferObject base classes and domain mappers
-├── repos/                # Configuration-backed Service implementations (YAML/JSON)
-├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
-└── tests_int/            # Integration tests
+├── assets/               # Shared primitives (TiferetError); no inbound framework edges
+├── blueprints/           # Factory/composition: build_app, build_cli
+├── contexts/             # Runtime graph: BaseContext + AppSessionContext hub + CliSessionContext
+├── di/                   # Resolution: core.py ABCs + dependency_injector.py (no settings.py)
+├── domain/               # Read-only nouns (DomainObject); no framework imports
+├── events/               # Unit of work (DomainEvent)
+├── interfaces/           # Service ABCs; may import aggregates from mappers
+├── mappers/              # Aggregate (mutation) + TransferObject (representation)
+├── repos/                # Persistence; never exported; absorb interfaces, mappers, utils
+├── utils/                # Service-backed or raw computational infrastructure
+└── tests_int/            # Integration tests (also tests/ at repo root)
 ```
 
 A working calculator application is provided in `examples/basic_calculator/`.
+
+**Legal `# ** app` imports (summary):**
+- `assets` — none
+- `blueprints` — `assets`, `contexts`, `di`, `events` (bootstrap only). Domain types via `contexts`, never `from ..domain`. No `interfaces`.
+- `contexts` — `assets`, `domain`, siblings, `events`. No `blueprints`, `interfaces`, `di`, `mappers`, `utils`, `repos`.
+- `di` — `domain`, `interfaces` (including `ServiceError`). Event-free and asset-free.
+- `domain` — none
+- `events` — `assets`, `domain`, `mappers`, `utils`, `interfaces`
+- `mappers` — `domain` only
+- `interfaces` — `mappers` (aggregates), sibling interfaces
+- `utils` — `interfaces`, `mappers`, siblings
+- `repos` — `interfaces`, `mappers`, `utils`
+
+Only three reverse shapes: injected `get_dependency`, blueprint handler slots, and a mapper method typed `Callable`.
 
 ### Key Concepts
 
 **Key Concepts**:
 
 - **DomainObject** (`domain/core.py`): Base domain model class extending `pydantic.BaseModel`. Instantiate via direct Pydantic constructors (e.g., `Feature(id='calc.add', ...)`). Use `model_construct()` to skip validation. Domain objects are read-only; mutation goes through Aggregates.
-- **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests. Each single-service event module defines a per-module base event (e.g., `ErrorEvent`, `FeatureEvent`) that holds the shared service injection; concrete events extend the base and define only `execute`.
-- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
+- **DomainEvent** (`events/core.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests. Each single-service event module defines a per-module base event (e.g., `ErrorEvent`, `FeatureEvent`) that holds the shared service injection; concrete events extend the base and define only `execute`. Prefer returning a domain model; otherwise return anything legally beneath the event.
+- **Service** (`interfaces/core.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service. Interfaces may import aggregates from `mappers` to type outputs.
 - **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
-- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
-- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
-- **BaseContext** (`contexts/settings.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The base holds no cache; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) wire it themselves. The `AppSessionContext` hub binds the loaded `AppSession` and builds its sub-contexts on demand.
+- **Aggregate** (`mappers/core.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
+- **TransferObject** (`mappers/core.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
+- **BaseContext** (`contexts/core.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The base holds no cache; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) wire it themselves. The `AppSessionContext` hub binds the loaded `AppSession` and runs through five injected handlers.
 
 ### Runtime Flow
 
 1. `App(interface_id)` (alias for `core.build_app`) resolves the app session and returns an `AppSessionContext`.
 2. `core.build_app` builds the shared cache (`build_cache`), composes the app service and resolves the session via the `GetAppSession` event (`get_app_session`), then constructs the context via `build_app_session_context`: it builds the app service container by merging cache defaults with the session's own constants/services (`build_app_service_container`), composes a `ServiceResolver` (`build_service_resolver`), resolves the hub's event collaborators from the app container, and constructs the `AppSessionContext` via `BaseContext.from_domain(app_session, get_dependency=resolver.get_dependency, ...)` — the context graph itself is not DI-resolved. No `apply_defaults` is called on the core path.
-3. `AppSessionContext.run(feature_id, data={})` builds a logger, parses the request, loads the `Feature` domain object, executes it, and returns the response.
-4. The hub builds its sub-contexts (`FeatureContext`, `ErrorContext`, `LoggingContext`) on demand; `FeatureContext.execute_feature(feature, request)` resolves each step's service via the injected `get_dependency` handler (from `ServiceResolver`) and executes it sequentially. When the loaded `Feature` has `is_async` set, the hub instead selects `AsyncFeatureContext` (a `FeatureContext` subclass) and drives `execute_feature_async` to completion via a `_run_coroutine` helper, keeping `run()` synchronous.
+3. `AppSessionContext.run(feature_id, data={})` builds a logger, builds the request, executes the feature through injected handlers, and returns the response.
+4. The hub does not construct sibling contexts. Blueprints inject `build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, and `response_handler`. `FeatureContext.execute_feature(request)` resolves each step via the injected `get_dependency` handler and executes it sequentially. Async dispatch is owned by `FeatureContext` via `Feature.is_async`.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
 6. Results flow back through `RequestContext` and `handle_response()`.
 
@@ -58,8 +72,8 @@ A working calculator application is provided in `examples/basic_calculator/`.
 Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate application bootstrapping and execution. They replace the previous class-based `AppBuilder`/`CliBuilder` pattern from v2.0.0b2.
 
 - `build_app(interface_id, ...)` is defined in `tiferet/blueprints/core.py` and exported as `App` from `tiferet/__init__.py`. It chains `build_cache()` → `get_app_session(id, cache, ...)` → `build_app_session_context(session, cache)` → `INVALID_APP_SESSION_TYPE` validation, returning a fully wired `AppSessionContext`. (The former `blueprints/main.py` was retired in the Chapter M cleanup.)
-- `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It is a thin entrypoint that calls `core.build_app(...)` (the interface must point at `CliContext`) and delegates `argv` parsing and feature dispatch to `CliContext.run_cli`.
-- `build_tiferet_app` / `build_tiferet_cli` (`tiferet/blueprints/tiferet_app.py` / `tiferet_cli.py`, exported as `TiferetApp` / `TiferetCLI`) bootstrap the built-in `tiferet_app` / `tiferet_cli` sessions that are not in the consumer config; they resolve through the shared module-private `_resolve_bootstrap_session` in `tiferet_cli.py` (default-session fallback + `apply_defaults`).
+- `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It is a thin entrypoint that builds a `CliSessionContext` and delegates `argv` parsing and feature dispatch to `CliSessionContext.run`.
+- Admin entry points (`build_admin_app` / `AdminApp`, `build_admin_cli` / `AdminCLI`) reuse the same core composition helpers with admin-scoped cache seeding.
 
 **Core composition functions in `core.py` (`# *** blueprints`):**
 - `build_cache()` — builds the shared cache pre-seeded with default errors, app services, and constants.
@@ -67,28 +81,24 @@ Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate a
 - `get_app_session(interface_id, cache, ...)` — resolves the app session via the `GetAppSession` event (raises `APP_SESSION_NOT_FOUND` when absent; no core fallback). The `cache` parameter is a build-ordering seam (`# ++ todo:` — default sessions are not yet cache-seeded).
 - `build_app_service_container(cache, app_instance)` — builds the singleton app service container by merging cache defaults with the session's own constants/services **before** building (session wins), so overrides reach default services the session does not redeclare.
 - `build_service_resolver(app_container)` — composes the feature-level `ServiceResolver`, caching the app container under the `app` flag.
-- `build_app_session_context(app_session, cache)` — imports the declared context class, resolves its collaborators from the app container, wires the four hub handlers, and constructs via `BaseContext.from_domain`.
+- `build_app_session_context(app_session, cache)` — wires the five required handlers and constructs `AppSessionContext` via `from_domain`.
 - `build_app(interface_id, ...)` — the single-call entry point chaining the above.
 
-**Relocated legacy feature-DI bootstrap (module-private in `tiferet/blueprints/tiferet_cli.py`):** `_wire_services`, `_resolve_ctor_kwargs`, `_build_wiring_constants`, `_resolve_collaborators`, `_load_app_instance`, and the shared `_resolve_bootstrap_session`. Retained only for `build_tiferet_cli`, which still composes the resolver via the `CreateServiceResolver` bootstrap event; the standard app/CLI path uses the core compose path instead.
-
 **CLI blueprint function in `cli.py`:**
-- `build_app(interface_id, argv, ...)` — Thin CLI entrypoint: calls `core.build_app(...)` (a `CliContext`) and delegates to `cli_context.run_cli(argv)`. Exported as `build_cli` / `CLI`.
+- `build_cli(interface_id, argv, ...)` — Thin CLI entrypoint: builds a `CliSessionContext` and delegates to `cli_context.run(argv)`. Exported as `CLI`.
 
-CLI parsing is owned by `CliContext` (`tiferet/contexts/cli.py`): the side-effect-free module-level helpers `group_commands_by_key`, `build_parser`, and `derive_feature_request`, plus the `get_commands` / `parse_cli_request` / `run_cli` methods. Per-argument argparse translation lives on `CliArgument.to_argparse_kwargs()`. Consumer CLI interfaces opt in by pointing their config at `tiferet.contexts.cli` / `CliContext`.
+CLI parsing is owned by `CliSessionContext` (`tiferet/contexts/cli.py`) via an injected `parse_cli_args` closure. Per-argument argparse translation lives on `CliArgument.to_argparse_kwargs()`. The CLI blueprint hardcodes `CliSessionContext`; session `module_path` / `class_name` are not consulted.
 
 ### Dependency Injection
 
-As of v2.0.0b10, DI is provided by two classes in `tiferet/di/settings.py` (the previous `ServiceProvider` ABC, `DynamicServiceProvider`, `DependenciesServiceProvider` alias, and the feature-level `DIContext` have all been removed):
+The current `di/` package is `core.py` plus `dependency_injector.py`. There is no `di/settings.py`.
 
-- **`ServiceContainer`** — the low-level engine, backed by `dependency-injector`'s `DynamicContainer`. Registers class types as `Factory` providers and scalars/callables as `Object` providers, and resolves instances via `get_service`. `build_factory(service_type)` wires each constructor parameter to a sibling provider via the shared `injectable_parameter_names` helper.
-- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` and a `parse_parameter` callable as direct dependencies, reads service registrations and constants (merging bootstrap defaults via `merge_settings`), assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` per flag set. Its bound `get_dependency(registration_id, *flags)` method is injected into `AppSessionContext` and forwarded to each `FeatureContext` to resolve feature-step events and middleware.
+- **`ServiceContainer` / `ServiceResolver`** (`di/core.py`) — ABCs. `ServiceResolver` owns a per-flag container cache and a template-method `get_dependency`. Pure helpers: `injectable_parameter_names`, `normalize_flags`.
+- **`DIDynamicServiceContainer`** — feature-level, Factory scope.
+- **`DIAppServiceContainer`** — app-level, Singleton scope; `from_dependencies` keys services by `service_id`.
+- **`DIDynamicServiceResolver`** — builds a container per flag set from a `DIService` plus an injected `parse_parameter` callable.
 
-The DI layer is **event-free and asset-free** (it imports only stdlib, `dependency-injector`, `..domain`, and `..interfaces.di`); it assumes best-case inputs, raises raw exceptions for callers with event access to convert, and receives parameter parsing as the injected `parse_parameter` callable. `tiferet/di/settings.py` also exposes pure `# *** functions` — `injectable_parameter_names`, `normalize_flags`, `create_cache_key`, and `merge_settings` — exported from `tiferet/di/__init__.py`.
-
-Interface wiring is declarative: `wire_services` instantiates the interface's events and repositories into a name-to-value registry (no app-level container), and `load_app_instance` composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event (`tiferet/events/blueprint.py`) and injects `resolver.get_dependency`.
-
-A DI refactor (see Migration Notes) introduces an abstract, domain-only contract in `tiferet/di/core.py` (the `ServiceContainer` and `ServiceResolver` ABCs, plus `injectable_parameter_names` / `normalize_flags`) and concrete `dependency_injector`-backed implementations in `tiferet/di/dependency_injector.py` (`DIDynamicServiceContainer`, the Singleton `DIAppServiceContainer`, and the per-flag `DIDynamicServiceResolver`). These coexist with the legacy `tiferet/di/settings.py` classes above, which `build_app` still wires.
+The DI layer is **event-free and asset-free**. Legal imports: `domain`, `interfaces` (including `ServiceError`). A missing provider raises `ServiceError.raise_for(...)`. `build_app` composes the app container and resolver directly; it does not use `CreateServiceResolver`.
 
 ## Structured Code Style
 
@@ -137,7 +147,7 @@ feature = self.feature_service.get(id)
 # Verify the feature exists.
 self.verify(
     expression=feature is not None,
-    error_code=a.const.FEATURE_NOT_FOUND_ID,
+    error_code=a.error.FEATURE_NOT_FOUND_ID,
     feature_id=id,
 )
 
@@ -170,7 +180,7 @@ The `tiferet-code-*` skill suite provides self-contained, offline-capable style 
 
 | Skill | When to use |
 |---|---|
-| **`tiferet-code-architecture`** | Any multi-component task — layer graph, import rules, runtime flow |
+| **`tiferet-code-architecture`** | Any multi-component task — package import law, reverse shapes, runtime flow |
 | **`tiferet-code-style`** | Every implementation session — read first |
 | **`tiferet-code-domain`** | Adding or modifying domain objects |
 | **`tiferet-code-events`** | Adding or modifying domain events |
@@ -190,7 +200,7 @@ The `tiferet-code-*` skill suite provides self-contained, offline-capable style 
 
 Domain events are the primary operational units. Key patterns:
 
-- Extend the module's per-module base event (e.g., `ErrorEvent`, `FeatureEvent`, `AppEvent`, `CliEvent`, `DIEvent`, `LoggingEvent`, `SqliteEvent`), which holds the shared service; extend `DomainEvent` from `tiferet/events/settings.py` directly only when defining a new base event or a service-less event.
+- Extend the module's per-module base event (e.g., `ErrorEvent`, `FeatureEvent`, `AppEvent`, `CliEvent`, `DIEvent`, `LoggingEvent`, `SqliteEvent`), which holds the shared service; extend `DomainEvent` from `tiferet/events/core.py` directly only when defining a new base event or a service-less event.
 - Dependencies via constructor injection (usually a Service), declared on the base event.
 - `execute(**kwargs)` is the entry point.
 - `@DomainEvent.parameters_required(['param1', 'param2'])` for declarative input validation (decorator on `execute`).
@@ -242,7 +252,7 @@ result = DomainEvent.handle(
 
 ## Interfaces (Services)
 
-- Extend `Service` (ABC) from `tiferet/interfaces/settings.py`.
+- Extend `Service` (ABC) from `tiferet/interfaces/core.py`. Interfaces may import aggregates from `mappers` to type outputs.
 - All methods marked `@abstractmethod`.
 - Artifact comments use `# *** interfaces` / `# ** interface: <name>`.
 - Services: `AppService`, `CliService`, `ConfigurationService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`, `MiddlewareService`.
@@ -261,7 +271,7 @@ Split into two classes:
 
 ## Repositories
 
-Concrete `Service` implementations in `tiferet/repos/`. All configuration repositories extend `ConfigurationRepository` (`repos/settings.py`), which provides format-agnostic I/O via `_load()` / `_save()` with automatic dispatch to YAML or JSON based on file extension. Repositories are **never exported** from `__init__.py` — they are resolved at runtime through DI configuration.
+Concrete `Service` implementations in `tiferet/repos/`. All configuration repositories extend `ConfigurationRepository` (`repos/core.py`), which provides format-agnostic I/O via `_load()` / `_save()` with automatic dispatch to YAML or JSON based on file extension. Repositories are **never exported** from `__init__.py` — they only absorb `interfaces`, `mappers`, and `utils`.
 
 - `AppConfigRepository`, `CliConfigRepository`
 - `DIConfigRepository`, `ErrorConfigRepository`, `FeatureConfigRepository`, `LoggingConfigRepository`
@@ -278,11 +288,10 @@ See [docs/core/repos.md](docs/core/repos.md) for structured code design and [doc
 
 ## Error Handling
 
-- `TiferetError` (`assets/exceptions.py`): Base exception with `error_code` and `kwargs`.
+- `TiferetError` (`assets/core.py`): Base exception with `error_code` and `kwargs`.
 - `TiferetAPIError`: Extends `TiferetError` with `name` and `message` for API responses.
-- Error constants defined in `assets/constants.py` (e.g., `FEATURE_NOT_FOUND_ID`, `COMMAND_PARAMETER_REQUIRED_ID`).
-- Default error definitions in `assets/constants.py::DEFAULT_ERRORS` dict.
-- Access constants via `from .. import assets as a` then `a.const.ERROR_CODE_ID`.
+- Error constants live in namespaced asset modules (e.g. `assets/error.py`).
+- Access constants via `from .. import assets as a` then `a.error.ERROR_CODE_ID` (also `a.app`, `a.feat`, `a.cli`, `a.logging`). There is no `a.const`.
 
 ### Error Constants (v2.0.0b3)
 
@@ -315,7 +324,7 @@ Applications are configured in a consolidated root `config.yml` file:
 
 ## Utilities
 
-`tiferet/utils/` provides concrete infrastructure implementations satisfying Service interfaces (`FileService`, `SqliteService`, etc.). Utilities encapsulate repeatable processes — physical (file I/O, database) and computational (algorithms, inference, transformations) — behind injectable, testable contracts.
+`tiferet/utils/` provides physical and computational infrastructure. A util may implement a Service contract when it must be DI-injectable, or remain a raw computational container that events import and call directly.
 
 See [docs/core/utils.md](docs/core/utils.md) for the full design document.
 
@@ -366,22 +375,21 @@ Everything else is imported from its owning package, for example:
 - `tiferet/__init__.py` — Version and public exports
 - `tiferet/domain/core.py` — `DomainObject` base class (extends `pydantic.BaseModel`) and `ServiceDependency` core model
 - `tiferet/events/core.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
-- `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
-- `tiferet/interfaces/settings.py` — `Service` (ABC) base class
+- `tiferet/mappers/core.py` — `Aggregate` and `TransferObject` base classes
+- `tiferet/interfaces/core.py` — `Service` (ABC) base class
 - `tiferet/di/core.py` — `ServiceContainer` / `ServiceResolver` ABCs + `injectable_parameter_names` / `normalize_flags`
 - `tiferet/di/dependency_injector.py` — `DIDynamicServiceContainer` (Factory), `DIAppServiceContainer` (Singleton), `DIDynamicServiceResolver` (per-flag)
 - `tiferet/blueprints/core.py` — `build_app` (public app orchestration entry point, exported as `App`) plus the composition chain: `build_cache`, `create_app_service`, `get_app_session`, `build_app_service_container`, `build_service_resolver`, `build_app_session_context`
-- `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`; calls `core.build_app` then `run_cli`)
-- `tiferet/blueprints/tiferet_cli.py` — `build_tiferet_cli` (`TiferetCLI`) plus the relocated module-private legacy feature-DI bootstrap (`_wire_services`, `_load_app_instance`, `_resolve_collaborators`, `_resolve_bootstrap_session`, ...)
-- `tiferet/blueprints/tiferet_app.py` — `build_tiferet_app` (`TiferetApp`; core compose path + shared default-session fallback)
-- `tiferet/contexts/settings.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
-- `tiferet/contexts/app.py` — `AppSessionContext` (minimal declarative hub bound to the loaded `AppSession`)
-- `tiferet/contexts/cli.py` — `CliContext` (CLI high-level context: argparse parsing helpers + `get_commands`/`parse_cli_request`/`run_cli`)
-- `tiferet/contexts/feature.py` — `FeatureContext` (sync feature execution engine) and `AsyncFeatureContext` (async subclass selected when `Feature.is_async` is set)
-- `tiferet/assets/constants.py` — Error codes plus the `create_default_error` / `create_app_service_dependency` factories
-- `tiferet/assets/app.py` — Default interface definitions and the `CORE_DEFAULT_SERVICES` / `CORE_DEFAULT_CONSTANTS` bootstrap catalogs
-- `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
-- `tiferet/repos/settings.py` — `ConfigurationRepository` base class (format-agnostic config I/O)
+- `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`; builds `CliSessionContext` then `run`)
+- `tiferet/blueprints/admin.py` / `admin_cli.py` — `AdminApp` / `AdminCLI`
+- `tiferet/contexts/core.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
+- `tiferet/contexts/app.py` — `AppSessionContext` (minimal hub bound to the loaded `AppSession`; five injected handlers)
+- `tiferet/contexts/cli.py` — `CliSessionContext` (CLI hub; injected `parse_cli_args`; `run(argv)`)
+- `tiferet/contexts/feature.py` — `FeatureContext` (feature execution; async via `Feature.is_async`)
+- `tiferet/assets/core.py` — `TiferetError`, `TiferetAPIError`, shared factories
+- `tiferet/assets/error.py` / `app.py` / `feature.py` — namespaced catalogs (`a.error`, `a.app`, `a.feat`)
+- `tiferet/repos/core.py` — `ConfigurationRepository` base class (format-agnostic config I/O)
+- `docs/core/architecture.md` — package import law
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
