@@ -6,7 +6,7 @@ from typing import Callable
 # ** app
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.cache import CacheContext
-from ..assets.calc import CALC_EXPRESSION_CACHE_PREFIX, OPERATOR_PRECEDENCE
+from ..assets.core import CALC_EXPRESSION_CACHE_PREFIX, OPERATOR_PRECEDENCE
 from ..domain.expression import Expression, ExpressionState
 
 # *** contexts

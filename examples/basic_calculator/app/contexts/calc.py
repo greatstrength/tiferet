@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict
 
 # ** app
 from tiferet import TiferetError
-from tiferet.contexts.app import AppSessionContext
+from tiferet.contexts.app import AppSessionContext, raise_unwired_handler_error
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.request import RequestContext
 from .. import assets as a
@@ -51,6 +51,9 @@ class CalculatorAppContext(AppSessionContext):
     # * attribute: resolver
     resolver: Any
 
+    # * attribute: record_run (private)
+    _record_run: Callable
+
     # * init
     def __init__(self,
             get_dependency: Callable,
@@ -60,7 +63,8 @@ class CalculatorAppContext(AppSessionContext):
             execute_feature_handler: Callable = None,
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
-            response_handler: Callable = None):
+            response_handler: Callable = None,
+            record_run_handler: Callable = None):
         '''
         Initialize the calculator app context.
 
@@ -82,6 +86,10 @@ class CalculatorAppContext(AppSessionContext):
         :type raise_error_handler: Callable
         :param response_handler: The response-building handler.
         :type response_handler: Callable
+        :param record_run_handler: The record-run handler, invoked once after
+            every successful feature execution to persist run history at the
+            session level rather than as a per-feature step.
+        :type record_run_handler: Callable
         '''
 
         # Initialize the base application session hub.
@@ -98,8 +106,61 @@ class CalculatorAppContext(AppSessionContext):
         # Expose the resolver for any future DI-resolved collaborator.
         self.resolver = resolver
 
+        # Store the record-run handler (validated lazily on first use).
+        self._record_run = record_run_handler
+
         # No expression is active until the first starter method is called.
         self._session_id = None
+
+    # * method: execute_feature
+    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
+        '''
+        Execute a feature, then record the completed run.
+
+        Delegates execution to the inherited hub first; ``record_run`` only
+        fires when that call succeeds, since an exception propagates before
+        this line runs and is handled by ``AppSessionContext.run``'s existing
+        ``except`` branch.
+
+        :param feature_id: The identifier of the feature to execute.
+        :type feature_id: str
+        :param request: The request context object.
+        :type request: RequestContext
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Execute the feature via the inherited hub.
+        super().execute_feature(feature_id, request, **kwargs)
+
+        # Record the completed run at the session level.
+        self.record_run(feature_id, request)
+
+    # * method: record_run
+    def record_run(self, feature_id: str, request: RequestContext) -> None:
+        '''
+        Record a successfully completed feature run.
+
+        Delegates to the injected handler; fails loudly via
+        ``raise_unwired_handler_error`` when unwired, consistent with the
+        base class's other template-method handlers.
+
+        :param feature_id: The identifier of the feature that was executed.
+        :type feature_id: str
+        :param request: The request context object.
+        :type request: RequestContext
+        '''
+
+        # Fail loudly when the record-run handler is unwired.
+        if self._record_run is None:
+            raise_unwired_handler_error(
+                'record_run_handler',
+                self.domain.id,
+                feature_id=feature_id,
+            )
+
+        # Delegate to the injected record-run handler.
+        self._record_run(feature_id, request)
 
     # * method: build_request
     def build_request(self,
@@ -151,7 +212,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Dispatch through the existing calc.* feature for this operator.
-        feature_id = a.calc.OPERATOR_FEATURE_MAP[operator]
+        feature_id = a.core.OPERATOR_FEATURE_MAP[operator]
         return self.run(feature_id, data=dict(a=left, b=right))
 
     # * method: _start (private)
@@ -172,7 +233,7 @@ class CalculatorAppContext(AppSessionContext):
         # Refuse to clobber an already-active expression.
         self._guard(
             self._session_id is None,
-            a.calc.EXPRESSION_ALREADY_ACTIVE_ID,
+            a.core.EXPRESSION_ALREADY_ACTIVE_ID,
             session_id=self._session_id,
         )
 
@@ -202,7 +263,7 @@ class CalculatorAppContext(AppSessionContext):
         # Require an active expression to continue.
         self._guard(
             self._session_id is not None,
-            a.calc.NO_ACTIVE_EXPRESSION_ID,
+            a.core.NO_ACTIVE_EXPRESSION_ID,
         )
 
         # Fold the operand into the active expression.
@@ -227,7 +288,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Start a new expression with the '+' operator.
-        return self._start(a.calc.ADD_OPERATOR, a_value, b_value)
+        return self._start(a.core.ADD_OPERATOR, a_value, b_value)
 
     # * method: add_to
     def add_to(self, value: float) -> 'CalculatorAppContext':
@@ -241,7 +302,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Continue the active expression with the '+' operator.
-        return self._continue(a.calc.ADD_OPERATOR, value)
+        return self._continue(a.core.ADD_OPERATOR, value)
 
     # * method: subtract
     def subtract(self, a_value: float, b_value: float) -> 'CalculatorAppContext':
@@ -257,7 +318,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Start a new expression with the '-' operator.
-        return self._start(a.calc.SUBTRACT_OPERATOR, a_value, b_value)
+        return self._start(a.core.SUBTRACT_OPERATOR, a_value, b_value)
 
     # * method: subtract_from
     def subtract_from(self, value: float) -> 'CalculatorAppContext':
@@ -274,7 +335,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Continue the active expression with the '-' operator.
-        return self._continue(a.calc.SUBTRACT_OPERATOR, value)
+        return self._continue(a.core.SUBTRACT_OPERATOR, value)
 
     # * method: multiply
     def multiply(self, a_value: float, b_value: float) -> 'CalculatorAppContext':
@@ -290,7 +351,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Start a new expression with the '*' operator.
-        return self._start(a.calc.MULTIPLY_OPERATOR, a_value, b_value)
+        return self._start(a.core.MULTIPLY_OPERATOR, a_value, b_value)
 
     # * method: multiply_by
     def multiply_by(self, value: float) -> 'CalculatorAppContext':
@@ -304,7 +365,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Continue the active expression with the '*' operator.
-        return self._continue(a.calc.MULTIPLY_OPERATOR, value)
+        return self._continue(a.core.MULTIPLY_OPERATOR, value)
 
     # * method: divide
     def divide(self, a_value: float, b_value: float) -> 'CalculatorAppContext':
@@ -320,7 +381,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Start a new expression with the '/' operator.
-        return self._start(a.calc.DIVIDE_OPERATOR, a_value, b_value)
+        return self._start(a.core.DIVIDE_OPERATOR, a_value, b_value)
 
     # * method: divide_by
     def divide_by(self, value: float) -> 'CalculatorAppContext':
@@ -334,7 +395,7 @@ class CalculatorAppContext(AppSessionContext):
         '''
 
         # Continue the active expression with the '/' operator.
-        return self._continue(a.calc.DIVIDE_OPERATOR, value)
+        return self._continue(a.core.DIVIDE_OPERATOR, value)
 
     # * attribute: result
     @property
@@ -353,7 +414,7 @@ class CalculatorAppContext(AppSessionContext):
         # Require an active expression to finalize.
         self._guard(
             self._session_id is not None,
-            a.calc.NO_ACTIVE_EXPRESSION_ID,
+            a.core.NO_ACTIVE_EXPRESSION_ID,
         )
 
         # Finalize the expression, then discard its cache entry and reset state.

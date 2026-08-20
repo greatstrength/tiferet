@@ -3,4 +3,6 @@
 # *** exports
 
 # ** app
-from . import calc
+from . import core
+from . import error
+from . import feature

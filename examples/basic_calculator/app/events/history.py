@@ -9,6 +9,9 @@ from typing import Any
 from tiferet.events import *
 from tiferet.utils import Json
 
+# ** app
+from ..assets.core import FEATURE_OPERATOR_MAP
+
 # *** functions
 
 # ** function: format_history_entry
@@ -33,14 +36,21 @@ class RecordCalculation(DomainEvent):
     A domain event that appends the most recently executed calculation to a
     JSON history file using the Tiferet file loader, keeping only the most
     recent entries.
+
+    Invoked once per successful feature run via CalculatorAppContext's
+    session-level record_run handler (rather than as a per-feature step), so
+    it derives the operator symbol from feature_id via FEATURE_OPERATOR_MAP
+    instead of receiving it as an explicit parameter. Runs for features with
+    no mapped operator (formula.*, calc.history, calc.safe_divide) are a
+    graceful no-op.
     '''
 
     # * method: execute
     def execute(self,
-            result: Any,
-            operator: str,
+            feature_id: str,
             a: Any = None,
             b: Any = None,
+            result: Any = None,
             history_file: str = 'history.json',
             max_entries: int = 10,
             **kwargs,
@@ -48,14 +58,14 @@ class RecordCalculation(DomainEvent):
         '''
         Record a calculation entry and return the original result unchanged.
 
-        :param result: The computed result of the calculation.
-        :type result: Any
-        :param operator: The operator symbol describing the operation.
-        :type operator: str
+        :param feature_id: The identifier of the feature that was executed.
+        :type feature_id: str
         :param a: The first operand, if any.
         :type a: Any
         :param b: The second operand, if any.
         :type b: Any
+        :param result: The computed result of the calculation, if any.
+        :type result: Any
         :param history_file: The JSON file used to store recent calculations.
         :type history_file: str
         :param max_entries: The maximum number of entries to retain.
@@ -65,6 +75,11 @@ class RecordCalculation(DomainEvent):
         :return: The original result, unchanged.
         :rtype: Any
         '''
+
+        # Skip recording entirely for runs with no mapped operator or no result.
+        operator = FEATURE_OPERATOR_MAP.get(feature_id)
+        if operator is None or result is None:
+            return result
 
         # Build a human-readable expression for the entry.
         expression = f'{operator}{a}' if b is None else f'{a} {operator} {b}'
