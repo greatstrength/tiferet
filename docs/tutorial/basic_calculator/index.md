@@ -12,6 +12,7 @@ By the time we're done, you'll have:
 - Two ways to use it: a quick script for testing and a proper command-line interface
 - Persist your most recently executed formulas to a file
 - Save and re-evaluate named, variablized formulas
+- A fluent, chainable calculator client that evaluates PEMDAS-aware expressions
 
 And best of all — each step is small, satisfying, and shows real progress.
 
@@ -21,15 +22,19 @@ And best of all — each step is small, satisfying, and shows real progress.
 basic_calculator/
 ├── basic_calc.py          # quick script runner for testing
 ├── calc_cli.py            # full-featured command-line calculator
+├── calc_fluent.py         # fluent, PEMDAS-aware calculator client (Step 9)
 ├── config.yml             # consolidated configuration
 ├── formulas.yml           # saved formulas store (Step 8)
 ├── history.json           # recent calculations, generated at runtime (Step 7)
 └── app/
-    ├── domain/            # Formula domain model (Step 8)
+    ├── assets/            # operator constants and precedence table (Step 9)
+    ├── domain/            # Formula + Expression domain models (Steps 8-9)
     ├── events/            # arithmetic, history, and formula events
     ├── interfaces/        # FormulaService contract (Step 8)
     ├── mappers/           # Formula aggregate + config object (Step 8)
-    └── repos/             # FormulaConfigRepository (Step 8)
+    ├── repos/             # FormulaConfigRepository (Step 8)
+    ├── contexts/          # ExpressionContext + CalculatorAppContext (Step 9)
+    └── blueprints/        # create_calculator_app (Step 9)
 ```
 
 ### The step-by-step path
@@ -57,6 +62,9 @@ basic_calculator/
 
 8. **[Saving & Variablizing Formulas](08-saving-and-variablizing-formulas.md)**  
    Save reusable, named formulas with a domain model and repository, then evaluate them.
+
+9. **[The Fluent Calculator Context](09-fluent-calculator-context.md)**  
+   Close the loop with assets, contexts, and blueprints: build a chainable calculator client that evaluates PEMDAS-aware expressions on top of the features you already built.
 
 This tutorial is designed to feel like we're building together — short steps, quick wins, and no walls of text.
 
