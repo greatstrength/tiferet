@@ -5,14 +5,14 @@ In Tiferet v2.0.0, everything is consolidated into a single root `config.yml` fi
 
 ### 4.1 config.yml – The complete wiring diagram
 
-Create `config.yml` in your project root (next to `basic_calc.py` and `calc_cli.py`).
+Create `config.yml` in your project root (next to `calc_client.py` and `calc_cli.py`).
 
 **config.yml**
 
 ```yaml
 # Application interfaces
 interfaces:
-  basic_calc:
+  calc_client:
     name: Basic Calculator
     description: Simple arithmetic operations via script or direct call
 
@@ -103,7 +103,7 @@ errors:
 - **Simpler structure** — No more hunting through multiple files.
 - **Easier to manage** — Everything related to how the app behaves is in one place.
 - **Still fully flexible** — You can define multiple interfaces, complex features, and rich error handling.
-- Pass `app_config='config.yml'` when calling `App('basic_calc', app_config='config.yml')`.
+- Pass `app_config='config.yml'` when calling `App('calc_client', app_config='config.yml')`.
 
 ### 4.3 Conditional steps
 
@@ -115,13 +115,13 @@ Conditions support `$r.<key>` references for any value in the request data and s
 
 In this single `config.yml` file we defined:
 
-- **Interfaces** (`basic_calc`) — the entry point for our script runner
+- **Interfaces** (`calc_client`) — the entry point for our script runner
 - **Services** (`services`) — links friendly names like `add_event` to the actual Python classes in `app/events/calc.py`
 - **Features** (`calc.add`, `calc.sqrt`, `calc.safe_divide`, etc.) — defines the workflows and which event to run for each operation
 - **Conditional steps** — declarative `condition` expressions on feature steps for runtime branching
 - **Errors** — user-friendly, structured error messages with support for multiple languages
 
-When you run `app = App('basic_calc', app_config='config.yml')`, Tiferet reads this file and wires everything together automatically.
+When you run `app = App('calc_client', app_config='config.yml')`, Tiferet reads this file and wires everything together automatically.
 
 No code changes needed here — just this one YAML file.
 

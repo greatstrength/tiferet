@@ -141,7 +141,7 @@ cli:
 ### 7.5 See it work
 
 ```bash
-python basic_calc.py
+python calc_client.py
 ```
 
 After the arithmetic output, you'll see:
@@ -167,6 +167,8 @@ python calc_cli.py calc history
 - Persistence with zero boilerplate — the file loader handles the file lifecycle.
 - The compute-then-record pattern shows how `data_key` lets steps share data without changing the feature's return value.
 - Failed calculations (like divide-by-zero) raise before the record step, so they never pollute the history.
+
+> **Heads up:** copying `record_calculation_event` into every arithmetic feature works, but it doesn't scale -- a seventh operator means a seventh copy. In Chapter 9 we'll give the calculator its own `AppSessionContext` subclass and move this into a single session-level concern instead.
 
 → Next, let's go from remembering calculations to **saving reusable, variablized formulas** with domain models and a repository.
 Head to **[Step 8: Saving & Variablizing Formulas](08-saving-and-variablizing-formulas.md)**
