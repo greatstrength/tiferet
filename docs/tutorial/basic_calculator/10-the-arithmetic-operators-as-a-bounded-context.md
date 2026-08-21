@@ -88,7 +88,7 @@ def build_calculator_cache(cache=None):
 
 Here's a subtlety worth understanding, not just copying: the ordinary per-flag feature DI system that resolves a feature step's `service_id` reads registrations **exclusively** from `config.yml`'s `services:` block, with no cache fallback. Left alone, a cache-seeded default feature would have no way to resolve its own step's service -- it needs *some* pre-built container to resolve against.
 
-An earlier version of this design routed that resolution through the framework's own `'app'`-flagged container -- the same one holding the framework's core defaults -- by seeding `CALC_DEFAULT_SERVICES` into that shared namespace and tagging every feature `flags=['app']`. It worked, but the calculator's own services became indistinguishable from the framework's in the cache. The calculator deserves its own namespace, and giving it one is a small, one-time cameo appearance of Tiferet's `di` layer -- the only place in this entire tutorial that touches it directly, and it needs nothing new from that layer, only two pieces the framework already ships:
+Borrowing the framework's own `'app'`-flagged container -- the same one holding the framework's core defaults -- would work mechanically, but it would leave the calculator's own services indistinguishable from the framework's in the cache. The calculator deserves its own namespace instead, and giving it one is a small, one-time cameo appearance of Tiferet's `di` layer -- the only place in this entire tutorial that touches it directly, and it needs nothing new from that layer, only two pieces the framework already ships:
 
 **app/contexts/calc.py**
 
