@@ -1,32 +1,38 @@
-interfaces:
-  basic_calc:
-    name: Basic Calculator
-    description: Perform basic calculator operations
+sessions:
+  calc_client:
+    name: Calculator Client
+    description: >-
+      A plain, non-fluent client for the calculator's arithmetic bounded
+      context. module_path/class_name below are informational only --
+      CalculatorAppContext is wired explicitly by
+      app.blueprints.calc.create_calculator_app, not resolved from this
+      config.
+    module_path: app.contexts.calc
+    class_name: CalculatorAppContext
+    services:
+      record_run_event:
+        module_path: app.events.history
+        class_name: RecordCalculation
   calc_cli:
     name: Calculator CLI
     description: Perform basic calculator operations via CLI
     module_path: tiferet.contexts.cli
     class_name: CliContext
+  calc_fluent:
+    name: Fluent Calculator
+    description: >-
+      A chainable, PEMDAS-aware calculator context. module_path/class_name
+      below are informational only -- CalculatorFluentContext is wired
+      explicitly by app.blueprints.fluent.create_calculator_fluent, not
+      resolved from this config.
+    module_path: app.contexts.fluent
+    class_name: CalculatorFluentContext
+    services:
+      record_run_event:
+        module_path: app.events.history
+        class_name: RecordCalculation
 
 services:
-  add_number_event:
-    module_path: app.events.calc
-    class_name: AddNumber
-  subtract_number_event:
-    module_path: app.events.calc
-    class_name: SubtractNumber
-  multiply_number_event:
-    module_path: app.events.calc
-    class_name: MultiplyNumber
-  divide_number_event:
-    module_path: app.events.calc
-    class_name: DivideNumber
-  exponentiate_number_event:
-    module_path: app.events.calc
-    class_name: ExponentiateNumber
-  record_calculation_event:
-    module_path: app.events.history
-    class_name: RecordCalculation
   list_recent_formulas_event:
     module_path: app.events.history
     class_name: ListRecentFormulas
@@ -50,88 +56,6 @@ services:
 
 features:
   calc:
-    add:
-      name: Add Number
-      description: Adds one number to another
-      params_schema:
-        a: int
-        b: int
-      steps:
-        - service_id: add_number_event
-          name: Add `a` and `b`
-          data_key: result
-        - service_id: record_calculation_event
-          name: Record the calculation
-          params:
-            operator: '+'
-    subtract:
-      name: Subtract Number
-      description: Subtracts one number from another
-      params_schema:
-        a: int
-        b: int
-      steps:
-        - service_id: subtract_number_event
-          name: Subtract `b` from `a`
-          data_key: result
-        - service_id: record_calculation_event
-          name: Record the calculation
-          params:
-            operator: '-'
-    multiply:
-      name: Multiply Number
-      description: Multiplies one number by another
-      params_schema:
-        a: int
-        b: int
-      steps:
-        - service_id: multiply_number_event
-          name: Multiply `a` and `b`
-          data_key: result
-        - service_id: record_calculation_event
-          name: Record the calculation
-          params:
-            operator: '*'
-    divide:
-      name: Divide Number
-      description: Divides one number by another
-      params_schema:
-        a: int
-        b:
-          type: float
-          description: The denominator; must be non-zero.
-      steps:
-        - service_id: divide_number_event
-          name: Divide `a` by `b`
-          data_key: result
-        - service_id: record_calculation_event
-          name: Record the calculation
-          params:
-            operator: '/'
-    exp:
-      name: Exponentiate Number
-      description: Raises one number to the power of another
-      steps:
-        - service_id: exponentiate_number_event
-          name: Raise `a` to the power of `b`
-          data_key: result
-        - service_id: record_calculation_event
-          name: Record the calculation
-          params:
-            operator: '**'
-    sqrt:
-      name: Square Root
-      description: Calculates the square root of a number
-      steps:
-        - service_id: exponentiate_number_event
-          name: Calculate square root of `a`
-          params:
-            b: '0.5'
-          data_key: result
-        - service_id: record_calculation_event
-          name: Record the calculation
-          params:
-            operator: '√'
     safe_divide:
       name: Safe Divide
       description: Divides only when denominator is non-zero
@@ -182,20 +106,6 @@ features:
           name: Evaluate the formula
 
 errors:
-  INVALID_INPUT:
-    name: Invalid Numeric Input
-    message:
-      - lang: en_US
-        text: 'Value {value} must be a number'
-      - lang: es_ES
-        text: 'El valor {value} debe ser un número'
-  DIVISION_BY_ZERO:
-    name: Division By Zero
-    message:
-      - lang: en_US
-        text: 'Cannot divide by zero'
-      - lang: es_ES
-        text: 'No se puede dividir por cero'
   FORMULA_NOT_FOUND:
     name: Formula Not Found
     message:
@@ -211,6 +121,16 @@ errors:
     message:
       - lang: en_US
         text: 'Could not evaluate formula {id}: {error}'
+  NO_ACTIVE_EXPRESSION:
+    name: No Active Expression
+    message:
+      - lang: en_US
+        text: 'No calculator expression is active; call add/subtract/multiply/divide to start a new chain.'
+  EXPRESSION_ALREADY_ACTIVE:
+    name: Expression Already Active
+    message:
+      - lang: en_US
+        text: 'A calculator expression is already active; call .run() or .reset() before starting a new one.'
 
 cli:
   cmds:

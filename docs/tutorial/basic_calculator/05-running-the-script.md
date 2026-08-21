@@ -1,18 +1,18 @@
 # Step 5: Running the Script Runner
 
 Alright, we've wired up the events, added our validation utility, and connected everything with YAML configs — now it's showtime!  
-Let's fire up `basic_calc.py` and see the calculator in action.
+Let's fire up `calc_client.py` and see the calculator in action.
 
-### 5.1 The final basic_calc.py script
+### 5.1 The final calc_client.py script
 
 This is the simple test runner we looked at way back in Step 1 — now it should work perfectly with all the pieces in place.
 
-**basic_calc.py**
+**calc_client.py**
 
 ```python
 from tiferet import App, TiferetError
 
-app = App('basic_calc', app_config='config.yml')
+app = App('calc_client', app_config='config.yml')
 
 # Some fun test cases
 tests = [
@@ -44,7 +44,7 @@ for feature_id, data, fmt in tests:
 In your terminal (with the venv activated):
 
 ```bash
-python basic_calc.py
+python calc_client.py
 ```
 
 ### 5.3 Expected output (success + error cases)
@@ -77,7 +77,7 @@ Error: Invalid number: 'hello'
 
 If you see the output above (or very close), congratulations — your core calculator is fully functional!
 
-You've gone from empty folder to a working, configuration-driven app.  
+You've gone from empty folder to a working, configuration-driven app. (We'll revisit this plain `App(...)` call in Chapter 9, once we give the calculator its own dedicated client.)  
 Now let's add the final polish: the command-line interface.
 
 → Ready for the CLI experience?  
