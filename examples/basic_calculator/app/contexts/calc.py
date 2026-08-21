@@ -4,7 +4,6 @@
 from typing import Any, Callable, Dict, List, Tuple
 
 # ** app
-from tiferet import TiferetError
 from tiferet.contexts.app import AppSessionContext, raise_unwired_handler_error
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.feature import add_default_features
@@ -224,20 +223,3 @@ class CalculatorAppContext(AppSessionContext):
 
         # Delegate to the injected record-run handler.
         self._record_run(feature_id, request)
-
-    # * method: _guard (private)
-    def _guard(self, expression: bool, error_code: str, **kwargs) -> None:
-        '''
-        Raise a structured TiferetError when a guard expression is falsy.
-
-        :param expression: The guard expression to check.
-        :type expression: bool
-        :param error_code: The error code to raise when the expression is falsy.
-        :type error_code: str
-        :param kwargs: Additional error keyword arguments.
-        :type kwargs: dict
-        '''
-
-        # Raise the structured error when the guard expression is falsy.
-        if not expression:
-            TiferetError.raise_error(error_code, **kwargs)

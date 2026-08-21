@@ -4,10 +4,35 @@
 from typing import Any, Dict, List, Tuple
 
 # ** app
+from tiferet import TiferetError
 from tiferet.contexts.request import RequestContext
 from .. import assets as a
 from ..domain.expression import Expression
 from .calc import CalculatorAppContext
+
+# *** functions
+
+# ** function: guard
+def guard(expression: bool, error_code: str, **kwargs) -> None:
+    '''
+    Raise a structured TiferetError when a guard expression is falsy.
+
+    Used by ``CalculatorFluentContext``'s chain-state checks
+    (``_start``/``_continue``) below. It is side-effect-free and does not
+    depend on any context instance, so it lives here as a plain function
+    rather than a method on the calculator's app session context.
+
+    :param expression: The guard expression to check.
+    :type expression: bool
+    :param error_code: The error code to raise when the expression is falsy.
+    :type error_code: str
+    :param kwargs: Additional error keyword arguments.
+    :type kwargs: dict
+    '''
+
+    # Raise the structured error when the guard expression is falsy.
+    if not expression:
+        TiferetError.raise_error(error_code, **kwargs)
 
 # *** contexts
 
@@ -156,7 +181,7 @@ class CalculatorFluentContext(CalculatorAppContext):
         '''
 
         # Refuse to clobber an already-active chain.
-        self._guard(self._pending_request is None, a.core.EXPRESSION_ALREADY_ACTIVE_ID)
+        guard(self._pending_request is None, a.core.EXPRESSION_ALREADY_ACTIVE_ID)
 
         # Start a fresh, persistent request and log the first term.
         self._pending_request = FluentRequestContext()
@@ -180,7 +205,7 @@ class CalculatorFluentContext(CalculatorAppContext):
         '''
 
         # Require an active chain to continue.
-        self._guard(self._pending_request is not None, a.core.NO_ACTIVE_EXPRESSION_ID)
+        guard(self._pending_request is not None, a.core.NO_ACTIVE_EXPRESSION_ID)
 
         # Log the term onto the active chain's persistent request.
         self._pending_request.log_term(operator, operand)
