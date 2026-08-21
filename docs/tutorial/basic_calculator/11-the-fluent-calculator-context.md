@@ -110,7 +110,7 @@ class Expression(DomainObject):
     values: List[float] = Field(default_factory=list)
     operators: List[str] = Field(default_factory=list)
 
-    def resolve(self, reduce: Callable[[str, float, float], float]) -> float:
+    def resolve(self, reduce: Callable) -> float:
         pending_values = [self.values[0]]
         pending_operators = []
 
