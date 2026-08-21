@@ -64,7 +64,7 @@ class Expression(DomainObject):
         so this domain object never learns how a reduction is computed.
 
         :param reduce: A callable computing ``operator(left, right)``.
-        :type reduce: Callable[[str, float, float], float]
+        :type reduce: Callable
         :return: The single, fully-reduced value.
         :rtype: float
         '''
