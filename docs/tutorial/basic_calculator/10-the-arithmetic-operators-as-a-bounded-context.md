@@ -2,9 +2,9 @@
 
 `calc.add`, `calc.subtract`, `calc.multiply`, `calc.divide`, `calc.exp`, and `calc.sqrt` have lived in `config.yml` since Chapter 4. That's fine for consumer-configurable behavior — but the arithmetic operators aren't really configuration. They're the calculator's own fixed, built-in vocabulary: no one integrating with this calculator should be able to accidentally delete `calc.add` from a YAML file and break addition. In DDD terms, they're a **bounded context** the calculator itself owns, and it should ship with default behavior at the interface level regardless of what `config.yml` says.
 
-### 10.1 The assets layer: naming the operators once
+### 10.1 The assets layer: naming the operators once, referencing services in their own module
 
-Assets are Tiferet's root layer — pure constants, no framework imports. `app/assets/core.py` captures every id the bounded context needs, once, so nothing downstream restates a literal string like `'calc.add'` a second time.
+Assets are Tiferet's root layer — pure constants, no framework imports. `app/assets/core.py` captures every id the bounded context needs, once, so nothing downstream restates a literal string like `'calc.add'` a second time. The service dependency data those ids resolve to -- `*_EVT_DATA`, and the `CALC_DEFAULT_SERVICES` catalog grouping them -- gets its own domain-specific module, `app/assets/di.py`, rather than crowding into `core.py` alongside the shared operator/feature vocabulary.
 
 **app/assets/core.py** (the shape of it)
 
@@ -24,9 +24,17 @@ FEATURE_OPERATOR_MAP = {CALC_ADD_ID: ADD_OPERATOR, ...}          # feature id ->
 
 ADD_NUMBER_EVT_ID = 'add_number_event'
 # ... one *_EVT_ID per arithmetic event
+```
+
+The ids themselves stay in `core.py` because two different modules need to reference them by name: `feature.py`'s steps (`service_id: ADD_NUMBER_EVT_ID`) and `di.py`'s service catalog (as dict keys) below. Only the module-path/class-name data those ids resolve to is domain-specific enough to warrant its own file:
+
+**app/assets/di.py**
+
+```python
+from .core import APP, CALC_DOMAIN_PATH, ADD_NUMBER_EVT_ID, ...
 
 ADD_NUMBER_EVT_DATA = create_app_service_dependency_data(
-    create_service_module_path('app', TIFERET_EVENTS_PATH, 'calc'),
+    create_service_module_path(APP, TIFERET_EVENTS_PATH, CALC_DOMAIN_PATH),
     'AddNumber',
 )
 # ... one *_EVT_DATA per arithmetic event, built the same way
@@ -69,7 +77,7 @@ Tiferet's own core defaults are seeded onto the bootstrap cache by `tiferet.blue
 ```python
 @add_default_errors(a.error.CALC_DEFAULT_ERRORS)
 @add_default_calc_features(a.feature.CALC_DEFAULT_FEATURES)
-@add_default_calc_services(a.core.CALC_DEFAULT_SERVICES)
+@add_default_calc_services(a.di.CALC_DEFAULT_SERVICES)
 def build_calculator_cache(cache=None):
     return core.build_cache(cache)
 ```
@@ -128,7 +136,7 @@ def register_calc_container(resolver, cache):
 ```python
 @add_default_errors(a.error.CALC_DEFAULT_ERRORS)
 @add_default_calc_features(a.feature.CALC_DEFAULT_FEATURES)
-@add_default_calc_services(a.core.CALC_DEFAULT_SERVICES)
+@add_default_calc_services(a.di.CALC_DEFAULT_SERVICES)
 def build_calculator_cli_cache(cache=None):
     return cli_bp.build_cli_cache(cache)
 
