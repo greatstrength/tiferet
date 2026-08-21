@@ -72,7 +72,7 @@ class FluentRequestContext(RequestContext):
 Every operator gets two methods, exactly as before — a **starter** (two operands, begins a new expression: `add(a, b)`) and a **continuation** (one operand, folds into the active one: `add_to(x)`). Both just log a term; neither computes anything yet:
 
 ```python
-def guard(expression, error_code, **kwargs):
+def _guard(expression, error_code, **kwargs):
     if not expression:
         TiferetError.raise_error(error_code, **kwargs)
 
@@ -83,14 +83,14 @@ class CalculatorFluentContext(CalculatorAppContext):
         self._pending_request = None
 
     def _start(self, operator, first, second):
-        guard(self._pending_request is None, EXPRESSION_ALREADY_ACTIVE_ID)
+        _guard(self._pending_request is None, EXPRESSION_ALREADY_ACTIVE_ID)
         self._pending_request = FluentRequestContext()
         self._pending_request.start(first)
         self._pending_request.log_term(operator, second)
         return self
 
     def _continue(self, operator, operand):
-        guard(self._pending_request is not None, NO_ACTIVE_EXPRESSION_ID)
+        _guard(self._pending_request is not None, NO_ACTIVE_EXPRESSION_ID)
         self._pending_request.log_term(operator, operand)
         return self
 
@@ -101,7 +101,7 @@ class CalculatorFluentContext(CalculatorAppContext):
         return self._continue(ADD_OPERATOR, x)
 ```
 
-`guard` lives as a plain module-level function in `app/contexts/fluent.py`, not a method on `CalculatorAppContext`: it's side-effect-free (it never touches `self`), and `CalculatorFluentContext` is the only caller, so there's no reason to carry it on the shared app session context at all.
+`_guard` lives as a module-private, plain function in `app/contexts/fluent.py`, not a method on `CalculatorAppContext`: it's side-effect-free (it never touches `self`), and `CalculatorFluentContext` is its only caller -- a subdomain-specific check like this has no business being reachable from other modules, so there's no reason to carry it on the shared app session context or export it.
 
 No `self.run(...)` happens here — not for `.add()`, not for `.multiply_by()`. Every intermediate call is nothing more than a list append; nothing is dispatched, logged to a logger, or recorded until the chain finalizes.
 
