@@ -58,6 +58,9 @@ CALC_EXP_ID = 'calc.exp'
 # ** constant: calc_sqrt_id
 CALC_SQRT_ID = 'calc.sqrt'
 
+# ** constant: calc_resolve_id
+CALC_RESOLVE_ID = 'calc.resolve'
+
 # *** constants (groups)
 
 # ** constant: operator_precedence
@@ -89,14 +92,6 @@ FEATURE_OPERATOR_MAP: Dict[str, str] = {
     CALC_SQRT_ID: SQRT_OPERATOR,
 }
 
-# *** constants (cache)
-
-# ** constant: calc_expression_cache_prefix
-CALC_EXPRESSION_CACHE_PREFIX: Tuple[str, ...] = (
-    'calc',
-    'expressions',
-)
-
 # *** constants (ids)
 
 # ** constant: no_active_expression_id
@@ -121,6 +116,9 @@ DIVIDE_NUMBER_EVT_ID = 'divide_number_event'
 
 # ** constant: exponentiate_number_evt_id
 EXPONENTIATE_NUMBER_EVT_ID = 'exponentiate_number_event'
+
+# ** constant: resolve_expression_evt_id
+RESOLVE_EXPRESSION_EVT_ID = 'resolve_expression_event'
 
 # ** constant: record_run_evt_id
 RECORD_RUN_EVT_ID = 'record_run_event'
@@ -157,6 +155,12 @@ EXPONENTIATE_NUMBER_EVT_DATA = create_app_service_dependency_data(
     'ExponentiateNumber',
 )
 
+# ** constant: resolve_expression_evt_data
+RESOLVE_EXPRESSION_EVT_DATA = create_app_service_dependency_data(
+    create_service_module_path(APP, TIFERET_EVENTS_PATH, 'expression'),
+    'ResolveExpression',
+)
+
 # *** constants (groups_services)
 
 # ** constant: calc_default_services
@@ -166,4 +170,5 @@ CALC_DEFAULT_SERVICES: Dict[str, Dict[str, Any]] = {
     MULTIPLY_NUMBER_EVT_ID: MULTIPLY_NUMBER_EVT_DATA,
     DIVIDE_NUMBER_EVT_ID: DIVIDE_NUMBER_EVT_DATA,
     EXPONENTIATE_NUMBER_EVT_ID: EXPONENTIATE_NUMBER_EVT_DATA,
+    RESOLVE_EXPRESSION_EVT_ID: RESOLVE_EXPRESSION_EVT_DATA,
 }

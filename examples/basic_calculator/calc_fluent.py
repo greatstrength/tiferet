@@ -1,8 +1,8 @@
-from app.blueprints.calc import create_calculator_app
+from app.blueprints.fluent import create_calculator_fluent
 from tiferet import TiferetError
 
 # Build the fluent calculator app context.
-calc_app = create_calculator_app()
+calc_app = create_calculator_fluent()
 
 # The flagship example: PEMDAS means "5 * 2" binds before folding into "1 + 3".
 try:
@@ -20,7 +20,7 @@ print(f'2 + 3 * 4 - 1 = {result}')
 result = calc_app.multiply(3, 4).add_to(5).divide_by(2).result
 print(f'3 * 4 + 5 / 2 = {result}')
 
-# Every pairwise reduction along all three chains was recorded via the
-# existing history feature from Chapter 7 -- full circle.
+# Each entire chain -- not each pairwise reduction -- is recorded as one
+# whole-expression entry via the existing history feature from Chapter 7.
 print('\nRecent calculations:')
 print(calc_app.run('calc.history', data={}))

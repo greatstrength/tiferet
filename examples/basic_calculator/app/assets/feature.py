@@ -28,12 +28,14 @@ from .core import (
     MULTIPLY_NUMBER_EVT_ID,
     DIVIDE_NUMBER_EVT_ID,
     EXPONENTIATE_NUMBER_EVT_ID,
+    RESOLVE_EXPRESSION_EVT_ID,
     CALC_ADD_ID,
     CALC_SUBTRACT_ID,
     CALC_MULTIPLY_ID,
     CALC_DIVIDE_ID,
     CALC_EXP_ID,
     CALC_SQRT_ID,
+    CALC_RESOLVE_ID,
 )
 
 # *** constants (features)
@@ -133,6 +135,20 @@ CALC_SQRT_DATA = create_default_feature_data(
     description='Calculates the square root of a number',
 )
 
+# ** constant: calc_resolve_data
+CALC_RESOLVE_DATA = create_default_feature_data(
+    name='Resolve Expression',
+    group_id='calc',
+    feature_key='resolve',
+    steps=[
+        {
+            'service_id': RESOLVE_EXPRESSION_EVT_ID,
+            'name': 'Resolve the logged fluent expression',
+        },
+    ],
+    description='Resolves a fully-logged fluent chain into its final numeric value',
+)
+
 # *** constants (groups)
 
 # ** constant: calc_default_features
@@ -146,5 +162,6 @@ CALC_DEFAULT_FEATURES: Dict[str, Dict[str, Any]] = {
         CALC_DIVIDE_ID: CALC_DIVIDE_DATA,
         CALC_EXP_ID: CALC_EXP_DATA,
         CALC_SQRT_ID: CALC_SQRT_DATA,
+        CALC_RESOLVE_ID: CALC_RESOLVE_DATA,
     }.items()
 }

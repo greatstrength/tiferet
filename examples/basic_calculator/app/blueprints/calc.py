@@ -78,7 +78,9 @@ def record_run_handler(get_dependency: Callable) -> Callable:
         # Resolve and execute the record-run event; non-arithmetic runs no-op.
         # request.result (not request.data) carries the feature's final
         # response, since the default arithmetic features have no data_key
-        # step to set it -- request.data still carries the raw a/b operands.
+        # step to set it -- request.data still carries the raw a/b operands
+        # for a plain call, or the accumulated values/operators logged by a
+        # fluent chain's single calc.resolve run.
         record_run_evt = get_dependency(a.core.RECORD_RUN_EVT_ID, 'app')
         record_run_evt.execute(feature_id=feature_id, result=request.result, **request.data)
 
@@ -128,9 +130,12 @@ def build_calculator_app_context(app_session: AppSession, cache: CacheContext) -
     )
 
 # ** blueprint: create_calculator_app
-def create_calculator_app(interface_id: str = 'calc_fluent', config_file: str = 'config.yml') -> CalculatorAppContext:
+def create_calculator_app(interface_id: str = 'calc_client', config_file: str = 'config.yml') -> CalculatorAppContext:
     '''
     Build a fully resolved CalculatorAppContext in a single call.
+
+    Builds the plain, non-fluent client. See app.blueprints.fluent for the
+    chainable CalculatorFluentContext (calc_fluent).
 
     :param interface_id: The interface identifier to load from config.yml.
     :type interface_id: str
