@@ -1,14 +1,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict, Tuple
-
-# ** infra
-from tiferet.assets.core import (
-    create_app_service_dependency_data,
-    create_service_module_path,
-    TIFERET_EVENTS_PATH,
-)
+from typing import Dict, Tuple
 
 # *** constants (paths)
 
@@ -123,52 +116,6 @@ RESOLVE_EXPRESSION_EVT_ID = 'resolve_expression_event'
 # ** constant: record_run_evt_id
 RECORD_RUN_EVT_ID = 'record_run_event'
 
-# *** constants (services)
-
-# ** constant: add_number_evt_data
-ADD_NUMBER_EVT_DATA = create_app_service_dependency_data(
-    create_service_module_path(APP, TIFERET_EVENTS_PATH, CALC_DOMAIN_PATH),
-    'AddNumber',
-)
-
-# ** constant: subtract_number_evt_data
-SUBTRACT_NUMBER_EVT_DATA = create_app_service_dependency_data(
-    create_service_module_path(APP, TIFERET_EVENTS_PATH, CALC_DOMAIN_PATH),
-    'SubtractNumber',
-)
-
-# ** constant: multiply_number_evt_data
-MULTIPLY_NUMBER_EVT_DATA = create_app_service_dependency_data(
-    create_service_module_path(APP, TIFERET_EVENTS_PATH, CALC_DOMAIN_PATH),
-    'MultiplyNumber',
-)
-
-# ** constant: divide_number_evt_data
-DIVIDE_NUMBER_EVT_DATA = create_app_service_dependency_data(
-    create_service_module_path(APP, TIFERET_EVENTS_PATH, CALC_DOMAIN_PATH),
-    'DivideNumber',
-)
-
-# ** constant: exponentiate_number_evt_data
-EXPONENTIATE_NUMBER_EVT_DATA = create_app_service_dependency_data(
-    create_service_module_path(APP, TIFERET_EVENTS_PATH, CALC_DOMAIN_PATH),
-    'ExponentiateNumber',
-)
-
-# ** constant: resolve_expression_evt_data
-RESOLVE_EXPRESSION_EVT_DATA = create_app_service_dependency_data(
-    create_service_module_path(APP, TIFERET_EVENTS_PATH, 'expression'),
-    'ResolveExpression',
-)
-
-# *** constants (groups_services)
-
-# ** constant: calc_default_services
-CALC_DEFAULT_SERVICES: Dict[str, Dict[str, Any]] = {
-    ADD_NUMBER_EVT_ID: ADD_NUMBER_EVT_DATA,
-    SUBTRACT_NUMBER_EVT_ID: SUBTRACT_NUMBER_EVT_DATA,
-    MULTIPLY_NUMBER_EVT_ID: MULTIPLY_NUMBER_EVT_DATA,
-    DIVIDE_NUMBER_EVT_ID: DIVIDE_NUMBER_EVT_DATA,
-    EXPONENTIATE_NUMBER_EVT_ID: EXPONENTIATE_NUMBER_EVT_DATA,
-    RESOLVE_EXPRESSION_EVT_ID: RESOLVE_EXPRESSION_EVT_DATA,
-}
+# Service dependency data (*_EVT_DATA) and the CALC_DEFAULT_SERVICES catalog
+# built from these ids live in assets/di.py -- a domain-specific module for
+# the calculator's default service references, not this shared-vocabulary one.

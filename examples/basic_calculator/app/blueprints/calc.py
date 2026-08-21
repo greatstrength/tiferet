@@ -25,7 +25,7 @@ from ..contexts.calc import (
 # ** blueprint: build_calculator_cache
 @add_default_errors(a.error.CALC_DEFAULT_ERRORS)
 @add_default_calc_features(a.feature.CALC_DEFAULT_FEATURES)
-@add_default_calc_services(a.core.CALC_DEFAULT_SERVICES)
+@add_default_calc_services(a.di.CALC_DEFAULT_SERVICES)
 def build_calculator_cache(cache: Dict[str, Any] = None) -> CacheContext:
     '''
     Build the bootstrap cache pre-seeded with the framework's own core
@@ -49,7 +49,7 @@ def build_calculator_cache(cache: Dict[str, Any] = None) -> CacheContext:
 # ** blueprint: build_calculator_cli_cache
 @add_default_errors(a.error.CALC_DEFAULT_ERRORS)
 @add_default_calc_features(a.feature.CALC_DEFAULT_FEATURES)
-@add_default_calc_services(a.core.CALC_DEFAULT_SERVICES)
+@add_default_calc_services(a.di.CALC_DEFAULT_SERVICES)
 def build_calculator_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
     '''
     Build the bootstrap cache for the CLI entry point, pre-seeded with the

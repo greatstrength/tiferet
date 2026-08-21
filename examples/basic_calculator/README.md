@@ -18,7 +18,8 @@ basic_calculator/
 ├── formulas.yml           # Saved formulas store
 └── app/
     ├── assets/            # Operator constants, precedence table, default catalogs
-    │   ├── core.py        # Operator/feature/event id constants + CALC_DEFAULT_SERVICES
+    │   ├── core.py        # Operator/feature/event id constants
+    │   ├── di.py          # Default service dependency data + CALC_DEFAULT_SERVICES
     │   ├── feature.py     # CALC_DEFAULT_FEATURES (calc.add/.../resolve)
     │   └── error.py       # CALC_DEFAULT_ERRORS
     ├── domain/            # Formula + Expression domain models
