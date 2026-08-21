@@ -146,7 +146,7 @@ for how `create_calculator_fluent()`, `CalculatorFluentContext`, and the
 - **Get Formula** (`formula.get`) — Retrieves a saved formula by id
 - **List Formulas** (`formula.list`) — Lists all saved formulas
 - **Evaluate Formula** (`formula.eval`) — Evaluates a saved formula with concrete variable values
-- **Fluent Calculator** (`create_calculator_fluent()`) — A chainable `CalculatorFluentContext` exposing `add`/`add_to`, `subtract`/`subtract_from`, `multiply`/`multiply_by`, and `divide`/`divide_by`, plus `.result`, `.pending`, and `.reset()`. Every call just logs a term; `.result` collapses the whole chain into one `calc.resolve` run, which resolves standard operator precedence (PEMDAS) via `Expression.resolve` and reuses the same arithmetic events (validation, division-by-zero handling) as the plain client.
+- **Fluent Calculator** (`create_calculator_fluent()`) — A chainable `CalculatorFluentContext` exposing `add`/`add_to`, `subtract`/`subtract_from`, `multiply`/`multiply_by`, and `divide`/`divide_by`, plus `.pending` and `.reset()`. Every call just logs a term; calling `run()` -- the same verb the plain client uses to execute any feature -- collapses the whole chain into one `calc.resolve` run when a chain is active, resolving standard operator precedence (PEMDAS) via `Expression.resolve` and reusing the same arithmetic events (validation, division-by-zero handling) as the plain client.
 
 ## Tutorial
 

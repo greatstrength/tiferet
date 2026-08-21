@@ -78,8 +78,8 @@ class CalculatorFluentContext(CalculatorAppContext):
     and a continuation (one operand, folds into the already-active
     expression) -- and every call only logs a term onto the persistent
     ``FluentRequestContext`` held for the whole chain. Nothing is
-    dispatched or recorded until ``.result`` collapses the entire chain
-    into a single ``calc.resolve`` feature run.
+    dispatched or recorded until ``run()`` collapses the entire chain into
+    a single ``calc.resolve`` feature run (see ``run`` below).
     '''
 
     # * attribute: pending_request (private)
@@ -115,11 +115,12 @@ class CalculatorFluentContext(CalculatorAppContext):
         building a fresh one, when a chain is in progress.
 
         This is the seam that collapses an entire fluent chain into exactly
-        one ``run()`` call: by the time ``.result`` calls
-        ``self.run('calc.resolve', ...)``, every intermediate ``.add()``/
-        ``.add_to()``/etc. call has already logged its term directly onto
-        this same persistent request, so resolving it takes one logger
-        build, one ``execute_feature`` call, and one ``record_run`` entry.
+        one ``run()`` call: by the time ``run()`` calls
+        ``super().run('calc.resolve', ...)`` (see below), every intermediate
+        ``.add()``/``.add_to()``/etc. call has already logged its term
+        directly onto this same persistent request, so resolving it takes
+        one logger build, one ``execute_feature`` call, and one
+        ``record_run`` entry.
 
         :param feature_id: The identifier of the feature to execute.
         :type feature_id: str
@@ -310,26 +311,56 @@ class CalculatorFluentContext(CalculatorAppContext):
         # Continue the active expression with the '/' operator.
         return self._continue(a.core.DIVIDE_OPERATOR, value)
 
-    # * attribute: result
-    @property
-    def result(self) -> Any:
+    # * method: run
+    def run(self,
+            feature_id: str = None,
+            headers: Dict[str, str] = {},
+            data: Dict[str, Any] = {},
+            **kwargs) -> Any:
         '''
-        Finalize the active chain with a single ``calc.resolve`` run.
+        Execute a feature -- or, when a fluent chain is active, resolve it.
 
-        Collapses every logged term into exactly one ``self.run(...)``
-        call -- one logger build, one ``execute_feature``, and one
-        ``record_run`` entry recording the whole expression -- instead of
-        dispatching a separate feature run per pairwise reduction.
+        ``run()`` is fundamentally an agnostic executor; requiring
+        ``feature_id`` is really a property of ``execute_feature``'s
+        single-feature dispatch, not of ``run()`` itself. This override
+        relaxes that requirement for exactly one case: once a fluent chain
+        is active, every argument becomes irrelevant -- there's already
+        exactly one thing left to run, ``calc.resolve`` -- so ``run()``
+        plays the role a ``.result`` property used to.
 
-        :return: The fully-reduced numeric result.
+        When no chain is active, every argument (``feature_id`` included)
+        passes straight through to the plain client unchanged. This is what
+        lets a configured feature -- ``calc.history``, ``formula.save``, and
+        so on -- keep working exactly as before via
+        ``calc_app.run('calc.history', data={})``. Omitting ``feature_id``
+        in that case isn't specially guarded against here; the framework's
+        own feature lookup raises ``FEATURE_NOT_FOUND`` on its own, which is
+        exactly the safeguard we want -- so is passing an explicit
+        ``feature_id`` while a chain happens to be active: it's simply
+        ignored, since resolving the active chain is the only thing left
+        to do.
+
+        :param feature_id: The feature to execute; required only when no
+            fluent chain is active. Ignored once a chain is active.
+        :type feature_id: str | None
+        :param headers: The request headers. Ignored once a chain is active.
+        :type headers: Dict[str, str]
+        :param data: The request data. Ignored once a chain is active.
+        :type data: Dict[str, Any]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The response of the executed feature, or the fully-reduced
+            value of the finalized chain.
         :rtype: Any
         '''
 
-        # Require an active chain to finalize.
-        self._guard(self._pending_request is not None, a.core.NO_ACTIVE_EXPRESSION_ID)
+        # No chain active: defer entirely to the plain client's run().
+        if self._pending_request is None:
+            return super().run(feature_id, headers, data, **kwargs)
 
-        # Run the single collapsing feature call, then clear the active chain.
-        value = self.run(a.core.CALC_RESOLVE_ID, data={})
+        # A chain is active: resolve it in a single calc.resolve run, then
+        # clear the active chain so the context is ready for a new one.
+        value = super().run(a.core.CALC_RESOLVE_ID, data={})
         self._pending_request = None
 
         # Return the fully-reduced result.
