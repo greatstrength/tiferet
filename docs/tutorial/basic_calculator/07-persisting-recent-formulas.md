@@ -89,8 +89,8 @@ features:
       name: Add Number
       description: Adds one number to another
       params_schema:
-        a: int
-        b: int
+        a: float
+        b: float
       steps:
         - service_id: add_number_event
           name: Add `a` and `b`
@@ -100,6 +100,8 @@ features:
           params:
             operator: '+'           # a literal passed to the record step
 ```
+
+We use `float` (not `int`) here, even though `a`/`b` arrive as whole numbers today -- it's what lets every arithmetic feature safely accept a fractional intermediate later (e.g. a chained division's result feeding back in as the next operand), without rejecting it as an invalid integer.
 
 How it flows:
 
@@ -139,17 +141,17 @@ cli:
 ### 7.5 See it work
 
 ```bash
-python basic_calc.py
+python calc_client.py
 ```
 
 After the arithmetic output, you'll see:
 
 ```
 Recent calculations:
-1 + 2 = 3
-5 - 3 = 2
-4 * 3 = 12
-8 / 2.0 = 4.0
+1.0 + 2.0 = 3.0
+5.0 - 3.0 = 2.0
+4.0 * 3.0 = 12.0
+8.0 / 2.0 = 4.0
 2 ** 3 = 8
 √16 = 4.0
 ```
@@ -165,6 +167,8 @@ python calc_cli.py calc history
 - Persistence with zero boilerplate — the file loader handles the file lifecycle.
 - The compute-then-record pattern shows how `data_key` lets steps share data without changing the feature's return value.
 - Failed calculations (like divide-by-zero) raise before the record step, so they never pollute the history.
+
+> **Heads up:** copying `record_calculation_event` into every arithmetic feature works, but it doesn't scale -- a seventh operator means a seventh copy. In Chapter 9 we'll give the calculator its own `AppSessionContext` subclass and move this into a single session-level concern instead.
 
 → Next, let's go from remembering calculations to **saving reusable, variablized formulas** with domain models and a repository.
 Head to **[Step 8: Saving & Variablizing Formulas](08-saving-and-variablizing-formulas.md)**

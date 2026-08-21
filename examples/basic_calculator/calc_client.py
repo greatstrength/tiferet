@@ -1,7 +1,11 @@
-from tiferet import App, TiferetError
+from app.blueprints.calc import create_calculator_app
+from tiferet import TiferetError
 
-# Initialize the Tiferet application with the basic_calc interface.
-app = App('basic_calc', app_config='config.yml')
+# Build the plain, non-fluent calculator client. It shares the same
+# CalculatorAppContext (and the arithmetic bounded-context defaults, and
+# record_run history recording) as the fluent client in calc_fluent.py --
+# this script simply calls .run(...) directly instead of chaining.
+app = create_calculator_app(interface_id='calc_client')
 
 # Define test cases for calculator features.
 test_cases = [
@@ -26,7 +30,7 @@ for feature_id, data, format_str in test_cases:
     except TiferetError as e:
         print(f'Error: {e.message}')
 
-# Show the most recently executed calculations (persisted via the file loader).
+# Show the most recently executed calculations (persisted via record_run).
 print('\nRecent calculations:')
 print(app.run('calc.history', data={}))
 

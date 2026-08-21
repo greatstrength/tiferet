@@ -26,7 +26,7 @@ Create an empty folder called `basic-calculator` (or whatever name you like) and
 
 ```
 basic-calculator/
-├── basic_calc.py               # ← our simple test runner
+├── calc_client.py              # ← our simple test runner
 ├── calc_cli.py                 # ← the cool CLI version
 ├── config.yml                  # ← all app configuration lives here
 └── app/
@@ -45,12 +45,12 @@ Don't worry about filling everything yet — we'll get there step by step.
 
 These are the files people will actually use. Let's look at them now so you know what success looks like.
 
-**basic_calc.py** — a simple script that runs a few test cases automatically
+**calc_client.py** — a simple script that runs a few test cases automatically
 
 ```python
 from tiferet import App, TiferetError
 
-app = App('basic_calc', app_config='config.yml')
+app = App('calc_client', app_config='config.yml')
 
 # Some fun test cases
 tests = [

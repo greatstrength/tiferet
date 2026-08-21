@@ -9,9 +9,11 @@ By the time we're done, you'll have:
 - Smart input validation with nice error messages
 - A reusable utility class for number verification (in `app/utils/`)
 - Everything wired together through simple YAML configuration files
-- Two ways to use it: a quick script for testing and a proper command-line interface
-- Persist your most recently executed formulas to a file
+- Three ways to use it: a plain client, a command-line interface, and a fluent chain
+- Persist your most recently executed calculations and formulas to a file
 - Save and re-evaluate named, variablized formulas
+- The arithmetic operators themselves shipped as a calculator-owned bounded context
+- A fluent, chainable calculator client that evaluates PEMDAS-aware expressions
 
 And best of all — each step is small, satisfying, and shows real progress.
 
@@ -19,17 +21,21 @@ And best of all — each step is small, satisfying, and shows real progress.
 
 ```
 basic_calculator/
-├── basic_calc.py          # quick script runner for testing
-├── calc_cli.py            # full-featured command-line calculator
+├── calc_client.py         # plain, non-fluent client entry point (Step 9)
+├── calc_cli.py            # command-line calculator entry point (Step 10)
+├── calc_fluent.py         # fluent, PEMDAS-aware calculator client (Step 11)
 ├── config.yml             # consolidated configuration
 ├── formulas.yml           # saved formulas store (Step 8)
 ├── history.json           # recent calculations, generated at runtime (Step 7)
 └── app/
-    ├── domain/            # Formula domain model (Step 8)
-    ├── events/            # arithmetic, history, and formula events
+    ├── assets/            # operator constants and default catalogs (Step 10)
+    ├── domain/            # Formula + Expression domain models (Steps 8, 11)
+    ├── events/            # arithmetic, history, formula, and expression events
     ├── interfaces/        # FormulaService contract (Step 8)
     ├── mappers/           # Formula aggregate + config object (Step 8)
-    └── repos/             # FormulaConfigRepository (Step 8)
+    ├── repos/             # FormulaConfigRepository (Step 8)
+    ├── contexts/          # CalculatorAppContext + CalculatorFluentContext (Steps 9, 11)
+    └── blueprints/        # create_calculator_app/_cli/_fluent (Steps 9-11)
 ```
 
 ### The step-by-step path
@@ -47,7 +53,7 @@ basic_calculator/
    Dive into each YAML file — what it does, why it's there, how the pieces connect.
 
 5. **[Running the Script Runner](05-running-the-script.md)**  
-   Fire up `basic_calc.py` and watch it work (success cases + graceful errors).
+   Fire up `calc_client.py` and watch it work (success cases + graceful errors).
 
 6. **[CLI Interface & Commands](06-cli-interface.md)**  
    Add the command-line polish so you can type `calc add 19 23` like a pro.
@@ -57,6 +63,15 @@ basic_calculator/
 
 8. **[Saving & Variablizing Formulas](08-saving-and-variablizing-formulas.md)**  
    Save reusable, named formulas with a domain model and repository, then evaluate them.
+
+9. **[The Calculator as a Client](09-the-calculator-as-a-client.md)**  
+   Give the calculator its own `AppSessionContext` subclass and blueprint, and turn history recording into a session-level concern instead of a per-feature step.
+
+10. **[The Arithmetic Operators as a Bounded Context](10-the-arithmetic-operators-as-a-bounded-context.md)**  
+    Move the arithmetic operators out of `config.yml` into calculator-owned defaults that ship regardless of configuration.
+
+11. **[The Fluent Calculator Context](11-the-fluent-calculator-context.md)**  
+    Close the loop with a chainable calculator client that logs a whole expression before resolving it in a single run, PEMDAS and all.
 
 This tutorial is designed to feel like we're building together — short steps, quick wins, and no walls of text.
 

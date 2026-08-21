@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 # ** app
-from tiferet.repos.settings import ConfigurationRepository
+from tiferet.repos.core import ConfigurationRepository
 from ..interfaces.formula import FormulaService
 from ..mappers.formula import FormulaAggregate, FormulaConfigObject
 

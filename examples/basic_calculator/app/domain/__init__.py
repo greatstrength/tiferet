@@ -4,3 +4,4 @@
 
 # ** app
 from .formula import Formula
+from .expression import Expression
