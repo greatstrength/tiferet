@@ -130,7 +130,7 @@ errors:
     name: Expression Already Active
     message:
       - lang: en_US
-        text: 'A calculator expression is already active; call .result or .reset() before starting a new one.'
+        text: 'A calculator expression is already active; call .run() or .reset() before starting a new one.'
 
 cli:
   cmds:

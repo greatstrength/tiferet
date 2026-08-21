@@ -326,7 +326,7 @@ class CalculatorFluentContext(CalculatorAppContext):
         relaxes that requirement for exactly one case: once a fluent chain
         is active, every argument becomes irrelevant -- there's already
         exactly one thing left to run, ``calc.resolve`` -- so ``run()``
-        plays the role a ``.result`` property used to.
+        finalizes the chain instead.
 
         When no chain is active, every argument (``feature_id`` included)
         passes straight through to the plain client unchanged. This is what
