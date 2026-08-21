@@ -110,7 +110,7 @@ class Expression(DomainObject):
     values: List[float] = Field(default_factory=list)
     operators: List[str] = Field(default_factory=list)
 
-    def resolve(self, reduce):
+    def resolve(self, reduce: Callable[[str, float, float], float]) -> float:
         pending_values = [self.values[0]]
         pending_operators = []
 
@@ -132,7 +132,7 @@ class Expression(DomainObject):
         return pending_values[0]
 ```
 
-This is the same shunting-yard algorithm from before, just run once over the whole list instead of interleaved with logging. `reduce` is still just a callable `Expression` is handed — it has no idea what actually computes `left op right`. That's deliberately kept one layer up, so this domain object stays a pure scheduling algorithm with zero framework or DI knowledge. The old cache-backed `ExpressionContext` — with its `load`/`save`/discard round-trip — is retired entirely; there's nothing left to key by id and look up later, since the accumulating state is held directly rather than serialized out to a shared cache.
+This is the same shunting-yard algorithm from before, just run once over the whole list instead of interleaved with logging. `reduce` is typed as exactly what it is -- `Callable[[str, float, float], float]` -- a plain function reference `Expression` is handed; it has no idea what actually computes `left op right`. That's effectively the Visitor pattern in miniature: `Expression.resolve` owns traversal and scheduling (walking its own term list, deciding *when* each pairwise reduction happens), while `reduce` is the visitor invoked at each node, deciding *what* that reduction computes -- and the domain object never has to import or know about whatever `reduce` actually is (an event, a lambda, anything callable). That's deliberately kept one layer up, so this domain object stays a pure scheduling algorithm with zero framework or DI knowledge. The old cache-backed `ExpressionContext` -- with its `load`/`save`/discard round-trip -- is retired entirely; there's nothing left to key by id and look up later, since the accumulating state is held directly rather than serialized out to a shared cache.
 
 ### 11.4 Collapsing the whole chain into one `calc.resolve` run -- by overriding `run()` itself
 
