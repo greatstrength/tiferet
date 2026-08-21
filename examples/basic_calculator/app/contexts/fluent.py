@@ -12,15 +12,17 @@ from .calc import CalculatorAppContext
 
 # *** functions
 
-# ** function: guard
-def guard(expression: bool, error_code: str, **kwargs) -> None:
+# ** function: _guard (private)
+def _guard(expression: bool, error_code: str, **kwargs) -> None:
     '''
     Raise a structured TiferetError when a guard expression is falsy.
 
-    Used by ``CalculatorFluentContext``'s chain-state checks
-    (``_start``/``_continue``) below. It is side-effect-free and does not
-    depend on any context instance, so it lives here as a plain function
-    rather than a method on the calculator's app session context.
+    Module-private: used only by ``CalculatorFluentContext``'s chain-state
+    checks (``_start``/``_continue``) below. It is side-effect-free and
+    does not depend on any context instance, so it lives here as a plain
+    function rather than a method on the calculator's app session context.
+    There is no reason for other modules to reach into a subdomain-specific
+    helper like this one, so it stays unexported.
 
     :param expression: The guard expression to check.
     :type expression: bool
@@ -181,7 +183,7 @@ class CalculatorFluentContext(CalculatorAppContext):
         '''
 
         # Refuse to clobber an already-active chain.
-        guard(self._pending_request is None, a.core.EXPRESSION_ALREADY_ACTIVE_ID)
+        _guard(self._pending_request is None, a.core.EXPRESSION_ALREADY_ACTIVE_ID)
 
         # Start a fresh, persistent request and log the first term.
         self._pending_request = FluentRequestContext()
@@ -205,7 +207,7 @@ class CalculatorFluentContext(CalculatorAppContext):
         '''
 
         # Require an active chain to continue.
-        guard(self._pending_request is not None, a.core.NO_ACTIVE_EXPRESSION_ID)
+        _guard(self._pending_request is not None, a.core.NO_ACTIVE_EXPRESSION_ID)
 
         # Log the term onto the active chain's persistent request.
         self._pending_request.log_term(operator, operand)
