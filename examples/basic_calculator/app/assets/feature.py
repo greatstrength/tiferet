@@ -2,12 +2,13 @@
 
 Default feature workflow definitions for the calculator's arithmetic bounded
 context, mirroring tiferet's own assets/feature.py ids -> features -> groups
-structure. Each feature carries flags=['app'] so its steps resolve their
-arithmetic events from the same cache-seeded 'app'-flagged container that
-calc.CALC_DEFAULT_SERVICES populates -- the ordinary per-flag feature DI
-system (DIDynamicServiceResolver) reads registrations exclusively from
-config.yml's services: block with no cache fallback, so it cannot see these
-defaults otherwise.
+structure. The ordinary per-flag feature DI system (DIDynamicServiceResolver)
+reads registrations exclusively from config.yml's services: block, with no
+cache fallback, so a cache-seeded default feature would otherwise have no way
+to resolve its own step's service. add_default_calc_features (app/contexts/
+calc.py) tags every feature here with flags=['calc'] on the way into the
+cache, routing step resolution to the calculator's own dedicated 'calc'-
+flagged container instead -- see Chapter 10 of the tutorial.
 """
 
 # *** imports
@@ -152,16 +153,13 @@ CALC_RESOLVE_DATA = create_default_feature_data(
 # *** constants (groups)
 
 # ** constant: calc_default_features
-# Each default feature carries flags=['app'] -- see module docstring.
+# Flags are injected by add_default_calc_features, not here -- see module docstring.
 CALC_DEFAULT_FEATURES: Dict[str, Dict[str, Any]] = {
-    feature_id: {**feature_data, 'flags': ['app']}
-    for feature_id, feature_data in {
-        CALC_ADD_ID: CALC_ADD_DATA,
-        CALC_SUBTRACT_ID: CALC_SUBTRACT_DATA,
-        CALC_MULTIPLY_ID: CALC_MULTIPLY_DATA,
-        CALC_DIVIDE_ID: CALC_DIVIDE_DATA,
-        CALC_EXP_ID: CALC_EXP_DATA,
-        CALC_SQRT_ID: CALC_SQRT_DATA,
-        CALC_RESOLVE_ID: CALC_RESOLVE_DATA,
-    }.items()
+    CALC_ADD_ID: CALC_ADD_DATA,
+    CALC_SUBTRACT_ID: CALC_SUBTRACT_DATA,
+    CALC_MULTIPLY_ID: CALC_MULTIPLY_DATA,
+    CALC_DIVIDE_ID: CALC_DIVIDE_DATA,
+    CALC_EXP_ID: CALC_EXP_DATA,
+    CALC_SQRT_ID: CALC_SQRT_DATA,
+    CALC_RESOLVE_ID: CALC_RESOLVE_DATA,
 }

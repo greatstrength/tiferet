@@ -6,7 +6,7 @@ from tiferet.blueprints import core
 from tiferet.contexts.app import AppSession
 from tiferet.contexts.cache import CacheContext
 from ..contexts.fluent import CalculatorFluentContext
-from .calc import build_calculator_cache, record_run_handler
+from .calc import build_calculator_cache, record_run_handler, register_calc_container
 
 # *** blueprints
 
@@ -30,6 +30,9 @@ def build_calculator_fluent_context(app_session: AppSession, cache: CacheContext
     # Build the app service container and compose the feature-level resolver.
     app_container = core.build_app_service_container(cache, app_session)
     resolver = core.build_service_resolver(app_container)
+
+    # Register the calculator's own dedicated 'calc'-flagged container.
+    register_calc_container(resolver, cache)
 
     # Resolve any remaining injectable collaborators the context class declares.
     collaborators = core.resolve_collaborators(CalculatorFluentContext, app_container)

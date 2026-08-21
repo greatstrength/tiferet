@@ -1,13 +1,97 @@
 # *** imports
 
 # ** core
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Tuple
 
 # ** app
 from tiferet import TiferetError
 from tiferet.contexts.app import AppSessionContext, raise_unwired_handler_error
 from tiferet.contexts.cache import CacheContext
+from tiferet.contexts.feature import add_default_features
 from tiferet.contexts.request import RequestContext
+from tiferet.domain import AppServiceDependency
+
+# *** constants
+
+# ** constant: calc_service_cache_prefix
+CALC_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('calc', 'services')
+
+# *** functions
+
+# ** function: add_default_calc_services
+def add_default_calc_services(services: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default calculator
+    service dependencies, under the calculator's own cache namespace.
+
+    :param services: A mapping of service id to raw service dependency definition dicts.
+    :type services: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default service dependencies.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute each raw service dict into an AppServiceDependency and
+            # cache it under the calc service namespace keyed by service id.
+            for service_id, service_data in services.items():
+                cache.set(
+                    service_id,
+                    AppServiceDependency.model_validate({**service_data, 'service_id': service_id}),
+                    *CALC_SERVICE_CACHE_PREFIX,
+                )
+
+            # Return the populated cache context.
+            return cache
+
+        # Return the cache-builder wrapper.
+        return wrapper
+
+    # Return the decorator.
+    return decorator
+
+# ** function: get_default_calc_services
+def get_default_calc_services(cache: CacheContext) -> List[AppServiceDependency]:
+    '''
+    Return the default calculator service dependencies seeded on the cache.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :return: The list of seeded calculator service dependencies.
+    :rtype: List[AppServiceDependency]
+    '''
+
+    # Return the seeded calc service dependencies as a list.
+    return list(cache.get_by_prefix(*CALC_SERVICE_CACHE_PREFIX).values())
+
+# ** function: add_default_calc_features
+def add_default_calc_features(features: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default calculator
+    features, auto-tagging every feature with flags=['calc'] so its steps
+    resolve against the calc-flagged container rather than requiring callers
+    to inject the flag themselves.
+
+    :param features: A mapping of feature id to raw feature definition dicts,
+        without a flags entry.
+    :type features: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Delegate to the framework's own feature-seeding decorator, tagging
+    # every feature with the calc flag on the way in.
+    return add_default_features({
+        feature_id: {**feature_data, 'flags': ['calc']}
+        for feature_id, feature_data in features.items()
+    })
 
 # *** contexts
 
