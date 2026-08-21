@@ -101,7 +101,7 @@ No `self.run(...)` happens here — not for `.add()`, not for `.multiply_by()`. 
 
 ### 11.3 Resolving PEMDAS on the `Expression` domain object
 
-The old design reduced eagerly, one pairwise operation at a time, as each term arrived — a real "shunting yard" running incrementally across the whole chain. Since nothing is dispatched until the chain finalizes now, there's no reason to reduce incrementally either: the entire scheduling pass can happen once, at the very end, over the complete, already-logged term list. That's exactly the kind of self-contained algorithm a domain object should own:
+The old design reduced eagerly, one pairwise operation at a time, as each term arrived — a real "shunting yard" (the standard technique for precedence-aware parsing: hold pending values/operators on two stacks, and only reduce the top once you know nothing higher-precedence is coming to claim it first) running incrementally across the whole chain. Since nothing is dispatched until the chain finalizes now, there's no reason to reduce incrementally either: the entire scheduling pass can happen once, at the very end, over the complete, already-logged term list. That's exactly the kind of self-contained algorithm a domain object should own:
 
 **app/domain/expression.py**
 
@@ -136,7 +136,7 @@ This is the same shunting-yard algorithm from before, just run once over the who
 
 ### 11.4 Collapsing the whole chain into one `calc.resolve` run -- by overriding `run()` itself
 
-Here's the payoff, and it's a little more interesting than just wiring: instead of a separate `.result` property, `CalculatorFluentContext` overrides `run()` itself, so finishing a chain reads exactly like running any other feature: `calc_app.add(1, 3).subtract_from(5).multiply_by(2).run()`.
+Here's the payoff, and it's a little more interesting than just wiring: `CalculatorFluentContext` overrides `run()` itself, so finishing a chain reads exactly like running any other feature: `calc_app.add(1, 3).subtract_from(5).multiply_by(2).run()`.
 
 That only works because `run()` isn't really about `feature_id` the way it looks. `feature_id` is a first-class requirement of `execute_feature`'s single-feature dispatch -- but `run()` itself is a fundamentally agnostic executor; it only *looks* like `feature_id` is mandatory because the base workflow needs one to build a request and resolve a step. Once a chain is active, there's already exactly one thing left to run, so that requirement can be relaxed for this one case, as long as the relaxation is explicit:
 
@@ -152,7 +152,7 @@ def run(self, feature_id=None, headers={}, data={}, **kwargs):
     if self._pending_request is None:
         return super().run(feature_id, headers, data, **kwargs)
 
-    # A chain is active: resolve it, exactly as a `.result` property used to.
+    # A chain is active: resolve it into a single value.
     value = super().run('calc.resolve', data={})
     self._pending_request = None
     return value
@@ -260,8 +260,6 @@ Across eleven chapters you've now touched every layer Tiferet has: **domain** ob
 The fluent context didn't require reinventing any arithmetic: it added a small scheduling layer on top of features you'd already built, and reused the framework's own request as the one thing a multi-call chain actually is — a single request with many steps — instead of inventing a parallel correlation mechanism. That's really the whole idea behind Tiferet's layering — each new capability should mostly be *composition*, not more special cases.
 
 From here, natural next steps: exponentiation in the chain (right-associative, so the reduction rule needs a small tweak), a `.pending` tour through the logged terms for a "show your work" mode, or swapping the in-memory chain for something that survives process restarts.
-
-> **Note:** if you'd rather read `.result` at the end of a chain than call `.run()`, nothing stops you from adding it back as a one-line property (`@property def result(self): return self.run()`) alongside this override -- both spellings can coexist.
 
 You built a calculator that does long division on the order of operations. Nicely done.
 
