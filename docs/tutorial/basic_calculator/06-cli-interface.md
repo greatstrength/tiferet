@@ -105,11 +105,9 @@ interfaces:
   calc_cli:
     name: Calculator CLI
     description: Command-line interface for calculator operations
-    module_path: tiferet.contexts.cli
-    class_name: CliSessionContext
 ```
 
-- `calc_cli` declares the CLI session. Command-line handling is done by the built-in `CliSessionContext`, which the `CLI` entry point selects for you — the `module_path` / `class_name` keys document that intent rather than driving the choice.
+- `calc_cli` declares the CLI session — a name and a description, nothing more. Command-line handling is done by the built-in `CliSessionContext`, which the `CLI` entry point realizes for you; a session does not name its own context class.
 - CLI command definitions are read from the `cli` section in the same root `config.yml`.
 
 ### 6.3 The CLI entry point script

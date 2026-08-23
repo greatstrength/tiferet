@@ -4,7 +4,7 @@ Every entry point so far has called the generic `App(...)` or `CLI(...)` and got
 
 ### 9.1 Why a custom context needs its own blueprint
 
-It's tempting to assume that pointing an interface's `module_path`/`class_name` at a custom class in `config.yml` is enough to swap in your own context. It isn't, today: `App(...)`'s composition chain builds a literal `AppSessionContext` — there's no dynamic class resolution on that path. (`CLI(...)` *looks* like it works this way, but it's actually its own dedicated, hardcoded composition chain, entirely separate from `App(...)`.)
+It's tempting to assume you can point a session at a custom context class in `config.yml` and have Tiferet swap it in. You can't, today: `App(...)`'s composition chain builds a literal `AppSessionContext` — there's no dynamic class resolution on that path. (`CLI(...)` *looks* like it works this way, but it's actually its own dedicated, hardcoded composition chain, entirely separate from `App(...)`.) A session declares no context class at all, which is why every `sessions:` entry in this tutorial carries only `name`, `description`, and where needed `services:`.
 
 So a custom `AppSessionContext` subclass needs its own blueprint. That's most of what this chapter builds.
 
@@ -112,15 +112,13 @@ Register `record_run_event` under the session's own `services:` block in `config
 sessions:
   calc_client:
     name: Calculator Client
-    module_path: app.contexts.calc      # informational only -- see below
-    class_name: CalculatorAppContext
     services:
       record_run_event:
         module_path: app.events.history
         class_name: RecordCalculation
 ```
 
-`module_path`/`class_name` here are informational only — `CalculatorAppContext` is wired explicitly by `create_calculator_app`, never resolved from config. Rename `basic_calc.py` to `calc_client.py` and swap its one line:
+Note that `module_path`/`class_name` *are* meaningful inside a `services:` entry — that is how a service registration names its implementation. They carry no meaning on the session itself; `CalculatorAppContext` is realized by `create_calculator_app`. Rename `basic_calc.py` to `calc_client.py` and swap its one line:
 
 ```python
 from app.blueprints.calc import create_calculator_app

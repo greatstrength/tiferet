@@ -385,19 +385,18 @@ with, so any object satisfying that one-method contract is a legal resolver.
   `CliSessionContext` directly. A consumer selects the entry-point axis by
   *which top-level function they import and call* (`App(...)` vs.
   `CLI(...)`), not by anything written in the configuration file.
-- **The example configuration still carries the dead keys.**
-  `examples/basic_calculator/config.yml` declares `module_path` /
-  `class_name` on all three sessions (`calc_client`, `calc_cli`,
-  `calc_fluent`), matching the pattern the entanglement above says is no
-  longer read. They are not merely unread: `AppSessionConfigObject`
-  (`tiferet/mappers/app.py`) declares no `module_path` / `class_name` fields
-  at all, and `TransferObject`'s lenient `extra='ignore'` config
-  (`tiferet/mappers/core.py`) means the two keys are silently dropped on load
-  rather than rejected or acted on. Each session now carries an inline
-  "informational only" note recording that, which is a mitigation rather than
-  a fix: the keys still read as declarative to anyone skimming the file, and
-  nothing stops a consumer copying the pattern into a configuration of their
-  own and expecting it to select a context class.
+- **The keys are gone from the shipped example, but writing them still fails
+  silently.** `examples/basic_calculator/config.yml` no longer declares
+  `module_path` / `class_name` on any session, and the tutorial no longer
+  instructs a reader to add them, so nothing in the repository advertises
+  them as read. The underlying asymmetry remains: `AppSessionConfigObject`
+  (`tiferet/mappers/app.py`) declares no such fields, and `TransferObject`'s
+  lenient `extra='ignore'` config (`tiferet/mappers/core.py`) means a
+  consumer who writes them anyway has them dropped on load rather than
+  rejected. That is a live hazard because the same two key names *are*
+  meaningful one level down, inside a `services:` entry, so reasoning by
+  analogy from a service registration to a session declaration is a natural
+  mistake that currently produces no diagnostic.
 - **`docs/guides/` still describes an earlier design.** Core layer pages and
   `docs/core/architecture.md` now state the current import law and five-handler
   hub. The strategy guides (`docs/guides/contexts.md`, `docs/guides/mappers.md`,
@@ -432,12 +431,15 @@ either a result or a catalogued, formatted error.
 
 ## 10. Where this leads
 
-1. **Make the entry-point axis real again, or stop implying it exists.**
-   Either wire `build_app_session_context` to actually resolve a context
-   class from the session's declaration, or remove the vestigial
-   `module_path` / `class_name` keys from example configuration and any
-   documentation that still describes them as read. The example's inline
-   "informational only" notes are an interim mitigation, not the resolution.
+1. **Make the entry-point axis real again, or accept that it is not
+   declarative.** The vestigial `module_path` / `class_name` keys have been
+   removed from the shipped example and from the tutorial, so the
+   documentation half of this is done. What remains is the design choice:
+   either wire `build_app_session_context` to resolve a context class from
+   the session's declaration, or leave context selection to the entry point
+   and treat the present behavior as intended rather than vestigial. Item 3
+   covers the separate question of failing loudly when the keys are written
+   anyway.
 2. **Reconcile `docs/guides/` with `docs/core/architecture.md`.** Core layer
    pages now match the current hub and `di/` package. The strategy guides still
    describe retired names and are a later remediation.
