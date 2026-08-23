@@ -376,29 +376,28 @@ with, so any object satisfying that one-method contract is a legal resolver.
 **Currently entangled — the honest inventory:**
 
 - **The entry-point axis is not actually driven by the declared session.**
-  `build_app_session_context` hardcodes `context_cls = AppSessionContext`,
-  with the comment explaining that "the session's `module_path` /
-  `class_name` fields are no longer consulted at runtime"
-  (`tiferet/blueprints/core.py`, lines 840–843). The CLI path instead exists
-  as an entirely separate top-level entry point,
-  `tiferet.blueprints.cli.build_app` (exported as `CLI`,
-  `tiferet/blueprints/cli.py:353`), whose own
-  `build_cli_session_context` (`tiferet/blueprints/cli.py:286`) hardcodes
-  `CliSessionContext` directly (`tiferet/blueprints/cli.py:342`). A consumer
-  selects the entry-point axis by *which top-level function they import and
-  call* (`App(...)` vs. `CLI(...)`), not by anything written in the
-  configuration file.
-- **The example configuration still documents the dead field.**
-  `examples/basic_calculator/config.yml` (lines 5–9) declares the `calc_cli`
-  session with `module_path: tiferet.contexts.cli` /
-  `class_name: CliContext`, matching the pattern the entanglement above says
-  is no longer read. It is not merely unread — `AppSessionConfigObject`
-  (`tiferet/mappers/app.py:280`, fields at lines 292–297) declares no
-  `module_path` / `class_name` fields at all, and `TransferObject`'s lenient
-  `extra='ignore'` config (`tiferet/mappers/core.py:103`) means those two
-  keys are silently dropped on load rather than rejected or acted on. A
-  reader of the shipped example has no way to discover, from the
-  configuration alone, that these two keys do nothing.
+  `build_app_session_context` (`tiferet/blueprints/core.py`) names
+  `AppSessionContext` directly rather than resolving a class from the
+  session: it passes that class to `resolve_collaborators` and then calls
+  `AppSessionContext.from_domain(...)`. The CLI path exists as an entirely
+  separate top-level entry point, `tiferet.blueprints.cli.build_app`
+  (exported as `CLI`), whose own `build_cli_session_context` constructs
+  `CliSessionContext` directly. A consumer selects the entry-point axis by
+  *which top-level function they import and call* (`App(...)` vs.
+  `CLI(...)`), not by anything written in the configuration file.
+- **The example configuration still carries the dead keys.**
+  `examples/basic_calculator/config.yml` declares `module_path` /
+  `class_name` on all three sessions (`calc_client`, `calc_cli`,
+  `calc_fluent`), matching the pattern the entanglement above says is no
+  longer read. They are not merely unread: `AppSessionConfigObject`
+  (`tiferet/mappers/app.py`) declares no `module_path` / `class_name` fields
+  at all, and `TransferObject`'s lenient `extra='ignore'` config
+  (`tiferet/mappers/core.py`) means the two keys are silently dropped on load
+  rather than rejected or acted on. Each session now carries an inline
+  "informational only" note recording that, which is a mitigation rather than
+  a fix: the keys still read as declarative to anyone skimming the file, and
+  nothing stops a consumer copying the pattern into a configuration of their
+  own and expecting it to select a context class.
 - **`docs/guides/` still describes an earlier design.** Core layer pages and
   `docs/core/architecture.md` now state the current import law and five-handler
   hub. The strategy guides (`docs/guides/contexts.md`, `docs/guides/mappers.md`,
@@ -436,8 +435,9 @@ either a result or a catalogued, formatted error.
 1. **Make the entry-point axis real again, or stop implying it exists.**
    Either wire `build_app_session_context` to actually resolve a context
    class from the session's declaration, or remove the vestigial
-   `module_path` / `class_name` framing from example configuration and any
-   documentation that still describes it as read.
+   `module_path` / `class_name` keys from example configuration and any
+   documentation that still describes them as read. The example's inline
+   "informational only" notes are an interim mitigation, not the resolution.
 2. **Reconcile `docs/guides/` with `docs/core/architecture.md`.** Core layer
    pages now match the current hub and `di/` package. The strategy guides still
    describe retired names and are a later remediation.

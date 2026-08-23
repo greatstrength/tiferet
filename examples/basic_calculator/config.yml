@@ -15,9 +15,13 @@ sessions:
         class_name: RecordCalculation
   calc_cli:
     name: Calculator CLI
-    description: Perform basic calculator operations via CLI
+    description: >-
+      Perform basic calculator operations via CLI. module_path/class_name
+      below are informational only -- CliSessionContext is selected by
+      tiferet.blueprints.cli.build_cli_session_context, not resolved from
+      this config.
     module_path: tiferet.contexts.cli
-    class_name: CliContext
+    class_name: CliSessionContext
   calc_fluent:
     name: Fluent Calculator
     description: >-
