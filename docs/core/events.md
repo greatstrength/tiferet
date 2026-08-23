@@ -19,6 +19,16 @@ It is entered two ways, and the two ways must not be confused. A blueprint may c
 
 Every focused domain action — validation, service interaction, computation, orchestration — is a class extending `DomainEvent` from `tiferet/events/core.py`. When a module shares one injected service, that service lives on a per-module base event (`ErrorEvent`, `FeatureEvent`, `AppEvent`, and the rest). Concrete events extend the base and declare only `execute`. Service-less utilities (`ParseParameter`, `ImportDependency`) extend `DomainEvent` directly.
 
+### Declared here, resolved there
+
+The position holds a paradox worth naming early: the most important artifact in the system is completely inert until something else resolves it. A `DomainEvent` *declares* a rule. It does not run one. Declaration and firing are separated by design, which is how one artifact manages to be load-bearing and idle at the same time.
+
+That separation is not a local invention. Evans divides the labor the same way when he describes a Cohesive Mechanism (422–423): the model "formulates a fact, rule, or problem," while the mechanism "resolves the rule or completes the computation as specified by the model." That is this position and Binah exactly — the operator formulates, `FeatureContext` resolves. So the paradox is not a quirk of this codebase; it is the internal structure of a named pattern, which is a considerably stronger thing to stand on.
+
+One level has to be stated explicitly or the whole scheme collapses into two tiers. **Core-versus-mechanism is a relative position, not a kind of code.** Tiferet is pure mechanism to a consumer dialect — the thing that resolves what the dialect declares. Internally it has its own core domain (the `Feature` family) and its own mechanisms (`utils`, `repos`). Which side of that line an artifact sits on depends on where you are standing, never on what the artifact is made of.
+
+Evans' **Policy** layer is the sharpest lens on this position, and it is a lens rather than an identity. He characterizes it as: "What are the rules and goals? Rules and goals are mostly passive, but constrain the behavior in other layers." Mostly passive, and constraining anyway — that is the paradox above, arriving from outside. Read [architecture.md](architecture.md) for why the layer names are demoted to readings: `events` is not a Policy layer, it reads usefully through Policy. Worth recording separately, since it is a fair question rather than a finding: Policy is arguably a better name than `events` for what this package holds, and it is a live v3 rename candidate. No structural claim rests on it either way.
+
 ## The DomainEvent base
 
 `DomainEvent` is a plain object. It is not a domain noun and not a context. It centralizes the four things every operation in this system must be able to do: run, require, verify, and raise.
@@ -172,6 +182,18 @@ The calculator tells the same story at a smaller scale. `AddNumber` verifies two
 
 Error constants come from the namespaced catalogs: `a.error`, `a.app`, `a.feat`, `a.cli`, `a.logging`. There is no `a.const`.
 
+## There is no rule DSL, and that is the achievement
+
+`FeatureContext` is a rules engine, and genuinely one rather than a loop with a nice name. It resolves an operator for each step, sequences the steps, evaluates a step condition and skips the step when it fails, and composes middleware around each call. The calculator's `calc.safe_divide` carries `condition: '$r.b != 0'` in `config.yml`, and `evaluate_condition` resolves the `$r.` reference against the request before deciding whether the step runs at all.
+
+What it does *not* have is a rule language. This is the strongest defensive argument the framework has, and it is worth stating plainly because the absence looks like a missing feature until you know the failure mode it avoids.
+
+Evans names that failure mode directly (463): when rules are written against a model different from the objects they govern, one of two things happens. Either the complexity escalates as the two models are kept in correspondence, or the objects get dumbed down to suit the rule language. **The anemic domain model is the predictable price of a separate rule model, not a symptom of laziness.** Anyone who has maintained a rules engine whose facts are flat dictionaries has paid it.
+
+Tiferet's operators are written in the domain's own vocabulary, against the domain's own types, in the same language as everything else. `AddError` above verifies a rule about errors using `ErrorService` and `ErrorAggregate` — not a rule expression evaluated against a shadow representation of an error. That is Evans' own remedy followed exactly, and it is why the conditions in `config.yml` stay deliberately thin: a condition selects whether a step runs, and every rule with domain content lives in an `execute` where the domain types are in scope.
+
+One related point, since the question comes up: Evans is explicit that having a rules engine does not by itself justify carving out a separate Bounded Context. The engine here is a mechanism serving one domain, not a second domain.
+
 ## Calling the event
 
 Contexts and tests use the same seam:
@@ -190,6 +212,24 @@ result = DomainEvent.handle(
 
 The test harness (`DomainEventTestBase`, `ServiceEventTestBase` in `tiferet/testing/`) is built on that seam. Declare `event_cls`, `dependencies`, `sample_kwargs`, and `required_params`. The harness mocks the services, calls `handle`, and parametrizes the missing-parameter path. Prefer it for new event tests. Per-method CRUD walkthroughs belong in `docs/guides/events/`, not here.
 
+**Statelessness is what makes reuse safe.** An operator is constructed when a step needs it, executes, returns, and is discarded. Feature-level services are registered as Factory providers, so resolution hands back a new instance every time rather than a shared one. Nothing survives a step to corrupt the next workflow, which is a consequence of the declared lifetime rather than an assertion about purity — and it is why an event may hold injected services as attributes without that being state in the dangerous sense.
+
+## Where the position sits
+
+The reach of this position is unique, and so is the discipline that makes the reach safe.
+
+**Widest reach, narrowest return.** This is the only position permitted to reach in every direction it can legally see, and its output contract is the tightest in the framework. Breadth of access with narrowness of return is the operational form of the claim that the middle is orderly toward everything it knows and everything that knows of it. A position allowed to touch five others and hand back anything at all would be a god object; the return rule is what keeps the reach from becoming one.
+
+**The contact topology is checkable.** Outbound, an event may reach `assets`, `domain`, `mappers`, `utils`, and `interfaces`. Four of those are exercised in the framework today; `utils` is legal and currently unused — worth stating rather than implying, since a legal edge nobody has needed yet is a different fact from a legal edge in daily use. Inbound, it is reached by `blueprints` (bootstrap) and `contexts` (client). `di` looks absent from both lists and is not: the container constructs operators from a declared `module_path` and `class_name`, so contact happens by dynamic resolution rather than by a static edge. Influence without an import edge is the mechanism, not a loophole.
+
+Which leaves exactly one position an event never touches directly: `repos`. Events do receive repositories constantly — always as a Netzach contract, never knowing what implements it. `error_service.save` in the production above is precisely that: a promise the event depends on and an implementation it is forbidden to name.
+
+**The veil, stated accurately.** The ten divide six above — declaration, composition, orchestration — from four below — contract, representation, capability, persistence — and nothing above the boundary imports `repos`. Crossing happens by resolution rather than by reference. Do not read this as events being the sole bridge, which is the tempting overstatement: `di` also reaches below the veil, to `interfaces`. Multiple crossings are faithful to the structure.
+
+There is a convergence here worth naming, and it is the largest structural one these chapters record. All four positions below the veil are *means* rather than acts. Contracts are potentials — Evans notes that "contracts with vendors also define potentials." Mappers are representational means, utils are capability, repositories are organized persistence. None of them is what is being *done*. The doing is here, at `events`, sequenced by `contexts`. So the line the tradition draws at Paroketh and the line Evans draws between what enables work and what is work fall in the same place, reached from two unrelated directions.
+
+Two caveats keep that honest. Evans has five layers rather than two, so this is one boundary coinciding, not a whole-set mapping. And `interfaces` also reads well through his Commitment layer, which is permitted under the demoted reading of the layer names — Evans himself leaves the tension unsettled, filing contracts under Potential while giving Commitment a layer of its own.
+
 ## Structured code design
 
 Events follow the standard artifact comment structure. Use `# *** events` (or `# *** classes` in `core.py`), `# ** event: <name>` in snake_case, `# * attribute` / `# * init` on the base event only, and `# * method: execute` on the concrete class. One empty line between `# ***` and the first `# **`, between each `# *`, after docstrings, and between snippets. Full grammar: [code_style.md](code_style.md).
@@ -204,7 +244,12 @@ Events follow the standard artifact comment structure. Use `# *** events` (or `#
 ## In short
 
 - An event is the unit of work. It commands, executes, and prefers to return a noun. That middle is Tiferet.
+- The artifact declares; something else fires it. That is why the most important thing in the system is inert on its own, and it is the internal structure of Evans' Cohesive Mechanism rather than a quirk here.
+- Core-versus-mechanism is a relative position, not a kind of code. Tiferet is pure mechanism to a dialect and holds its own core domain internally.
 - Enter it through `DomainEvent.handle` (bootstrap from a blueprint, client from a context, always from a test). Do not hand-construct.
 - Required inputs are a decorator. Domain rules are `verify`. Immediate failure is `raise_error`. Constants are `a.<submodule>`.
-- Legal imports: `assets`, `domain`, `mappers`, `utils`, `interfaces`. Not `di`, `repos`, `contexts`, `blueprints`.
+- There is no rule language, and that is the point. Rules written against a second model buy either escalating complexity or an anemic domain; operators here are written in the domain's own types.
+- Legal imports: `assets`, `domain`, `mappers`, `utils`, `interfaces`. Not `di`, `repos`, `contexts`, `blueprints`. `di` reaches events anyway, by dynamic resolution rather than by an edge.
+- Widest reach, narrowest return. `repos` is the one position never touched directly — repositories arrive as contracts and leave as nouns.
+- Operators are stateless and Factory-scoped: constructed for a step, executed, discarded. Nothing survives to corrupt the next workflow.
 - Put a shared service on the module base event. Put mutation on an aggregate. Persist behind an interface. Never return a context, a blueprint, or a repo.
