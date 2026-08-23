@@ -101,7 +101,11 @@ One reading is out of bounds. The same passage describes "a constant and conscio
 
 A System Metaphor earns its place by being *already distilled* — a shape argued into stability, so that a team walking a scenario lands on the same objects the code already is. The ten-node graph qualifies on publication history.
 
-The name and count of ten sefirot first appear in *Sefer Yetzirah*, securely attested by the early tenth century in Saadia Gaon's commentary. Its rule is already a closed-count rule: "ten and not nine, ten and not eleven." Completeness is the point, and the fixed cardinality is the oldest thing about it. The *theosophical* tree — named potencies in relation rather than a decad of numbers — is medieval: *Sefer ha-Bahir* in late-twelfth-century Provence, consolidated by the Zoharic literature of thirteenth-century Castile. The *diagram* as a circulated engineering object is early modern: Cordovero's *Pardes Rimonim* (composed 1548, printed in Kraków 1591), and Kircher's *Oedipus Aegyptiacus* (1652–54) for the Latin reception.
+The earliest attested datum is the count, and it is older than anything sefirotic. *Pirkei Avot* 5:1 — redacted around 200 CE — opens "with ten utterances the world was created." Two things transfer from it and a third must not. It fixes **ten** as a *creative* enumeration centuries before any sefirotic source; and it makes the ten **utterances** — speech acts, words — which is the earliest point at which the words-as-ontology reading this chapter runs on is licensed at all, and the thing the declension argument below actually rests on. What it does not supply is structure. Avot names no attributes, asserts no relations among the ten, and draws a moral conclusion from the count rather than an architectural one. So it is cited for the count and for the linguistic character of the ten, and for nothing else.
+
+The *name* arrives next. Ten *sefirot* are named and counted in *Sefer Yetzirah*, securely attested by the early tenth century in Saadia Gaon's commentary, where the rule is already a closed-count rule: "ten and not nine, ten and not eleven." Completeness is the point, and the fixed cardinality is the oldest thing about it. Read against Avot the continuity is narrow enough to be safe: the count carries forward and acquires a name, while the attributes and the relations arrive later still. The *theosophical* tree — named potencies in relation rather than a decad of numbers — is medieval: *Sefer ha-Bahir* in late-twelfth-century Provence, consolidated by the Zoharic literature of thirteenth-century Castile. The *diagram* as a circulated engineering object is early modern: Cordovero's *Pardes Rimonim* (composed 1548, printed in Kraków 1591), and Kircher's *Oedipus Aegyptiacus* (1652–54) for the Latin reception.
+
+None of that is an identity claim, and the guard is worth stating once. Avot's ten utterances are not these ten positions. `events` is not the sefirah of the Zohar. *Sefer Yetzirah*'s dimensional decad is not the import table below. That two enumerations are both ten is a datum about the count's pedigree, not a correspondence to be pushed. What is borrowed is a historically attested design of balance; the practitioners' claim that the structure is timeless is outside this chapter's scope.
 
 What survived that process is a relational model: how expansion is checked by form, how a middle holds both sides, how the last position absorbs what the first emits. That is what is borrowed here, and only that. A name is kept in these chapters only while it still predicts an import, an artifact, or a responsibility.
 
@@ -472,11 +476,14 @@ Style and annotation grammar live in [code_style.md](code_style.md). Per-applica
 - A word that refuses to decline is announcing that it is generic — which makes declension the membership test for the core domain, and makes the industry-standard name the right one for everything that fails it.
 - A position is realized on demand, and an unrealized position is the normal case rather than a gap. Growth adds a declension where the concept must appear; it never populates a template.
 - The import table and the placement procedure are executable on their own. The philosophy explains why the rules are derivable; the rules do not depend on it.
+- The count is the oldest thing borrowed. Ten as a creative enumeration of *utterances* predates the sefirot by centuries, which is where the words-as-ontology reading is licensed; the name arrives later, the attributes and relations later still, and none of it is an identity claim.
 - Hebrew and package names share one ubiquitous language. A name is kept only while it predicts an import, an artifact, or a responsibility.
 
 ## Sources
 
 The works these chapters borrow vocabulary from. Two filters were applied: the term has to be *used* somewhere in `docs/core/`, and the work has to be established enough that a reader can be sent to it without qualification. Some entries are drawn on by the component chapters rather than by this one. The links are for acquisition, and the recommendation is sincere — read the originals.
+
+### Software and systems
 
 - **Eric Evans, *Domain-Driven Design*** — System Metaphor, Responsibility Layers, Bounded Context, Cohesive Mechanism, Intention-Revealing Interface, Conceptual Contours, Anticorruption Layer, Published Language, Customer/Supplier, declarative design, and the grail passage this chapter opens on. [Find it](https://www.amazon.com/s?k=Domain-Driven+Design+Tackling+Complexity+in+the+Heart+of+Software)
 - **Lattner et al., *MLIR: A Compiler Infrastructure for the End of Moore's Law*** — dialect, open extensible IR, progressive lowering. [arXiv:2002.11054](https://arxiv.org/abs/2002.11054)
@@ -484,3 +491,11 @@ The works these chapters borrow vocabulary from. Two filters were applied: the t
 - **Russell and Norvig, *Artificial Intelligence: A Modern Approach*** — production system, working memory, condition-action rules, knowledge base versus inference engine. [Find it](https://www.amazon.com/s?k=Artificial+Intelligence+A+Modern+Approach+Russell+Norvig)
 - **Fred Brooks, *The Mythical Man-Month*** (anniversary edition, which contains "No Silver Bullet") — essential versus accidental complexity, conceptual integrity. [Find it](https://www.amazon.com/s?k=Mythical+Man-Month+Anniversary+Edition+Brooks)
 - **Allen Newell, "The Knowledge Level"** — the principle of rationality, knowledge level versus symbol level. [doi:10.1016/0004-3702(82)90012-1](<https://doi.org/10.1016/0004-3702(82)90012-1>)
+
+### Tradition sources quoted above
+
+These are listed because this chapter quotes them directly, not because any rule depends on them. Nothing in the import law or the placement procedure rests on a reading of these texts, and the popularizing literature around them is deliberately absent.
+
+- ***Mishnah, Pirkei Avot*** — "with ten utterances the world was created": the count, and the utterance/speech-act character of the ten. [Find it](https://www.amazon.com/s?k=Mishnah+Pirkei+Avot+translation+commentary)
+- ***Sefer Yetzirah*** — the name *sefirot* and the closed-count rule, "ten and not nine, ten and not eleven." [Find it](https://www.amazon.com/s?k=Sefer+Yetzirah+Book+of+Creation+Kaplan)
+- **J. Abelson, introduction to the Soncino *Zohar*** — the transcendence/immanence pairing the stable-IR claim is read through, and the "not... with a strict scientific consistency" disclaimer that licenses holding both halves unreconciled. [Find it](https://www.amazon.com/s?k=Zohar+Sperling+Simon+Soncino+Press)

@@ -134,7 +134,7 @@ Defines subcomponents within a class:
 - `# * attribute: <name>` — instance attributes.
 - `# * init` — constructor.
 - `# * method: <name>` — instance methods.
-- `# * method: <name> (static)` — **static methods** (e.g., `ParseParameter.execute`).
+- `# * method: <name> (static)` — **static methods** (e.g., `DomainEvent.handle`, `DomainEvent.raise_error`).
 
 **Spacing**: One empty line between low-level comments and code blocks.
 

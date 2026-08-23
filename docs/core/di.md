@@ -11,7 +11,7 @@ Legal `# ** app` imports: `domain`; `interfaces` (including `ServiceError`). Ill
 
 ## Life in the system
 
-Chesed is the generic subdomain that turns a registration into an object. It does not raise `TiferetError`. It does not call `DomainEvent.handle`. Parameter parsing (`$env.` references and the like) arrives as an injected `parse_parameter` callable so this package never imports `ParseParameter`. That is reverse shape (1): the factory and the client resolve without importing `di` classes, and `di` parses without importing events.
+Chesed is the generic subdomain that turns a registration into an object. It does not raise `TiferetError`. It does not call `DomainEvent.handle`. Parameter parsing (`$env.` references and the like) arrives as an injected `parse_parameter` callable — a module-level function in `blueprints/core.py`, not an event — so this package never imports a parser at all. That is reverse shape (1): the factory and the client resolve without importing `di` classes, and `di` parses without importing what does the parsing.
 
 Two modules keep the boundary honest.
 

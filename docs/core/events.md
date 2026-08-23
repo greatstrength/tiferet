@@ -17,7 +17,9 @@ That is why the package may legally touch `domain`, `mappers`, `utils`, and `int
 
 It is entered two ways, and the two ways must not be confused. A blueprint may call `DomainEvent.handle` — or import the event class directly — only as pre-DI bootstrap, before the container exists. After composition, the feature loop belongs to the context. The context is the client: it asks `get_dependency` for the event and calls `handle`. Tests use the same seam. Hand-constructing `EventClass(...).execute(...)` skips the seam the rest of the system is built on.
 
-Every focused domain action — validation, service interaction, computation, orchestration — is a class extending `DomainEvent` from `tiferet/events/core.py`. When a module shares one injected service, that service lives on a per-module base event (`ErrorEvent`, `FeatureEvent`, `AppEvent`, and the rest). Concrete events extend the base and declare only `execute`. Service-less utilities (`ParseParameter`, `ImportDependency`) extend `DomainEvent` directly.
+Every focused domain action — validation, service interaction, computation, orchestration — is a class extending `DomainEvent` from `tiferet/events/core.py`. When a module shares one injected service, that service lives on a per-module base event (`ErrorEvent`, `FeatureEvent`, `AppEvent`, and the rest). Concrete events extend the base and declare only `execute`.
+
+There are no service-less utility events left, and their disappearance is instructive rather than incidental. The former `ParseParameter` and `ImportDependency` static events are both gone: parameter parsing is now the module-level function `parse_parameter` in `tiferet/blueprints/core.py`, and class import is the `get_service_type()` method on `ServiceDependency`. Neither had a domain rule to declare, so neither had any business occupying this position — an event with no predicate and no noun to return is generic mechanism wearing a production's clothes. Both are now what they always were: a side-effect-free function and a method on the object that owns the data. This is the code-style substrate doing its job, which [architecture.md](architecture.md) states as a general principle — generic machinery lives *inside* a position as a plain function or standalone class without claiming that position's axis.
 
 ### Declared here, resolved there
 
@@ -236,9 +238,9 @@ Events follow the standard artifact comment structure. Use `# *** events` (or `#
 
 ## Package layout
 
-- `core.py` — `DomainEvent`, `AsyncDomainEvent`, `@parameters_required`, `ParseParameter`, `ImportDependency`
+- `core.py` — `DomainEvent`, `AsyncDomainEvent`, `@parameters_required`. There is no `static.py`.
 - `app.py`, `cli.py`, `di.py`, `error.py`, `feature.py`, `logging.py`, `sqlite.py` — one base event and its productions each
-- `__init__.py` — public exports (`DomainEvent`, `TiferetError`, `a`)
+- `__init__.py` — public exports (`DomainEvent`, `AsyncDomainEvent`, `TiferetError`, `a`)
 - Tests in `tests/events/`; harness in `tiferet/testing/`
 
 ## In short
