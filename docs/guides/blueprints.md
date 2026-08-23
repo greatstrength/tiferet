@@ -222,7 +222,7 @@ Blueprints should **not** contain domain logic — only orchestration, wiring, a
 
 ### 4. Always Wire All Five Handlers
 
-Never construct an `AppSessionContext` / `CliSessionContext` with a missing handler slot or a legacy `logging_context` constructor keyword keyword. Prefer the core helpers (`build_logger_handler`, `execute_feature_handler`, …).
+Never construct an `AppSessionContext` / `CliSessionContext` with a missing handler slot or a legacy `logging_context` constructor keyword. Prefer the core helpers (`build_logger_handler`, `execute_feature_handler`, …).
 
 ### 5. Prefer Domain-Bound Feature Execution
 

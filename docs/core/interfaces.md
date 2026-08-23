@@ -113,7 +113,7 @@ class ErrorService(Service):
 
 What the reader just saw: every method is abstract. The return type is the aggregate, not the noun. `save` accepts the aggregate because mutation already happened in Hod. The repo will turn that into a transfer object. The event never sees the file.
 
-`ConfigurationService` and `FileService` follow the same shape for loaders. `DIService` is the contract Chesed reads when it builds a container. `ServiceError` is the miss that Chesed raises — an interface error, not an asset catalog entry — so `di` can fail without importing `TiferetError`.
+`FileService` is the shape the loaders implement, and `SqliteService` extends it. `DIService` is the contract Chesed reads when it builds a container. `ServiceError` is the miss that Chesed raises — an interface error, not an asset catalog entry — so `di` can fail without importing `TiferetError`.
 
 ## Structured code design
 

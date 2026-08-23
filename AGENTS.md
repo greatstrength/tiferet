@@ -255,7 +255,7 @@ result = DomainEvent.handle(
 - Extend `Service` (ABC) from `tiferet/interfaces/core.py`. Interfaces may import aggregates from `mappers` to type outputs.
 - All methods marked `@abstractmethod`.
 - Artifact comments use `# *** interfaces` / `# ** interface: <name>`.
-- Services: `AppService`, `CliService`, `ConfigurationService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`, `MiddlewareService`.
+- Services: `AppService`, `CliService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `MiddlewareService`, `SqliteService`. `SqliteService` extends `FileService`; `ServiceError` is the shared exception in `interfaces/core.py`, not a Service. The authoritative list is `tiferet/interfaces/__init__.py`.
 
 ## Mappers
 

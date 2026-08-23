@@ -41,7 +41,7 @@ Interface-specific labels:
 - Services are **unified vertical contracts**: data repositories, utility wrappers, and middleware all satisfy this same base.
 - **`MiddlewareService`** (`tiferet/interfaces/middleware.py`) is the special abstract contract for domain event middleware — implement `__call__(self, event, kwargs, next_fn)` (sync) or `async def __call__` (async); label with `# * method: __call__`.
 - Domain events and contexts depend exclusively on these Service interfaces; never depend on concrete classes.
-- **Exported interfaces:** `Service`, `AppService`, `CliService`, `ConfigurationService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `MiddlewareService`.
+- **Exported interfaces:** `Service`, `ServiceError`, `AppService`, `CliService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `MiddlewareService`, `SqliteService`.
 
 ## Example
 
