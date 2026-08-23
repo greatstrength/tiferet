@@ -33,7 +33,9 @@ Evans' two pitfalls dissolve accordingly. Expressiveness is unbounded, because a
 
 The epigraph has to be paid for, because Evans is explicit that what it promises should not be obtainable this way. Conceptual Contours, he writes, are "typically the outcome of refactoring: it is hard to produce up front," and they "may never emerge from a technically oriented refactoring" (261–262). That is what makes the deep model a grail: not unreachable, but not available on demand and not reachable by mechanical means.
 
-Asserting ten coordinates in advance does not avoid that cost. It **relocates** it. What successive restructuring would have discovered must instead be supplied as domain expertise at the moment a dialect is declared, which means the framework demands *more* of whoever declares one, not less. A reader who suspects the coordinates are a way of skipping the work is asking exactly the right question, and the honest answer is that the work moved rather than disappeared.
+The ten were not asserted ahead of that work. The axes were found the way Evans says axes are found — by successive refactoring, across this framework's own history — and the Tree was recognized afterward as the thing that had already named them. The direction of fit matters, because the reverse order would be a retrofit.
+
+So the cost was paid, and what the coordinates do is **relocate** it. What is saved is the repetition, not the discovery, and the relocation lands on a dialect author rather than on the framework: a dialect author receives coordinates they did not find, for a domain — systemic responsibility — that was understood before they arrived. What refactoring would have taught them must instead be supplied as domain expertise at the moment the dialect is declared, which means the framework demands *more* of whoever declares one, not less. A reader who suspects the coordinates are a way of skipping the work is asking exactly the right question, and the honest answer is that the work was done once and the demand moved rather than disappeared.
 
 Two guards keep the claim narrow. The coordinates are fixed for a domain that is *already* understood — systemic responsibility, worked out over this framework's own history — so a consumer's dialect still earns its own contours the slow way, inside the coordinates. And Evans' *never* is stronger than it looks: he is not saying mechanical work does this badly, he is saying it may not arrive at all. That is the next subsection's distinction, reached from the source side.
 
@@ -84,6 +86,16 @@ The names are never identity claims. `events` is not a Policy layer; it reads us
 Two consequences follow, and both are load-bearing. More than one position may be read through the same layer, to different depths, without any conflict to resolve. And a layer name that describes a position better than its own package name is a naming proposition to weigh on its own merits, not a structural finding — Policy is arguably the better name for what `events` holds, and a fair v3 rename candidate, but nothing in the structure depends on it.
 
 Evans licenses this arrangement more directly than the demotion actually requires. He names "changing from one kind of structure to another, say from Metaphor to Layers" as a transition a well-structured design survives (482–483), which treats the two as interchangeable large-scale structures over one domain. Holding both at once, with one demoted to a lens, is therefore a *weaker* move than the outright swap he calls workable. This project produced an instance while settling the stance: relabeling `repos` from Operations to Potential changed nothing in the import law, only the label — which is what Evans predicts when the accumulated knowledge sits in the model rather than in the naming.
+
+### Both halves of the claim
+
+The stable-IR claim has two halves that pull against each other, and an older statement of the same tension describes it better than this chapter can from the inside. Abelson, introducing the Soncino *Zohar*, reads its treatment of the divine as an attempt to hold transcendence and immanence in a single concept: the great Unknowable, "exalted above human understanding," and simultaneously "very knowable, very fathomable," legible off the world itself (16).
+
+Both halves are load-bearing here. The deep model is the transcendent half — approached by refactoring toward deeper insight, never fully possessed, which is the epigraph's whole point. The coordinates are the immanent half — fixed, present in every artifact, and readable straight off a class signature, which is why `class FeatureAggregate(Feature, Aggregate)` can be parsed for position without consulting anything else. An unreachable model and a completely present structure, at once.
+
+The most useful line in the passage is its disclaimer: "Not that it does this with a strict scientific consistency. Far from it." The two doctrines are *interwoven*, not reconciled. That is precedent for what this chapter has to admit anyway — up-front coordinates and a deep model that cannot be produced up front are not reconciled here either. The cost is relocated instead, and a structure with that much precedent is better described as deliberate than as a concession.
+
+One reading is out of bounds. The same passage describes "a constant and conscious interaction between 'the above' and 'the below'", and that must **not** be mapped onto the veil. The import graph is a one-way DAG, and a two-way-traffic reading would license precisely the reverse edge the law forbids. Take the legibility and leave the interaction — and leave the passage's microcosm imagery, organs and limbs reflecting the divine, alone for the same reason: neither predicts an import, an artifact, or a lifecycle rule, so neither survives the infusion test.
 
 ## Why this graph
 
@@ -319,6 +331,10 @@ One question stays genuinely open, and is posed rather than answered. If a gener
 
 When a domain concept genuinely cannot be expressed through the ten, one of two things is true: the framework is missing a primitive, or the concept belongs to another bounded context. Producing that diagnostic is what a stable intermediate representation is *for*.
 
+### What this chapter does not do
+
+The scope ends at the coordinates. This chapter states that the axes root an order that evolves, and that a dialect grows by extending abstractions rather than by adding positions. It does not show how to build one: worked construction belongs to the tutorial, and per-application distillation to `docs/guides/`. Answering how-to questions here would turn a constitution into a guide.
+
 ## Import law
 
 The table restates what the entries above let a reader predict.
@@ -335,6 +351,31 @@ The table restates what the entries above let a reader predict.
 | `interfaces` | `mappers` (aggregates), sibling interfaces | `domain` when an aggregate exists; `events`, `repos`, `utils`, `contexts`, `blueprints` |
 | `utils` | `interfaces`, `mappers`, siblings | `events`, `domain`, `repos`, `di`, `contexts`, `blueprints` |
 | `repos` | `interfaces`, `mappers`, `utils` | `assets`, `domain`, `events`, `di`, `contexts`, `blueprints` |
+
+### Placement procedure
+
+The table above says what an artifact may import once it has a home. This says how to find the home. It is ordered — take the first step that answers and stop.
+
+1. Does it hold no behavior and import nothing from the framework? Shared bootstrap data — constants, error codes, catalogs — is `assets`. A noun carrying domain invariants is `domain`.
+2. Does it perform an act: an `execute` that commands, computes, and returns a result? `events`.
+3. Does it compose the application — build the cache, resolve the session, wire a container, produce handler closures? `blueprints`.
+4. Does it hold a domain object and sequence behavior against it without implementing that behavior? `contexts`.
+5. Does it turn a declared identifier plus flags into a live instance? `di`.
+6. Is it declaration only — abstract, no body, binding its implementors and shaped by none of them? `interfaces`.
+7. Is it derived by extension from a domain type, adding mutation or a boundary representation? `mappers`.
+8. Does it touch a substrate the system does not control? If it exposes that substrate as a capability, `utils`. If it implements a domain-shaped contract over one and nothing imports it, `repos`.
+
+Then verify against the table: read the chosen package's row, and if the artifact needs an import the row forbids, the placement is wrong rather than the row. If no step answers, run the three declension questions and then see [When nothing fits](#when-nothing-fits).
+
+The procedure and the table are executable on their own. Everything above them explains why the rules are derivable rather than arbitrary, which is worth knowing and is not a prerequisite for applying them.
+
+### Sparseness
+
+**A position is realized on demand. An unrealized position is the normal case, not a gap.**
+
+This is a rule, and it is stated beside the law because it is the one an unexamined symmetry gets wrong. Nothing obliges a domain word to appear in all ten positions, and the framework's own core domain is the proof: `ParameterSpecification` and `RequestSpecification` get no mapper at all, and `interfaces`, `repos`, and `contexts` hold exactly one artifact each for the entire `Feature` family — one promise, one store, one runtime surface — against five nouns and nine operators elsewhere.
+
+So growth means adding a declension where the concept must genuinely appear, never populating a template. Left unstated, this is where a reader infers that symmetry implies completeness and generates ten artifacts to say what three would have said. A framework that produces ten artifacts for one concept is ceremony, and the sparseness rule is what distinguishes the coordinates from a form to be filled in.
 
 ## Crossings and reverse shapes
 
@@ -415,7 +456,8 @@ Style and annotation grammar live in [code_style.md](code_style.md). Per-applica
 
 - The grail is Evans'; the open question is the *what* of declarative design. Its two pitfalls — an inexpressive declaration language and destructive regeneration — are failures of vocabulary.
 - Tiferet answers with the Sefirotic tree as a stable intermediate representation of systemic responsibility: fixed coordinates, unlimited meaning.
-- Declaring the coordinates up front does not avoid the cost of finding them. It relocates that cost onto whoever declares a dialect, who must supply as expertise what refactoring would otherwise have discovered.
+- The ten were found by refactoring, not asserted ahead of it. What the coordinates relocate is the *repetition* of that work, onto whoever declares a dialect and must supply as expertise what refactoring would otherwise have discovered.
+- The deep model is never fully possessed; the coordinates are fixed and legible off a class signature. The two are interwoven rather than reconciled, and the relocated cost is the price of holding both.
 - Infrastructure verifies shape; only the domain tier is answerable for meaning. The coordinates are bounded, not checked — they constrain what a word can mean and never verify that it means it.
 - Influence travels by declaration and dependency travels by import. They are deliberately not the same graph, which is why a real dependency can exist with no edge.
 - The import table is the shadow; the positions are what cast it. Every mechanical rule is the enforceable form of a semantic one, which makes the rules derivable rather than memorized.
@@ -428,6 +470,8 @@ Style and annotation grammar live in [code_style.md](code_style.md). Per-applica
 - A dialect extends the abstractions; it does not alter the coordinates. A concept that fits none of the ten is either a missing primitive or a different bounded context.
 - A domain word declines across positions, and the suffix names what it accreted. A shared token does not imply shared behavior.
 - A word that refuses to decline is announcing that it is generic — which makes declension the membership test for the core domain, and makes the industry-standard name the right one for everything that fails it.
+- A position is realized on demand, and an unrealized position is the normal case rather than a gap. Growth adds a declension where the concept must appear; it never populates a template.
+- The import table and the placement procedure are executable on their own. The philosophy explains why the rules are derivable; the rules do not depend on it.
 - Hebrew and package names share one ubiquitous language. A name is kept only while it predicts an import, an artifact, or a responsibility.
 
 ## Sources
