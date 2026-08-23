@@ -210,11 +210,11 @@ Domain events are the primary operational units. Key patterns:
 
 ### Static Events
 
-`ParseParameter`, `ImportDependency`, `RaiseError` in `events/static.py` are utility events called with static `.execute()` methods.
+There are none. The former `ParseParameter`, `ImportDependency`, and `RaiseError` static events are retired and `events/static.py` no longer exists. Parameter parsing is the module-level `parse_parameter` function in `blueprints/core.py`; class import is `ServiceDependency.get_service_type()`. An event with no domain predicate and no noun to return does not belong in `events` — generic mechanism goes in a side-effect-free function or a method on the object owning the data.
 
 ### Bootstrap Events
 
-`CreateServiceResolver` in `events/blueprint.py` is a bootstrap domain event that composes a fully wired `ServiceResolver` from an `AppSession`: it locates the `di_service` dependency, constructs the DI repository, builds the typed default-config index, and injects `ParseParameter.execute` so the DI layer never imports the parameter parser itself. It is invoked by `load_app_instance` via `DomainEvent.handle`.
+There are none. `CreateServiceResolver` and `events/blueprint.py` are both retired. Resolver composition is now plain blueprint code: `build_service_resolver(app_container)` in `blueprints/core.py` composes the `DIDynamicServiceResolver` directly and injects `parse_parameter`, so the DI layer still never imports a parser.
 
 ### Testing Events
 
@@ -366,7 +366,7 @@ The top-level `tiferet/__init__.py` exports only core runtime entrypoints and DD
 
 Everything else is imported from its owning package, for example:
 
-- `from tiferet.events import AsyncDomainEvent, ParseParameter`
+- `from tiferet.events import AsyncDomainEvent`
 - `from tiferet.interfaces import MiddlewareService`
 - `from tiferet.utils import File, Yaml, Json, Toml, Csv, CsvDict, Sqlite, LoggingMiddleware, TimingMiddleware`
 

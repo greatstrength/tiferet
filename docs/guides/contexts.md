@@ -11,7 +11,7 @@ Contexts form the runtime "body" of a Tiferet application. They encapsulate inte
 
 Tiferet distinguishes between two categories of contexts:
 
-- **High-level contexts** — extend `AppSessionContext` and expose the session's runtime entry point (e.g., a CLI session or a web API). They implement the five required template-method handlers and delegate low-level work through those slots.
+- **High-level contexts** — extend `AppSessionContext` and expose the session's runtime entry point (e.g., a CLI session or a web API). They implement the framework's five required template-method handlers and delegate low-level work through those slots. A subclass may declare additional slots of its own; five is the framework's arity, not a ceiling.
 - **Low-level contexts** — single-purpose orchestrators that back the high-level context (e.g., `FeatureContext`, `RequestContext`, `ErrorContext`, `LoggingContext`, `CacheContext`).
 
 This guide covers cross-cutting strategies for using, extending, and composing contexts. For artifact-level structure and code style, see [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md).
@@ -34,7 +34,7 @@ Contexts are consumed by blueprints and by `AppSessionContext` (and its subclass
 
 ## The AppSessionContext Five-Handler Pattern
 
-`AppSessionContext` is the canonical high-level context. Its `run` method defines the standard request lifecycle through five **required** template methods:
+`AppSessionContext` is the canonical high-level context. Its `run` method defines the standard request lifecycle through five **required** template methods. These five are what the hub itself needs; a subclass that adds a slot extends the pattern rather than breaking it (see [Extending AppSessionContext](#extending-appsessioncontext)):
 
 ```python
 def run(self, feature_id, headers=None, data=None, **kwargs):
@@ -101,6 +101,8 @@ class FlaskApiContext(AppSessionContext):
 ```
 
 Override only the methods you need. Always call `super()` for shared behavior so the required-handler guards remain intact.
+
+A subclass may also declare its **own** handler slot, which is how a consumer adds a step to the lifecycle without editing the hub. Store it privately, guard it with the framework's own `raise_unwired_handler_error` so an unwired slot fails loudly, and have the paired blueprint build the closure alongside the other five. The worked example is `CalculatorAppContext` in `examples/basic_calculator/app/contexts/calc.py`, which adds `record_run_handler` and fires it after a successful run; `build_calculator_app_context` wires it. Context and blueprint extend in lockstep — a new slot is always two edits, never one.
 
 ### CLI Sessions with CliSessionContext
 
