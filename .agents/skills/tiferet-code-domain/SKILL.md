@@ -36,7 +36,7 @@ Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `assets` sub-modules only (e.g. `from .. import assets as a`). Never import from `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** none. Domain objects have no framework imports. Never import from `assets`, `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`. Mutation belongs on the aggregate in `mappers`.
 - Extend `DomainObject` from `tiferet.domain.core` (which extends `pydantic.BaseModel`).
 - `DomainObject` config: `extra='forbid'`, `populate_by_name=True`, `validate_assignment=True`, `arbitrary_types_allowed=True`, `coerce_numbers_to_str=True`.
 - Declare all fields with `pydantic.Field(...)` including a `description` kwarg.
@@ -44,7 +44,7 @@ Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app
 - Use `model_validate(data_dict)` for external/untrusted data.
 - Domain objects are **read-only** at the domain layer — place all mutation in Aggregates.
 - Use `@model_validator(mode='before')` for pre-construction derivation logic (e.g. deriving `error_code` from `id`); label with `# * method: _derive_<name> (validator)`.
-- Keep domain methods focused on **structure and read-only behavior** (formatting, lookups, derived values).
+- Keep domain methods focused on **structure and read-only description** (formatting, lookups, and derived values). A method that changes model state belongs on an Aggregate.
 - Naming: PascalCase class names matching the domain concept (`AppSession`, `Feature`, `Error`, `CliCommand`).
 
 ## Example

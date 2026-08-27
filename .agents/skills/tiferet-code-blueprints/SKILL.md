@@ -36,18 +36,18 @@ Both sections may appear in the same module. `# *** functions` must appear first
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `assets`, `contexts`, `di`, `events`. Blueprints access domain models **via `contexts` or `di`**, not by importing directly from `domain`. Never import from `interfaces`, `mappers`, `utils`, or `repos`.
+- **Layer boundary — valid `# ** app` imports:** `assets`, `contexts`, `di`, `events`. Events are for pre-DI bootstrap only (`DomainEvent.handle` or a direct event-class import). Domain types come from the context that owns them, never `from ..domain`. Service instances arrive from `di` (`get_dependency`); never import `interfaces`. Never import from `mappers`, `utils`, or `repos`.
 - Blueprints are **module-level functions**, not classes.
 - Blueprints are **thin orchestrators** — they wire and delegate; they do not implement domain logic.
 - The canonical entry point is `build_app` in `tiferet/blueprints/core.py`, exported as `App`. The CLI entry point is `build_cli` in `tiferet/blueprints/cli.py`, exported as `CLI`.
 - The `core.build_app` composition chain:
   1. `build_cache()` — build the `CacheContext` pre-seeded with framework defaults
   2. `get_app_session(interface_id, cache, ...)` — resolve the app session via `GetAppSession`
-  3. `build_app_session_context(app_session, cache)` — build the app service container, compose the `ServiceResolver`, import the context class, and construct via `from_domain`
-- `build_cli` is a thin entrypoint: call `core.build_app(...)` then `cli_context.run_cli(argv)`.
-- Always validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in single-call entry points.
+  3. `build_app_session_context(app_session, cache)` — build the app service container, compose the `ServiceResolver`, wire the core runtime handlers, and construct `AppSessionContext` via `from_domain`
+- `build_cli` builds the CLI cache, resolves the app session, constructs `CliSessionContext` with its CLI parser and runtime handlers, then delegates `argv` to `cli_context.run(argv)`.
+- Validate the resolved `AppSessionContext` type (`INVALID_APP_SESSION_TYPE`) in `build_app`.
 - Use `TiferetError.raise_error()` for domain-outcome error paths (e.g. `TiferetError.raise_error(a.error.INVALID_APP_SESSION_TYPE_ID, ...)`).
-- Module-private helpers are underscore-prefixed (`_resolve_bootstrap_session`).
+- Module-private helpers are underscore-prefixed.
 
 ## Example
 
@@ -58,28 +58,7 @@ Both sections may appear in the same module. `# *** functions` must appear first
 from typing import Any
 
 # ** app
-from .core import build_app as _core_build_app
-from .. import assets as a
-from ..assets import TiferetError
-
-# *** functions
-
-# ** function: _derive_argv
-def _derive_argv(argv: list | None) -> list:
-    '''
-    Return argv as-is or fall back to sys.argv[1:].
-
-    :param argv: Explicit argv list, or None to use sys.argv.
-    :type argv: list | None
-    :return: The resolved argv list.
-    :rtype: list
-    '''
-
-    # Import sys only when needed.
-    import sys
-
-    # Return the explicit argv or fall back to sys.argv.
-    return argv if argv is not None else sys.argv[1:]
+from . import core
 
 # *** blueprints
 
@@ -90,26 +69,27 @@ def build_cli(interface_id: str,
     '''
     Build and run a CLI interface.
 
-    Delegates argparse parsing and feature dispatch to CliContext.run_cli.
+    Delegates argparse parsing and feature dispatch to CliSessionContext.run.
 
     :param interface_id: The interface identifier.
     :type interface_id: str
     :param argv: Explicit argv list; defaults to sys.argv[1:].
     :type argv: list | None
-    :param kwargs: Additional kwargs forwarded to core.build_app.
+    :param kwargs: Additional kwargs forwarded to app-session resolution.
     :type kwargs: dict
     :return: The feature execution result.
     :rtype: Any
     '''
 
-    # Resolve the argv list.
-    resolved_argv = _derive_argv(argv)
+    # Build the CLI cache and resolve the app session.
+    cache = build_cli_cache()
+    app_session = core.get_app_session(interface_id, cache, **kwargs)
 
-    # Build the app context (must resolve to a CliContext).
-    cli_context = _core_build_app(interface_id, **kwargs)
+    # Build the CLI context with its parser and runtime handlers.
+    cli_context = build_cli_session_context(app_session, cache)
 
     # Delegate CLI parsing and feature dispatch to the context.
-    return cli_context.run_cli(resolved_argv)
+    return cli_context.run(argv)
 ```
 
 ## Docstrings & guides
