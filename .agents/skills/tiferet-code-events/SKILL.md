@@ -34,7 +34,7 @@ Event-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `assets`, `domain`, `interfaces`, `mappers`, `di`. Never import from `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** `assets`, `domain`, `interfaces`, `mappers`, `utils`. Never import from `di`, `repos`, `contexts`, or `blueprints`. Prefer returning a domain model; otherwise return anything legally beneath the event (aggregate, transfer object, util result, or interface-shaped value).
 - Extend `DomainEvent` from `tiferet.events.core` — either directly (new base or service-less event) or via the **per-module base event** (most common).
 - **Per-module base events:** Each single-service module defines one base event (e.g. `ErrorEvent`, `FeatureEvent`, `AppEvent`, `CliEvent`, `DIEvent`, `LoggingEvent`, `SqliteEvent`) that holds the shared service. Concrete events extend the base and declare only `execute`.
 - `@DomainEvent.parameters_required(['param1', 'param2'])` — declarative required-input validator placed as a decorator on `execute`. A parameter is invalid if absent, `None`, or an empty string after `.strip()`; falsy-but-valid values (`0`, `False`, `[]`) pass.
@@ -53,7 +53,6 @@ Event-specific labels:
 
 # ** app
 from .core import DomainEvent, a
-from ..domain import Error
 from ..mappers import ErrorAggregate
 from .error import ErrorEvent     # per-module base event
 
@@ -75,7 +74,7 @@ class AddError(ErrorEvent):
             name: str,
             message: str,
             **kwargs,
-        ) -> Error:
+        ) -> ErrorAggregate:
         '''
         Add a new Error.
 
@@ -87,8 +86,8 @@ class AddError(ErrorEvent):
         :type message: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The created Error domain object.
-        :rtype: Error
+        :return: The created Error aggregate.
+        :rtype: ErrorAggregate
         '''
 
         # Verify the error does not already exist.

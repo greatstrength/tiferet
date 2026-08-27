@@ -144,7 +144,7 @@ class TestErrorAggregate(AggregateTestBase):
     # * attribute: set_attribute_params
     set_attribute_params = [
         ('name', 'Updated Error', None),
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attribute', 'value', 'INVALID_MODEL_ATTRIBUTE'),
     ]
 
     # * method: test_rename
