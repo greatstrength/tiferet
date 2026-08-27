@@ -7,7 +7,7 @@ description: Apply utility conventions when adding or modifying infrastructure u
 
 ## When to use
 - When adding a new utility class or modifying an existing one in `tiferet/utils/`.
-- When implementing physical infrastructure (file I/O, database, network) or computational infrastructure (algorithms, ML inference, transformations), whether Service-backed or called directly.
+- When implementing physical infrastructure (file I/O, database, network) or domain-specific computational infrastructure (algorithms, ML inference, transformations) as a cohesive mechanism, whether Service-backed or called directly.
 - When extending `FileLoader` for a new file format (e.g. TOML, XML).
 
 ## Artifact comment structure
@@ -36,6 +36,8 @@ Util-specific labels:
 
 - **Layer boundary — valid `# ** app` imports:** `interfaces` (to implement a Service contract; also the source of `ServiceError`); `mappers` (aggregates and transfer types); sibling utility modules (e.g. `.file` for `FileLoader`). Error codes are declared as local module constants (e.g. `tiferet/utils/toml.py::INVALID_TOML_FILE_ID`), not imported from `assets`. Never import from `domain`, `repos`, `di`, `contexts`, `blueprints`, or `events`.
 - Implementing a **Service** contract from `tiferet/interfaces/` is **optional**. Add one when the capability is genuinely extensible and must be reachable through a declared feature step; a raw utility called directly by an event does not need a Service interface.
+- A side-effect-free algorithm that does not provide a domain-specific cohesive mechanism belongs in `# *** functions`, not `utils`.
+- A utility may supply a `Callable` to a mapper method as a valid semantic boundary. Mappers never import utilities, and repositories never supply operational callbacks to mappers or utilities.
 - Use `ServiceError.raise_for(self, error_code, ...)` from `tiferet/interfaces/core.py` for all error paths — never raise raw exceptions from utilities. `ServiceError` derives its `module_path`/`class_name`/`target_method` provenance from the failing service instance and the calling frame.
 - **Resource-owning utilities** implement the context manager protocol: `__enter__` (open/connect) and `__exit__` (close/disconnect; commit or rollback on error).
 - **Static one-shot helpers** on utilities (e.g. `CsvLoader.load_rows(path)`) provide a convenience API that opens, reads, closes in a single call.

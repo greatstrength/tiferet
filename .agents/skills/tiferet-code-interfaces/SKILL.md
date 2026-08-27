@@ -32,7 +32,7 @@ Interface-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `mappers` (aggregates for output types); sibling `interfaces` modules. Prefer the aggregate over the domain model when an aggregate exists. Never import from `events`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** `mappers` (aggregates for domain-related inputs and outputs); sibling `interfaces` modules. Import domain types through their mappers, never directly from `domain`. Never import from `events`, `repos`, `utils`, `contexts`, or `blueprints`.
 - Extend `Service` from `tiferet.interfaces.core` (a minimal `ABC`).
 - Mark every method `@abstractmethod` and raise `NotImplementedError()` in the body.
 - Use RST docstrings with `:param`/`:type`/`:return`/`:rtype` on every method.
