@@ -327,27 +327,23 @@ flowchart LR
 
 ## 7. Relationships / cross-boundary rules
 
-Tiferet arranges its own packages in three layers, and dependencies may only
-run downward: **Accessor** (`assets`, `contexts`, `blueprints`), **Actor**
-(`domain`, `events`, `di`), **Infrastructure** (`interfaces`, `mappers`,
-`utils`, `repos`). Judging whether an import is legal requires knowing which
-layer the importing package sits in — the same asymmetry the compiler-domain
-distillation documents for Tiferet's own dialect, applied here to the
-framework's actual source rather than to a dialect it defines.
+Package import law and the System Metaphor live in
+[`docs/core/architecture.md`](core/architecture.md): a published design of
+balance (factory versus client, emit versus absorb, noun versus aggregate,
+contract versus resolution) with Hebrew names and package names in one
+ubiquitous language. Each `docs/core/<layer>.md` is a chapter of that map.
+Skills and this distillation use package names only.
 
-Concretely: `domain` depends on nothing else in the framework — it is pure
-Pydantic definitions plus the model-error vocabulary
-(`tiferet/domain/core.py`). `assets` is the root everyone may draw on. `events`
-is the hub of the Actor layer, consuming `assets`, `domain`, `interfaces`,
-`mappers`, and `di`, but never `contexts` or `blueprints`. `mappers` depends
-only on `domain` and `events`. `di` is deliberately event-free and
-asset-free: `domain` and `interfaces.di` only. `utils` and `repos` sit at the
-bottom of Infrastructure, resolved into the graph only through DI — `contexts`
-and `blueprints` never import them directly. `contexts` consumes `assets`,
-`domain`, and `events`, and receives DI resolution only through an injected
-`get_dependency` callable. `blueprints` sits at the top: it composes contexts
-and DI container/resolver classes, and reaches domain objects only via
-`contexts`, never by importing `domain` directly.
+Concretely: `domain` has no framework imports. `assets` emits to `blueprints`,
+`contexts`, and `events` only. `events` is the unit of work: inbound from
+`assets`, `blueprints` (bootstrap), and `contexts` (client surface); outbound
+to `domain`, `mappers`, `utils`, and `interfaces`. `mappers` import `domain`
+only. `interfaces` import aggregates from `mappers`. `di` is event-free and
+asset-free: `domain` and `interfaces` only. `utils` and `repos` are absorbed
+by events and repositories, not imported by `contexts` or `blueprints`.
+`contexts` consume `assets`, `domain`, siblings, and `events`, and receive DI
+resolution only through an injected `get_dependency` callable. `blueprints`
+compose contexts and DI classes and reach domain types only via `contexts`.
 
 This ordering is why dependency resolution (5.2) can be swapped or extended
 without touching request execution (5.4): a `FeatureContext` never imports
@@ -380,46 +376,32 @@ with, so any object satisfying that one-method contract is a legal resolver.
 **Currently entangled — the honest inventory:**
 
 - **The entry-point axis is not actually driven by the declared session.**
-  `build_app_session_context` hardcodes `context_cls = AppSessionContext`,
-  with the comment explaining that "the session's `module_path` /
-  `class_name` fields are no longer consulted at runtime"
-  (`tiferet/blueprints/core.py`, lines 840–843). The CLI path instead exists
-  as an entirely separate top-level entry point,
-  `tiferet.blueprints.cli.build_app` (exported as `CLI`,
-  `tiferet/blueprints/cli.py:353`), whose own
-  `build_cli_session_context` (`tiferet/blueprints/cli.py:286`) hardcodes
-  `CliSessionContext` directly (`tiferet/blueprints/cli.py:342`). A consumer
-  selects the entry-point axis by *which top-level function they import and
-  call* (`App(...)` vs. `CLI(...)`), not by anything written in the
-  configuration file.
-- **The example configuration still documents the dead field.**
-  `examples/basic_calculator/config.yml` (lines 5–9) declares the `calc_cli`
-  session with `module_path: tiferet.contexts.cli` /
-  `class_name: CliContext`, matching the pattern the entanglement above says
-  is no longer read. It is not merely unread — `AppSessionConfigObject`
-  (`tiferet/mappers/app.py:280`, fields at lines 292–297) declares no
-  `module_path` / `class_name` fields at all, and `TransferObject`'s lenient
-  `extra='ignore'` config (`tiferet/mappers/core.py:103`) means those two
-  keys are silently dropped on load rather than rejected or acted on. A
-  reader of the shipped example has no way to discover, from the
-  configuration alone, that these two keys do nothing.
-- **`docs/core/contexts.md` and `docs/core/di.md` describe an earlier
-  design.** The former documents `AppSessionContext` building
-  `FeatureContext` and `ErrorContext` on demand via `for_domain`; the current
-  hub instead composes from five externally injected template-method
-  handlers (`build_logger_handler`, `execute_feature_handler`,
-  `create_request_handler`, `raise_error_handler`, `response_handler`;
-  `tiferet/contexts/app.py:392`) and never imports `FeatureContext` or
-  `ErrorContext` directly. The latter documents a `tiferet/di/settings.py`
-  module and a declarative, event-driven bootstrap wiring
-  (`CreateServiceResolver` via `DomainEvent.handle`); the current `di/`
-  package contains only `core.py` and `dependency_injector.py`, and
-  `blueprints/core.py` composes the resolver directly via
-  `build_app_service_container` / `build_service_resolver`
-  (`tiferet/blueprints/core.py:432`, `tiferet/blueprints/core.py:532`)
-  without importing `events` at all. Both documents describe a real, earlier
-  stage of the framework's own evolution rather than an error, but neither
-  has been reconciled with the code a contributor will actually find.
+  `build_app_session_context` (`tiferet/blueprints/core.py`) names
+  `AppSessionContext` directly rather than resolving a class from the
+  session: it passes that class to `resolve_collaborators` and then calls
+  `AppSessionContext.from_domain(...)`. The CLI path exists as an entirely
+  separate top-level entry point, `tiferet.blueprints.cli.build_app`
+  (exported as `CLI`), whose own `build_cli_session_context` constructs
+  `CliSessionContext` directly. A consumer selects the entry-point axis by
+  *which top-level function they import and call* (`App(...)` vs.
+  `CLI(...)`), not by anything written in the configuration file.
+- **The keys are gone from the shipped example, but writing them still fails
+  silently.** `examples/basic_calculator/config.yml` no longer declares
+  `module_path` / `class_name` on any session, and the tutorial no longer
+  instructs a reader to add them, so nothing in the repository advertises
+  them as read. The underlying asymmetry remains: `AppSessionConfigObject`
+  (`tiferet/mappers/app.py`) declares no such fields, and `TransferObject`'s
+  lenient `extra='ignore'` config (`tiferet/mappers/core.py`) means a
+  consumer who writes them anyway has them dropped on load rather than
+  rejected. That is a live hazard because the same two key names *are*
+  meaningful one level down, inside a `services:` entry, so reasoning by
+  analogy from a service registration to a session declaration is a natural
+  mistake that currently produces no diagnostic.
+- **`docs/guides/` still describes an earlier design.** Core layer pages and
+  `docs/core/architecture.md` now state the current import law and five-handler
+  hub. The strategy guides (`docs/guides/contexts.md`, `docs/guides/mappers.md`,
+  and related) still use retired names (`AppInterfaceContext`, `DIContext`,
+  `ServiceConfiguration`, `*YamlObject`) and are a later remediation.
 
 None of these is a defect in the request-execution engine itself — 5.1–5.5
 work as described. They are defects in the framework's own claim, in its
@@ -449,22 +431,19 @@ either a result or a catalogued, formatted error.
 
 ## 10. Where this leads
 
-1. **Make the entry-point axis real again, or stop implying it exists.**
-   Either wire `build_app_session_context` to actually resolve a context
-   class from the session's declaration, or remove the vestigial
-   `module_path` / `class_name` framing from example configuration and any
-   documentation that still describes it as read.
-2. **Reconcile `docs/core/contexts.md` and `docs/core/di.md` with the current
-   `contexts/app.py` and `di/` package.** Both guides are the canonical
-   references contributors are told to read before touching these layers;
-   as written, following them would produce code that does not match the
-   surrounding codebase.
-3. **Decide whether `di/settings.py`'s retirement is complete.** The
-   `dependency_injector.py` / `core.py` split appears to fully replace it on
-   the `build_app` path; confirming no consumer-facing surface still expects
-   the retired module would let the documentation drop it outright rather
-   than describe two designs at once.
-4. **Audit other session-level configuration keys for the same silent-drop
+1. **Make the entry-point axis real again, or accept that it is not
+   declarative.** The vestigial `module_path` / `class_name` keys have been
+   removed from the shipped example and from the tutorial, so the
+   documentation half of this is done. What remains is the design choice:
+   either wire `build_app_session_context` to resolve a context class from
+   the session's declaration, or leave context selection to the entry point
+   and treat the present behavior as intended rather than vestigial. Item 3
+   covers the separate question of failing loudly when the keys are written
+   anyway.
+2. **Reconcile `docs/guides/` with `docs/core/architecture.md`.** Core layer
+   pages now match the current hub and `di/` package. The strategy guides still
+   describe retired names and are a later remediation.
+3. **Audit other session-level configuration keys for the same silent-drop
    pattern.** `AppSessionConfigObject`'s lenient parsing means any stale or
    misspelled key in a session's configuration fails silently rather than
    loudly; a validation pass (or a stricter parsing mode for known sections)

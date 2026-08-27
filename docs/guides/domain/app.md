@@ -64,7 +64,7 @@ The `build_app` blueprint (`tiferet/blueprints/core.py`) is the primary consumer
 
 1. **`App('basic_calc', app_config='config.yml')`** calls `build_app`, which builds the bootstrap cache and resolves the app session.
 2. **`get_app_session(interface_id, cache, ...)`** retrieves the `AppSession` via the `GetAppSession` domain event, preferring a cache-seeded default session when present.
-3. **`build_app_session_context(app_session, cache)`** merges the session's own services/constants with the cache-seeded framework defaults, composes the service resolver, and wires the FE4 template-method handlers.
+3. **`build_app_session_context(app_session, cache)`** merges the session's own services/constants with the cache-seeded framework defaults (the session wins on a conflict), composes the service resolver, and wires the five required template-method handlers.
 4. The resulting **`AppSessionContext`** is returned, bound to the loaded `AppSession` and ready to execute features via `run()`.
 
 ```python

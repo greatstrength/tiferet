@@ -3,30 +3,22 @@ sessions:
     name: Calculator Client
     description: >-
       A plain, non-fluent client for the calculator's arithmetic bounded
-      context. module_path/class_name below are informational only --
-      CalculatorAppContext is wired explicitly by
-      app.blueprints.calc.create_calculator_app, not resolved from this
-      config.
-    module_path: app.contexts.calc
-    class_name: CalculatorAppContext
+      context. CalculatorAppContext is realized by
+      app.blueprints.calc.create_calculator_app.
     services:
       record_run_event:
         module_path: app.events.history
         class_name: RecordCalculation
   calc_cli:
     name: Calculator CLI
-    description: Perform basic calculator operations via CLI
-    module_path: tiferet.contexts.cli
-    class_name: CliContext
+    description: >-
+      Perform basic calculator operations via CLI. CliSessionContext is
+      realized by the CLI entry point.
   calc_fluent:
     name: Fluent Calculator
     description: >-
-      A chainable, PEMDAS-aware calculator context. module_path/class_name
-      below are informational only -- CalculatorFluentContext is wired
-      explicitly by app.blueprints.fluent.create_calculator_fluent, not
-      resolved from this config.
-    module_path: app.contexts.fluent
-    class_name: CalculatorFluentContext
+      A chainable, PEMDAS-aware calculator context. CalculatorFluentContext
+      is realized by app.blueprints.fluent.create_calculator_fluent.
     services:
       record_run_event:
         module_path: app.events.history

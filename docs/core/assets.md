@@ -1,73 +1,41 @@
 # Assets in Tiferet
 
-**Project:** Tiferet Framework  
-**Repository:** https://github.com/greatstrength/tiferet  
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-## Overview
+A composable system begins with primitives that do not depend on the composition. `assets` holds exceptions, named error codes, and bootstrap catalogs with no inbound framework edges. This is the **Keter** position: it emits data but does not absorb dependencies or participate in runtime orchestration. Core assets may be used by other assets, `blueprints`, `contexts`, and `events`, typically through `from .. import assets as a`; they do not flow to `domain`, `interfaces`, `mappers`, `di`, `utils`, or `repos`. See [architecture.md](architecture.md).
 
-The assets package (`tiferet/assets/`) is the framework's foundational, dependency-light layer. It holds the primitive building blocks shared across every other layer — the structured exception types, error-code and default-configuration constants, bootstrap wiring definitions, and the package's public exports.
+Legal `# ** app` imports: none. The package imports only standard-library and third-party primitives. An asset that required a domain object or service would become a runtime dependency rather than a shared primitive.
 
-Because it sits at the bottom of the dependency graph, assets modules import only the standard library and third-party primitives. They never import from `domain`, `events`, `mappers`, `interfaces`, `repos`, `contexts`, or `blueprints` — those layers depend on assets, not the other way around.
+## Life in the system
 
-Assets modules are deliberately simple. Only five artifact kinds appear in the layer:
+Assets declare. They do not execute a feature, mutate a noun, or open a file. `TiferetError` is the structured failure the rest of the framework raises. Namespaced catalogs (`error.py`, `app.py`, `feature.py` as `feat`, `cli.py`, `di.py`, `logging.py`) hold the identifiers and default definitions the factory will seed into the application runtime cache. `__init__.py` re-exports the public exceptions and the module aliases.
 
-- **imports**
-- **constants**
-- **functions**
-- **classes** (standalone)
-- **exports**
+The package contains five artifact kinds: imports, constants, functions, standalone classes, and exports. It contains no domain objects, aggregates, services, events, or contexts.
 
-There are no domain objects, aggregates, services, events, or contexts here. That simplicity is the point: keeping assets primitive lets every other layer depend on it without introducing dependency cycles.
+### Acyclic in both directions
 
-## The Assets Layer's Role
+**Acyclicity defines this position.** `assets` has no framework imports, while its declared values flow only to designated consumer packages. A package that depended on framework behavior would not serve as the origin.
 
-- **Exceptions** — `TiferetError` and `TiferetAPIError` (`exceptions.py`) are the structured error types raised throughout the framework.
-- **Constants** — error-code identifier constants (`constants.py`), the `DEFAULT_ERRORS` catalog (`error.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
-- **Exports** — `__init__.py` re-exports the commonly used symbols and exposes the `constants` and `blueprints` modules under the short aliases `const` and `bps`.
+One of the intrinsic advantages of layers is that the lower layers can exist without the higher ones. That is also why phased introduction works at all. You can stand up `assets` and `domain` with nothing else in the repository and they are complete; you cannot stand up `repos` without the three positions it absorbs from.
 
-## Structured Code Design
+### Unity through differentiation
 
-Assets modules follow the standard Tiferet artifact comment hierarchy (see [code_style.md](code_style.md)). Because the layer is primitive, only these top-level sections appear:
+The import idiom follows this boundary. The package is imported **whole**—`from .. import assets as a`—and referenced through differentiated members: `a.error`, `a.feat`, `a.cli`, `a.app`, and `a.logging`.
 
-- `# *** imports` — with `# ** core` / `# ** infra` / `# ** app` groupings.
-- `# *** constants` — module-level constants, each under `# ** constant: <snake_case_name>`.
-- `# *** functions` — module-level functions, each under `# ** function: <snake_case_name>`.
-- `# *** classes` — standalone classes, each under `# ** class: <snake_case_name>`.
-- `# *** exports` — public re-exports (only in `__init__.py`).
+This namespaced access preserves one package boundary while keeping catalogs distinct. It also predicts the repository's import idiom rather than treating `assets` as an undifferentiated constants module.
 
-**Spacing rules** match the rest of the framework: one empty line between a top-level comment and the first mid-level comment, one empty line between mid-level entries, and one empty line after docstrings and between code snippets.
+### Static, and on every runtime path
 
-There are no specialized top-level labels in this layer. Exception types are plain standalone **classes** (`# *** classes` / `# ** class: <name>`), and default configuration data structures are plain **constants** (`# *** constants` / `# ** constant: <name>`).
+Assets hold no operational behavior. Their catalogs are loaded during composition and referenced by the runtime, but the package does not execute features, mutate domain state, or access a substrate.
 
-## Artifact Kinds
+Its contents are not renegotiated at runtime. A blueprint seeds a catalog into the cache during composition, and an interface may override what it declares, but the catalog itself is not mutated. Mutable state belongs to a domain noun.
 
-### Imports
+The emission path is narrow. Blueprints seed catalogs into the cache, while contexts and events raise named errors through `a.<submodule>`. Mappers and repositories receive required values as data rather than importing `assets`.
 
-```python
-# *** imports
+## What an asset looks like
 
-# ** core
-from typing import Dict, Any
-import json
-```
-
-### Constants
-
-Constants are `SCREAMING_SNAKE_CASE` module-level values. Each constant carries its own `# ** constant: <snake_case_name>` label — related constants are not grouped under a shared `# **` comment. A large constants section may instead be partitioned into top-level **sub-groups** (see [code_style.md](code_style.md)); for example, `constants.py` keeps language constants under `# *** constants` and error-id constants under `# *** constants (error)`:
-
-```python
-# *** constants
-
-# ** constant: en_us
-EN_US = 'en_US'
-
-# *** constants (error)
-
-# ** constant: error_not_found_id
-ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
-```
-
-Structured data is built from a factory rather than annotated inline. `DEFAULT_ERRORS` keys each error-id constant to a definition produced by `create_default_error`, and each definition is itself a named constant:
+A constant is a `SCREAMING_SNAKE_CASE` value with its own `# ** constant:` label. Structured defaults are built from a factory, not annotated inline:
 
 ```python
 # ** constant: error_not_found
@@ -83,39 +51,9 @@ DEFAULT_ERRORS = {
 }
 ```
 
-### Functions
+The identifier, human name, and default message are data rather than a domain `Error`. The `create_default_error` factory in `core.py` prevents catalog entries from diverging into unstructured inline dictionaries.
 
-Assets functions are small, stateless helpers with no framework dependencies. For example, `create_default_error` (in `constants.py`) builds a default error definition from ordered `(lang, text)` message pairs:
-
-```python
-# *** functions
-
-# ** function: create_default_error
-def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
-    '''
-    Build a default error definition dictionary.
-
-    :param id: The unique identifier of the error.
-    :type id: str
-    :param name: The human-readable error name.
-    :type name: str
-    :param messages: Ordered (lang, text) message pairs.
-    :type messages: List[Tuple[str, str]]
-    :return: The default error definition.
-    :rtype: Dict[str, Any]
-    '''
-
-    # Assemble and return the default error definition dictionary.
-    return {
-        'id': id,
-        'name': name,
-        'message': [{'lang': lang, 'text': text} for lang, text in messages],
-    }
-```
-
-### Classes (standalone)
-
-Standalone classes carry no injected dependencies and extend only stdlib or other assets primitives. Exception types like `TiferetError` are ordinary standalone classes under `# *** classes` / `# ** class:`:
+The exception is a standalone class, not a domain object:
 
 ```python
 # *** classes
@@ -145,56 +83,46 @@ class TiferetError(Exception):
         )
 ```
 
-### Exports
+`error_code` and `kwargs` are what an event’s `raise_error` and a context’s error handler both understand. The class does not format a localized user message — that is `Error.format_message` on the domain noun, after the hub has loaded the catalogued `Error`. Assets name the failure. They do not present it.
 
-Only `__init__.py` carries an `# *** exports` section. It re-exports the public surface and exposes module aliases where consumers use them heavily:
+Exports live only in `__init__.py`. Consumers write `from .. import assets as a` and then `a.error.ERROR_NOT_FOUND_ID`, `a.app.CORE_DEFAULT_SERVICES`, `a.feat`, `a.cli`, `a.logging`. New public symbols must be surfaced there. New concerns that need a domain, a service, or an event do not belong in this package.
 
-```python
-# *** exports
+## A dialect gets its own crown
 
-# ** app
-from .exceptions import TiferetError, TiferetAPIError
-from .constants import ERROR_NOT_FOUND_ID
-from .error import DEFAULT_ERRORS
-from . import constants as const
-from . import blueprints as bps
-```
+The position is not reserved to the framework. `examples/basic_calculator/app/assets/` holds `core.py`, `di.py`, `error.py`, and `feature.py`, declaring `CALC_DEFAULT_ERRORS`, `CALC_DEFAULT_SERVICES`, and `CALC_DEFAULT_FEATURES` in the same five artifact kinds, with the same absence of inbound edges.
 
-## Creating and Extending Assets Modules
+The example demonstrates the position's claim: **a consumer's bootstrap catalogs describe its bounded context before behavior exists.** Before an `execute` method is written, the calculator declares its errors, resolvable operators, and exposed features. The dialect's catalogs feed its composition in the same structural role as the framework's.
 
-1. Start the module with a docstring, then an `# *** imports` section limited to the standard library and third-party primitives.
-2. Add content under exactly one primary artifact kind per concern — `# *** constants`, `# *** functions`, or `# *** classes`.
-3. Do not introduce domain, service, event, mapper, or context artifacts here; if a concern needs one, it belongs in the corresponding layer.
-4. Surface any new public symbols from `__init__.py` under `# *** exports`.
+## The mirror at the bottom
 
-### Best Practices
+Keter and Malkuth are one relation seen from both ends, and the cardinality is exact.
 
-- Keep the layer dependency-light: never import from another Tiferet layer.
-- Restrict modules to the five artifact kinds (imports, constants, functions, standalone classes, exports).
-- Use `SCREAMING_SNAKE_CASE` values, each with its own `# ** constant: <snake_case>` label; do not group multiple constants under a shared `# ** constants: <group>` comment. To partition a large section, use a top-level sub-group (`# *** constants (<sub-group>)`) instead — see [code_style.md](code_style.md).
-- Place exception classes under `# *** classes` and default configuration data under `# *** constants`; build structured defaults from a `# *** functions` factory (e.g., `create_default_error`) rather than annotating entries inline.
-- Write RST docstrings on functions and classes, and keep code snippets separated by single blank lines.
+This position emits to exactly three — `blueprints`, `contexts`, `events`. The tenth absorbs from exactly three — `interfaces`, `mappers`, `utils`. Neither end reaches the other seven, and neither end reaches the other: `assets` never sees `repos`, and `repos` may never import `assets`.
 
-## Package Layout
+The architecture does not reproduce every relation attributed to the traditional model. This chapter documents the relationships present in code: the metaphor is evaluated against the architecture, not the reverse.
+
+## Package layout
 
 ```
 tiferet/assets/
-├── __init__.py      — Public exports; exposes `const` and `bps` module aliases
-├── constants.py     — Error-code identifier constants
-├── error.py         — The DEFAULT_ERRORS catalog (imports ids from constants.py)
-├── exceptions.py    — TiferetError and TiferetAPIError
-├── blueprints.py    — Bootstrap default constants and service wiring
+├── __init__.py      — Public exports; namespaced module aliases
+├── core.py          — TiferetError, TiferetAPIError, shared factories and path constants
+├── error.py         — Error-code ids and default error catalogs
+├── app.py           — Default app sessions, services, and constants
+├── feature.py       — Default feature catalogs (exported as feat)
+├── cli.py           — Default CLI command catalogs
+├── di.py            — Default service-registration catalogs
 └── logging.py       — Default logging formatters, handlers, and loggers
 ```
 
-## Conclusion
+## In short
 
-The assets layer is the simple, stable foundation of the Tiferet framework: a dependency-light collection of imports, constants, functions, standalone classes, and exports. Constraining it to these primitive artifact kinds keeps the dependency graph acyclic and the framework's shared building blocks easy to locate and reason about.
-
-Explore `tiferet/assets/` for the error catalog, exception types, and bootstrap defaults.
-
-## Related Documentation
-
-- [code_style.md](code_style.md) — General structured code style and artifact comments
-- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error handling that consumes `TiferetError` and `DEFAULT_ERRORS`
-- [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — Bootstrap orchestration that consumes the `blueprints` defaults
+- Assets emit primitives and have no inbound framework edges. That crown is Keter.
+- Acyclicity in both directions is the definition of the position, not a restriction placed on it. This tier can exist without any of the others; the last one cannot.
+- Five artifact kinds only: imports, constants, functions, standalone classes, exports.
+- Imported whole and referenced through differentiated members: `a.error`, `a.feat`, `a.app`, `a.cli`, `a.logging`.
+- Nothing here executes, and everything here is on every runtime path. That is why the tier is trustworthy — and why its contents cannot be renegotiated while the application runs.
+- Used by blueprints, contexts, and events via `a`. Not by domain, interfaces, mappers, di, utils, or repos.
+- Emits to exactly three; the tenth position absorbs from exactly three. The inversion is exact, and neither end reaches the other.
+- A dialect declares its own crown, and those catalogs describe its bounded context before any behavior exists.
+- If a concern needs a noun, a contract, or a unit of work, it is not an asset.

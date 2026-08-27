@@ -1,135 +1,31 @@
 # Blueprints in Tiferet
 
-Blueprints are a core component of the Tiferet framework in v2.0+. They serve as the primary public entry point for applications, providing a clean, high-level API for loading services, preparing defaults, resolving sessions, wiring the five-handler context contract, and executing features.
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-While contexts define the runtime shape and behavior of an individual session, blueprints orchestrate the overall application lifecycle and wiring.
+Wisdom, in this design, is the spark — and the sustaining of it. `blueprints` build the cache, resolve the session, compose the container and the resolver, and build the handler closures the hub will run for the rest of the session. They do not implement domain logic. That position is **Chochmah**. See [architecture.md](architecture.md).
 
-## What is a Blueprint?
+The tempting description is a flash of composition that gets out of the way, and it is wrong. A blueprint does not complete and withdraw. The handlers it builds are closures bound to the cache and the resolver, and they stay resident for the life of the session — which means the execution workflow state lives *here*, in distilled functional form, and the hub merely sequences it. Chochmah drawn down continuously, or the lower world does not persist. That is not a flourish; it is the literal shape of the code, and the rest of this chapter depends on getting it right.
 
-A blueprint in Tiferet is a module-level function that encapsulates the initialization and orchestration logic required to prepare and run an application session. Blueprints are intentionally thin: they focus on service loading, default configuration injection, dependency wiring, handler composition, and delegation to the appropriate `AppSessionContext` or `CliSessionContext`.
+Legal `# ** app` imports: `assets`; `contexts`; `di` for container and resolver classes; `events` for pre-DI bootstrap only (`DomainEvent.handle(...)` or a direct event-class import). Illegal as a direct import: `domain`, `interfaces`, `mappers`, `utils`, `repos`. Domain types reach a blueprint only through context re-exports. Service instances reach a blueprint only through `di`. That is how the factory is allowed to see a noun and hold a contract without becoming Gevurah or Netzach.
 
-The canonical implementation is `build_app` in `tiferet/blueprints/core.py` (exported as `App`), which chains the composition functions `build_cache` → `get_app_session` → `build_app_session_context`. The CLI entrypoint (`build_cli` / `CLI`) and the admin entry points (`build_admin_app` / `AdminApp`, `build_admin_cli` / `AdminCLI`) reuse the same core composition helpers with session-specific cache seeding and resolver wiring.
+## Life in the system
 
-### Role in the Architecture
+A blueprint is a module-level function, not a class. It orchestrates. It does not add two numbers, rename an error, open a file, or access a database. The public surface is four entry points: `build_app` / `App`, `build_cli` / `CLI`, `build_admin_app` / `AdminApp`, `build_admin_cli` / `AdminCLI`. All of them reuse the same core chain in `tiferet/blueprints/core.py`.
 
-Blueprints sit at the highest level of the application graph:
+The chain is the factory’s entire job:
 
-- They build the shared `CacheContext`, pre-seeded with the framework's default errors, app services, constants, and (where applicable) logging settings, features, and CLI commands (`build_cache`)
-- They compose the application service and resolve the app session via a domain event (`get_app_session` → `GetAppSession`)
-- They build the app service container from the cache defaults merged with the session's own overrides, and compose a feature-level `ServiceResolver` (`build_app_session_context`)
-- They wire the five required template-method handlers (`build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler`) into the session context
-- They delegate feature execution to the resolved `AppSessionContext` / `CliSessionContext`
+1. `build_cache()` — a `CacheContext` pre-seeded with framework catalogs (errors, default services, constants).
+2. `get_app_session(interface_id, cache, ...)` — resolve the `AppSession` via the `GetAppSession` event. This is the legal Chochmah → Tiferet edge: bootstrap, before the container exists.
+3. `build_app_session_context(session, cache)` — merge cache defaults with the session’s own services and constants, build the singleton app container, compose the feature-level resolver, import the context class, and construct it via `from_domain` with the five handlers.
 
-This design keeps application code simple while maintaining full extensibility and testability.
+`build_cli` is thinner still: call `core.build_app(...)`, then `cli_context.run(argv)`. Parsing is Binah’s. The blueprint does not own argparse.
 
-## Types of Blueprints
+**Da'ath** is the crossing that keeps this legal. Context modules re-export the types factory signatures need (`AppSession`, `Feature`, `Error`, `LoggingSettings`, CLI models). Write `from ..contexts.feature import Feature`, never `from ..domain import Feature`. Netzach instances arrive the same way through Chesed: `get_dependency`, never `from ..interfaces import AppService`. The remaining code violation — `AppSessionContext.load` importing `AppService` — is a factory method that still lives on the hub. It belongs here. That move is a code fork, not this chapter.
 
-Tiferet currently defines four public blueprints:
+## The handlers, and what stays resident
 
-- **App blueprint**: `build_app` — used for general script and custom interfaces. Exposed globally as `App`.
-- **CLI blueprint**: `build_cli` — a thin entrypoint that resolves and realizes a CLI session (which must point at `CliSessionContext`) and delegates `sys.argv` translation and feature dispatch to `CliSessionContext.run`. Exposed globally as `CLI`.
-- **Admin App blueprint**: `build_admin_app` — builds the built-in management session (`admin`) with admin-scoped service resolution. Exposed globally as `AdminApp`.
-- **Admin CLI blueprint**: `build_admin_cli` — builds the built-in management CLI (`admin_cli`) and powers the `tiferet` console script. Exposed globally as `AdminCLI`.
-
-Future specialized blueprints may include:
-
-- Web blueprint — for web framework integration (Flask, FastAPI, etc.)
-- Test blueprint — for integration and unit testing with mocked services
-
-### CLI Blueprint Build Procedure
-
-The CLI blueprint (`build_cli`) is a thin entrypoint; argparse parsing and request derivation live in `CliSessionContext` (`tiferet/contexts/cli.py`) behind an injected `parse_cli_args` closure. Its flow follows these steps:
-
-1. **Build the context** via the CLI session composer (which wires all five handlers, including `build_logger_handler`, plus `parse_cli_args`). The interface must point at `tiferet.contexts.cli` / `CliSessionContext`.
-2. **Delegate to the context** by calling `cli_context.run(argv)`, which parses `argv` (argparse exits `2` on failure), derives `feature_id`/`headers`/`data`, dispatches through the inherited hub `run`, prints the response when appropriate, and converts a `TiferetAPIError` into `sys.exit(1)`.
-
-Consumer CLI interfaces opt in by declaring `module_path: tiferet.contexts.cli` / `class_name: CliSessionContext` in their session config.
-
-## Structured Code Design of Blueprints
-
-Blueprints follow Tiferet's standard artifact comment structure.
-
-### Artifact Comments
-
-Blueprints are organized under the `# *** blueprints` top-level comment, with individual blueprints under `# ** blueprint: <snake_case_name>`. Each blueprint function uses standard RST docstrings and code snippet conventions.
-
-Side-effect-free helpers (pure input→output transforms with no I/O, instantiation, or error raising) belong in a `# *** functions` section above `# *** blueprints`, with individual helpers under `# ** function: <snake_case_name>`. In `tiferet/blueprints/core.py`, `resolve_collaborators` and `merge_logging_settings` are grouped this way — small pure helpers consumed by the orchestration functions below them. Reserve `# *** blueprints` for the orchestration entry points reused by other blueprints or clients (e.g. `core.build_app`, `core.build_app_session_context`, `core.build_logger_handler`).
-
-**Spacing rules:**
-
-- One empty line between `# *** blueprints` and first `# ** blueprint`
-- One empty line between each blueprint function
-- One empty line after docstrings and between code snippets
-
-### Core Blueprint Artifacts (`tiferet/blueprints/core.py`)
-
-Key `# *** functions` and `# *** blueprints` in the core module:
-
-| Artifact | Kind | Role |
-| --- | --- | --- |
-| `RESERVED_CONTEXT_PARAMETERS` | constant | Constructor params supplied by session builders (includes all five handlers + `parse_cli_args`) |
-| `resolve_collaborators` | function | DI-resolves remaining injectable context collaborators, skipping reserved names |
-| `merge_logging_settings` | function | Merges repository logging sections over cache-seeded defaults by `.id` |
-| `parse_parameter` | blueprint | Injectable wrapper over `ParseParameter.execute` |
-| `build_app_service_container` | blueprint | Singleton app container from cache defaults + session overrides |
-| `build_service_resolver` | blueprint | Feature-level resolver; caches the app container under the `app` flag |
-| `build_cache` | blueprint | Shared cache pre-seeded with framework catalogs |
-| `get_error` / `get_feature` | blueprint | Lazy-caching domain-object handlers |
-| `build_logger_handler` | blueprint | Cache-backed logger construction under `LOGGER_CACHE_PREFIX` |
-| `create_request_context` / `create_session_request` | blueprint | Request factory used as `create_request_handler` |
-| `create_feature_context` | blueprint | Returns a domain-bound `FeatureContext` (not a tuple) |
-| `execute_feature_handler` | blueprint | Closure: `create_feature_context(...).execute_feature(request, ...)` |
-| `raise_error_handler` | blueprint | Formats domain errors into `TiferetAPIError` |
-| `response_handler` | blueprint | Delegates to `request.handle_response()` |
-| `build_app_session_context` | blueprint | Wires all five handlers into `AppSessionContext.from_domain` |
-| `build_app` | blueprint | Single-call public entry point (`App`) |
-
-#### `merge_logging_settings`
-
-```python
-# ** function: merge_logging_settings
-def merge_logging_settings(cache, formatters, handlers, loggers) -> LoggingSettings:
-    # Retrieve cache-seeded defaults (tolerate none).
-    # Merge repository entries over defaults keyed by .id (repository wins).
-    # Return LoggingSettings(formatters=..., handlers=..., loggers=...).
-```
-
-#### `build_logger_handler`
-
-```python
-# ** blueprint: build_logger_handler
-def build_logger_handler(cache, get_dependency) -> Callable:
-    def handler(logger_id: str):
-        cached = cache.get(logger_id, *LOGGER_CACHE_PREFIX)
-        if cached is not None:
-            return cached
-        formatters, handlers, loggers = get_dependency('logging_list_all_evt', 'app').execute()
-        settings = merge_logging_settings(cache, formatters, handlers, loggers)
-        logger = LoggingContext.from_domain(settings, logger_id=logger_id).build_logger()
-        cache.set(logger_id, logger, *LOGGER_CACHE_PREFIX)
-        return logger
-    return handler
-```
-
-#### `create_feature_context` / `execute_feature_handler`
-
-```python
-# ** blueprint: create_feature_context
-def create_feature_context(get_dependency, cache, feature_id) -> FeatureContext:
-    feature = get_feature(cache, get_dependency)(feature_id)
-    return FeatureContext.from_domain(feature, get_dependency=get_dependency, cache=cache)
-
-# ** blueprint: execute_feature_handler
-def execute_feature_handler(get_dependency, cache) -> Callable:
-    def handler(feature_id, request, *flags, **kwargs) -> None:
-        feature_context = create_feature_context(get_dependency, cache, feature_id)
-        feature_context.execute_feature(request, *flags, **kwargs)
-    return handler
-```
-
-`create_feature_context` returns only the bound `FeatureContext`. The inner call is `feature_context.execute_feature(request, ...)` — there is no `feature` parameter on the context method.
-
-#### Five-handler wiring in `build_app_session_context`
+The hub must run without knowing how it was assembled. The blueprint declares how:
 
 ```python
 handlers = dict(
@@ -148,124 +44,73 @@ return AppSessionContext.from_domain(
 )
 ```
 
-## Admin Blueprints
+What the reader just saw: five slots, plus `get_dependency`. The hub will call these. It will not import `FeatureContext` to build one. `build_logger_handler` is a cache-backed closure, not a long-lived `LoggingContext` stored on the hub. `execute_feature_handler` constructs a domain-bound `FeatureContext` and calls `execute_feature(request)`. That is Chochmah injecting Binah’s siblings so Binah does not construct them.
 
-### `tiferet/blueprints/admin.py`
+Five is **Tiferet's own arity**, not a coordinate. A dialect extends context and blueprint in lockstep, and the calculator does exactly that: `CalculatorAppContext` declares a sixth slot, `record_run_handler`, and `build_calculator_app_context` builds that closure alongside the other five. Any sentence of the form "five handlers is the whole contract" is false against the examples directory. What is fixed is the pattern — named slots, filled by a blueprint, called by a hub that never learns who filled them.
 
-| Artifact | Role |
-| --- | --- |
-| `build_cache` | Core cache plus admin catalogs: `ADMIN_DEFAULT_SERVICES`, `ADMIN_DEFAULT_CONSTANTS`, `ADMIN_DEFAULT_FEATURES`, `ADMIN_DEFAULT_ERRORS` |
-| `build_admin_service_resolver` | Dual-container resolver: app container under `'app'`; admin container under `'admin'` **and** as the empty-flag default |
-| `build_admin_app_session_context` | Mirrors `build_app_session_context` with the admin resolver and the same five handlers |
-| `build_admin_app` / `AdminApp` | Single-call entry point defaulting to `TIFERET_ADMIN_ID` |
+Notice what the closures carry. The lazy-caching ones (`get_error`, `get_feature`, `build_logger_handler`) hold cache state across calls, so `dictConfig` runs once per logger id per process because a blueprint closure remembers. Memoization lives in the factory, not in the hub. And an unwired slot is a composition bug that fails loudly through `raise_unwired_handler_error` — a spark that was never sustained cannot run a feature.
 
-Admin-scoped resolution pattern:
+Side-effect-free helpers (`resolve_collaborators`, `merge_logging_settings`) live under `# *** functions`. Orchestration entry points live under `# *** blueprints`. Keep the factory thin enough that a new interface — web, test, gRPC — is another function that reuses the chain, not a new architecture.
 
-```python
-resolver.add_container(app_container, 'app')
-resolver.add_container(admin_container, 'admin')
-resolver.add_container(admin_container)  # empty-flag default
-```
+## Four ways to swap a composition
 
-Feature steps therefore resolve from the admin container unless they explicitly request the `'app'` flag.
+Because the hub never learns which blueprint filled its slots, execution is swapped by writing or extending a blueprint rather than by mutating a live session. There are four levels of that, in increasing strength, and the fourth is the one to read carefully.
 
-### `tiferet/blueprints/admin_cli.py`
+**1. Change what a handler closes over.** `blueprints/admin.py` reuses all five core handler functions verbatim and substitutes only the resolver behind them. `build_admin_service_resolver` registers the admin container under both the `admin` flag and the empty-flag default, so admin feature steps resolve elsewhere while the hub is untouched. Its `build_cache` is the core builder under a different decorator stack, so catalogs layer as declared data rather than branching in code. The seams are declared defaults, not hooks: `service_container=`, `parse_parameter=`, `**context_kwargs`.
 
-| Artifact | Role |
-| --- | --- |
-| `build_cache` | Admin cache plus `ADMIN_DEFAULT_COMMANDS` |
-| `build_admin_cli_session_context` | Wires `CliSessionContext` with the admin resolver, five handlers, and CLI parse/request/response helpers |
-| `build_admin_cli` / `AdminCLI` | Resolves `TIFERET_ADMIN_CLI_ID`, re-seeds all `*_config` constants to the consumer path, runs `cli_context.run(argv)` |
-| `main` | Console entry for the `tiferet` script; pre-parses `--config` without consuming help/remaining argv |
+**2. Replace a handler function outright.** Fully available. Nothing in the framework needs it, which is worth saying plainly rather than implying the level is hypothetical.
 
-Exports:
+**3. Add a slot.** The calculator's `record_run_handler`, above. This is the level a dialect reaches for most naturally, because a new session concern usually wants a new phase rather than a different implementation of an existing one.
 
-```python
-from tiferet import App, CLI
-from tiferet.blueprints import AdminApp, AdminCLI
-# also: build_app, build_cli, build_admin_app, build_admin_cli
-# AdminApp / AdminCLI are blueprints-package exports only (not package-root).
-```
+**4. Compose the builder itself from published parts.** The strongest level — and currently unavailable. `core.build_app_session_context` and `cli.build_cli_session_context` each fuse three jobs into one body: compose the resolver, build the handler bundle, construct the context. Both intermediates are locals, so a dialect that wants either must re-execute the whole thing. The consequence is visible in the examples directory: `build_calculator_cli_session_context` is a near-verbatim fifty-line copy of `cli.build_cli_session_context` whose entire difference is one inserted `register_calc_container(resolver, cache)` line, and it will drift from the original on every future change to CLI wiring. **Until that seam exists, do not treat the CLI path as extensible.**
 
-Full catalog reference: [docs/guides/admin.md](../guides/admin.md).
+Two precisions about that gap, because the obvious readings of it are both wrong.
 
-## Writing Blueprints
+It is **not an asymmetry between the app path and the CLI path.** Neither builder exposes its resolver; `**context_kwargs` forwards to the context constructor, not to the resolver, and neither path has a container-registration hook. The real difference is justification. `build_calculator_app_context` had to be a local copy regardless, because it selects a different context class and wires a sixth handler, so the container line rides along on a fork that earns its existence. The CLI copy has an identical context class and identical handlers, so it exists *purely* because the seam is missing — which makes it the clean specimen rather than the asymmetric one.
 
-### Creating a New Blueprint
+And **entry scripts are not the fix.** Moving the wiring into `calc_client`, `calc_fluent`, and `calc_cli` would duplicate it three ways. Scripts are occasions; composition stays in Chochmah.
 
-1. Place the function under `# *** blueprints` in an appropriate module (for example, `tiferet/blueprints/core.py`).
-2. Use `# ** blueprint: <snake_case_name>`.
-3. Reuse the core composition functions (`tiferet/blueprints/core.py`):
-   - `build_cache` — build the shared cache pre-seeded with default errors, services, and constants
-   - `create_app_service` — compose the app service via a single-use dynamic container
-   - `get_app_session` — resolve the app session via the `GetAppSession` event
-   - `build_app_service_container` — build the singleton app service container from cache defaults merged with the session's overrides
-   - `build_service_resolver` — compose the feature-level `ServiceResolver`, caching the app container under the `app` flag
-   - `merge_logging_settings` / `build_logger_handler` — logger construction for the fifth handler slot
-   - `create_feature_context` / `execute_feature_handler` — domain-bound feature execution
-   - `build_app_session_context` — import/construct the context class with all five handlers
-   - `build_app` — high-level single-call entry point chaining the above
+There is a discipline missing behind all of this, and it is the same finding rather than a second one. The framework/dialect relation is Customer/Supplier with the framework upstream, and Evans gives that pattern a mechanism, not just a shape: the downstream's requirements are budgeted rather than hoped for, and the interface it depends on is written as automated acceptance tests living in the **upstream's** suite and running in the upstream's CI. That is what frees the upstream to change things without breaking the downstream. Tiferet has the relation with none of the mechanism — no dialect-owned acceptance suite runs in this repository's CI. The fifty-line fork is that absence already realized: the calculator needed a hook, upstream never budgeted it, and a copy was the result.
 
-### Key Patterns
+## The mechanism extends itself
 
-**Single-call entry point**  
-`build_app` resolves and realizes in one call:
+The strongest available evidence that the ten positions are an intermediate representation rather than a package layout is that the extension mechanism extends itself, in the same shape, one level out.
+
+`examples/basic_calculator/app/blueprints/calc.py` stacks its own `add_default_calc_features` and `add_default_calc_services` on the framework's `add_default_errors`, then delegates to `core.build_cache`. `contexts/calc.py` wraps the framework's `add_default_features`. A dialect builds its decorators the way the framework builds its decorators, and it needs no new vocabulary to do it. Nothing was added to the framework to make that possible.
+
+**Bounded Context arrives here as a resolution namespace.** `add_default_calc_features` auto-tags every feature `flags=['calc']`, and `register_calc_container` registers a dedicated container under that flag, standing in Customer/Supplier relation to the app container. That is Evans' Bounded Context implemented as DI flags — the cleanest dialect illustration in the repository, and a good answer to anyone who suspects the pattern only exists in the prose.
+
+**Differentiation happens between blueprints, not within one.** `build_calculator_app_context` and `build_calculator_fluent_context` are near-identical and differ only in the context class they realize. Which is why the entry point choice is load-bearing without being an eleventh position: choosing `App` over `AdminApp`, or `create_calculator_app` over `create_calculator_fluent`, chooses which sustained composition runs.
+
+## Polarity originates here
+
+One structural fact sets this position apart from the other nine, and it is checkable against the import table: **`blueprints` is the only package that imports both `di` and `contexts`.** Every other package sits on one side of that divide or on neither.
+
+So the composition position is the single point where the whole graph is touched at once — resolution on one side, runtime on the other, and a factory holding both long enough to join them. It is also why the one-way construction edge matters so much: `blueprints` may import `contexts`, and `contexts` may never import `blueprints`. Chochmah cannot elaborate itself; it requires Binah to become structure.
+
+Admin variants seed extra catalogs and keep two containers on the resolver (`app` and `admin`, with admin as the empty-flag default). The shape does not change. Expansion is still Chesed.
+
+A consumer’s entire acquaintance with the factory is one call:
 
 ```python
 app = App('basic_calc', app_config='config.yml')
+result = app.run('calc.add', data={'a': 1, 'b': 2})
 ```
 
-**Default configuration injection**  
-The core path sources the framework's `CORE_DEFAULT_SERVICES` / `CORE_DEFAULT_CONSTANTS` catalogs (defined in `assets/app.py`, accessed as `a.app`) from the shared cache seeded by `build_cache`. `build_app_service_container` merges those cache defaults with the session's own constants and services (session wins) *before* building the container:
+`run` is already Binah.
 
-```python
-container = build_app_service_container(cache, app_session)  # cache defaults + session overrides
-```
+## Structured code design
 
-**Cache pre-seeding**  
-The core `build_cache` blueprint (`tiferet/blueprints/core.py`) pre-seeds a `CacheContext` with framework catalogs via stacked decorators, namespacing each catalog under its own cache-key prefix.
+Use `# *** functions` / `# ** function:` for pure helpers and `# *** blueprints` / `# ** blueprint:` for orchestration. Functions first when both appear. Validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in single-call entry points. Raise through `TiferetError.raise_error` with `a.<submodule>` constants. Full grammar: [code_style.md](code_style.md). Composition-chain walkthroughs live in [docs/guides/blueprints.md](../guides/blueprints.md).
 
-**Service resolver injection**  
-`build_service_resolver` composes a `ServiceResolver` from the app service container (caching it under the `app` flag), and `build_app_session_context` injects its `get_dependency` handler into the context:
+## In short
 
-```python
-resolver = build_service_resolver(app_container)
-return context_cls.from_domain(app_session, get_dependency=resolver.get_dependency, ...)
-```
-
-**Five-handler context wiring**  
-Always pass `build_logger_handler` (never a long-lived `logging_context` constructor keyword). See [docs/core/contexts.md](contexts.md).
-
-## Testing Blueprints
-
-Blueprint tests use `pytest` with `unittest.mock`. Focus on:
-
-- Correct composition of the app service and app session (`create_app_service` / `get_app_session`)
-- Cache defaults merged with session overrides in `build_app_service_container`
-- Five-handler wiring in `build_app_session_context` / admin variants
-- Validation of the resolved `AppSessionContext` (raising `INVALID_APP_SESSION_TYPE`)
-- High-level `core.build_app()` / `build_admin_app()` behavior
-
-## Best Practices
-
-- Keep blueprints **thin** — they should orchestrate, not implement domain logic.
-- Always validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in the single-call entry points.
-- Use `TiferetError.raise_error()` for all domain-outcome error paths with proper constants.
-- Inject the `ServiceResolver`'s `get_dependency` handler into the context so contexts remain decoupled from the DI engine.
-- Wire all five handlers; never leave a hub slot unset in production paths.
-
-## Conclusion
-
-Blueprints provide a clean, high-level API for initializing and running Tiferet applications. They encapsulate service loading, default configuration, five-handler wiring, and session resolution while delegating execution to `AppSessionContext`. Their functional design ensures consistency, forward-compatibility, and extensibility.
-
-Explore source in `tiferet/blueprints/` and blueprint tests in the top-level `tests/` tree for implementation details.
-
-## Related Documentation
-
-- [docs/guides/blueprints.md](../guides/blueprints.md) — blueprint strategies and patterns
-- [docs/guides/admin.md](../guides/admin.md) — admin application and CLI catalog
-- [docs/core/contexts.md](contexts.md) — five-handler context contract
-- [docs/core/di.md](di.md) — dependency injection and service provider design
-- [docs/core/events.md](events.md) — domain event design and usage
-- [docs/guides/domain/app.md](../guides/domain/app.md) — application session and service registration guide
-- [docs/core/code_style.md](code_style.md) — artifact comments and formatting
+- Blueprints compose a session and stay resident as its handlers. That sustained spark is Chochmah.
+- The execution workflow state lives here in functional form. The hub sequences those closures and implements none of them.
+- Legal imports: `assets`, `contexts`, `di`, `events` (bootstrap only). Never `domain`, `interfaces`, `mappers`, `utils`, `repos`.
+- Domain types arrive through context re-exports (Da'ath). Service instances arrive through `di`.
+- Five handlers is Tiferet's own arity, not the contract. The calculator declares a sixth. Wire every slot a context declares; an unwired one fails loudly.
+- Four swap levels: change what a handler closes over, replace a handler, add a slot, or compose the builder from published parts. The fourth is not yet available, so the CLI path is not extensible today.
+- The extension mechanism extends itself: a dialect stacks its own decorators on the framework's and needs no new vocabulary. Bounded Context lands as DI flags.
+- This is the only package importing both `di` and `contexts`, which is why polarity originates here — and why construction flows one way only.
+- After `build_app` returns, the feature loop belongs to the context.
