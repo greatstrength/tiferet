@@ -1,6 +1,6 @@
 ---
 name: tiferet-code-architecture
-description: Understand the Tiferet v2 package architecture before starting any multi-component implementation. Read this when a task spans more than one package or when deciding where a new class belongs. Covers per-package import rules, the three reverse shapes, and the runtime execution flow.
+description: Understand the Tiferet v2 package architecture before starting any multi-component implementation. Read this when a task spans more than one package or when deciding where a new class belongs. Covers per-package import rules, reverse-shape principles, and the runtime execution flow.
 ---
 
 # Architecture – Tiferet v2
@@ -29,23 +29,22 @@ These rules govern what is valid in the `# ** app` import group of each package.
 | `repos` | `interfaces`, `mappers`, `utils` | `assets`, `domain`, `events`, `di`, `contexts`, `blueprints` |
 
 **Key notes:**
-- `assets` has no inbound framework edges. Only `blueprints`, `contexts`, and `events` import it (`from .. import assets as a`). Not every package may import assets.
+- `assets` has no framework imports. Only `blueprints`, `contexts`, and `events` import it (`from .. import assets as a`). Not every package may import assets.
 - `domain` has no framework imports. Mutation belongs on the aggregate in `mappers`.
 - `blueprints` reach domain types via `contexts` only (`from ..contexts.feature import Feature`, never `from ..domain`). They reach service instances via `di` (`get_dependency`), never by importing `interfaces`.
 - `events` on blueprints are pre-DI bootstrap only (`DomainEvent.handle` or a direct event-class import). After composition, the feature loop is `contexts` plus injected `get_dependency`.
 - `contexts` may call events as a client surface. Prefer blueprint handler injection over constructing sibling contexts.
 - `interfaces` import aggregates from `mappers` to type outputs. That is legal.
-- `utils` may import `mappers`. Implementing a Service is optional (required only when the util must be DI-injectable).
+- `utils` may import `mappers`. Implementing a Service is optional; it is warranted when the capability is extensible and must be reachable through a declared feature step.
 - `repos` are never exported. They absorb `interfaces`, `mappers`, and `utils` only.
 - `di` is event-free and asset-free. A missing provider raises `ServiceError`.
 
 ## Reverse shapes
 
-Only these three backward walks are allowed. This is not a general exemption.
+Reverse shapes preserve package boundaries when runtime construction, resolution, or a callback needs a relationship that a direct import would forbid. They are mechanisms, not general import exemptions. Use an established shape where it fits; a new shape must state the boundary it preserves and why an ordinary import is not legal.
 
-1. Injected `get_dependency` — `contexts` and `blueprints` resolve instances without importing `di` classes. `parse_parameter` is this shape.
-2. Blueprint handler slots — the hub runs without constructing sibling contexts (`build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler`, plus CLI `parse_cli_args`).
-3. A mapper method typed `Callable` — a util function may visit at runtime without `mappers` importing `utils`.
+- **Injected `get_dependency`:** contexts and blueprints resolve instances without importing `di` classes. `parse_parameter` follows the same injected-callable pattern.
+- **Runtime-handler slots:** a session hub invokes blueprint-supplied handlers without constructing sibling contexts. The core app wires logger, feature-execution, request, error, and response handlers; CLI adds argument parsing, and a dialect may declare additional slots.
 
 ## Runtime flow
 
@@ -53,7 +52,7 @@ Only these three backward walks are allowed. This is not a general exemption.
 App('interface_id')                               # blueprints/core.py: build_app()
   └─ build_cache()                               # CacheContext pre-seeded with framework defaults
   └─ get_app_session(id, cache)                  # GetAppSession event → AppSession
-  └─ build_app_session_context(session, cache)   # wires DI, constructs hub with five handlers
+  └─ build_app_session_context(session, cache)   # wires DI and constructs the runtime-handler hub
        └─ AppSessionContext.run(feature_id, data)
             ├─ build_request()                   # → RequestContext
             ├─ execute_feature()

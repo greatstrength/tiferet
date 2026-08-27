@@ -35,7 +35,7 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion). Never import from `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, or `events`. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` and receive a util function at runtime; never import `utils`.
+**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion). Never import from `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, or `events`. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` supplied at runtime by a domain event or utility; it never imports either package. Repositories never supply callables for mapper or utility operational behavior.
 
 **Naming:**
 - `<Domain>Aggregate` — mutable extension of a domain object (e.g. `ErrorAggregate`, `FeatureAggregate`).
@@ -57,7 +57,7 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
   - `'to_model'` — for mapping to an aggregate (typically excludes nested child lists already mapped).
   - `'to_data'` — for serializing back to configuration file format.
 - `to_primitive(role, **overrides)` — serializes with `model_dump` + role kwargs; defaults to `exclude_none=True`.
-- `map(**overrides)` — serializes via `to_model` role then constructs the target aggregate.
+- `TransferObject.map(target, **overrides)` — the base method serializes via the `to_model` role, applies overrides, then constructs the supplied aggregate type. A domain-specific ConfigObject normally overrides `map(**overrides)` to supply its aggregate type.
 - `from_model(cls, model, **overrides)` — `@classmethod` creating a ConfigObject from a domain model or aggregate.
 - Attribute aliasing: `serialization_alias` for output aliasing, `validation_alias=AliasChoices(...)` for multiple input names.
 

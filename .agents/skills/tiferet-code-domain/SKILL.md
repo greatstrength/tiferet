@@ -44,7 +44,7 @@ Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app
 - Use `model_validate(data_dict)` for external/untrusted data.
 - Domain objects are **read-only** at the domain layer — place all mutation in Aggregates.
 - Use `@model_validator(mode='before')` for pre-construction derivation logic (e.g. deriving `error_code` from `id`); label with `# * method: _derive_<name> (validator)`.
-- Keep domain methods focused on **structure and read-only behavior** (formatting, lookups, derived values).
+- Keep domain methods focused on **structure and read-only description** (formatting, lookups, and derived values). A method that changes model state belongs on an Aggregate.
 - Naming: PascalCase class names matching the domain concept (`AppSession`, `Feature`, `Error`, `CliCommand`).
 
 ## Example

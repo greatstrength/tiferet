@@ -32,7 +32,7 @@ Interface-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `mappers` (aggregates for output types); sibling `interfaces` modules. Prefer the aggregate over the domain model when an aggregate exists. Never import from `events`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** `mappers` (aggregates for domain-related inputs and outputs); sibling `interfaces` modules. Import domain types through their mappers, never directly from `domain`. Never import from `events`, `repos`, `utils`, `contexts`, or `blueprints`.
 - Extend `Service` from `tiferet.interfaces.core` (a minimal `ABC`).
 - Mark every method `@abstractmethod` and raise `NotImplementedError()` in the body.
 - Use RST docstrings with `:param`/`:type`/`:return`/`:rtype` on every method.
@@ -40,7 +40,7 @@ Interface-specific labels:
 - Keep methods focused on a single vertical concern (data access, file I/O, configuration, middleware).
 - Services are **unified vertical contracts**: data repositories, utility wrappers, and middleware all satisfy this same base.
 - **`MiddlewareService`** (`tiferet/interfaces/middleware.py`) is the special abstract contract for domain event middleware — implement `__call__(self, event, kwargs, next_fn)` (sync) or `async def __call__` (async); label with `# * method: __call__`.
-- Domain events and contexts depend exclusively on these Service interfaces; never depend on concrete classes.
+- When a domain event needs a vertical capability, depend on its Service interface rather than a concrete implementation. Contexts receive live dependencies through injected handlers rather than importing concrete classes.
 - **Exported interfaces:** `Service`, `ServiceError`, `AppService`, `CliService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `MiddlewareService`, `SqliteService`.
 
 ## Example
@@ -50,7 +50,7 @@ Interface-specific labels:
 
 # ** core
 from abc import abstractmethod
-from typing import List, Optional
+from typing import List
 
 # ** app
 from .core import Service
@@ -79,14 +79,14 @@ class ErrorService(Service):
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> Optional[ErrorAggregate]:
+    def get(self, id: str) -> ErrorAggregate:
         '''
         Retrieve an Error by its ID.
 
         :param id: The error identifier.
         :type id: str
-        :return: The ErrorAggregate, or None if not found.
-        :rtype: Optional[ErrorAggregate]
+        :return: The ErrorAggregate.
+        :rtype: ErrorAggregate
         '''
         raise NotImplementedError()
 
@@ -94,7 +94,7 @@ class ErrorService(Service):
     @abstractmethod
     def list(self) -> List[ErrorAggregate]:
         '''
-        List all Error domain objects.
+        List all Error aggregates.
 
         :return: All stored errors.
         :rtype: List[ErrorAggregate]
@@ -105,7 +105,7 @@ class ErrorService(Service):
     @abstractmethod
     def save(self, error: ErrorAggregate) -> None:
         '''
-        Persist an Error domain object.
+        Persist an Error aggregate.
 
         :param error: The error aggregate to persist.
         :type error: ErrorAggregate

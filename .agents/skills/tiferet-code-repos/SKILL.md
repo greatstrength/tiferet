@@ -33,7 +33,7 @@ Repo-specific labels:
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `interfaces` (the Service to implement, and the source of `ServiceError`), `mappers` (transfer objects and aggregates), `utils` (loader utilities). Never import from `domain` directly (use `mappers` instead), `assets`, `events`, `di`, `contexts`, or `blueprints`. Repositories only absorb those three packages; they are never exported.
+**Layer boundary — valid `# ** app` imports:** `interfaces` (the Service to implement, and the source of `ServiceError`), `mappers` (transfer objects and aggregates), `utils` (loader utilities). Never import from `domain` directly (use `mappers` instead), `assets`, `events`, `di`, `contexts`, or `blueprints`. Repositories only absorb those three packages; they are never exported and never pass operational `Callable` parameters to mappers or utilities.
 
 **Naming:**
 - `<Domain>ConfigRepository` — for YAML/JSON config-backed repos (e.g. `ErrorConfigRepository`, `FeatureConfigRepository`). Both formats are handled by `ConfigurationRepository`.

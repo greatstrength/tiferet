@@ -53,7 +53,6 @@ Event-specific labels:
 
 # ** app
 from .core import DomainEvent, a
-from ..domain import Error
 from ..mappers import ErrorAggregate
 from .error import ErrorEvent     # per-module base event
 
@@ -75,7 +74,7 @@ class AddError(ErrorEvent):
             name: str,
             message: str,
             **kwargs,
-        ) -> Error:
+        ) -> ErrorAggregate:
         '''
         Add a new Error.
 
@@ -87,8 +86,8 @@ class AddError(ErrorEvent):
         :type message: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The created Error domain object.
-        :rtype: Error
+        :return: The created Error aggregate.
+        :rtype: ErrorAggregate
         '''
 
         # Verify the error does not already exist.
