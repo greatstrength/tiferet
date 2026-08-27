@@ -3,35 +3,35 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-A system that can be composed has to begin with something that does not depend on the composition. `assets` is that crown: shared primitives — exceptions, named error codes, bootstrap catalogs — with no inbound framework edges. That position is **Keter**. Keter emits. It does not absorb, and it does not become runtime. Core assets may be used by other assets. Core and other assets may be used by `blueprints`, `contexts`, and `events`, typically via `from .. import assets as a`. They do not automatically flow to `domain`, `interfaces`, `mappers`, `di`, `utils`, or `repos`. See [architecture.md](architecture.md).
+A composable system begins with primitives that do not depend on the composition. `assets` holds exceptions, named error codes, and bootstrap catalogs with no inbound framework edges. This is the **Keter** position: it emits data but does not absorb dependencies or participate in runtime orchestration. Core assets may be used by other assets, `blueprints`, `contexts`, and `events`, typically through `from .. import assets as a`; they do not flow to `domain`, `interfaces`, `mappers`, `di`, `utils`, or `repos`. See [architecture.md](architecture.md).
 
-Legal `# ** app` imports: none. The package imports only the standard library and third-party primitives. That refusal is the job. If an asset needed a domain object or a service, it would no longer be a crown; it would be a hidden runtime.
+Legal `# ** app` imports: none. The package imports only standard-library and third-party primitives. An asset that required a domain object or service would become a runtime dependency rather than a shared primitive.
 
 ## Life in the system
 
-Assets declare. They do not execute a feature, mutate a noun, or open a file. `TiferetError` is the structured failure the rest of the framework raises. Namespaced catalogs (`error.py`, `app.py`, `feature.py` as `feat`, `cli.py`, `di.py`, `logging.py`) hold the identifiers and default definitions the factory will seed into the cache. `__init__.py` re-exports the public exceptions and the module aliases. There is no `const` and no `bps`.
+Assets declare. They do not execute a feature, mutate a noun, or open a file. `TiferetError` is the structured failure the rest of the framework raises. Namespaced catalogs (`error.py`, `app.py`, `feature.py` as `feat`, `cli.py`, `di.py`, `logging.py`) hold the identifiers and default definitions the factory will seed into the application runtime cache. `__init__.py` re-exports the public exceptions and the module aliases.
 
-Only five artifact kinds appear here: imports, constants, functions, standalone classes, and exports. There are no domain objects, aggregates, services, events, or contexts. That poverty is deliberate.
+The package contains five artifact kinds: imports, constants, functions, standalone classes, and exports. It contains no domain objects, aggregates, services, events, or contexts.
 
 ### Acyclic in both directions
 
-The usual way to describe this package is as a restriction it happens to obey: nothing here imports anything, so no cycle is possible. That gets the position backwards. **Acyclicity in both directions is the definition, not a rule imposed on it.** The origin depends on nothing beneath it, and nothing beneath it may reach back into it. A tier that could be reached back into would not be an origin, whatever its contents.
+**Acyclicity defines this position.** `assets` has no framework imports, while its declared values flow only to designated consumer packages. A package that depended on framework behavior would not serve as the origin.
 
-Evans states the software half of this plainly: one of the intrinsic advantages of layers is that the lower layers can exist without the higher ones. That is also why phased introduction works at all. You can stand up `assets` and `domain` with nothing else in the repository and they are complete; you cannot stand up `repos` without the three positions it absorbs from.
+One of the intrinsic advantages of layers is that the lower layers can exist without the higher ones. That is also why phased introduction works at all. You can stand up `assets` and `domain` with nothing else in the repository and they are complete; you cannot stand up `repos` without the three positions it absorbs from.
 
 ### Unity through differentiation
 
-The import idiom is worth dwelling on, because it is the sharpest thing this position predicts. The package is imported **whole** — `from .. import assets as a` — and then referenced only through its differentiated members: `a.error`, `a.feat`, `a.cli`, `a.app`, `a.logging`. Never as a flat `a.const`.
+The import idiom follows this boundary. The package is imported **whole**—`from .. import assets as a`—and referenced through differentiated members: `a.error`, `a.feat`, `a.cli`, `a.app`, and `a.logging`.
 
-One thing addressed through many, in other words, and the code and the name agree on it exactly. This is not decoration: the flat namespace was tried and retired, and a chapter that described this position only as "shared constants" would not predict which of the two idioms you should expect to find.
+This namespaced access preserves one package boundary while keeping catalogs distinct. It also predicts the repository's import idiom rather than treating `assets` as an undifferentiated constants module.
 
 ### Static, and on every runtime path
 
-Assets hold no behavior and execute nothing, and yet there is no code path in a running Tiferet application that does not pass through them. That combination is what makes the tier trustworthy rather than merely convenient. Nothing here can fail at runtime, because nothing here runs.
+Assets hold no operational behavior. Their catalogs are loaded during composition and referenced by the runtime, but the package does not execute features, mutate domain state, or access a substrate.
 
-It also settles a question that comes up when someone wants a configurable default: **the contents cannot be renegotiated at runtime.** A catalog is seeded into the cache by a blueprint at composition time, and an interface may override what it declares, but nothing mutates the catalog itself. An asset that could be changed while the application ran would be state, and state belongs to a noun.
+Its contents are not renegotiated at runtime. A blueprint seeds a catalog into the cache during composition, and an interface may override what it declares, but the catalog itself is not mutated. Mutable state belongs to a domain noun.
 
-The emission path is narrow on purpose. Blueprints seed catalogs into the cache. Contexts and events raise named errors through `a.<submodule>`. A mapper that imported assets would be reaching up for a constant it should receive as data. A repo that imported assets would be speaking with Keter’s voice from Malkuth. Neither is granted.
+The emission path is narrow. Blueprints seed catalogs into the cache, while contexts and events raise named errors through `a.<submodule>`. Mappers and repositories receive required values as data rather than importing `assets`.
 
 ## What an asset looks like
 
@@ -51,7 +51,7 @@ DEFAULT_ERRORS = {
 }
 ```
 
-What the reader just saw: the identifier, the human name, and the default message are data. They are not a domain `Error` yet. The factory (`create_default_error` in `core.py`) keeps the catalog from growing inline dictionaries that later diverge from the model.
+The identifier, human name, and default message are data rather than a domain `Error`. The `create_default_error` factory in `core.py` prevents catalog entries from diverging into unstructured inline dictionaries.
 
 The exception is a standalone class, not a domain object:
 
@@ -91,7 +91,7 @@ Exports live only in `__init__.py`. Consumers write `from .. import assets as a`
 
 The position is not reserved to the framework. `examples/basic_calculator/app/assets/` holds `core.py`, `di.py`, `error.py`, and `feature.py`, declaring `CALC_DEFAULT_ERRORS`, `CALC_DEFAULT_SERVICES`, and `CALC_DEFAULT_FEATURES` in the same five artifact kinds, with the same absence of inbound edges.
 
-Read what that file is doing and the position's claim becomes concrete: **a consumer's bootstrap catalogs describe the shape of its bounded context before any behavior exists.** Before a single `execute` is written, the calculator has declared which errors its domain can raise, which operators it intends to resolve, and which features it will expose. The dialect's own crown emits into the dialect's own composition, one level out from the framework's, in exactly the same shape.
+The example demonstrates the position's claim: **a consumer's bootstrap catalogs describe its bounded context before behavior exists.** Before an `execute` method is written, the calculator declares its errors, resolvable operators, and exposed features. The dialect's catalogs feed its composition in the same structural role as the framework's.
 
 ## The mirror at the bottom
 
@@ -99,7 +99,7 @@ Keter and Malkuth are one relation seen from both ends, and the cardinality is e
 
 This position emits to exactly three — `blueprints`, `contexts`, `events`. The tenth absorbs from exactly three — `interfaces`, `mappers`, `utils`. Neither end reaches the other seven, and neither end reaches the other: `assets` never sees `repos`, and `repos` may never import `assets`.
 
-Worth noting where the code and the tradition part company. Popular accounts have the first position flowing into all nine below it. The code is tidier than that, and the tidier version is the one documented here — which is the discipline these chapters are held to generally. The metaphor is measured against the architecture, never the other way round.
+The architecture does not reproduce every relation attributed to the traditional model. This chapter documents the relationships present in code: the metaphor is evaluated against the architecture, not the reverse.
 
 ## Package layout
 
@@ -120,7 +120,7 @@ tiferet/assets/
 - Assets emit primitives and have no inbound framework edges. That crown is Keter.
 - Acyclicity in both directions is the definition of the position, not a restriction placed on it. This tier can exist without any of the others; the last one cannot.
 - Five artifact kinds only: imports, constants, functions, standalone classes, exports.
-- Imported whole, referenced through differentiated members: `a.error`, `a.feat`, `a.app`, `a.cli`, `a.logging`. There is no `a.const`.
+- Imported whole and referenced through differentiated members: `a.error`, `a.feat`, `a.app`, `a.cli`, `a.logging`.
 - Nothing here executes, and everything here is on every runtime path. That is why the tier is trustworthy — and why its contents cannot be renegotiated while the application runs.
 - Used by blueprints, contexts, and events via `a`. Not by domain, interfaces, mappers, di, utils, or repos.
 - Emits to exactly three; the tenth position absorbs from exactly three. The inversion is exact, and neither end reaches the other.

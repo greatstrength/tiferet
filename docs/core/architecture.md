@@ -9,67 +9,65 @@
 
 ## The problem
 
-Evans names the ambition and then, in the same breath, names why it keeps failing. Two pitfalls in particular: a declaration language that is not expressive enough to do everything needed, inside a framework that makes it difficult to extend beyond the automated portion; and code generation that cripples the iterative cycle by merging generated output into handwritten code so that regeneration is destructive.
+Evans identifies two practical failures of declarative design: a declaration language that cannot express the required domain behavior within an extensible framework, and code generation that makes regeneration destructive by merging generated output with handwritten code.
 
-Both are failures of the same kind. They are not failures of ambition, and they are not failures of tooling. They are failures of *vocabulary*. A declarative system needs a fixed set of things a declaration can be about. Make that set too small and the domain cannot be said. Make it open and unconstrained and nothing can be composed from it, because no component can predict the shape of another.
+Both failures concern domain-specific *vocabulary*. A declarative system needs a fixed set of responsibilities its declarations can address. A set that is too small cannot express the domain; an unconstrained set prevents components from predicting one another's shape.
 
-So the grail is not a compiler trick, and the open question is not *whether* to declare. It is the **what**: which closed set of responsibilities can a whole application be declared against, such that the declaration is complete enough to run and constrained enough to compose?
+The open question is therefore not *whether* to declare, but **what** a declaration may address: which closed set of responsibilities lets an application be complete enough to run and constrained enough to compose as its domain evolves?
 
 ## The thesis
 
-Tiferet answers with a System Metaphor — the Sefirotic tree — used as a **stable intermediate representation of systemic responsibility**.
+Tiferet uses the Sefirotic Tree of Life as a System Metaphor and a **stable intermediate representation of systemic responsibility**.
 
-The claim is precise, and it is what the rest of this chapter defends:
+The claim is precise, and it is what the rest of this introduction defends:
 
-> The Tree supplies a fixed set of representational coordinates for what a part of a system may *be*. Tiferet projects those ten positions into computational abstractions. A domain application extends those abstractions as a **dialect**, introducing unlimited new meaning without introducing new coordinates.
+> The Tree supplies a fixed set of representational coordinates for systemic responsibilities. Tiferet projects those ten positions into computational abstractions. A domain application extends those abstractions as a **dialect**, introducing new meaning without introducing new coordinates.
 
-This is the bargain a multi-level compiler IR makes. MLIR is extensible because its representational grammar is stable: operations, regions, values, types, traits. A dialect adds semantics, never a new grammatical category. Stability at the coordinate level is exactly what makes openness at the semantic level safe — passes compose across dialects because every dialect is built from the same parts.
+Tiferet applies that trade through ten closed responsibilities, one operational center, and edges that distinguish factories from clients and emitters from absorbers. A consumer extends the existing abstractions as its domain's conceptual contours and cohesive mechanisms evolve; it does not add a coordinate or merge distinct responsibilities into one artifact.
 
-Tiferet makes the architectural version of that trade. Ten closed responsibilities, one operational center, and edges that refuse to let a factory become a client or an emitter become an absorber. A consumer does not add an eleventh position. A consumer extends the abstraction already sitting in one of the ten.
-
-Evans' two pitfalls dissolve accordingly. Expressiveness is unbounded, because a dialect can say anything through `DomainObject` and `DomainEvent`. Regeneration is non-destructive, because the declaration and the handwritten extension occupy different levels — the coordinates belong to the framework, the meaning belongs to the domain.
+This structure addresses Evans' two pitfalls. A dialect can express domain meaning through abstractions such as `DomainObject` and `DomainEvent`, while framework coordinates remain separate from handwritten domain extensions.
 
 ### The price of declaring in advance
 
-The epigraph has to be paid for, because Evans is explicit that what it promises should not be obtainable this way. Conceptual Contours, he writes, are "typically the outcome of refactoring: it is hard to produce up front," and they "may never emerge from a technically oriented refactoring" (261–262). That is what makes the deep model a grail: not unreachable, but not available on demand and not reachable by mechanical means.
+The epigraph establishes a constraint on this approach. Evans writes that Conceptual Contours—the relationships among terms and behaviors in a domain or bounded context—are "typically the outcome of refactoring: it is hard to produce up front," and they "may never emerge from a technically oriented refactoring" (261–262). A deep model cannot be produced mechanically or on demand.
 
-The ten were not asserted ahead of that work. The axes were found the way Evans says axes are found — by successive refactoring, across this framework's own history — and the Tree was recognized afterward as the thing that had already named them. The direction of fit matters, because the reverse order would be a retrofit.
+The ten axes were identified through successive refactoring in the framework's v2 history, then read through the Tree. A dialect must likewise establish its own conceptual contours before deciding how its concepts extend these coordinates.
 
-So the cost was paid, and what the coordinates do is **relocate** it. What is saved is the repetition, not the discovery, and the relocation lands on a dialect author rather than on the framework: a dialect author receives coordinates they did not find, for a domain — systemic responsibility — that was understood before they arrived. What refactoring would have taught them must instead be supplied as domain expertise at the moment the dialect is declared, which means the framework demands *more* of whoever declares one, not less. A reader who suspects the coordinates are a way of skipping the work is asking exactly the right question, and the honest answer is that the work was done once and the demand moved rather than disappeared.
+The coordinates relocate rather than remove that work. The framework provides a stable model of systemic responsibility; a dialect author must supply the domain expertise that refactoring would otherwise reveal. The framework reduces repeated discovery of its own coordinates, not the work of understanding a dialect.
 
-Two guards keep the claim narrow. The coordinates are fixed for a domain that is *already* understood — systemic responsibility, worked out over this framework's own history — so a consumer's dialect still earns its own contours the slow way, inside the coordinates. And Evans' *never* is stronger than it looks: he is not saying mechanical work does this badly, he is saying it may not arrive at all. That is the next subsection's distinction, reached from the source side.
+The claim is bounded. The coordinates are fixed only for a domain already understood by the framework; a consumer's dialect must still discover its own contours. Evans' *never* also matters: technical work may fail to produce those contours altogether.
 
 ### Mechanical rules, semantic commitments
 
-The obvious objection to all of this is that the import table could simply be published on its own and the Hebrew dropped. The answer is that the table is the **shadow**. The positions are what cast it. Every mechanical rule in this chapter is the enforceable form of a semantic one:
+The import table states the enforceable result of the architecture. The positional model explains why those rules exist. Every mechanical rule in this document follows from a semantic distinction:
 
 - `repos` may not import `domain` because a store must not claim to be the thing stored.
 - `domain` is read-only because a noun that mutates itself has taken on an act.
 - `di` stays event-free because a resolver that invoked what it holds would have joined the domain it serves.
 
-Strip the positions and those become arbitrary lines to be memorized. Keep them and the rules are *derivable*, which is the difference between a convention and an architecture.
+Without the positional model, these rules read as conventions. With it, they are derivable architectural constraints.
 
-The general form: infrastructure verifies **shape**, and only the domain tier is answerable for **meaning**. Resolution matches a name and a flag, never a meaning. A loader preserves a structure, never a semantics. Exactly one position is required to be right in both registers at once and forbidden to trade either for the other, and that position is Gevurah.
+The general form is that infrastructure verifies **shape**, while the domain tier is answerable for **meaning**. Resolution matches a name and flag; a loader preserves structure. Gevurah, represented by `DomainObject`, must satisfy both registers without trading one for the other.
 
-The rider is load-bearing: the coordinates are **bounded, not checked**. They constrain the space of meanings a word can have. They never verify that the occupant means what it claims. Nothing here validates domain semantics, and the chapter should not be read as promising that it does.
+The rider is load-bearing: the coordinates are **bounded, not checked**. They constrain the space of meanings a word can have. They never verify that the conceptual contours are semantically coherent. Nothing here validates domain semantics, and the chapter should not be read as promising that it does.
 
 ### Influence and dependency are two graphs
 
-One pattern recurs often enough to state once rather than re-explain defensively in every chapter: **influence travels by declaration, dependency travels by import, and the two are deliberately not the same graph.**
+**Influence travels by declaration; dependency travels by import.** These are distinct graphs.
 
 Three instances, all real:
 
 - Bootstrap catalogs in `assets` shape what `di` resolves, and `di` may not import `assets`. The catalogs arrive as validated data, assembled by a blueprint.
 - `di` constructs domain events from a declared `module_path` and `class_name`, and `di` may not import `events`. Contact is by dynamic resolution.
-- Nothing above the veil imports `repos`, and the entire system runs on repositories. They arrive as `Service`-typed instances.
+- Nothing above the middle imports `repos`, and the entire system runs on repositories. They arrive as `Service`-typed instances.
 
-A real dependency with no import edge is not the law being fudged. It is the mechanism the law exists to permit.
+A declared dependency without an import edge is an intended consequence of the import law.
 
 ### Why a framework at all
 
-Every other borrowed pattern justifies a position or a rule. One justifies the decision to build a framework in the first place. Evans prescribes partitioning "a conceptually Cohesive Mechanism into a separate lightweight framework," exposing it "with an Intention-Revealing Interface," so the rest of the domain can "focus on expressing the problem, delegating the intricacies of the solution" (422–423). Tiferet is that partition, performed once and published.
+Evans' Cohesive Mechanism pattern supports the decision to provide a framework: partition a cohesive mechanism into a lightweight framework with an Intention-Revealing Interface, allowing the domain to express its problem while delegating the mechanism's details (422–423). Tiferet provides that mechanism.
 
-The same passage divides the labor. The model "formulates a fact, rule, or problem"; the mechanism "resolves the rule or completes the computation as specified by the model." That is the split between `events` and `contexts` exactly — the operator formulates, the runtime resolves — and it means the framework's central paradox, that its most important artifact is inert until something resolves it, is an instance of a named pattern's internal structure rather than a local quirk. [events.md](events.md) carries the detail.
+The same passage distinguishes a model that "formulates a fact, rule, or problem" from a mechanism that "resolves the rule or completes the computation as specified by the model." In Tiferet, `events` formulate the operation and `contexts` run the composed runtime graph. See [events.md](events.md).
 
 One caution travels with this and is not optional. Core-versus-mechanism is a **relative position, not a kind of code**. Tiferet is pure mechanism to a dialect, while internally holding its own core domain (the `Feature` family) and its own mechanisms (`utils`, `repos`). Read without that level named, the ten collapse into two.
 
