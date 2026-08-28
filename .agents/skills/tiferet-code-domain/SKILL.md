@@ -28,7 +28,7 @@ Model-specific labels:
 # *** models                              ← artifact section
 # ** model: <snake_case_name>             ← artifact
 # * attribute: <name>                     ← artifact member: Pydantic Field(...) annotation
-# * property: <name>                      ← artifact member: parameter-free description
+# * method: <name> (property)             ← artifact member: parameter-free description
 # * method: <name>                        ← artifact member: parameterized description
 # * method: _<verb>_<name> (field validator)
 # * method: _<verb>_<name> (model validator)
@@ -95,7 +95,7 @@ class CalculatorResult(DomainObject):
     # * attribute: value
     value: float = Field(..., description='The computed result value.')
 
-    # * property: display_label
+    # * method: display_label (property)
     @property
     def display_label(self) -> str:
         '''
