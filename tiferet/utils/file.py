@@ -122,6 +122,55 @@ class FileLoader(FileService):
                     path=str(path),
                 )
 
+    # * method: verify_extension (static)
+    @staticmethod
+    def verify_extension(loader: 'FileLoader',
+            allowed_extensions: set,
+            invalid_error_id: str,
+            invalid_message: str,
+            not_found_error_id: str,
+            default_path: Optional[Path] = None):
+        '''
+        Verify the loader's file has an allowed extension and exists, with an
+        optional fallback path when the primary path's extension is invalid.
+
+        :param loader: The file loader instance to verify.
+        :type loader: FileLoader
+        :param allowed_extensions: The set of lowercase extensions the file may have.
+        :type allowed_extensions: set
+        :param invalid_error_id: The error id raised when no candidate path has an allowed extension.
+        :type invalid_error_id: str
+        :param invalid_message: The human-readable message for the invalid-extension error.
+        :type invalid_message: str
+        :param not_found_error_id: The error id raised when the resolved path does not exist.
+        :type not_found_error_id: str
+        :param default_path: Optional fallback path checked when the primary path's extension is invalid.
+        :type default_path: Optional[Path]
+        '''
+
+        # Start with the loader's path.
+        path = loader.path
+
+        # Check if the path has an allowed extension; fall back or raise error.
+        if path.suffix.lower() not in allowed_extensions:
+            if default_path and default_path.suffix.lower() in allowed_extensions:
+                path = default_path
+            else:
+                ServiceError.raise_for(
+                    type(loader),
+                    invalid_error_id,
+                    message=invalid_message,
+                    path=str(loader.path),
+                )
+
+        # Verify the resolved path exists.
+        if not path.exists():
+            ServiceError.raise_for(
+                type(loader),
+                not_found_error_id,
+                path=str(path),
+            )
+
     # * method: verify_mode
     def verify_mode(self):
         '''

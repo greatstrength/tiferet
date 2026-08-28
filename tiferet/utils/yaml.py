@@ -67,28 +67,15 @@ class YamlLoader(FileLoader):
         :type default_path: Optional[Path]
         '''
 
-        # Start with the loader's path.
-        path = loader.path
-
-        # Check if the path has a valid YAML extension; fall back or raise error.
-        if not path.suffix.lower() in {'.yaml', '.yml'}:
-            if default_path and default_path.suffix.lower() in {'.yaml', '.yml'}:
-                path = default_path
-            else:
-                ServiceError.raise_for(
-                    YamlLoader,
-                    INVALID_FILE_ID,
-                    message="File must have .yaml or .yml extension",
-                    path=str(loader.path),
-                )
-
-        # Verify the resolved path exists.
-        if not path.exists():
-            ServiceError.raise_for(
-                YamlLoader,
-                YAML_FILE_NOT_FOUND_ID,
-                path=str(path),
-            )
+        # Delegate to the shared file-extension verification helper.
+        FileLoader.verify_extension(
+            loader,
+            allowed_extensions={'.yaml', '.yml'},
+            invalid_error_id=INVALID_FILE_ID,
+            invalid_message='File must have .yaml or .yml extension',
+            not_found_error_id=YAML_FILE_NOT_FOUND_ID,
+            default_path=default_path,
+        )
 
     # * method: load
     def load(self,
