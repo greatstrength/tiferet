@@ -261,51 +261,6 @@ def compose_step_middleware(
     # Concatenate feature-level (outer) and step-level (inner) middleware.
     return (feature_middleware or []) + (step_middleware or [])
 
-# ** function: parse_request_parameter
-def parse_request_parameter(parameter: str, request: RequestContext = None) -> str:
-    '''
-    Parse a request-aware parameter value.
-
-    Delegates non-prefixed parameters to ``ParseParameter.execute``. For
-    ``$r.``-prefixed references, extracts the value keyed by the suffix from
-    ``request.data``, raising a structured error when the request is absent or
-    the key is missing.
-
-    :param parameter: The parameter value to parse.
-    :type parameter: str
-    :param request: The request context object containing data for parameter parsing.
-    :type request: RequestContext
-    :return: The parsed parameter value.
-    :rtype: str
-    '''
-
-    # Delegate non-$r. parameters to the injected parser (or identity if not overridden).
-    if not isinstance(parameter, str) or not parameter.startswith(REQUEST_REF_PREFIX):
-        # For backwards-compat in any direct calls, fall back to identity for non-$r.
-        return parameter
-
-    # Raise an error if the request is not provided for a request-backed parameter.
-    if not request:
-        TiferetError.raise_error(
-            REQUEST_NOT_FOUND_ID,
-            'Request data is not available for parameter parsing.',
-            parameter=parameter
-        )
-
-    # Extract the value from the request data using the key after the $r. prefix.
-    result = request.data.get(parameter[len(REQUEST_REF_PREFIX):], None)
-
-    # Raise an error if the parameter key is not found in the request data.
-    if result is None:
-        TiferetError.raise_error(
-            PARAMETER_NOT_FOUND_ID,
-            f'Parameter {parameter} not found in request data.',
-            parameter=parameter
-        )
-
-    # Return the parsed parameter value.
-    return result
-
 # ** function: evaluate_condition
 def evaluate_condition(condition: str, request: RequestContext) -> bool:
     '''
@@ -755,7 +710,7 @@ class FeatureContext(BaseContext):
 
             # Parse the step parameters.
             params = {
-                param: parse_request_parameter(value, request)
+                param: self.parse_request_parameter(value, request)
                 for param, value in step.parameters.items()
             }
 
