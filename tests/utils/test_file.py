@@ -317,3 +317,115 @@ def test_file_loader_close_when_not_open(temp_text_file):
 
     # Verify file is still None.
     assert loader.file is None
+
+# ** test: file_loader_verify_extension_success
+def test_file_loader_verify_extension_success(tmp_path):
+    '''
+    Test that verify_extension succeeds for an existing file with an allowed extension.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a loader pointing at an existing .yaml file.
+    file_path = tmp_path / 'config.yaml'
+    file_path.write_text('key: value', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+
+    # Verification should not raise.
+    FileLoader.verify_extension(
+        loader,
+        allowed_extensions={'.yaml', '.yml'},
+        invalid_error_id='INVALID_TEST_EXT',
+        invalid_message='Invalid extension.',
+        not_found_error_id='TEST_NOT_FOUND',
+        format_name='TEST',
+    )
+
+# ** test: file_loader_verify_extension_invalid_no_fallback
+def test_file_loader_verify_extension_invalid_no_fallback(tmp_path):
+    '''
+    Test that verify_extension raises the given invalid_error_id and message
+    when the extension is not allowed and no fallback is provided.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a loader pointing at a file with a disallowed extension.
+    file_path = tmp_path / 'config.txt'
+    file_path.write_text('key: value', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+
+    # Verification should raise the invalid-extension error.
+    with pytest.raises(ServiceError) as exc_info:
+        FileLoader.verify_extension(
+            loader,
+            allowed_extensions={'.yaml', '.yml'},
+            invalid_error_id='INVALID_TEST_EXT',
+            invalid_message='Invalid extension.',
+            not_found_error_id='TEST_NOT_FOUND',
+            format_name='TEST',
+        )
+
+    # Verify the error code and message.
+    assert exc_info.value.error_code == 'INVALID_TEST_EXT'
+    assert exc_info.value.message == 'Invalid extension.'
+
+# ** test: file_loader_verify_extension_invalid_with_valid_fallback
+def test_file_loader_verify_extension_invalid_with_valid_fallback(tmp_path):
+    '''
+    Test that verify_extension falls back to a default_path with an allowed
+    extension when the primary path's extension is invalid.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a loader pointing at a disallowed-extension file and a fallback
+    # path with an allowed extension.
+    file_path = tmp_path / 'config.txt'
+    file_path.write_text('key: value', encoding='utf-8')
+    fallback_path = tmp_path / 'default.yaml'
+    fallback_path.write_text('key: value', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+
+    # Verification should not raise, since the fallback resolves successfully.
+    FileLoader.verify_extension(
+        loader,
+        allowed_extensions={'.yaml', '.yml'},
+        invalid_error_id='INVALID_TEST_EXT',
+        invalid_message='Invalid extension.',
+        not_found_error_id='TEST_NOT_FOUND',
+        format_name='TEST',
+        default_path=fallback_path,
+    )
+
+# ** test: file_loader_verify_extension_not_found
+def test_file_loader_verify_extension_not_found(tmp_path):
+    '''
+    Test that verify_extension raises the given not_found_error_id with the
+    resolved path in kwargs when the file does not exist.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a loader pointing at a non-existent file with an allowed extension.
+    file_path = tmp_path / 'missing.yaml'
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+
+    # Verification should raise the not-found error.
+    with pytest.raises(ServiceError) as exc_info:
+        FileLoader.verify_extension(
+            loader,
+            allowed_extensions={'.yaml', '.yml'},
+            invalid_error_id='INVALID_TEST_EXT',
+            invalid_message='Invalid extension.',
+            not_found_error_id='TEST_NOT_FOUND',
+            format_name='TEST',
+        )
+
+    # Verify the error code and path kwarg.
+    assert exc_info.value.error_code == 'TEST_NOT_FOUND'
+    assert exc_info.value.kwargs.get('path') == str(file_path)
