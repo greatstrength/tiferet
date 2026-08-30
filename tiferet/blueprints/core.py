@@ -32,13 +32,15 @@ from ..contexts.app import (
     add_default_app_services,
     add_default_app_constants,
     add_default_app_sessions,
-    get_default_app_services,
-    get_default_app_constants,
-    get_default_app_session,
+    APP_CONSTANT_CACHE_PREFIX,
+    APP_SERVICE_CACHE_PREFIX,
+    APP_SESSION_CACHE_PREFIX,
 )
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
+from ..events import DomainEvent
+from ..events.app import GetAppSession
 from .. import assets as a
 
 # *** constants
@@ -229,8 +231,8 @@ def get_app_session(
     decorator (e.g. the built-in admin sessions).  When found, the cached
     ``AppSession`` is returned immediately without touching the config file.  When
     absent from the cache (or when no cache is provided), composes the
-    ``app_service`` dependency via :func:`create_app_service` and retrieves the
-    session through ``AppSessionContext.load``, which raises
+    ``app_service`` dependency via :func:`create_app_service` and resolves the
+    session via the ``GetAppSession`` domain event, which raises
     ``APP_SESSION_NOT_FOUND`` when the session is absent from the config file.
     Any keyword arguments are forwarded as the app service constructor parameters
     (e.g. ``app_config='config.yml'``).
@@ -251,15 +253,17 @@ def get_app_session(
 
     # Check the cache for a seeded default session (e.g. built-in admin sessions).
     if cache is not None:
-        cached_session = get_default_app_session(cache, interface_id)
+        cached_session = cache.get(interface_id, *APP_SESSION_CACHE_PREFIX)
         if cached_session is not None:
             return cached_session
 
-    # Compose the app service via a single-use container.
+    # On a cache miss, compose the app service and resolve the session through the event.
     app_service = create_app_service(module_path, class_name, parameters)
-
-    # Retrieve the session from the config file via the AppSessionContext classmethod.
-    return AppSessionContext.load(interface_id, app_service)
+    return DomainEvent.handle(
+        GetAppSession,
+        dependencies=dict(app_service=app_service),
+        id=interface_id,
+    )
 
 # ** blueprint: get_error
 def get_error(
@@ -466,7 +470,7 @@ def build_app_service_container(
     # the general-purpose cache loader so build_singleton can wire it into
     # CacheMiddleware by constructor inspection.
     constants = {
-        **get_default_app_constants(cache),
+        **cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX),
         'load_cache': load_cache(cache),
     }
     if app_instance is not None:
@@ -474,7 +478,10 @@ def build_app_service_container(
 
     # Merge default services with the interface's own, overriding defaults by
     # service id.
-    services = {dep.service_id: dep for dep in get_default_app_services(cache)}
+    services = {
+        dep.service_id: dep
+        for dep in cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values()
+    }
     if app_instance is not None:
         for service in (app_instance.services or []):
             services[service.service_id] = service

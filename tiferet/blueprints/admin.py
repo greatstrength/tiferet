@@ -17,8 +17,8 @@ from ..contexts.app import (
     AppServiceDependency,
     add_default_admin_services,
     add_default_admin_constants,
-    get_default_admin_services,
-    get_default_admin_constants,
+    ADMIN_CONSTANT_CACHE_PREFIX,
+    ADMIN_SERVICE_CACHE_PREFIX,
 )
 from ..di.dependency_injector import DIAppServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
@@ -86,11 +86,11 @@ def build_admin_service_resolver(
 
     # Build the admin container from cache-seeded admin services and constants.
     admin_constants = {
-        **get_default_admin_constants(cache),
+        **cache.get_by_prefix(*ADMIN_CONSTANT_CACHE_PREFIX),
         'load_cache': core.load_cache(cache),
     }
     admin_container = DIAppServiceContainer.from_dependencies(
-        services=get_default_admin_services(cache),
+        services=list(cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX).values()),
         constants=admin_constants,
     )
 

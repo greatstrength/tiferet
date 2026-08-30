@@ -29,9 +29,6 @@ from tiferet.contexts.app import (
     add_default_app_services,
     add_default_app_constants,
     add_default_app_sessions,
-    get_default_app_services,
-    get_default_app_constants,
-    get_default_app_session,
     APP_SERVICE_CACHE_PREFIX,
     APP_CONSTANT_CACHE_PREFIX,
     APP_SESSION_CACHE_PREFIX,
@@ -433,39 +430,28 @@ def test_add_default_app_sessions_seeds_cache_with_domain_objects(base_cache_bui
         assert isinstance(cached, AppSession)
         assert cached.id == session_id
 
-# ** test: get_default_app_session_returns_cached_session
-def test_get_default_app_session_returns_cached_session(base_cache_builder):
+# ** test: add_default_app_sessions_absent_key_returns_none
+def test_add_default_app_sessions_absent_key_returns_none(base_cache_builder):
     '''
-    Test that get_default_app_session retrieves a session seeded by the decorator.
+    Test that a session id absent from the cache reads back as None directly
+    via the cache, with no get_default_app_session getter in the path.
 
     :param base_cache_builder: A plain cache-builder callable.
     :type base_cache_builder: Callable
     '''
 
-    # Seed a session into the cache.
+    # Seed a session into the cache under a different id.
     sample_sessions = {'tiferet_app': {'id': 'tiferet_app', 'name': 'Admin App'}}
     wrapped = add_default_app_sessions(sample_sessions)(base_cache_builder)
     cache = wrapped()
 
-    # Assert the session is retrievable by id.
-    session = get_default_app_session(cache, 'tiferet_app')
+    # Assert the seeded session is retrievable directly via the cache.
+    session = cache.get('tiferet_app', *APP_SESSION_CACHE_PREFIX)
     assert isinstance(session, AppSession)
     assert session.id == 'tiferet_app'
 
-# ** test: get_default_app_session_returns_none_when_absent
-def test_get_default_app_session_returns_none_when_absent(base_cache_builder):
-    '''
-    Test that get_default_app_session returns None when the session is not cached.
-
-    :param base_cache_builder: A plain cache-builder callable.
-    :type base_cache_builder: Callable
-    '''
-
-    # Build an empty cache.
-    cache = base_cache_builder()
-
-    # Assert a missing session id returns None.
-    assert get_default_app_session(cache, 'missing') is None
+    # Assert a missing session id reads back as None directly via the cache.
+    assert cache.get('missing.session', *APP_SESSION_CACHE_PREFIX) is None
 
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):
@@ -1303,10 +1289,11 @@ def test_app_interface_context_run_timing_long_execution(app_interface_context, 
         assert len(info_calls) == 1
         assert '(1500ms)' in info_calls[0]
 
-# ** test: get_default_app_services_returns_seeded
-def test_get_default_app_services_returns_seeded(base_cache_builder, sample_services):
+# ** test: add_default_app_services_readable_via_cache_by_prefix
+def test_add_default_app_services_readable_via_cache_by_prefix(base_cache_builder, sample_services):
     '''
-    Test that get_default_app_services returns the seeded AppServiceDependency objects.
+    Test that seeded app services are readable directly via cache.get_by_prefix,
+    with no get_default_app_services getter in the path.
 
     :param base_cache_builder: The plain cache-builder fixture.
     :type base_cache_builder: Callable
@@ -1318,18 +1305,19 @@ def test_get_default_app_services_returns_seeded(base_cache_builder, sample_serv
     build = add_default_app_services(sample_services)(base_cache_builder)
     cache = build()
 
-    # Read the services back via the getter.
-    services = get_default_app_services(cache)
+    # Read the services back directly via the cache.
+    services = list(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values())
 
     # Assert each seeded service is returned as an AppServiceDependency keyed by service_id.
     assert len(services) == len(sample_services)
     assert all(isinstance(service, AppServiceDependency) for service in services)
     assert {service.service_id for service in services} == set(sample_services)
 
-# ** test: get_default_app_constants_strips_prefix
-def test_get_default_app_constants_strips_prefix(base_cache_builder, sample_constants):
+# ** test: add_default_app_constants_readable_via_cache_by_prefix
+def test_add_default_app_constants_readable_via_cache_by_prefix(base_cache_builder, sample_constants):
     '''
-    Test that get_default_app_constants returns the seeded constants with the prefix stripped.
+    Test that seeded app constants are readable directly via cache.get_by_prefix,
+    with no get_default_app_constants getter in the path.
 
     :param base_cache_builder: The plain cache-builder fixture.
     :type base_cache_builder: Callable
@@ -1341,6 +1329,6 @@ def test_get_default_app_constants_strips_prefix(base_cache_builder, sample_cons
     build = add_default_app_constants(sample_constants)(base_cache_builder)
     cache = build()
 
-    # Read the constants back via the getter and assert the prefix is stripped.
-    constants = get_default_app_constants(cache)
+    # Read the constants back directly via the cache and assert the prefix is stripped.
+    constants = cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX)
     assert constants == sample_constants
