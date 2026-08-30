@@ -541,4 +541,4 @@ See `CONTRIBUTING.md` and `docs/collab/process.md` for the full workflow:
 2. Implement following structured code style and the `tiferet-code-*` skills in `.agents/skills/` (fallback: `docs/core/`).
 3. Separate functional changes from docs/config in distinct commits.
 4. Include `Co-Authored-By:` lines when collaborating with AI agents.
-5. Publish a Collaboration Report on the **issue** (not the PR) when the work completes.
+5. Publish a Collaboration Report on the **issue** (not the PR) when trunk TRD work completes.

@@ -24,7 +24,7 @@ From `main`: `docs-<lowercase-hyphenated-context>`.
 1. Cut the branch from `main`.
 2. Write the docs or skills. New or rewritten skills follow [agents/SKILL_TEMPLATE.md](agents/SKILL_TEMPLATE.md). Skills stay terse; these guides may take a breath.
 3. Open a PR targeting `main`. Title it `Docs – <Capitalized Semantic Title>`.
-4. Review comments that point at a diff stay on the PR. If you did open an issue, session notes and any Collaboration Report go there.
+4. Review comments that point at a diff stay on the PR. If you did open an issue, session notes go there.
 5. After the squash-merge, pull `main` and delete the local branch.
 
 ## Guide-doc changes
