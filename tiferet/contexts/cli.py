@@ -18,6 +18,7 @@ from ..domain import (
 )
 from .app import AppSessionContext
 from .cache import CacheContext
+from .core import add_default_cache_items
 from .request import RequestContext
 
 # *** constants
@@ -33,11 +34,6 @@ def add_default_cli_commands(commands: Dict[str, Any]) -> Callable:
     Decorator factory that pre-seeds a cache context with default CLI command
     domain objects.
 
-    Wraps a cache-builder callable so that, after the cache is constructed,
-    each entry in ``commands`` is reconstituted into a ``CliCommand`` domain
-    object (with its id re-injected) and stored in the cache under the
-    ``CLI_COMMAND_CACHE_PREFIX`` namespace keyed by command id.
-
     Mirrors ``add_default_errors`` / ``add_default_app_services``.
 
     :param commands: An id-keyed mapping of command records (each value is the
@@ -47,30 +43,9 @@ def add_default_cli_commands(commands: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default command domain objects.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute each raw command dict into a CliCommand domain object
-            # (re-injecting the id) and cache it under the commands namespace.
-            for command_id, command_data in commands.items():
-                cache.set(
-                    command_id,
-                    CliCommand.model_validate({**command_data, 'id': command_id}),
-                    *CLI_COMMAND_CACHE_PREFIX,
-                )
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory. Command records already
+    # embed their own 'id', so no id_field reinjection is needed.
+    return add_default_cache_items(commands, CLI_COMMAND_CACHE_PREFIX, model=CliCommand)
 
 
 # ** function: get_default_cli_commands

@@ -6,7 +6,7 @@
 from typing import Any, Callable, Dict, Tuple
 
 # ** app
-from .core import BaseContext
+from .core import BaseContext, add_default_cache_items
 from .cache import CacheContext
 from ..assets import TiferetError
 from ..domain import Error
@@ -23,11 +23,6 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default error domain objects.
 
-    Wraps a cache-builder callable so that, after the cache is constructed,
-    each entry in ``errors`` is reconstituted into an ``Error`` domain object
-    (with its id re-injected) and stored in the cache under the
-    ``ERROR_CACHE_PREFIX`` namespace.
-
     :param errors: A mapping of error-code IDs to raw error definition dicts
         (each value is the definition without its id).
     :type errors: Dict[str, Any]
@@ -35,30 +30,8 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default error domain objects.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute each raw error dict into an Error domain object
-            # (re-injecting the id) and cache it under the error namespace.
-            for error_id, error_data in errors.items():
-                cache.set(
-                    error_id,
-                    Error.model_validate({**error_data, 'id': error_id}),
-                    *ERROR_CACHE_PREFIX,
-                )
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(errors, ERROR_CACHE_PREFIX, model=Error, id_field='id')
 
 # *** contexts
 

@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from tiferet.assets import TiferetError
-from tiferet.contexts.core import BaseContext, ContextMeta
+from tiferet.contexts.core import BaseContext, ContextMeta, add_default_cache_items
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.feature import FeatureContext
 from tiferet.contexts.error import ErrorContext
@@ -104,3 +104,103 @@ def test_from_domain_explicit_subclass():
     assert isinstance(context, FeatureContext)
     assert context.cache is cache
     assert context.domain is feature
+
+# ** test: add_default_cache_items_no_model_caches_raw_value
+def test_add_default_cache_items_no_model_caches_raw_value():
+    '''
+    Test that add_default_cache_items with no model caches each raw value
+    from items under the given prefix, unchanged.
+    '''
+
+    # Wrap a plain cache-builder with scalar constant items.
+    items = {'cli_config': 'config.yml', 'di_config': 'config.yml'}
+    wrapped = add_default_cache_items(items, ('app', 'constants'))(lambda: CacheContext())
+    cache = wrapped()
+
+    # Assert each raw value is cached unchanged under the prefix.
+    for key, value in items.items():
+        assert cache.get(key, 'app', 'constants') == value
+
+# ** test: add_default_cache_items_model_without_id_field
+def test_add_default_cache_items_model_without_id_field():
+    '''
+    Test that add_default_cache_items with a model but no id_field validates
+    each raw dict directly into the model, with no key reinjection.
+    '''
+
+    # Wrap a plain cache-builder with a pre-existing 'id' baked into each dict.
+    items = {
+        'sample_error': {'id': 'sample_error', 'name': 'Sample Error'},
+    }
+    wrapped = add_default_cache_items(items, ('app', 'errors'), model=Error)(lambda: CacheContext())
+    cache = wrapped()
+
+    # Assert the item validated directly into the model.
+    cached = cache.get('sample_error', 'app', 'errors')
+    assert isinstance(cached, Error)
+    assert cached.id == 'sample_error'
+
+# ** test: add_default_cache_items_model_with_id_field_reinjects_key
+def test_add_default_cache_items_model_with_id_field_reinjects_key():
+    '''
+    Test that add_default_cache_items reinjects the group-dict key as the
+    given id_field before validating into the model.
+    '''
+
+    # Wrap a plain cache-builder with items lacking their own id.
+    items = {
+        'group.sample': {'group_id': 'group', 'feature_key': 'sample', 'name': 'Sample'},
+    }
+    wrapped = add_default_cache_items(
+        items, ('app', 'features'), model=Feature, id_field='id',
+    )(lambda: CacheContext())
+    cache = wrapped()
+
+    # Assert the group-dict key was reinjected as the model's id field.
+    cached = cache.get('group.sample', 'app', 'features')
+    assert isinstance(cached, Feature)
+    assert cached.id == 'group.sample'
+
+# ** test: add_default_cache_items_empty_dict_leaves_cache_clean
+def test_add_default_cache_items_empty_dict_leaves_cache_clean():
+    '''
+    Test that add_default_cache_items with an empty items dict leaves the
+    cache with no entries under the target prefix.
+    '''
+
+    # Wrap a plain cache-builder with no items.
+    wrapped = add_default_cache_items({}, ('app', 'errors'), model=Error)(lambda: CacheContext())
+    cache = wrapped()
+
+    # Assert the target namespace has no entries.
+    assert cache.get_by_prefix('app', 'errors') == {}
+
+# ** test: add_default_cache_items_isolates_by_prefix
+def test_add_default_cache_items_isolates_by_prefix():
+    '''
+    Test that two distinct prefixes seeded via add_default_cache_items do not
+    collide with each other.
+    '''
+
+    # Build a cache seeded under two distinct prefixes via stacked decorators.
+    def base_build():
+        return CacheContext()
+
+    build_errors = add_default_cache_items(
+        {'sample_error': {'id': 'sample_error', 'name': 'Sample Error'}},
+        ('app', 'errors'),
+        model=Error,
+    )(base_build)
+
+    build_both = add_default_cache_items(
+        {'cli_config': 'config.yml'},
+        ('app', 'constants'),
+    )(build_errors)
+
+    cache = build_both()
+
+    # Assert each prefix holds only its own entries.
+    assert cache.get('sample_error', 'app', 'errors') is not None
+    assert cache.get('cli_config', 'app', 'constants') == 'config.yml'
+    assert cache.get('cli_config', 'app', 'errors') is None
+    assert cache.get('sample_error', 'app', 'constants') is None

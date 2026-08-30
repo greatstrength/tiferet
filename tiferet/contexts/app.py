@@ -14,7 +14,7 @@ from ..assets import (
 )
 from ..assets.error import APP_ERROR_ID
 from ..domain import AppSession, AppServiceDependency
-from .core import BaseContext
+from .core import BaseContext, add_default_cache_items
 from .cache import CacheContext
 from .request import RequestContext
 
@@ -43,11 +43,6 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
     Decorator factory that pre-seeds a cache context with default app service
     dependency domain objects.
 
-    Wraps a cache-builder callable so that, after the cache is constructed,
-    each entry in ``services`` is reconstituted into an ``AppServiceDependency``
-    domain object (with its ``service_id`` re-injected) and stored in the
-    cache under the ``APP_SERVICE_CACHE_PREFIX`` namespace keyed by service id.
-
     :param services: A mapping of service ids to raw service dependency dicts
         (each value is the dependency without its ``service_id``).
     :type services: Dict[str, Any]
@@ -55,31 +50,13 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default service domain objects.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute each raw service dict into an AppServiceDependency
-            # domain object (re-injecting service_id) and cache it under the
-            # services namespace.
-            for service_id, service_data in services.items():
-                cache.set(
-                    service_id,
-                    AppServiceDependency.model_validate({**service_data, 'service_id': service_id}),
-                    *APP_SERVICE_CACHE_PREFIX,
-                )
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(
+        services,
+        APP_SERVICE_CACHE_PREFIX,
+        model=AppServiceDependency,
+        id_field='service_id',
+    )
 
 # ** function: add_default_app_constants
 def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
@@ -87,35 +64,14 @@ def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
     Decorator factory that pre-seeds a cache context with default bootstrap
     constant values.
 
-    Wraps a cache-builder callable so that, after the cache is constructed,
-    each scalar entry in ``constants`` is stored in the cache under the
-    ``APP_CONSTANT_CACHE_PREFIX`` namespace keyed by constant name.
-
     :param constants: A mapping of constant names to scalar values.
     :type constants: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default constant values.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Store each scalar constant under the constants namespace.
-            for name, value in constants.items():
-                cache.set(name, value, *APP_CONSTANT_CACHE_PREFIX)
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(constants, APP_CONSTANT_CACHE_PREFIX)
 
 # ** function: add_default_admin_services
 def add_default_admin_services(services: Dict[str, Any]) -> Callable:
@@ -134,31 +90,13 @@ def add_default_admin_services(services: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default admin service domain objects.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute each raw service dict into an AppServiceDependency
-            # domain object (re-injecting service_id) and cache it under the
-            # admin services namespace.
-            for service_id, service_data in services.items():
-                cache.set(
-                    service_id,
-                    AppServiceDependency.model_validate({**service_data, 'service_id': service_id}),
-                    *ADMIN_SERVICE_CACHE_PREFIX,
-                )
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(
+        services,
+        ADMIN_SERVICE_CACHE_PREFIX,
+        model=AppServiceDependency,
+        id_field='service_id',
+    )
 
 # ** function: add_default_admin_constants
 def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
@@ -175,36 +113,14 @@ def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default admin constant values.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Store each scalar constant under the admin constants namespace.
-            for name, value in constants.items():
-                cache.set(name, value, *ADMIN_CONSTANT_CACHE_PREFIX)
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(constants, ADMIN_CONSTANT_CACHE_PREFIX)
 
 # ** function: add_default_app_sessions
 def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default app session
     domain objects.
-
-    Wraps a cache-builder callable so that, after the cache is constructed,
-    each entry in ``sessions`` is reconstituted into an ``AppSession`` domain
-    object (with its id re-injected) and stored in the cache under the
-    ``APP_SESSION_CACHE_PREFIX`` namespace keyed by session id.
 
     :param sessions: A mapping of session ids to raw session definition dicts
         (each value is the definition without its id).
@@ -213,31 +129,13 @@ def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default session domain objects.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute each raw session dict into an AppSession domain
-            # object (re-injecting the id) and cache it under the sessions
-            # namespace keyed by session id.
-            for session_id, session_data in sessions.items():
-                cache.set(
-                    session_id,
-                    AppSession.model_validate({**session_data, 'id': session_id}),
-                    *APP_SESSION_CACHE_PREFIX,
-                )
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(
+        sessions,
+        APP_SESSION_CACHE_PREFIX,
+        model=AppSession,
+        id_field='id',
+    )
 
 # ** function: raise_unwired_handler_error
 def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
