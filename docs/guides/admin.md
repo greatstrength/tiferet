@@ -97,7 +97,7 @@ Manages application interface / session definitions, constants, and app-level se
 
 | Feature | Purpose | CLI |
 | --- | --- | --- |
-| `app.add` | Add a new application session configuration | `tiferet app add <id> <name> <module_path> <class_name> [--description] [--logger-id] [--flags] [--constants]` |
+| `app.add` | Add a new application session configuration | `tiferet app add <id> <name> [--description] [--logger-id] [--flags] [--constants]` |
 | `app.get` | Retrieve an app session by ID | `tiferet app get <interface_id>` |
 | `app.list` | List all configured app sessions | `tiferet app list` |
 | `app.update` | Update a scalar attribute on an app session | `tiferet app update <id> <attribute> <value>` |
@@ -115,15 +115,13 @@ admin.run(
     data={
         'id': 'web_api',
         'name': 'Web API Session',
-        'module_path': 'app.contexts.api',
-        'class_name': 'ApiSessionContext',
         'description': 'Main web API application session',
     },
 )
 ```
 
 ```bash
-tiferet app add web_api "Web API Session" app.contexts.api ApiSessionContext --description "Main web API application session"
+tiferet app add web_api "Web API Session" --description "Main web API application session"
 tiferet app list
 ```
 

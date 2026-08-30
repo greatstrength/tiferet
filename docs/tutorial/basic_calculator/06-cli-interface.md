@@ -105,11 +105,9 @@ interfaces:
   calc_cli:
     name: Calculator CLI
     description: Command-line interface for calculator operations
-    module_path: tiferet.contexts.cli
-    class_name: CliContext
 ```
 
-- `calc_cli` tells Tiferet to use the built-in `CliContext` for command-line handling.
+- `calc_cli` is realized by the built-in `CliSessionContext`, which the `CLI` entry point selects for command-line handling.
 - CLI command definitions are read from the `cli` section in the same root `config.yml`.
 
 ### 6.3 The CLI entry point script
