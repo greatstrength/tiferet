@@ -215,8 +215,8 @@ method is ready to accept requests.
 
 **Verdict:** agnostic to the workflow axis — no feature-specific code runs
 here. **Variable, and currently under-realized, on the entry-point axis** —
-see Section 8; the session's own `module_path` / `class_name` no longer
-selects the context class on this path.
+see Section 8; a session declares no context type at all, so this path does
+not select the context class from configuration.
 
 ### 5.2 Dependency resolution
 
@@ -380,10 +380,9 @@ with, so any object satisfying that one-method contract is a legal resolver.
 **Currently entangled — the honest inventory:**
 
 - **The entry-point axis is not actually driven by the declared session.**
-  `build_app_session_context` hardcodes `context_cls = AppSessionContext`,
-  with the comment explaining that "the session's `module_path` /
-  `class_name` fields are no longer consulted at runtime"
-  (`tiferet/blueprints/core.py`, lines 840–843). The CLI path instead exists
+  `build_app_session_context` hardcodes `context_cls = AppSessionContext`;
+  a session declares no context type at all, so there is nothing in
+  configuration for this path to consult. The CLI path instead exists
   as an entirely separate top-level entry point,
   `tiferet.blueprints.cli.build_app` (exported as `CLI`,
   `tiferet/blueprints/cli.py:353`), whose own
@@ -392,17 +391,6 @@ with, so any object satisfying that one-method contract is a legal resolver.
   selects the entry-point axis by *which top-level function they import and
   call* (`App(...)` vs. `CLI(...)`), not by anything written in the
   configuration file.
-- **The example configuration still documents the dead field.**
-  `examples/basic_calculator/config.yml` (lines 5–9) declares the `calc_cli`
-  session with `module_path: tiferet.contexts.cli` /
-  `class_name: CliContext`, matching the pattern the entanglement above says
-  is no longer read. It is not merely unread — `AppSessionConfigObject`
-  (`tiferet/mappers/app.py:280`, fields at lines 292–297) declares no
-  `module_path` / `class_name` fields at all, and `TransferObject`'s lenient
-  `extra='ignore'` config (`tiferet/mappers/core.py:103`) means those two
-  keys are silently dropped on load rather than rejected or acted on. A
-  reader of the shipped example has no way to discover, from the
-  configuration alone, that these two keys do nothing.
 - **`docs/core/contexts.md` and `docs/core/di.md` describe an earlier
   design.** The former documents `AppSessionContext` building
   `FeatureContext` and `ErrorContext` on demand via `for_domain`; the current
@@ -451,9 +439,10 @@ either a result or a catalogued, formatted error.
 
 1. **Make the entry-point axis real again, or stop implying it exists.**
    Either wire `build_app_session_context` to actually resolve a context
-   class from the session's declaration, or remove the vestigial
-   `module_path` / `class_name` framing from example configuration and any
-   documentation that still describes it as read.
+   class from the session's declaration, or leave it as a top-level entry
+   point choice. The vestigial `module_path` / `class_name` framing has been
+   removed from the admin `app.add` surface, the example configuration, and
+   the documentation that taught it; this item is otherwise resolved.
 2. **Reconcile `docs/core/contexts.md` and `docs/core/di.md` with the current
    `contexts/app.py` and `di/` package.** Both guides are the canonical
    references contributors are told to read before touching these layers;
@@ -468,8 +457,7 @@ either a result or a catalogued, formatted error.
    pattern.** `AppSessionConfigObject`'s lenient parsing means any stale or
    misspelled key in a session's configuration fails silently rather than
    loudly; a validation pass (or a stricter parsing mode for known sections)
-   would surface the `module_path` / `class_name` case before another one
-   like it accumulates.
+   would surface a similar case before it accumulates.
 
 Each is independently scopeable as a TRD; together they are the difference
 between the framework this document describes and the framework its own
