@@ -29,6 +29,7 @@ from tiferet.blueprints.core import (
     build_logger_handler,
     build_app_session_context,
     build_app,
+    compose_session_context,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
@@ -1253,6 +1254,121 @@ def test_build_app_session_context_wires_five_handlers(monkeypatch):
     assert callable(result._create_request)
     assert callable(result._raise_error)
     assert callable(result._build_response)
+
+
+# ** test: compose_session_context_wires_five_handlers
+def test_compose_session_context_wires_five_handlers():
+    '''
+    Test that compose_session_context wires all five template-method handler
+    callables onto the resulting context.
+    '''
+
+    # Arrange an app container with no additional collaborators.
+    app_container = mock.Mock()
+    app_container.has_dependency.return_value = False
+    app_container.get_dependency.return_value = mock.Mock()
+
+    # Arrange a resolver stub.
+    resolver = mock.Mock()
+
+    # Build a minimal app session and cache.
+    app_session = AppSession(id='test_app', name='Test App')
+    cache = CacheContext()
+
+    # Compose the session context directly.
+    result = compose_session_context(
+        AppSessionContext,
+        app_session,
+        cache,
+        app_container,
+        resolver,
+        create_request_handler=create_session_request,
+        response_handler=response_handler,
+    )
+
+    # Assert the result is bound and all five handlers are callable.
+    assert isinstance(result, AppSessionContext)
+    assert result.domain is app_session
+    assert result.get_dependency is resolver.get_dependency
+    assert result.cache is cache
+    assert callable(result._build_logger)
+    assert callable(result._execute_feature)
+    assert callable(result._create_request)
+    assert callable(result._raise_error)
+    assert callable(result._build_response)
+
+
+# ** test: compose_session_context_resolves_collaborators
+def test_compose_session_context_resolves_collaborators():
+    '''
+    Test that compose_session_context resolves the context class's remaining
+    injectable collaborators from the app container via resolve_collaborators.
+    '''
+
+    # Define a synthetic context subclass declaring one extra collaborator.
+    class _ProbeContext(AppSessionContext):
+        def __init__(self, get_dependency, probe_evt=None, **kwargs):
+            super().__init__(get_dependency=get_dependency, **kwargs)
+            self.probe_evt = probe_evt
+
+    # Arrange an app container that resolves the extra collaborator by name.
+    probe = mock.Mock()
+    app_container = mock.Mock()
+    app_container.has_dependency.side_effect = lambda name: name == 'probe_evt'
+    app_container.get_dependency.side_effect = lambda name: probe if name == 'probe_evt' else mock.Mock()
+
+    resolver = mock.Mock()
+    app_session = AppSession(id='test_probe', name='Test Probe')
+    cache = CacheContext()
+
+    # Compose the session context.
+    result = compose_session_context(
+        _ProbeContext,
+        app_session,
+        cache,
+        app_container,
+        resolver,
+        create_request_handler=create_session_request,
+        response_handler=response_handler,
+    )
+
+    # Assert the extra collaborator was resolved and wired onto the context.
+    assert result.probe_evt is probe
+
+
+# ** test: compose_session_context_forwards_extra_kwargs
+def test_compose_session_context_forwards_extra_kwargs():
+    '''
+    Test that compose_session_context forwards additional keyword arguments
+    (e.g. a parse_cli_args-style kwarg) to the context constructor.
+    '''
+
+    # Arrange an app container with no additional collaborators.
+    app_container = mock.Mock()
+    app_container.has_dependency.return_value = False
+    app_container.get_dependency.return_value = mock.Mock()
+
+    resolver = mock.Mock()
+    app_session = AppSession(id='test_cli', name='Test CLI')
+    cache = CacheContext()
+
+    # Compose a CliSessionContext, forwarding a parse_cli_args extra kwarg.
+    from tiferet.contexts.cli import CliSessionContext
+    parse_cli_args = mock.Mock()
+    result = compose_session_context(
+        CliSessionContext,
+        app_session,
+        cache,
+        app_container,
+        resolver,
+        create_request_handler=create_session_request,
+        response_handler=response_handler,
+        parse_cli_args=parse_cli_args,
+    )
+
+    # Assert the extra kwarg was forwarded and stored.
+    assert isinstance(result, CliSessionContext)
+    assert result._parse_cli_args is parse_cli_args
 
 
 # ** test: build_app_success
