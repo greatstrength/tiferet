@@ -16,15 +16,10 @@ from tiferet.assets.error import APP_ERROR_ID
 from tiferet.contexts.app import (
     AppSessionContext,
     add_default_app_services,
-    get_default_app_services,
     add_default_app_constants,
-    get_default_app_constants,
     add_default_admin_services,
-    get_default_admin_services,
     add_default_admin_constants,
-    get_default_admin_constants,
     add_default_app_sessions,
-    get_default_app_session,
     APP_SERVICE_CACHE_PREFIX,
     APP_CONSTANT_CACHE_PREFIX,
     ADMIN_SERVICE_CACHE_PREFIX,
@@ -35,7 +30,6 @@ from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import RequestContext
 from tiferet.domain import AppSession, AppServiceDependency
-from tiferet.interfaces import AppService
 
 # *** fixtures
 
@@ -251,41 +245,6 @@ def test_app_session_context_registered_for_app_session_domain():
 
     # Assert the registry resolves AppSessionContext for the AppSession domain type.
     assert BaseContext.for_domain(AppSession) is AppSessionContext
-
-# ** test: app_session_context_load
-def test_app_session_context_load():
-    '''
-    Test that load invokes GetAppSession with the correct kwargs and returns the session.
-    '''
-
-    # Configure a mock AppService that returns a session on get.
-    session = AppSession(id='test.session', name='Test Session')
-    service = mock.Mock(spec=AppService)
-    service.get.return_value = session
-
-    # Load the session via the classmethod.
-    result = AppSessionContext.load('test.session', service)
-
-    # Assert the session was retrieved by id and returned unchanged.
-    assert result is session
-    service.get.assert_called_once_with('test.session')
-
-# ** test: app_session_context_load_not_found
-def test_app_session_context_load_not_found():
-    '''
-    Test that load raises APP_SESSION_NOT_FOUND_ID when the session is missing.
-    '''
-
-    # Configure a mock AppService that returns no session.
-    service = mock.Mock(spec=AppService)
-    service.get.return_value = None
-
-    # Attempt to load a non-existent session.
-    with pytest.raises(TiferetError) as exc_info:
-        AppSessionContext.load('missing.session', service)
-
-    # Assert the structured not-found error is raised.
-    assert exc_info.value.error_code == 'APP_SESSION_NOT_FOUND'
 
 # ** test: app_session_context_build_logger_wired
 def test_app_session_context_build_logger_wired(
@@ -567,22 +526,6 @@ def test_add_default_app_services_seeds_cache(sample_services: dict, base_cache_
     assert cached.service_id == 'svc1'
     assert APP_SERVICE_CACHE_PREFIX == ('app', 'services')
 
-# ** test: get_default_app_services_returns_list
-def test_get_default_app_services_returns_list(sample_services: dict, base_cache_builder: Callable):
-    '''
-    Test that get_default_app_services returns the list of cached app service dependencies.
-    '''
-
-    # Seed the cache and retrieve the services list.
-    wrapped = add_default_app_services(sample_services)(base_cache_builder)
-    cache = wrapped()
-    services = get_default_app_services(cache)
-
-    # Assert the seeded service is present in the returned list.
-    assert len(services) == 1
-    assert isinstance(services[0], AppServiceDependency)
-    assert services[0].service_id == 'svc1'
-
 # ** test: add_default_app_constants_seeds_cache
 def test_add_default_app_constants_seeds_cache(base_cache_builder: Callable):
     '''
@@ -596,19 +539,6 @@ def test_add_default_app_constants_seeds_cache(base_cache_builder: Callable):
     # Assert the constant is cached under the correct prefix.
     assert cache.get('FOO', *APP_CONSTANT_CACHE_PREFIX) == 'bar'
     assert APP_CONSTANT_CACHE_PREFIX == ('app', 'constants')
-
-# ** test: get_default_app_constants_returns_dict
-def test_get_default_app_constants_returns_dict(base_cache_builder: Callable):
-    '''
-    Test that get_default_app_constants returns the mapping of cached constants.
-    '''
-
-    # Seed the cache and retrieve the constants mapping.
-    wrapped = add_default_app_constants({'FOO': 'bar'})(base_cache_builder)
-    cache = wrapped()
-
-    # Assert the returned mapping matches the seeded constants.
-    assert get_default_app_constants(cache) == {'FOO': 'bar'}
 
 # ** test: add_default_admin_services_seeds_cache
 def test_add_default_admin_services_seeds_cache(sample_services: dict, base_cache_builder: Callable):
@@ -625,21 +555,6 @@ def test_add_default_admin_services_seeds_cache(sample_services: dict, base_cach
     assert isinstance(cached, AppServiceDependency)
     assert ADMIN_SERVICE_CACHE_PREFIX == ('admin', 'services')
 
-# ** test: get_default_admin_services_returns_list
-def test_get_default_admin_services_returns_list(sample_services: dict, base_cache_builder: Callable):
-    '''
-    Test that get_default_admin_services returns the list of cached admin service dependencies.
-    '''
-
-    # Seed the cache and retrieve the admin services list.
-    wrapped = add_default_admin_services(sample_services)(base_cache_builder)
-    cache = wrapped()
-    services = get_default_admin_services(cache)
-
-    # Assert the seeded service is present in the returned list.
-    assert len(services) == 1
-    assert services[0].service_id == 'svc1'
-
 # ** test: add_default_admin_constants_seeds_cache
 def test_add_default_admin_constants_seeds_cache(base_cache_builder: Callable):
     '''
@@ -653,19 +568,6 @@ def test_add_default_admin_constants_seeds_cache(base_cache_builder: Callable):
     # Assert the constant is cached under the admin prefix.
     assert cache.get('FOO', *ADMIN_CONSTANT_CACHE_PREFIX) == 'bar'
     assert ADMIN_CONSTANT_CACHE_PREFIX == ('admin', 'constants')
-
-# ** test: get_default_admin_constants_returns_dict
-def test_get_default_admin_constants_returns_dict(base_cache_builder: Callable):
-    '''
-    Test that get_default_admin_constants returns the mapping of cached admin constants.
-    '''
-
-    # Seed the cache and retrieve the admin constants mapping.
-    wrapped = add_default_admin_constants({'FOO': 'bar'})(base_cache_builder)
-    cache = wrapped()
-
-    # Assert the returned mapping matches the seeded constants.
-    assert get_default_admin_constants(cache) == {'FOO': 'bar'}
 
 # ** test: add_default_app_sessions_seeds_cache
 def test_add_default_app_sessions_seeds_cache(base_cache_builder: Callable):
@@ -684,27 +586,11 @@ def test_add_default_app_sessions_seeds_cache(base_cache_builder: Callable):
     assert cached.id == 'test.session'
     assert APP_SESSION_CACHE_PREFIX == ('app', 'sessions')
 
-# ** test: get_default_app_session_returns_seeded
-def test_get_default_app_session_returns_seeded(base_cache_builder: Callable):
+# ** test: app_session_cache_returns_none_when_absent
+def test_app_session_cache_returns_none_when_absent():
     '''
-    Test that get_default_app_session returns the seeded session by id.
-    '''
-
-    # Seed the cache and retrieve the session by id.
-    sessions = {'test.session': {'id': 'test.session', 'name': 'Test Session'}}
-    wrapped = add_default_app_sessions(sessions)(base_cache_builder)
-    cache = wrapped()
-
-    # Assert the seeded session is returned.
-    result = get_default_app_session(cache, 'test.session')
-    assert isinstance(result, AppSession)
-    assert result.id == 'test.session'
-
-# ** test: get_default_app_session_returns_none_when_absent
-def test_get_default_app_session_returns_none_when_absent():
-    '''
-    Test that get_default_app_session returns None for an empty cache.
+    Test that an unseeded app session cache key returns None.
     '''
 
-    # Assert an empty cache yields no default session.
-    assert get_default_app_session(CacheContext(), 'missing.session') is None
+    # Assert an empty cache yields no session for a missing key.
+    assert CacheContext().get('missing.session', *APP_SESSION_CACHE_PREFIX) is None

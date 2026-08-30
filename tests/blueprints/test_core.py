@@ -52,6 +52,7 @@ from tiferet.contexts.logging import (
 from tiferet.contexts.request import RequestContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
 from tiferet.domain import AppSession, AppServiceDependency, Error, Feature, LoggingSettings, Formatter
+from tiferet.events.app import GetAppSession
 from tiferet.repos.app import AppConfigRepository
 from tiferet.utils.core import CacheMiddleware
 
@@ -480,7 +481,7 @@ def test_create_app_service_default():
 # ** test: get_app_session_from_cache
 def test_get_app_session_from_cache():
     '''
-    Test that get_app_session returns a cache-seeded session without calling AppSessionContext.load.
+    Test that get_app_session returns a cache-seeded session without invoking the GetAppSession event.
     '''
 
     # Seed the cache with a default app session.
@@ -488,25 +489,25 @@ def test_get_app_session_from_cache():
         'test.session': {'id': 'test.session', 'name': 'Test Session'},
     })(lambda: CacheContext())()
 
-    # Assert the cached session is returned without invoking AppSessionContext.load.
-    with mock.patch.object(AppSessionContext, 'load') as mock_load:
+    # Assert the cached session is returned without invoking DomainEvent.handle.
+    with mock.patch('tiferet.blueprints.core.DomainEvent.handle') as mock_handle:
         result = get_app_session('test.session', cache)
     assert isinstance(result, AppSession)
     assert result.id == 'test.session'
-    mock_load.assert_not_called()
+    mock_handle.assert_not_called()
 
 # ** test: get_app_session_from_config
 def test_get_app_session_from_config():
     '''
-    Test that get_app_session delegates to AppSessionContext.load on a cache miss.
+    Test that get_app_session resolves a cache miss via DomainEvent.handle(GetAppSession, ...).
     '''
 
     # Use an empty cache so the seeded-session lookup misses.
     cache = CacheContext()
     session = AppSession(id='test.session', name='Test Session')
 
-    # Patch AppSessionContext.load to avoid touching the filesystem.
-    with mock.patch.object(AppSessionContext, 'load', return_value=session) as mock_load:
+    # Patch DomainEvent.handle to avoid touching the filesystem.
+    with mock.patch('tiferet.blueprints.core.DomainEvent.handle', return_value=session) as mock_handle:
         result = get_app_session(
             'test.session',
             cache,
@@ -515,11 +516,12 @@ def test_get_app_session_from_config():
             **a.app.DEFAULT_APP_SERVICE_PARAMETERS,
         )
 
-    # Assert the session was loaded via the classmethod.
+    # Assert the session was resolved via the GetAppSession domain event.
     assert result is session
-    mock_load.assert_called_once()
-    assert mock_load.call_args.args[0] == 'test.session'
-    assert isinstance(mock_load.call_args.args[1], AppConfigRepository)
+    mock_handle.assert_called_once()
+    assert mock_handle.call_args.args[0] is GetAppSession
+    assert isinstance(mock_handle.call_args.kwargs['dependencies']['app_service'], AppConfigRepository)
+    assert mock_handle.call_args.kwargs['id'] == 'test.session'
 
 # ** test: create_request_context_sets_interface_id_header
 def test_create_request_context_sets_interface_id_header():
