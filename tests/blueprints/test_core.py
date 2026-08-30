@@ -31,6 +31,7 @@ from tiferet.blueprints.core import (
     execute_feature_handler,
     raise_error_handler,
     response_handler,
+    compose_session_context,
     build_app_session_context,
     build_app,
 )
@@ -42,6 +43,7 @@ from tiferet.contexts.app import (
     APP_SERVICE_CACHE_PREFIX,
 )
 from tiferet.contexts.cache import CacheContext
+from tiferet.contexts.core import BaseContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
 from tiferet.contexts.logging import (
@@ -659,6 +661,178 @@ def test_raise_error_handler_wraps_bare_exception():
     # Assert the bare exception was wrapped and resolved under the generic app error code.
     get_error_handler.assert_called_once_with('APP_ERROR')
     assert exc_info.value.error_code == 'APP_ERROR'
+
+# ** test: compose_session_context_wires_five_handlers
+def test_compose_session_context_wires_five_handlers():
+    '''
+    Test that compose_session_context wires all five template-method handlers
+    onto the constructed context.
+    '''
+
+    # Define a fake session context that captures every wired constructor kwarg.
+    class FakeSessionContext(BaseContext):
+        def __init__(self,
+                get_dependency=None,
+                cache=None,
+                build_logger_handler=None,
+                execute_feature_handler=None,
+                create_request_handler=None,
+                raise_error_handler=None,
+                response_handler=None,
+                **kwargs):
+            super().__init__()
+            self.get_dependency = get_dependency
+            self.cache = cache
+            self.build_logger_handler = build_logger_handler
+            self.execute_feature_handler = execute_feature_handler
+            self.create_request_handler = create_request_handler
+            self.raise_error_handler = raise_error_handler
+            self.response_handler = response_handler
+            self.extra_kwargs = kwargs
+
+    # Seed a minimal di_service default and build the app container/resolver.
+    cache = add_default_app_services({
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+    })(lambda: CacheContext())()
+    app_session = AppSession(id='test.session', name='Test Session')
+    app_container = build_app_service_container(cache, app_session)
+    resolver = build_service_resolver(app_container)
+
+    # Bypass the real logging pipeline; this test targets handler wiring only.
+    fake_build_logger = mock.Mock(name='build_logger_handler')
+    fake_create_request = mock.Mock(name='create_request_handler')
+    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
+        context = compose_session_context(
+            FakeSessionContext,
+            app_session,
+            cache,
+            app_container,
+            resolver,
+            create_request_handler=fake_create_request,
+            response_handler=response_handler,
+        )
+
+    # Assert the constructed context is bound to the app session with all five handlers wired.
+    assert isinstance(context, FakeSessionContext)
+    assert context.domain is app_session
+    assert context.get_dependency == resolver.get_dependency
+    assert context.cache is cache
+    assert context.build_logger_handler is fake_build_logger
+    assert context.execute_feature_handler is not None
+    assert context.raise_error_handler is not None
+    assert context.create_request_handler is fake_create_request
+    assert context.response_handler is response_handler
+
+# ** test: compose_session_context_resolves_collaborators
+def test_compose_session_context_resolves_collaborators():
+    '''
+    Test that compose_session_context resolves a context class's remaining
+    injectable collaborators via resolve_collaborators.
+    '''
+
+    # Define a fake session context declaring one extra injectable collaborator.
+    class FakeSessionContext(BaseContext):
+        def __init__(self,
+                get_dependency=None,
+                cache=None,
+                build_logger_handler=None,
+                execute_feature_handler=None,
+                create_request_handler=None,
+                raise_error_handler=None,
+                response_handler=None,
+                extra_service=None,
+                **kwargs):
+            super().__init__()
+            self.extra_service = extra_service
+
+    # Seed di_service plus the extra collaborator service on the app container.
+    cache = add_default_app_services({
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+        'extra_service': {
+            'service_id': 'extra_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+    })(lambda: CacheContext())()
+    app_session = AppSession(id='test.session', name='Test Session')
+    app_container = build_app_service_container(cache, app_session)
+    resolver = build_service_resolver(app_container)
+
+    # Bypass the real logging pipeline; this test targets collaborator resolution only.
+    fake_build_logger = mock.Mock(name='build_logger_handler')
+    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
+        context = compose_session_context(
+            FakeSessionContext,
+            app_session,
+            cache,
+            app_container,
+            resolver,
+            create_request_handler=create_session_request,
+            response_handler=response_handler,
+        )
+
+    # Assert the extra collaborator was resolved from the app container.
+    assert isinstance(context.extra_service, CacheContext)
+
+# ** test: compose_session_context_forwards_extra_kwargs
+def test_compose_session_context_forwards_extra_kwargs():
+    '''
+    Test that compose_session_context forwards extra_kwargs (e.g. a
+    parse_cli_args-style closure) through to the constructed context.
+    '''
+
+    # Define a fake session context accepting a CLI-style extra kwarg.
+    class FakeSessionContext(BaseContext):
+        def __init__(self,
+                get_dependency=None,
+                cache=None,
+                build_logger_handler=None,
+                execute_feature_handler=None,
+                create_request_handler=None,
+                raise_error_handler=None,
+                response_handler=None,
+                parse_cli_args=None,
+                **kwargs):
+            super().__init__()
+            self.parse_cli_args = parse_cli_args
+
+    # Seed a minimal di_service default and build the app container/resolver.
+    cache = add_default_app_services({
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+    })(lambda: CacheContext())()
+    app_session = AppSession(id='test.session', name='Test Session')
+    app_container = build_app_service_container(cache, app_session)
+    resolver = build_service_resolver(app_container)
+    fake_parse_cli_args = mock.Mock(name='parse_cli_args')
+
+    # Bypass the real logging pipeline; this test targets extra_kwargs forwarding only.
+    fake_build_logger = mock.Mock(name='build_logger_handler')
+    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
+        context = compose_session_context(
+            FakeSessionContext,
+            app_session,
+            cache,
+            app_container,
+            resolver,
+            create_request_handler=create_session_request,
+            response_handler=response_handler,
+            parse_cli_args=fake_parse_cli_args,
+        )
+
+    # Assert the extra kwarg was forwarded to the constructed context.
+    assert context.parse_cli_args is fake_parse_cli_args
 
 # ** test: build_app_session_context_wires_handlers
 def test_build_app_session_context_wires_handlers():
