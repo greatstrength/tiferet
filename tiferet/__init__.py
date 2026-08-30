@@ -3,6 +3,7 @@
 # *** exports
 
 __all__ = [
+    'a',
     'App',
     'CLI',
     'TiferetError',
@@ -36,6 +37,7 @@ __all__ = [
 # Export the main application context and related modules.
 # Use a try-except block to avoid import errors on build systems.
 try:
+    from . import assets as a
     from .assets import TiferetError, TiferetAPIError
     from .blueprints import build_app as App
     from .blueprints import build_cli as CLI
