@@ -44,7 +44,7 @@ def create_calculator_fluent(interface_id='calc_fluent', config_file='config.yml
     return build_calculator_fluent_context(app_session, cache)
 ```
 
-`calc_fluent.py` becomes one line: `calc_app = create_calculator_fluent()`. Update the `calc_fluent` session's (informational) `class_name` in `config.yml` to `CalculatorFluentContext`, `module_path` to `app.contexts.fluent`.
+`calc_fluent.py` becomes one line: `calc_app = create_calculator_fluent()`.
 
 ### 11.2 A persistent request *is* the chain
 
