@@ -10,7 +10,7 @@ Use this when:
 - Starting any implementation or code review session in a Tiferet-family repo — run the scan procedure before touching affected files.
 - Adding a `# ++ todo:` or `# -- obsolete:` annotation during implementation.
 - Resolving (removing) an annotation after the described work is complete.
-- Including annotation status in a Collaboration Report.
+- Including annotation status in a Collaboration Report for TRD work.
 
 Canonical source of truth:
 https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md#annotation-artifacts
@@ -62,7 +62,7 @@ For a Tiferet-family repo (not the canonical repo), substitute the package direc
 
 Review each open annotation and decide:
 - Is it in scope for this session? If so, plan to resolve it.
-- Is it out of scope? Note it so the Collaboration Report reflects its status.
+- Is it out of scope? For TRD work, note it so the Collaboration Report reflects its status.
 
 Include the scan results (or a summary) when authoring a TRD to ensure the scope section accounts for any open annotations that the new work would touch.
 
@@ -74,19 +74,19 @@ Include the scan results (or a summary) when authoring a TRD to ensure the scope
 1. Complete the described work.
 2. Remove the `# ++ todo:` line from the source file.
 3. If the annotation referenced a GitHub issue, confirm the issue is closed or the sub-task is complete.
-4. Note the resolution in the Collaboration Report.
+4. For TRD work, note the resolution in the Collaboration Report.
 
 ### Retiring `# -- obsolete:` with its artifact
 1. Verify no callers reference the annotated artifact (search the codebase).
 2. Delete the artifact and its `# -- obsolete:` annotation line together.
 3. If the `(obsolete)` parenthetical shorthand was used on the `# *` label, remove that too.
-4. Note the retirement in the Collaboration Report.
+4. For TRD work, note the retirement in the Collaboration Report.
 
 ---
 
 ## Collaboration report integration
 
-In the Collaboration Report (Section 2 — Code Components Touched or Section 3 — Deviations), note:
+For TRD work, record annotation changes in the Collaboration Report (Section 2 — Code Components Touched or Section 3 — Deviations):
 
 - Any `# ++ todo:` annotations introduced during the session (with the artifact and message).
 - Any `# ++ todo:` annotations resolved (with the artifact and what was done).

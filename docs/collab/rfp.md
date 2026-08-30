@@ -79,7 +79,7 @@ To find the next alpha: `git tag --list 'vX.Y.0a*' --sort=-version:refname`. The
 2. Cut `vX.Y.0bN-<kebab-context>` from the proto branch in [binding.md](binding.md). The PR targets proto, not `main`.
 3. Implement against the proposal, the acceptance criteria, and the distillation sections you cited. Review is against those. Nobody should be asking whether this matches trunk.
 4. Title the PR `vX.Y.0aN — <Plain Title> (RFP-00N)`.
-5. After the squash-merge: bump the package version to that alpha, tag it, and post a Collaboration Report on the **RFP issue** (RFP id, alpha tag, beta milestone). Session notes go on the issue too. The PR is just the review surface.
+5. After the squash-merge: bump the package version to that alpha, tag it, and post a session note on the **RFP issue** recording the RFP id, alpha tag, and beta milestone. The PR is just the review surface.
 
 Suggested TRD slicing does not block the alpha. Reconstruction waits for a [catalog freeze](process.md#catalog-freeze).
 

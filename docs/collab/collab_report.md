@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-This is the session diary, not the review. It always lives on an **issue**. [process.md](process.md) is the index if you are not sure which issue.
+This is the session diary for trunk TRD work, not the review. It always lives on an **issue**. [process.md](process.md) is the index if you are not sure which issue.
 
 ## When to write one
 
@@ -13,7 +13,6 @@ This is the session diary, not the review. It always lives on an **issue**. [pro
 | Super-TRD child **implementation log** | the child's code has been pushed | the **child** issue |
 | Super-TRD child **verification addendum** | after combined review and merge, or the Reviewer accepts that child's AC | the same child issue |
 | Super-TRD parent roll-up | after merge | the **parent** issue |
-| Prototype / RFP | after the alpha lands | the **RFP** issue |
 
 Please do not post this as a PR conversation comment. The PR is already doing a different job.
 
@@ -27,12 +26,12 @@ An implementation log is a record of what landed. It is not combined-review acce
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 **Date:** [a real calendar date — e.g., August 14, 2026]
-**Version:** [trunk milestone `2.0.1` | proto alpha `v2.0.0a17`]
-**Kind:** Implementation log | Verification addendum | Standalone | Parent roll-up | RFP alpha
+**Version:** [trunk milestone `2.0.1`]
+**Kind:** Implementation log | Verification addendum | Standalone | Parent roll-up
 
 ## 1. Story summary
 - **Issue:** `[title]` (greatstrength/tiferet#[n])
-- **Authorizing document:** TRD path / freeze id, or RFP id
+- **Authorizing document:** TRD path / freeze id
 - **Goal:** one sentence, then bullets of the core requirements
 
 ## 2. Code components touched
@@ -50,7 +49,6 @@ An implementation log is a record of what landed. It is not combined-review acce
 - **Pull Request:** #N – url
 - **Commits:** message (abcdef1)
 - **Current state:**
-For an RFP, also list the proto branch, the alpha tag, and the beta milestone.
 For reconstruction, also list the freeze id.
 
 ## 5. Collaboration log (AI ↔ Human)
