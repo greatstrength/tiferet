@@ -76,22 +76,16 @@ def build_admin_cli_session_context(app_session: AppSession,
         get_default_cli_commands(cache),
     )
 
-    # Resolve any remaining injectable collaborators the context class declares.
-    collaborators = core.resolve_collaborators(CliSessionContext, app_container)
-
-    # Construct and return the CLI session context with admin resolver wiring
-    # and CLI-specific request/response handlers.
-    return CliSessionContext.from_domain(
+    # Delegate handler wiring, collaborator resolution, and construction.
+    return core.compose_session_context(
+        CliSessionContext,
         app_session,
-        get_dependency=resolver.get_dependency,
-        cache=cache,
-        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
-        parse_cli_args=parse_cli_args,
-        execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
+        cache,
+        app_container,
+        resolver,
         create_request_handler=create_cli_request_context,
-        raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
         response_handler=cli_response_handler,
-        **collaborators,
+        parse_cli_args=parse_cli_args,
     )
 
 # ** blueprint: build_admin_cli
