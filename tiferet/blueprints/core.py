@@ -10,15 +10,15 @@ from typing import Any, Callable, Dict
 from .. import assets as a
 from ..assets import TiferetAPIError, TiferetError
 from ..contexts.app import (
+    APP_CONSTANT_CACHE_PREFIX,
+    APP_SERVICE_CACHE_PREFIX,
+    APP_SESSION_CACHE_PREFIX,
     AppServiceDependency,
     AppSession,
     AppSessionContext,
     add_default_app_constants,
     add_default_app_services,
     add_default_app_sessions,
-    get_default_app_constants,
-    get_default_app_services,
-    get_default_app_session,
 )
 from ..contexts.cache import CacheContext
 from ..contexts.core import BaseContext
@@ -32,6 +32,8 @@ from ..contexts.logging import (
     get_default_logging_settings,
 )
 from ..contexts.request import RequestContext
+from ..events import DomainEvent
+from ..events.app import GetAppSession
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver, injectable_parameter_names
 
@@ -192,8 +194,8 @@ def build_app_service_container(cache,
     '''
 
     # Retrieve the cache-seeded default services and constants.
-    default_services = get_default_app_services(cache)
-    default_constants = get_default_app_constants(cache)
+    default_services = list(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values())
+    default_constants = cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX)
 
     # Retrieve the session's own service and constant overrides.
     session_services = app_instance.services if app_instance is not None else []
@@ -454,13 +456,17 @@ def get_app_session(interface_id: str,
 
     # Return a cache-seeded default session when present.
     if cache is not None:
-        cached_session = get_default_app_session(cache, interface_id)
+        cached_session = cache.get(interface_id, *APP_SESSION_CACHE_PREFIX)
         if cached_session is not None:
             return cached_session
 
-    # On a cache miss, compose the app service and load the session through it.
+    # On a cache miss, compose the app service and resolve the session through the event.
     app_service = create_app_service(module_path, class_name, parameters)
-    return AppSessionContext.load(interface_id, app_service)
+    return DomainEvent.handle(
+        GetAppSession,
+        dependencies=dict(app_service=app_service),
+        id=interface_id,
+    )
 
 # ** blueprint: create_request_context
 def create_request_context(interface_id: str,

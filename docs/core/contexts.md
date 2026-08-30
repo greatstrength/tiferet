@@ -144,13 +144,13 @@ Async dispatch is owned by `FeatureContext` itself via `Feature.is_async` and `E
 
 The `CacheContext` (`tiferet/contexts/cache.py`) exposes `get`, `set`, `delete`, `clear`, and `get_by_prefix(prefix)` — the last returns all entries whose keys start with the given prefix as a `Dict[str, Any]`. This backs enumeration of the framework catalogs that `build_cache` seeds under namespaced key prefixes.
 
-The app-context module (`tiferet/contexts/app.py`) provides paired seeders and getters for the bootstrap catalogs:
+The app-context module (`tiferet/contexts/app.py`) provides seeders for the bootstrap catalogs, plus the cache-key prefix constants each seeder writes under:
 
-- `add_default_app_services` / `add_default_app_constants` seed the cache under the `app_service_` and `app_constant_` key prefixes (stacked as decorators on `build_cache`).
-- `get_default_app_services(cache)` returns the seeded `AppServiceDependency` domain objects (the values behind the `app_service_` prefix).
-- `get_default_app_constants(cache)` returns the seeded bootstrap constants keyed by name, stripping the `app_constant_` prefix.
+- `add_default_app_services` / `add_default_app_constants` seed the cache under `APP_SERVICE_CACHE_PREFIX` / `APP_CONSTANT_CACHE_PREFIX` (stacked as decorators on `build_cache`).
+- `add_default_admin_services` / `add_default_admin_constants` seed the admin equivalents under `ADMIN_SERVICE_CACHE_PREFIX` / `ADMIN_CONSTANT_CACHE_PREFIX`.
+- `add_default_app_sessions` seeds default `AppSession` domain objects under `APP_SESSION_CACHE_PREFIX`.
 
-These getters let the `build_app_service_container` blueprint pull the framework defaults back off the shared cache when composing the app-level service container. Admin blueprints stack additional seeders (`add_default_admin_services`, `add_default_admin_constants`, `add_default_features(ADMIN_DEFAULT_FEATURES)`, `add_default_errors(ADMIN_DEFAULT_ERRORS)`, and for the admin CLI `add_default_cli_commands(ADMIN_DEFAULT_COMMANDS)`).
+The seeders own reconstitution and prefix namespacing; there are no `get_default_*` counterparts for these catalogs. The blueprint layer reads a prefix straight off the cache — `cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)` in `build_app_service_container`, `cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX)` in `build_admin_service_resolver`, and so on — matching the idiom `blueprints/core.py` already uses for `get_error` and `get_feature`. Admin blueprints stack additional seeders (`add_default_admin_services`, `add_default_admin_constants`, `add_default_features(ADMIN_DEFAULT_FEATURES)`, `add_default_errors(ADMIN_DEFAULT_ERRORS)`, and for the admin CLI `add_default_cli_commands(ADMIN_DEFAULT_COMMANDS)`).
 
 ## Writing Contexts
 

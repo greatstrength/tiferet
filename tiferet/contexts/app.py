@@ -11,9 +11,6 @@ from typing import Any, Callable, Dict, List, Tuple
 from ..assets import TiferetError, TiferetAPIError
 from ..assets.error import APP_ERROR_ID
 from ..domain import AppSession, AppServiceDependency
-from ..events import DomainEvent
-from ..events.app import GetAppSession
-from ..interfaces import AppService
 from .core import BaseContext
 from .cache import CacheContext
 from .request import RequestContext
@@ -104,20 +101,6 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
     # Return the decorator.
     return decorator
 
-# ** function: get_default_app_services
-def get_default_app_services(cache: CacheContext) -> List[AppServiceDependency]:
-    '''
-    Return the default app service dependencies seeded on the cache.
-
-    :param cache: The cache context to read.
-    :type cache: CacheContext
-    :return: The list of seeded app service dependencies.
-    :rtype: List[AppServiceDependency]
-    '''
-
-    # Return the seeded app service dependencies as a list.
-    return list(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values())
-
 # ** function: add_default_app_constants
 def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
     '''
@@ -150,20 +133,6 @@ def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
 
     # Return the decorator.
     return decorator
-
-# ** function: get_default_app_constants
-def get_default_app_constants(cache: CacheContext) -> Dict[str, Any]:
-    '''
-    Return the default app constants seeded on the cache.
-
-    :param cache: The cache context to read.
-    :type cache: CacheContext
-    :return: The mapping of seeded app constants.
-    :rtype: Dict[str, Any]
-    '''
-
-    # Return the seeded app constants.
-    return cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX)
 
 # ** function: add_default_admin_services
 def add_default_admin_services(services: Dict[str, Any]) -> Callable:
@@ -203,20 +172,6 @@ def add_default_admin_services(services: Dict[str, Any]) -> Callable:
     # Return the decorator.
     return decorator
 
-# ** function: get_default_admin_services
-def get_default_admin_services(cache: CacheContext) -> List[AppServiceDependency]:
-    '''
-    Return the default admin service dependencies seeded on the cache.
-
-    :param cache: The cache context to read.
-    :type cache: CacheContext
-    :return: The list of seeded admin service dependencies.
-    :rtype: List[AppServiceDependency]
-    '''
-
-    # Return the seeded admin service dependencies as a list.
-    return list(cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX).values())
-
 # ** function: add_default_admin_constants
 def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
     '''
@@ -249,20 +204,6 @@ def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
 
     # Return the decorator.
     return decorator
-
-# ** function: get_default_admin_constants
-def get_default_admin_constants(cache: CacheContext) -> Dict[str, Any]:
-    '''
-    Return the default admin constants seeded on the cache.
-
-    :param cache: The cache context to read.
-    :type cache: CacheContext
-    :return: The mapping of seeded admin constants.
-    :rtype: Dict[str, Any]
-    '''
-
-    # Return the seeded admin constants.
-    return cache.get_by_prefix(*ADMIN_CONSTANT_CACHE_PREFIX)
 
 # ** function: add_default_app_sessions
 def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
@@ -301,22 +242,6 @@ def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
 
     # Return the decorator.
     return decorator
-
-# ** function: get_default_app_session
-def get_default_app_session(cache: CacheContext, session_id: str) -> AppSession | None:
-    '''
-    Return a default app session seeded on the cache by id.
-
-    :param cache: The cache context to read.
-    :type cache: CacheContext
-    :param session_id: The identifier of the app session to retrieve.
-    :type session_id: str
-    :return: The seeded app session, or None when absent.
-    :rtype: AppSession | None
-    '''
-
-    # Return the seeded app session, or None when absent.
-    return cache.get(session_id, *APP_SESSION_CACHE_PREFIX)
 
 # *** contexts
 
@@ -394,27 +319,6 @@ class AppSessionContext(BaseContext):
         self._create_request = create_request_handler
         self._raise_error = raise_error_handler
         self._build_response = response_handler
-
-    # * method: load (static)
-    @classmethod
-    def load(cls, interface_id: str, app_service: AppService) -> AppSession:
-        '''
-        Retrieve an app session by id without importing the events layer directly.
-
-        :param interface_id: The identifier of the app session to load.
-        :type interface_id: str
-        :param app_service: The app service used to resolve the session.
-        :type app_service: AppService
-        :return: The loaded app session.
-        :rtype: AppSession
-        '''
-
-        # Delegate to the GetAppSession domain event.
-        return DomainEvent.handle(
-            GetAppSession,
-            dependencies=dict(app_service=app_service),
-            id=interface_id,
-        )
 
     # * method: build_logger
     def build_logger(self) -> logging.Logger:

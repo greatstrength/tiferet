@@ -9,12 +9,12 @@ from typing import Any, Callable, Dict
 from .. import assets as a
 from ..assets import TiferetError
 from ..contexts.app import (
+    ADMIN_CONSTANT_CACHE_PREFIX,
+    ADMIN_SERVICE_CACHE_PREFIX,
     AppSession,
     AppSessionContext,
     add_default_admin_constants,
     add_default_admin_services,
-    get_default_admin_constants,
-    get_default_admin_services,
 )
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
@@ -70,9 +70,9 @@ def build_admin_service_resolver(app_container: DIAppServiceContainer,
 
     # Build the admin container from cache-seeded admin services and constants.
     admin_container = DIAppServiceContainer.from_dependencies(
-        services=get_default_admin_services(cache),
+        services=list(cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX).values()),
         constants={
-            **get_default_admin_constants(cache),
+            **cache.get_by_prefix(*ADMIN_CONSTANT_CACHE_PREFIX),
             'load_cache': core.load_cache(cache),
         },
     )
