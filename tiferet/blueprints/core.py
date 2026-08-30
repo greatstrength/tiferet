@@ -32,13 +32,15 @@ from ..contexts.app import (
     add_default_app_services,
     add_default_app_constants,
     add_default_app_sessions,
-    get_default_app_services,
-    get_default_app_constants,
-    get_default_app_session,
+    APP_CONSTANT_CACHE_PREFIX,
+    APP_SERVICE_CACHE_PREFIX,
+    APP_SESSION_CACHE_PREFIX,
 )
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
+from ..events import DomainEvent
+from ..events.app import GetAppSession
 from .. import assets as a
 
 # *** constants
@@ -87,6 +89,74 @@ def resolve_collaborators(context_cls: type, app_container: DIAppServiceContaine
         and not name.startswith('default_')
         and app_container.has_dependency(name)
     }
+
+# ** function: compose_session_context
+def compose_session_context(
+        context_cls: type,
+        app_session: AppSession,
+        cache: CacheContext,
+        app_container: DIAppServiceContainer,
+        resolver: ServiceResolver,
+        create_request_handler: Callable,
+        response_handler: Callable,
+        **extra_kwargs) -> Any:
+    '''
+    Compose a session context from a pre-built app container and resolver.
+
+    Wires the three resolver-derived handlers (build_logger_handler,
+    execute_feature_handler, raise_error_handler) plus the caller-supplied
+    request/response handler pair, resolves any remaining collaborators the
+    context class declares, and constructs the context via from_domain.
+    The caller supplies the pre-built app container and resolver so this
+    function stays agnostic to which resolver-composition strategy (core vs
+    admin) produced them, and to which context class (AppSessionContext vs
+    CliSessionContext) is being constructed.
+
+    :param context_cls: The context class to construct (AppSessionContext or
+        CliSessionContext).
+    :type context_cls: type
+    :param app_session: The loaded app session domain object.
+    :type app_session: AppSession
+    :param cache: The bootstrap cache.
+    :type cache: CacheContext
+    :param app_container: The built app service container, used to resolve
+        collaborators.
+    :type app_container: DIAppServiceContainer
+    :param resolver: The composed service resolver (core or admin).
+    :type resolver: ServiceResolver
+    :param create_request_handler: The request-construction handler to wire.
+    :type create_request_handler: Callable
+    :param response_handler: The response-building handler to wire.
+    :type response_handler: Callable
+    :param extra_kwargs: Additional keyword arguments forwarded to the
+        context constructor (e.g. parse_cli_args, or caller context_kwargs).
+    :type extra_kwargs: dict
+    :return: The fully wired session context.
+    :rtype: Any
+    '''
+
+    # Build the three resolver-derived template-method handlers, plus the
+    # caller-supplied request/response handler pair.
+    handlers = dict(
+        build_logger_handler=build_logger_handler(cache, resolver.get_dependency),
+        execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
+        raise_error_handler=raise_error_handler(get_error(cache, resolver.get_dependency)),
+        response_handler=response_handler,
+        create_request_handler=create_request_handler,
+    )
+
+    # Resolve any remaining injectable collaborators the context class declares.
+    collaborators = resolve_collaborators(context_cls, app_container)
+
+    # Construct and return the wired session context.
+    return context_cls.from_domain(
+        app_session,
+        get_dependency=resolver.get_dependency,
+        cache=cache,
+        **handlers,
+        **collaborators,
+        **extra_kwargs,
+    )
 
 # ** function: merge_logging_settings
 def merge_logging_settings(
@@ -229,8 +299,8 @@ def get_app_session(
     decorator (e.g. the built-in admin sessions).  When found, the cached
     ``AppSession`` is returned immediately without touching the config file.  When
     absent from the cache (or when no cache is provided), composes the
-    ``app_service`` dependency via :func:`create_app_service` and retrieves the
-    session through ``AppSessionContext.load``, which raises
+    ``app_service`` dependency via :func:`create_app_service` and resolves the
+    session via the ``GetAppSession`` domain event, which raises
     ``APP_SESSION_NOT_FOUND`` when the session is absent from the config file.
     Any keyword arguments are forwarded as the app service constructor parameters
     (e.g. ``app_config='config.yml'``).
@@ -251,15 +321,17 @@ def get_app_session(
 
     # Check the cache for a seeded default session (e.g. built-in admin sessions).
     if cache is not None:
-        cached_session = get_default_app_session(cache, interface_id)
+        cached_session = cache.get(interface_id, *APP_SESSION_CACHE_PREFIX)
         if cached_session is not None:
             return cached_session
 
-    # Compose the app service via a single-use container.
+    # On a cache miss, compose the app service and resolve the session through the event.
     app_service = create_app_service(module_path, class_name, parameters)
-
-    # Retrieve the session from the config file via the AppSessionContext classmethod.
-    return AppSessionContext.load(interface_id, app_service)
+    return DomainEvent.handle(
+        GetAppSession,
+        dependencies=dict(app_service=app_service),
+        id=interface_id,
+    )
 
 # ** blueprint: get_error
 def get_error(
@@ -466,7 +538,7 @@ def build_app_service_container(
     # the general-purpose cache loader so build_singleton can wire it into
     # CacheMiddleware by constructor inspection.
     constants = {
-        **get_default_app_constants(cache),
+        **cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX),
         'load_cache': load_cache(cache),
     }
     if app_instance is not None:
@@ -474,7 +546,10 @@ def build_app_service_container(
 
     # Merge default services with the interface's own, overriding defaults by
     # service id.
-    services = {dep.service_id: dep for dep in get_default_app_services(cache)}
+    services = {
+        dep.service_id: dep
+        for dep in cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values()
+    }
     if app_instance is not None:
         for service in (app_instance.services or []):
             services[service.service_id] = service
@@ -837,31 +912,15 @@ def build_app_session_context(
     # Build the feature-level resolver from the app container.
     resolver = build_service_resolver(app_container)
 
-    # Hardcode the AppSessionContext class; blueprint functions are the declarative
-    # owner of context class selection — the session's module_path / class_name
-    # fields are no longer consulted at runtime (annotated obsolete).
-    context_cls = AppSessionContext
-
-    # Resolve the context's collaborators from the app container by id.
-    collaborators = resolve_collaborators(context_cls, app_container)
-
-    # Build the five template-method handlers.
-    handlers = dict(
-        build_logger_handler=build_logger_handler(cache, resolver.get_dependency),
-        execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
-        create_request_handler=create_session_request,
-        raise_error_handler=raise_error_handler(get_error(cache, resolver.get_dependency)),
-        response_handler=response_handler,
-    )
-
-    # Construct the context via from_domain, injecting the resolver handler,
-    # cache, all collaborators, and the five handlers.
-    return context_cls.from_domain(
+    # Delegate handler wiring, collaborator resolution, and construction.
+    return compose_session_context(
+        AppSessionContext,
         app_session,
-        get_dependency=resolver.get_dependency,
-        cache=cache,
-        **handlers,
-        **collaborators,
+        cache,
+        app_container,
+        resolver,
+        create_request_handler=create_session_request,
+        response_handler=response_handler,
         **context_kwargs,
     )
 

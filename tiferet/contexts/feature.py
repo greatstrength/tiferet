@@ -12,7 +12,7 @@ from typing import Any, Callable, Generator, List, Tuple, Dict
 from pydantic import ValidationError
 
 # ** app
-from .core import BaseContext
+from .core import BaseContext, add_default_cache_items
 from .cache import CacheContext
 from .request import RequestContext
 from ..assets import TiferetError
@@ -38,11 +38,6 @@ def add_default_features(features: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default feature domain objects.
 
-    Wraps a cache-builder callable so that, after the cache is constructed,
-    each entry in ``features`` is reconstituted into a ``Feature`` domain
-    object (with its id re-injected) and stored in the cache under the
-    ``FEATURE_CACHE_PREFIX`` namespace keyed by feature id.
-
     :param features: A mapping of feature IDs to raw feature definition dicts
         (each value is the definition without its id).
     :type features: Dict[str, Any]
@@ -50,30 +45,8 @@ def add_default_features(features: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default feature domain objects.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute each raw feature dict into a Feature domain object
-            # (re-injecting the id) and cache it under the feature namespace.
-            for feature_id, feature_data in features.items():
-                cache.set(
-                    feature_id,
-                    Feature.model_validate({**feature_data, 'id': feature_id}),
-                    *FEATURE_CACHE_PREFIX,
-                )
-
-            # Return the populated cache context.
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(features, FEATURE_CACHE_PREFIX, model=Feature, id_field='id')
 
 # ** function: run_coroutine
 def run_coroutine(coro: Any) -> Any:

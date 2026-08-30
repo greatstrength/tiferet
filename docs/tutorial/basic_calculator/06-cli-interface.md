@@ -105,11 +105,9 @@ interfaces:
   calc_cli:
     name: Calculator CLI
     description: Command-line interface for calculator operations
-    module_path: tiferet.contexts.cli
-    class_name: CliContext
 ```
 
-- `calc_cli` tells Tiferet to use the built-in `CliContext` for command-line handling.
+- Command-line handling is done by the built-in `CliSessionContext`, which the `CLI` entry point selects; a session declares no context type.
 - CLI command definitions are read from the `cli` section in the same root `config.yml`.
 
 ### 6.3 The CLI entry point script
@@ -120,12 +118,12 @@ interfaces:
 from tiferet import CLI
 
 if __name__ == "__main__":
-    # Realize the calc_cli interface (CliContext) and dispatch sys.argv.
+    # Realize the calc_cli session (CliSessionContext) and dispatch sys.argv.
     CLI("calc_cli", app_config="config.yml")
 ```
 
 That's it — super short!  
-`CLI("calc_cli", ...)` realizes the `CliContext` declared by `calc_cli` in root `config.yml` (which also holds the CLI command definitions) and delegates `sys.argv` parsing and feature dispatch to `CliContext.run_cli`.
+`CLI("calc_cli", ...)` realizes the `calc_cli` session declared in root `config.yml` (which also holds the CLI command definitions) using the built-in `CliSessionContext`, and delegates `sys.argv` parsing and feature dispatch to `CliSessionContext.run`.
 
 ### 6.4 Run and play with it
 

@@ -10,10 +10,8 @@ from pydantic import AliasChoices, Field
 
 # ** app
 from ..domain import (
-    ATTRIBUTE_NOT_SETTABLE_ID,
     AppServiceDependency,
     AppSession,
-    ModelError,
 )
 from .core import (
     Aggregate,
@@ -27,6 +25,9 @@ class AppSessionAggregate(AppSession, Aggregate):
     '''
     An aggregate representation of an app session.
     '''
+
+    # * attribute: _SETTABLE_ATTRIBUTES
+    _SETTABLE_ATTRIBUTES: ClassVar[set] = {'name', 'description', 'logger_id', 'flags'}
 
     # * method: add_service
     def add_service(
@@ -169,46 +170,6 @@ class AppSessionAggregate(AppSession, Aggregate):
             for key, value in merged.items()
             if value is not None
         }
-
-    # * method: set_attribute
-    def set_attribute(self, attribute: str, value: Any) -> None:
-        '''
-        Update a supported scalar attribute on the app session aggregate.
-
-        Supported attributes: name, description, logger_id, flags. The ``id``
-        identity field and the ``services`` / ``constants`` collections owned by
-        :meth:`add_service`, :meth:`set_service`, and :meth:`set_constants` are
-        refused as mutation-policy violations rather than model inconsistencies.
-
-        :param attribute: The attribute name to update.
-        :type attribute: str
-        :param value: The new value.
-        :type value: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Define the set of supported attributes.
-        supported = {
-            'name',
-            'description',
-            'logger_id',
-            'flags',
-        }
-
-        # Reject any attribute the mutation policy does not expose.
-        if attribute not in supported:
-            supported_names = ', '.join(sorted(supported))
-            ModelError.raise_error(
-                ATTRIBUTE_NOT_SETTABLE_ID,
-                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
-                model=self,
-                attribute=attribute,
-                supported=supported_names,
-            )
-
-        # Apply the update; validate_assignment=True handles re-validation.
-        setattr(self, attribute, value)
 
 
 # ** mapper: app_service_dependency_config_object

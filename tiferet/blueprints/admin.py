@@ -17,8 +17,8 @@ from ..contexts.app import (
     AppServiceDependency,
     add_default_admin_services,
     add_default_admin_constants,
-    get_default_admin_services,
-    get_default_admin_constants,
+    ADMIN_CONSTANT_CACHE_PREFIX,
+    ADMIN_SERVICE_CACHE_PREFIX,
 )
 from ..di.dependency_injector import DIAppServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
@@ -86,11 +86,11 @@ def build_admin_service_resolver(
 
     # Build the admin container from cache-seeded admin services and constants.
     admin_constants = {
-        **get_default_admin_constants(cache),
+        **cache.get_by_prefix(*ADMIN_CONSTANT_CACHE_PREFIX),
         'load_cache': core.load_cache(cache),
     }
     admin_container = DIAppServiceContainer.from_dependencies(
-        services=get_default_admin_services(cache),
+        services=list(cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX).values()),
         constants=admin_constants,
     )
 
@@ -144,29 +144,15 @@ def build_admin_app_session_context(
     # Build the feature-level resolver using the admin resolver (adds admin container).
     resolver = build_admin_service_resolver(app_container, cache)
 
-    # Hardcode the context class; the admin app path always uses AppSessionContext.
-    context_cls = AppSessionContext
-
-    # Resolve the context's collaborators from the app container by id.
-    collaborators = core.resolve_collaborators(context_cls, app_container)
-
-    # Build the five template-method handlers.
-    handlers = dict(
-        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
-        execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
-        create_request_handler=core.create_session_request,
-        raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
-        response_handler=core.response_handler,
-    )
-
-    # Construct the context via from_domain, injecting the resolver handler,
-    # cache, all collaborators, and the five handlers.
-    return context_cls.from_domain(
+    # Delegate handler wiring, collaborator resolution, and construction.
+    return core.compose_session_context(
+        AppSessionContext,
         app_session,
-        get_dependency=resolver.get_dependency,
-        cache=cache,
-        **handlers,
-        **collaborators,
+        cache,
+        app_container,
+        resolver,
+        create_request_handler=core.create_session_request,
+        response_handler=core.response_handler,
         **context_kwargs,
     )
 

@@ -48,8 +48,7 @@ def test_build_admin_service_resolver_routes_by_flag():
     empty-flag resolution both use the admin container.
     '''
 
-    # Seed an admin cache and build distinct app and admin containers.
-    cache = build_cache()
+    # Build distinct app and admin service definitions.
     app_container = DIAppServiceContainer.from_dependencies(
         services=[
             AppServiceDependency(
@@ -70,14 +69,14 @@ def test_build_admin_service_resolver_routes_by_flag():
         module_path='tiferet.contexts.cache',
         class_name='CacheContext',
     )
-    with mock.patch(
-        'tiferet.blueprints.admin.get_default_admin_services',
-        return_value=[admin_probe],
-    ), mock.patch(
-        'tiferet.blueprints.admin.get_default_admin_constants',
-        return_value={},
-    ):
-        resolver = build_admin_service_resolver(app_container, cache)
+
+    # Build a purpose-built cache whose admin-service prefix holds only the
+    # probe, since build_admin_service_resolver now reads the admin catalog
+    # directly via cache.get_by_prefix rather than through a mockable getter.
+    admin_cache = CacheContext()
+    admin_cache.set('flag_probe', admin_probe, *ADMIN_SERVICE_CACHE_PREFIX)
+
+    resolver = build_admin_service_resolver(app_container, admin_cache)
 
     # Assert flag routing: app vs admin vs empty-flag default.
     assert isinstance(resolver, DIDynamicServiceResolver)

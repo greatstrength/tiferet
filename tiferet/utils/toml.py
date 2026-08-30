@@ -73,29 +73,16 @@ class TomlLoader(FileLoader):
             resolved path does not exist.
         '''
 
-        # Start with the loader's path.
-        path = loader.path
-
-        # Check if the path has a valid TOML extension; fall back or raise error.
-        if path.suffix.lower() != '.toml':
-            if default_path and default_path.suffix.lower() == '.toml':
-                path = default_path
-            else:
-                ServiceError.raise_for(
-                    loader,
-                    INVALID_TOML_FILE_ID,
-                    'File must have .toml extension.',
-                    path=str(loader.path),
-                )
-
-        # Verify the resolved path exists.
-        if not path.exists():
-            ServiceError.raise_for(
-                loader,
-                TOML_FILE_NOT_FOUND_ID,
-                f'The specified TOML file could not be found at {path}.',
-                path=str(path),
-            )
+        # Delegate to the shared file-extension verification helper.
+        FileLoader.verify_extension(
+            loader,
+            allowed_extensions={'.toml'},
+            invalid_error_id=INVALID_TOML_FILE_ID,
+            invalid_message='File must have .toml extension.',
+            not_found_error_id=TOML_FILE_NOT_FOUND_ID,
+            format_name='TOML',
+            default_path=default_path,
+        )
 
     # * method: load
     def load(self,

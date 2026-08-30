@@ -10,10 +10,8 @@ from pydantic import AliasChoices, Field
 
 # ** app
 from ..domain import (
-    ATTRIBUTE_NOT_SETTABLE_ID,
     CliArgument,
     CliCommand,
-    ModelError,
 )
 from .core import Aggregate, TransferObject
 
@@ -25,52 +23,24 @@ class CliArgumentAggregate(CliArgument, Aggregate):
     An aggregate representation of a CLI argument.
     '''
 
-    # * method: set_attribute
-    def set_attribute(self, attribute: str, value: Any) -> None:
-        '''
-        Update a supported attribute on the CLI argument aggregate.
-
-        Supported attributes: description, type, required, default, choices, nargs.
-        The ``name_or_flags`` identity field is refused as a mutation-policy
-        violation rather than a model inconsistency.
-
-        :param attribute: The attribute name to update.
-        :type attribute: str
-        :param value: The new value.
-        :type value: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Define the set of supported attributes.
-        supported = {
-            'description',
-            'type',
-            'required',
-            'default',
-            'choices',
-            'nargs',
-        }
-
-        # Reject any attribute the mutation policy does not expose.
-        if attribute not in supported:
-            supported_names = ', '.join(sorted(supported))
-            ModelError.raise_error(
-                ATTRIBUTE_NOT_SETTABLE_ID,
-                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
-                model=self,
-                attribute=attribute,
-                supported=supported_names,
-            )
-
-        # Apply the update; validate_assignment=True triggers field validation.
-        setattr(self, attribute, value)
+    # * attribute: _SETTABLE_ATTRIBUTES
+    _SETTABLE_ATTRIBUTES: ClassVar[set] = {
+        'description',
+        'type',
+        'required',
+        'default',
+        'choices',
+        'nargs',
+    }
 
 # ** mapper: cli_command_aggregate
 class CliCommandAggregate(CliCommand, Aggregate):
     '''
     An aggregate representation of a CLI command.
     '''
+
+    # * attribute: _SETTABLE_ATTRIBUTES
+    _SETTABLE_ATTRIBUTES: ClassVar[set] = {'name', 'description', 'key', 'group_key'}
 
     # * method: add_argument
     def add_argument(self,
@@ -123,46 +93,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
         # Create the argument and reassign so validate_assignment=True triggers validation.
         argument = CliArgument(**argument_kwargs)
         self.arguments = list(self.arguments) + [argument]
-
-    # * method: set_attribute
-    def set_attribute(self, attribute: str, value: Any) -> None:
-        '''
-        Update a supported scalar attribute on the CLI command aggregate.
-
-        Supported attributes: name, description, key, group_key. The ``id``
-        identity field and the ``arguments`` collection owned by
-        :meth:`add_argument` are refused as mutation-policy violations rather
-        than model inconsistencies.
-
-        :param attribute: The attribute name to update.
-        :type attribute: str
-        :param value: The new value.
-        :type value: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Define the set of supported attributes.
-        supported = {
-            'name',
-            'description',
-            'key',
-            'group_key',
-        }
-
-        # Reject any attribute the mutation policy does not expose.
-        if attribute not in supported:
-            supported_names = ', '.join(sorted(supported))
-            ModelError.raise_error(
-                ATTRIBUTE_NOT_SETTABLE_ID,
-                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
-                model=self,
-                attribute=attribute,
-                supported=supported_names,
-            )
-
-        # Apply the update; validate_assignment=True triggers field validation.
-        setattr(self, attribute, value)
 
 # ** mapper: cli_command_config_object
 class CliCommandConfigObject(CliCommand, TransferObject):

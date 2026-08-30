@@ -152,8 +152,6 @@ APP_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     arguments=[
         create_default_cli_argument(['id'], 'Unique interface identifier.'),
         create_default_cli_argument(['name'], 'Interface name.'),
-        create_default_cli_argument(['module_path'], 'Python module path of the context class.'),
-        create_default_cli_argument(['class_name'], 'Name of the context class.'),
         create_default_cli_argument(['--description'], 'Optional description.'),
         create_default_cli_argument(['--logger-id'], 'Logger identifier (default: default).', default='default'),
         create_default_cli_argument(['--constants'], 'Constants as key=value pairs.', type='dict'),

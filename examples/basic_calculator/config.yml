@@ -5,8 +5,6 @@ sessions:
   calc_cli:
     name: Calculator CLI
     description: Perform basic calculator operations via CLI
-    module_path: tiferet.contexts.cli
-    class_name: CliContext
 
 services:
   add_number_event:
