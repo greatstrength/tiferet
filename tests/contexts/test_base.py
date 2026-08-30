@@ -2,13 +2,36 @@
 
 # *** imports
 
+# ** core
+from typing import Callable
+
 # ** infra
 import pytest
 
 # ** app
-from tiferet.contexts.core import BaseContext, ContextMeta
-from tiferet.domain import DomainObject
+from tiferet.contexts.core import BaseContext, ContextMeta, add_default_cache_items
+from tiferet.contexts.cache import CacheContext
+from tiferet.domain import DomainObject, Error
 from tiferet.events.core import TiferetError
+
+# *** fixtures
+
+# ** fixture: base_cache_builder
+@pytest.fixture
+def base_cache_builder() -> Callable:
+    '''
+    Fixture providing a plain cache-builder callable with no pre-seeding.
+
+    :return: A callable that returns a fresh CacheContext.
+    :rtype: Callable
+    '''
+
+    # Define a minimal cache-builder mirroring the unwrapped build_cache.
+    def build_cache() -> CacheContext:
+        return CacheContext()
+
+    # Return the cache-builder.
+    return build_cache
 
 # *** classes
 
@@ -144,3 +167,82 @@ def test_from_domain_on_subclass():
     # Assert the subclass was constructed directly and the domain object is bound.
     assert isinstance(context, ConcreteContext)
     assert context.domain is domain_obj
+
+# ** test: test_add_default_cache_items_no_model_caches_raw_value
+def test_add_default_cache_items_no_model_caches_raw_value(base_cache_builder: Callable):
+    '''
+    Test that add_default_cache_items with no model caches each raw value
+    unchanged, keyed by its dict key.
+    '''
+
+    # Wrap the builder with a scalar constants catalog and invoke it.
+    wrapped = add_default_cache_items({'FOO': 'bar'}, ('app', 'constants'))(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the raw value is cached unchanged under the given prefix.
+    assert cache.get('FOO', 'app', 'constants') == 'bar'
+
+# ** test: test_add_default_cache_items_model_without_id_field
+def test_add_default_cache_items_model_without_id_field(base_cache_builder: Callable):
+    '''
+    Test that add_default_cache_items with a model but no id_field validates
+    each raw dict directly, with no key reinjection.
+    '''
+
+    # Wrap the builder with a catalog whose records already embed their own id.
+    errors = {'ERR_ONE': {'id': 'ERR_ONE', 'name': 'Error One'}}
+    wrapped = add_default_cache_items(errors, ('app', 'errors'), model=Error)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the record was validated into the model unchanged.
+    cached = cache.get('ERR_ONE', 'app', 'errors')
+    assert isinstance(cached, Error)
+    assert cached.id == 'ERR_ONE'
+    assert cached.name == 'Error One'
+
+# ** test: test_add_default_cache_items_model_with_id_field_reinjects_key
+def test_add_default_cache_items_model_with_id_field_reinjects_key(base_cache_builder: Callable):
+    '''
+    Test that add_default_cache_items reinjects the group-dict key under
+    id_field before validating into the model.
+    '''
+
+    # Wrap the builder with a catalog whose records omit their own id.
+    errors = {'ERR_TWO': {'name': 'Error Two'}}
+    wrapped = add_default_cache_items(errors, ('app', 'errors'), model=Error, id_field='id')(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the group-dict key was reinjected as the id before validation.
+    cached = cache.get('ERR_TWO', 'app', 'errors')
+    assert isinstance(cached, Error)
+    assert cached.id == 'ERR_TWO'
+    assert cached.name == 'Error Two'
+
+# ** test: test_add_default_cache_items_empty_dict_leaves_cache_clean
+def test_add_default_cache_items_empty_dict_leaves_cache_clean(base_cache_builder: Callable):
+    '''
+    Test that add_default_cache_items with an empty dict leaves the target
+    namespace empty.
+    '''
+
+    # Wrap the builder with an empty catalog and invoke it.
+    wrapped = add_default_cache_items({}, ('app', 'errors'), model=Error, id_field='id')(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the namespace holds no entries.
+    assert cache.get_by_prefix('app', 'errors') == {}
+
+# ** test: test_add_default_cache_items_isolates_by_prefix
+def test_add_default_cache_items_isolates_by_prefix(base_cache_builder: Callable):
+    '''
+    Test that two distinct prefixes seeded by separate calls do not collide.
+    '''
+
+    # Wrap the builder twice with distinct prefixes sharing an overlapping key.
+    wrapped = add_default_cache_items({'FOO': 'app-value'}, ('app', 'constants'))(base_cache_builder)
+    wrapped = add_default_cache_items({'FOO': 'admin-value'}, ('admin', 'constants'))(wrapped)
+    cache = wrapped()
+
+    # Assert each prefix's value is isolated from the other.
+    assert cache.get('FOO', 'app', 'constants') == 'app-value'
+    assert cache.get('FOO', 'admin', 'constants') == 'admin-value'
