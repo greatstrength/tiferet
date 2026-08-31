@@ -1,10 +1,9 @@
 # Binding — Tiferet Framework
 
 **Project:** Tiferet Framework
-**Repository:** https://github.com/greatstrength/tiferet
+ **Repository:** https://github.com/greatstrength/tiferet
 
-This file records repository-specific facts. It is not a replacement for the
-workflow in `process.md` or the RFP genre in `rfp.md`.
+This file records repository-specific facts. It is not a replacement for the workflow in `process.md` or the RFP genre in `rfp.md`.
 
 ## Prototype Binding
 
@@ -25,5 +24,4 @@ workflow in `process.md` or the RFP genre in `rfp.md`.
 | Prototype milestone | `v2.0.0b17` (#35) |
 | Tiferet Framework project | #2 |
 
-Use the binding values rather than inventing a branch or RFP prefix. A
-different repository records its own values in its own binding file.
+Use the binding values rather than inventing a branch or RFP prefix. A different repository records its own values in its own binding file.
