@@ -41,7 +41,7 @@ from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
 from ..events import DomainEvent
 from ..events.app import GetAppSession
-from .. import assets as a
+from .. import a
 
 # *** constants
 

@@ -3,6 +3,8 @@
 # *** imports
 
 # ** core
+import ast
+import inspect
 import os
 import subprocess
 import sys
@@ -81,3 +83,32 @@ def test_clean_interpreter_import_succeeds_without_warning() -> None:
     assert result.returncode == 0
     assert result.stderr == ''
     assert result.stdout.strip() == 'True'
+
+# ** test: assets_alias_import_is_first_statement_in_root_try_block
+def test_assets_alias_import_is_first_statement_in_root_try_block() -> None:
+    '''
+    Test the root-alias ordering invariant: `from . import assets as a` must
+    always be the first statement inside tiferet/__init__.py's try block, so
+    that `a` is bound before any of the seven internal modules
+    (blueprints/contexts/events) that resolve it via `from .. import a` are
+    imported. A reorder of this statement is reported by this test
+    specifically and by name, rather than surfacing only as the generic
+    blanket import warning tiferet/__init__.py already prints on failure.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Parse the root package source and locate the module-level try block.
+    source = inspect.getsource(tiferet)
+    tree = ast.parse(source)
+    try_node = next(node for node in tree.body if isinstance(node, ast.Try))
+
+    # Assert the first statement is exactly `from . import assets as a`.
+    first_stmt = try_node.body[0]
+    assert isinstance(first_stmt, ast.ImportFrom)
+    assert first_stmt.level == 1
+    assert first_stmt.module is None
+    assert len(first_stmt.names) == 1
+    assert first_stmt.names[0].name == 'assets'
+    assert first_stmt.names[0].asname == 'a'

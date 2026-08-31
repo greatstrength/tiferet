@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Tuple
 from .core import BaseContext
 from .cache import CacheContext
 from ..domain import LoggingSettings
-from .. import assets as a
+from .. import a
 from ..assets import TiferetError
 
 # *** constants
