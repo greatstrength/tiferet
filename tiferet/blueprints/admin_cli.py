@@ -6,7 +6,7 @@
 from typing import Any, Dict, List, Optional
 
 # ** app
-from .. import assets as a
+from .. import a
 from . import core
 from . import admin
 from .cli import (

@@ -22,7 +22,7 @@ from ..contexts.app import (
 )
 from ..di.dependency_injector import DIAppServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
-from .. import assets as a
+from .. import a
 
 # *** blueprints
 

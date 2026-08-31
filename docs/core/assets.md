@@ -25,6 +25,12 @@ There are no domain objects, aggregates, services, events, or contexts here. Tha
 - **Constants** — error-code identifier constants (`constants.py`), the `DEFAULT_ERRORS` catalog (`error.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
 - **Exports** — `__init__.py` re-exports the commonly used symbols and exposes the `constants` and `blueprints` modules under the short aliases `const` and `bps`.
 
+## Root-Level Alias (`a`)
+
+`tiferet/__init__.py` re-exports the `assets` package itself as `a` (`from . import assets as a`), so `from tiferet import a` is the canonical, public entrypoint for this layer's error types, error catalogs, and bootstrap defaults. `a` is reserved for the framework's own `tiferet.assets` package; it carries no meaning for a consumer application's own local assets module.
+
+This is also the one place a framework-internal module is permitted to import through the fully-initialized root package rather than reaching sideways or downward within the layer graph. `blueprints`, `contexts`, and `events` resolve the same object via `from .. import a` instead of the relative `from .. import assets as a` form. This is safe only because `tiferet/__init__.py` binds `a` as the very first statement in its root import block, strictly before any of those layers are ever imported — an ordering invariant that must never change, and that is enforced by a dedicated test (`tests/test_init.py`) rather than left as a documented convention alone. No other layer, and no future extension of `assets`, may bind a second, competing meaning to the name `a`.
+
 ## Structured Code Design
 
 Assets modules follow the standard Tiferet artifact comment hierarchy (see [code_style.md](code_style.md)). Because the layer is primitive, only these top-level sections appear:

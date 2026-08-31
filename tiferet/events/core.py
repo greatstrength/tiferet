@@ -9,7 +9,7 @@ from typing import Dict, Any
 
 # ** app
 from ..assets import TiferetError
-from .. import assets as a
+from .. import a
 
 # *** classes
 
