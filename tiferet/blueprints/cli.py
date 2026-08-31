@@ -7,7 +7,7 @@ import argparse
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # ** app
-from .. import assets as a
+from .. import a
 from . import core
 from ..contexts.app import AppSession
 from ..contexts.cache import CacheContext
