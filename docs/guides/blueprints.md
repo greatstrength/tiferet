@@ -17,7 +17,7 @@ A blueprint is responsible for:
 - Composing the app service container and feature-level `ServiceResolver` via the core composition functions
 - Executing features through the resolved interface context
 
-The canonical example is `build_app` in `tiferet/blueprints/core.py` (exported as `App`). The framework's own built-in sessions (`admin`, `admin_cli`) are composed by a parallel pair of blueprints, `tiferet/blueprints/admin.py` / `admin_cli.py` — see the Admin Blueprints section below.
+The canonical example is `build_app` in `tiferet/blueprints/app.py` (exported as `App`). The framework's own built-in sessions (`admin`, `admin_cli`) are composed by a parallel pair of blueprints, `tiferet/blueprints/admin.py` / `admin_cli.py` — see the Admin Blueprints section below.
 
 ## Role of Blueprints in the Architecture
 
@@ -42,7 +42,7 @@ Blueprints are intentionally **thin** — they coordinate rather than implement 
 <a id="build-app"></a>
 ## The build_app Blueprint
 
-`core.build_app` is the single-call entry point (exported as `App`). It chains smaller `core.py` composition functions in a fixed order:
+`app.build_app` is the single-call entry point (exported as `App`). It chains smaller `core.py` composition functions in a fixed order:
 
 ```python
 def build_app(interface_id, module_path=..., class_name=..., **parameters) -> AppSessionContext:
@@ -75,7 +75,7 @@ No `apply_defaults` is called on the core path — all framework defaults come f
 <a id="build-cli"></a>
 ## The build_cli Blueprint
 
-The CLI blueprint (`build_cli`, `tiferet/blueprints/cli.py`, exported as `CLI`) does not delegate through `core.build_app` — it runs its own parallel composition chain, substituting `CliSessionContext` for `AppSessionContext` throughout. Argparse parsing and CLI-specific request/response handling live in blueprint-level closures (`parse_cli_args_handler`, `create_cli_request_context`, `cli_response_handler`), not in a context method.
+The CLI blueprint (`build_cli`, `tiferet/blueprints/cli.py`, exported as `CLI`) does not delegate through `app.build_app` — it runs its own parallel composition chain, substituting `CliSessionContext` for `AppSessionContext` throughout. Argparse parsing and CLI-specific request/response handling live in blueprint-level closures (`parse_cli_args_handler`, `create_cli_request_context`, `cli_response_handler`), not in a context method.
 
 ### Usage
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
 1. `build_cli_cache()` — builds the shared cache via `core.build_cache`, then layers `add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)` on top so CLI command definitions are seeded alongside the standard defaults.
 2. `core.get_app_session(interface_id, cache, ...)` — resolves the app session exactly as the core path does.
-3. `build_cli_session_context(app_session, cache)` — parallel to `core.build_app_session_context`, but hardcodes `CliSessionContext`, resolves `list_commands_evt`/`get_parent_args_evt` to build the injected `parse_cli_args` closure, and overrides the `create_request_handler`/`response_handler` slots with `create_cli_request_context`/`cli_response_handler`.
+3. `build_cli_session_context(app_session, cache)` — parallel to `app.build_app_session_context`, but hardcodes `CliSessionContext`, resolves `list_commands_evt`/`get_parent_args_evt` to build the injected `parse_cli_args` closure, and overrides the `create_request_handler`/`response_handler` slots with `create_cli_request_context`/`cli_response_handler`.
 4. `cli_context.run(argv)` — parses `argv` via the injected closure (argparse failures exit `2`), dispatches through the inherited `AppSessionContext.run`, and exits `1` on an unhandled `TiferetAPIError`.
 
 There is no interface-config opt-in (no `module_path`/`class_name` declaration selects the CLI context) — any interface resolved through the `CLI`/`build_cli` entry point always gets a `CliSessionContext`.
@@ -148,15 +148,15 @@ return context_cls.from_domain(app_session, get_dependency=resolver.get_dependen
 <a id="admin-blueprints"></a>
 ## Admin Blueprints
 
-`tiferet/blueprints/admin.py` and `tiferet/blueprints/admin_cli.py` compose the built-in admin app and admin CLI sessions (`admin` / `admin_cli`) that ship with the framework rather than being defined in a consumer's config file. Both are **parallel, not derived** implementations of the core path: they mirror `core.build_app`/`core.build_app_session_context` function-for-function but substitute an admin-aware cache and resolver at each step.
+`tiferet/blueprints/admin.py` and `tiferet/blueprints/admin_cli.py` compose the built-in admin app and admin CLI sessions (`admin` / `admin_cli`) that ship with the framework rather than being defined in a consumer's config file. Both are **parallel, not derived** implementations of the core path: they mirror `app.build_app`/`app.build_app_session_context` function-for-function but substitute an admin-aware cache and resolver at each step.
 
 ### `admin.py` — the admin app session
 
 - **`build_cache()`** — stacks `add_default_admin_services`/`add_default_admin_constants`/`add_default_features`/`add_default_errors` (seeded from `a.app.ADMIN_DEFAULT_SERVICES`/`ADMIN_DEFAULT_CONSTANTS`, `a.feat.ADMIN_DEFAULT_FEATURES`, `a.error.ADMIN_DEFAULT_ERRORS`) on top of `core.build_cache`, giving the admin blueprints their full catalog without touching a consumer config file.
 - **`build_admin_service_resolver(app_container, cache, parse_parameter=core.parse_parameter)`** — parallel to `core.build_service_resolver`, but builds a **second** `DIAppServiceContainer` from the cache-seeded admin services/constants and registers it under both the `'admin'` flag and as the default (empty-flag) container, so admin feature steps resolve without explicit flag annotations.
-- **`build_admin_app_session_context(app_session, cache, **context_kwargs)`** — parallel to `core.build_app_session_context`, substituting `build_admin_service_resolver` for `core.build_service_resolver`. Hardcodes `context_cls = AppSessionContext` (no declarative context-class resolution, since the admin app path only ever composes the base hub).
+- **`build_admin_app_session_context(app_session, cache, **context_kwargs)`** — parallel to `app.build_app_session_context`, substituting `build_admin_service_resolver` for `core.build_service_resolver`. Hardcodes `context_cls = AppSessionContext` (no declarative context-class resolution, since the admin app path only ever composes the base hub).
 <a id="build-admin-app"></a>
-- **`build_admin_app(interface_id=a.app.TIFERET_ADMIN_ID, **parameters)`** — the single-call entry point, parallel to `core.build_app`.
+- **`build_admin_app(interface_id=a.app.TIFERET_ADMIN_ID, **parameters)`** — the single-call entry point, parallel to `app.build_app`.
 
 ### `admin_cli.py` — the admin CLI session
 
@@ -168,7 +168,7 @@ return context_cls.from_domain(app_session, get_dependency=resolver.get_dependen
 
 ### Known gap: `build_logger_handler` is not wired
 
-Unlike `core.build_app_session_context` (which wires `build_logger_handler=build_logger_handler(cache, resolver.get_dependency)` into every session's handler dict), **neither** `build_admin_app_session_context` nor `build_admin_cli_session_context` supplies a `build_logger_handler` slot. Both blueprints predate the fifth handler slot and were never updated when it was introduced (they also never wired the earlier `logging_context` predecessor).
+Unlike `app.build_app_session_context` (which wires `build_logger_handler=build_logger_handler(cache, resolver.get_dependency)` into every session's handler dict), **neither** `build_admin_app_session_context` nor `build_admin_cli_session_context` supplies a `build_logger_handler` slot. Both blueprints predate the fifth handler slot and were never updated when it was introduced (they also never wired the earlier `logging_context` predecessor).
 
 The practical effect: an admin or admin-CLI session's first `run()` call hits `AppSessionContext.build_logger`'s unwired-handler guard and raises a clean `APP_ERROR` naming the missing `build_logger_handler` slot — a **strict improvement** over the previously unguarded `AttributeError` this gap produced before the guard existed, but still a gap relative to the core path's logging behavior. Closing it (wiring `build_logger_handler(cache, resolver.get_dependency)` into both admin handler dicts, mirroring the core path) is left as a follow-up item; it is not yet scheduled.
 
