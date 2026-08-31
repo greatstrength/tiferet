@@ -82,6 +82,10 @@ A catalog that only ever has one entry (no meaningful "many rows" shape) does no
 **Inside this domain:** the id/data/groups catalog shape, the `create_default_*` factory family, and the default-entry workflow for adding a new catalog row.
 **Outside this domain:** the two exception classes (`TiferetError`/`TiferetAPIError`) also hosted in `assets/core.py` — see [docs/guides/errors.md](errors.md); reconstituting a group dict into cached domain objects via `add_default_*` decorators — that orchestration lives in `contexts/`, not `assets/`; the artifact-comment/spacing conventions governing how these constants are labeled — see `docs/core/assets.md` and `docs/core/code_style.md`.
 
+## Root-Level Alias and the Import-Order Exception
+
+`a` — this layer's established internal alias (`from .. import assets as a`) — is also exported from the framework root as `from tiferet import a`, making it the one name every layer, including consumer code, can rely on to mean `tiferet.assets`. Framework-internal modules that need `assets` now resolve it the same way consumers do, via `from .. import a`, rather than importing the `assets` submodule directly. This is a deliberate, singular exception to the general rule that inner layers do not depend on the aggregating root package — justified only because `assets` is this dependency-light and already sits beneath every other layer. It works because `tiferet/__init__.py` binds `a` before importing any dependent layer; that ordering is a hard invariant backed by a dedicated AST-based test, not a convention to be maintained by memory. See `docs/core/assets.md` for the artifact-kind detail.
+
 ## Related Documentation
 
 - [docs/guides/errors.md](errors.md) — `TiferetError`/`TiferetAPIError`, the other artifact kind this layer hosts
