@@ -169,6 +169,9 @@ test.py
 # TRD local copies
 .trd/
 
+# RFP local drafts (local, do not commit)
+.rfp/
+
 # Milestone planning artifacts (local, do not commit)
 .milestones/
 
