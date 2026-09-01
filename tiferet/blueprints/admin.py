@@ -6,7 +6,7 @@
 from typing import Any, Callable, Dict
 
 # ** app
-from .. import assets as a
+from .. import a
 from ..assets import TiferetError
 from ..contexts.app import (
     ADMIN_CONSTANT_CACHE_PREFIX,

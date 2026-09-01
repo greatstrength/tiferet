@@ -7,7 +7,7 @@ import os
 from typing import Any, Callable, Dict
 
 # ** app
-from .. import assets as a
+from .. import a
 from ..assets import TiferetAPIError, TiferetError
 from ..contexts.app import (
     APP_CONSTANT_CACHE_PREFIX,

@@ -12,7 +12,7 @@ from .core import BaseContext
 from .cache import CacheContext
 from ..domain import LoggingSettings
 from ..assets import TiferetError
-from .. import assets as a
+from .. import a
 
 # *** constants
 

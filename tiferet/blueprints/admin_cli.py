@@ -7,7 +7,7 @@ import argparse
 from typing import Any, Dict, List, Optional
 
 # ** app
-from .. import assets as a
+from .. import a
 from . import admin, core
 from .cli import (
     parse_cli_args_handler,

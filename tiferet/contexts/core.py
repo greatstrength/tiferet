@@ -8,7 +8,7 @@ from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type
 # ** app
 from ..domain import DomainObject
 from ..assets import TiferetError
-from .. import assets as a
+from .. import a
 from .cache import CacheContext
 
 # *** functions
