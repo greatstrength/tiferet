@@ -21,7 +21,6 @@ def test_a_alias_resolves_to_assets_module():
     # Assert the root alias resolves to the assets module by identity.
     assert tiferet.a is assets
 
-
 # ** test: all_first_member_is_a
 def test_all_first_member_is_a():
     '''
@@ -42,7 +41,6 @@ def test_all_first_member_is_a():
     first_element = all_assign.value.elts[0]
     assert isinstance(first_element, ast.Constant)
     assert first_element.value == 'a'
-
 
 # ** test: a_import_precedes_dependent_framework_imports
 def test_a_import_precedes_dependent_framework_imports():
