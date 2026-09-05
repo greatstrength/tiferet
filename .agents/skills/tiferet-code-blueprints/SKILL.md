@@ -41,9 +41,10 @@ Both sections may appear in the same module. `# *** functions` must appear first
 - Blueprints are **thin orchestrators** — they wire and delegate; they do not implement domain logic.
 - The canonical entry point is `build_app` in `tiferet/blueprints/core.py`, exported as `App`. The CLI entry point is `build_cli` in `tiferet/blueprints/cli.py`, exported as `CLI`.
 - The `core.build_app` composition chain:
-  1. `build_cache()` — build the `CacheContext` pre-seeded with framework defaults
-  2. `get_app_session(interface_id, cache, ...)` — resolve the app session via `GetAppSession`
-  3. `build_app_session_context(app_session, cache)` — build the app service container, compose the `ServiceResolver`, wire the core runtime handlers, and construct `AppSessionContext` via `from_domain`
+  1. `build_cache()` — build the `CacheContext` pre-seeded with default errors, app services, app constants, app sessions, and logging settings.
+  2. `get_app_session(interface_id, cache, ...)` — return a cache-seeded default session when available; otherwise compose the app service and resolve the session via `GetAppSession`.
+  3. `build_app_session_context(app_session, cache)` — build the app service container, compose the `ServiceResolver`, then delegate the context graph construction to `compose_session_context`.
+  4. `compose_session_context(...)` — wire the injected logger, feature-execution, request-construction, error, and response handlers before binding the app session to `AppSessionContext`.
 - `build_cli` builds the CLI cache, resolves the app session, constructs `CliSessionContext` with its CLI parser and runtime handlers, then delegates `argv` to `cli_context.run(argv)`.
 - Validate the resolved `AppSessionContext` type (`INVALID_APP_SESSION_TYPE`) in `build_app`.
 - Use `TiferetError.raise_error()` for domain-outcome error paths (e.g. `TiferetError.raise_error(a.error.INVALID_APP_SESSION_TYPE_ID, ...)`).
