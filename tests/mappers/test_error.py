@@ -38,9 +38,9 @@ ERROR_SAMPLE_DATA = {
 # ** constant: error_equality_fields
 ERROR_EQUALITY_FIELDS = ['id', 'name', 'error_code']
 
-# *** classes
+# *** tests
 
-# ** class: TestErrorAggregate
+# ** test: TestErrorAggregate
 class TestErrorAggregate(MapperTestSupport):
     '''
     Tests for ErrorAggregate construction, set_attribute, and domain-specific mutations.
@@ -145,7 +145,7 @@ class TestErrorAggregate(MapperTestSupport):
         # Assert the message list is unchanged.
         assert len(aggregate.message) == initial_count
 
-# ** class: TestErrorConfigObject
+# ** test: TestErrorConfigObject
 class TestErrorConfigObject(MapperTestSupport):
     '''
     Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
@@ -279,8 +279,6 @@ class TestErrorConfigObject(MapperTestSupport):
         assert len(yaml_obj.message) == 2
         assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
 
-# *** standalone tests
-
 # ** test: error_message_config_object_map
 def test_error_message_config_object_map():
     '''
@@ -318,8 +316,7 @@ def test_error_message_config_object_from_model():
     assert yaml_obj.lang == 'es'
     assert yaml_obj.text == 'Mensaje de prueba'
 
-# *** generated tests
-
+# ** test: TestErrorAggregateGenerated
 TestErrorAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestErrorAggregate.aggregate_cls,
     sample_data=TestErrorAggregate.sample_data,
@@ -327,6 +324,7 @@ TestErrorAggregateGenerated = create_aggregate_tester(
     set_attribute_params=TestErrorAggregate.set_attribute_params,
 )
 
+# ** test: TestErrorConfigObjectGenerated
 TestErrorConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestErrorConfigObject.transfer_cls,
     aggregate_cls=TestErrorConfigObject.aggregate_cls,

@@ -87,9 +87,9 @@ FIELD_NORMALIZERS = {
     'services': lambda svcs: tuple(sorted(SVC_TUPLE(s) for s in (svcs or []))),
 }
 
-# *** classes
+# *** tests
 
-# ** class: TestAppSessionAggregate
+# ** test: TestAppSessionAggregate
 class TestAppSessionAggregate(MapperTestSupport):
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
@@ -331,7 +331,7 @@ class TestAppSessionAggregate(MapperTestSupport):
         assert svc.class_name == 'FreshService'
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
-# ** class: TestAppSessionConfigObject
+# ** test: TestAppSessionConfigObject
 class TestAppSessionConfigObject(MapperTestSupport):
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
@@ -468,8 +468,7 @@ class TestAppSessionConfigObject(MapperTestSupport):
             assert actual.class_name == expected.class_name
             assert actual.parameters == expected.parameters
 
-# *** generated tests
-
+# ** test: TestAppSessionAggregateGenerated
 TestAppSessionAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestAppSessionAggregate.aggregate_cls,
     sample_data=TestAppSessionAggregate.sample_data,
@@ -478,6 +477,7 @@ TestAppSessionAggregateGenerated = create_aggregate_tester(
     field_normalizers=TestAppSessionAggregate.field_normalizers,
 )
 
+# ** test: TestAppSessionConfigObjectGenerated
 TestAppSessionConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestAppSessionConfigObject.transfer_cls,
     aggregate_cls=TestAppSessionConfigObject.aggregate_cls,

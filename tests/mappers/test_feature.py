@@ -84,9 +84,9 @@ FEATURE_FIELD_NORMALIZERS = {
     'steps': lambda steps: tuple(sorted(STEP_TUPLE(s) for s in (steps or []))),
 }
 
-# *** classes
+# *** tests
 
-# ** class: TestEventFeatureStepAggregate
+# ** test: TestEventFeatureStepAggregate
 class TestEventFeatureStepAggregate(MapperTestSupport):
     '''
     Tests for EventFeatureStepAggregate construction, set_attribute, and domain-specific mutations.
@@ -166,7 +166,7 @@ class TestEventFeatureStepAggregate(MapperTestSupport):
         aggregate.set_attribute('name', 'Renamed Event')
         assert aggregate.name == 'Renamed Event'
 
-# ** class: TestFeatureAggregate
+# ** test: TestFeatureAggregate
 class TestFeatureAggregate(MapperTestSupport):
     '''
     Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.
@@ -315,7 +315,7 @@ class TestFeatureAggregate(MapperTestSupport):
         aggregate.set_description(None)
         assert aggregate.description is None
 
-# ** class: TestFeatureConfigObject
+# ** test: TestFeatureConfigObject
 class TestFeatureConfigObject(MapperTestSupport):
     '''
     Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
@@ -533,8 +533,6 @@ class TestFeatureConfigObject(MapperTestSupport):
         assert step.middleware == ['timing_middleware']
         assert agg.steps[0].middleware == ['timing_middleware']
 
-# *** params_schema tests
-
 # ** test: feature_config_object_maps_params_schema
 def test_feature_config_object_maps_params_schema():
     '''
@@ -607,8 +605,7 @@ def test_feature_config_object_params_schema_round_trip():
     assert params['a'] == ('int', True, None)
     assert params['b'] == ('float', False, 1.0)
 
-# *** generated tests
-
+# ** test: TestEventFeatureStepAggregateGenerated
 TestEventFeatureStepAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestEventFeatureStepAggregate.aggregate_cls,
     sample_data=TestEventFeatureStepAggregate.sample_data,
@@ -616,6 +613,7 @@ TestEventFeatureStepAggregateGenerated = create_aggregate_tester(
     set_attribute_params=TestEventFeatureStepAggregate.set_attribute_params,
 )
 
+# ** test: TestFeatureAggregateGenerated
 TestFeatureAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestFeatureAggregate.aggregate_cls,
     sample_data=TestFeatureAggregate.sample_data,
@@ -624,6 +622,7 @@ TestFeatureAggregateGenerated = create_aggregate_tester(
     field_normalizers=TestFeatureAggregate.field_normalizers,
 )
 
+# ** test: TestFeatureConfigObjectGenerated
 TestFeatureConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestFeatureConfigObject.transfer_cls,
     aggregate_cls=TestFeatureConfigObject.aggregate_cls,

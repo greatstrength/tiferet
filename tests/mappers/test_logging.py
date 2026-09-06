@@ -62,9 +62,9 @@ LOGGER_AGGREGATE_SAMPLE_DATA = {
 # ** constant: logger_equality_fields
 LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 
-# *** classes
+# *** tests
 
-# ** class: TestFormatterAggregate
+# ** test: TestFormatterAggregate
 class TestFormatterAggregate(MapperTestSupport):
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
@@ -111,7 +111,7 @@ class TestFormatterAggregate(MapperTestSupport):
         assert config['format'] == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
-# ** class: TestHandlerAggregate
+# ** test: TestHandlerAggregate
 class TestHandlerAggregate(MapperTestSupport):
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
@@ -185,7 +185,7 @@ class TestHandlerAggregate(MapperTestSupport):
         assert config['class'] == 'logging.FileHandler'
         assert config['level'] == 'INFO'
 
-# ** class: TestLoggerAggregate
+# ** test: TestLoggerAggregate
 class TestLoggerAggregate(MapperTestSupport):
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
@@ -253,7 +253,7 @@ class TestLoggerAggregate(MapperTestSupport):
         assert logger.handlers == []
         assert logger.level == 'WARNING'
 
-# ** class: TestFormatterConfigObject
+# ** test: TestFormatterConfigObject
 class TestFormatterConfigObject(MapperTestSupport):
     '''
     Tests for FormatterConfigObject mapping and round-trip.
@@ -277,7 +277,7 @@ class TestFormatterConfigObject(MapperTestSupport):
         # Create an aggregate using the custom factory.
         return FormatterAggregate(**(data or self.aggregate_sample_data))
 
-# ** class: TestHandlerConfigObject
+# ** test: TestHandlerConfigObject
 class TestHandlerConfigObject(MapperTestSupport):
     '''
     Tests for HandlerConfigObject mapping and round-trip.
@@ -301,7 +301,7 @@ class TestHandlerConfigObject(MapperTestSupport):
         # Create an aggregate using the custom factory.
         return HandlerAggregate(**(data or self.aggregate_sample_data))
 
-# ** class: TestLoggerConfigObject
+# ** test: TestLoggerConfigObject
 class TestLoggerConfigObject(MapperTestSupport):
     '''
     Tests for LoggerConfigObject mapping and round-trip.
@@ -324,8 +324,6 @@ class TestLoggerConfigObject(MapperTestSupport):
 
         # Create an aggregate using the custom factory.
         return LoggerAggregate(**(data or self.aggregate_sample_data))
-
-# *** standalone tests
 
 # ** test: logging_settings_from_data_success
 def test_logging_settings_from_data_success():
@@ -400,8 +398,7 @@ def test_logging_settings_from_data_empty():
     assert settings.handlers == {}
     assert settings.loggers == {}
 
-# *** generated tests
-
+# ** test: TestFormatterAggregateGenerated
 TestFormatterAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestFormatterAggregate.aggregate_cls,
     sample_data=TestFormatterAggregate.sample_data,
@@ -409,6 +406,7 @@ TestFormatterAggregateGenerated = create_aggregate_tester(
     set_attribute_params=TestFormatterAggregate.set_attribute_params,
 )
 
+# ** test: TestHandlerAggregateGenerated
 TestHandlerAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestHandlerAggregate.aggregate_cls,
     sample_data=TestHandlerAggregate.sample_data,
@@ -416,6 +414,7 @@ TestHandlerAggregateGenerated = create_aggregate_tester(
     set_attribute_params=TestHandlerAggregate.set_attribute_params,
 )
 
+# ** test: TestLoggerAggregateGenerated
 TestLoggerAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestLoggerAggregate.aggregate_cls,
     sample_data=TestLoggerAggregate.sample_data,
@@ -423,6 +422,7 @@ TestLoggerAggregateGenerated = create_aggregate_tester(
     set_attribute_params=TestLoggerAggregate.set_attribute_params,
 )
 
+# ** test: TestFormatterConfigObjectGenerated
 TestFormatterConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestFormatterConfigObject.transfer_cls,
     aggregate_cls=TestFormatterConfigObject.aggregate_cls,
@@ -431,6 +431,7 @@ TestFormatterConfigObjectGenerated = create_transfer_object_tester(
     equality_fields=TestFormatterConfigObject.equality_fields,
 )
 
+# ** test: TestHandlerConfigObjectGenerated
 TestHandlerConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestHandlerConfigObject.transfer_cls,
     aggregate_cls=TestHandlerConfigObject.aggregate_cls,
@@ -439,6 +440,7 @@ TestHandlerConfigObjectGenerated = create_transfer_object_tester(
     equality_fields=TestHandlerConfigObject.equality_fields,
 )
 
+# ** test: TestLoggerConfigObjectGenerated
 TestLoggerConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestLoggerConfigObject.transfer_cls,
     aggregate_cls=TestLoggerConfigObject.aggregate_cls,

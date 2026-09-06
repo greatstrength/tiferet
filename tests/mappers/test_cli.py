@@ -95,9 +95,9 @@ COMMAND_FIELD_NORMALIZERS = {
     'arguments': lambda args: tuple(sorted(ARG_TUPLE(arg) for arg in (args or []))),
 }
 
-# *** classes
+# *** tests
 
-# ** class: TestCliArgumentAggregate
+# ** test: TestCliArgumentAggregate
 class TestCliArgumentAggregate(MapperTestSupport):
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
@@ -120,7 +120,7 @@ class TestCliArgumentAggregate(MapperTestSupport):
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
-# ** class: TestCliCommandAggregate
+# ** test: TestCliCommandAggregate
 class TestCliCommandAggregate(MapperTestSupport):
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
@@ -234,7 +234,7 @@ class TestCliCommandAggregate(MapperTestSupport):
         assert aggregate.arguments[0].description == 'The numerator.'
         assert aggregate.arguments[0].type == 'int'
 
-# ** class: TestCliCommandConfigObject
+# ** test: TestCliCommandConfigObject
 class TestCliCommandConfigObject(MapperTestSupport):
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
@@ -382,8 +382,7 @@ class TestCliCommandConfigObject(MapperTestSupport):
             assert rt.description == orig.description
             assert rt.type == orig.type
 
-# *** generated tests
-
+# ** test: TestCliArgumentAggregateGenerated
 TestCliArgumentAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestCliArgumentAggregate.aggregate_cls,
     sample_data=TestCliArgumentAggregate.sample_data,
@@ -391,6 +390,7 @@ TestCliArgumentAggregateGenerated = create_aggregate_tester(
     set_attribute_params=TestCliArgumentAggregate.set_attribute_params,
 )
 
+# ** test: TestCliCommandAggregateGenerated
 TestCliCommandAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestCliCommandAggregate.aggregate_cls,
     sample_data=TestCliCommandAggregate.sample_data,
@@ -399,6 +399,7 @@ TestCliCommandAggregateGenerated = create_aggregate_tester(
     field_normalizers=TestCliCommandAggregate.field_normalizers,
 )
 
+# ** test: TestCliCommandConfigObjectGenerated
 TestCliCommandConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestCliCommandConfigObject.transfer_cls,
     aggregate_cls=TestCliCommandConfigObject.aggregate_cls,

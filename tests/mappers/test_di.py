@@ -88,9 +88,9 @@ SVC_CONFIG_FIELD_NORMALIZERS = {
     'dependencies': lambda deps: tuple(sorted(DEP_TUPLE(d) for d in (deps or []))),
 }
 
-# *** classes
+# *** tests
 
-# ** class: TestFlaggedDependencyAggregate
+# ** test: TestFlaggedDependencyAggregate
 class TestFlaggedDependencyAggregate(MapperTestSupport):
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
@@ -155,7 +155,7 @@ class TestFlaggedDependencyAggregate(MapperTestSupport):
             'add': 'added',
         }
 
-# ** class: TestServiceRegistrationAggregate
+# ** test: TestServiceRegistrationAggregate
 class TestServiceRegistrationAggregate(MapperTestSupport):
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
@@ -310,7 +310,7 @@ class TestServiceRegistrationAggregate(MapperTestSupport):
         # The list should be unchanged.
         assert len(aggregate.dependencies) == initial_count
 
-# ** class: TestServiceRegistrationConfigObject
+# ** test: TestServiceRegistrationConfigObject
 class TestServiceRegistrationConfigObject(MapperTestSupport):
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
@@ -599,8 +599,7 @@ class TestServiceRegistrationConfigObject(MapperTestSupport):
             assert actual.class_name == expected.class_name
             assert actual.parameters == expected.parameters
 
-# *** generated tests
-
+# ** test: TestFlaggedDependencyAggregateGenerated
 TestFlaggedDependencyAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestFlaggedDependencyAggregate.aggregate_cls,
     sample_data=TestFlaggedDependencyAggregate.sample_data,
@@ -608,6 +607,7 @@ TestFlaggedDependencyAggregateGenerated = create_aggregate_tester(
     set_attribute_params=TestFlaggedDependencyAggregate.set_attribute_params,
 )
 
+# ** test: TestServiceRegistrationAggregateGenerated
 TestServiceRegistrationAggregateGenerated = create_aggregate_tester(
     aggregate_cls=TestServiceRegistrationAggregate.aggregate_cls,
     sample_data=TestServiceRegistrationAggregate.sample_data,
@@ -616,6 +616,7 @@ TestServiceRegistrationAggregateGenerated = create_aggregate_tester(
     field_normalizers=TestServiceRegistrationAggregate.field_normalizers,
 )
 
+# ** test: TestServiceRegistrationConfigObjectGenerated
 TestServiceRegistrationConfigObjectGenerated = create_transfer_object_tester(
     transfer_cls=TestServiceRegistrationConfigObject.transfer_cls,
     aggregate_cls=TestServiceRegistrationConfigObject.aggregate_cls,
