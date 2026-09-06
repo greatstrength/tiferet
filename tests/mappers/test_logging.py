@@ -22,7 +22,6 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-
 # *** classes
 
 # ** class: mapper_test_support
@@ -103,7 +102,6 @@ LOGGER_AGGREGATE_SAMPLE_DATA = {
 # ** constant: logger_equality_fields
 LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 
-
 # *** classes
 
 # ** class: TestFormatterAggregate
@@ -152,7 +150,6 @@ class TestFormatterAggregate(_MapperTestSupport):
         # Assert the configuration contains the expected keys and values.
         assert config['format'] == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
-
 
 # ** class: TestHandlerAggregate
 class TestHandlerAggregate(_MapperTestSupport):
@@ -228,7 +225,6 @@ class TestHandlerAggregate(_MapperTestSupport):
         assert config['class'] == 'logging.FileHandler'
         assert config['level'] == 'INFO'
 
-
 # ** class: TestLoggerAggregate
 class TestLoggerAggregate(_MapperTestSupport):
     '''
@@ -297,7 +293,6 @@ class TestLoggerAggregate(_MapperTestSupport):
         assert logger.handlers == []
         assert logger.level == 'WARNING'
 
-
 # ** class: TestFormatterConfigObject
 class TestFormatterConfigObject(_MapperTestSupport):
     '''
@@ -321,7 +316,6 @@ class TestFormatterConfigObject(_MapperTestSupport):
 
         # Create an aggregate using the custom factory.
         return FormatterAggregate(**(data or self.aggregate_sample_data))
-
 
 # ** class: TestHandlerConfigObject
 class TestHandlerConfigObject(_MapperTestSupport):
@@ -347,7 +341,6 @@ class TestHandlerConfigObject(_MapperTestSupport):
         # Create an aggregate using the custom factory.
         return HandlerAggregate(**(data or self.aggregate_sample_data))
 
-
 # ** class: TestLoggerConfigObject
 class TestLoggerConfigObject(_MapperTestSupport):
     '''
@@ -371,7 +364,6 @@ class TestLoggerConfigObject(_MapperTestSupport):
 
         # Create an aggregate using the custom factory.
         return LoggerAggregate(**(data or self.aggregate_sample_data))
-
 
 # *** standalone tests
 
@@ -429,7 +421,6 @@ def test_logging_settings_from_data_success():
     assert isinstance(logger, LoggerConfigObject)
     assert logger.id == 'app'
     assert logger.name == 'App Logger'
-
 
 # ** test: logging_settings_from_data_empty
 def test_logging_settings_from_data_empty():

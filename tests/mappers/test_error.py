@@ -21,7 +21,6 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-
 # *** classes
 
 # ** class: mapper_test_support
@@ -78,7 +77,6 @@ ERROR_SAMPLE_DATA = {
 
 # ** constant: error_equality_fields
 ERROR_EQUALITY_FIELDS = ['id', 'name', 'error_code']
-
 
 # *** classes
 
@@ -186,7 +184,6 @@ class TestErrorAggregate(_MapperTestSupport):
 
         # Assert the message list is unchanged.
         assert len(aggregate.message) == initial_count
-
 
 # ** class: TestErrorConfigObject
 class TestErrorConfigObject(_MapperTestSupport):
@@ -322,7 +319,6 @@ class TestErrorConfigObject(_MapperTestSupport):
         assert len(yaml_obj.message) == 2
         assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
 
-
 # *** standalone tests
 
 # ** test: error_message_config_object_map
@@ -341,7 +337,6 @@ def test_error_message_config_object_map():
     assert isinstance(msg, ErrorMessage)
     assert msg.lang == 'en'
     assert msg.text == 'Test message'
-
 
 # ** test: error_message_config_object_from_model
 def test_error_message_config_object_from_model():

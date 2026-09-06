@@ -17,7 +17,6 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-
 # *** classes
 
 # ** class: mapper_test_support
@@ -127,7 +126,6 @@ FIELD_NORMALIZERS = {
     'constants': lambda v: dict(sorted((k, v) for k, v in (v or {}).items())),
     'services': lambda svcs: tuple(sorted(SVC_TUPLE(s) for s in (svcs or []))),
 }
-
 
 # *** classes
 
@@ -372,7 +370,6 @@ class TestAppSessionAggregate(_MapperTestSupport):
         assert svc.module_path == 'pkg.sub.module'
         assert svc.class_name == 'FreshService'
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
-
 
 # ** class: TestAppSessionConfigObject
 class TestAppSessionConfigObject(_MapperTestSupport):

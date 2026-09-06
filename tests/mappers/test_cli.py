@@ -19,7 +19,6 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-
 # *** classes
 
 # ** class: mapper_test_support
@@ -136,7 +135,6 @@ COMMAND_FIELD_NORMALIZERS = {
     'arguments': lambda args: tuple(sorted(ARG_TUPLE(arg) for arg in (args or []))),
 }
 
-
 # *** classes
 
 # ** class: TestCliArgumentAggregate
@@ -161,7 +159,6 @@ class TestCliArgumentAggregate(_MapperTestSupport):
         ('name_or_flags', ['b'], ATTRIBUTE_NOT_SETTABLE_ID),
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
-
 
 # ** class: TestCliCommandAggregate
 class TestCliCommandAggregate(_MapperTestSupport):
@@ -276,7 +273,6 @@ class TestCliCommandAggregate(_MapperTestSupport):
         assert aggregate.arguments[0].name_or_flags == ['a']
         assert aggregate.arguments[0].description == 'The numerator.'
         assert aggregate.arguments[0].type == 'int'
-
 
 # ** class: TestCliCommandConfigObject
 class TestCliCommandConfigObject(_MapperTestSupport):

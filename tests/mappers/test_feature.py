@@ -18,7 +18,6 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-
 # *** classes
 
 # ** class: mapper_test_support
@@ -125,7 +124,6 @@ FEATURE_FIELD_NORMALIZERS = {
     'steps': lambda steps: tuple(sorted(STEP_TUPLE(s) for s in (steps or []))),
 }
 
-
 # *** classes
 
 # ** class: TestEventFeatureStepAggregate
@@ -207,7 +205,6 @@ class TestEventFeatureStepAggregate(_MapperTestSupport):
         # set_attribute for other attributes should use setattr.
         aggregate.set_attribute('name', 'Renamed Event')
         assert aggregate.name == 'Renamed Event'
-
 
 # ** class: TestFeatureAggregate
 class TestFeatureAggregate(_MapperTestSupport):
@@ -357,7 +354,6 @@ class TestFeatureAggregate(_MapperTestSupport):
         # Clear the description.
         aggregate.set_description(None)
         assert aggregate.description is None
-
 
 # ** class: TestFeatureConfigObject
 class TestFeatureConfigObject(_MapperTestSupport):
@@ -576,7 +572,6 @@ class TestFeatureConfigObject(_MapperTestSupport):
         # Verify the middleware is attached to the step.
         assert step.middleware == ['timing_middleware']
         assert agg.steps[0].middleware == ['timing_middleware']
-
 
 # *** params_schema tests
 

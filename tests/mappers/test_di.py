@@ -18,7 +18,6 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-
 # *** classes
 
 # ** class: mapper_test_support
@@ -129,7 +128,6 @@ SVC_CONFIG_FIELD_NORMALIZERS = {
     'dependencies': lambda deps: tuple(sorted(DEP_TUPLE(d) for d in (deps or []))),
 }
 
-
 # *** classes
 
 # ** class: TestFlaggedDependencyAggregate
@@ -196,7 +194,6 @@ class TestFlaggedDependencyAggregate(_MapperTestSupport):
             'override': 'new',
             'add': 'added',
         }
-
 
 # ** class: TestServiceRegistrationAggregate
 class TestServiceRegistrationAggregate(_MapperTestSupport):
@@ -352,7 +349,6 @@ class TestServiceRegistrationAggregate(_MapperTestSupport):
 
         # The list should be unchanged.
         assert len(aggregate.dependencies) == initial_count
-
 
 # ** class: TestServiceRegistrationConfigObject
 class TestServiceRegistrationConfigObject(_MapperTestSupport):
