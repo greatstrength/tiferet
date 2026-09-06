@@ -3,7 +3,7 @@
 # *** imports
 
 # ** app
-from tiferet.assets.core import (
+from tiferet.contexts.tester import (
     create_aggregate_tester,
     create_domain_tester,
     create_transfer_object_tester,
@@ -40,8 +40,9 @@ ERROR_DATA = {
     ],
 }
 
-# *** generated tests
+# *** tests
 
+# ** test: TestErrorMessage
 TestErrorMessage = create_domain_tester(
     domain_cls=ErrorMessage,
     sample_data=ERROR_MESSAGE_DATA,
@@ -51,6 +52,7 @@ TestErrorMessage = create_domain_tester(
     ],
 )
 
+# ** test: TestErrorMessageDescription
 TestErrorMessageDescription = create_domain_tester(
     domain_cls=ErrorMessage,
     sample_data=ERROR_MESSAGE_DATA,
@@ -67,6 +69,7 @@ TestErrorMessageDescription = create_domain_tester(
     ],
 )
 
+# ** test: TestErrorAggregate
 TestErrorAggregate = create_aggregate_tester(
     aggregate_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
@@ -77,6 +80,7 @@ TestErrorAggregate = create_aggregate_tester(
     ],
 )
 
+# ** test: TestErrorAggregateSetAttribute
 TestErrorAggregateSetAttribute = create_aggregate_tester(
     aggregate_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
@@ -99,6 +103,7 @@ TestErrorAggregateSetAttribute = create_aggregate_tester(
     ],
 )
 
+# ** test: TestErrorConfigObject
 TestErrorConfigObject = create_transfer_object_tester(
     transfer_cls=ErrorConfigObject,
     aggregate_cls=ErrorAggregate,
@@ -110,8 +115,6 @@ TestErrorConfigObject = create_transfer_object_tester(
         'error_code',
     ],
 )
-
-# *** tests
 
 # ** test: factory_classes_attach_only_declared_optional_assertions
 def test_factory_classes_attach_only_declared_optional_assertions() -> None:

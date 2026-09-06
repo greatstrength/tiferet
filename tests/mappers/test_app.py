@@ -12,12 +12,10 @@ from tiferet.mappers.app import (
     AppSessionConfigObject,
     AppServiceDependencyConfigObject,
 )
-from tiferet.assets.core import (
+from tiferet.contexts.tester import (
     create_aggregate_tester,
     create_transfer_object_tester,
 )
-
-from tests.mappers.core import MapperTestSupport
 
 # *** constants
 
@@ -87,10 +85,36 @@ FIELD_NORMALIZERS = {
     'services': lambda svcs: tuple(sorted(SVC_TUPLE(s) for s in (svcs or []))),
 }
 
+# ** constant: test_app_session_config_object_sample_data
+TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
+        'id': 'test.interface',
+        'name': 'Test Interface',
+        'description': 'The test app interface.',
+        'flags': ['test_feature', 'test_data'],
+        'logger_id': 'default',
+        'services': {
+            'test_attribute': {
+                'module_path': 'test.module.path',
+                'class_name': 'TestClassName',
+                'parameters': {'test_param': 'test_value', 'debug': '1'},
+            },
+            'logging': {
+                'module_path': 'tiferet.utils.logging',
+                'class_name': 'LoggingService',
+                'parameters': {},
+            },
+        },
+        'constants': {
+            'APP_NAME': 'Tiferet Test',
+            'VERSION': '2.0.0a1',
+            'DEBUG': '1',
+        },
+    }
+
 # *** tests
 
 # ** test: TestAppSessionAggregate
-class TestAppSessionAggregate(MapperTestSupport):
+class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAggregate, sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Interface', None), ('description', 'New description text', None), ('logger_id', 'custom.logger.id', None), ('flags', ['flag1', 'flag2'], None), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)], field_normalizers=FIELD_NORMALIZERS)):
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -112,17 +136,6 @@ class TestAppSessionAggregate(MapperTestSupport):
         # invalid
         ('invalid_attr', 'value',                  ATTRIBUTE_NOT_SETTABLE_ID),
     ]
-
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> AppSessionAggregate:
-        '''
-        Override to use AppSessionAggregate direct constructor.
-        '''
-
-        # Create an aggregate using the direct constructor.
-        return AppSessionAggregate(
-            **(data if data is not None else self.sample_data)
-        )
 
     # *** fixtures
 
@@ -240,11 +253,14 @@ class TestAppSessionAggregate(MapperTestSupport):
         assert [s.service_id for s in aggr.services] == expected_remaining
 
     # ** test: add_service_appends_with_service_id_first
-    def test_add_service_appends_with_service_id_first(self, aggregate):
+    def test_add_service_appends_with_service_id_first(self, target):
         '''
         Test that add_service appends a dependency, taking service_id first so
         its positional order matches set_service.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Verify the service does not exist yet.
         assert aggregate.get_service('added_svc') is None
@@ -265,10 +281,13 @@ class TestAppSessionAggregate(MapperTestSupport):
         assert svc.parameters == {'p1': 'v1'}
 
     # ** test: add_service_defaults_parameters_to_empty
-    def test_add_service_defaults_parameters_to_empty(self, aggregate):
+    def test_add_service_defaults_parameters_to_empty(self, target):
         '''
         Test that add_service defaults parameters to an empty dict when omitted.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Add a service without parameters.
         aggregate.add_service(
@@ -281,10 +300,13 @@ class TestAppSessionAggregate(MapperTestSupport):
         assert aggregate.get_service('no_params_svc').parameters == {}
 
     # ** test: set_service_update_existing_merge_params
-    def test_set_service_update_existing_merge_params(self, aggregate):
+    def test_set_service_update_existing_merge_params(self, target):
         '''
         Test that set_service updates an existing service and merges parameters.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Update the existing test_attribute service with new type and merged parameters.
         aggregate.set_service(
@@ -308,10 +330,13 @@ class TestAppSessionAggregate(MapperTestSupport):
         }
 
     # ** test: set_service_create_new
-    def test_set_service_create_new(self, aggregate):
+    def test_set_service_create_new(self, target):
         '''
         Test that set_service creates a new service when none exists.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Verify the service does not exist yet.
         assert aggregate.get_service('brand_new') is None
@@ -332,7 +357,7 @@ class TestAppSessionAggregate(MapperTestSupport):
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
 # ** test: TestAppSessionConfigObject
-class TestAppSessionConfigObject(MapperTestSupport):
+class TestAppSessionConfigObject(create_transfer_object_tester(transfer_cls=AppSessionConfigObject, aggregate_cls=AppSessionAggregate, sample_data=TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, field_normalizers=FIELD_NORMALIZERS)):
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
@@ -341,30 +366,7 @@ class TestAppSessionConfigObject(MapperTestSupport):
     aggregate_cls = AppSessionAggregate
 
     # YAML-format sample data (services as dict keyed by service_id).
-    sample_data = {
-        'id': 'test.interface',
-        'name': 'Test Interface',
-        'description': 'The test app interface.',
-        'flags': ['test_feature', 'test_data'],
-        'logger_id': 'default',
-        'services': {
-            'test_attribute': {
-                'module_path': 'test.module.path',
-                'class_name': 'TestClassName',
-                'parameters': {'test_param': 'test_value', 'debug': '1'},
-            },
-            'logging': {
-                'module_path': 'tiferet.utils.logging',
-                'class_name': 'LoggingService',
-                'parameters': {},
-            },
-        },
-        'constants': {
-            'APP_NAME': 'Tiferet Test',
-            'VERSION': '2.0.0a1',
-            'DEBUG': '1',
-        },
-    }
+    sample_data = TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA
 
     # Aggregate-format expected data (services as list, defaults filled in).
     aggregate_sample_data = AGGREGATE_SAMPLE_DATA
@@ -372,17 +374,6 @@ class TestAppSessionConfigObject(MapperTestSupport):
     equality_fields = EQUALITY_FIELDS
 
     field_normalizers = FIELD_NORMALIZERS
-
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> AppSessionAggregate:
-        '''
-        Override to use AppSessionAggregate direct constructor.
-        '''
-
-        # Create an aggregate using the direct constructor.
-        return AppSessionAggregate(
-            **(data if data is not None else self.aggregate_sample_data)
-        )
 
     # *** child mapper: AppServiceDependencyConfigObject
 
@@ -451,10 +442,13 @@ class TestAppSessionConfigObject(MapperTestSupport):
         assert primitive['class_name'] == 'ExcludeTest'
 
     # ** test: app_service_dependency_yaml_round_trip_via_parent
-    def test_app_service_dependency_yaml_round_trip_via_parent(self, aggregate):
+    def test_app_service_dependency_yaml_round_trip_via_parent(self, target):
         '''
         Test that services are preserved through the parent AppSessionConfigObject round-trip.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Convert aggregate to YAML object and back.
         yaml_top = AppSessionConfigObject.from_model(aggregate)
@@ -467,22 +461,3 @@ class TestAppSessionConfigObject(MapperTestSupport):
             assert actual.module_path == expected.module_path
             assert actual.class_name == expected.class_name
             assert actual.parameters == expected.parameters
-
-# ** test: TestAppSessionAggregateGenerated
-TestAppSessionAggregateGenerated = create_aggregate_tester(
-    aggregate_cls=TestAppSessionAggregate.aggregate_cls,
-    sample_data=TestAppSessionAggregate.sample_data,
-    equality_fields=TestAppSessionAggregate.equality_fields,
-    set_attribute_params=TestAppSessionAggregate.set_attribute_params,
-    field_normalizers=TestAppSessionAggregate.field_normalizers,
-)
-
-# ** test: TestAppSessionConfigObjectGenerated
-TestAppSessionConfigObjectGenerated = create_transfer_object_tester(
-    transfer_cls=TestAppSessionConfigObject.transfer_cls,
-    aggregate_cls=TestAppSessionConfigObject.aggregate_cls,
-    sample_data=TestAppSessionConfigObject.sample_data,
-    aggregate_sample_data=TestAppSessionConfigObject.aggregate_sample_data,
-    equality_fields=TestAppSessionConfigObject.equality_fields,
-    field_normalizers=TestAppSessionConfigObject.field_normalizers,
-)
