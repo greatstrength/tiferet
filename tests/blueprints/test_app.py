@@ -38,7 +38,6 @@ def test_build_cache_returns_cache_context():
     # Assert the result is a CacheContext.
     assert isinstance(result, CacheContext)
 
-
 # ** test: build_cache_seeds_all_three_catalogs
 def test_build_cache_seeds_all_three_catalogs():
     '''
@@ -56,7 +55,6 @@ def test_build_cache_seeds_all_three_catalogs():
 
     # Assert the logging namespace contains the default LoggingSettings entry.
     assert isinstance(cache.get('default', *LOGGING_CACHE_PREFIX), LoggingSettings)
-
 
 # ** test: build_cache_seeds_typed_entries_per_catalog
 def test_build_cache_seeds_typed_entries_per_catalog():
@@ -82,7 +80,6 @@ def test_build_cache_seeds_typed_entries_per_catalog():
     # Assert each constant is its scalar value in the constants namespace.
     for name, value in a.app.CORE_DEFAULT_CONSTANTS.items():
         assert cache.get(name, *APP_CONSTANT_CACHE_PREFIX) == value
-
 
 # ** test: build_cache_specific_service_and_constant_retrievable
 def test_build_cache_specific_service_and_constant_retrievable():
@@ -151,7 +148,6 @@ def test_build_app_session_context_returns_app_session_context(monkeypatch):
     assert result.cache is cache
     assert callable(result._build_logger)
 
-
 # ** test: build_app_session_context_wires_five_handlers
 def test_build_app_session_context_wires_five_handlers(monkeypatch):
     '''
@@ -191,7 +187,6 @@ def test_build_app_session_context_wires_five_handlers(monkeypatch):
     assert callable(result._raise_error)
     assert callable(result._build_response)
 
-
 # ** test: build_app_success
 def test_build_app_success(monkeypatch):
     '''
@@ -223,7 +218,6 @@ def test_build_app_success(monkeypatch):
     assert result is app_context
     assert get_session.call_args[0][0] == 'test_calc'
     compose.assert_called_once()
-
 
 # ** test: build_app_invalid_context
 def test_build_app_invalid_context(monkeypatch):
@@ -257,7 +251,6 @@ def test_build_app_invalid_context(monkeypatch):
     assert exc_info.value.error_code == a.error.INVALID_APP_SESSION_TYPE_ID
     assert 'invalid_interface' in str(exc_info.value)
 
-
 # ** test: build_app_missing_session_propagates_not_found
 def test_build_app_missing_session_propagates_not_found(monkeypatch):
     '''
@@ -280,7 +273,6 @@ def test_build_app_missing_session_propagates_not_found(monkeypatch):
 
     # Assert the structured error code.
     assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
-
 
 # ** test: app_alias_is_build_app
 def test_app_alias_is_build_app():

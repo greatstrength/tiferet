@@ -72,7 +72,6 @@ def test_build_cache_seeds_no_default_catalogs():
     assert cache.get_by_prefix(*APP_SESSION_CACHE_PREFIX) == {}
     assert cache.get_by_prefix(*LOGGING_CACHE_PREFIX) == {}
 
-
 # ** test: create_app_service_default_composes_app_config_repository
 def test_create_app_service_default_composes_app_config_repository():
     '''
@@ -87,7 +86,6 @@ def test_create_app_service_default_composes_app_config_repository():
     assert isinstance(service, AppConfigRepository)
     assert service.config_file == a.app.DEFAULT_APP_CONFIG_FILE
 
-
 # ** test: create_app_service_default_parameters_fallback
 def test_create_app_service_default_parameters_fallback():
     '''
@@ -100,7 +98,6 @@ def test_create_app_service_default_parameters_fallback():
 
     # Assert the app_config parameter resolved to the framework default.
     assert service.config_file == a.app.DEFAULT_APP_SERVICE_PARAMETERS['app_config']
-
 
 # ** test: create_app_service_custom_parameter_wiring
 def test_create_app_service_custom_parameter_wiring():
@@ -115,7 +112,6 @@ def test_create_app_service_custom_parameter_wiring():
     # Assert the explicit parameter was wired into the constructor.
     assert isinstance(service, AppConfigRepository)
     assert service.config_file == 'custom.yml'
-
 
 # ** test: create_app_service_custom_service_type
 def test_create_app_service_custom_service_type():
@@ -134,7 +130,6 @@ def test_create_app_service_custom_service_type():
     # Assert the custom service type composed with its wired parameter.
     assert isinstance(service, DIConfigRepository)
     assert service.config_file == 'di_custom.yml'
-
 
 # ** test: get_app_session_returns_session
 def test_get_app_session_returns_session(monkeypatch):
@@ -167,7 +162,6 @@ def test_get_app_session_returns_session(monkeypatch):
     assert result is sample
     app_service.get.assert_called_once_with('tiferet_app')
 
-
 # ** test: get_app_session_raises_when_absent
 def test_get_app_session_raises_when_absent(monkeypatch):
     '''
@@ -195,7 +189,6 @@ def test_get_app_session_raises_when_absent(monkeypatch):
     # Assert the structured error code.
     assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
 
-
 # ** test: build_app_service_container_exposes_core_services
 def test_build_app_service_container_exposes_core_services():
     '''
@@ -216,7 +209,6 @@ def test_build_app_service_container_exposes_core_services():
     # Assert every core service id resolves to a concrete instance.
     for service_id in a.app.CORE_DEFAULT_SERVICES:
         assert container.get_dependency(service_id) is not None
-
 
 # ** test: build_app_service_container_interface_service_override
 def test_build_app_service_container_interface_service_override():
@@ -244,7 +236,6 @@ def test_build_app_service_container_interface_service_override():
     # Assert the interface override replaced the default error_service type.
     assert isinstance(container.get_dependency('error_service'), DIConfigRepository)
 
-
 # ** test: build_app_service_container_interface_constant_override
 def test_build_app_service_container_interface_constant_override():
     '''
@@ -265,7 +256,6 @@ def test_build_app_service_container_interface_constant_override():
     # Assert the interface constant override wins over the default.
     assert container.get_dependency('error_config') == 'override.yml'
 
-
 # ** test: build_app_service_container_defaults_only_when_no_interface
 def test_build_app_service_container_defaults_only_when_no_interface():
     '''
@@ -284,7 +274,6 @@ def test_build_app_service_container_defaults_only_when_no_interface():
     # Assert every core constant resolves to its default value.
     for name, value in a.app.CORE_DEFAULT_CONSTANTS.items():
         assert container.get_dependency(name) == value
-
 
 # ** test: build_app_service_container_constant_override_propagates_to_redeclared_service
 def test_build_app_service_container_constant_override_propagates_to_redeclared_service():
@@ -318,7 +307,6 @@ def test_build_app_service_container_constant_override_propagates_to_redeclared_
     assert isinstance(error_service, ErrorConfigRepository)
     assert error_service.config_file == 'override.yml'
 
-
 # ** test: get_error_returns_callable
 def test_get_error_returns_callable():
     '''
@@ -330,7 +318,6 @@ def test_get_error_returns_callable():
 
     # Assert the handler is callable.
     assert callable(handler)
-
 
 # ** test: get_error_handler_cache_hit
 def test_get_error_handler_cache_hit():
@@ -352,7 +339,6 @@ def test_get_error_handler_cache_hit():
     # Assert the cached error is returned and get_dependency was not called.
     assert result is cached_error
     get_dependency.assert_not_called()
-
 
 # ** test: get_error_handler_cache_miss_resolves_event
 def test_get_error_handler_cache_miss_resolves_event():
@@ -380,7 +366,6 @@ def test_get_error_handler_cache_miss_resolves_event():
     # Assert the resolved error is returned.
     assert result is expected_error
 
-
 # ** test: get_error_handler_caches_result_after_miss
 def test_get_error_handler_caches_result_after_miss():
     '''
@@ -402,7 +387,6 @@ def test_get_error_handler_caches_result_after_miss():
     # Assert the result is now cached under the error prefix.
     assert cache.get('NEW_ERROR', *ERROR_CACHE_PREFIX) is expected_error
 
-
 # ** test: get_feature_returns_callable
 def test_get_feature_returns_callable():
     '''
@@ -414,7 +398,6 @@ def test_get_feature_returns_callable():
 
     # Assert the handler is callable.
     assert callable(handler)
-
 
 # ** test: get_feature_handler_cache_hit
 def test_get_feature_handler_cache_hit():
@@ -438,7 +421,6 @@ def test_get_feature_handler_cache_hit():
     # Assert the cached feature is returned and get_dependency was not called.
     assert result is cached_feature
     get_dependency.assert_not_called()
-
 
 # ** test: get_feature_handler_cache_miss_resolves_event
 def test_get_feature_handler_cache_miss_resolves_event():
@@ -468,7 +450,6 @@ def test_get_feature_handler_cache_miss_resolves_event():
     # Assert the resolved feature is returned.
     assert result is expected_feature
 
-
 # ** test: get_feature_handler_caches_result_after_miss
 def test_get_feature_handler_caches_result_after_miss():
     '''
@@ -492,7 +473,6 @@ def test_get_feature_handler_caches_result_after_miss():
     # Assert the result is now cached under the feature cache prefix.
     assert cache.get('group.feat', *FEATURE_CACHE_PREFIX) is expected_feature
 
-
 # ** test: parse_parameter_literal_passthrough
 def test_parse_parameter_literal_passthrough():
     '''
@@ -501,7 +481,6 @@ def test_parse_parameter_literal_passthrough():
 
     # Assert a plain literal is returned as-is.
     assert parse_parameter('plain_value') == 'plain_value'
-
 
 # ** test: parse_parameter_resolves_env
 def test_parse_parameter_resolves_env(monkeypatch):
@@ -515,7 +494,6 @@ def test_parse_parameter_resolves_env(monkeypatch):
     # Set an environment variable and assert the $env. reference resolves to it.
     monkeypatch.setenv('TIFERET_TEST_VAR', 'resolved_value')
     assert parse_parameter('$env.TIFERET_TEST_VAR') == 'resolved_value'
-
 
 # ** test: parse_parameter_missing_env_raises
 def test_parse_parameter_missing_env_raises(monkeypatch):
@@ -538,7 +516,6 @@ def test_parse_parameter_missing_env_raises(monkeypatch):
     assert exc_info.value.error_code == a.error.PARAMETER_PARSING_FAILED_ID
     assert exc_info.value.kwargs.get('parameter') == '$env.TIFERET_NONEXISTENT_VAR'
 
-
 # ** test: load_cache_returns_root_snapshot_callable
 def test_load_cache_returns_root_snapshot_callable():
     '''
@@ -558,7 +535,6 @@ def test_load_cache_returns_root_snapshot_callable():
     # Assert the loader is callable and returns only the root-namespace entries.
     assert callable(loader)
     assert snapshot == {'root_key': 'root_value'}
-
 
 # ** test: create_request_context_stamps_interface_id
 def test_create_request_context_stamps_interface_id():
@@ -581,7 +557,6 @@ def test_create_request_context_stamps_interface_id():
     assert request.headers.get('interface_id') == 'test_interface'
     assert request.headers.get('h') == 'v'
     assert request.data == {'a': 1}
-
 
 # ** test: create_session_request_delegates_to_create_request_context
 def test_create_session_request_delegates_to_create_request_context():
@@ -608,7 +583,6 @@ def test_create_session_request_delegates_to_create_request_context():
     assert aliased.headers == canonical.headers
     assert aliased.data == canonical.data
     assert aliased.feature_id == canonical.feature_id
-
 
 # ** test: create_feature_context_with_preloaded_feature
 def test_create_feature_context_with_preloaded_feature():
@@ -639,7 +613,6 @@ def test_create_feature_context_with_preloaded_feature():
     # Assert the blueprint-owned parameter parser was injected.
     assert feature_context.parse_parameter is parse_parameter
 
-
 # ** test: create_feature_context_loads_by_feature_id
 def test_create_feature_context_loads_by_feature_id():
     '''
@@ -667,7 +640,6 @@ def test_create_feature_context_loads_by_feature_id():
     get_dependency.assert_called_once_with('get_feature_evt', 'app')
     get_feature_evt.execute.assert_called_once_with(id='group.feat')
 
-
 # ** test: create_session_request_builds_request_context
 def test_create_session_request_builds_request_context():
     '''
@@ -690,7 +662,6 @@ def test_create_session_request_builds_request_context():
     assert request.headers.get('h') == 'v'
     assert request.data == {'a': 1}
 
-
 # ** test: create_session_request_empty_headers_and_data
 def test_create_session_request_empty_headers_and_data():
     '''
@@ -708,7 +679,6 @@ def test_create_session_request_empty_headers_and_data():
     assert request.headers == {'interface_id': 'iface'}
     assert request.data == {}
 
-
 # ** test: execute_feature_handler_returns_callable
 def test_execute_feature_handler_returns_callable():
     '''
@@ -721,7 +691,6 @@ def test_execute_feature_handler_returns_callable():
 
     # Assert the result is callable.
     assert callable(handler)
-
 
 # ** test: execute_feature_handler_drives_feature_context
 def test_execute_feature_handler_drives_feature_context(monkeypatch):
@@ -755,7 +724,6 @@ def test_execute_feature_handler_drives_feature_context(monkeypatch):
     # Assert the handler is void (returns None, not the response).
     assert result is None
 
-
 # ** test: raise_error_handler_returns_callable
 def test_raise_error_handler_returns_callable():
     '''
@@ -768,7 +736,6 @@ def test_raise_error_handler_returns_callable():
 
     # Assert the result is callable.
     assert callable(handler)
-
 
 # ** test: raise_error_handler_raises_api_error_on_tiferet_error
 def test_raise_error_handler_raises_api_error_on_tiferet_error(monkeypatch):
@@ -810,7 +777,6 @@ def test_raise_error_handler_raises_api_error_on_tiferet_error(monkeypatch):
     assert exc_info.value.name == 'Test Error'
     get_error_mock.assert_called_once_with('TEST_ERROR')
 
-
 # ** test: raise_error_handler_wraps_plain_exception
 def test_raise_error_handler_wraps_plain_exception(monkeypatch):
     '''
@@ -849,7 +815,6 @@ def test_raise_error_handler_wraps_plain_exception(monkeypatch):
     assert exc_info.value.error_code == 'APP_ERROR'
     get_error_mock.assert_called_once_with('APP_ERROR')
 
-
 # ** test: raise_error_handler_formats_wrapped_app_error_end_to_end
 def test_raise_error_handler_formats_wrapped_app_error_end_to_end():
     '''
@@ -871,7 +836,6 @@ def test_raise_error_handler_formats_wrapped_app_error_end_to_end():
     assert exc_info.value.error_code == a.error.APP_ERROR_ID
     assert exc_info.value.name == 'App Error'
     assert exc_info.value.message == 'An error occurred in the app: something went wrong.'
-
 
 # ** test: raise_error_handler_formats_event_raised_app_error
 def test_raise_error_handler_formats_event_raised_app_error():
@@ -901,7 +865,6 @@ def test_raise_error_handler_formats_event_raised_app_error():
     assert exc_info.value.error_code == a.error.APP_ERROR_ID
     assert exc_info.value.message == 'An error occurred in the app: no such table: users.'
 
-
 # ** test: response_handler_delegates_to_request
 def test_response_handler_delegates_to_request():
     '''
@@ -915,7 +878,6 @@ def test_response_handler_delegates_to_request():
     # Assert the handler returns the expected response.
     result = response_handler(request)
     assert result == {'status': 'ok'}
-
 
 # ** test: build_app_service_container_wires_load_cache_into_cache_middleware
 def test_build_app_service_container_wires_load_cache_into_cache_middleware():
@@ -937,7 +899,6 @@ def test_build_app_service_container_wires_load_cache_into_cache_middleware():
     assert isinstance(middleware, CacheMiddleware)
     assert middleware.load_cache is loader
 
-
 # ** test: merge_logging_settings_uses_defaults_when_sections_empty
 def test_merge_logging_settings_uses_defaults_when_sections_empty():
     '''
@@ -955,7 +916,6 @@ def test_merge_logging_settings_uses_defaults_when_sections_empty():
     assert len(result.formatters) > 0
     assert len(result.handlers) > 0
     assert len(result.loggers) > 0
-
 
 # ** test: merge_logging_settings_merges_repo_data_over_defaults_by_id
 def test_merge_logging_settings_merges_repo_data_over_defaults_by_id():
@@ -998,7 +958,6 @@ def test_merge_logging_settings_merges_repo_data_over_defaults_by_id():
     assert {'root', 'default', 'debug'} == {l.id for l in result.loggers}
     assert next(l for l in result.loggers if l.id == 'root') is repo_logger
 
-
 # ** test: merge_logging_settings_tolerates_unseeded_cache
 def test_merge_logging_settings_tolerates_unseeded_cache():
     '''
@@ -1021,7 +980,6 @@ def test_merge_logging_settings_tolerates_unseeded_cache():
     assert result.handlers == []
     assert result.loggers == []
 
-
 # ** test: create_logging_context_returns_logging_context
 def test_create_logging_context_returns_logging_context():
     '''
@@ -1040,7 +998,6 @@ def test_create_logging_context_returns_logging_context():
     assert result.domain is settings
     assert result.logger_id == 'default'
 
-
 # ** test: build_logger_handler_returns_callable
 def test_build_logger_handler_returns_callable():
     '''
@@ -1057,7 +1014,6 @@ def test_build_logger_handler_returns_callable():
 
     # Assert the result is callable.
     assert callable(handler)
-
 
 # ** test: build_logger_handler_resolves_evt_and_builds_logger_on_miss
 def test_build_logger_handler_resolves_evt_and_builds_logger_on_miss():
@@ -1082,7 +1038,6 @@ def test_build_logger_handler_resolves_evt_and_builds_logger_on_miss():
     logging_evt.execute.assert_called_once()
     import logging as stdlib_logging
     assert isinstance(logger, stdlib_logging.Logger)
-
 
 # ** test: build_logger_handler_caches_built_logger
 def test_build_logger_handler_caches_built_logger():
@@ -1111,7 +1066,6 @@ def test_build_logger_handler_caches_built_logger():
 
     # Assert the logger was cached under the logger cache prefix.
     assert cache.get('default', *LOGGER_CACHE_PREFIX) is first_logger
-
 
 # ** test: compose_session_context_wires_five_handlers
 def test_compose_session_context_wires_five_handlers():
@@ -1154,7 +1108,6 @@ def test_compose_session_context_wires_five_handlers():
     assert callable(result._raise_error)
     assert callable(result._build_response)
 
-
 # ** test: compose_session_context_resolves_collaborators
 def test_compose_session_context_resolves_collaborators():
     '''
@@ -1191,7 +1144,6 @@ def test_compose_session_context_resolves_collaborators():
 
     # Assert the extra collaborator was resolved and wired onto the context.
     assert result.probe_evt is probe
-
 
 # ** test: compose_session_context_forwards_extra_kwargs
 def test_compose_session_context_forwards_extra_kwargs():
