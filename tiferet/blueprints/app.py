@@ -6,10 +6,44 @@
 from ..assets import TiferetError
 from . import core
 from ..contexts.cache import CacheContext
-from ..contexts.app import AppSession, AppSessionContext
+from ..contexts.error import add_default_errors
+from ..contexts.logging import add_default_logging_settings
+from ..contexts.app import (
+    AppSession,
+    AppSessionContext,
+    add_default_app_services,
+    add_default_app_constants,
+    add_default_app_sessions,
+)
 from .. import a
 
 # *** blueprints
+
+# ** blueprint: build_cache
+@add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
+@add_default_app_sessions(a.app.CORE_DEFAULT_APP_SESSIONS)
+@add_default_app_constants(a.app.CORE_DEFAULT_CONSTANTS)
+@add_default_app_services(a.app.CORE_DEFAULT_SERVICES)
+@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
+def build_cache(
+    cache: dict = None,
+) -> CacheContext:
+    '''
+    Build the standard application cache from a bare core cache.
+
+    Wraps :func:`core.build_cache` and applies the framework's five standard
+    default catalogs: errors, app services, app constants, app sessions, and
+    logging settings. Other dialects layer their own catalogs over this
+    standard application foundation.
+
+    :param cache: An optional dict used to pre-seed the cache.
+    :type cache: dict | None
+    :return: The initialized cache context seeded with standard app catalogs.
+    :rtype: CacheContext
+    '''
+
+    # Build the bare core cache before applying the standard catalog decorators.
+    return core.build_cache(cache)
 
 # ** blueprint: build_app_session_context
 def build_app_session_context(
@@ -101,7 +135,7 @@ def build_app(
     '''
 
     # Build the shared cache (seeded with errors, services, and constants).
-    cache = core.build_cache()
+    cache = build_cache()
 
     # Resolve the app session; GetAppSession raises APP_SESSION_NOT_FOUND when absent.
     app_session = core.get_app_session(interface_id, cache, module_path, class_name, **parameters)

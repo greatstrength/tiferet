@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List
 
 # ** app
 from ..assets import TiferetError
-from . import core
+from . import app, core
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
 from ..contexts.feature import add_default_features
@@ -37,8 +37,8 @@ def build_cache(
     '''
     Build an admin cache context pre-seeded with the full admin catalog.
 
-    Stacks admin-layer seeding decorators on top of the core blueprint's
-    ``build_cache``: admin errors (merged set), admin service dependencies,
+    Extends :func:`app.build_cache` by stacking admin-layer seeding decorators
+    on top of the standard application cache: admin errors (merged set), admin service dependencies,
     admin bootstrap constants, and admin feature definitions. The resulting
     cache gives the admin blueprints everything needed to build admin session
     contexts without touching a consumer config file.
@@ -49,8 +49,8 @@ def build_cache(
     :rtype: CacheContext
     '''
 
-    # Delegate to the core blueprint to obtain the core-seeded cache.
-    return core.build_cache(cache=cache)
+    # Delegate to the app blueprint to obtain the standard app-seeded cache.
+    return app.build_cache(cache=cache)
 
 # ** blueprint: build_admin_service_resolver
 def build_admin_service_resolver(

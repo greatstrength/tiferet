@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # ** app
 from .. import a
-from . import core
+from . import app, core
 from ..contexts.cli import (
     CliArgument,
     CliCommand,
@@ -139,7 +139,7 @@ def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
     Build a cache context seeded with the framework defaults plus the
     built-in Tiferet CLI command catalog.
 
-    Extends :func:`core.build_cache` by stacking
+    Extends :func:`app.build_cache` by stacking
     :func:`add_default_cli_commands` on top so the CLI command defaults are
     available alongside the standard error, service, and constant defaults.
 
@@ -150,8 +150,8 @@ def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
     :rtype: CacheContext
     '''
 
-    # Delegate to the core cache builder; the decorator stacks CLI commands on top.
-    return core.build_cache(cache)
+    # Delegate to the app cache builder; the decorator stacks CLI commands on top.
+    return app.build_cache(cache)
 
 
 # ** blueprint: parse_cli_args_handler

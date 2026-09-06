@@ -10,14 +10,97 @@ from unittest import mock
 from tiferet import assets as a
 from tiferet import TiferetError
 from tiferet.blueprints.app import (
+    build_cache,
     build_app_session_context,
     build_app,
 )
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.app import AppSessionContext
-from tiferet.domain import AppSession
+from tiferet.contexts.error import ERROR_CACHE_PREFIX
+from tiferet.contexts.logging import LOGGING_CACHE_PREFIX, LoggingSettings
+from tiferet.contexts.app import (
+    APP_SERVICE_CACHE_PREFIX,
+    APP_CONSTANT_CACHE_PREFIX,
+    AppSessionContext,
+)
+from tiferet.domain import AppSession, AppServiceDependency, Error
 
 # *** tests
+
+# ** test: build_cache_returns_cache_context
+def test_build_cache_returns_cache_context():
+    '''
+    Test that app.build_cache returns a CacheContext instance.
+    '''
+
+    # Invoke build_cache with no arguments.
+    result = build_cache()
+
+    # Assert the result is a CacheContext.
+    assert isinstance(result, CacheContext)
+
+
+# ** test: build_cache_seeds_all_three_catalogs
+def test_build_cache_seeds_all_three_catalogs():
+    '''
+    Test that app.build_cache seeds errors, app services, app constants, and
+    logging settings into their respective namespaces.
+    '''
+
+    # Build the standard application cache.
+    cache = build_cache()
+
+    # Assert each namespace contains the expected number of entries.
+    assert len(cache.get_by_prefix(*ERROR_CACHE_PREFIX)) == len(a.error.CORE_DEFAULT_ERRORS)
+    assert len(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)) == len(a.app.CORE_DEFAULT_SERVICES)
+    assert len(cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX)) == len(a.app.CORE_DEFAULT_CONSTANTS)
+
+    # Assert the logging namespace contains the default LoggingSettings entry.
+    assert isinstance(cache.get('default', *LOGGING_CACHE_PREFIX), LoggingSettings)
+
+
+# ** test: build_cache_seeds_typed_entries_per_catalog
+def test_build_cache_seeds_typed_entries_per_catalog():
+    '''
+    Test that each catalog is seeded with the expected value type: errors as
+    Error domain objects, services as AppServiceDependency, constants as scalars.
+    '''
+
+    # Build the standard application cache.
+    cache = build_cache()
+
+    # Assert each error is an Error domain object in the error namespace.
+    for error_id in a.error.CORE_DEFAULT_ERRORS:
+        assert isinstance(cache.get(error_id, *ERROR_CACHE_PREFIX), Error)
+
+    # Assert each service is an AppServiceDependency in the services namespace.
+    for service_id in a.app.CORE_DEFAULT_SERVICES:
+        assert isinstance(
+            cache.get(service_id, *APP_SERVICE_CACHE_PREFIX),
+            AppServiceDependency,
+        )
+
+    # Assert each constant is its scalar value in the constants namespace.
+    for name, value in a.app.CORE_DEFAULT_CONSTANTS.items():
+        assert cache.get(name, *APP_CONSTANT_CACHE_PREFIX) == value
+
+
+# ** test: build_cache_specific_service_and_constant_retrievable
+def test_build_cache_specific_service_and_constant_retrievable():
+    '''
+    Test that a known service (di_service) and constant (cli_config) are
+    retrievable from the pre-seeded cache via their prefixed cache keys.
+    '''
+
+    # Build the standard application cache.
+    cache = build_cache()
+
+    # Retrieve the di_service dependency from the services namespace.
+    service = cache.get('di_service', *APP_SERVICE_CACHE_PREFIX)
+    assert isinstance(service, AppServiceDependency)
+    assert service.service_id == 'di_service'
+
+    # Retrieve the cli_config constant from the constants namespace.
+    assert cache.get('cli_config', *APP_CONSTANT_CACHE_PREFIX) == 'config.yml'
 
 # ** test: build_app_session_context_returns_app_session_context
 def test_build_app_session_context_returns_app_session_context(monkeypatch):
