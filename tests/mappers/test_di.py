@@ -18,7 +18,7 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-from tests.mappers._support import MapperTestSupport
+from tests.mappers.core import MapperTestSupport
 
 # *** constants
 
