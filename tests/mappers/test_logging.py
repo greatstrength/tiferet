@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.core import TransferObject
@@ -14,8 +17,53 @@ from tiferet.mappers.logging import (
     LoggerConfigObject,
     LoggingSettingsConfigObject,
 )
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.assets.core import (
+    create_aggregate_tester,
+    create_transfer_object_tester,
+)
 
+
+# *** classes
+
+# ** class: mapper_test_support
+class _MapperTestSupport:
+    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
+
+    aggregate_cls: type
+    sample_data: dict = {}
+    aggregate_sample_data: dict = {}
+
+    def make_aggregate(self, data: dict = None):
+        '''Construct the declared aggregate from supplied or sample data.'''
+
+        return self.aggregate_cls(**(
+            data if data is not None
+            else self.aggregate_sample_data or self.sample_data
+        ))
+
+    @pytest.fixture
+    def aggregate(self):
+        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
+
+        return self.make_aggregate()
+
+    def assert_nested_list_matches(
+            self,
+            actual_list: list,
+            expected_list: list,
+            key_field: str,
+            compare_fields: list,
+        ) -> None:
+        '''Assert two keyed lists of model objects carry matching selected fields.'''
+
+        actual_by_key = {getattr(item, key_field): item for item in actual_list}
+        expected_by_key = {getattr(item, key_field): item for item in expected_list}
+
+        assert set(actual_by_key) == set(expected_by_key)
+        for key, expected in expected_by_key.items():
+            actual = actual_by_key[key]
+            for field in compare_fields:
+                assert getattr(actual, field) == getattr(expected, field)
 
 # *** constants
 
@@ -59,7 +107,7 @@ LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 # *** classes
 
 # ** class: TestFormatterAggregate
-class TestFormatterAggregate(AggregateTestBase):
+class TestFormatterAggregate(_MapperTestSupport):
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -107,7 +155,7 @@ class TestFormatterAggregate(AggregateTestBase):
 
 
 # ** class: TestHandlerAggregate
-class TestHandlerAggregate(AggregateTestBase):
+class TestHandlerAggregate(_MapperTestSupport):
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -182,7 +230,7 @@ class TestHandlerAggregate(AggregateTestBase):
 
 
 # ** class: TestLoggerAggregate
-class TestLoggerAggregate(AggregateTestBase):
+class TestLoggerAggregate(_MapperTestSupport):
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -251,7 +299,7 @@ class TestLoggerAggregate(AggregateTestBase):
 
 
 # ** class: TestFormatterConfigObject
-class TestFormatterConfigObject(TransferObjectTestBase):
+class TestFormatterConfigObject(_MapperTestSupport):
     '''
     Tests for FormatterConfigObject mapping and round-trip.
     '''
@@ -276,7 +324,7 @@ class TestFormatterConfigObject(TransferObjectTestBase):
 
 
 # ** class: TestHandlerConfigObject
-class TestHandlerConfigObject(TransferObjectTestBase):
+class TestHandlerConfigObject(_MapperTestSupport):
     '''
     Tests for HandlerConfigObject mapping and round-trip.
     '''
@@ -301,7 +349,7 @@ class TestHandlerConfigObject(TransferObjectTestBase):
 
 
 # ** class: TestLoggerConfigObject
-class TestLoggerConfigObject(TransferObjectTestBase):
+class TestLoggerConfigObject(_MapperTestSupport):
     '''
     Tests for LoggerConfigObject mapping and round-trip.
     '''
@@ -400,3 +448,50 @@ def test_logging_settings_from_data_empty():
     assert settings.formatters == {}
     assert settings.handlers == {}
     assert settings.loggers == {}
+
+# *** generated tests
+
+TestFormatterAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestFormatterAggregate.aggregate_cls,
+    sample_data=TestFormatterAggregate.sample_data,
+    equality_fields=TestFormatterAggregate.equality_fields,
+    set_attribute_params=TestFormatterAggregate.set_attribute_params,
+)
+
+TestHandlerAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestHandlerAggregate.aggregate_cls,
+    sample_data=TestHandlerAggregate.sample_data,
+    equality_fields=TestHandlerAggregate.equality_fields,
+    set_attribute_params=TestHandlerAggregate.set_attribute_params,
+)
+
+TestLoggerAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestLoggerAggregate.aggregate_cls,
+    sample_data=TestLoggerAggregate.sample_data,
+    equality_fields=TestLoggerAggregate.equality_fields,
+    set_attribute_params=TestLoggerAggregate.set_attribute_params,
+)
+
+TestFormatterConfigObjectGenerated = create_transfer_object_tester(
+    transfer_cls=TestFormatterConfigObject.transfer_cls,
+    aggregate_cls=TestFormatterConfigObject.aggregate_cls,
+    sample_data=TestFormatterConfigObject.sample_data,
+    aggregate_sample_data=TestFormatterConfigObject.aggregate_sample_data,
+    equality_fields=TestFormatterConfigObject.equality_fields,
+)
+
+TestHandlerConfigObjectGenerated = create_transfer_object_tester(
+    transfer_cls=TestHandlerConfigObject.transfer_cls,
+    aggregate_cls=TestHandlerConfigObject.aggregate_cls,
+    sample_data=TestHandlerConfigObject.sample_data,
+    aggregate_sample_data=TestHandlerConfigObject.aggregate_sample_data,
+    equality_fields=TestHandlerConfigObject.equality_fields,
+)
+
+TestLoggerConfigObjectGenerated = create_transfer_object_tester(
+    transfer_cls=TestLoggerConfigObject.transfer_cls,
+    aggregate_cls=TestLoggerConfigObject.aggregate_cls,
+    sample_data=TestLoggerConfigObject.sample_data,
+    aggregate_sample_data=TestLoggerConfigObject.aggregate_sample_data,
+    equality_fields=TestLoggerConfigObject.equality_fields,
+)

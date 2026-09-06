@@ -12,8 +12,53 @@ from tiferet.mappers.app import (
     AppSessionConfigObject,
     AppServiceDependencyConfigObject,
 )
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.assets.core import (
+    create_aggregate_tester,
+    create_transfer_object_tester,
+)
 
+
+# *** classes
+
+# ** class: mapper_test_support
+class _MapperTestSupport:
+    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
+
+    aggregate_cls: type
+    sample_data: dict = {}
+    aggregate_sample_data: dict = {}
+
+    def make_aggregate(self, data: dict = None):
+        '''Construct the declared aggregate from supplied or sample data.'''
+
+        return self.aggregate_cls(**(
+            data if data is not None
+            else self.aggregate_sample_data or self.sample_data
+        ))
+
+    @pytest.fixture
+    def aggregate(self):
+        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
+
+        return self.make_aggregate()
+
+    def assert_nested_list_matches(
+            self,
+            actual_list: list,
+            expected_list: list,
+            key_field: str,
+            compare_fields: list,
+        ) -> None:
+        '''Assert two keyed lists of model objects carry matching selected fields.'''
+
+        actual_by_key = {getattr(item, key_field): item for item in actual_list}
+        expected_by_key = {getattr(item, key_field): item for item in expected_list}
+
+        assert set(actual_by_key) == set(expected_by_key)
+        for key, expected in expected_by_key.items():
+            actual = actual_by_key[key]
+            for field in compare_fields:
+                assert getattr(actual, field) == getattr(expected, field)
 
 # *** constants
 
@@ -87,7 +132,7 @@ FIELD_NORMALIZERS = {
 # *** classes
 
 # ** class: TestAppSessionAggregate
-class TestAppSessionAggregate(AggregateTestBase):
+class TestAppSessionAggregate(_MapperTestSupport):
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -330,7 +375,7 @@ class TestAppSessionAggregate(AggregateTestBase):
 
 
 # ** class: TestAppSessionConfigObject
-class TestAppSessionConfigObject(TransferObjectTestBase):
+class TestAppSessionConfigObject(_MapperTestSupport):
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
@@ -465,3 +510,22 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
             key_field='service_id',
             compare_fields=['module_path', 'class_name', 'parameters'],
         )
+
+# *** generated tests
+
+TestAppSessionAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestAppSessionAggregate.aggregate_cls,
+    sample_data=TestAppSessionAggregate.sample_data,
+    equality_fields=TestAppSessionAggregate.equality_fields,
+    set_attribute_params=TestAppSessionAggregate.set_attribute_params,
+    field_normalizers=TestAppSessionAggregate.field_normalizers,
+)
+
+TestAppSessionConfigObjectGenerated = create_transfer_object_tester(
+    transfer_cls=TestAppSessionConfigObject.transfer_cls,
+    aggregate_cls=TestAppSessionConfigObject.aggregate_cls,
+    sample_data=TestAppSessionConfigObject.sample_data,
+    aggregate_sample_data=TestAppSessionConfigObject.aggregate_sample_data,
+    equality_fields=TestAppSessionConfigObject.equality_fields,
+    field_normalizers=TestAppSessionConfigObject.field_normalizers,
+)

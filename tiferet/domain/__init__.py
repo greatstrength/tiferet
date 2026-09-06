@@ -42,6 +42,12 @@ from .feature import (
 from .request import (
     Request,
 )
+from .tester import (
+    AggregateTesterObject,
+    DomainTesterObject,
+    TesterObject,
+    TransferObjectTesterObject,
+)
 from .logging import (
     Formatter,
     Handler,
@@ -77,6 +83,10 @@ __all__ = [
     'ParameterSpecification',
     'RequestSpecification',
     'Request',
+    'TesterObject',
+    'DomainTesterObject',
+    'AggregateTesterObject',
+    'TransferObjectTesterObject',
     'Formatter',
     'Handler',
     'Logger',

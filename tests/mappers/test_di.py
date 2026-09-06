@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID, FlaggedDependency
 from tiferet.mappers.di import (
@@ -10,8 +13,53 @@ from tiferet.mappers.di import (
     ServiceRegistrationAggregate,
     ServiceRegistrationConfigObject,
 )
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.assets.core import (
+    create_aggregate_tester,
+    create_transfer_object_tester,
+)
 
+
+# *** classes
+
+# ** class: mapper_test_support
+class _MapperTestSupport:
+    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
+
+    aggregate_cls: type
+    sample_data: dict = {}
+    aggregate_sample_data: dict = {}
+
+    def make_aggregate(self, data: dict = None):
+        '''Construct the declared aggregate from supplied or sample data.'''
+
+        return self.aggregate_cls(**(
+            data if data is not None
+            else self.aggregate_sample_data or self.sample_data
+        ))
+
+    @pytest.fixture
+    def aggregate(self):
+        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
+
+        return self.make_aggregate()
+
+    def assert_nested_list_matches(
+            self,
+            actual_list: list,
+            expected_list: list,
+            key_field: str,
+            compare_fields: list,
+        ) -> None:
+        '''Assert two keyed lists of model objects carry matching selected fields.'''
+
+        actual_by_key = {getattr(item, key_field): item for item in actual_list}
+        expected_by_key = {getattr(item, key_field): item for item in expected_list}
+
+        assert set(actual_by_key) == set(expected_by_key)
+        for key, expected in expected_by_key.items():
+            actual = actual_by_key[key]
+            for field in compare_fields:
+                assert getattr(actual, field) == getattr(expected, field)
 
 # *** constants
 
@@ -85,7 +133,7 @@ SVC_CONFIG_FIELD_NORMALIZERS = {
 # *** classes
 
 # ** class: TestFlaggedDependencyAggregate
-class TestFlaggedDependencyAggregate(AggregateTestBase):
+class TestFlaggedDependencyAggregate(_MapperTestSupport):
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -151,7 +199,7 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
 
 
 # ** class: TestServiceRegistrationAggregate
-class TestServiceRegistrationAggregate(AggregateTestBase):
+class TestServiceRegistrationAggregate(_MapperTestSupport):
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -307,7 +355,7 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
 
 
 # ** class: TestServiceRegistrationConfigObject
-class TestServiceRegistrationConfigObject(TransferObjectTestBase):
+class TestServiceRegistrationConfigObject(_MapperTestSupport):
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''
@@ -594,3 +642,29 @@ class TestServiceRegistrationConfigObject(TransferObjectTestBase):
             key_field='flag',
             compare_fields=['module_path', 'class_name', 'parameters'],
         )
+
+# *** generated tests
+
+TestFlaggedDependencyAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestFlaggedDependencyAggregate.aggregate_cls,
+    sample_data=TestFlaggedDependencyAggregate.sample_data,
+    equality_fields=TestFlaggedDependencyAggregate.equality_fields,
+    set_attribute_params=TestFlaggedDependencyAggregate.set_attribute_params,
+)
+
+TestServiceRegistrationAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestServiceRegistrationAggregate.aggregate_cls,
+    sample_data=TestServiceRegistrationAggregate.sample_data,
+    equality_fields=TestServiceRegistrationAggregate.equality_fields,
+    set_attribute_params=TestServiceRegistrationAggregate.set_attribute_params,
+    field_normalizers=TestServiceRegistrationAggregate.field_normalizers,
+)
+
+TestServiceRegistrationConfigObjectGenerated = create_transfer_object_tester(
+    transfer_cls=TestServiceRegistrationConfigObject.transfer_cls,
+    aggregate_cls=TestServiceRegistrationConfigObject.aggregate_cls,
+    sample_data=TestServiceRegistrationConfigObject.sample_data,
+    aggregate_sample_data=TestServiceRegistrationConfigObject.aggregate_sample_data,
+    equality_fields=TestServiceRegistrationConfigObject.equality_fields,
+    field_normalizers=TestServiceRegistrationConfigObject.field_normalizers,
+)

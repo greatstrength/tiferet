@@ -14,8 +14,53 @@ from tiferet.domain import (
     ModelError,
 )
 from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandConfigObject
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.assets.core import (
+    create_aggregate_tester,
+    create_transfer_object_tester,
+)
 
+
+# *** classes
+
+# ** class: mapper_test_support
+class _MapperTestSupport:
+    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
+
+    aggregate_cls: type
+    sample_data: dict = {}
+    aggregate_sample_data: dict = {}
+
+    def make_aggregate(self, data: dict = None):
+        '''Construct the declared aggregate from supplied or sample data.'''
+
+        return self.aggregate_cls(**(
+            data if data is not None
+            else self.aggregate_sample_data or self.sample_data
+        ))
+
+    @pytest.fixture
+    def aggregate(self):
+        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
+
+        return self.make_aggregate()
+
+    def assert_nested_list_matches(
+            self,
+            actual_list: list,
+            expected_list: list,
+            key_field: str,
+            compare_fields: list,
+        ) -> None:
+        '''Assert two keyed lists of model objects carry matching selected fields.'''
+
+        actual_by_key = {getattr(item, key_field): item for item in actual_list}
+        expected_by_key = {getattr(item, key_field): item for item in expected_list}
+
+        assert set(actual_by_key) == set(expected_by_key)
+        for key, expected in expected_by_key.items():
+            actual = actual_by_key[key]
+            for field in compare_fields:
+                assert getattr(actual, field) == getattr(expected, field)
 
 # *** constants
 
@@ -95,7 +140,7 @@ COMMAND_FIELD_NORMALIZERS = {
 # *** classes
 
 # ** class: TestCliArgumentAggregate
-class TestCliArgumentAggregate(AggregateTestBase):
+class TestCliArgumentAggregate(_MapperTestSupport):
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
     '''
@@ -119,7 +164,7 @@ class TestCliArgumentAggregate(AggregateTestBase):
 
 
 # ** class: TestCliCommandAggregate
-class TestCliCommandAggregate(AggregateTestBase):
+class TestCliCommandAggregate(_MapperTestSupport):
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
     '''
@@ -234,7 +279,7 @@ class TestCliCommandAggregate(AggregateTestBase):
 
 
 # ** class: TestCliCommandConfigObject
-class TestCliCommandConfigObject(TransferObjectTestBase):
+class TestCliCommandConfigObject(_MapperTestSupport):
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''
@@ -380,3 +425,29 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
             assert rt.name_or_flags == orig.name_or_flags
             assert rt.description == orig.description
             assert rt.type == orig.type
+
+# *** generated tests
+
+TestCliArgumentAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestCliArgumentAggregate.aggregate_cls,
+    sample_data=TestCliArgumentAggregate.sample_data,
+    equality_fields=TestCliArgumentAggregate.equality_fields,
+    set_attribute_params=TestCliArgumentAggregate.set_attribute_params,
+)
+
+TestCliCommandAggregateGenerated = create_aggregate_tester(
+    aggregate_cls=TestCliCommandAggregate.aggregate_cls,
+    sample_data=TestCliCommandAggregate.sample_data,
+    equality_fields=TestCliCommandAggregate.equality_fields,
+    set_attribute_params=TestCliCommandAggregate.set_attribute_params,
+    field_normalizers=TestCliCommandAggregate.field_normalizers,
+)
+
+TestCliCommandConfigObjectGenerated = create_transfer_object_tester(
+    transfer_cls=TestCliCommandConfigObject.transfer_cls,
+    aggregate_cls=TestCliCommandConfigObject.aggregate_cls,
+    sample_data=TestCliCommandConfigObject.sample_data,
+    aggregate_sample_data=TestCliCommandConfigObject.aggregate_sample_data,
+    equality_fields=TestCliCommandConfigObject.equality_fields,
+    field_normalizers=TestCliCommandConfigObject.field_normalizers,
+)

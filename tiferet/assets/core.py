@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict, List, NoReturn, Tuple
+from typing import Any, Callable, Dict, List, NoReturn, Tuple
 import json
 
 # *** constants
@@ -77,6 +77,407 @@ def create_default_error_data(
         'name': name,
         'message': [{'lang': lang, 'text': text} for lang, text in messages],
     }
+
+# ** function: create_default_tester_data
+def create_default_tester_data(
+        type: str,
+        module_path: str,
+        class_name: str,
+        sample_data: Dict[str, Any],
+        equality_fields: List[str],
+        **variant_kwargs: Any,
+    ) -> Dict[str, Any]:
+    '''
+    Build a default tester definition dictionary.
+
+    The identifier is intentionally not a parameter here: the returned dict is
+    stored under its owning ``*_ID`` constant as a group-dict key, so embedding
+    the id inside the value would restate it.
+
+    :param type: The tester variant discriminator.
+    :type type: str
+    :param module_path: The module path of the class under test.
+    :type module_path: str
+    :param class_name: The class name of the class under test.
+    :type class_name: str
+    :param sample_data: The sample data used to construct the target.
+    :type sample_data: Dict[str, Any]
+    :param equality_fields: The target fields to compare.
+    :type equality_fields: List[str]
+    :param variant_kwargs: Variant-specific tester definition fields.
+    :type variant_kwargs: Any
+    :return: The default tester definition, without its id.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the tester definition shared by every tester variant.
+    tester = {
+        'type': type,
+        'module_path': module_path,
+        'class_name': class_name,
+        'sample_data': sample_data,
+        'equality_fields': equality_fields,
+    }
+
+    # Add fields declared by the tester variant.
+    tester.update(variant_kwargs)
+
+    # Return the assembled tester definition.
+    return tester
+
+# ** function: assert_model_matches
+def assert_model_matches(
+        model: Any,
+        sample: Dict[str, Any],
+        equality_fields: List[str],
+        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
+    ) -> None:
+    '''
+    Assert that selected model attributes match expected sample values.
+
+    :param model: The model instance to compare.
+    :type model: Any
+    :param sample: The expected values dictionary.
+    :type sample: Dict[str, Any]
+    :param equality_fields: The fields to compare.
+    :type equality_fields: List[str]
+    :param field_normalizers: Optional per-field normalizers.
+    :type field_normalizers: Dict[str, Callable[[Any], Any]]
+    :return: None.
+    :rtype: None
+    '''
+
+    # Default absent normalizers to an empty mapping.
+    field_normalizers = field_normalizers or {}
+
+    # Compare every requested field present in the expected data.
+    for field in equality_fields:
+        if field not in sample:
+            continue
+
+        expected = sample[field]
+        actual = getattr(model, field, None)
+        normalizer = field_normalizers.get(field)
+
+        # Normalize matching fields before comparing them.
+        if normalizer:
+            expected = normalizer(expected)
+            actual = normalizer(actual)
+
+        # Assert the normalized or raw field values agree.
+        assert actual == expected, (
+            f"Mismatch on field '{field}':\n"
+            f'  expected: {expected!r}\n'
+            f'  actual:   {actual!r}'
+        )
+
+# ** function: create_domain_tester
+def create_domain_tester(
+        domain_cls: type,
+        sample_data: Dict[str, Any],
+        equality_fields: List[str],
+        description_cases: List[Tuple[str, Tuple[Any, ...], Any]] = None,
+        expected_data: Dict[str, Any] = None,
+        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
+        id: str = None,
+    ) -> type:
+    '''
+    Build a pytest-collectible class that verifies a domain object's data and
+    optional descriptive properties or methods.
+
+    :param domain_cls: The domain class under test.
+    :type domain_cls: type
+    :param sample_data: The constructor data for the domain class.
+    :type sample_data: Dict[str, Any]
+    :param equality_fields: The fields to compare on the constructed object.
+    :type equality_fields: List[str]
+    :param description_cases: Optional property or method assertions.
+    :type description_cases: List[Tuple[str, Tuple[Any, ...], Any]]
+    :param expected_data: Optional constructed-model expected data.
+    :type expected_data: Dict[str, Any]
+    :param field_normalizers: Optional per-field comparison normalizers.
+    :type field_normalizers: Dict[str, Callable[[Any], Any]]
+    :param id: Optional tester identifier.
+    :type id: str
+    :return: A pytest-collectible test class.
+    :rtype: type
+    '''
+
+    # Import test-time dependencies only when a test class is authored.
+    import pytest
+    from tiferet.domain import DomainTesterObject
+
+    # Describe the target and its declared assertions.
+    tester = DomainTesterObject(
+        id=id or f'domain.{domain_cls.__name__}',
+        module_path=domain_cls.__module__,
+        class_name=domain_cls.__name__,
+        sample_data=sample_data,
+        expected_data=expected_data,
+        equality_fields=equality_fields,
+        field_normalizers=field_normalizers or {},
+        description_cases=description_cases or [],
+    )
+
+    # Define the assertion every domain tester applies.
+    def test_new(self) -> None:
+        '''Verify domain-object construction against the declared expected data.'''
+
+        # Construct the declared domain target.
+        domain = domain_cls(**tester.sample_data)
+
+        # Verify its target type and declared values.
+        assert isinstance(domain, domain_cls)
+        assert_model_matches(
+            domain,
+            tester.expected_data,
+            tester.equality_fields,
+            tester.field_normalizers,
+        )
+
+    # Start with the universal construction assertion.
+    namespace = {
+        'test_new': test_new,
+    }
+
+    # Attach parametrized descriptive assertions only when they are declared.
+    if tester.description_cases:
+        @pytest.mark.parametrize(
+            'name, args, expected',
+            tester.description_cases,
+        )
+        def test_description(self, name: str, args: Tuple[Any, ...], expected: Any) -> None:
+            '''Verify a declared descriptive property or method.'''
+
+            # Construct the domain target for this assertion case.
+            domain = domain_cls(**tester.sample_data)
+            description = getattr(domain, name)
+
+            # Call methods while reading properties directly.
+            actual = description(*args) if callable(description) else description
+
+            # Assert the declared description.
+            assert actual == expected
+
+        namespace['test_description'] = test_description
+
+    # Return an ordinary pytest-collectible test class.
+    return type(f'Test{domain_cls.__name__}', (object,), namespace)
+
+# ** function: create_aggregate_tester
+def create_aggregate_tester(
+        aggregate_cls: type,
+        sample_data: Dict[str, Any],
+        equality_fields: List[str],
+        set_attribute_params: List[Tuple[str, Any, str | None]] = None,
+        expected_data: Dict[str, Any] = None,
+        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
+        id: str = None,
+    ) -> type:
+    '''
+    Build a pytest-collectible class that verifies aggregate construction and
+    optional set_attribute mutation cases.
+
+    :param aggregate_cls: The aggregate class under test.
+    :type aggregate_cls: type
+    :param sample_data: The constructor data for the aggregate class.
+    :type sample_data: Dict[str, Any]
+    :param equality_fields: The fields to compare on the constructed aggregate.
+    :type equality_fields: List[str]
+    :param set_attribute_params: Optional aggregate mutation assertions.
+    :type set_attribute_params: List[Tuple[str, Any, str | None]]
+    :param expected_data: Optional constructed-aggregate expected data.
+    :type expected_data: Dict[str, Any]
+    :param field_normalizers: Optional per-field comparison normalizers.
+    :type field_normalizers: Dict[str, Callable[[Any], Any]]
+    :param id: Optional tester identifier.
+    :type id: str
+    :return: A pytest-collectible test class.
+    :rtype: type
+    '''
+
+    # Import test-time dependencies only when a test class is authored.
+    import pytest
+    from tiferet.domain import AggregateTesterObject, ModelError
+
+    # Describe the target and its declared assertions.
+    tester = AggregateTesterObject(
+        id=id or f'aggregate.{aggregate_cls.__name__}',
+        module_path=aggregate_cls.__module__,
+        class_name=aggregate_cls.__name__,
+        sample_data=sample_data,
+        expected_data=expected_data,
+        equality_fields=equality_fields,
+        field_normalizers=field_normalizers or {},
+        set_attribute_params=set_attribute_params or [],
+    )
+
+    # Define the assertion every aggregate tester applies.
+    def test_new(self) -> None:
+        '''Verify aggregate construction against the declared expected data.'''
+
+        # Construct the declared aggregate target.
+        aggregate = aggregate_cls(**tester.sample_data)
+
+        # Verify its target type and declared values.
+        assert isinstance(aggregate, aggregate_cls)
+        assert_model_matches(
+            aggregate,
+            tester.expected_data,
+            tester.equality_fields,
+            tester.field_normalizers,
+        )
+
+    # Start with the universal construction assertion.
+    namespace = {
+        'test_new': test_new,
+    }
+
+    # Attach parametrized mutation assertions only when they are declared.
+    if tester.set_attribute_params:
+        @pytest.mark.parametrize(
+            'attr, value, expect_error_code',
+            tester.set_attribute_params,
+        )
+        def test_set_attribute(
+                self,
+                attr: str,
+                value: Any,
+                expect_error_code: str | None,
+            ) -> None:
+            '''Verify one declared aggregate attribute mutation.'''
+
+            # Construct a fresh aggregate for the mutation assertion.
+            aggregate = aggregate_cls(**tester.sample_data)
+
+            # Verify the declared failure path.
+            if expect_error_code:
+                with pytest.raises(ModelError) as exc_info:
+                    aggregate.set_attribute(attr, value)
+                assert exc_info.value.error_code == expect_error_code
+                return
+
+            # Apply and verify the declared successful mutation.
+            aggregate.set_attribute(attr, value)
+            assert getattr(aggregate, attr) == value
+
+        namespace['test_set_attribute'] = test_set_attribute
+
+    # Return an ordinary pytest-collectible test class.
+    return type(f'Test{aggregate_cls.__name__}', (object,), namespace)
+
+# ** function: create_transfer_object_tester
+def create_transfer_object_tester(
+        transfer_cls: type,
+        aggregate_cls: type,
+        sample_data: Dict[str, Any],
+        aggregate_sample_data: Dict[str, Any],
+        equality_fields: List[str] = None,
+        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
+        map_kwargs: Dict[str, Any] = None,
+        id: str = None,
+    ) -> type:
+    '''
+    Build a pytest-collectible class that verifies a transfer object's mapping,
+    model conversion, and round-trip behavior.
+
+    :param transfer_cls: The transfer-object class under test.
+    :type transfer_cls: type
+    :param aggregate_cls: The target aggregate class.
+    :type aggregate_cls: type
+    :param sample_data: The transfer-object construction data.
+    :type sample_data: Dict[str, Any]
+    :param aggregate_sample_data: The expected aggregate construction data.
+    :type aggregate_sample_data: Dict[str, Any]
+    :param equality_fields: Optional aggregate fields to compare.
+    :type equality_fields: List[str]
+    :param field_normalizers: Optional per-field comparison normalizers.
+    :type field_normalizers: Dict[str, Callable[[Any], Any]]
+    :param map_kwargs: Optional additional keyword arguments passed to map.
+    :type map_kwargs: Dict[str, Any]
+    :param id: Optional tester identifier.
+    :type id: str
+    :return: A pytest-collectible test class.
+    :rtype: type
+    '''
+
+    # Import pytest at test-authoring time, never at framework import time.
+    import pytest
+    from tiferet.domain import TransferObjectTesterObject
+
+    # Describe the transfer target, aggregate target, and assertions.
+    tester = TransferObjectTesterObject(
+        id=id or f'transfer_object.{transfer_cls.__name__}',
+        module_path=transfer_cls.__module__,
+        class_name=transfer_cls.__name__,
+        sample_data=sample_data,
+        equality_fields=equality_fields or [],
+        field_normalizers=field_normalizers or {},
+        aggregate_module_path=aggregate_cls.__module__,
+        aggregate_class_name=aggregate_cls.__name__,
+        aggregate_sample_data=aggregate_sample_data,
+        map_kwargs=map_kwargs or {},
+    )
+
+    # Define the transfer-to-aggregate mapping assertion.
+    def test_map(self) -> None:
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        # Construct and map the transfer target.
+        transfer = transfer_cls.model_validate(tester.sample_data)
+        aggregate = transfer.map(**tester.map_kwargs)
+
+        # Verify the mapped aggregate and its selected values.
+        assert isinstance(aggregate, aggregate_cls)
+        assert_model_matches(
+            aggregate,
+            tester.aggregate_sample_data,
+            tester.equality_fields,
+            tester.field_normalizers,
+        )
+
+    # Define the aggregate-to-transfer conversion assertion.
+    def test_from_model(self) -> None:
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        # Construct the aggregate and convert it to a transfer object.
+        aggregate = aggregate_cls(**tester.aggregate_sample_data)
+        transfer = transfer_cls.from_model(aggregate)
+
+        # Verify the declared transfer-object target type.
+        assert isinstance(transfer, transfer_cls)
+
+    # Define the aggregate round-trip assertion.
+    def test_round_trip(self) -> None:
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        # Construct, serialize, and map the aggregate through the transfer type.
+        aggregate = aggregate_cls(**tester.aggregate_sample_data)
+        transfer = transfer_cls.from_model(aggregate)
+        round_tripped = transfer.map(**tester.map_kwargs)
+
+        # Verify the resulting aggregate and selected values.
+        assert isinstance(round_tripped, aggregate_cls)
+        assert_model_matches(
+            round_tripped,
+            tester.aggregate_sample_data,
+            tester.equality_fields,
+            tester.field_normalizers,
+        )
+
+    # Keep pytest as a deferred test-time dependency for this factory.
+    del pytest
+
+    # Return an ordinary pytest-collectible test class.
+    return type(
+        f'Test{transfer_cls.__name__}',
+        (object,),
+        {
+            'test_map': test_map,
+            'test_from_model': test_from_model,
+            'test_round_trip': test_round_trip,
+        },
+    )
 
 # ** function: create_service_module_path
 def create_service_module_path(app_base_path: str, base_path: str, domain_path: str) -> str:
