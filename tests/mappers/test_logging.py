@@ -22,47 +22,7 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-# *** classes
-
-# ** class: mapper_test_support
-class _MapperTestSupport:
-    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
-
-    aggregate_cls: type
-    sample_data: dict = {}
-    aggregate_sample_data: dict = {}
-
-    def make_aggregate(self, data: dict = None):
-        '''Construct the declared aggregate from supplied or sample data.'''
-
-        return self.aggregate_cls(**(
-            data if data is not None
-            else self.aggregate_sample_data or self.sample_data
-        ))
-
-    @pytest.fixture
-    def aggregate(self):
-        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
-
-        return self.make_aggregate()
-
-    def assert_nested_list_matches(
-            self,
-            actual_list: list,
-            expected_list: list,
-            key_field: str,
-            compare_fields: list,
-        ) -> None:
-        '''Assert two keyed lists of model objects carry matching selected fields.'''
-
-        actual_by_key = {getattr(item, key_field): item for item in actual_list}
-        expected_by_key = {getattr(item, key_field): item for item in expected_list}
-
-        assert set(actual_by_key) == set(expected_by_key)
-        for key, expected in expected_by_key.items():
-            actual = actual_by_key[key]
-            for field in compare_fields:
-                assert getattr(actual, field) == getattr(expected, field)
+from tests.mappers._support import MapperTestSupport
 
 # *** constants
 
@@ -105,7 +65,7 @@ LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 # *** classes
 
 # ** class: TestFormatterAggregate
-class TestFormatterAggregate(_MapperTestSupport):
+class TestFormatterAggregate(MapperTestSupport):
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -152,7 +112,7 @@ class TestFormatterAggregate(_MapperTestSupport):
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
 # ** class: TestHandlerAggregate
-class TestHandlerAggregate(_MapperTestSupport):
+class TestHandlerAggregate(MapperTestSupport):
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -226,7 +186,7 @@ class TestHandlerAggregate(_MapperTestSupport):
         assert config['level'] == 'INFO'
 
 # ** class: TestLoggerAggregate
-class TestLoggerAggregate(_MapperTestSupport):
+class TestLoggerAggregate(MapperTestSupport):
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -294,7 +254,7 @@ class TestLoggerAggregate(_MapperTestSupport):
         assert logger.level == 'WARNING'
 
 # ** class: TestFormatterConfigObject
-class TestFormatterConfigObject(_MapperTestSupport):
+class TestFormatterConfigObject(MapperTestSupport):
     '''
     Tests for FormatterConfigObject mapping and round-trip.
     '''
@@ -318,7 +278,7 @@ class TestFormatterConfigObject(_MapperTestSupport):
         return FormatterAggregate(**(data or self.aggregate_sample_data))
 
 # ** class: TestHandlerConfigObject
-class TestHandlerConfigObject(_MapperTestSupport):
+class TestHandlerConfigObject(MapperTestSupport):
     '''
     Tests for HandlerConfigObject mapping and round-trip.
     '''
@@ -342,7 +302,7 @@ class TestHandlerConfigObject(_MapperTestSupport):
         return HandlerAggregate(**(data or self.aggregate_sample_data))
 
 # ** class: TestLoggerConfigObject
-class TestLoggerConfigObject(_MapperTestSupport):
+class TestLoggerConfigObject(MapperTestSupport):
     '''
     Tests for LoggerConfigObject mapping and round-trip.
     '''

@@ -18,47 +18,7 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-# *** classes
-
-# ** class: mapper_test_support
-class _MapperTestSupport:
-    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
-
-    aggregate_cls: type
-    sample_data: dict = {}
-    aggregate_sample_data: dict = {}
-
-    def make_aggregate(self, data: dict = None):
-        '''Construct the declared aggregate from supplied or sample data.'''
-
-        return self.aggregate_cls(**(
-            data if data is not None
-            else self.aggregate_sample_data or self.sample_data
-        ))
-
-    @pytest.fixture
-    def aggregate(self):
-        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
-
-        return self.make_aggregate()
-
-    def assert_nested_list_matches(
-            self,
-            actual_list: list,
-            expected_list: list,
-            key_field: str,
-            compare_fields: list,
-        ) -> None:
-        '''Assert two keyed lists of model objects carry matching selected fields.'''
-
-        actual_by_key = {getattr(item, key_field): item for item in actual_list}
-        expected_by_key = {getattr(item, key_field): item for item in expected_list}
-
-        assert set(actual_by_key) == set(expected_by_key)
-        for key, expected in expected_by_key.items():
-            actual = actual_by_key[key]
-            for field in compare_fields:
-                assert getattr(actual, field) == getattr(expected, field)
+from tests.mappers._support import MapperTestSupport
 
 # *** constants
 
@@ -131,7 +91,7 @@ SVC_CONFIG_FIELD_NORMALIZERS = {
 # *** classes
 
 # ** class: TestFlaggedDependencyAggregate
-class TestFlaggedDependencyAggregate(_MapperTestSupport):
+class TestFlaggedDependencyAggregate(MapperTestSupport):
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -196,7 +156,7 @@ class TestFlaggedDependencyAggregate(_MapperTestSupport):
         }
 
 # ** class: TestServiceRegistrationAggregate
-class TestServiceRegistrationAggregate(_MapperTestSupport):
+class TestServiceRegistrationAggregate(MapperTestSupport):
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -351,7 +311,7 @@ class TestServiceRegistrationAggregate(_MapperTestSupport):
         assert len(aggregate.dependencies) == initial_count
 
 # ** class: TestServiceRegistrationConfigObject
-class TestServiceRegistrationConfigObject(_MapperTestSupport):
+class TestServiceRegistrationConfigObject(MapperTestSupport):
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''
@@ -631,13 +591,13 @@ class TestServiceRegistrationConfigObject(_MapperTestSupport):
         yaml_top = ServiceRegistrationConfigObject.from_model(aggregate)
         round_tripped = yaml_top.map()
 
-        # Verify dependencies list preserved using nested helper.
-        self.assert_nested_list_matches(
-            round_tripped.dependencies,
-            aggregate.dependencies,
-            key_field='flag',
-            compare_fields=['module_path', 'class_name', 'parameters'],
-        )
+        # Verify every dependency's identity and implementation fields are preserved.
+        assert len(round_tripped.dependencies) == len(aggregate.dependencies)
+        for actual, expected in zip(round_tripped.dependencies, aggregate.dependencies):
+            assert actual.flag == expected.flag
+            assert actual.module_path == expected.module_path
+            assert actual.class_name == expected.class_name
+            assert actual.parameters == expected.parameters
 
 # *** generated tests
 

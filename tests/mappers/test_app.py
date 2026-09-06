@@ -17,47 +17,7 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-# *** classes
-
-# ** class: mapper_test_support
-class _MapperTestSupport:
-    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
-
-    aggregate_cls: type
-    sample_data: dict = {}
-    aggregate_sample_data: dict = {}
-
-    def make_aggregate(self, data: dict = None):
-        '''Construct the declared aggregate from supplied or sample data.'''
-
-        return self.aggregate_cls(**(
-            data if data is not None
-            else self.aggregate_sample_data or self.sample_data
-        ))
-
-    @pytest.fixture
-    def aggregate(self):
-        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
-
-        return self.make_aggregate()
-
-    def assert_nested_list_matches(
-            self,
-            actual_list: list,
-            expected_list: list,
-            key_field: str,
-            compare_fields: list,
-        ) -> None:
-        '''Assert two keyed lists of model objects carry matching selected fields.'''
-
-        actual_by_key = {getattr(item, key_field): item for item in actual_list}
-        expected_by_key = {getattr(item, key_field): item for item in expected_list}
-
-        assert set(actual_by_key) == set(expected_by_key)
-        for key, expected in expected_by_key.items():
-            actual = actual_by_key[key]
-            for field in compare_fields:
-                assert getattr(actual, field) == getattr(expected, field)
+from tests.mappers._support import MapperTestSupport
 
 # *** constants
 
@@ -130,7 +90,7 @@ FIELD_NORMALIZERS = {
 # *** classes
 
 # ** class: TestAppSessionAggregate
-class TestAppSessionAggregate(_MapperTestSupport):
+class TestAppSessionAggregate(MapperTestSupport):
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -372,7 +332,7 @@ class TestAppSessionAggregate(_MapperTestSupport):
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
 # ** class: TestAppSessionConfigObject
-class TestAppSessionConfigObject(_MapperTestSupport):
+class TestAppSessionConfigObject(MapperTestSupport):
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
@@ -500,13 +460,13 @@ class TestAppSessionConfigObject(_MapperTestSupport):
         yaml_top = AppSessionConfigObject.from_model(aggregate)
         round_tripped = yaml_top.map()
 
-        # Use nested helper to verify services list preserved.
-        self.assert_nested_list_matches(
-            round_tripped.services,
-            aggregate.services,
-            key_field='service_id',
-            compare_fields=['module_path', 'class_name', 'parameters'],
-        )
+        # Verify every service's identity and implementation fields are preserved.
+        assert len(round_tripped.services) == len(aggregate.services)
+        for actual, expected in zip(round_tripped.services, aggregate.services):
+            assert actual.service_id == expected.service_id
+            assert actual.module_path == expected.module_path
+            assert actual.class_name == expected.class_name
+            assert actual.parameters == expected.parameters
 
 # *** generated tests
 

@@ -19,47 +19,7 @@ from tiferet.assets.core import (
     create_transfer_object_tester,
 )
 
-# *** classes
-
-# ** class: mapper_test_support
-class _MapperTestSupport:
-    '''Provide fixtures and nested assertions for bespoke mapper behavior tests.'''
-
-    aggregate_cls: type
-    sample_data: dict = {}
-    aggregate_sample_data: dict = {}
-
-    def make_aggregate(self, data: dict = None):
-        '''Construct the declared aggregate from supplied or sample data.'''
-
-        return self.aggregate_cls(**(
-            data if data is not None
-            else self.aggregate_sample_data or self.sample_data
-        ))
-
-    @pytest.fixture
-    def aggregate(self):
-        '''Provide a fresh aggregate for a bespoke behavior assertion.'''
-
-        return self.make_aggregate()
-
-    def assert_nested_list_matches(
-            self,
-            actual_list: list,
-            expected_list: list,
-            key_field: str,
-            compare_fields: list,
-        ) -> None:
-        '''Assert two keyed lists of model objects carry matching selected fields.'''
-
-        actual_by_key = {getattr(item, key_field): item for item in actual_list}
-        expected_by_key = {getattr(item, key_field): item for item in expected_list}
-
-        assert set(actual_by_key) == set(expected_by_key)
-        for key, expected in expected_by_key.items():
-            actual = actual_by_key[key]
-            for field in compare_fields:
-                assert getattr(actual, field) == getattr(expected, field)
+from tests.mappers._support import MapperTestSupport
 
 # *** constants
 
@@ -138,7 +98,7 @@ COMMAND_FIELD_NORMALIZERS = {
 # *** classes
 
 # ** class: TestCliArgumentAggregate
-class TestCliArgumentAggregate(_MapperTestSupport):
+class TestCliArgumentAggregate(MapperTestSupport):
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
     '''
@@ -161,7 +121,7 @@ class TestCliArgumentAggregate(_MapperTestSupport):
     ]
 
 # ** class: TestCliCommandAggregate
-class TestCliCommandAggregate(_MapperTestSupport):
+class TestCliCommandAggregate(MapperTestSupport):
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
     '''
@@ -275,7 +235,7 @@ class TestCliCommandAggregate(_MapperTestSupport):
         assert aggregate.arguments[0].type == 'int'
 
 # ** class: TestCliCommandConfigObject
-class TestCliCommandConfigObject(_MapperTestSupport):
+class TestCliCommandConfigObject(MapperTestSupport):
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''
