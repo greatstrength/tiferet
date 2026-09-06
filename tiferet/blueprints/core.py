@@ -10,14 +10,13 @@ from typing import Any, Callable, Dict
 # ** app
 from ..assets import TiferetError, TiferetAPIError
 from ..contexts.cache import CacheContext
-from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX, Error
+from ..contexts.error import ERROR_CACHE_PREFIX, Error
 from ..contexts.feature import (
     Feature,
     FeatureContext,
     FEATURE_CACHE_PREFIX,
 )
 from ..contexts.logging import (
-    add_default_logging_settings,
     get_default_logging_settings,
     LoggingContext,
     LoggingSettings,
@@ -28,9 +27,6 @@ from ..contexts.core import BaseContext
 from ..contexts.app import (
     AppSession,
     AppServiceDependency,
-    add_default_app_services,
-    add_default_app_constants,
-    add_default_app_sessions,
     APP_CONSTANT_CACHE_PREFIX,
     APP_SERVICE_CACHE_PREFIX,
     APP_SESSION_CACHE_PREFIX,
@@ -209,29 +205,20 @@ def merge_logging_settings(
 # *** blueprints
 
 # ** blueprint: build_cache
-@add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
-@add_default_app_sessions(a.app.CORE_DEFAULT_APP_SESSIONS)
-@add_default_app_constants(a.app.CORE_DEFAULT_CONSTANTS)
-@add_default_app_services(a.app.CORE_DEFAULT_SERVICES)
-@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def build_cache(
     cache: Dict[str, Any] = None,
 ) -> CacheContext:
     '''
     Build a standalone cache context for managing in-memory cache operations.
 
-    Constructs a ``CacheContext`` independently of any interface or service
-    resolver, then pre-seeds it with the framework's built-in catalogs via the
-    stacked seeding decorators: error domain objects (``add_default_errors``),
-    app service dependency domain objects (``add_default_app_services``), and
-    scalar bootstrap constants (``add_default_app_constants``). Each catalog is
-    namespaced under its own cache-key prefix (``error_``, ``app_service_``,
-    ``app_constant_``). Pass an existing dict to seed the cache with additional
-    pre-populated values; omit it to start with a fresh empty cache.
+    Constructs a bare ``CacheContext`` independently of any interface, service
+    resolver, or default catalog. Dialect cache builders layer their own
+    catalog-seeding decorators over this foundation. Pass an existing dict to
+    preserve pre-populated values; omit it to start with a fresh empty cache.
 
     :param cache: An optional dict used to pre-seed the cache.
     :type cache: Dict[str, Any]
-    :return: The initialized cache context seeded with errors, services, and constants.
+    :return: The initialized bare cache context.
     :rtype: CacheContext
     '''
 

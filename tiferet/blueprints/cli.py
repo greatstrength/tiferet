@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # ** app
 from .. import a
-from . import core
+from . import app, core
 from ..contexts.cli import (
     CliArgument,
     CliCommand,
@@ -40,7 +40,6 @@ def group_commands_by_key(cli_commands: List[CliCommand]) -> Dict[str, List[CliC
 
     # Return the grouped command map.
     return command_map
-
 
 # ** function: build_argument_parser
 def build_argument_parser(
@@ -95,7 +94,6 @@ def build_argument_parser(
     # Return the configured parser.
     return parser
 
-
 # ** function: derive_feature_request
 def derive_feature_request(parsed: Dict[str, Any]) -> Tuple[str, Dict[str, str]]:
     '''
@@ -129,7 +127,6 @@ def derive_feature_request(parsed: Dict[str, Any]) -> Tuple[str, Dict[str, str]]
     # Return the derived feature id and headers.
     return feature_id, headers
 
-
 # *** blueprints
 
 # ** blueprint: build_cli_cache
@@ -139,7 +136,7 @@ def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
     Build a cache context seeded with the framework defaults plus the
     built-in Tiferet CLI command catalog.
 
-    Extends :func:`core.build_cache` by stacking
+    Extends :func:`app.build_cache` by stacking
     :func:`add_default_cli_commands` on top so the CLI command defaults are
     available alongside the standard error, service, and constant defaults.
 
@@ -150,9 +147,8 @@ def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
     :rtype: CacheContext
     '''
 
-    # Delegate to the core cache builder; the decorator stacks CLI commands on top.
-    return core.build_cache(cache)
-
+    # Delegate to the app cache builder; the decorator stacks CLI commands on top.
+    return app.build_cache(cache)
 
 # ** blueprint: parse_cli_args_handler
 def parse_cli_args_handler(
@@ -227,7 +223,6 @@ def parse_cli_args_handler(
 
     return handler
 
-
 # ** blueprint: create_cli_request_context
 def create_cli_request_context(
     interface_id: str,
@@ -261,7 +256,6 @@ def create_cli_request_context(
         feature_id=feature_id,
     )
 
-
 # ** blueprint: cli_response_handler
 def cli_response_handler(request: RequestContext) -> Any:
     '''
@@ -280,7 +274,6 @@ def cli_response_handler(request: RequestContext) -> Any:
 
     # Delegate to the request context's response handler.
     return request.handle_response()
-
 
 # ** blueprint: build_cli_session_context
 def build_cli_session_context(
@@ -334,7 +327,6 @@ def build_cli_session_context(
         response_handler=cli_response_handler,
         parse_cli_args=parse_cli_args,
     )
-
 
 # ** blueprint: build_app
 # >> see: @guides/blueprints.md#build-cli
