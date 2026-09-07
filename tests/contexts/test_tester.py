@@ -1,6 +1,7 @@
 """Tests for Tiferet Tester Context Composition"""
 
 # *** imports
+
 # ** infra
 import pytest
 
@@ -10,10 +11,13 @@ from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.tester import (
     TestRequestContext as _TestRequestContext,
+    TESTER_CACHE_PREFIX,
+    add_default_testers,
     create_aggregate_tester,
     create_domain_tester,
     create_transfer_object_tester,
 )
+from tiferet.contexts.cache import CacheContext
 from tiferet.domain import Request, Verification
 from tiferet.domain.error import ErrorMessage
 from tiferet.mappers.error import (
@@ -250,3 +254,28 @@ def test_add_verification_attaches_metadata_without_wrapping() -> None:
         isinstance(verification, Verification)
         for verification in target.__tiferet_verifications__
     )
+
+# ** test: add_default_testers
+def test_add_default_testers_seeds_polymorphic_aggregates() -> None:
+    '''
+    Test the dedicated tester decorator maps polymorphic definitions before
+    storing them under the tester cache namespace.
+    '''
+
+    # Decorate a minimal bare cache builder with an aggregate tester.
+    builder = add_default_testers(
+        {
+            'aggregate.ErrorAggregate': {
+                'type': 'aggregate',
+                'module_path': 'tiferet.mappers.error',
+                'class_name': 'ErrorAggregate',
+                'sample_data': {},
+                'set_attribute_params': [],
+            },
+        },
+    )(lambda cache=None: CacheContext(cache=cache))
+
+    # Verify the seeded value is a mapped tester aggregate.
+    tester = builder().get('aggregate.ErrorAggregate', *TESTER_CACHE_PREFIX)
+    assert tester.id == 'aggregate.ErrorAggregate'
+    assert tester.type == 'aggregate'

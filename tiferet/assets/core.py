@@ -171,7 +171,6 @@ def assert_model_matches(
             f'  actual:   {actual!r}'
         )
 
-
 # ** function: create_service_module_path
 def create_service_module_path(app_base_path: str, base_path: str, domain_path: str) -> str:
     '''
@@ -348,6 +347,8 @@ def create_params_schema(**params: Any) -> Dict[str, Any]:
 def create_default_app_session_data(
         name: str,
         description: str = None,
+        services: Dict[str, Dict[str, Any]] = None,
+        constants: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
     '''
     Build a default application session definition dictionary.
@@ -362,6 +363,10 @@ def create_default_app_session_data(
     :type name: str
     :param description: Optional session description.
     :type description: str
+    :param services: Optional app service definitions keyed by service id.
+    :type services: Dict[str, Dict[str, Any]] | None
+    :param constants: Optional app constant values.
+    :type constants: Dict[str, Any] | None
     :return: The default application session definition, without its id.
     :rtype: Dict[str, Any]
     '''
@@ -374,6 +379,18 @@ def create_default_app_session_data(
     # Add the optional description when provided.
     if description is not None:
         session['description'] = description
+
+    # Reinject service ids into the session's ordered dependency list.
+    if services is not None:
+        session['services'] = []
+        for service_id, service in services.items():
+            service_data = dict(service)
+            service_data['service_id'] = service_id
+            session['services'].append(service_data)
+
+    # Add the optional constants when the session declares them.
+    if constants is not None:
+        session['constants'] = constants
 
     # Return the assembled session definition.
     return session
