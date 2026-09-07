@@ -32,7 +32,7 @@ def test_tier_sizes():
     '''
 
     # Core tier size and admin-only delta.
-    assert len(CORE_DEFAULT_ERRORS) == 15
+    assert len(CORE_DEFAULT_ERRORS) == 19
     assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 13
 
 

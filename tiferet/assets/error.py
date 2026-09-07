@@ -68,6 +68,17 @@ REQUEST_NOT_FOUND_ID = 'REQUEST_NOT_FOUND'
 
 # ** constant: request_validation_failed_id
 REQUEST_VALIDATION_FAILED_ID = 'REQUEST_VALIDATION_FAILED'
+# ** constant: tester_not_found_id
+TESTER_NOT_FOUND_ID = 'TESTER_NOT_FOUND'
+
+# ** constant: tester_already_exists_id
+TESTER_ALREADY_EXISTS_ID = 'TESTER_ALREADY_EXISTS'
+
+# ** constant: invalid_tester_type_id
+INVALID_TESTER_TYPE_ID = 'INVALID_TESTER_TYPE'
+
+# ** constant: invalid_tester_attribute_id
+INVALID_TESTER_ATTRIBUTE_ID = 'INVALID_TESTER_ATTRIBUTE'
 
 # *** constants (ids_admin)
 
@@ -201,6 +212,29 @@ REQUEST_VALIDATION_FAILED_DATA = create_default_error_data(
     'Request Validation Failed',
     [(EN_US, 'Request validation failed for feature {feature_id}: {violations}.')],
 )
+# ** constant: tester_not_found_data
+TESTER_NOT_FOUND_DATA = create_default_error_data(
+    'Tester Not Found',
+    [(EN_US, 'Tester not found: {id}.')],
+)
+
+# ** constant: tester_already_exists_data
+TESTER_ALREADY_EXISTS_DATA = create_default_error_data(
+    'Tester Already Exists',
+    [(EN_US, 'A tester with ID {id} already exists.')],
+)
+
+# ** constant: invalid_tester_type_data
+INVALID_TESTER_TYPE_DATA = create_default_error_data(
+    'Invalid Tester Type',
+    [(EN_US, 'Invalid tester type: {type}.')],
+)
+
+# ** constant: invalid_tester_attribute_data
+INVALID_TESTER_ATTRIBUTE_DATA = create_default_error_data(
+    'Invalid Tester Attribute',
+    [(EN_US, 'Invalid tester attribute: {attribute}.')],
+)
 
 # *** constants (data_admin)
 
@@ -301,6 +335,10 @@ CORE_DEFAULT_ERRORS = {
     PARAMETER_PARSING_FAILED_ID: PARAMETER_PARSING_FAILED_DATA,
     REQUEST_NOT_FOUND_ID: REQUEST_NOT_FOUND_DATA,
     REQUEST_VALIDATION_FAILED_ID: REQUEST_VALIDATION_FAILED_DATA,
+    TESTER_NOT_FOUND_ID: TESTER_NOT_FOUND_DATA,
+    TESTER_ALREADY_EXISTS_ID: TESTER_ALREADY_EXISTS_DATA,
+    INVALID_TESTER_TYPE_ID: INVALID_TESTER_TYPE_DATA,
+    INVALID_TESTER_ATTRIBUTE_ID: INVALID_TESTER_ATTRIBUTE_DATA,
 }
 
 # ** constant: admin_default_errors

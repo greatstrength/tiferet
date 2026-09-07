@@ -26,6 +26,10 @@ __all__ = [
     'LoggerAggregate',
     'LoggerConfigObject',
     'LoggingSettingsConfigObject',
+    'TesterAggregate',
+    'DomainTesterConfigObject',
+    'AggregateTesterConfigObject',
+    'TransferObjectTesterConfigObject',
 ]
 
 # ** app
@@ -66,4 +70,10 @@ from .logging import (
     LoggerAggregate,
     LoggerConfigObject,
     LoggingSettingsConfigObject,
+)
+from .tester import (
+    TesterAggregate,
+    DomainTesterConfigObject,
+    AggregateTesterConfigObject,
+    TransferObjectTesterConfigObject,
 )
