@@ -63,6 +63,7 @@ def compose_tester_class(tester: TesterObject, **targets: Any) -> type:
 
     # Return the assembled pytest-collectible class.
     return type(f'Test{tester.class_name}', (object,), namespace)
+
 # ** function: _create_tester_decorator
 def _create_tester_decorator(
         tester: TesterObject,
