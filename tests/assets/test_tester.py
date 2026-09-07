@@ -42,8 +42,8 @@ ERROR_DATA = {
 
 # *** tests
 
-# ** test: TestErrorMessage
-TestErrorMessage = create_domain_tester(
+# ** tester: TestErrorMessage
+@create_domain_tester(
     domain_cls=ErrorMessage,
     sample_data=ERROR_MESSAGE_DATA,
     equality_fields=[
@@ -51,9 +51,11 @@ TestErrorMessage = create_domain_tester(
         'text',
     ],
 )
+class TestErrorMessage:
+    pass
 
-# ** test: TestErrorMessageDescription
-TestErrorMessageDescription = create_domain_tester(
+# ** tester: TestErrorMessageDescription
+@create_domain_tester(
     domain_cls=ErrorMessage,
     sample_data=ERROR_MESSAGE_DATA,
     equality_fields=[
@@ -68,9 +70,11 @@ TestErrorMessageDescription = create_domain_tester(
         ),
     ],
 )
+class TestErrorMessageDescription:
+    pass
 
-# ** test: TestErrorAggregate
-TestErrorAggregate = create_aggregate_tester(
+# ** tester: TestErrorAggregate
+@create_aggregate_tester(
     aggregate_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
     equality_fields=[
@@ -79,9 +83,11 @@ TestErrorAggregate = create_aggregate_tester(
         'error_code',
     ],
 )
+class TestErrorAggregate:
+    pass
 
-# ** test: TestErrorAggregateSetAttribute
-TestErrorAggregateSetAttribute = create_aggregate_tester(
+# ** tester: TestErrorAggregateSetAttribute
+@create_aggregate_tester(
     aggregate_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
     equality_fields=[
@@ -102,9 +108,11 @@ TestErrorAggregateSetAttribute = create_aggregate_tester(
         ),
     ],
 )
+class TestErrorAggregateSetAttribute:
+    pass
 
-# ** test: TestErrorConfigObject
-TestErrorConfigObject = create_transfer_object_tester(
+# ** tester: TestErrorConfigObject
+@create_transfer_object_tester(
     transfer_cls=ErrorConfigObject,
     aggregate_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
@@ -115,6 +123,8 @@ TestErrorConfigObject = create_transfer_object_tester(
         'error_code',
     ],
 )
+class TestErrorConfigObject:
+    pass
 
 # ** test: factory_classes_attach_only_declared_optional_assertions
 def test_factory_classes_attach_only_declared_optional_assertions() -> None:

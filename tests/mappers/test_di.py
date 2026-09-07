@@ -133,8 +133,9 @@ TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
 
 # *** tests
 
-# ** test: TestFlaggedDependencyAggregate
-class TestFlaggedDependencyAggregate(create_aggregate_tester(aggregate_cls=FlaggedDependencyAggregate, sample_data=FLAGGED_DEP_AGGREGATE_SAMPLE_DATA, equality_fields=FLAGGED_DEP_EQUALITY_FIELDS, set_attribute_params=[('module_path', 'new.module.path', None), ('class_name', 'NewClassName', None), ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID)])):
+# ** tester: TestFlaggedDependencyAggregate
+@create_aggregate_tester(aggregate_cls=FlaggedDependencyAggregate, sample_data=FLAGGED_DEP_AGGREGATE_SAMPLE_DATA, equality_fields=FLAGGED_DEP_EQUALITY_FIELDS, set_attribute_params=[('module_path', 'new.module.path', None), ('class_name', 'NewClassName', None), ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestFlaggedDependencyAggregate:
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -155,7 +156,7 @@ class TestFlaggedDependencyAggregate(create_aggregate_tester(aggregate_cls=Flagg
 
     # *** domain-specific mutation tests
 
-    # ** test: set_parameters_clears_when_none
+    # * test: set_parameters_clears_when_none
     def test_set_parameters_clears_when_none(self, target):
         '''
         Test that set_parameters clears all parameters when called with None.
@@ -170,7 +171,7 @@ class TestFlaggedDependencyAggregate(create_aggregate_tester(aggregate_cls=Flagg
         # All parameters should be cleared.
         assert aggregate.parameters == {}
 
-    # ** test: set_parameters_merges_and_prunes_none_values
+    # * test: set_parameters_merges_and_prunes_none_values
     def test_set_parameters_merges_and_prunes_none_values(self, target):
         '''
         Test that set_parameters merges new values and removes keys whose value is None.
@@ -193,8 +194,9 @@ class TestFlaggedDependencyAggregate(create_aggregate_tester(aggregate_cls=Flagg
             'add': 'added',
         }
 
-# ** test: TestServiceRegistrationAggregate
-class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=ServiceRegistrationAggregate, sample_data=SVC_CONFIG_AGGREGATE_SAMPLE_DATA, equality_fields=SVC_CONFIG_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Service', None), ('module_path', 'updated.module', None), ('class_name', 'UpdatedClass', None), ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID)], field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS)):
+# ** tester: TestServiceRegistrationAggregate
+@create_aggregate_tester(aggregate_cls=ServiceRegistrationAggregate, sample_data=SVC_CONFIG_AGGREGATE_SAMPLE_DATA, equality_fields=SVC_CONFIG_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Service', None), ('module_path', 'updated.module', None), ('class_name', 'UpdatedClass', None), ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID)], field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS)
+class TestServiceRegistrationAggregate:
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -218,7 +220,7 @@ class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=Ser
 
     # *** domain-specific mutation tests
 
-    # ** test: set_default_type_updates
+    # * test: set_default_type_updates
     def test_set_default_type_updates(self, target):
         '''
         Test that set_default_type updates module_path, class_name, and parameters.
@@ -239,7 +241,7 @@ class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=Ser
         assert aggregate.class_name == 'UpdatedClass'
         assert aggregate.parameters == {'new_param': 'new_value'}
 
-    # ** test: set_default_type_clears_when_both_none
+    # * test: set_default_type_clears_when_both_none
     def test_set_default_type_clears_when_both_none(self, target):
         '''
         Test that set_default_type clears module_path, class_name, and parameters
@@ -260,7 +262,7 @@ class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=Ser
         assert aggregate.class_name is None
         assert aggregate.parameters == {}
 
-    # ** test: set_dependency_creates_new
+    # * test: set_dependency_creates_new
     def test_set_dependency_creates_new(self, target):
         '''
         Test that set_dependency appends a new FlaggedDependency when the flag is not found.
@@ -289,7 +291,7 @@ class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=Ser
         assert dep.parameters == {'new_param': 'new_value'}
         assert len(aggregate.dependencies) == 2
 
-    # ** test: set_dependency_updates_existing
+    # * test: set_dependency_updates_existing
     def test_set_dependency_updates_existing(self, target):
         '''
         Test that set_dependency updates an existing dependency in place, merging
@@ -318,7 +320,7 @@ class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=Ser
         # The list should still have only one dependency.
         assert len(aggregate.dependencies) == 1
 
-    # ** test: remove_dependency
+    # * test: remove_dependency
     def test_remove_dependency(self, target):
         '''
         Test that remove_dependency filters out the dependency matching the given flag.
@@ -337,7 +339,7 @@ class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=Ser
         assert aggregate.get_dependency('existing') is None
         assert aggregate.dependencies == []
 
-    # ** test: remove_dependency_missing_flag_is_noop
+    # * test: remove_dependency_missing_flag_is_noop
     def test_remove_dependency_missing_flag_is_noop(self, target):
         '''
         Test that remove_dependency with an unmatched flag leaves the list unchanged.
@@ -355,8 +357,9 @@ class TestServiceRegistrationAggregate(create_aggregate_tester(aggregate_cls=Ser
         # The list should be unchanged.
         assert len(aggregate.dependencies) == initial_count
 
-# ** test: TestServiceRegistrationConfigObject
-class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer_cls=ServiceRegistrationConfigObject, aggregate_cls=ServiceRegistrationAggregate, sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA, equality_fields=SVC_CONFIG_EQUALITY_FIELDS, field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS)):
+# ** tester: TestServiceRegistrationConfigObject
+@create_transfer_object_tester(transfer_cls=ServiceRegistrationConfigObject, aggregate_cls=ServiceRegistrationAggregate, sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA, equality_fields=SVC_CONFIG_EQUALITY_FIELDS, field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS)
+class TestServiceRegistrationConfigObject:
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''
@@ -376,7 +379,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
 
     # *** domain-specific tests
 
-    # ** test: to_primitive_to_data
+    # * test: to_primitive_to_data
     def test_to_primitive_to_data(self):
         '''
         Test that ServiceRegistrationConfigObject serializes correctly to YAML primitive format.
@@ -412,7 +415,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
             },
         }
 
-    # ** test: to_model_role_excludes_dependencies_and_parameters
+    # * test: to_model_role_excludes_dependencies_and_parameters
     def test_to_model_role_excludes_dependencies_and_parameters(self):
         '''
         Test that the to_model role excludes dependencies and parameters.
@@ -429,7 +432,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
         assert primitive['module_path'] == 'tests.repos.test'
         assert primitive['class_name'] == 'DefaultTestRepoProxy'
 
-    # ** test: flags_alias_round_trip
+    # * test: flags_alias_round_trip
     def test_flags_alias_round_trip(self):
         '''
         Test that the ``flags`` alias for dependencies is accepted on input and
@@ -464,7 +467,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
         assert 'deps' in primitive
         assert 'flag1' in primitive['deps']
 
-    # ** test: from_model_with_added_dependency
+    # * test: from_model_with_added_dependency
     def test_from_model_with_added_dependency(self):
         '''
         Test that from_model correctly converts an aggregate with added dependencies.
@@ -501,7 +504,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
         'params': {'test_param': 'test_value'},
     }
 
-    # ** test: flagged_dependency_yaml_map_basic
+    # * test: flagged_dependency_yaml_map_basic
     def test_flagged_dependency_yaml_map_basic(self):
         '''
         Test mapping a FlaggedDependencyConfigObject to a FlaggedDependency.
@@ -518,7 +521,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
         assert dep.flag == 'test'
         assert dep.parameters == {'test_param': 'test_value'}
 
-    # ** test: flagged_dependency_yaml_aliasing_params
+    # * test: flagged_dependency_yaml_aliasing_params
     def test_flagged_dependency_yaml_aliasing_params(self):
         '''
         Test that the "params" serialized_name alias is correctly deserialized.
@@ -536,7 +539,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
         # Verify aliased parameters were deserialized correctly.
         assert dep.parameters == {'alias_key': 'value'}
 
-    # ** test: flagged_dependency_yaml_from_model
+    # * test: flagged_dependency_yaml_from_model
     def test_flagged_dependency_yaml_from_model(self):
         '''
         Test that FlaggedDependencyConfigObject can be created from a FlaggedDependency model.
@@ -559,7 +562,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
         assert yaml_obj.flag == model.flag
         assert yaml_obj.parameters == model.parameters
 
-    # ** test: flagged_dependency_yaml_roles_to_data_excludes_flag
+    # * test: flagged_dependency_yaml_roles_to_data_excludes_flag
     def test_flagged_dependency_yaml_roles_to_data_excludes_flag(self):
         '''
         Test that to_data role excludes the flag field.
@@ -576,7 +579,7 @@ class TestServiceRegistrationConfigObject(create_transfer_object_tester(transfer
         assert primitive['module_path'] == 'tests.repos.test'
         assert primitive['class_name'] == 'TestRepoProxy'
 
-    # ** test: flagged_dependency_yaml_round_trip_via_parent
+    # * test: flagged_dependency_yaml_round_trip_via_parent
     def test_flagged_dependency_yaml_round_trip_via_parent(self, target):
         '''
         Test that dependencies are preserved through the parent ServiceRegistrationConfigObject round-trip.

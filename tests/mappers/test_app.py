@@ -113,8 +113,9 @@ TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
 
 # *** tests
 
-# ** test: TestAppSessionAggregate
-class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAggregate, sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Interface', None), ('description', 'New description text', None), ('logger_id', 'custom.logger.id', None), ('flags', ['flag1', 'flag2'], None), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)], field_normalizers=FIELD_NORMALIZERS)):
+# ** tester: TestAppSessionAggregate
+@create_aggregate_tester(aggregate_cls=AppSessionAggregate, sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Interface', None), ('description', 'New description text', None), ('logger_id', 'custom.logger.id', None), ('flags', ['flag1', 'flag2'], None), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)], field_normalizers=FIELD_NORMALIZERS)
+class TestAppSessionAggregate:
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -165,7 +166,7 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
 
     # *** domain-specific mutation tests
 
-    # ** test: set_constants_clear_when_none
+    # * test: set_constants_clear_when_none
     def test_set_constants_clear_when_none(self, aggr_factory):
         '''
         Test that set_constants clears all constants when called with None.
@@ -178,7 +179,7 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
         # All constants should be cleared.
         assert aggr.constants == {}
 
-    # ** test: set_constants_merge_and_override
+    # * test: set_constants_merge_and_override
     def test_set_constants_merge_and_override(self, aggr_factory):
         '''
         Test that set_constants merges new constants and overrides existing keys.
@@ -191,7 +192,7 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
         # Existing keys should be preserved or overridden as appropriate.
         assert aggr.constants == {'keep': 'orig', 'old': 'v2', 'new': '42'}
 
-    # ** test: set_constants_remove_none_values
+    # * test: set_constants_remove_none_values
     def test_set_constants_remove_none_values(self, aggr_factory):
         '''
         Test that set_constants removes keys whose new value is None.
@@ -252,7 +253,7 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
         # Verify the remaining services.
         assert [s.service_id for s in aggr.services] == expected_remaining
 
-    # ** test: add_service_appends_with_service_id_first
+    # * test: add_service_appends_with_service_id_first
     def test_add_service_appends_with_service_id_first(self, target):
         '''
         Test that add_service appends a dependency, taking service_id first so
@@ -280,7 +281,7 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
         assert svc.class_name == 'AddedService'
         assert svc.parameters == {'p1': 'v1'}
 
-    # ** test: add_service_defaults_parameters_to_empty
+    # * test: add_service_defaults_parameters_to_empty
     def test_add_service_defaults_parameters_to_empty(self, target):
         '''
         Test that add_service defaults parameters to an empty dict when omitted.
@@ -299,7 +300,7 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
         # Verify parameters defaulted to an empty dict.
         assert aggregate.get_service('no_params_svc').parameters == {}
 
-    # ** test: set_service_update_existing_merge_params
+    # * test: set_service_update_existing_merge_params
     def test_set_service_update_existing_merge_params(self, target):
         '''
         Test that set_service updates an existing service and merges parameters.
@@ -329,7 +330,7 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
             'debug': '0',
         }
 
-    # ** test: set_service_create_new
+    # * test: set_service_create_new
     def test_set_service_create_new(self, target):
         '''
         Test that set_service creates a new service when none exists.
@@ -356,8 +357,9 @@ class TestAppSessionAggregate(create_aggregate_tester(aggregate_cls=AppSessionAg
         assert svc.class_name == 'FreshService'
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
-# ** test: TestAppSessionConfigObject
-class TestAppSessionConfigObject(create_transfer_object_tester(transfer_cls=AppSessionConfigObject, aggregate_cls=AppSessionAggregate, sample_data=TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, field_normalizers=FIELD_NORMALIZERS)):
+# ** tester: TestAppSessionConfigObject
+@create_transfer_object_tester(transfer_cls=AppSessionConfigObject, aggregate_cls=AppSessionAggregate, sample_data=TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, field_normalizers=FIELD_NORMALIZERS)
+class TestAppSessionConfigObject:
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
@@ -384,7 +386,7 @@ class TestAppSessionConfigObject(create_transfer_object_tester(transfer_cls=AppS
         'parameters': {'timeout': '30', 'retries': '3', 'ssl': '1'},
     }
 
-    # ** test: app_service_dependency_yaml_map_basic
+    # * test: app_service_dependency_yaml_map_basic
     def test_app_service_dependency_yaml_map_basic(self):
         '''
         Test mapping an AppServiceDependencyConfigObject to an AppServiceDependency.
@@ -403,7 +405,7 @@ class TestAppSessionConfigObject(create_transfer_object_tester(transfer_cls=AppS
         assert dep.class_name == 'ExampleServiceImpl'
         assert dep.parameters == {'timeout': '30', 'retries': '3', 'ssl': '1'}
 
-    # ** test: app_service_dependency_yaml_aliasing_params
+    # * test: app_service_dependency_yaml_aliasing_params
     def test_app_service_dependency_yaml_aliasing_params(self):
         '''
         Test that the "params" alias is correctly deserialized.
@@ -420,7 +422,7 @@ class TestAppSessionConfigObject(create_transfer_object_tester(transfer_cls=AppS
         # Verify aliased parameters were deserialized correctly.
         assert dep.parameters == {'alias_key': 'value'}
 
-    # ** test: app_service_dependency_yaml_roles_to_model_excludes
+    # * test: app_service_dependency_yaml_roles_to_model_excludes
     def test_app_service_dependency_yaml_roles_to_model_excludes(self):
         '''
         Test that to_model role excludes parameters and service_id.
@@ -441,7 +443,7 @@ class TestAppSessionConfigObject(create_transfer_object_tester(transfer_cls=AppS
         assert primitive['module_path'] == 'ex.test.mod'
         assert primitive['class_name'] == 'ExcludeTest'
 
-    # ** test: app_service_dependency_yaml_round_trip_via_parent
+    # * test: app_service_dependency_yaml_round_trip_via_parent
     def test_app_service_dependency_yaml_round_trip_via_parent(self, target):
         '''
         Test that services are preserved through the parent AppSessionConfigObject round-trip.

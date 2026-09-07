@@ -38,8 +38,9 @@ ERROR_EQUALITY_FIELDS = ['id', 'name', 'error_code']
 
 # *** tests
 
-# ** test: TestErrorAggregate
-class TestErrorAggregate(create_aggregate_tester(aggregate_cls=ErrorAggregate, sample_data=ERROR_SAMPLE_DATA, equality_fields=ERROR_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Error', None), ('description', 'A new description', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])):
+# ** tester: TestErrorAggregate
+@create_aggregate_tester(aggregate_cls=ErrorAggregate, sample_data=ERROR_SAMPLE_DATA, equality_fields=ERROR_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Error', None), ('description', 'A new description', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestErrorAggregate:
     '''
     Tests for ErrorAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -60,7 +61,7 @@ class TestErrorAggregate(create_aggregate_tester(aggregate_cls=ErrorAggregate, s
 
     # *** domain-specific mutation tests
 
-    # ** test: rename
+    # * test: rename
     def test_rename(self, target):
         '''
         Test that rename() updates the error name.
@@ -78,7 +79,7 @@ class TestErrorAggregate(create_aggregate_tester(aggregate_cls=ErrorAggregate, s
         # Assert the name was updated.
         assert aggregate.name == 'Renamed Error'
 
-    # ** test: set_message_new
+    # * test: set_message_new
     def test_set_message_new(self, target):
         '''
         Test that set_message() adds a new language message alongside existing ones.
@@ -98,7 +99,7 @@ class TestErrorAggregate(create_aggregate_tester(aggregate_cls=ErrorAggregate, s
         assert aggregate.message[1].lang == 'es'
         assert aggregate.message[1].text == 'Mensaje de error de prueba.'
 
-    # ** test: set_message_update
+    # * test: set_message_update
     def test_set_message_update(self, target):
         '''
         Test that set_message() updates an existing language message in-place (no duplication).
@@ -117,7 +118,7 @@ class TestErrorAggregate(create_aggregate_tester(aggregate_cls=ErrorAggregate, s
         assert len(aggregate.message) == 1
         assert aggregate.message[0].text == 'Updated message'
 
-    # ** test: remove_message
+    # * test: remove_message
     def test_remove_message(self, target):
         '''
         Test that remove_message() removes a message from a multi-message aggregate.
@@ -137,7 +138,7 @@ class TestErrorAggregate(create_aggregate_tester(aggregate_cls=ErrorAggregate, s
         assert len(aggregate.message) == 1
         assert aggregate.message[0].lang == 'es'
 
-    # ** test: remove_message_nonexistent
+    # * test: remove_message_nonexistent
     def test_remove_message_nonexistent(self, target):
         '''
         Test that removing a non-existent language is a no-op.
@@ -158,8 +159,9 @@ class TestErrorAggregate(create_aggregate_tester(aggregate_cls=ErrorAggregate, s
         # Assert the message list is unchanged.
         assert len(aggregate.message) == initial_count
 
-# ** test: TestErrorConfigObject
-class TestErrorConfigObject(create_transfer_object_tester(transfer_cls=ErrorConfigObject, aggregate_cls=ErrorAggregate, sample_data=ERROR_SAMPLE_DATA, aggregate_sample_data=ERROR_SAMPLE_DATA, equality_fields=ERROR_EQUALITY_FIELDS)):
+# ** tester: TestErrorConfigObject
+@create_transfer_object_tester(transfer_cls=ErrorConfigObject, aggregate_cls=ErrorAggregate, sample_data=ERROR_SAMPLE_DATA, aggregate_sample_data=ERROR_SAMPLE_DATA, equality_fields=ERROR_EQUALITY_FIELDS)
+class TestErrorConfigObject:
     '''
     Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
     '''
@@ -175,7 +177,7 @@ class TestErrorConfigObject(create_transfer_object_tester(transfer_cls=ErrorConf
 
     # *** domain-specific tests
 
-    # ** test: from_data
+    # * test: from_data
     def test_from_data(self):
         '''
         Test that model_validate() initializes scalar fields and nested ErrorMessageConfigObject instances.
@@ -194,7 +196,7 @@ class TestErrorConfigObject(create_transfer_object_tester(transfer_cls=ErrorConf
         assert yaml_obj.message[0].lang == 'en'
         assert yaml_obj.message[0].text == 'Test error message.'
 
-    # ** test: to_primitive_to_data
+    # * test: to_primitive_to_data
     def test_to_primitive_to_data(self):
         '''
         Test that to_primitive('to_data') excludes id and serializes messages correctly.
@@ -215,7 +217,7 @@ class TestErrorConfigObject(create_transfer_object_tester(transfer_cls=ErrorConf
         assert primitive.get('message')[0].get('lang') == 'en'
         assert primitive.get('message')[0].get('text') == 'Test error message.'
 
-    # ** test: map_messages
+    # * test: map_messages
     def test_map_messages(self):
         '''
         Test that map() produces ErrorMessage domain objects in the message list.
@@ -231,7 +233,7 @@ class TestErrorConfigObject(create_transfer_object_tester(transfer_cls=ErrorConf
         assert mapped.message[0].lang == 'en'
         assert mapped.message[0].text == 'Test error message.'
 
-    # ** test: from_model_messages
+    # * test: from_model_messages
     def test_from_model_messages(self, target):
         '''
         Test that from_model() converts messages to ErrorMessageConfigObject instances.
@@ -250,7 +252,7 @@ class TestErrorConfigObject(create_transfer_object_tester(transfer_cls=ErrorConf
         assert len(yaml_obj.message) == 1
         assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
 
-    # ** test: round_trip_messages
+    # * test: round_trip_messages
     def test_round_trip_messages(self, target):
         '''
         Test that round-trip preserves message content field-by-field.
@@ -272,7 +274,7 @@ class TestErrorConfigObject(create_transfer_object_tester(transfer_cls=ErrorConf
             assert restored.lang == original.lang
             assert restored.text == original.text
 
-    # ** test: from_model_via_error_constructor
+    # * test: from_model_via_error_constructor
     def test_from_model_via_error_constructor(self):
         '''
         Test that from_model() works with a directly constructed Error model with multilingual messages.

@@ -62,8 +62,9 @@ LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 
 # *** tests
 
-# ** test: TestFormatterAggregate
-class TestFormatterAggregate(create_aggregate_tester(aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Formatter', None), ('format', '%(message)s', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])):
+# ** tester: TestFormatterAggregate
+@create_aggregate_tester(aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Formatter', None), ('format', '%(message)s', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestFormatterAggregate:
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -84,7 +85,7 @@ class TestFormatterAggregate(create_aggregate_tester(aggregate_cls=FormatterAggr
 
     # *** domain-specific tests
 
-    # ** test: format_config
+    # * test: format_config
     def test_format_config(self, target):
         '''
         Test that format_config() returns the expected formatter configuration dict.
@@ -103,8 +104,9 @@ class TestFormatterAggregate(create_aggregate_tester(aggregate_cls=FormatterAggr
         assert config['format'] == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
-# ** test: TestHandlerAggregate
-class TestHandlerAggregate(create_aggregate_tester(aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Handler', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])):
+# ** tester: TestHandlerAggregate
+@create_aggregate_tester(aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Handler', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestHandlerAggregate:
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -125,7 +127,7 @@ class TestHandlerAggregate(create_aggregate_tester(aggregate_cls=HandlerAggregat
 
     # *** domain-specific tests
 
-    # ** test: format_config
+    # * test: format_config
     def test_format_config(self, target):
         '''
         Test that format_config() returns the expected handler configuration dict with stream.
@@ -146,7 +148,7 @@ class TestHandlerAggregate(create_aggregate_tester(aggregate_cls=HandlerAggregat
         assert config['formatter'] == 'simple'
         assert config['stream'] == 'ext://sys.stdout'
 
-    # ** test: format_config_no_optional
+    # * test: format_config_no_optional
     def test_format_config_no_optional(self):
         '''
         Test that format_config() omits stream and filename when not set.
@@ -171,8 +173,9 @@ class TestHandlerAggregate(create_aggregate_tester(aggregate_cls=HandlerAggregat
         assert config['class'] == 'logging.FileHandler'
         assert config['level'] == 'INFO'
 
-# ** test: TestLoggerAggregate
-class TestLoggerAggregate(create_aggregate_tester(aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Logger', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])):
+# ** tester: TestLoggerAggregate
+@create_aggregate_tester(aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Logger', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestLoggerAggregate:
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -193,7 +196,7 @@ class TestLoggerAggregate(create_aggregate_tester(aggregate_cls=LoggerAggregate,
 
     # *** domain-specific tests
 
-    # ** test: format_config
+    # * test: format_config
     def test_format_config(self, target):
         '''
         Test that format_config() returns the expected logger configuration dict.
@@ -213,7 +216,7 @@ class TestLoggerAggregate(create_aggregate_tester(aggregate_cls=LoggerAggregate,
         assert config['handlers'] == ['console']
         assert config['propagate'] is False
 
-    # ** test: empty_handlers_root
+    # * test: empty_handlers_root
     def test_empty_handlers_root(self):
         '''
         Test creating a logger with empty handlers and is_root=True.
@@ -233,8 +236,9 @@ class TestLoggerAggregate(create_aggregate_tester(aggregate_cls=LoggerAggregate,
         assert logger.handlers == []
         assert logger.level == 'WARNING'
 
-# ** test: TestFormatterConfigObject
-class TestFormatterConfigObject(create_transfer_object_tester(transfer_cls=FormatterConfigObject, aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS)):
+# ** tester: TestFormatterConfigObject
+@create_transfer_object_tester(transfer_cls=FormatterConfigObject, aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS)
+class TestFormatterConfigObject:
     '''
     Tests for FormatterConfigObject mapping and round-trip.
     '''
@@ -248,8 +252,9 @@ class TestFormatterConfigObject(create_transfer_object_tester(transfer_cls=Forma
 
     equality_fields = FORMATTER_EQUALITY_FIELDS
 
-# ** test: TestHandlerConfigObject
-class TestHandlerConfigObject(create_transfer_object_tester(transfer_cls=HandlerConfigObject, aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS)):
+# ** tester: TestHandlerConfigObject
+@create_transfer_object_tester(transfer_cls=HandlerConfigObject, aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS)
+class TestHandlerConfigObject:
     '''
     Tests for HandlerConfigObject mapping and round-trip.
     '''
@@ -263,8 +268,9 @@ class TestHandlerConfigObject(create_transfer_object_tester(transfer_cls=Handler
 
     equality_fields = HANDLER_EQUALITY_FIELDS
 
-# ** test: TestLoggerConfigObject
-class TestLoggerConfigObject(create_transfer_object_tester(transfer_cls=LoggerConfigObject, aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS)):
+# ** tester: TestLoggerConfigObject
+@create_transfer_object_tester(transfer_cls=LoggerConfigObject, aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS)
+class TestLoggerConfigObject:
     '''
     Tests for LoggerConfigObject mapping and round-trip.
     '''

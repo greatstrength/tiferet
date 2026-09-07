@@ -19,12 +19,12 @@ from tiferet.mappers.error import (
 # ** test: generated_tester_classes_construct_targets
 def test_generated_tester_classes_construct_targets() -> None:
     '''
-    Test that every tester factory returns a class exposing make_target and the
-    target fixture for the target shape its assertions need.
+    Test that every tester decorator adds make_target and the target fixture
+    for the target shape its assertions need.
     '''
 
-    # Compose one class for each tester variant.
-    domain_tester = create_domain_tester(
+    # Decorate one class for each tester variant.
+    @create_domain_tester(
         domain_cls=ErrorMessage,
         sample_data={
             'lang': 'en_US',
@@ -35,7 +35,10 @@ def test_generated_tester_classes_construct_targets() -> None:
             'text',
         ],
     )
-    aggregate_tester = create_aggregate_tester(
+    class DomainTester:
+        pass
+
+    @create_aggregate_tester(
         aggregate_cls=ErrorAggregate,
         sample_data={
             'id': 'TEST_ERROR',
@@ -46,7 +49,10 @@ def test_generated_tester_classes_construct_targets() -> None:
             'name',
         ],
     )
-    transfer_tester = create_transfer_object_tester(
+    class AggregateTester:
+        pass
+
+    @create_transfer_object_tester(
         transfer_cls=ErrorConfigObject,
         aggregate_cls=ErrorAggregate,
         sample_data={
@@ -58,11 +64,44 @@ def test_generated_tester_classes_construct_targets() -> None:
             'name': 'Test Error',
         },
     )
+    class TransferObjectTester:
+        pass
 
-    # Assert every generated class exposes its universal target construction API.
-    assert isinstance(domain_tester().make_target(), ErrorMessage)
-    assert isinstance(aggregate_tester().make_target(), ErrorAggregate)
-    assert isinstance(transfer_tester().make_target(), ErrorAggregate)
-    assert hasattr(domain_tester, 'target')
-    assert hasattr(aggregate_tester, 'target')
-    assert hasattr(transfer_tester, 'target')
+    # Assert every decorated class exposes its universal target construction API.
+    assert isinstance(DomainTester().make_target(), ErrorMessage)
+    assert isinstance(AggregateTester().make_target(), ErrorAggregate)
+    assert isinstance(TransferObjectTester().make_target(), ErrorAggregate)
+    assert hasattr(DomainTester, 'target')
+    assert hasattr(AggregateTester, 'target')
+    assert hasattr(TransferObjectTester, 'target')
+
+# ** test: tester_decorator_preserves_explicit_members
+def test_tester_decorator_preserves_explicit_members() -> None:
+    '''
+    Test that a decorator preserves an explicitly declared generated-method
+    override on the consumer's own class.
+    '''
+
+    # Decorate a class that supplies its own construction assertion.
+    @create_domain_tester(
+        domain_cls=ErrorMessage,
+        sample_data={
+            'lang': 'en_US',
+            'text': 'An error occurred.',
+        },
+        equality_fields=[
+            'lang',
+            'text',
+        ],
+    )
+    class OverrideTester:
+
+        # * test: test_new
+        def test_new(self) -> str:
+            '''Return a sentinel proving this explicit method was retained.'''
+
+            return 'consumer override'
+
+    # Assert the decorator retained the consumer's own member.
+    assert OverrideTester().test_new() == 'consumer override'
+    assert hasattr(OverrideTester, 'target')

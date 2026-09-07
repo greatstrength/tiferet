@@ -63,6 +63,41 @@ def compose_tester_class(tester: TesterObject, **targets: Any) -> type:
 
     # Return the assembled pytest-collectible class.
     return type(f'Test{tester.class_name}', (object,), namespace)
+# ** function: _create_tester_decorator
+def _create_tester_decorator(
+        tester: TesterObject,
+        **targets: Any,
+    ) -> Callable[[type], type]:
+    '''
+    Build a decorator that merges generated tester members onto a consumer
+    class without replacing members the class declares itself.
+
+    :param tester: The declarative tester definition.
+    :type tester: TesterObject
+    :param targets: Runtime target classes and their construction data.
+    :type targets: Any
+    :return: The class decorator.
+    :rtype: Callable[[type], type]
+    '''
+
+    # Compose the standalone generated class that supplies the member namespace.
+    generated_class = compose_tester_class(tester, **targets)
+
+    # Merge generated members onto a decorated consumer class.
+    def decorator(cls: type) -> type:
+        '''Merge generated tester members without clobbering consumer overrides.'''
+
+        # Copy each generated tester member the consumer did not explicitly define.
+        for name, member in generated_class.__dict__.items():
+            if name.startswith('__') or name in cls.__dict__:
+                continue
+            setattr(cls, name, member)
+
+        # Return the augmented consumer class.
+        return cls
+
+    # Return the decorator that applies the generated tester behavior.
+    return decorator
 
 # ** function: _build_domain_namespace
 def _build_domain_namespace(
@@ -250,9 +285,9 @@ def create_domain_tester(
         expected_data: Dict[str, Any] = None,
         field_normalizers: Dict[str, Callable[[Any], Any]] = None,
         id: str = None,
-    ) -> type:
+    ) -> Callable[[type], type]:
     '''
-    Compose a tester class for a domain object.
+    Build a decorator that adds a domain tester's behavior to a class.
 
     :param domain_cls: The domain class under test.
     :type domain_cls: type
@@ -268,8 +303,8 @@ def create_domain_tester(
     :type field_normalizers: Dict[str, Callable[[Any], Any]]
     :param id: Optional tester identifier.
     :type id: str
-    :return: The generated test class.
-    :rtype: type
+    :return: The decorator that augments a test class.
+    :rtype: Callable[[type], type]
     '''
 
     # Describe the domain target and its declared assertions.
@@ -284,8 +319,8 @@ def create_domain_tester(
         description_cases=description_cases or [],
     )
 
-    # Compose and return the generated domain tester class.
-    return compose_tester_class(
+    # Return the decorator that composes the domain tester behavior.
+    return _create_tester_decorator(
         tester,
         domain_cls=domain_cls,
         target_cls=domain_cls,
@@ -303,7 +338,7 @@ def create_aggregate_tester(
         id: str = None,
     ) -> type:
     '''
-    Compose a tester class for an aggregate.
+    Build a decorator that adds an aggregate tester's behavior to a class.
 
     :param aggregate_cls: The aggregate class under test.
     :type aggregate_cls: type
@@ -319,8 +354,8 @@ def create_aggregate_tester(
     :type field_normalizers: Dict[str, Callable[[Any], Any]]
     :param id: Optional tester identifier.
     :type id: str
-    :return: The generated test class.
-    :rtype: type
+    :return: The decorator that augments a test class.
+    :rtype: Callable[[type], type]
     '''
 
     # Describe the aggregate target and its declared assertions.
@@ -335,8 +370,8 @@ def create_aggregate_tester(
         set_attribute_params=set_attribute_params or [],
     )
 
-    # Compose and return the generated aggregate tester class.
-    return compose_tester_class(
+    # Return the decorator that composes the aggregate tester behavior.
+    return _create_tester_decorator(
         tester,
         aggregate_cls=aggregate_cls,
         target_cls=aggregate_cls,
@@ -355,7 +390,7 @@ def create_transfer_object_tester(
         id: str = None,
     ) -> type:
     '''
-    Compose a tester class for a transfer object and its target aggregate.
+    Build a decorator that adds a transfer tester's behavior to a class.
 
     :param transfer_cls: The transfer-object class under test.
     :type transfer_cls: type
@@ -391,8 +426,8 @@ def create_transfer_object_tester(
         map_kwargs=map_kwargs or {},
     )
 
-    # Compose and return the generated transfer-object tester class.
-    return compose_tester_class(
+    # Return the decorator that composes the transfer-object tester behavior.
+    return _create_tester_decorator(
         tester,
         transfer_cls=transfer_cls,
         aggregate_cls=aggregate_cls,
