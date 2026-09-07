@@ -47,6 +47,7 @@ from .tester import (
     DomainTesterObject,
     TesterObject,
     TransferObjectTesterObject,
+    Verification,
 )
 from .logging import (
     Formatter,
@@ -87,6 +88,7 @@ __all__ = [
     'DomainTesterObject',
     'AggregateTesterObject',
     'TransferObjectTesterObject',
+    'Verification',
     'Formatter',
     'Handler',
     'Logger',
