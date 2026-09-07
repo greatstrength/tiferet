@@ -14,8 +14,10 @@ from tiferet.domain import (
     ModelError,
 )
 from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandConfigObject
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
-
+from tiferet.contexts.tester import (
+    create_aggregate_tester,
+    create_transfer_object_tester,
+)
 
 # *** constants
 
@@ -91,11 +93,32 @@ COMMAND_FIELD_NORMALIZERS = {
     'arguments': lambda args: tuple(sorted(ARG_TUPLE(arg) for arg in (args or []))),
 }
 
+# ** constant: test_cli_command_config_object_sample_data
+TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA = {
+        'id': 'calc.add',
+        'name': 'Add Number Command',
+        'description': 'Adds two numbers.',
+        'key': 'add',
+        'group_key': 'calc',
+        'args': [
+            {
+                'name_or_flags': ['a'],
+                'description': 'The first number to add.',
+                'type': 'str',
+            },
+            {
+                'name_or_flags': ['b'],
+                'description': 'The second number to add.',
+                'type': 'str',
+            },
+        ],
+    }
 
-# *** classes
+# *** tests
 
-# ** class: TestCliArgumentAggregate
-class TestCliArgumentAggregate(AggregateTestBase):
+# ** tester: TestCliArgumentAggregate
+@create_aggregate_tester(aggregate_cls=CliArgumentAggregate, sample_data=ARGUMENT_AGGREGATE_SAMPLE_DATA, equality_fields=ARGUMENT_EQUALITY_FIELDS, set_attribute_params=[('description', 'Updated description.', None), ('type', 'int', None), ('required', True, None), ('default', 'new_default', None), ('name_or_flags', ['b'], ATTRIBUTE_NOT_SETTABLE_ID), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)])
+class TestCliArgumentAggregate:
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
     '''
@@ -117,9 +140,9 @@ class TestCliArgumentAggregate(AggregateTestBase):
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
-
-# ** class: TestCliCommandAggregate
-class TestCliCommandAggregate(AggregateTestBase):
+# ** tester: TestCliCommandAggregate
+@create_aggregate_tester(aggregate_cls=CliCommandAggregate, sample_data=COMMAND_AGGREGATE_SAMPLE_DATA, equality_fields=COMMAND_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Command Name', None), ('description', 'New description text.', None), ('key', 'subtract', None), ('group_key', 'math', None), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)], field_normalizers=COMMAND_FIELD_NORMALIZERS)
+class TestCliCommandAggregate:
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
     '''
@@ -142,12 +165,15 @@ class TestCliCommandAggregate(AggregateTestBase):
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
-    # ** test: set_attribute_not_settable_describes_model
-    def test_set_attribute_not_settable_describes_model(self, aggregate):
+    # * test: set_attribute_not_settable_describes_model
+    def test_set_attribute_not_settable_describes_model(self, target):
         '''
         Test that the mutation-policy guard describes the command that refused
         the mutation, alongside the attribute and supported set.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Attempt to set an attribute the mutation policy does not expose.
         with pytest.raises(ModelError) as exc_info:
@@ -159,11 +185,14 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert exc_info.value.model['id'] == 'calc.add'
         assert exc_info.value.kwargs.get('attribute') == 'id'
 
-    # ** test: add_argument_appends
-    def test_add_argument_appends(self, aggregate):
+    # * test: add_argument_appends
+    def test_add_argument_appends(self, target):
         '''
         Test that add_argument correctly appends a CliArgument to the aggregate.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Add an argument to the command.
         aggregate.add_argument(
@@ -180,11 +209,14 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert added.description == 'The third operand.'
         assert added.type == 'int'
 
-    # ** test: add_argument_multiple
-    def test_add_argument_multiple(self, aggregate):
+    # * test: add_argument_multiple
+    def test_add_argument_multiple(self, target):
         '''
         Test that multiple add_argument calls accumulate correctly.
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Add two arguments sequentially.
         aggregate.add_argument(
@@ -205,7 +237,7 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert aggregate.arguments[-1].name_or_flags == ['-v', '--verbose']
         assert aggregate.arguments[-1].type == 'bool'
 
-    # ** test: add_argument_to_empty
+    # * test: add_argument_to_empty
     def test_add_argument_to_empty(self):
         '''
         Test that add_argument works on a command created with no initial arguments.
@@ -232,9 +264,9 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert aggregate.arguments[0].description == 'The numerator.'
         assert aggregate.arguments[0].type == 'int'
 
-
-# ** class: TestCliCommandConfigObject
-class TestCliCommandConfigObject(TransferObjectTestBase):
+# ** tester: TestCliCommandConfigObject
+@create_transfer_object_tester(transfer_cls=CliCommandConfigObject, aggregate_cls=CliCommandAggregate, sample_data=TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=COMMAND_AGGREGATE_SAMPLE_DATA, equality_fields=COMMAND_EQUALITY_FIELDS, field_normalizers=COMMAND_FIELD_NORMALIZERS)
+class TestCliCommandConfigObject:
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''
@@ -244,25 +276,7 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
     aggregate_cls = CliCommandAggregate
 
     # YAML-format sample data (uses 'args' alias).
-    sample_data = {
-        'id': 'calc.add',
-        'name': 'Add Number Command',
-        'description': 'Adds two numbers.',
-        'key': 'add',
-        'group_key': 'calc',
-        'args': [
-            {
-                'name_or_flags': ['a'],
-                'description': 'The first number to add.',
-                'type': 'str',
-            },
-            {
-                'name_or_flags': ['b'],
-                'description': 'The second number to add.',
-                'type': 'str',
-            },
-        ],
-    }
+    sample_data = TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA
 
     aggregate_sample_data = COMMAND_AGGREGATE_SAMPLE_DATA
 
@@ -270,7 +284,7 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
 
     field_normalizers = COMMAND_FIELD_NORMALIZERS
 
-    # ** test: args_alias_deserialization
+    # * test: args_alias_deserialization
     def test_args_alias_deserialization(self):
         '''
         Test that the 'args' serialized_name alias is correctly deserialized to arguments.
@@ -288,7 +302,7 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
         assert yaml_obj.arguments[1].name_or_flags == ['b']
         assert yaml_obj.arguments[1].description == 'The second number to add.'
 
-    # ** test: to_primitive_excludes_id_and_inlines_args
+    # * test: to_primitive_excludes_id_and_inlines_args
     def test_to_primitive_excludes_id_and_inlines_args(self):
         '''
         Test that to_primitive('to_data') excludes 'id' and includes 'args' with full argument dicts.
@@ -311,7 +325,7 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
         assert primitive['key'] == 'add'
         assert primitive['group_key'] == 'calc'
 
-    # ** test: to_model_role_excludes_arguments
+    # * test: to_model_role_excludes_arguments
     def test_to_model_role_excludes_arguments(self):
         '''
         Test that to_primitive('to_model') excludes 'arguments' but retains 'id', 'name', etc.
@@ -330,7 +344,7 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
         assert primitive['key'] == 'add'
         assert primitive['group_key'] == 'calc'
 
-    # ** test: from_model_via_domain_factory
+    # * test: from_model_via_domain_factory
     def test_from_model_via_domain_factory(self):
         '''
         Test that from_model() from CliCommand() produces a valid YAML object with correct id derivation.
@@ -361,12 +375,15 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
         assert len(yaml_obj.arguments) == 1
         assert yaml_obj.arguments[0].name_or_flags == ['a']
 
-    # ** test: round_trip_preserves_arguments
-    def test_round_trip_preserves_arguments(self, aggregate):
+    # * test: round_trip_preserves_arguments
+    def test_round_trip_preserves_arguments(self, target):
         '''
         Test that arguments are preserved through from_model -> map() round-trip.
         Uses direct ordered iteration because name_or_flags is a list (unhashable as dict key).
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Convert aggregate to YAML object and back.
         yaml_obj = CliCommandConfigObject.from_model(aggregate)

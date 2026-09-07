@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.core import TransferObject
@@ -14,8 +17,10 @@ from tiferet.mappers.logging import (
     LoggerConfigObject,
     LoggingSettingsConfigObject,
 )
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
-
+from tiferet.contexts.tester import (
+    create_aggregate_tester,
+    create_transfer_object_tester,
+)
 
 # *** constants
 
@@ -55,11 +60,11 @@ LOGGER_AGGREGATE_SAMPLE_DATA = {
 # ** constant: logger_equality_fields
 LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 
+# *** tests
 
-# *** classes
-
-# ** class: TestFormatterAggregate
-class TestFormatterAggregate(AggregateTestBase):
+# ** tester: TestFormatterAggregate
+@create_aggregate_tester(aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Formatter', None), ('format', '%(message)s', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestFormatterAggregate:
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -78,25 +83,19 @@ class TestFormatterAggregate(AggregateTestBase):
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> FormatterAggregate:
-        '''
-        Override to use FormatterAggregate() which defaults to strict=False.
-        '''
-
-        # Create an aggregate using the custom factory.
-        return FormatterAggregate(**(data or self.sample_data))
-
     # *** domain-specific tests
 
-    # ** test: format_config
-    def test_format_config(self, aggregate):
+    # * test: format_config
+    def test_format_config(self, target):
         '''
         Test that format_config() returns the expected formatter configuration dict.
 
         :param aggregate: The formatter aggregate fixture.
         :type aggregate: FormatterAggregate
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Get the format config.
         config = aggregate.format_config()
@@ -105,9 +104,9 @@ class TestFormatterAggregate(AggregateTestBase):
         assert config['format'] == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
-
-# ** class: TestHandlerAggregate
-class TestHandlerAggregate(AggregateTestBase):
+# ** tester: TestHandlerAggregate
+@create_aggregate_tester(aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Handler', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestHandlerAggregate:
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -126,25 +125,19 @@ class TestHandlerAggregate(AggregateTestBase):
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> HandlerAggregate:
-        '''
-        Override to use HandlerAggregate() which defaults to strict=False.
-        '''
-
-        # Create an aggregate using the custom factory.
-        return HandlerAggregate(**(data or self.sample_data))
-
     # *** domain-specific tests
 
-    # ** test: format_config
-    def test_format_config(self, aggregate):
+    # * test: format_config
+    def test_format_config(self, target):
         '''
         Test that format_config() returns the expected handler configuration dict with stream.
 
         :param aggregate: The handler aggregate fixture.
         :type aggregate: HandlerAggregate
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Get the format config.
         config = aggregate.format_config()
@@ -155,7 +148,7 @@ class TestHandlerAggregate(AggregateTestBase):
         assert config['formatter'] == 'simple'
         assert config['stream'] == 'ext://sys.stdout'
 
-    # ** test: format_config_no_optional
+    # * test: format_config_no_optional
     def test_format_config_no_optional(self):
         '''
         Test that format_config() omits stream and filename when not set.
@@ -180,9 +173,9 @@ class TestHandlerAggregate(AggregateTestBase):
         assert config['class'] == 'logging.FileHandler'
         assert config['level'] == 'INFO'
 
-
-# ** class: TestLoggerAggregate
-class TestLoggerAggregate(AggregateTestBase):
+# ** tester: TestLoggerAggregate
+@create_aggregate_tester(aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Logger', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+class TestLoggerAggregate:
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -201,25 +194,19 @@ class TestLoggerAggregate(AggregateTestBase):
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> LoggerAggregate:
-        '''
-        Override to use LoggerAggregate() which defaults to strict=False.
-        '''
-
-        # Create an aggregate using the custom factory.
-        return LoggerAggregate(**(data or self.sample_data))
-
     # *** domain-specific tests
 
-    # ** test: format_config
-    def test_format_config(self, aggregate):
+    # * test: format_config
+    def test_format_config(self, target):
         '''
         Test that format_config() returns the expected logger configuration dict.
 
         :param aggregate: The logger aggregate fixture.
         :type aggregate: LoggerAggregate
         '''
+
+        # Bind the generated target fixture to the established local name.
+        aggregate = target
 
         # Get the format config.
         config = aggregate.format_config()
@@ -229,7 +216,7 @@ class TestLoggerAggregate(AggregateTestBase):
         assert config['handlers'] == ['console']
         assert config['propagate'] is False
 
-    # ** test: empty_handlers_root
+    # * test: empty_handlers_root
     def test_empty_handlers_root(self):
         '''
         Test creating a logger with empty handlers and is_root=True.
@@ -249,9 +236,9 @@ class TestLoggerAggregate(AggregateTestBase):
         assert logger.handlers == []
         assert logger.level == 'WARNING'
 
-
-# ** class: TestFormatterConfigObject
-class TestFormatterConfigObject(TransferObjectTestBase):
+# ** tester: TestFormatterConfigObject
+@create_transfer_object_tester(transfer_cls=FormatterConfigObject, aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS)
+class TestFormatterConfigObject:
     '''
     Tests for FormatterConfigObject mapping and round-trip.
     '''
@@ -265,18 +252,9 @@ class TestFormatterConfigObject(TransferObjectTestBase):
 
     equality_fields = FORMATTER_EQUALITY_FIELDS
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> FormatterAggregate:
-        '''
-        Override to use FormatterAggregate() which defaults to strict=False.
-        '''
-
-        # Create an aggregate using the custom factory.
-        return FormatterAggregate(**(data or self.aggregate_sample_data))
-
-
-# ** class: TestHandlerConfigObject
-class TestHandlerConfigObject(TransferObjectTestBase):
+# ** tester: TestHandlerConfigObject
+@create_transfer_object_tester(transfer_cls=HandlerConfigObject, aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS)
+class TestHandlerConfigObject:
     '''
     Tests for HandlerConfigObject mapping and round-trip.
     '''
@@ -290,18 +268,9 @@ class TestHandlerConfigObject(TransferObjectTestBase):
 
     equality_fields = HANDLER_EQUALITY_FIELDS
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> HandlerAggregate:
-        '''
-        Override to use HandlerAggregate() which defaults to strict=False.
-        '''
-
-        # Create an aggregate using the custom factory.
-        return HandlerAggregate(**(data or self.aggregate_sample_data))
-
-
-# ** class: TestLoggerConfigObject
-class TestLoggerConfigObject(TransferObjectTestBase):
+# ** tester: TestLoggerConfigObject
+@create_transfer_object_tester(transfer_cls=LoggerConfigObject, aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS)
+class TestLoggerConfigObject:
     '''
     Tests for LoggerConfigObject mapping and round-trip.
     '''
@@ -314,18 +283,6 @@ class TestLoggerConfigObject(TransferObjectTestBase):
     aggregate_sample_data = LOGGER_AGGREGATE_SAMPLE_DATA
 
     equality_fields = LOGGER_EQUALITY_FIELDS
-
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> LoggerAggregate:
-        '''
-        Override to use LoggerAggregate() which defaults to strict=False.
-        '''
-
-        # Create an aggregate using the custom factory.
-        return LoggerAggregate(**(data or self.aggregate_sample_data))
-
-
-# *** standalone tests
 
 # ** test: logging_settings_from_data_success
 def test_logging_settings_from_data_success():
@@ -381,7 +338,6 @@ def test_logging_settings_from_data_success():
     assert isinstance(logger, LoggerConfigObject)
     assert logger.id == 'app'
     assert logger.name == 'App Logger'
-
 
 # ** test: logging_settings_from_data_empty
 def test_logging_settings_from_data_empty():

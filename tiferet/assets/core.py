@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict, List, NoReturn, Tuple
+from typing import Any, Callable, Dict, List, NoReturn, Tuple
 import json
 
 # *** constants
@@ -77,6 +77,100 @@ def create_default_error_data(
         'name': name,
         'message': [{'lang': lang, 'text': text} for lang, text in messages],
     }
+
+# ** function: create_default_tester_data
+def create_default_tester_data(
+        type: str,
+        module_path: str,
+        class_name: str,
+        sample_data: Dict[str, Any],
+        equality_fields: List[str],
+        **variant_kwargs: Any,
+    ) -> Dict[str, Any]:
+    '''
+    Build a default tester definition dictionary.
+
+    The identifier is intentionally not a parameter here: the returned dict is
+    stored under its owning ``*_ID`` constant as a group-dict key, so embedding
+    the id inside the value would restate it.
+
+    :param type: The tester variant discriminator.
+    :type type: str
+    :param module_path: The module path of the class under test.
+    :type module_path: str
+    :param class_name: The class name of the class under test.
+    :type class_name: str
+    :param sample_data: The sample data used to construct the target.
+    :type sample_data: Dict[str, Any]
+    :param equality_fields: The target fields to compare.
+    :type equality_fields: List[str]
+    :param variant_kwargs: Variant-specific tester definition fields.
+    :type variant_kwargs: Any
+    :return: The default tester definition, without its id.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the tester definition shared by every tester variant.
+    tester = {
+        'type': type,
+        'module_path': module_path,
+        'class_name': class_name,
+        'sample_data': sample_data,
+        'equality_fields': equality_fields,
+    }
+
+    # Add fields declared by the tester variant.
+    tester.update(variant_kwargs)
+
+    # Return the assembled tester definition.
+    return tester
+
+# ** function: assert_model_matches
+def assert_model_matches(
+        model: Any,
+        sample: Dict[str, Any],
+        equality_fields: List[str],
+        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
+    ) -> None:
+    '''
+    Assert that selected model attributes match expected sample values.
+
+    :param model: The model instance to compare.
+    :type model: Any
+    :param sample: The expected values dictionary.
+    :type sample: Dict[str, Any]
+    :param equality_fields: The fields to compare.
+    :type equality_fields: List[str]
+    :param field_normalizers: Optional per-field normalizers.
+    :type field_normalizers: Dict[str, Callable[[Any], Any]]
+    :return: None.
+    :rtype: None
+    '''
+
+    # Default absent normalizers to an empty mapping.
+    field_normalizers = field_normalizers or {}
+
+    # Compare every requested field present in the expected data.
+    for field in equality_fields:
+        if field not in sample:
+            continue
+
+        expected = sample[field]
+        actual = getattr(model, field, None)
+        normalizer = field_normalizers.get(field)
+
+        # Normalize matching fields before comparing them.
+        if normalizer:
+            expected = normalizer(expected)
+            actual = normalizer(actual)
+
+        # Assert the normalized or raw field values agree.
+        assert actual == expected, (
+            f"Mismatch on field '{field}':\n"
+            f'  expected: {expected!r}\n'
+            f'  actual:   {actual!r}'
+        )
+
 
 # ** function: create_service_module_path
 def create_service_module_path(app_base_path: str, base_path: str, domain_path: str) -> str:
