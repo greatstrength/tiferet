@@ -68,6 +68,7 @@ REQUEST_NOT_FOUND_ID = 'REQUEST_NOT_FOUND'
 
 # ** constant: request_validation_failed_id
 REQUEST_VALIDATION_FAILED_ID = 'REQUEST_VALIDATION_FAILED'
+
 # ** constant: tester_not_found_id
 TESTER_NOT_FOUND_ID = 'TESTER_NOT_FOUND'
 
@@ -212,6 +213,7 @@ REQUEST_VALIDATION_FAILED_DATA = create_default_error_data(
     'Request Validation Failed',
     [(EN_US, 'Request validation failed for feature {feature_id}: {violations}.')],
 )
+
 # ** constant: tester_not_found_data
 TESTER_NOT_FOUND_DATA = create_default_error_data(
     'Tester Not Found',

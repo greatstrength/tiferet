@@ -5,6 +5,7 @@
 # ** core
 from importlib import import_module
 from typing import Any, ClassVar, Dict
+
 # ** infra
 from pydantic import ConfigDict
 
@@ -24,6 +25,7 @@ from .core import Aggregate, TransferObject
 # ** mapper: tester_aggregate
 class TesterAggregate(TesterObject, Aggregate):
     '''Mutable configuration aggregate for a declarative component tester.'''
+
     # * attribute: model_config
     model_config = ConfigDict(
         extra='allow',

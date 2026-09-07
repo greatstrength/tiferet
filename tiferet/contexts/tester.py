@@ -20,6 +20,7 @@ from ..domain import (
 )
 from ..mappers import TesterAggregate
 from .request import RequestContext
+
 # *** constants
 
 # ** constant: tester_cache_prefix
@@ -121,6 +122,7 @@ def add_default_testers(testers: Dict[str, Any]) -> Callable:
         return wrapper
 
     return decorator
+
 # ** function: compose_tester_class
 def compose_tester_class(tester: TesterObject, **targets: Any) -> type:
     '''

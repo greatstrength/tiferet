@@ -1,6 +1,7 @@
 """Tiferet Tester Blueprint Tests"""
 
 # *** imports
+
 # ** infra
 import yaml
 
