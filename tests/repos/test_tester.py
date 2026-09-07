@@ -7,8 +7,8 @@ import pytest
 import yaml
 
 # ** app
-from tiferet.mappers import TesterAggregate
-from tiferet.repos.tester import TesterConfigRepository
+from tiferet.mappers import TesterAggregate as ComponentTester
+from tiferet.repos.tester import TesterConfigRepository as ComponentTesterRepository
 
 # *** constants
 
@@ -36,7 +36,7 @@ TESTER_DATA = {
 
 # ** fixture: tester_config_repo
 @pytest.fixture
-def tester_config_repo(tmp_path) -> TesterConfigRepository:
+def tester_config_repo(tmp_path) -> ComponentTesterRepository:
     '''Create a repository backed by temporary tester configuration.
 
     :param tmp_path: Pytest temporary path fixture.
@@ -49,7 +49,7 @@ def tester_config_repo(tmp_path) -> TesterConfigRepository:
     config_file = tmp_path / 'testers.yml'
     with open(config_file, 'w', encoding='utf-8') as config_stream:
         yaml.safe_dump(TESTER_DATA, config_stream)
-    return TesterConfigRepository(str(config_file))
+    return ComponentTesterRepository(str(config_file))
 
 # *** tests
 
@@ -72,7 +72,7 @@ def test_int_tester_config_repository_five_methods(tester_config_repo):
 
     # Save a third entry and confirm it is retrieved from configuration.
     tester_config_repo.save(
-        TesterAggregate(
+        ComponentTester(
             id='aggregate.NewAggregate',
             type='aggregate',
             module_path='tiferet.mappers.error',

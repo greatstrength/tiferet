@@ -18,7 +18,12 @@ from ..domain import (
     TransferObjectTesterObject,
     Verification,
 )
+from ..mappers import TesterAggregate
 from .request import RequestContext
+# *** constants
+
+# ** constant: tester_cache_prefix
+TESTER_CACHE_PREFIX: Tuple[str, ...] = ('app', 'testers')
 
 # *** functions
 
@@ -87,6 +92,34 @@ def add_verification(
         return fn
 
     # Return the function-identity-preserving metadata decorator.
+    return decorator
+
+# ** function: add_default_testers
+def add_default_testers(testers: Dict[str, Any]) -> Callable:
+    '''
+    Decorate a cache builder with polymorphic default tester domain objects.
+
+    :param testers: Tester data keyed by tester identifier.
+    :type testers: Dict[str, Any]
+    :return: A cache-builder decorator.
+    :rtype: Callable
+    '''
+
+    # Return a dedicated decorator because tester variants require dispatch.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Add validated tester aggregates after building the cache.
+        def wrapper(*args, **kwargs):
+            cache = build_fn(*args, **kwargs)
+            for tester_id, tester_data in testers.items():
+                tester = TesterAggregate.build_config_object(
+                    {**tester_data, 'id': tester_id},
+                ).map()
+                cache.set(tester_id, tester, *TESTER_CACHE_PREFIX)
+            return cache
+
+        return wrapper
+
     return decorator
 # ** function: compose_tester_class
 def compose_tester_class(tester: TesterObject, **targets: Any) -> type:

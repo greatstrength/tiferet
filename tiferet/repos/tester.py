@@ -8,7 +8,6 @@ from typing import List
 # ** app
 from ..interfaces import TesterService
 from ..mappers import TesterAggregate
-from ..mappers.tester import build_tester_config_object
 from .core import ConfigurationRepository
 
 # *** repos
@@ -68,7 +67,7 @@ class TesterConfigRepository(TesterService, ConfigurationRepository):
             return None
 
         # Dispatch to the matching config variant and map the aggregate.
-        return build_tester_config_object(
+        return TesterAggregate.build_config_object(
             {**tester_data, 'id': id},
         ).map()
 
@@ -87,7 +86,7 @@ class TesterConfigRepository(TesterService, ConfigurationRepository):
             start_node=lambda data: data.get('testers', {}),
         )
         testers = [
-            build_tester_config_object(
+            TesterAggregate.build_config_object(
                 {**tester_data, 'id': tester_id},
             ).map()
             for tester_id, tester_data in testers_data.items()
@@ -111,7 +110,7 @@ class TesterConfigRepository(TesterService, ConfigurationRepository):
         '''
 
         # Reconstitute the matching config object before serializing it.
-        tester_data = build_tester_config_object(
+        tester_data = TesterAggregate.build_config_object(
             tester.model_dump(),
         ).to_primitive(self.default_role)
 

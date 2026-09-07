@@ -11,6 +11,9 @@ from tiferet.contexts.tester import (
 from tiferet.assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
+    DEFAULT_TESTER_CONFIG_FILE,
+    TESTER_CONFIG_ID,
+    TESTER_SERVICE_ID,
     TIFERET_TESTER_ID,
 )
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
@@ -157,8 +160,11 @@ def test_default_tester_catalog_and_session_are_data_only() -> None:
         'transfer_object',
     }
 
-    # Assert the tester session uses its built-in identifier and data shape.
-    assert CORE_DEFAULT_TESTER_SESSIONS[TIFERET_TESTER_ID] == {
-        'name': 'Tester',
-        'description': 'Default built-in test-harness application session',
+    # Assert the tester session declares its own default service and config.
+    session = CORE_DEFAULT_TESTER_SESSIONS[TIFERET_TESTER_ID]
+    assert session['name'] == 'Tester'
+    assert session['description'] == 'Default built-in test-harness application session'
+    assert session['constants'] == {
+        TESTER_CONFIG_ID: DEFAULT_TESTER_CONFIG_FILE,
     }
+    assert session['services'][0]['service_id'] == TESTER_SERVICE_ID

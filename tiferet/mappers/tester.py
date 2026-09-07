@@ -33,6 +33,35 @@ class TesterAggregate(TesterObject, Aggregate):
         coerce_numbers_to_str=True,
     )
 
+    # * method: build_config_object (class)
+    @classmethod
+    def build_config_object(cls, data: dict) -> Any:
+        '''
+        Validate raw tester configuration into its declared variant.
+
+        :param data: Raw tester configuration data.
+        :type data: dict
+        :return: The matching variant-specific configuration object.
+        :rtype: Any
+        :raises TiferetError: When the tester type is unrecognized.
+        '''
+
+        # Select the configuration class from the declared discriminator.
+        config_class = {
+            'domain': DomainTesterConfigObject,
+            'aggregate': AggregateTesterConfigObject,
+            'transfer_object': TransferObjectTesterConfigObject,
+        }.get(data.get('type'))
+        if config_class is None:
+            TiferetError.raise_error(
+                INVALID_TESTER_TYPE_ID,
+                f'Invalid tester type: {data.get("type")}.',
+                type=data.get('type'),
+            )
+
+        # Validate and return the matching configuration object.
+        return config_class.model_validate(data)
+
     # * method: retarget
     def retarget(self, module_path: str, class_name: str) -> None:
         '''Retarget the configured class.
@@ -95,7 +124,6 @@ class TesterAggregate(TesterObject, Aggregate):
         # Delegate ordinary assignment to the aggregate base.
         super().set_attribute(attribute, value)
 
-
 # ** mapper: domain_tester_config_object
 class DomainTesterConfigObject(DomainTesterObject, TransferObject):
     '''Configuration representation of a domain-object tester.'''
@@ -105,9 +133,6 @@ class DomainTesterConfigObject(DomainTesterObject, TransferObject):
         'to_model': {},
         'to_data': {'exclude': {'id'}},
     }
-
-    # * attribute: name
-    name: str = ''
 
     # * method: map
     def map(self, **overrides) -> TesterAggregate:
@@ -137,7 +162,6 @@ class DomainTesterConfigObject(DomainTesterObject, TransferObject):
 
         # Delegate source serialization to the transfer-object base.
         return super().from_model(tester, **overrides)
-
 
 # ** mapper: aggregate_tester_config_object
 class AggregateTesterConfigObject(AggregateTesterObject, TransferObject):
@@ -181,7 +205,6 @@ class AggregateTesterConfigObject(AggregateTesterObject, TransferObject):
         # Delegate source serialization to the transfer-object base.
         return super().from_model(tester, **overrides)
 
-
 # ** mapper: transfer_object_tester_config_object
 class TransferObjectTesterConfigObject(TransferObjectTesterObject, TransferObject):
     '''Configuration representation of a transfer-object tester.'''
@@ -223,38 +246,3 @@ class TransferObjectTesterConfigObject(TransferObjectTesterObject, TransferObjec
 
         # Delegate source serialization to the transfer-object base.
         return super().from_model(tester, **overrides)
-
-# *** functions
-
-# ** function: build_tester_config_object
-def build_tester_config_object(
-        data: dict,
-    ) -> (
-        DomainTesterConfigObject
-        | AggregateTesterConfigObject
-        | TransferObjectTesterConfigObject
-    ):
-    '''Validate raw tester configuration using its type discriminator.
-
-    :param data: Raw tester configuration data.
-    :type data: dict
-    :return: The validated variant-specific configuration object.
-    :rtype: DomainTesterConfigObject | AggregateTesterConfigObject | TransferObjectTesterConfigObject
-    :raises TiferetError: When the tester type is unrecognized.
-    '''
-
-    # Select the configuration type from the declared discriminator.
-    config_class = {
-        'domain': DomainTesterConfigObject,
-        'aggregate': AggregateTesterConfigObject,
-        'transfer_object': TransferObjectTesterConfigObject,
-    }.get(data.get('type'))
-    if config_class is None:
-        TiferetError.raise_error(
-            INVALID_TESTER_TYPE_ID,
-            f'Invalid tester type: {data.get("type")}.',
-            type=data.get('type'),
-        )
-
-    # Validate and return the matching configuration object.
-    return config_class.model_validate(data)

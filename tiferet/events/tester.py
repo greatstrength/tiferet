@@ -8,7 +8,6 @@ from typing import Any, Dict, List
 # ** app
 from ..interfaces import TesterService
 from ..mappers import TesterAggregate
-from ..mappers.tester import build_tester_config_object
 from .core import DomainEvent, a
 
 # *** events
@@ -30,7 +29,6 @@ class TesterEvent(DomainEvent):
 
         # Set the shared service dependency.
         self.tester_service = tester_service
-
 
 # ** event: add_tester
 class AddTester(TesterEvent):
@@ -63,7 +61,7 @@ class AddTester(TesterEvent):
         '''
 
         # Dispatch the supplied data to its tester variant.
-        tester = build_tester_config_object(
+        tester = TesterAggregate.build_config_object(
             {
                 'id': id,
                 'type': type,
@@ -81,7 +79,6 @@ class AddTester(TesterEvent):
         )
         self.tester_service.save(tester)
         return tester
-
 
 # ** event: get_tester
 class GetTester(TesterEvent):
@@ -116,7 +113,6 @@ class GetTester(TesterEvent):
         )
         return tester
 
-
 # ** event: list_testers
 class ListTesters(TesterEvent):
     '''List configured testers within an optional type partition.'''
@@ -135,7 +131,6 @@ class ListTesters(TesterEvent):
 
         # Delegate listing and filtering to the service.
         return self.tester_service.list(type=type)
-
 
 # ** event: update_tester
 class UpdateTester(TesterEvent):
@@ -192,7 +187,6 @@ class UpdateTester(TesterEvent):
         # Persist and return the changed aggregate.
         self.tester_service.save(tester)
         return tester
-
 
 # ** event: remove_tester
 class RemoveTester(TesterEvent):

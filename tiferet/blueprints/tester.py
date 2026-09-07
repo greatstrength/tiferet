@@ -7,14 +7,16 @@ from typing import Any, Dict
 
 # ** app
 from .. import a
-from ..assets import TiferetError, tester
+from ..assets import tester
 from ..contexts.app import add_default_app_sessions
 from ..contexts.cache import CacheContext
-from ..contexts.tester import TESTER_CACHE_PREFIX, add_default_testers
+from ..contexts.tester import (
+    TESTER_CACHE_PREFIX,
+    TesterObject,
+    add_default_testers,
+)
 from ..events import DomainEvent
 from ..events.tester import GetTester
-from ..mappers import TesterAggregate
-from ..repos.tester import TesterConfigRepository
 from . import core
 
 # *** blueprints
@@ -34,41 +36,45 @@ def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
     # Extend the bare core cache with only tester dialect catalogs.
     return core.build_cache(cache)
 
-
 # ** blueprint: resolve_tester
 def resolve_tester(
         id: str,
         tester_config: str | None = None,
-    ) -> TesterAggregate:
-    '''Resolve one tester aggregate from defaults or configuration.
+    ) -> TesterObject:
+    '''Resolve one tester domain object from defaults or configuration.
 
     :param id: The tester identifier.
     :type id: str
     :param tester_config: Optional tester configuration file path.
     :type tester_config: str | None
-    :return: The resolved tester aggregate.
-    :rtype: TesterAggregate
+    :return: The resolved tester domain object.
+    :rtype: TesterObject
     '''
 
     # Build the isolated dialect cache and prefer its seeded default.
     cache = build_cache()
-    tester_aggregate = cache.get(id, *TESTER_CACHE_PREFIX)
-    if tester_aggregate is not None:
-        return tester_aggregate
+    tester = cache.get(id, *TESTER_CACHE_PREFIX)
+    if tester is not None:
+        return tester
 
-    # Report a miss immediately when no config source was supplied.
-    if tester_config is None:
-        TiferetError.raise_error(
-            a.error.TESTER_NOT_FOUND_ID,
-            f'Tester not found: {id}.',
-            id=id,
-        )
+    # Load the tester dialect session that declares its default service.
+    app_session = core.get_app_session(a.tester.TIFERET_TESTER_ID, cache)
 
-    # Resolve a non-default tester through its domain event and config service.
+    # Apply a caller-supplied repository configuration without mutating the session.
+    if tester_config is not None:
+        constants = dict(app_session.constants)
+        constants[a.tester.TESTER_CONFIG_ID] = tester_config
+        app_session = app_session.model_copy(update={'constants': constants})
+
+    # Compose the session's tester service through the standard app container.
+    app_container = core.build_app_service_container(cache, app_session)
+    tester_service = app_container.get_dependency(a.tester.TESTER_SERVICE_ID)
+
+    # Resolve a non-default tester through its domain event and injected service.
     return DomainEvent.handle(
         GetTester,
         dependencies={
-            'tester_service': TesterConfigRepository(tester_config),
+            'tester_service': tester_service,
         },
         id=id,
         default_tester_index=cache.get_by_prefix(*TESTER_CACHE_PREFIX),

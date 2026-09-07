@@ -7,8 +7,12 @@ from typing import Any, Dict
 
 # ** app
 from .core import (
+    TIFERET,
+    TIFERET_REPOS_PATH,
+    create_app_service_dependency_data,
     create_default_app_session_data,
     create_default_tester_data,
+    create_service_module_path,
 )
 
 # *** constants (ids)
@@ -24,6 +28,15 @@ TRANSFER_OBJECT_ERROR_TESTER_ID = 'transfer_object.ErrorConfigObject'
 
 # ** constant: tiferet_tester_id
 TIFERET_TESTER_ID = 'tester'
+
+# ** constant: tester_service_id
+TESTER_SERVICE_ID = 'tester_service'
+
+# ** constant: tester_config_id
+TESTER_CONFIG_ID = 'tester_config'
+
+# ** constant: default_tester_config_file
+DEFAULT_TESTER_CONFIG_FILE = 'config.yml'
 
 # *** constants (data)
 
@@ -117,10 +130,32 @@ TRANSFER_OBJECT_ERROR_TESTER_DATA = create_default_tester_data(
     },
 )
 
+# ** constant: tester_service_data
+TESTER_SERVICE_DATA = create_app_service_dependency_data(
+    create_service_module_path(
+        TIFERET,
+        TIFERET_REPOS_PATH,
+        'tester',
+    ),
+    'TesterConfigRepository',
+)
+
+# ** constant: tester_services
+TESTER_SERVICES: Dict[str, Dict[str, Any]] = {
+    TESTER_SERVICE_ID: TESTER_SERVICE_DATA,
+}
+
+# ** constant: tester_constants
+TESTER_CONSTANTS: Dict[str, Any] = {
+    TESTER_CONFIG_ID: DEFAULT_TESTER_CONFIG_FILE,
+}
+
 # ** constant: default_tester_app_session_data
 DEFAULT_TESTER_APP_SESSION_DATA = create_default_app_session_data(
     'Tester',
     description='Default built-in test-harness application session',
+    services=TESTER_SERVICES,
+    constants=TESTER_CONSTANTS,
 )
 
 # *** constants (groups)

@@ -3,6 +3,7 @@
 # *** imports
 
 # ** infra
+import pytest
 from unittest import mock
 
 # ** app
@@ -15,12 +16,13 @@ from tiferet.events.tester import (
     UpdateTester,
 )
 from tiferet.interfaces import TesterService
-from tiferet.mappers import TesterAggregate
+from tiferet.mappers import TesterAggregate as ComponentTester
 
-# *** functions
+# *** fixtures
 
-# ** function: build_tester
-def build_tester() -> TesterAggregate:
+# ** fixture: tester
+@pytest.fixture
+def tester() -> ComponentTester:
     '''Build a representative aggregate tester.
 
     :return: The tester aggregate.
@@ -28,7 +30,7 @@ def build_tester() -> TesterAggregate:
     '''
 
     # Return a mutable aggregate tester.
-    return TesterAggregate(
+    return ComponentTester(
         id='aggregate.ErrorAggregate',
         type='aggregate',
         module_path='tiferet.mappers.error',
@@ -40,7 +42,7 @@ def build_tester() -> TesterAggregate:
 # *** tests
 
 # ** test: tester_events
-def test_tester_events_via_domain_event_handle():
+def test_tester_events_via_domain_event_handle(tester):
     '''Test all tester events through the standard DomainEvent entry point.'''
 
     # Add a tester after a no-collision response.
@@ -58,7 +60,6 @@ def test_tester_events_via_domain_event_handle():
     service.save.assert_called_once_with(added)
 
     # Resolve a configured tester, then list it with the type filter.
-    tester = build_tester()
     service.get.return_value = tester
     assert DomainEvent.handle(
         GetTester,
