@@ -16,10 +16,78 @@ from ..domain import (
     ModelError,
     TesterObject,
     TransferObjectTesterObject,
+    Verification,
 )
+from .request import RequestContext
 
 # *** functions
 
+# ** function: create_verification
+def _create_verification(
+        predicate: Callable[[Any], bool] | Any,
+        message: str | None = None,
+    ) -> Verification:
+    '''
+    Normalize a predicate or literal expectation into a Verification.
+
+    :param predicate: The predicate or literal expected outcome.
+    :type predicate: Callable[[Any], bool] | Any
+    :param message: Optional failure message.
+    :type message: str | None
+    :return: The normalized verification.
+    :rtype: Verification
+    '''
+
+    # Preserve callable predicates for deferred outcome evaluation.
+    if callable(predicate):
+        normalized_predicate = predicate
+
+    # Convert literal expectations into an outcome equality predicate.
+    else:
+        normalized_predicate = lambda outcome: outcome == predicate
+
+    # Return the verification with the source retained for failure reporting.
+    return Verification(
+        predicate=normalized_predicate,
+        message=message,
+        source=predicate,
+    )
+
+# ** function: add_verification
+def add_verification(
+        predicate: Callable[[Any], bool] | Any,
+        message: str | None = None,
+    ) -> Callable[[Callable], Callable]:
+    '''
+    Attach one deferred verification as metadata on a test function.
+
+    :param predicate: The predicate or literal expected outcome.
+    :type predicate: Callable[[Any], bool] | Any
+    :param message: Optional failure message.
+    :type message: str | None
+    :return: The unchanged function with attached verification metadata.
+    :rtype: Callable[[Callable], Callable]
+    '''
+
+    # Normalize the declaration before attaching it to a function.
+    verification = _create_verification(predicate=predicate, message=message)
+
+    # Return a metadata-only decorator without introducing a call wrapper.
+    def decorator(fn: Callable) -> Callable:
+        '''Attach the normalized verification to the function metadata.'''
+
+        # Retrieve existing metadata or create the function-owned queue.
+        verifications = getattr(fn, '__tiferet_verifications__', None)
+        if verifications is None:
+            verifications = []
+            setattr(fn, '__tiferet_verifications__', verifications)
+
+        # Append the declared verification and preserve the function identity.
+        verifications.append(verification)
+        return fn
+
+    # Return the function-identity-preserving metadata decorator.
+    return decorator
 # ** function: compose_tester_class
 def compose_tester_class(tester: TesterObject, **targets: Any) -> type:
     '''
@@ -435,3 +503,126 @@ def create_transfer_object_tester(
         target_cls=aggregate_cls,
         target_data=tester.aggregate_sample_data,
     )
+
+# *** contexts
+
+# ** context: test_request_context
+class TestRequestContext(RequestContext):
+    '''
+    Holds mutable test-chain state independently of the request result so
+    deferred test expectations can be evaluated after any dispatch path.
+    '''
+
+    # * attribute: verifications
+    verifications: List[Verification]
+
+    # * attribute: outcome
+    outcome: Any
+
+    # * init
+    def __init__(self, **kwargs: Any) -> None:
+        '''
+        Initialize a request context with an empty verification queue.
+
+        :param kwargs: Request-context initialization arguments.
+        :type kwargs: Any
+        '''
+
+        # Initialize the inherited request context unchanged.
+        super().__init__(**kwargs)
+
+        # Initialize test-chain state separately from the request result.
+        self.verifications = []
+        self.outcome = None
+
+    # * method: given
+    def given(self, **state: Any) -> 'TestRequestContext':
+        '''
+        Merge literal given-state into this request's data payload.
+
+        :param state: Top-level request data to merge.
+        :type state: Any
+        :return: This test request context.
+        :rtype: TestRequestContext
+        '''
+
+        # Shallowly merge state, allowing later values to replace prior ones.
+        self.data.update(state)
+
+        # Return this context for fluent chaining.
+        return self
+
+    # * method: verify
+    def verify(
+            self,
+            predicate: Callable[[Any], bool] | Any,
+            message: str | None = None,
+        ) -> 'TestRequestContext':
+        '''
+        Queue one deferred outcome verification for this test request.
+
+        :param predicate: The predicate or literal expected outcome.
+        :type predicate: Callable[[Any], bool] | Any
+        :param message: Optional failure message.
+        :type message: str | None
+        :return: This test request context.
+        :rtype: TestRequestContext
+        '''
+
+        # Normalize and queue the verification for post-dispatch evaluation.
+        self.verifications.append(
+            _create_verification(predicate=predicate, message=message)
+        )
+
+        # Return this context for fluent chaining.
+        return self
+
+    # * method: capture_outcome
+    def capture_outcome(self, outcome: Any) -> None:
+        '''
+        Store the outcome that every queued verification will inspect.
+
+        :param outcome: The dispatch outcome under test.
+        :type outcome: Any
+        '''
+
+        # Retain the dispatch outcome separately from the request result.
+        self.outcome = outcome
+
+    # * method: evaluate_verifications
+    def evaluate_verifications(self) -> None:
+        '''
+        Evaluate every queued verification and raise one aggregate assertion.
+
+        :raises AssertionError: If one or more verifications fail.
+        '''
+
+        # Record all failures while continuing through the complete queue.
+        failures = []
+        try:
+            for index, verification in enumerate(self.verifications, start=1):
+                try:
+                    passed = verification.predicate(self.outcome)
+                except Exception as error:
+                    passed = False
+                    detail = str(error)
+                else:
+                    detail = None
+
+                # Preserve a supplied message or describe the source expectation.
+                if not passed:
+                    message = verification.message or (
+                        f'Expected {verification.source!r} for outcome '
+                        f'{self.outcome!r}.'
+                    )
+                    failures.append(
+                        f'Verification {index} failed: {message}'
+                        f'{f" ({detail})" if detail else ""}'
+                    )
+        finally:
+            # Consume every queued expectation after this evaluation attempt.
+            self.verifications.clear()
+
+        # Raise all recorded failures as one test assertion.
+        if failures:
+            raise AssertionError('\n'.join(failures))

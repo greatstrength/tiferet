@@ -8,6 +8,7 @@ from tiferet.domain import (
     DomainTesterObject as _DomainTesterObject,
     TesterObject as _TesterObject,
     TransferObjectTesterObject as _TransferObjectTesterObject,
+    Verification,
 )
 from tiferet.domain.error import ErrorMessage
 from tiferet.mappers.error import (
@@ -75,3 +76,22 @@ def test_tester_variants_default_their_discriminators_and_resolve_targets() -> N
     assert aggregate_tester.get_target_type() is ErrorAggregate
     assert transfer_tester.get_target_type() is ErrorConfigObject
     assert transfer_tester.get_aggregate_type() is ErrorAggregate
+
+# ** test: verification_constructs_with_optional_message_default
+def test_verification_constructs_with_optional_message_default() -> None:
+    '''
+    Test that Verification retains its predicate and source while defaulting
+    its optional message to None.
+    '''
+
+    # Construct a verification around a deferred outcome predicate.
+    predicate = lambda outcome: outcome == 3
+    verification = Verification(
+        predicate=predicate,
+        source=3,
+    )
+
+    # Assert the domain model preserves every declared field.
+    assert verification.predicate is predicate
+    assert verification.source == 3
+    assert verification.message is None
