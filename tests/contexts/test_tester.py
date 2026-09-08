@@ -7,15 +7,20 @@ import pytest
 
 # ** app
 from tiferet import add_verification
+from tiferet.assets import TiferetError
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.tester import (
     TestRequestContext as _TestRequestContext,
+    TestSessionContext as _TestSessionContext,
+    TEST_PRESET_CACHE_PREFIX,
     TESTER_CACHE_PREFIX,
+    add_default_test_presets,
     add_default_testers,
     create_aggregate_tester,
     create_domain_tester,
     create_transfer_object_tester,
+    tester_ctx as _tester_ctx,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.domain import Request, Verification
@@ -279,3 +284,102 @@ def test_add_default_testers_seeds_polymorphic_aggregates() -> None:
     tester = builder().get('aggregate.ErrorAggregate', *TESTER_CACHE_PREFIX)
     assert tester.id == 'aggregate.ErrorAggregate'
     assert tester.type == 'aggregate'
+
+# ** test: test_session_context
+def test_session_context_runs_direct_event_and_clears_pending_state() -> None:
+    '''Test a direct event chain captures its result and clears its lifecycle.'''
+
+    # Define a self-contained direct event for the fluent session.
+    class AddEvent:
+        def __call__(self, a, b):
+            return a + b
+
+    # Compose a context with a specialized request factory.
+    context = _TestSessionContext.from_domain(
+        type('Session', (), {'id': 'tester'})(),
+        get_dependency=lambda *args: None,
+        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
+            session_id=session_id,
+            feature_id=feature_id,
+            headers=headers,
+            data=data,
+        ),
+    )
+
+    # Run a complete chain and verify its result and clean lifecycle.
+    result = context.given(a=1).invoke(event=AddEvent(), b=2).verify(3).run()
+    assert result == 3
+    assert context._pending_request is None
+
+# ** test: test_session_context_preset
+def test_session_context_merges_preset_and_rejects_missing_preset() -> None:
+    '''Test named presets merge state and unresolved names raise a domain error.'''
+
+    # Seed a test-session cache with one raw given-state preset.
+    cache = add_default_test_presets({'sum': {'a': 1, 'b': 2}})(
+        lambda: CacheContext(),
+    )()
+    context = _TestSessionContext(
+        get_dependency=lambda *args: None,
+        cache=cache,
+        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
+            session_id=session_id,
+            feature_id=feature_id,
+            headers=headers,
+            data=data,
+        ),
+    )
+    context.domain = type('Session', (), {'id': 'tester'})()
+
+    # Assert preset state merges before literal overrides.
+    context.given('sum', b=3)
+    assert context._pending_request.data == {'a': 1, 'b': 3}
+    assert cache.get('sum', *TEST_PRESET_CACHE_PREFIX) == {'a': 1, 'b': 2}
+
+    # Assert missing presets raise the catalogued domain error.
+    with pytest.raises(TiferetError) as exc_info:
+        context.given('missing')
+    assert exc_info.value.error_code == 'TEST_PRESET_NOT_FOUND'
+
+# ** test: tester_ctx
+def test_tester_ctx_queues_metadata_and_runs_pending_chain(monkeypatch) -> None:
+    '''Test the fixture consumes verification metadata and finalizes one chain.'''
+
+    # Define a context spy that records fixture interaction.
+    class TesterContext:
+        def __init__(self):
+            self._pending_request = object()
+            self.verified = []
+            self.runs = 0
+
+        def verify(self, predicate, message):
+            self.verified.append((predicate, message))
+            return self
+
+        def run(self):
+            self.runs += 1
+            self._pending_request = None
+
+    # Attach metadata using the public decorator contract.
+    @add_verification(3, message='expected')
+    def target():
+        pass
+
+    # Replace session construction so the fixture behavior is isolated.
+    context = TesterContext()
+    monkeypatch.setattr(
+        'tiferet.blueprints.tester.build_app',
+        lambda: context,
+    )
+    request = type('Request', (), {'function': target})()
+
+    # Advance the underlying fixture through setup and teardown.
+    fixture = _tester_ctx.__wrapped__(request)
+    assert next(fixture) is context
+    with pytest.raises(StopIteration):
+        next(fixture)
+
+    # Assert metadata was queued and the pending chain ran once on teardown.
+    assert context.verified[0][1] == 'expected'
+    assert context.verified[0][0](3)
+    assert context.runs == 1

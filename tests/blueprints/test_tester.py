@@ -6,14 +6,24 @@
 import yaml
 
 # ** app
-from tiferet import a
-from tiferet.blueprints.tester import build_cache, resolve_tester
+from tiferet import Tester as RootTester, a, test_case as create_test_case
+from tiferet.blueprints.tester import (
+    build_app,
+    build_cache,
+    build_test_request,
+    resolve_tester,
+)
 from tiferet.contexts.app import (
     APP_CONSTANT_CACHE_PREFIX,
     APP_SERVICE_CACHE_PREFIX,
 )
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
-from tiferet.contexts.tester import TESTER_CACHE_PREFIX
+from tiferet.contexts.feature import FEATURE_CACHE_PREFIX, Feature
+from tiferet.contexts.tester import (
+    TestRequestContext as _TestRequestContext,
+    TestSessionContext as _TestSessionContext,
+    TESTER_CACHE_PREFIX,
+)
 from tiferet.mappers import TesterAggregate as ComponentTester
 
 # *** tests
@@ -25,13 +35,22 @@ def test_tester_build_cache_isolated_from_standard_app_catalogs():
     # Build the tester-specific cache.
     cache = build_cache()
 
-    # Verify tester defaults are present while standard app catalogs are absent.
+    # Verify tester defaults and only feature-dispatch machinery.
     assert set(cache.get_by_prefix(*TESTER_CACHE_PREFIX)) == set(
         a.tester.CORE_DEFAULT_TESTERS,
     )
     assert cache.get_by_prefix(*ERROR_CACHE_PREFIX) == {}
-    assert cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX) == {}
-    assert cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX) == {}
+    assert set(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)) == {
+        a.app.DI_SERVICE_ID,
+        a.app.FEATURE_SERVICE_ID,
+        a.app.GET_FEATURE_EVT_ID,
+    }
+    assert cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX) == (
+        {
+            a.app.DI_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+            a.app.FEATURE_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+        }
+    )
 
 # ** test: resolve_tester
 def test_resolve_tester_returns_seeded_default_aggregate():
@@ -72,3 +91,66 @@ def test_resolve_tester_uses_tester_session_service(tmp_path) -> None:
     # Resolve the tester through the default service declared on the session.
     tester = resolve_tester('domain.Custom', tester_config=str(config_file))
     assert tester.id == 'domain.Custom'
+
+# ** test: build_test_request
+def test_build_test_request_creates_specialized_context() -> None:
+    '''Test that the fluent tester handler creates a TestRequestContext.'''
+
+    # Build the request through the tester-specific handler.
+    request = build_test_request('tester', 'test.feature', data={'value': 1})
+
+    # Verify its specialized type and stamped request fields.
+    assert isinstance(request, _TestRequestContext)
+    assert request.headers['interface_id'] == 'tester'
+    assert request.feature_id == 'test.feature'
+    assert request.data == {'value': 1}
+
+# ** test: build_app
+def test_build_app_returns_default_test_session_context() -> None:
+    '''Test that the zero-argument Tester composition is ready to use.'''
+
+    # Build the default cache-seeded tester session.
+    context = build_app()
+
+    # Verify the fluent test-session context is composed.
+    assert isinstance(context, _TestSessionContext)
+    assert context.domain.id == a.tester.TIFERET_TESTER_ID
+    assert RootTester is build_app
+
+# ** test: build_app_feature_dispatch
+def test_build_app_dispatches_cached_feature_without_external_config() -> None:
+    '''Test the default Tester dispatches a cached feature without config I/O.'''
+
+    # Compose the default tester and seed an empty executable feature.
+    context = build_app()
+    feature = Feature(
+        id='test.empty',
+        name='Empty Test Feature',
+    )
+    context.cache.set(feature.id, feature, *FEATURE_CACHE_PREFIX)
+
+    # Dispatch through the inherited feature handler without loading config.yml.
+    assert context.given(value=1).invoke(feature_id=feature.id).verify(None).run() is None
+
+# ** test: test_case
+def test_test_case_seeds_given_state_without_dispatching() -> None:
+    '''Test that test_case only supplies a given-state baseline.'''
+
+    # Define a minimal context spy that records baseline state.
+    class TesterContext:
+        def __init__(self):
+            self.given_state = None
+
+        def given(self, **data):
+            self.given_state = data
+            return self
+
+    # Decorate a test-shaped callable that returns its context unchanged.
+    @create_test_case(value=1)
+    def target(tester_ctx):
+        return tester_ctx
+
+    # Assert the wrapper seeds state and does not call any run method.
+    context = TesterContext()
+    assert target(context) is context
+    assert context.given_state == {'value': 1}
