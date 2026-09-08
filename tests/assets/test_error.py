@@ -30,7 +30,7 @@ def test_tier_sizes():
     '''
 
     # Core tier size and admin-only delta.
-    assert len(CORE_DEFAULT_ERRORS) == 19
+    assert len(CORE_DEFAULT_ERRORS) == 20
     assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 13
 
 # ** test: test_every_entry_omits_redundant_id
