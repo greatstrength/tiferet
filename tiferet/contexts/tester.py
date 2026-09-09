@@ -10,11 +10,8 @@ from .. import a
 from ..assets import TiferetError
 from ..assets.core import assert_model_matches
 from ..domain import (
-    AggregateTesterObject,
-    DomainTesterObject,
     ModelError,
     TesterObject,
-    TransferObjectTesterObject,
     Verification,
 )
 from ..events import DomainEvent
@@ -29,13 +26,6 @@ TESTER_CACHE_PREFIX: Tuple[str, ...] = ('app', 'testers')
 
 # ** constant: test_preset_cache_prefix
 TEST_PRESET_CACHE_PREFIX: Tuple[str, ...] = ('test', 'presets')
-
-# ** constant: tester_variant_models
-TESTER_VARIANT_MODELS: Dict[str, type] = {
-    'domain': DomainTesterObject,
-    'aggregate': AggregateTesterObject,
-    'transfer_object': TransferObjectTesterObject,
-}
 
 # *** functions
 
@@ -73,7 +63,7 @@ def _create_verification(
 # ** function: add_default_testers
 def add_default_testers(testers: Dict[str, Any]) -> Callable:
     '''
-    Decorate a cache builder with polymorphic default tester domain objects.
+    Decorate a cache builder with default tester domain objects.
 
     :param testers: Tester data keyed by tester identifier.
     :type testers: Dict[str, Any]
@@ -81,21 +71,13 @@ def add_default_testers(testers: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Return a dedicated decorator because tester variants require dispatch.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Add validated tester domain objects after building the cache.
-        def wrapper(*args, **kwargs):
-            cache = build_fn(*args, **kwargs)
-            for tester_id, tester_data in testers.items():
-                model = TESTER_VARIANT_MODELS[tester_data['type']]
-                tester = model.model_validate({**tester_data, 'id': tester_id})
-                cache.set(tester_id, tester, *TESTER_CACHE_PREFIX)
-            return cache
-
-        return wrapper
-
-    return decorator
+    # Seed TesterObject instances the same way default errors are seeded.
+    return add_default_cache_items(
+        testers,
+        TESTER_CACHE_PREFIX,
+        model=TesterObject,
+        id_field='id',
+    )
 
 # ** function: add_default_test_presets
 def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
@@ -113,24 +95,24 @@ def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
 
 # *** contexts
 
-# ** context: domain_tester_context
-class DomainTesterContext(BaseContext):
+# ** context: tester_context
+class TesterContext(BaseContext):
     '''
-    Asserts construction and optional descriptive behavior for a bound
-    domain-object tester.
+    Bound operational context for a TesterObject. Variant subclasses omit
+    domain_type so ContextMeta keeps mapping TesterObject to this class.
     '''
 
     # * attribute: domain_type
-    domain_type = DomainTesterObject
+    domain_type = TesterObject
 
     # * method: make_target
     def make_target(self, data: Dict[str, Any] = None) -> Any:
         '''
-        Construct the domain class this tester describes.
+        Construct the class this tester describes.
 
         :param data: Optional construction data; defaults to sample data.
         :type data: Dict[str, Any]
-        :return: The constructed domain object.
+        :return: The constructed target.
         :rtype: Any
         '''
 
@@ -159,6 +141,10 @@ class DomainTesterContext(BaseContext):
             self.domain.equality_fields,
             self.domain.field_normalizers,
         )
+
+# ** context: domain_tester_context
+class DomainTesterContext(TesterContext):
+    '''Asserts optional descriptive behavior for a bound domain-object tester.'''
 
     # * method: assert_description
     def assert_description(self, target: Any = None) -> None:
@@ -180,51 +166,8 @@ class DomainTesterContext(BaseContext):
             assert actual == expected
 
 # ** context: aggregate_tester_context
-class AggregateTesterContext(BaseContext):
-    '''
-    Asserts construction and optional set_attribute mutations for a bound
-    aggregate tester.
-    '''
-
-    # * attribute: domain_type
-    domain_type = AggregateTesterObject
-
-    # * method: make_target
-    def make_target(self, data: Dict[str, Any] = None) -> Any:
-        '''
-        Construct the aggregate class this tester describes.
-
-        :param data: Optional construction data; defaults to sample data.
-        :type data: Dict[str, Any]
-        :return: The constructed aggregate.
-        :rtype: Any
-        '''
-
-        # Construct the declared target from supplied or sample data.
-        target_data = data if data is not None else self.domain.sample_data
-        return self.domain.get_target_type()(**target_data)
-
-    # * method: assert_new
-    def assert_new(self, target: Any = None) -> None:
-        '''
-        Verify construction against the tester's expected data.
-
-        :param target: Optional constructed target; built when omitted.
-        :type target: Any
-        '''
-
-        # Construct the target when the caller did not supply one.
-        if target is None:
-            target = self.make_target()
-
-        # Verify type and field equality against the bound tester.
-        assert isinstance(target, self.domain.get_target_type())
-        assert_model_matches(
-            target,
-            self.domain.expected_data,
-            self.domain.equality_fields,
-            self.domain.field_normalizers,
-        )
+class AggregateTesterContext(TesterContext):
+    '''Asserts optional set_attribute mutations for a bound aggregate tester.'''
 
     # * method: assert_set_attribute
     def assert_set_attribute(self) -> None:
@@ -252,14 +195,11 @@ class AggregateTesterContext(BaseContext):
             assert getattr(target, attr) == value
 
 # ** context: transfer_object_tester_context
-class TransferObjectTesterContext(BaseContext):
+class TransferObjectTesterContext(TesterContext):
     '''
     Asserts mapping, from_model conversion, and round-trip behavior for a
     bound transfer-object tester.
     '''
-
-    # * attribute: domain_type
-    domain_type = TransferObjectTesterObject
 
     # * method: make_target
     def make_target(self, data: Dict[str, Any] = None) -> Any:

@@ -13,14 +13,7 @@ from tiferet.mappers.feature import (
     FeatureAggregate,
     FeatureConfigObject,
 )
-from tiferet.contexts.tester import (
-    AggregateTesterContext,
-    TransferObjectTesterContext,
-)
-from tiferet.domain import (
-    AggregateTesterObject,
-    TransferObjectTesterObject,
-)
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -117,46 +110,35 @@ TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
 # *** tests
 
 # ** tester: TestEventFeatureStepAggregate
+@use_tester(
+    type='aggregate',
+    target_cls=EventFeatureStepAggregate,
+    sample_data=FEATURE_EVENT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FEATURE_EVENT_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('name', 'Updated Event', None),
+        ('service_id', 'updated_handler', None),
+        ('data_key', 'new_key', None),
+        ('condition', '$r.y != 0', None),
+    ],
+)
 class TestEventFeatureStepAggregate:
     '''
     Tests for EventFeatureStepAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * fixture: tester_context
-    @pytest.fixture
-    def tester_context(self):
-        '''Bind an aggregate tester context from this class's sample data.'''
-
-        return AggregateTesterContext.from_domain(
-            AggregateTesterObject(
-                id=f'aggregate.{self.aggregate_cls.__name__}',
-                module_path=self.aggregate_cls.__module__,
-                class_name=self.aggregate_cls.__name__,
-                sample_data=self.sample_data,
-                equality_fields=self.equality_fields,
-                field_normalizers=getattr(self, 'field_normalizers', {}),
-                set_attribute_params=getattr(self, 'set_attribute_params', []),
-            ),
-        )
-
-    # * fixture: target
-    @pytest.fixture
-    def target(self, tester_context):
-        '''Construct a fresh aggregate target for one test.'''
-
-        return tester_context.make_target()
-
     # * method: test_new
-    def test_new(self, tester_context, target):
+    def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
-        tester_context.assert_new(target)
+        test_ctx.assert_new()
 
     # * method: test_set_attribute
-    def test_set_attribute(self, tester_context):
+    def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
-        tester_context.assert_set_attribute()
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = EventFeatureStepAggregate
 
@@ -175,10 +157,12 @@ class TestEventFeatureStepAggregate:
     # *** domain-specific mutation tests
 
     # * test: set_pass_on_error
-    def test_set_pass_on_error(self, target):
+    def test_set_pass_on_error(self, test_ctx):
         '''
         Verifies string normalization ("false", "False", truthy).
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -200,10 +184,12 @@ class TestEventFeatureStepAggregate:
         assert aggregate.pass_on_error is True
 
     # * test: set_parameters
-    def test_set_parameters(self, target):
+    def test_set_parameters(self, test_ctx):
         '''
         Verifies merge, None-prune, and no-op on None.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -221,10 +207,12 @@ class TestEventFeatureStepAggregate:
         assert aggregate.parameters == {'key': '10'}
 
     # * test: set_attribute_delegation
-    def test_set_attribute_delegation(self, target):
+    def test_set_attribute_delegation(self, test_ctx):
         '''
         Verifies delegation to specialized helpers.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -242,46 +230,35 @@ class TestEventFeatureStepAggregate:
         assert aggregate.name == 'Renamed Event'
 
 # ** tester: TestFeatureAggregate
+@use_tester(
+    type='aggregate',
+    target_cls=FeatureAggregate,
+    sample_data=FEATURE_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FEATURE_EQUALITY_FIELDS,
+    field_normalizers=FEATURE_FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Feature', None),
+        ('description', 'Updated description', None),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
 class TestFeatureAggregate:
     '''
     Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * fixture: tester_context
-    @pytest.fixture
-    def tester_context(self):
-        '''Bind an aggregate tester context from this class's sample data.'''
-
-        return AggregateTesterContext.from_domain(
-            AggregateTesterObject(
-                id=f'aggregate.{self.aggregate_cls.__name__}',
-                module_path=self.aggregate_cls.__module__,
-                class_name=self.aggregate_cls.__name__,
-                sample_data=self.sample_data,
-                equality_fields=self.equality_fields,
-                field_normalizers=getattr(self, 'field_normalizers', {}),
-                set_attribute_params=getattr(self, 'set_attribute_params', []),
-            ),
-        )
-
-    # * fixture: target
-    @pytest.fixture
-    def target(self, tester_context):
-        '''Construct a fresh aggregate target for one test.'''
-
-        return tester_context.make_target()
-
     # * method: test_new
-    def test_new(self, tester_context, target):
+    def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
-        tester_context.assert_new(target)
+        test_ctx.assert_new()
 
     # * method: test_set_attribute
-    def test_set_attribute(self, tester_context):
+    def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
-        tester_context.assert_set_attribute()
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = FeatureAggregate
 
@@ -302,10 +279,12 @@ class TestFeatureAggregate:
     # *** domain-specific tests
 
     # * test: smart_derivation
-    def test_smart_derivation(self, target):
+    def test_smart_derivation(self, test_ctx):
         '''
         Verifies smart derivation (name -> feature_key -> id).
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -316,10 +295,12 @@ class TestFeatureAggregate:
         assert aggregate.description == 'Add Number'
 
     # * test: add_step
-    def test_add_step(self, target):
+    def test_add_step(self, test_ctx):
         '''
         Verifies step append.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -337,10 +318,12 @@ class TestFeatureAggregate:
         assert step.service_id == 'step_one_event'
 
     # * test: add_step_position
-    def test_add_step_position(self, target):
+    def test_add_step_position(self, test_ctx):
         '''
         Verifies step insertion at position 0.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -360,10 +343,12 @@ class TestFeatureAggregate:
         assert aggregate.steps[1].name == 'Step One'
 
     # * test: remove_step
-    def test_remove_step(self, target):
+    def test_remove_step(self, test_ctx):
         '''
         Verifies removal and invalid position handling.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -383,10 +368,12 @@ class TestFeatureAggregate:
         assert aggregate.remove_step(99) is None
 
     # * test: reorder_step
-    def test_reorder_step(self, target):
+    def test_reorder_step(self, test_ctx):
         '''
         Verifies move with clamping.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -405,10 +392,12 @@ class TestFeatureAggregate:
         assert aggregate.steps[2].name == 'A'
 
     # * test: rename
-    def test_rename(self, target):
+    def test_rename(self, test_ctx):
         '''
         Verifies name update without id change.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -422,10 +411,12 @@ class TestFeatureAggregate:
         assert aggregate.id == original_id
 
     # * test: set_description
-    def test_set_description(self, target):
+    def test_set_description(self, test_ctx):
         '''
         Verifies set and clear.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -439,55 +430,38 @@ class TestFeatureAggregate:
         assert aggregate.description is None
 
 # ** tester: TestFeatureConfigObject
+@use_tester(
+    type='transfer_object',
+    target_cls=FeatureConfigObject,
+    aggregate_cls=FeatureAggregate,
+    sample_data=TEST_FEATURE_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FEATURE_EQUALITY_FIELDS,
+    field_normalizers=FEATURE_FIELD_NORMALIZERS,
+)
 class TestFeatureConfigObject:
     '''
     Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
     '''
 
-    # * fixture: tester_context
-    @pytest.fixture
-    def tester_context(self):
-        '''Bind a transfer-object tester context from this class's sample data.'''
-
-        return TransferObjectTesterContext.from_domain(
-            TransferObjectTesterObject(
-                id=f'transfer_object.{self.transfer_cls.__name__}',
-                module_path=self.transfer_cls.__module__,
-                class_name=self.transfer_cls.__name__,
-                sample_data=self.sample_data,
-                equality_fields=self.equality_fields,
-                field_normalizers=getattr(self, 'field_normalizers', {}),
-                aggregate_module_path=self.aggregate_cls.__module__,
-                aggregate_class_name=self.aggregate_cls.__name__,
-                aggregate_sample_data=self.aggregate_sample_data,
-                map_kwargs=getattr(self, 'map_kwargs', {}),
-            ),
-        )
-
-    # * fixture: target
-    @pytest.fixture
-    def target(self, tester_context):
-        '''Construct a fresh aggregate target for one test.'''
-
-        return tester_context.make_target()
-
     # * method: test_map
-    def test_map(self, tester_context):
+    def test_map(self, test_ctx):
         '''Verify transfer construction and mapping to the declared aggregate.'''
 
-        tester_context.assert_map()
+        test_ctx.assert_map()
 
     # * method: test_from_model
-    def test_from_model(self, tester_context, target):
+    def test_from_model(self, test_ctx):
         '''Verify aggregate conversion to the declared transfer-object type.'''
 
-        tester_context.assert_from_model(target)
+        test_ctx.assert_from_model()
 
     # * method: test_round_trip
-    def test_round_trip(self, tester_context, target):
+    def test_round_trip(self, test_ctx):
         '''Verify aggregate conversion through the transfer object and back.'''
 
-        tester_context.assert_round_trip(target)
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = FeatureConfigObject
     aggregate_cls = FeatureAggregate

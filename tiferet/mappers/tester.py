@@ -11,11 +11,8 @@ from pydantic import ConfigDict
 
 # ** app
 from ..domain import (
-    AggregateTesterObject,
-    DomainTesterObject,
     ModelError,
     TesterObject,
-    TransferObjectTesterObject,
 )
 from .core import Aggregate, TransferObject
 
@@ -47,21 +44,16 @@ class TesterAggregate(TesterObject, Aggregate):
         :raises ModelError: When the tester type is unrecognized.
         '''
 
-        # Select the configuration class from the declared discriminator.
-        config_class = {
-            'domain': DomainTesterConfigObject,
-            'aggregate': AggregateTesterConfigObject,
-            'transfer_object': TransferObjectTesterConfigObject,
-        }.get(data.get('type'))
-        if config_class is None:
+        # Reject an unrecognized discriminator as a model defect.
+        if data.get('type') not in ('domain', 'aggregate', 'transfer_object'):
             ModelError.raise_error(
                 'INVALID_TESTER_TYPE',
                 f'Invalid tester type: {data.get("type")}.',
                 type=data.get('type'),
             )
 
-        # Validate and return the matching configuration object.
-        return config_class.model_validate(data)
+        # Validate and return the single tester configuration object.
+        return TesterConfigObject.model_validate(data)
 
     # * method: retarget
     def retarget(self, module_path: str, class_name: str) -> None:
@@ -125,9 +117,9 @@ class TesterAggregate(TesterObject, Aggregate):
         # Delegate ordinary assignment to the aggregate base.
         super().set_attribute(attribute, value)
 
-# ** mapper: domain_tester_config_object
-class DomainTesterConfigObject(DomainTesterObject, TransferObject):
-    '''Configuration representation of a domain-object tester.'''
+# ** mapper: tester_config_object
+class TesterConfigObject(TesterObject, TransferObject):
+    '''Configuration representation of a component tester.'''
 
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
@@ -150,7 +142,7 @@ class DomainTesterConfigObject(DomainTesterObject, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, tester: TesterObject, **overrides) -> 'DomainTesterConfigObject':
+    def from_model(cls, tester: TesterObject, **overrides) -> 'TesterConfigObject':
         '''Create config data from a tester model.
 
         :param tester: The source tester model.
@@ -158,91 +150,7 @@ class DomainTesterConfigObject(DomainTesterObject, TransferObject):
         :param overrides: Additional mapping values.
         :type overrides: dict
         :return: The configuration object.
-        :rtype: DomainTesterConfigObject
-        '''
-
-        # Delegate source serialization to the transfer-object base.
-        return super().from_model(tester, **overrides)
-
-# ** mapper: aggregate_tester_config_object
-class AggregateTesterConfigObject(AggregateTesterObject, TransferObject):
-    '''Configuration representation of an aggregate tester.'''
-
-    # * attribute: _ROLES
-    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
-        'to_model': {},
-        'to_data': {'exclude': {'id'}},
-    }
-
-    # * attribute: name
-    name: str = ''
-
-    # * method: map
-    def map(self, **overrides) -> TesterAggregate:
-        '''Map configuration data to a tester aggregate.
-
-        :param overrides: Additional mapping values.
-        :type overrides: dict
-        :return: The tester aggregate.
-        :rtype: TesterAggregate
-        '''
-
-        # Map to the mutable aggregate type.
-        return super().map(TesterAggregate, **overrides)
-
-    # * method: from_model
-    @classmethod
-    def from_model(cls, tester: TesterObject, **overrides) -> 'AggregateTesterConfigObject':
-        '''Create config data from a tester model.
-
-        :param tester: The source tester model.
-        :type tester: TesterObject
-        :param overrides: Additional mapping values.
-        :type overrides: dict
-        :return: The configuration object.
-        :rtype: AggregateTesterConfigObject
-        '''
-
-        # Delegate source serialization to the transfer-object base.
-        return super().from_model(tester, **overrides)
-
-# ** mapper: transfer_object_tester_config_object
-class TransferObjectTesterConfigObject(TransferObjectTesterObject, TransferObject):
-    '''Configuration representation of a transfer-object tester.'''
-
-    # * attribute: _ROLES
-    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
-        'to_model': {},
-        'to_data': {'exclude': {'id'}},
-    }
-
-    # * attribute: name
-    name: str = ''
-
-    # * method: map
-    def map(self, **overrides) -> TesterAggregate:
-        '''Map configuration data to a tester aggregate.
-
-        :param overrides: Additional mapping values.
-        :type overrides: dict
-        :return: The tester aggregate.
-        :rtype: TesterAggregate
-        '''
-
-        # Map to the mutable aggregate type.
-        return super().map(TesterAggregate, **overrides)
-
-    # * method: from_model
-    @classmethod
-    def from_model(cls, tester: TesterObject, **overrides) -> 'TransferObjectTesterConfigObject':
-        '''Create config data from a tester model.
-
-        :param tester: The source tester model.
-        :type tester: TesterObject
-        :param overrides: Additional mapping values.
-        :type overrides: dict
-        :return: The configuration object.
-        :rtype: TransferObjectTesterConfigObject
+        :rtype: TesterConfigObject
         '''
 
         # Delegate source serialization to the transfer-object base.

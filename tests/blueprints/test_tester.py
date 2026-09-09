@@ -24,7 +24,7 @@ from tiferet.contexts.tester import (
     TestSessionContext as _TestSessionContext,
     TESTER_CACHE_PREFIX,
 )
-from tiferet.domain import AggregateTesterObject
+from tiferet.domain import TesterObject
 
 # *** tests
 
@@ -60,7 +60,7 @@ def test_resolve_tester_returns_seeded_default_domain_object():
     tester = resolve_tester('aggregate.ErrorAggregate')
 
     # Assert the cache-hit object is the seeded domain variant.
-    assert isinstance(tester, AggregateTesterObject)
+    assert isinstance(tester, TesterObject)
     assert tester.id == 'aggregate.ErrorAggregate'
 
 # ** test: resolve_tester_with_config

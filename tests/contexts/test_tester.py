@@ -9,6 +9,7 @@ import pytest
 from tiferet.assets import TiferetError
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import RequestContext
+from tiferet.blueprints.tester import build_tester_context, use_tester
 from tiferet.contexts.tester import (
     AggregateTesterContext,
     DomainTesterContext,
@@ -16,16 +17,15 @@ from tiferet.contexts.tester import (
     TestSessionContext as _TestSessionContext,
     TEST_PRESET_CACHE_PREFIX,
     TESTER_CACHE_PREFIX,
+    TesterContext,
     TransferObjectTesterContext,
     add_default_test_presets,
     add_default_testers,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.domain import (
-    AggregateTesterObject,
-    DomainTesterObject,
     Request,
-    TransferObjectTesterObject,
+    TesterObject,
     Verification,
 )
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
@@ -37,57 +37,24 @@ from tiferet.mappers.error import (
 
 # *** tests
 
-# ** test: variant_tester_contexts_bind_from_domain
-def test_variant_tester_contexts_bind_from_domain() -> None:
-    '''Test that each variant context registers and constructs via from_domain.'''
+# ** test: tester_context_registry_and_omitted_domain_type
+def test_tester_context_registry_and_omitted_domain_type() -> None:
+    '''Test TesterContext registration and variant classes omit domain_type.'''
 
-    # Bind one tester of each existing variant.
-    domain_tester = DomainTesterObject(
+    tester = TesterObject(
+        type='domain',
         id='domain.ErrorMessage',
         module_path=ErrorMessage.__module__,
         class_name=ErrorMessage.__name__,
         sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
         equality_fields=['lang', 'text'],
     )
-    aggregate_tester = AggregateTesterObject(
-        id='aggregate.ErrorAggregate',
-        module_path=ErrorAggregate.__module__,
-        class_name=ErrorAggregate.__name__,
-        sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
-        equality_fields=['id', 'name'],
-    )
-    transfer_tester = TransferObjectTesterObject(
-        id='transfer_object.ErrorConfigObject',
-        module_path=ErrorConfigObject.__module__,
-        class_name=ErrorConfigObject.__name__,
-        sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
-        equality_fields=['id', 'name'],
-        aggregate_module_path=ErrorAggregate.__module__,
-        aggregate_class_name=ErrorAggregate.__name__,
-        aggregate_sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
-    )
-
-    # Construct each context from its bound domain object.
-    domain_context = DomainTesterContext.from_domain(domain_tester)
-    aggregate_context = AggregateTesterContext.from_domain(aggregate_tester)
-    transfer_context = TransferObjectTesterContext.from_domain(transfer_tester)
-
-    # Assert registry mapping and ordinary construction methods.
-    assert BaseContext.for_domain(DomainTesterObject) is DomainTesterContext
-    assert BaseContext.for_domain(AggregateTesterObject) is AggregateTesterContext
-    assert BaseContext.for_domain(TransferObjectTesterObject) is TransferObjectTesterContext
-    assert isinstance(domain_context.make_target(), ErrorMessage)
-    assert isinstance(aggregate_context.make_target(), ErrorAggregate)
-    assert isinstance(transfer_context.make_target(), ErrorAggregate)
-
-    # Exercise ordinary assertion methods on the bound testers.
-    domain_context.assert_new()
-    domain_context.assert_description()
-    aggregate_context.assert_new()
-    aggregate_context.assert_set_attribute()
-    transfer_context.assert_map()
-    transfer_context.assert_from_model()
-    transfer_context.assert_round_trip()
+    assert BaseContext.for_domain(TesterObject) is TesterContext
+    assert 'domain_type' not in DomainTesterContext.__dict__
+    assert 'domain_type' not in AggregateTesterContext.__dict__
+    assert 'domain_type' not in TransferObjectTesterContext.__dict__
+    assert isinstance(BaseContext.from_domain(tester), TesterContext)
+    assert isinstance(DomainTesterContext.from_domain(tester), DomainTesterContext)
 
 # ** test: test_request_context_preserves_request_context_registration
 def test_request_context_preserves_request_context_registration() -> None:
@@ -235,13 +202,12 @@ def test_add_default_testers_seeds_polymorphic_domain_objects() -> None:
     )(lambda cache=None: CacheContext(cache=cache))
     cache = builder()
 
-    # Verify the seeded values are domain variants, not tester aggregates.
     domain_tester = cache.get('domain.ErrorMessage', *TESTER_CACHE_PREFIX)
     aggregate_tester = cache.get('aggregate.ErrorAggregate', *TESTER_CACHE_PREFIX)
     transfer_tester = cache.get('transfer_object.ErrorConfigObject', *TESTER_CACHE_PREFIX)
-    assert isinstance(domain_tester, DomainTesterObject)
-    assert isinstance(aggregate_tester, AggregateTesterObject)
-    assert isinstance(transfer_tester, TransferObjectTesterObject)
+    assert isinstance(domain_tester, TesterObject)
+    assert isinstance(aggregate_tester, TesterObject)
+    assert isinstance(transfer_tester, TesterObject)
     assert aggregate_tester.id == 'aggregate.ErrorAggregate'
     assert aggregate_tester.type == 'aggregate'
 
@@ -301,24 +267,60 @@ def test_session_context_merges_preset_and_rejects_missing_preset() -> None:
         context.given('missing')
     assert exc_info.value.error_code == 'TEST_PRESET_NOT_FOUND'
 
-# ** test: aggregate_tester_context_set_attribute_cases
-def test_aggregate_tester_context_set_attribute_cases() -> None:
-    '''Test mutation assertions iterate declared cases on fresh targets.'''
+# ** test: build_tester_context_selects_variant_class
+def test_build_tester_context_selects_variant_class() -> None:
+    '''Test the blueprint selector returns the matching omitting-domain_type class.'''
 
-    # Bind an aggregate tester with valid and invalid mutation cases.
-    context = AggregateTesterContext.from_domain(
-        AggregateTesterObject(
+    domain_ctx = build_tester_context(
+        TesterObject(
+            type='domain',
+            id='domain.ErrorMessage',
+            module_path=ErrorMessage.__module__,
+            class_name=ErrorMessage.__name__,
+        ),
+    )
+    aggregate_ctx = build_tester_context(
+        TesterObject(
+            type='aggregate',
             id='aggregate.ErrorAggregate',
             module_path=ErrorAggregate.__module__,
             class_name=ErrorAggregate.__name__,
-            sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
-            equality_fields=['id', 'name'],
             set_attribute_params=[
                 ('name', 'Updated Error', None),
                 ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
             ],
+            sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
+            equality_fields=['id', 'name'],
         ),
     )
+    transfer_ctx = build_tester_context(
+        TesterObject(
+            type='transfer_object',
+            id='transfer_object.ErrorConfigObject',
+            module_path=ErrorConfigObject.__module__,
+            class_name=ErrorConfigObject.__name__,
+            aggregate_module_path=ErrorAggregate.__module__,
+            aggregate_class_name=ErrorAggregate.__name__,
+            sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
+            aggregate_sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
+            equality_fields=['id', 'name'],
+        ),
+    )
+    assert isinstance(domain_ctx, DomainTesterContext)
+    assert isinstance(aggregate_ctx, AggregateTesterContext)
+    assert isinstance(transfer_ctx, TransferObjectTesterContext)
+    aggregate_ctx.assert_set_attribute()
+    transfer_ctx.assert_map()
 
-    # Assert every declared mutation case on a fresh target.
-    context.assert_set_attribute()
+# ** test: use_tester_injects_test_ctx
+@use_tester(
+    type='domain',
+    target_cls=ErrorMessage,
+    sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
+    equality_fields=['lang', 'text'],
+)
+def test_use_tester_injects_test_ctx(test_ctx) -> None:
+    '''Test @use_tester injects a bound DomainTesterContext as test_ctx.'''
+
+    assert isinstance(test_ctx, DomainTesterContext)
+    test_ctx.assert_new()
