@@ -18,8 +18,12 @@ from tiferet.mappers.logging import (
     LoggingSettingsConfigObject,
 )
 from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
+    AggregateTesterContext,
+    TransferObjectTesterContext,
+)
+from tiferet.domain import (
+    AggregateTesterObject,
+    TransferObjectTesterObject,
 )
 
 # *** constants
@@ -63,11 +67,46 @@ LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 # *** tests
 
 # ** tester: TestFormatterAggregate
-@create_aggregate_tester(aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Formatter', None), ('format', '%(message)s', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
 class TestFormatterAggregate:
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind an aggregate tester context from this class's sample data.'''
+
+        return AggregateTesterContext.from_domain(
+            AggregateTesterObject(
+                id=f'aggregate.{self.aggregate_cls.__name__}',
+                module_path=self.aggregate_cls.__module__,
+                class_name=self.aggregate_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                set_attribute_params=getattr(self, 'set_attribute_params', []),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_new
+    def test_new(self, tester_context, target):
+        '''Verify aggregate construction against declared expected data.'''
+
+        tester_context.assert_new(target)
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, tester_context):
+        '''Verify declared set_attribute cases.'''
+
+        tester_context.assert_set_attribute()
 
     aggregate_cls = FormatterAggregate
 
@@ -105,11 +144,46 @@ class TestFormatterAggregate:
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
 # ** tester: TestHandlerAggregate
-@create_aggregate_tester(aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Handler', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
 class TestHandlerAggregate:
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind an aggregate tester context from this class's sample data.'''
+
+        return AggregateTesterContext.from_domain(
+            AggregateTesterObject(
+                id=f'aggregate.{self.aggregate_cls.__name__}',
+                module_path=self.aggregate_cls.__module__,
+                class_name=self.aggregate_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                set_attribute_params=getattr(self, 'set_attribute_params', []),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_new
+    def test_new(self, tester_context, target):
+        '''Verify aggregate construction against declared expected data.'''
+
+        tester_context.assert_new(target)
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, tester_context):
+        '''Verify declared set_attribute cases.'''
+
+        tester_context.assert_set_attribute()
 
     aggregate_cls = HandlerAggregate
 
@@ -174,11 +248,46 @@ class TestHandlerAggregate:
         assert config['level'] == 'INFO'
 
 # ** tester: TestLoggerAggregate
-@create_aggregate_tester(aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Logger', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
 class TestLoggerAggregate:
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind an aggregate tester context from this class's sample data.'''
+
+        return AggregateTesterContext.from_domain(
+            AggregateTesterObject(
+                id=f'aggregate.{self.aggregate_cls.__name__}',
+                module_path=self.aggregate_cls.__module__,
+                class_name=self.aggregate_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                set_attribute_params=getattr(self, 'set_attribute_params', []),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_new
+    def test_new(self, tester_context, target):
+        '''Verify aggregate construction against declared expected data.'''
+
+        tester_context.assert_new(target)
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, tester_context):
+        '''Verify declared set_attribute cases.'''
+
+        tester_context.assert_set_attribute()
 
     aggregate_cls = LoggerAggregate
 
@@ -237,11 +346,55 @@ class TestLoggerAggregate:
         assert logger.level == 'WARNING'
 
 # ** tester: TestFormatterConfigObject
-@create_transfer_object_tester(transfer_cls=FormatterConfigObject, aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS)
 class TestFormatterConfigObject:
     '''
     Tests for FormatterConfigObject mapping and round-trip.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind a transfer-object tester context from this class's sample data.'''
+
+        return TransferObjectTesterContext.from_domain(
+            TransferObjectTesterObject(
+                id=f'transfer_object.{self.transfer_cls.__name__}',
+                module_path=self.transfer_cls.__module__,
+                class_name=self.transfer_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                aggregate_module_path=self.aggregate_cls.__module__,
+                aggregate_class_name=self.aggregate_cls.__name__,
+                aggregate_sample_data=self.aggregate_sample_data,
+                map_kwargs=getattr(self, 'map_kwargs', {}),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_map
+    def test_map(self, tester_context):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        tester_context.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, tester_context, target):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        tester_context.assert_from_model(target)
+
+    # * method: test_round_trip
+    def test_round_trip(self, tester_context, target):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        tester_context.assert_round_trip(target)
 
     transfer_cls = FormatterConfigObject
     aggregate_cls = FormatterAggregate
@@ -253,11 +406,55 @@ class TestFormatterConfigObject:
     equality_fields = FORMATTER_EQUALITY_FIELDS
 
 # ** tester: TestHandlerConfigObject
-@create_transfer_object_tester(transfer_cls=HandlerConfigObject, aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS)
 class TestHandlerConfigObject:
     '''
     Tests for HandlerConfigObject mapping and round-trip.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind a transfer-object tester context from this class's sample data.'''
+
+        return TransferObjectTesterContext.from_domain(
+            TransferObjectTesterObject(
+                id=f'transfer_object.{self.transfer_cls.__name__}',
+                module_path=self.transfer_cls.__module__,
+                class_name=self.transfer_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                aggregate_module_path=self.aggregate_cls.__module__,
+                aggregate_class_name=self.aggregate_cls.__name__,
+                aggregate_sample_data=self.aggregate_sample_data,
+                map_kwargs=getattr(self, 'map_kwargs', {}),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_map
+    def test_map(self, tester_context):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        tester_context.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, tester_context, target):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        tester_context.assert_from_model(target)
+
+    # * method: test_round_trip
+    def test_round_trip(self, tester_context, target):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        tester_context.assert_round_trip(target)
 
     transfer_cls = HandlerConfigObject
     aggregate_cls = HandlerAggregate
@@ -269,11 +466,55 @@ class TestHandlerConfigObject:
     equality_fields = HANDLER_EQUALITY_FIELDS
 
 # ** tester: TestLoggerConfigObject
-@create_transfer_object_tester(transfer_cls=LoggerConfigObject, aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS)
 class TestLoggerConfigObject:
     '''
     Tests for LoggerConfigObject mapping and round-trip.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind a transfer-object tester context from this class's sample data.'''
+
+        return TransferObjectTesterContext.from_domain(
+            TransferObjectTesterObject(
+                id=f'transfer_object.{self.transfer_cls.__name__}',
+                module_path=self.transfer_cls.__module__,
+                class_name=self.transfer_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                aggregate_module_path=self.aggregate_cls.__module__,
+                aggregate_class_name=self.aggregate_cls.__name__,
+                aggregate_sample_data=self.aggregate_sample_data,
+                map_kwargs=getattr(self, 'map_kwargs', {}),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_map
+    def test_map(self, tester_context):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        tester_context.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, tester_context, target):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        tester_context.assert_from_model(target)
+
+    # * method: test_round_trip
+    def test_round_trip(self, tester_context, target):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        tester_context.assert_round_trip(target)
 
     transfer_cls = LoggerConfigObject
     aggregate_cls = LoggerAggregate

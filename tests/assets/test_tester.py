@@ -3,11 +3,6 @@
 # *** imports
 
 # ** app
-from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_domain_tester,
-    create_transfer_object_tester,
-)
 from tiferet.assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
@@ -16,7 +11,17 @@ from tiferet.assets.tester import (
     TESTER_SERVICE_ID,
     TIFERET_TESTER_ID,
 )
-from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
+from tiferet.contexts.tester import (
+    AggregateTesterContext,
+    DomainTesterContext,
+    TransferObjectTesterContext,
+)
+from tiferet.domain import (
+    AggregateTesterObject,
+    DomainTesterObject,
+    INVALID_MODEL_ATTRIBUTE_ID,
+    TransferObjectTesterObject,
+)
 from tiferet.domain.error import ErrorMessage
 from tiferet.mappers.error import (
     ErrorAggregate,
@@ -45,106 +50,101 @@ ERROR_DATA = {
 
 # *** tests
 
-# ** tester: TestErrorMessage
-@create_domain_tester(
-    domain_cls=ErrorMessage,
-    sample_data=ERROR_MESSAGE_DATA,
-    equality_fields=[
-        'lang',
-        'text',
-    ],
-)
-class TestErrorMessage:
-    pass
+# ** test: error_message_domain_tester
+def test_error_message_domain_tester() -> None:
+    '''Test domain tester construction assertions against ErrorMessage.'''
 
-# ** tester: TestErrorMessageDescription
-@create_domain_tester(
-    domain_cls=ErrorMessage,
-    sample_data=ERROR_MESSAGE_DATA,
-    equality_fields=[
-        'lang',
-        'text',
-    ],
-    description_cases=[
-        (
-            'format',
-            (),
-            'An error occurred.',
+    # Bind a domain tester and assert construction.
+    context = DomainTesterContext.from_domain(
+        DomainTesterObject(
+            id='domain.ErrorMessage',
+            module_path=ErrorMessage.__module__,
+            class_name=ErrorMessage.__name__,
+            sample_data=ERROR_MESSAGE_DATA,
+            equality_fields=['lang', 'text'],
         ),
-    ],
-)
-class TestErrorMessageDescription:
-    pass
+    )
+    context.assert_new()
+    context.assert_description()
 
-# ** tester: TestErrorAggregate
-@create_aggregate_tester(
-    aggregate_cls=ErrorAggregate,
-    sample_data=ERROR_DATA,
-    equality_fields=[
-        'id',
-        'name',
-        'error_code',
-    ],
-)
-class TestErrorAggregate:
-    pass
+# ** test: error_message_description_tester
+def test_error_message_description_tester() -> None:
+    '''Test optional description assertions against ErrorMessage.format.'''
 
-# ** tester: TestErrorAggregateSetAttribute
-@create_aggregate_tester(
-    aggregate_cls=ErrorAggregate,
-    sample_data=ERROR_DATA,
-    equality_fields=[
-        'id',
-        'name',
-        'error_code',
-    ],
-    set_attribute_params=[
-        (
-            'name',
-            'Updated Error',
-            None,
+    # Bind a domain tester with one description case.
+    context = DomainTesterContext.from_domain(
+        DomainTesterObject(
+            id='domain.ErrorMessage',
+            module_path=ErrorMessage.__module__,
+            class_name=ErrorMessage.__name__,
+            sample_data=ERROR_MESSAGE_DATA,
+            equality_fields=['lang', 'text'],
+            description_cases=[
+                ('format', (), 'An error occurred.'),
+            ],
         ),
-        (
-            'invalid_attribute',
-            'value',
-            INVALID_MODEL_ATTRIBUTE_ID,
+    )
+    context.assert_new()
+    context.assert_description()
+
+# ** test: error_aggregate_tester
+def test_error_aggregate_tester() -> None:
+    '''Test aggregate tester construction assertions against ErrorAggregate.'''
+
+    # Bind an aggregate tester without mutation cases.
+    context = AggregateTesterContext.from_domain(
+        AggregateTesterObject(
+            id='aggregate.ErrorAggregate',
+            module_path=ErrorAggregate.__module__,
+            class_name=ErrorAggregate.__name__,
+            sample_data=ERROR_DATA,
+            equality_fields=['id', 'name', 'error_code'],
         ),
-    ],
-)
-class TestErrorAggregateSetAttribute:
-    pass
+    )
+    context.assert_new()
+    context.assert_set_attribute()
 
-# ** tester: TestErrorConfigObject
-@create_transfer_object_tester(
-    transfer_cls=ErrorConfigObject,
-    aggregate_cls=ErrorAggregate,
-    sample_data=ERROR_DATA,
-    aggregate_sample_data=ERROR_DATA,
-    equality_fields=[
-        'id',
-        'name',
-        'error_code',
-    ],
-)
-class TestErrorConfigObject:
-    pass
+# ** test: error_aggregate_set_attribute_tester
+def test_error_aggregate_set_attribute_tester() -> None:
+    '''Test optional set_attribute assertions against ErrorAggregate.'''
 
-# ** test: factory_classes_attach_only_declared_optional_assertions
-def test_factory_classes_attach_only_declared_optional_assertions() -> None:
-    '''
-    Test that optional factory assertions are omitted rather than self-skipped
-    when no cases are declared.
-    '''
+    # Bind an aggregate tester with valid and invalid mutation cases.
+    context = AggregateTesterContext.from_domain(
+        AggregateTesterObject(
+            id='aggregate.ErrorAggregate',
+            module_path=ErrorAggregate.__module__,
+            class_name=ErrorAggregate.__name__,
+            sample_data=ERROR_DATA,
+            equality_fields=['id', 'name', 'error_code'],
+            set_attribute_params=[
+                ('name', 'Updated Error', None),
+                ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+            ],
+        ),
+    )
+    context.assert_new()
+    context.assert_set_attribute()
 
-    # Assert domain-description methods follow the declared cases.
-    assert hasattr(TestErrorMessage, 'test_new')
-    assert not hasattr(TestErrorMessage, 'test_description')
-    assert hasattr(TestErrorMessageDescription, 'test_description')
+# ** test: error_config_object_tester
+def test_error_config_object_tester() -> None:
+    '''Test transfer-object tester assertions against ErrorConfigObject.'''
 
-    # Assert aggregate mutation methods follow the declared cases.
-    assert hasattr(TestErrorAggregate, 'test_new')
-    assert not hasattr(TestErrorAggregate, 'test_set_attribute')
-    assert hasattr(TestErrorAggregateSetAttribute, 'test_set_attribute')
+    # Bind a transfer-object tester and assert mapping behavior.
+    context = TransferObjectTesterContext.from_domain(
+        TransferObjectTesterObject(
+            id='transfer_object.ErrorConfigObject',
+            module_path=ErrorConfigObject.__module__,
+            class_name=ErrorConfigObject.__name__,
+            sample_data=ERROR_DATA,
+            equality_fields=['id', 'name', 'error_code'],
+            aggregate_module_path=ErrorAggregate.__module__,
+            aggregate_class_name=ErrorAggregate.__name__,
+            aggregate_sample_data=ERROR_DATA,
+        ),
+    )
+    context.assert_map()
+    context.assert_from_model()
+    context.assert_round_trip()
 
 # ** test: default_tester_catalog_and_session_are_data_only
 def test_default_tester_catalog_and_session_are_data_only() -> None:

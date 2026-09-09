@@ -1,12 +1,9 @@
-"""Tiferet Tester Context Composition"""
+"""Tiferet Tester Contexts"""
 
 # *** imports
 
 # ** core
 from typing import Any, Callable, Dict, List, Tuple
-
-# ** infra
-import pytest
 
 # ** app
 from .. import a
@@ -21,9 +18,8 @@ from ..domain import (
     Verification,
 )
 from ..events import DomainEvent
-from ..mappers import TesterAggregate
 from .app import AppSessionContext
-from .core import add_default_cache_items
+from .core import BaseContext, add_default_cache_items
 from .request import RequestContext
 
 # *** constants
@@ -33,6 +29,13 @@ TESTER_CACHE_PREFIX: Tuple[str, ...] = ('app', 'testers')
 
 # ** constant: test_preset_cache_prefix
 TEST_PRESET_CACHE_PREFIX: Tuple[str, ...] = ('test', 'presets')
+
+# ** constant: tester_variant_models
+TESTER_VARIANT_MODELS: Dict[str, type] = {
+    'domain': DomainTesterObject,
+    'aggregate': AggregateTesterObject,
+    'transfer_object': TransferObjectTesterObject,
+}
 
 # *** functions
 
@@ -67,42 +70,6 @@ def _create_verification(
         source=predicate,
     )
 
-# ** function: add_verification
-def add_verification(
-        predicate: Callable[[Any], bool] | Any,
-        message: str | None = None,
-    ) -> Callable[[Callable], Callable]:
-    '''
-    Attach one deferred verification as metadata on a test function.
-
-    :param predicate: The predicate or literal expected outcome.
-    :type predicate: Callable[[Any], bool] | Any
-    :param message: Optional failure message.
-    :type message: str | None
-    :return: The unchanged function with attached verification metadata.
-    :rtype: Callable[[Callable], Callable]
-    '''
-
-    # Normalize the declaration before attaching it to a function.
-    verification = _create_verification(predicate=predicate, message=message)
-
-    # Return a metadata-only decorator without introducing a call wrapper.
-    def decorator(fn: Callable) -> Callable:
-        '''Attach the normalized verification to the function metadata.'''
-
-        # Retrieve existing metadata or create the function-owned queue.
-        verifications = getattr(fn, '__tiferet_verifications__', None)
-        if verifications is None:
-            verifications = []
-            setattr(fn, '__tiferet_verifications__', verifications)
-
-        # Append the declared verification and preserve the function identity.
-        verifications.append(verification)
-        return fn
-
-    # Return the function-identity-preserving metadata decorator.
-    return decorator
-
 # ** function: add_default_testers
 def add_default_testers(testers: Dict[str, Any]) -> Callable:
     '''
@@ -117,13 +84,12 @@ def add_default_testers(testers: Dict[str, Any]) -> Callable:
     # Return a dedicated decorator because tester variants require dispatch.
     def decorator(build_fn: Callable) -> Callable:
 
-        # Add validated tester aggregates after building the cache.
+        # Add validated tester domain objects after building the cache.
         def wrapper(*args, **kwargs):
             cache = build_fn(*args, **kwargs)
             for tester_id, tester_data in testers.items():
-                tester = TesterAggregate.build_config_object(
-                    {**tester_data, 'id': tester_id},
-                ).map()
+                model = TESTER_VARIANT_MODELS[tester_data['type']]
+                tester = model.model_validate({**tester_data, 'id': tester_id})
                 cache.set(tester_id, tester, *TESTER_CACHE_PREFIX)
             return cache
 
@@ -145,423 +111,231 @@ def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
     # Delegate raw preset storage to the shared cache-seeding factory.
     return add_default_cache_items(presets, TEST_PRESET_CACHE_PREFIX)
 
-# ** function: compose_tester_class
-def compose_tester_class(tester: TesterObject, **targets: Any) -> type:
-    '''
-    Compose a pytest-collectible tester class from a polymorphic tester object.
+# *** contexts
 
-    :param tester: The declarative tester definition.
-    :type tester: TesterObject
-    :param targets: Runtime target classes and their construction data.
-    :type targets: Any
-    :return: The generated pytest test class.
-    :rtype: type
+# ** context: domain_tester_context
+class DomainTesterContext(BaseContext):
+    '''
+    Asserts construction and optional descriptive behavior for a bound
+    domain-object tester.
     '''
 
-    # Construct the configured target from supplied or default data.
+    # * attribute: domain_type
+    domain_type = DomainTesterObject
+
+    # * method: make_target
     def make_target(self, data: Dict[str, Any] = None) -> Any:
-        '''Construct the generated test class's declared target.'''
+        '''
+        Construct the domain class this tester describes.
 
-        target_data = data if data is not None else targets['target_data']
-        return targets['target_cls'](**target_data)
+        :param data: Optional construction data; defaults to sample data.
+        :type data: Dict[str, Any]
+        :return: The constructed domain object.
+        :rtype: Any
+        '''
 
-    # Expose a fresh target fixture to every generated tester subclass.
-    @pytest.fixture
-    def target(self) -> Any:
-        '''Provide a fresh target for one test invocation.'''
+        # Construct the declared target from supplied or sample data.
+        target_data = data if data is not None else self.domain.sample_data
+        return self.domain.get_target_type()(**target_data)
 
-        return self.make_target()
+    # * method: assert_new
+    def assert_new(self, target: Any = None) -> None:
+        '''
+        Verify construction against the tester's expected data.
 
-    # Start each generated class with its universal construction behavior.
-    namespace = {
-        'make_target': make_target,
-        'target': target,
-    }
+        :param target: Optional constructed target; built when omitted.
+        :type target: Any
+        '''
 
-    # Dispatch to the namespace builder selected by the tester discriminator.
-    builders = {
-        'domain': _build_domain_namespace,
-        'aggregate': _build_aggregate_namespace,
-        'transfer_object': _build_transfer_object_namespace,
-    }
-    namespace.update(builders[tester.type](tester, **targets))
+        # Construct the target when the caller did not supply one.
+        if target is None:
+            target = self.make_target()
 
-    # Return the assembled pytest-collectible class.
-    return type(f'Test{tester.class_name}', (object,), namespace)
-
-# ** function: _create_tester_decorator
-def _create_tester_decorator(
-        tester: TesterObject,
-        **targets: Any,
-    ) -> Callable[[type], type]:
-    '''
-    Build a decorator that merges generated tester members onto a consumer
-    class without replacing members the class declares itself.
-
-    :param tester: The declarative tester definition.
-    :type tester: TesterObject
-    :param targets: Runtime target classes and their construction data.
-    :type targets: Any
-    :return: The class decorator.
-    :rtype: Callable[[type], type]
-    '''
-
-    # Compose the standalone generated class that supplies the member namespace.
-    generated_class = compose_tester_class(tester, **targets)
-
-    # Merge generated members onto a decorated consumer class.
-    def decorator(cls: type) -> type:
-        '''Merge generated tester members without clobbering consumer overrides.'''
-
-        # Copy each generated tester member the consumer did not explicitly define.
-        for name, member in generated_class.__dict__.items():
-            if name.startswith('__') or name in cls.__dict__:
-                continue
-            setattr(cls, name, member)
-
-        # Return the augmented consumer class.
-        return cls
-
-    # Return the decorator that applies the generated tester behavior.
-    return decorator
-
-# ** function: _build_domain_namespace
-def _build_domain_namespace(
-        tester: DomainTesterObject,
-        **targets: Any,
-    ) -> Dict[str, Callable]:
-    '''
-    Build assertion methods for a domain-object tester.
-
-    :param tester: The configured domain-object tester.
-    :type tester: DomainTesterObject
-    :param targets: The runtime domain target class.
-    :type targets: Any
-    :return: The domain tester method namespace.
-    :rtype: Dict[str, Callable]
-    '''
-
-    # Define the universal domain construction assertion.
-    def test_new(self, target: Any) -> None:
-        '''Verify construction against declared expected data.'''
-
-        assert isinstance(target, targets['domain_cls'])
+        # Verify type and field equality against the bound tester.
+        assert isinstance(target, self.domain.get_target_type())
         assert_model_matches(
             target,
-            tester.expected_data,
-            tester.equality_fields,
-            tester.field_normalizers,
+            self.domain.expected_data,
+            self.domain.equality_fields,
+            self.domain.field_normalizers,
         )
 
-    # Start with the required domain construction assertion.
-    namespace = {
-        'test_new': test_new,
-    }
+    # * method: assert_description
+    def assert_description(self, target: Any = None) -> None:
+        '''
+        Verify every declared descriptive property or method.
 
-    # Add description assertions only when the tester declares them.
-    if tester.description_cases:
-        @pytest.mark.parametrize(
-            'name, args, expected',
-            tester.description_cases,
-        )
-        def test_description(
-                self,
-                target: Any,
-                name: str,
-                args: Tuple[Any, ...],
-                expected: Any,
-            ) -> None:
-            '''Verify one declared descriptive property or method.'''
+        :param target: Optional constructed target; built when omitted.
+        :type target: Any
+        '''
 
+        # Construct the target when the caller did not supply one.
+        if target is None:
+            target = self.make_target()
+
+        # Iterate optional description cases without pytest parametrization.
+        for name, args, expected in self.domain.description_cases:
             description = getattr(target, name)
             actual = description(*args) if callable(description) else description
             assert actual == expected
 
-        namespace['test_description'] = test_description
-
-    # Return the configured domain assertion namespace.
-    return namespace
-
-# ** function: _build_aggregate_namespace
-def _build_aggregate_namespace(
-        tester: AggregateTesterObject,
-        **targets: Any,
-    ) -> Dict[str, Callable]:
+# ** context: aggregate_tester_context
+class AggregateTesterContext(BaseContext):
     '''
-    Build assertion methods for an aggregate tester.
-
-    :param tester: The configured aggregate tester.
-    :type tester: AggregateTesterObject
-    :param targets: The runtime aggregate target class.
-    :type targets: Any
-    :return: The aggregate tester method namespace.
-    :rtype: Dict[str, Callable]
+    Asserts construction and optional set_attribute mutations for a bound
+    aggregate tester.
     '''
 
-    # Define the universal aggregate construction assertion.
-    def test_new(self, target: Any) -> None:
-        '''Verify construction against declared expected data.'''
+    # * attribute: domain_type
+    domain_type = AggregateTesterObject
 
-        assert isinstance(target, targets['aggregate_cls'])
+    # * method: make_target
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
+        '''
+        Construct the aggregate class this tester describes.
+
+        :param data: Optional construction data; defaults to sample data.
+        :type data: Dict[str, Any]
+        :return: The constructed aggregate.
+        :rtype: Any
+        '''
+
+        # Construct the declared target from supplied or sample data.
+        target_data = data if data is not None else self.domain.sample_data
+        return self.domain.get_target_type()(**target_data)
+
+    # * method: assert_new
+    def assert_new(self, target: Any = None) -> None:
+        '''
+        Verify construction against the tester's expected data.
+
+        :param target: Optional constructed target; built when omitted.
+        :type target: Any
+        '''
+
+        # Construct the target when the caller did not supply one.
+        if target is None:
+            target = self.make_target()
+
+        # Verify type and field equality against the bound tester.
+        assert isinstance(target, self.domain.get_target_type())
         assert_model_matches(
             target,
-            tester.expected_data,
-            tester.equality_fields,
-            tester.field_normalizers,
+            self.domain.expected_data,
+            self.domain.equality_fields,
+            self.domain.field_normalizers,
         )
 
-    # Start with the required aggregate construction assertion.
-    namespace = {
-        'test_new': test_new,
-    }
+    # * method: assert_set_attribute
+    def assert_set_attribute(self) -> None:
+        '''
+        Verify every declared aggregate attribute mutation on a fresh target.
+        '''
 
-    # Add mutation assertions only when the tester declares them.
-    if tester.set_attribute_params:
-        @pytest.mark.parametrize(
-            'attr, value, expect_error_code',
-            tester.set_attribute_params,
-        )
-        def test_set_attribute(
-                self,
-                target: Any,
-                attr: str,
-                value: Any,
-                expect_error_code: str | None,
-            ) -> None:
-            '''Verify one declared aggregate attribute mutation.'''
+        # Iterate optional mutation cases without pytest parametrization.
+        for attr, value, expect_error_code in self.domain.set_attribute_params:
+            target = self.make_target()
 
+            # Expect a model defect when the case declares an error code.
             if expect_error_code:
-                with pytest.raises(ModelError) as exc_info:
+                try:
                     target.set_attribute(attr, value)
-                assert exc_info.value.error_code == expect_error_code
-                return
+                except ModelError as error:
+                    assert error.error_code == expect_error_code
+                    continue
+                raise AssertionError(
+                    f'Expected ModelError {expect_error_code} for {attr}.'
+                )
 
+            # Apply the mutation and compare the resulting attribute value.
             target.set_attribute(attr, value)
             assert getattr(target, attr) == value
 
-        namespace['test_set_attribute'] = test_set_attribute
-
-    # Return the configured aggregate assertion namespace.
-    return namespace
-
-# ** function: _build_transfer_object_namespace
-def _build_transfer_object_namespace(
-        tester: TransferObjectTesterObject,
-        **targets: Any,
-    ) -> Dict[str, Callable]:
+# ** context: transfer_object_tester_context
+class TransferObjectTesterContext(BaseContext):
     '''
-    Build assertion methods for a transfer-object tester.
-
-    :param tester: The configured transfer-object tester.
-    :type tester: TransferObjectTesterObject
-    :param targets: The runtime transfer and aggregate target classes.
-    :type targets: Any
-    :return: The transfer-object tester method namespace.
-    :rtype: Dict[str, Callable]
+    Asserts mapping, from_model conversion, and round-trip behavior for a
+    bound transfer-object tester.
     '''
 
-    # Define the transfer-to-aggregate mapping assertion.
-    def test_map(self) -> None:
+    # * attribute: domain_type
+    domain_type = TransferObjectTesterObject
+
+    # * method: make_target
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
+        '''
+        Construct the aggregate this transfer-object tester maps to.
+
+        :param data: Optional construction data; defaults to aggregate sample data.
+        :type data: Dict[str, Any]
+        :return: The constructed aggregate.
+        :rtype: Any
+        '''
+
+        # Construct the declared aggregate from supplied or sample data.
+        target_data = data if data is not None else self.domain.aggregate_sample_data
+        return self.domain.get_aggregate_type()(**target_data)
+
+    # * method: assert_map
+    def assert_map(self) -> None:
         '''Verify transfer construction and mapping to the declared aggregate.'''
 
-        transfer = targets['transfer_cls'].model_validate(tester.sample_data)
-        aggregate = transfer.map(**tester.map_kwargs)
-        assert isinstance(aggregate, targets['aggregate_cls'])
+        # Validate the transfer object and map it to the declared aggregate.
+        transfer = self.domain.get_target_type().model_validate(
+            self.domain.sample_data,
+        )
+        aggregate = transfer.map(**self.domain.map_kwargs)
+
+        # Verify type and field equality against the bound tester.
+        assert isinstance(aggregate, self.domain.get_aggregate_type())
         assert_model_matches(
             aggregate,
-            tester.aggregate_sample_data,
-            tester.equality_fields,
-            tester.field_normalizers,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            self.domain.field_normalizers,
         )
 
-    # Define the aggregate-to-transfer conversion assertion.
-    def test_from_model(self, target: Any) -> None:
-        '''Verify aggregate conversion to the declared transfer-object type.'''
+    # * method: assert_from_model
+    def assert_from_model(self, target: Any = None) -> None:
+        '''
+        Verify aggregate conversion to the declared transfer-object type.
 
-        transfer = targets['transfer_cls'].from_model(target)
-        assert isinstance(transfer, targets['transfer_cls'])
+        :param target: Optional constructed aggregate; built when omitted.
+        :type target: Any
+        '''
 
-    # Define the aggregate round-trip assertion.
-    def test_round_trip(self, target: Any) -> None:
-        '''Verify aggregate conversion through the transfer object and back.'''
+        # Construct the aggregate when the caller did not supply one.
+        if target is None:
+            target = self.make_target()
 
-        transfer = targets['transfer_cls'].from_model(target)
-        round_tripped = transfer.map(**tester.map_kwargs)
-        assert isinstance(round_tripped, targets['aggregate_cls'])
+        # Convert the aggregate and verify the transfer-object type.
+        transfer_cls = self.domain.get_target_type()
+        transfer = transfer_cls.from_model(target)
+        assert isinstance(transfer, transfer_cls)
+
+    # * method: assert_round_trip
+    def assert_round_trip(self, target: Any = None) -> None:
+        '''
+        Verify aggregate conversion through the transfer object and back.
+
+        :param target: Optional constructed aggregate; built when omitted.
+        :type target: Any
+        '''
+
+        # Construct the aggregate when the caller did not supply one.
+        if target is None:
+            target = self.make_target()
+
+        # Convert through the transfer object and compare the restored aggregate.
+        transfer = self.domain.get_target_type().from_model(target)
+        round_tripped = transfer.map(**self.domain.map_kwargs)
+        assert isinstance(round_tripped, self.domain.get_aggregate_type())
         assert_model_matches(
             round_tripped,
-            tester.aggregate_sample_data,
-            tester.equality_fields,
-            tester.field_normalizers,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            self.domain.field_normalizers,
         )
-
-    # Return every required transfer-object assertion.
-    return {
-        'test_map': test_map,
-        'test_from_model': test_from_model,
-        'test_round_trip': test_round_trip,
-    }
-
-# ** function: create_domain_tester
-def create_domain_tester(
-        domain_cls: type,
-        sample_data: Dict[str, Any],
-        equality_fields: List[str],
-        description_cases: List[Tuple[str, Tuple[Any, ...], Any]] = None,
-        expected_data: Dict[str, Any] = None,
-        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
-        id: str = None,
-    ) -> Callable[[type], type]:
-    '''
-    Build a decorator that adds a domain tester's behavior to a class.
-
-    :param domain_cls: The domain class under test.
-    :type domain_cls: type
-    :param sample_data: The target construction data.
-    :type sample_data: Dict[str, Any]
-    :param equality_fields: The constructed target fields to compare.
-    :type equality_fields: List[str]
-    :param description_cases: Optional descriptive property or method assertions.
-    :type description_cases: List[Tuple[str, Tuple[Any, ...], Any]]
-    :param expected_data: Optional normalized target expectations.
-    :type expected_data: Dict[str, Any]
-    :param field_normalizers: Optional per-field comparison normalizers.
-    :type field_normalizers: Dict[str, Callable[[Any], Any]]
-    :param id: Optional tester identifier.
-    :type id: str
-    :return: The decorator that augments a test class.
-    :rtype: Callable[[type], type]
-    '''
-
-    # Describe the domain target and its declared assertions.
-    tester = DomainTesterObject(
-        id=id or f'domain.{domain_cls.__name__}',
-        module_path=domain_cls.__module__,
-        class_name=domain_cls.__name__,
-        sample_data=sample_data,
-        expected_data=expected_data,
-        equality_fields=equality_fields,
-        field_normalizers=field_normalizers or {},
-        description_cases=description_cases or [],
-    )
-
-    # Return the decorator that composes the domain tester behavior.
-    return _create_tester_decorator(
-        tester,
-        domain_cls=domain_cls,
-        target_cls=domain_cls,
-        target_data=tester.sample_data,
-    )
-
-# ** function: create_aggregate_tester
-def create_aggregate_tester(
-        aggregate_cls: type,
-        sample_data: Dict[str, Any],
-        equality_fields: List[str],
-        set_attribute_params: List[Tuple[str, Any, str | None]] = None,
-        expected_data: Dict[str, Any] = None,
-        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
-        id: str = None,
-    ) -> type:
-    '''
-    Build a decorator that adds an aggregate tester's behavior to a class.
-
-    :param aggregate_cls: The aggregate class under test.
-    :type aggregate_cls: type
-    :param sample_data: The target construction data.
-    :type sample_data: Dict[str, Any]
-    :param equality_fields: The constructed target fields to compare.
-    :type equality_fields: List[str]
-    :param set_attribute_params: Optional aggregate mutation assertions.
-    :type set_attribute_params: List[Tuple[str, Any, str | None]]
-    :param expected_data: Optional normalized target expectations.
-    :type expected_data: Dict[str, Any]
-    :param field_normalizers: Optional per-field comparison normalizers.
-    :type field_normalizers: Dict[str, Callable[[Any], Any]]
-    :param id: Optional tester identifier.
-    :type id: str
-    :return: The decorator that augments a test class.
-    :rtype: Callable[[type], type]
-    '''
-
-    # Describe the aggregate target and its declared assertions.
-    tester = AggregateTesterObject(
-        id=id or f'aggregate.{aggregate_cls.__name__}',
-        module_path=aggregate_cls.__module__,
-        class_name=aggregate_cls.__name__,
-        sample_data=sample_data,
-        expected_data=expected_data,
-        equality_fields=equality_fields,
-        field_normalizers=field_normalizers or {},
-        set_attribute_params=set_attribute_params or [],
-    )
-
-    # Return the decorator that composes the aggregate tester behavior.
-    return _create_tester_decorator(
-        tester,
-        aggregate_cls=aggregate_cls,
-        target_cls=aggregate_cls,
-        target_data=tester.sample_data,
-    )
-
-# ** function: create_transfer_object_tester
-def create_transfer_object_tester(
-        transfer_cls: type,
-        aggregate_cls: type,
-        sample_data: Dict[str, Any],
-        aggregate_sample_data: Dict[str, Any],
-        equality_fields: List[str] = None,
-        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
-        map_kwargs: Dict[str, Any] = None,
-        id: str = None,
-    ) -> type:
-    '''
-    Build a decorator that adds a transfer tester's behavior to a class.
-
-    :param transfer_cls: The transfer-object class under test.
-    :type transfer_cls: type
-    :param aggregate_cls: The aggregate target class.
-    :type aggregate_cls: type
-    :param sample_data: The transfer-object construction data.
-    :type sample_data: Dict[str, Any]
-    :param aggregate_sample_data: The target aggregate construction data.
-    :type aggregate_sample_data: Dict[str, Any]
-    :param equality_fields: Optional aggregate fields to compare.
-    :type equality_fields: List[str]
-    :param field_normalizers: Optional per-field comparison normalizers.
-    :type field_normalizers: Dict[str, Callable[[Any], Any]]
-    :param map_kwargs: Optional mapping keyword arguments.
-    :type map_kwargs: Dict[str, Any]
-    :param id: Optional tester identifier.
-    :type id: str
-    :return: The generated test class.
-    :rtype: type
-    '''
-
-    # Describe the transfer and aggregate targets with their assertions.
-    tester = TransferObjectTesterObject(
-        id=id or f'transfer_object.{transfer_cls.__name__}',
-        module_path=transfer_cls.__module__,
-        class_name=transfer_cls.__name__,
-        sample_data=sample_data,
-        equality_fields=equality_fields or [],
-        field_normalizers=field_normalizers or {},
-        aggregate_module_path=aggregate_cls.__module__,
-        aggregate_class_name=aggregate_cls.__name__,
-        aggregate_sample_data=aggregate_sample_data,
-        map_kwargs=map_kwargs or {},
-    )
-
-    # Return the decorator that composes the transfer-object tester behavior.
-    return _create_tester_decorator(
-        tester,
-        transfer_cls=transfer_cls,
-        aggregate_cls=aggregate_cls,
-        target_cls=aggregate_cls,
-        target_data=tester.aggregate_sample_data,
-    )
-
-# *** contexts
 
 # ** context: test_request_context
 class TestRequestContext(RequestContext):
@@ -904,30 +678,3 @@ class TestSessionContext(AppSessionContext):
 
         # Invoke a caller-provided callable directly.
         return event(**params)
-
-# ** function: tester_ctx
-@pytest.fixture
-def tester_ctx(request) -> TestSessionContext:
-    '''
-    Provide a fresh default test session and finalize an unfinished chain.
-
-    :param request: The pytest request for the active test function.
-    :type request: Any
-    :return: The default test session context.
-    :rtype: TestSessionContext
-    '''
-
-    # Import lazily so context composition does not create a module cycle.
-    from ..blueprints.tester import build_app
-
-    # Build a fresh context and queue function-declared verification metadata.
-    context = build_app()
-    for verification in getattr(request.function, '__tiferet_verifications__', []):
-        context.verify(verification.predicate, verification.message)
-
-    # Provide the fluent context to the requesting test.
-    yield context
-
-    # Execute only chains the test body left pending.
-    if context._pending_request is not None:
-        context.run()

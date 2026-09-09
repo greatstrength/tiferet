@@ -14,8 +14,12 @@ from tiferet.mappers.feature import (
     FeatureConfigObject,
 )
 from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
+    AggregateTesterContext,
+    TransferObjectTesterContext,
+)
+from tiferet.domain import (
+    AggregateTesterObject,
+    TransferObjectTesterObject,
 )
 
 # *** constants
@@ -113,11 +117,46 @@ TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
 # *** tests
 
 # ** tester: TestEventFeatureStepAggregate
-@create_aggregate_tester(aggregate_cls=EventFeatureStepAggregate, sample_data=FEATURE_EVENT_AGGREGATE_SAMPLE_DATA, equality_fields=FEATURE_EVENT_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Event', None), ('service_id', 'updated_handler', None), ('data_key', 'new_key', None), ('condition', '$r.y != 0', None)])
 class TestEventFeatureStepAggregate:
     '''
     Tests for EventFeatureStepAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind an aggregate tester context from this class's sample data.'''
+
+        return AggregateTesterContext.from_domain(
+            AggregateTesterObject(
+                id=f'aggregate.{self.aggregate_cls.__name__}',
+                module_path=self.aggregate_cls.__module__,
+                class_name=self.aggregate_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                set_attribute_params=getattr(self, 'set_attribute_params', []),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_new
+    def test_new(self, tester_context, target):
+        '''Verify aggregate construction against declared expected data.'''
+
+        tester_context.assert_new(target)
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, tester_context):
+        '''Verify declared set_attribute cases.'''
+
+        tester_context.assert_set_attribute()
 
     aggregate_cls = EventFeatureStepAggregate
 
@@ -203,11 +242,46 @@ class TestEventFeatureStepAggregate:
         assert aggregate.name == 'Renamed Event'
 
 # ** tester: TestFeatureAggregate
-@create_aggregate_tester(aggregate_cls=FeatureAggregate, sample_data=FEATURE_AGGREGATE_SAMPLE_DATA, equality_fields=FEATURE_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Feature', None), ('description', 'Updated description', None), ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID)], field_normalizers=FEATURE_FIELD_NORMALIZERS)
 class TestFeatureAggregate:
     '''
     Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind an aggregate tester context from this class's sample data.'''
+
+        return AggregateTesterContext.from_domain(
+            AggregateTesterObject(
+                id=f'aggregate.{self.aggregate_cls.__name__}',
+                module_path=self.aggregate_cls.__module__,
+                class_name=self.aggregate_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                set_attribute_params=getattr(self, 'set_attribute_params', []),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_new
+    def test_new(self, tester_context, target):
+        '''Verify aggregate construction against declared expected data.'''
+
+        tester_context.assert_new(target)
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, tester_context):
+        '''Verify declared set_attribute cases.'''
+
+        tester_context.assert_set_attribute()
 
     aggregate_cls = FeatureAggregate
 
@@ -365,11 +439,55 @@ class TestFeatureAggregate:
         assert aggregate.description is None
 
 # ** tester: TestFeatureConfigObject
-@create_transfer_object_tester(transfer_cls=FeatureConfigObject, aggregate_cls=FeatureAggregate, sample_data=TEST_FEATURE_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA, equality_fields=FEATURE_EQUALITY_FIELDS, field_normalizers=FEATURE_FIELD_NORMALIZERS)
 class TestFeatureConfigObject:
     '''
     Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
     '''
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind a transfer-object tester context from this class's sample data.'''
+
+        return TransferObjectTesterContext.from_domain(
+            TransferObjectTesterObject(
+                id=f'transfer_object.{self.transfer_cls.__name__}',
+                module_path=self.transfer_cls.__module__,
+                class_name=self.transfer_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                field_normalizers=getattr(self, 'field_normalizers', {}),
+                aggregate_module_path=self.aggregate_cls.__module__,
+                aggregate_class_name=self.aggregate_cls.__name__,
+                aggregate_sample_data=self.aggregate_sample_data,
+                map_kwargs=getattr(self, 'map_kwargs', {}),
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_map
+    def test_map(self, tester_context):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        tester_context.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, tester_context, target):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        tester_context.assert_from_model(target)
+
+    # * method: test_round_trip
+    def test_round_trip(self, tester_context, target):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        tester_context.assert_round_trip(target)
 
     transfer_cls = FeatureConfigObject
     aggregate_cls = FeatureAggregate

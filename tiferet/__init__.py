@@ -33,7 +33,6 @@ __all__ = [
     'Toml',
     'LoggingMiddleware',
     'TimingMiddleware',
-    'add_verification',
 ]
 
 # ** app
@@ -46,7 +45,6 @@ try:
     from .blueprints import build_cli as CLI
     from .blueprints import build_test as Tester, test_case
     from .domain import DomainObject
-    from .contexts.tester import add_verification
     from .events import (
         DomainEvent,
         AsyncDomainEvent,

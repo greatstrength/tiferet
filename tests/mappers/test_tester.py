@@ -6,11 +6,14 @@
 import pytest
 
 # ** app
-from tiferet.assets import TiferetError
-from tiferet.assets.error import INVALID_TESTER_TYPE_ID
 from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
+    AggregateTesterContext,
+    TransferObjectTesterContext,
+)
+from tiferet.domain import (
+    AggregateTesterObject,
+    ModelError,
+    TransferObjectTesterObject,
 )
 from tiferet.mappers import TesterAggregate as ComponentTester
 from tiferet.mappers.error import ErrorAggregate
@@ -69,16 +72,57 @@ TESTER_EQUALITY_FIELDS = [
 # *** tests
 
 # ** tester: TestTesterAggregate
-@create_aggregate_tester(
-    aggregate_cls=ComponentTester,
-    sample_data=AGGREGATE_TESTER_DATA,
-    equality_fields=TESTER_EQUALITY_FIELDS,
-    set_attribute_params=[
-        ('module_path', 'tiferet.mappers.error', None),
-    ],
-)
 class TestTesterAggregate:
     '''Tests generic and tester-specific aggregate behavior.'''
+
+    # * attribute: aggregate_cls
+    aggregate_cls = ComponentTester
+
+    # * attribute: sample_data
+    sample_data = AGGREGATE_TESTER_DATA
+
+    # * attribute: equality_fields
+    equality_fields = TESTER_EQUALITY_FIELDS
+
+    # * attribute: set_attribute_params
+    set_attribute_params = [
+        ('module_path', 'tiferet.mappers.error', None),
+    ]
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind an aggregate tester context from this class's sample data.'''
+
+        return AggregateTesterContext.from_domain(
+            AggregateTesterObject(
+                id=f'aggregate.{self.aggregate_cls.__name__}',
+                module_path=self.aggregate_cls.__module__,
+                class_name=self.aggregate_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                set_attribute_params=self.set_attribute_params,
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_new
+    def test_new(self, tester_context, target):
+        '''Verify aggregate construction against declared expected data.'''
+
+        tester_context.assert_new(target)
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, tester_context):
+        '''Verify declared set_attribute cases.'''
+
+        tester_context.assert_set_attribute()
 
     # * test: retarget
     def test_retarget(self, target) -> None:
@@ -119,37 +163,190 @@ class TestTesterAggregate:
         assert target.resolve_target_type() is ErrorAggregate
 
 # ** tester: TestDomainTesterConfigObject
-@create_transfer_object_tester(
-    transfer_cls=DomainTesterConfigObject,
-    aggregate_cls=ComponentTester,
-    sample_data=DOMAIN_TESTER_DATA,
-    aggregate_sample_data=DOMAIN_TESTER_DATA,
-    equality_fields=TESTER_EQUALITY_FIELDS,
-)
 class TestDomainTesterConfigObject:
     '''Tests generic domain tester config mapping behavior.'''
 
+    # * attribute: transfer_cls
+    transfer_cls = DomainTesterConfigObject
+
+    # * attribute: aggregate_cls
+    aggregate_cls = ComponentTester
+
+    # * attribute: sample_data
+    sample_data = DOMAIN_TESTER_DATA
+
+    # * attribute: aggregate_sample_data
+    aggregate_sample_data = DOMAIN_TESTER_DATA
+
+    # * attribute: equality_fields
+    equality_fields = TESTER_EQUALITY_FIELDS
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind a transfer-object tester context from this class's sample data.'''
+
+        return TransferObjectTesterContext.from_domain(
+            TransferObjectTesterObject(
+                id=f'transfer_object.{self.transfer_cls.__name__}',
+                module_path=self.transfer_cls.__module__,
+                class_name=self.transfer_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                aggregate_module_path=self.aggregate_cls.__module__,
+                aggregate_class_name=self.aggregate_cls.__name__,
+                aggregate_sample_data=self.aggregate_sample_data,
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_map
+    def test_map(self, tester_context):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        tester_context.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, tester_context, target):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        tester_context.assert_from_model(target)
+
+    # * method: test_round_trip
+    def test_round_trip(self, tester_context, target):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        tester_context.assert_round_trip(target)
+
 # ** tester: TestAggregateTesterConfigObject
-@create_transfer_object_tester(
-    transfer_cls=AggregateTesterConfigObject,
-    aggregate_cls=ComponentTester,
-    sample_data=AGGREGATE_TESTER_DATA,
-    aggregate_sample_data=AGGREGATE_TESTER_DATA,
-    equality_fields=TESTER_EQUALITY_FIELDS,
-)
 class TestAggregateTesterConfigObject:
     '''Tests generic aggregate tester config mapping behavior.'''
 
+    # * attribute: transfer_cls
+    transfer_cls = AggregateTesterConfigObject
+
+    # * attribute: aggregate_cls
+    aggregate_cls = ComponentTester
+
+    # * attribute: sample_data
+    sample_data = AGGREGATE_TESTER_DATA
+
+    # * attribute: aggregate_sample_data
+    aggregate_sample_data = AGGREGATE_TESTER_DATA
+
+    # * attribute: equality_fields
+    equality_fields = TESTER_EQUALITY_FIELDS
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind a transfer-object tester context from this class's sample data.'''
+
+        return TransferObjectTesterContext.from_domain(
+            TransferObjectTesterObject(
+                id=f'transfer_object.{self.transfer_cls.__name__}',
+                module_path=self.transfer_cls.__module__,
+                class_name=self.transfer_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                aggregate_module_path=self.aggregate_cls.__module__,
+                aggregate_class_name=self.aggregate_cls.__name__,
+                aggregate_sample_data=self.aggregate_sample_data,
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_map
+    def test_map(self, tester_context):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        tester_context.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, tester_context, target):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        tester_context.assert_from_model(target)
+
+    # * method: test_round_trip
+    def test_round_trip(self, tester_context, target):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        tester_context.assert_round_trip(target)
+
 # ** tester: TestTransferObjectTesterConfigObject
-@create_transfer_object_tester(
-    transfer_cls=TransferObjectTesterConfigObject,
-    aggregate_cls=ComponentTester,
-    sample_data=TRANSFER_OBJECT_TESTER_DATA,
-    aggregate_sample_data=TRANSFER_OBJECT_TESTER_DATA,
-    equality_fields=TESTER_EQUALITY_FIELDS,
-)
 class TestTransferObjectTesterConfigObject:
     '''Tests generic transfer-object tester config mapping behavior.'''
+
+    # * attribute: transfer_cls
+    transfer_cls = TransferObjectTesterConfigObject
+
+    # * attribute: aggregate_cls
+    aggregate_cls = ComponentTester
+
+    # * attribute: sample_data
+    sample_data = TRANSFER_OBJECT_TESTER_DATA
+
+    # * attribute: aggregate_sample_data
+    aggregate_sample_data = TRANSFER_OBJECT_TESTER_DATA
+
+    # * attribute: equality_fields
+    equality_fields = TESTER_EQUALITY_FIELDS
+
+    # * fixture: tester_context
+    @pytest.fixture
+    def tester_context(self):
+        '''Bind a transfer-object tester context from this class's sample data.'''
+
+        return TransferObjectTesterContext.from_domain(
+            TransferObjectTesterObject(
+                id=f'transfer_object.{self.transfer_cls.__name__}',
+                module_path=self.transfer_cls.__module__,
+                class_name=self.transfer_cls.__name__,
+                sample_data=self.sample_data,
+                equality_fields=self.equality_fields,
+                aggregate_module_path=self.aggregate_cls.__module__,
+                aggregate_class_name=self.aggregate_cls.__name__,
+                aggregate_sample_data=self.aggregate_sample_data,
+            ),
+        )
+
+    # * fixture: target
+    @pytest.fixture
+    def target(self, tester_context):
+        '''Construct a fresh aggregate target for one test.'''
+
+        return tester_context.make_target()
+
+    # * method: test_map
+    def test_map(self, tester_context):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        tester_context.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, tester_context, target):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        tester_context.assert_from_model(target)
+
+    # * method: test_round_trip
+    def test_round_trip(self, tester_context, target):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        tester_context.assert_round_trip(target)
 
 # ** test: tester_config_object_dispatch
 @pytest.mark.parametrize(
@@ -175,13 +372,13 @@ def test_tester_config_object_dispatch(data, expected_type) -> None:
 
 # ** test: tester_config_object_invalid_type
 def test_tester_config_object_rejects_invalid_type() -> None:
-    '''Test unknown discriminator values raise the defined structured error.'''
+    '''Test unknown discriminator values raise a model defect.'''
 
     # Invoke the dispatcher with an unknown discriminator.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ModelError) as exc_info:
         ComponentTester.build_config_object(
             {**DOMAIN_TESTER_DATA, 'type': 'unknown'},
         )
 
-    # Assert the public invalid-type error is raised.
-    assert exc_info.value.error_code == INVALID_TESTER_TYPE_ID
+    # Assert the unrecognized type is reported as a model defect.
+    assert exc_info.value.error_code == 'INVALID_TESTER_TYPE'

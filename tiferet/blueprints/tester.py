@@ -4,6 +4,7 @@
 
 # ** core
 import functools
+import inspect
 from typing import Any, Callable, Dict
 
 # ** app
@@ -178,7 +179,7 @@ def test_case(
     '''
     Decorate a pytest test with a constant given-state baseline.
 
-    :param interface_id: Reserved for parity with the Tester entry point.
+    :param interface_id: The test session identifier passed to Tester().
     :type interface_id: str
     :param given: Given-state values to seed before the test body.
     :type given: Any
@@ -186,22 +187,29 @@ def test_case(
     :rtype: Callable
     '''
 
-    # Preserve the public interface argument for the declared decorator API.
-    _ = interface_id
-
-    # Return a wrapper that relies on pytest to inject the tester fixture.
+    # Return a wrapper that constructs the session without a pytest fixture.
     def decorator(fn: Callable) -> Callable:
 
-        # Preserve function metadata and fixture-signature discovery.
+        # Preserve function metadata while replacing fixture-based injection.
         @functools.wraps(fn)
-        def wrapper(tester_ctx, *args, **kwargs):
+        def wrapper(*args, **kwargs):
 
-            # Seed decoration-time state before the test body refines it.
+            # Construct the fluent session and seed decoration-time state.
+            tester_ctx = build_app(interface_id=interface_id)
             tester_ctx.given(**given)
 
             # Return the test body's result without dispatching the chain.
             return fn(tester_ctx, *args, **kwargs)
 
+        # Strip tester_ctx so pytest does not look up a missing fixture.
+        signature = inspect.signature(fn)
+        wrapper.__signature__ = signature.replace(
+            parameters=[
+                parameter
+                for name, parameter in signature.parameters.items()
+                if name != 'tester_ctx'
+            ],
+        )
         return wrapper
 
     # Return the given-state decorator.

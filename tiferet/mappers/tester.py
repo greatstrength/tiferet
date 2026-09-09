@@ -10,11 +10,10 @@ from typing import Any, ClassVar, Dict
 from pydantic import ConfigDict
 
 # ** app
-from ..assets import TiferetError
-from ..assets.error import INVALID_TESTER_TYPE_ID
 from ..domain import (
     AggregateTesterObject,
     DomainTesterObject,
+    ModelError,
     TesterObject,
     TransferObjectTesterObject,
 )
@@ -45,7 +44,7 @@ class TesterAggregate(TesterObject, Aggregate):
         :type data: dict
         :return: The matching variant-specific configuration object.
         :rtype: Any
-        :raises TiferetError: When the tester type is unrecognized.
+        :raises ModelError: When the tester type is unrecognized.
         '''
 
         # Select the configuration class from the declared discriminator.
@@ -55,8 +54,8 @@ class TesterAggregate(TesterObject, Aggregate):
             'transfer_object': TransferObjectTesterConfigObject,
         }.get(data.get('type'))
         if config_class is None:
-            TiferetError.raise_error(
-                INVALID_TESTER_TYPE_ID,
+            ModelError.raise_error(
+                'INVALID_TESTER_TYPE',
                 f'Invalid tester type: {data.get("type")}.',
                 type=data.get('type'),
             )

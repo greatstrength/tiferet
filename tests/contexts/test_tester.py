@@ -1,4 +1,4 @@
-"""Tests for Tiferet Tester Context Composition"""
+"""Tests for Tiferet Tester Contexts"""
 
 # *** imports
 
@@ -6,24 +6,29 @@
 import pytest
 
 # ** app
-from tiferet import add_verification
 from tiferet.assets import TiferetError
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.tester import (
+    AggregateTesterContext,
+    DomainTesterContext,
     TestRequestContext as _TestRequestContext,
     TestSessionContext as _TestSessionContext,
     TEST_PRESET_CACHE_PREFIX,
     TESTER_CACHE_PREFIX,
+    TransferObjectTesterContext,
     add_default_test_presets,
     add_default_testers,
-    create_aggregate_tester,
-    create_domain_tester,
-    create_transfer_object_tester,
-    tester_ctx as _tester_ctx,
 )
 from tiferet.contexts.cache import CacheContext
-from tiferet.domain import Request, Verification
+from tiferet.domain import (
+    AggregateTesterObject,
+    DomainTesterObject,
+    Request,
+    TransferObjectTesterObject,
+    Verification,
+)
+from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.domain.error import ErrorMessage
 from tiferet.mappers.error import (
     ErrorAggregate,
@@ -32,95 +37,57 @@ from tiferet.mappers.error import (
 
 # *** tests
 
-# ** test: generated_tester_classes_construct_targets
-def test_generated_tester_classes_construct_targets() -> None:
-    '''
-    Test that every tester decorator adds make_target and the target fixture
-    for the target shape its assertions need.
-    '''
+# ** test: variant_tester_contexts_bind_from_domain
+def test_variant_tester_contexts_bind_from_domain() -> None:
+    '''Test that each variant context registers and constructs via from_domain.'''
 
-    # Decorate one class for each tester variant.
-    @create_domain_tester(
-        domain_cls=ErrorMessage,
-        sample_data={
-            'lang': 'en_US',
-            'text': 'An error occurred.',
-        },
-        equality_fields=[
-            'lang',
-            'text',
-        ],
+    # Bind one tester of each existing variant.
+    domain_tester = DomainTesterObject(
+        id='domain.ErrorMessage',
+        module_path=ErrorMessage.__module__,
+        class_name=ErrorMessage.__name__,
+        sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
+        equality_fields=['lang', 'text'],
     )
-    class DomainTester:
-        pass
-
-    @create_aggregate_tester(
-        aggregate_cls=ErrorAggregate,
-        sample_data={
-            'id': 'TEST_ERROR',
-            'name': 'Test Error',
-        },
-        equality_fields=[
-            'id',
-            'name',
-        ],
+    aggregate_tester = AggregateTesterObject(
+        id='aggregate.ErrorAggregate',
+        module_path=ErrorAggregate.__module__,
+        class_name=ErrorAggregate.__name__,
+        sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
+        equality_fields=['id', 'name'],
     )
-    class AggregateTester:
-        pass
-
-    @create_transfer_object_tester(
-        transfer_cls=ErrorConfigObject,
-        aggregate_cls=ErrorAggregate,
-        sample_data={
-            'id': 'TEST_ERROR',
-            'name': 'Test Error',
-        },
-        aggregate_sample_data={
-            'id': 'TEST_ERROR',
-            'name': 'Test Error',
-        },
+    transfer_tester = TransferObjectTesterObject(
+        id='transfer_object.ErrorConfigObject',
+        module_path=ErrorConfigObject.__module__,
+        class_name=ErrorConfigObject.__name__,
+        sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
+        equality_fields=['id', 'name'],
+        aggregate_module_path=ErrorAggregate.__module__,
+        aggregate_class_name=ErrorAggregate.__name__,
+        aggregate_sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
     )
-    class TransferObjectTester:
-        pass
 
-    # Assert every decorated class exposes its universal target construction API.
-    assert isinstance(DomainTester().make_target(), ErrorMessage)
-    assert isinstance(AggregateTester().make_target(), ErrorAggregate)
-    assert isinstance(TransferObjectTester().make_target(), ErrorAggregate)
-    assert hasattr(DomainTester, 'target')
-    assert hasattr(AggregateTester, 'target')
-    assert hasattr(TransferObjectTester, 'target')
+    # Construct each context from its bound domain object.
+    domain_context = DomainTesterContext.from_domain(domain_tester)
+    aggregate_context = AggregateTesterContext.from_domain(aggregate_tester)
+    transfer_context = TransferObjectTesterContext.from_domain(transfer_tester)
 
-# ** test: tester_decorator_preserves_explicit_members
-def test_tester_decorator_preserves_explicit_members() -> None:
-    '''
-    Test that a decorator preserves an explicitly declared generated-method
-    override on the consumer's own class.
-    '''
+    # Assert registry mapping and ordinary construction methods.
+    assert BaseContext.for_domain(DomainTesterObject) is DomainTesterContext
+    assert BaseContext.for_domain(AggregateTesterObject) is AggregateTesterContext
+    assert BaseContext.for_domain(TransferObjectTesterObject) is TransferObjectTesterContext
+    assert isinstance(domain_context.make_target(), ErrorMessage)
+    assert isinstance(aggregate_context.make_target(), ErrorAggregate)
+    assert isinstance(transfer_context.make_target(), ErrorAggregate)
 
-    # Decorate a class that supplies its own construction assertion.
-    @create_domain_tester(
-        domain_cls=ErrorMessage,
-        sample_data={
-            'lang': 'en_US',
-            'text': 'An error occurred.',
-        },
-        equality_fields=[
-            'lang',
-            'text',
-        ],
-    )
-    class OverrideTester:
-
-        # * test: test_new
-        def test_new(self) -> str:
-            '''Return a sentinel proving this explicit method was retained.'''
-
-            return 'consumer override'
-
-    # Assert the decorator retained the consumer's own member.
-    assert OverrideTester().test_new() == 'consumer override'
-    assert hasattr(OverrideTester, 'target')
+    # Exercise ordinary assertion methods on the bound testers.
+    domain_context.assert_new()
+    domain_context.assert_description()
+    aggregate_context.assert_new()
+    aggregate_context.assert_set_attribute()
+    transfer_context.assert_map()
+    transfer_context.assert_from_model()
+    transfer_context.assert_round_trip()
 
 # ** test: test_request_context_preserves_request_context_registration
 def test_request_context_preserves_request_context_registration() -> None:
@@ -232,44 +199,22 @@ def test_request_context_records_raised_predicates_and_continues() -> None:
     assert evaluated == ['outcome']
     assert len(context.verifications) == 0
 
-# ** test: add_verification_attaches_metadata_without_wrapping
-def test_add_verification_attaches_metadata_without_wrapping() -> None:
-    '''
-    Test that the root-exported decorator preserves function identity and
-    accumulates Verification metadata in application order.
-    '''
-
-    # Declare a plain function with no decorator-created wrapper.
-    def target() -> str:
-        return 'called once'
-
-    # Decorate the same function repeatedly with distinct expectations.
-    first = add_verification(1, message='first')
-    second = add_verification(lambda outcome: outcome == 2, message='second')
-    assert first(target) is target
-    assert second(target) is target
-
-    # Assert the function behavior and ordered metadata remain intact.
-    assert target() == 'called once'
-    assert [item.message for item in target.__tiferet_verifications__] == [
-        'first',
-        'second',
-    ]
-    assert all(
-        isinstance(verification, Verification)
-        for verification in target.__tiferet_verifications__
-    )
-
 # ** test: add_default_testers
-def test_add_default_testers_seeds_polymorphic_aggregates() -> None:
+def test_add_default_testers_seeds_polymorphic_domain_objects() -> None:
     '''
-    Test the dedicated tester decorator maps polymorphic definitions before
-    storing them under the tester cache namespace.
+    Test the dedicated tester decorator validates polymorphic definitions into
+    domain objects before storing them under the tester cache namespace.
     '''
 
-    # Decorate a minimal bare cache builder with an aggregate tester.
+    # Decorate a minimal bare cache builder with one tester of each variant.
     builder = add_default_testers(
         {
+            'domain.ErrorMessage': {
+                'type': 'domain',
+                'module_path': 'tiferet.domain.error',
+                'class_name': 'ErrorMessage',
+                'sample_data': {},
+            },
             'aggregate.ErrorAggregate': {
                 'type': 'aggregate',
                 'module_path': 'tiferet.mappers.error',
@@ -277,13 +222,28 @@ def test_add_default_testers_seeds_polymorphic_aggregates() -> None:
                 'sample_data': {},
                 'set_attribute_params': [],
             },
+            'transfer_object.ErrorConfigObject': {
+                'type': 'transfer_object',
+                'module_path': 'tiferet.mappers.error',
+                'class_name': 'ErrorConfigObject',
+                'sample_data': {},
+                'aggregate_module_path': 'tiferet.mappers.error',
+                'aggregate_class_name': 'ErrorAggregate',
+                'aggregate_sample_data': {},
+            },
         },
     )(lambda cache=None: CacheContext(cache=cache))
+    cache = builder()
 
-    # Verify the seeded value is a mapped tester aggregate.
-    tester = builder().get('aggregate.ErrorAggregate', *TESTER_CACHE_PREFIX)
-    assert tester.id == 'aggregate.ErrorAggregate'
-    assert tester.type == 'aggregate'
+    # Verify the seeded values are domain variants, not tester aggregates.
+    domain_tester = cache.get('domain.ErrorMessage', *TESTER_CACHE_PREFIX)
+    aggregate_tester = cache.get('aggregate.ErrorAggregate', *TESTER_CACHE_PREFIX)
+    transfer_tester = cache.get('transfer_object.ErrorConfigObject', *TESTER_CACHE_PREFIX)
+    assert isinstance(domain_tester, DomainTesterObject)
+    assert isinstance(aggregate_tester, AggregateTesterObject)
+    assert isinstance(transfer_tester, TransferObjectTesterObject)
+    assert aggregate_tester.id == 'aggregate.ErrorAggregate'
+    assert aggregate_tester.type == 'aggregate'
 
 # ** test: test_session_context
 def test_session_context_runs_direct_event_and_clears_pending_state() -> None:
@@ -341,45 +301,24 @@ def test_session_context_merges_preset_and_rejects_missing_preset() -> None:
         context.given('missing')
     assert exc_info.value.error_code == 'TEST_PRESET_NOT_FOUND'
 
-# ** test: tester_ctx
-def test_tester_ctx_queues_metadata_and_runs_pending_chain(monkeypatch) -> None:
-    '''Test the fixture consumes verification metadata and finalizes one chain.'''
+# ** test: aggregate_tester_context_set_attribute_cases
+def test_aggregate_tester_context_set_attribute_cases() -> None:
+    '''Test mutation assertions iterate declared cases on fresh targets.'''
 
-    # Define a context spy that records fixture interaction.
-    class TesterContext:
-        def __init__(self):
-            self._pending_request = object()
-            self.verified = []
-            self.runs = 0
-
-        def verify(self, predicate, message):
-            self.verified.append((predicate, message))
-            return self
-
-        def run(self):
-            self.runs += 1
-            self._pending_request = None
-
-    # Attach metadata using the public decorator contract.
-    @add_verification(3, message='expected')
-    def target():
-        pass
-
-    # Replace session construction so the fixture behavior is isolated.
-    context = TesterContext()
-    monkeypatch.setattr(
-        'tiferet.blueprints.tester.build_app',
-        lambda: context,
+    # Bind an aggregate tester with valid and invalid mutation cases.
+    context = AggregateTesterContext.from_domain(
+        AggregateTesterObject(
+            id='aggregate.ErrorAggregate',
+            module_path=ErrorAggregate.__module__,
+            class_name=ErrorAggregate.__name__,
+            sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
+            equality_fields=['id', 'name'],
+            set_attribute_params=[
+                ('name', 'Updated Error', None),
+                ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+            ],
+        ),
     )
-    request = type('Request', (), {'function': target})()
 
-    # Advance the underlying fixture through setup and teardown.
-    fixture = _tester_ctx.__wrapped__(request)
-    assert next(fixture) is context
-    with pytest.raises(StopIteration):
-        next(fixture)
-
-    # Assert metadata was queued and the pending chain ran once on teardown.
-    assert context.verified[0][1] == 'expected'
-    assert context.verified[0][0](3)
-    assert context.runs == 1
+    # Assert every declared mutation case on a fresh target.
+    context.assert_set_attribute()
