@@ -69,6 +69,42 @@ class TesterObject(DomainObject):
         description='Per-field functions that normalize compared values.',
     )
 
+    # * attribute: description_cases
+    description_cases: List[Tuple[str, Tuple[Any, ...], Any]] = Field(
+        default_factory=list,
+        description='Property or method description assertions.',
+    )
+
+    # * attribute: set_attribute_params
+    set_attribute_params: List[Tuple[str, Any, str | None]] = Field(
+        default_factory=list,
+        description='Aggregate attribute mutation assertions.',
+    )
+
+    # * attribute: aggregate_module_path
+    aggregate_module_path: str | None = Field(
+        default=None,
+        description='The module path of the target aggregate class.',
+    )
+
+    # * attribute: aggregate_class_name
+    aggregate_class_name: str | None = Field(
+        default=None,
+        description='The class name of the target aggregate class.',
+    )
+
+    # * attribute: aggregate_sample_data
+    aggregate_sample_data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description='The expected aggregate-format sample data.',
+    )
+
+    # * attribute: map_kwargs
+    map_kwargs: Dict[str, Any] = Field(
+        default_factory=dict,
+        description='Additional keyword arguments passed to map.',
+    )
+
     # * method: _derive_expected_data (model validator)
     @model_validator(mode='before')
     @classmethod
@@ -105,81 +141,6 @@ class TesterObject(DomainObject):
 
         # Import the module and return the named target class.
         return getattr(import_module(self.module_path), self.class_name)
-
-# ** model: domain_tester_object
-class DomainTesterObject(TesterObject):
-    '''
-    Describes assertions for a pure domain object, including optional checks
-    of its descriptive properties and methods.
-    '''
-
-    # * attribute: type
-    type: Literal['domain'] = Field(
-        default='domain',
-        description='The type of tester object.',
-    )
-
-    # * attribute: description_cases
-    description_cases: List[Tuple[str, Tuple[Any, ...], Any]] = Field(
-        default_factory=list,
-        description='Property or method description assertions.',
-    )
-
-# ** model: aggregate_tester_object
-class AggregateTesterObject(TesterObject):
-    '''
-    Describes assertions for a mutable aggregate, including optional
-    set_attribute mutation cases.
-    '''
-
-    # * attribute: type
-    type: Literal['aggregate'] = Field(
-        default='aggregate',
-        description='The type of tester object.',
-    )
-
-    # * attribute: set_attribute_params
-    set_attribute_params: List[Tuple[str, Any, str | None]] = Field(
-        default_factory=list,
-        description='Aggregate attribute mutation assertions.',
-    )
-
-# ** model: transfer_object_tester_object
-class TransferObjectTesterObject(TesterObject):
-    '''
-    Describes assertions for a transfer object and the aggregate type it maps
-    to, preserving the distinct source and expected aggregate data shapes.
-    '''
-
-    # * attribute: type
-    type: Literal['transfer_object'] = Field(
-        default='transfer_object',
-        description='The type of tester object.',
-    )
-
-    # * attribute: aggregate_module_path
-    aggregate_module_path: str = Field(
-        ...,
-        description='The module path of the target aggregate class.',
-    )
-
-    # * attribute: aggregate_class_name
-    aggregate_class_name: str = Field(
-        ...,
-        description='The class name of the target aggregate class.',
-    )
-
-    # * attribute: aggregate_sample_data
-    aggregate_sample_data: Dict[str, Any] = Field(
-        default_factory=dict,
-        description='The expected aggregate-format sample data.',
-    )
-
-    # * attribute: map_kwargs
-    map_kwargs: Dict[str, Any] = Field(
-        default_factory=dict,
-        description='Additional keyword arguments passed to map.',
-    )
 
     # * method: get_aggregate_type
     def get_aggregate_type(self) -> type:

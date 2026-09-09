@@ -17,10 +17,7 @@ from tiferet.mappers.logging import (
     LoggerConfigObject,
     LoggingSettingsConfigObject,
 )
-from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
-)
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -63,11 +60,34 @@ LOGGER_EQUALITY_FIELDS = ['id', 'name', 'level', 'handlers']
 # *** tests
 
 # ** tester: TestFormatterAggregate
-@create_aggregate_tester(aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Formatter', None), ('format', '%(message)s', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+@use_tester(
+    type='aggregate',
+    target_cls=FormatterAggregate,
+    sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FORMATTER_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('name', 'Updated Formatter', None),
+        ('format', '%(message)s', None),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
 class TestFormatterAggregate:
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = FormatterAggregate
 
@@ -86,13 +106,15 @@ class TestFormatterAggregate:
     # *** domain-specific tests
 
     # * test: format_config
-    def test_format_config(self, target):
+    def test_format_config(self, test_ctx):
         '''
         Test that format_config() returns the expected formatter configuration dict.
 
         :param aggregate: The formatter aggregate fixture.
         :type aggregate: FormatterAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -105,11 +127,34 @@ class TestFormatterAggregate:
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
 # ** tester: TestHandlerAggregate
-@create_aggregate_tester(aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Handler', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+@use_tester(
+    type='aggregate',
+    target_cls=HandlerAggregate,
+    sample_data=HANDLER_AGGREGATE_SAMPLE_DATA,
+    equality_fields=HANDLER_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('name', 'Updated Handler', None),
+        ('level', 'ERROR', None),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
 class TestHandlerAggregate:
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = HandlerAggregate
 
@@ -128,13 +173,15 @@ class TestHandlerAggregate:
     # *** domain-specific tests
 
     # * test: format_config
-    def test_format_config(self, target):
+    def test_format_config(self, test_ctx):
         '''
         Test that format_config() returns the expected handler configuration dict with stream.
 
         :param aggregate: The handler aggregate fixture.
         :type aggregate: HandlerAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -174,11 +221,34 @@ class TestHandlerAggregate:
         assert config['level'] == 'INFO'
 
 # ** tester: TestLoggerAggregate
-@create_aggregate_tester(aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Logger', None), ('level', 'ERROR', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+@use_tester(
+    type='aggregate',
+    target_cls=LoggerAggregate,
+    sample_data=LOGGER_AGGREGATE_SAMPLE_DATA,
+    equality_fields=LOGGER_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('name', 'Updated Logger', None),
+        ('level', 'ERROR', None),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
 class TestLoggerAggregate:
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = LoggerAggregate
 
@@ -197,13 +267,15 @@ class TestLoggerAggregate:
     # *** domain-specific tests
 
     # * test: format_config
-    def test_format_config(self, target):
+    def test_format_config(self, test_ctx):
         '''
         Test that format_config() returns the expected logger configuration dict.
 
         :param aggregate: The logger aggregate fixture.
         :type aggregate: LoggerAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -237,11 +309,37 @@ class TestLoggerAggregate:
         assert logger.level == 'WARNING'
 
 # ** tester: TestFormatterConfigObject
-@create_transfer_object_tester(transfer_cls=FormatterConfigObject, aggregate_cls=FormatterAggregate, sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA, equality_fields=FORMATTER_EQUALITY_FIELDS)
+@use_tester(
+    type='transfer_object',
+    target_cls=FormatterConfigObject,
+    aggregate_cls=FormatterAggregate,
+    sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA,
+    aggregate_sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FORMATTER_EQUALITY_FIELDS,
+)
 class TestFormatterConfigObject:
     '''
     Tests for FormatterConfigObject mapping and round-trip.
     '''
+
+    # * method: test_map
+    def test_map(self, test_ctx):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        test_ctx.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, test_ctx):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        test_ctx.assert_from_model()
+
+    # * method: test_round_trip
+    def test_round_trip(self, test_ctx):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = FormatterConfigObject
     aggregate_cls = FormatterAggregate
@@ -253,11 +351,37 @@ class TestFormatterConfigObject:
     equality_fields = FORMATTER_EQUALITY_FIELDS
 
 # ** tester: TestHandlerConfigObject
-@create_transfer_object_tester(transfer_cls=HandlerConfigObject, aggregate_cls=HandlerAggregate, sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=HANDLER_AGGREGATE_SAMPLE_DATA, equality_fields=HANDLER_EQUALITY_FIELDS)
+@use_tester(
+    type='transfer_object',
+    target_cls=HandlerConfigObject,
+    aggregate_cls=HandlerAggregate,
+    sample_data=HANDLER_AGGREGATE_SAMPLE_DATA,
+    aggregate_sample_data=HANDLER_AGGREGATE_SAMPLE_DATA,
+    equality_fields=HANDLER_EQUALITY_FIELDS,
+)
 class TestHandlerConfigObject:
     '''
     Tests for HandlerConfigObject mapping and round-trip.
     '''
+
+    # * method: test_map
+    def test_map(self, test_ctx):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        test_ctx.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, test_ctx):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        test_ctx.assert_from_model()
+
+    # * method: test_round_trip
+    def test_round_trip(self, test_ctx):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = HandlerConfigObject
     aggregate_cls = HandlerAggregate
@@ -269,11 +393,37 @@ class TestHandlerConfigObject:
     equality_fields = HANDLER_EQUALITY_FIELDS
 
 # ** tester: TestLoggerConfigObject
-@create_transfer_object_tester(transfer_cls=LoggerConfigObject, aggregate_cls=LoggerAggregate, sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, aggregate_sample_data=LOGGER_AGGREGATE_SAMPLE_DATA, equality_fields=LOGGER_EQUALITY_FIELDS)
+@use_tester(
+    type='transfer_object',
+    target_cls=LoggerConfigObject,
+    aggregate_cls=LoggerAggregate,
+    sample_data=LOGGER_AGGREGATE_SAMPLE_DATA,
+    aggregate_sample_data=LOGGER_AGGREGATE_SAMPLE_DATA,
+    equality_fields=LOGGER_EQUALITY_FIELDS,
+)
 class TestLoggerConfigObject:
     '''
     Tests for LoggerConfigObject mapping and round-trip.
     '''
+
+    # * method: test_map
+    def test_map(self, test_ctx):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        test_ctx.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, test_ctx):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        test_ctx.assert_from_model()
+
+    # * method: test_round_trip
+    def test_round_trip(self, test_ctx):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = LoggerConfigObject
     aggregate_cls = LoggerAggregate

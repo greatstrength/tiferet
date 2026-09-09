@@ -43,10 +43,7 @@ from .request import (
     Request,
 )
 from .tester import (
-    AggregateTesterObject,
-    DomainTesterObject,
     TesterObject,
-    TransferObjectTesterObject,
     Verification,
 )
 from .logging import (
@@ -85,9 +82,6 @@ __all__ = [
     'RequestSpecification',
     'Request',
     'TesterObject',
-    'DomainTesterObject',
-    'AggregateTesterObject',
-    'TransferObjectTesterObject',
     'Verification',
     'Formatter',
     'Handler',

@@ -13,10 +13,7 @@ from tiferet.mappers.di import (
     ServiceRegistrationAggregate,
     ServiceRegistrationConfigObject,
 )
-from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
-)
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -134,11 +131,34 @@ TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
 # *** tests
 
 # ** tester: TestFlaggedDependencyAggregate
-@create_aggregate_tester(aggregate_cls=FlaggedDependencyAggregate, sample_data=FLAGGED_DEP_AGGREGATE_SAMPLE_DATA, equality_fields=FLAGGED_DEP_EQUALITY_FIELDS, set_attribute_params=[('module_path', 'new.module.path', None), ('class_name', 'NewClassName', None), ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+@use_tester(
+    type='aggregate',
+    target_cls=FlaggedDependencyAggregate,
+    sample_data=FLAGGED_DEP_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FLAGGED_DEP_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('module_path', 'new.module.path', None),
+        ('class_name', 'NewClassName', None),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
 class TestFlaggedDependencyAggregate:
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = FlaggedDependencyAggregate
 
@@ -157,10 +177,12 @@ class TestFlaggedDependencyAggregate:
     # *** domain-specific mutation tests
 
     # * test: set_parameters_clears_when_none
-    def test_set_parameters_clears_when_none(self, target):
+    def test_set_parameters_clears_when_none(self, test_ctx):
         '''
         Test that set_parameters clears all parameters when called with None.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -172,10 +194,12 @@ class TestFlaggedDependencyAggregate:
         assert aggregate.parameters == {}
 
     # * test: set_parameters_merges_and_prunes_none_values
-    def test_set_parameters_merges_and_prunes_none_values(self, target):
+    def test_set_parameters_merges_and_prunes_none_values(self, test_ctx):
         '''
         Test that set_parameters merges new values and removes keys whose value is None.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -195,11 +219,36 @@ class TestFlaggedDependencyAggregate:
         }
 
 # ** tester: TestServiceRegistrationAggregate
-@create_aggregate_tester(aggregate_cls=ServiceRegistrationAggregate, sample_data=SVC_CONFIG_AGGREGATE_SAMPLE_DATA, equality_fields=SVC_CONFIG_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Service', None), ('module_path', 'updated.module', None), ('class_name', 'UpdatedClass', None), ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID)], field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS)
+@use_tester(
+    type='aggregate',
+    target_cls=ServiceRegistrationAggregate,
+    sample_data=SVC_CONFIG_AGGREGATE_SAMPLE_DATA,
+    equality_fields=SVC_CONFIG_EQUALITY_FIELDS,
+    field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Service', None),
+        ('module_path', 'updated.module', None),
+        ('class_name', 'UpdatedClass', None),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
 class TestServiceRegistrationAggregate:
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = ServiceRegistrationAggregate
 
@@ -221,10 +270,12 @@ class TestServiceRegistrationAggregate:
     # *** domain-specific mutation tests
 
     # * test: set_default_type_updates
-    def test_set_default_type_updates(self, target):
+    def test_set_default_type_updates(self, test_ctx):
         '''
         Test that set_default_type updates module_path, class_name, and parameters.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -242,11 +293,13 @@ class TestServiceRegistrationAggregate:
         assert aggregate.parameters == {'new_param': 'new_value'}
 
     # * test: set_default_type_clears_when_both_none
-    def test_set_default_type_clears_when_both_none(self, target):
+    def test_set_default_type_clears_when_both_none(self, test_ctx):
         '''
         Test that set_default_type clears module_path, class_name, and parameters
         when both type fields are None.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -263,10 +316,12 @@ class TestServiceRegistrationAggregate:
         assert aggregate.parameters == {}
 
     # * test: set_dependency_creates_new
-    def test_set_dependency_creates_new(self, target):
+    def test_set_dependency_creates_new(self, test_ctx):
         '''
         Test that set_dependency appends a new FlaggedDependency when the flag is not found.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -292,11 +347,13 @@ class TestServiceRegistrationAggregate:
         assert len(aggregate.dependencies) == 2
 
     # * test: set_dependency_updates_existing
-    def test_set_dependency_updates_existing(self, target):
+    def test_set_dependency_updates_existing(self, test_ctx):
         '''
         Test that set_dependency updates an existing dependency in place, merging
         parameters and pruning None-valued keys.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -321,10 +378,12 @@ class TestServiceRegistrationAggregate:
         assert len(aggregate.dependencies) == 1
 
     # * test: remove_dependency
-    def test_remove_dependency(self, target):
+    def test_remove_dependency(self, test_ctx):
         '''
         Test that remove_dependency filters out the dependency matching the given flag.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -340,10 +399,12 @@ class TestServiceRegistrationAggregate:
         assert aggregate.dependencies == []
 
     # * test: remove_dependency_missing_flag_is_noop
-    def test_remove_dependency_missing_flag_is_noop(self, target):
+    def test_remove_dependency_missing_flag_is_noop(self, test_ctx):
         '''
         Test that remove_dependency with an unmatched flag leaves the list unchanged.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -358,11 +419,38 @@ class TestServiceRegistrationAggregate:
         assert len(aggregate.dependencies) == initial_count
 
 # ** tester: TestServiceRegistrationConfigObject
-@create_transfer_object_tester(transfer_cls=ServiceRegistrationConfigObject, aggregate_cls=ServiceRegistrationAggregate, sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA, equality_fields=SVC_CONFIG_EQUALITY_FIELDS, field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS)
+@use_tester(
+    type='transfer_object',
+    target_cls=ServiceRegistrationConfigObject,
+    aggregate_cls=ServiceRegistrationAggregate,
+    sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=SVC_CONFIG_EQUALITY_FIELDS,
+    field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS,
+)
 class TestServiceRegistrationConfigObject:
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''
+
+    # * method: test_map
+    def test_map(self, test_ctx):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        test_ctx.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, test_ctx):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        test_ctx.assert_from_model()
+
+    # * method: test_round_trip
+    def test_round_trip(self, test_ctx):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = ServiceRegistrationConfigObject
     aggregate_cls = ServiceRegistrationAggregate
@@ -468,13 +556,15 @@ class TestServiceRegistrationConfigObject:
         assert 'flag1' in primitive['deps']
 
     # * test: from_model_with_added_dependency
-    def test_from_model_with_added_dependency(self):
+    def test_from_model_with_added_dependency(self, test_ctx):
         '''
         Test that from_model correctly converts an aggregate with added dependencies.
         '''
 
+        target = test_ctx.make_target()
+
         # Create an aggregate and add a third dependency.
-        aggregate = self.make_target()
+        aggregate = target
         aggregate.set_dependency(
             flag='test3',
             module_path='tests.repos.test',
@@ -580,10 +670,12 @@ class TestServiceRegistrationConfigObject:
         assert primitive['class_name'] == 'TestRepoProxy'
 
     # * test: flagged_dependency_yaml_round_trip_via_parent
-    def test_flagged_dependency_yaml_round_trip_via_parent(self, target):
+    def test_flagged_dependency_yaml_round_trip_via_parent(self, test_ctx):
         '''
         Test that dependencies are preserved through the parent ServiceRegistrationConfigObject round-trip.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target

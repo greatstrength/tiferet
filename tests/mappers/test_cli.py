@@ -14,10 +14,7 @@ from tiferet.domain import (
     ModelError,
 )
 from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandConfigObject
-from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
-)
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -117,11 +114,37 @@ TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA = {
 # *** tests
 
 # ** tester: TestCliArgumentAggregate
-@create_aggregate_tester(aggregate_cls=CliArgumentAggregate, sample_data=ARGUMENT_AGGREGATE_SAMPLE_DATA, equality_fields=ARGUMENT_EQUALITY_FIELDS, set_attribute_params=[('description', 'Updated description.', None), ('type', 'int', None), ('required', True, None), ('default', 'new_default', None), ('name_or_flags', ['b'], ATTRIBUTE_NOT_SETTABLE_ID), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)])
+@use_tester(
+    type='aggregate',
+    target_cls=CliArgumentAggregate,
+    sample_data=ARGUMENT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=ARGUMENT_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('description', 'Updated description.', None),
+        ('type', 'int', None),
+        ('required', True, None),
+        ('default', 'new_default', None),
+        ('name_or_flags', ['b'], ATTRIBUTE_NOT_SETTABLE_ID),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
+    ],
+)
 class TestCliArgumentAggregate:
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = CliArgumentAggregate
 
@@ -141,11 +164,37 @@ class TestCliArgumentAggregate:
     ]
 
 # ** tester: TestCliCommandAggregate
-@create_aggregate_tester(aggregate_cls=CliCommandAggregate, sample_data=COMMAND_AGGREGATE_SAMPLE_DATA, equality_fields=COMMAND_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Command Name', None), ('description', 'New description text.', None), ('key', 'subtract', None), ('group_key', 'math', None), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)], field_normalizers=COMMAND_FIELD_NORMALIZERS)
+@use_tester(
+    type='aggregate',
+    target_cls=CliCommandAggregate,
+    sample_data=COMMAND_AGGREGATE_SAMPLE_DATA,
+    equality_fields=COMMAND_EQUALITY_FIELDS,
+    field_normalizers=COMMAND_FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Command Name', None),
+        ('description', 'New description text.', None),
+        ('key', 'subtract', None),
+        ('group_key', 'math', None),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
+    ],
+)
 class TestCliCommandAggregate:
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = CliCommandAggregate
 
@@ -166,11 +215,13 @@ class TestCliCommandAggregate:
     ]
 
     # * test: set_attribute_not_settable_describes_model
-    def test_set_attribute_not_settable_describes_model(self, target):
+    def test_set_attribute_not_settable_describes_model(self, test_ctx):
         '''
         Test that the mutation-policy guard describes the command that refused
         the mutation, alongside the attribute and supported set.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -186,10 +237,12 @@ class TestCliCommandAggregate:
         assert exc_info.value.kwargs.get('attribute') == 'id'
 
     # * test: add_argument_appends
-    def test_add_argument_appends(self, target):
+    def test_add_argument_appends(self, test_ctx):
         '''
         Test that add_argument correctly appends a CliArgument to the aggregate.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -210,10 +263,12 @@ class TestCliCommandAggregate:
         assert added.type == 'int'
 
     # * test: add_argument_multiple
-    def test_add_argument_multiple(self, target):
+    def test_add_argument_multiple(self, test_ctx):
         '''
         Test that multiple add_argument calls accumulate correctly.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -265,11 +320,38 @@ class TestCliCommandAggregate:
         assert aggregate.arguments[0].type == 'int'
 
 # ** tester: TestCliCommandConfigObject
-@create_transfer_object_tester(transfer_cls=CliCommandConfigObject, aggregate_cls=CliCommandAggregate, sample_data=TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=COMMAND_AGGREGATE_SAMPLE_DATA, equality_fields=COMMAND_EQUALITY_FIELDS, field_normalizers=COMMAND_FIELD_NORMALIZERS)
+@use_tester(
+    type='transfer_object',
+    target_cls=CliCommandConfigObject,
+    aggregate_cls=CliCommandAggregate,
+    sample_data=TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=COMMAND_AGGREGATE_SAMPLE_DATA,
+    equality_fields=COMMAND_EQUALITY_FIELDS,
+    field_normalizers=COMMAND_FIELD_NORMALIZERS,
+)
 class TestCliCommandConfigObject:
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''
+
+    # * method: test_map
+    def test_map(self, test_ctx):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        test_ctx.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, test_ctx):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        test_ctx.assert_from_model()
+
+    # * method: test_round_trip
+    def test_round_trip(self, test_ctx):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = CliCommandConfigObject
 
@@ -376,11 +458,13 @@ class TestCliCommandConfigObject:
         assert yaml_obj.arguments[0].name_or_flags == ['a']
 
     # * test: round_trip_preserves_arguments
-    def test_round_trip_preserves_arguments(self, target):
+    def test_round_trip_preserves_arguments(self, test_ctx):
         '''
         Test that arguments are preserved through from_model -> map() round-trip.
         Uses direct ordered iteration because name_or_flags is a list (unhashable as dict key).
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target

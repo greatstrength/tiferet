@@ -3,11 +3,6 @@
 # *** imports
 
 # ** app
-from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_domain_tester,
-    create_transfer_object_tester,
-)
 from tiferet.assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
@@ -16,6 +11,7 @@ from tiferet.assets.tester import (
     TESTER_SERVICE_ID,
     TIFERET_TESTER_ID,
 )
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.domain.error import ErrorMessage
 from tiferet.mappers.error import (
@@ -45,106 +41,80 @@ ERROR_DATA = {
 
 # *** tests
 
-# ** tester: TestErrorMessage
-@create_domain_tester(
-    domain_cls=ErrorMessage,
+# ** test: error_message_domain_tester
+@use_tester(
+    type='domain',
+    target_cls=ErrorMessage,
     sample_data=ERROR_MESSAGE_DATA,
-    equality_fields=[
-        'lang',
-        'text',
-    ],
+    equality_fields=['lang', 'text'],
 )
-class TestErrorMessage:
-    pass
+def test_error_message_domain_tester(test_ctx) -> None:
+    '''Test domain tester construction assertions against ErrorMessage.'''
 
-# ** tester: TestErrorMessageDescription
-@create_domain_tester(
-    domain_cls=ErrorMessage,
+    test_ctx.assert_new()
+    test_ctx.assert_description()
+
+# ** test: error_message_description_tester
+@use_tester(
+    type='domain',
+    target_cls=ErrorMessage,
     sample_data=ERROR_MESSAGE_DATA,
-    equality_fields=[
-        'lang',
-        'text',
-    ],
+    equality_fields=['lang', 'text'],
     description_cases=[
-        (
-            'format',
-            (),
-            'An error occurred.',
-        ),
+        ('format', (), 'An error occurred.'),
     ],
 )
-class TestErrorMessageDescription:
-    pass
+def test_error_message_description_tester(test_ctx) -> None:
+    '''Test optional description assertions against ErrorMessage.format.'''
 
-# ** tester: TestErrorAggregate
-@create_aggregate_tester(
-    aggregate_cls=ErrorAggregate,
+    test_ctx.assert_new()
+    test_ctx.assert_description()
+
+# ** test: error_aggregate_tester
+@use_tester(
+    type='aggregate',
+    target_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
-    equality_fields=[
-        'id',
-        'name',
-        'error_code',
-    ],
+    equality_fields=['id', 'name', 'error_code'],
 )
-class TestErrorAggregate:
-    pass
+def test_error_aggregate_tester(test_ctx) -> None:
+    '''Test aggregate tester construction assertions against ErrorAggregate.'''
 
-# ** tester: TestErrorAggregateSetAttribute
-@create_aggregate_tester(
-    aggregate_cls=ErrorAggregate,
+    test_ctx.assert_new()
+    test_ctx.assert_set_attribute()
+
+# ** test: error_aggregate_set_attribute_tester
+@use_tester(
+    type='aggregate',
+    target_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
-    equality_fields=[
-        'id',
-        'name',
-        'error_code',
-    ],
+    equality_fields=['id', 'name', 'error_code'],
     set_attribute_params=[
-        (
-            'name',
-            'Updated Error',
-            None,
-        ),
-        (
-            'invalid_attribute',
-            'value',
-            INVALID_MODEL_ATTRIBUTE_ID,
-        ),
+        ('name', 'Updated Error', None),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class TestErrorAggregateSetAttribute:
-    pass
+def test_error_aggregate_set_attribute_tester(test_ctx) -> None:
+    '''Test optional set_attribute assertions against ErrorAggregate.'''
 
-# ** tester: TestErrorConfigObject
-@create_transfer_object_tester(
-    transfer_cls=ErrorConfigObject,
+    test_ctx.assert_new()
+    test_ctx.assert_set_attribute()
+
+# ** test: error_config_object_tester
+@use_tester(
+    type='transfer_object',
+    target_cls=ErrorConfigObject,
     aggregate_cls=ErrorAggregate,
     sample_data=ERROR_DATA,
+    equality_fields=['id', 'name', 'error_code'],
     aggregate_sample_data=ERROR_DATA,
-    equality_fields=[
-        'id',
-        'name',
-        'error_code',
-    ],
 )
-class TestErrorConfigObject:
-    pass
+def test_error_config_object_tester(test_ctx) -> None:
+    '''Test transfer-object tester assertions against ErrorConfigObject.'''
 
-# ** test: factory_classes_attach_only_declared_optional_assertions
-def test_factory_classes_attach_only_declared_optional_assertions() -> None:
-    '''
-    Test that optional factory assertions are omitted rather than self-skipped
-    when no cases are declared.
-    '''
-
-    # Assert domain-description methods follow the declared cases.
-    assert hasattr(TestErrorMessage, 'test_new')
-    assert not hasattr(TestErrorMessage, 'test_description')
-    assert hasattr(TestErrorMessageDescription, 'test_description')
-
-    # Assert aggregate mutation methods follow the declared cases.
-    assert hasattr(TestErrorAggregate, 'test_new')
-    assert not hasattr(TestErrorAggregate, 'test_set_attribute')
-    assert hasattr(TestErrorAggregateSetAttribute, 'test_set_attribute')
+    test_ctx.assert_map()
+    test_ctx.assert_from_model()
+    test_ctx.assert_round_trip()
 
 # ** test: default_tester_catalog_and_session_are_data_only
 def test_default_tester_catalog_and_session_are_data_only() -> None:
@@ -153,14 +123,11 @@ def test_default_tester_catalog_and_session_are_data_only() -> None:
     built-in tester application session is keyed by its framework id.
     '''
 
-    # Assert the catalog provides each supported tester variant.
     assert {data['type'] for data in CORE_DEFAULT_TESTERS.values()} == {
         'domain',
         'aggregate',
         'transfer_object',
     }
-
-    # Assert the tester session declares its own default service and config.
     session = CORE_DEFAULT_TESTER_SESSIONS[TIFERET_TESTER_ID]
     assert session['name'] == 'Tester'
     assert session['description'] == 'Default built-in test-harness application session'

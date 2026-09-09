@@ -12,10 +12,7 @@ from tiferet.mappers.app import (
     AppSessionConfigObject,
     AppServiceDependencyConfigObject,
 )
-from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
-)
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -114,11 +111,37 @@ TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
 # *** tests
 
 # ** tester: TestAppSessionAggregate
-@create_aggregate_tester(aggregate_cls=AppSessionAggregate, sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Interface', None), ('description', 'New description text', None), ('logger_id', 'custom.logger.id', None), ('flags', ['flag1', 'flag2'], None), ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID)], field_normalizers=FIELD_NORMALIZERS)
+@use_tester(
+    type='aggregate',
+    target_cls=AppSessionAggregate,
+    sample_data=AGGREGATE_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+    field_normalizers=FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Interface', None),
+        ('description', 'New description text', None),
+        ('logger_id', 'custom.logger.id', None),
+        ('flags', ['flag1', 'flag2'], None),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
+    ],
+)
 class TestAppSessionAggregate:
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = AppSessionAggregate
 
@@ -254,11 +277,13 @@ class TestAppSessionAggregate:
         assert [s.service_id for s in aggr.services] == expected_remaining
 
     # * test: add_service_appends_with_service_id_first
-    def test_add_service_appends_with_service_id_first(self, target):
+    def test_add_service_appends_with_service_id_first(self, test_ctx):
         '''
         Test that add_service appends a dependency, taking service_id first so
         its positional order matches set_service.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -282,10 +307,12 @@ class TestAppSessionAggregate:
         assert svc.parameters == {'p1': 'v1'}
 
     # * test: add_service_defaults_parameters_to_empty
-    def test_add_service_defaults_parameters_to_empty(self, target):
+    def test_add_service_defaults_parameters_to_empty(self, test_ctx):
         '''
         Test that add_service defaults parameters to an empty dict when omitted.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -301,10 +328,12 @@ class TestAppSessionAggregate:
         assert aggregate.get_service('no_params_svc').parameters == {}
 
     # * test: set_service_update_existing_merge_params
-    def test_set_service_update_existing_merge_params(self, target):
+    def test_set_service_update_existing_merge_params(self, test_ctx):
         '''
         Test that set_service updates an existing service and merges parameters.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -331,10 +360,12 @@ class TestAppSessionAggregate:
         }
 
     # * test: set_service_create_new
-    def test_set_service_create_new(self, target):
+    def test_set_service_create_new(self, test_ctx):
         '''
         Test that set_service creates a new service when none exists.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -358,11 +389,38 @@ class TestAppSessionAggregate:
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
 # ** tester: TestAppSessionConfigObject
-@create_transfer_object_tester(transfer_cls=AppSessionConfigObject, aggregate_cls=AppSessionAggregate, sample_data=TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA, aggregate_sample_data=AGGREGATE_SAMPLE_DATA, equality_fields=EQUALITY_FIELDS, field_normalizers=FIELD_NORMALIZERS)
+@use_tester(
+    type='transfer_object',
+    target_cls=AppSessionConfigObject,
+    aggregate_cls=AppSessionAggregate,
+    sample_data=TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=AGGREGATE_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+    field_normalizers=FIELD_NORMALIZERS,
+)
 class TestAppSessionConfigObject:
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
+
+    # * method: test_map
+    def test_map(self, test_ctx):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        test_ctx.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, test_ctx):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        test_ctx.assert_from_model()
+
+    # * method: test_round_trip
+    def test_round_trip(self, test_ctx):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = AppSessionConfigObject
     aggregate_cls = AppSessionAggregate
@@ -444,10 +502,12 @@ class TestAppSessionConfigObject:
         assert primitive['class_name'] == 'ExcludeTest'
 
     # * test: app_service_dependency_yaml_round_trip_via_parent
-    def test_app_service_dependency_yaml_round_trip_via_parent(self, target):
+    def test_app_service_dependency_yaml_round_trip_via_parent(self, test_ctx):
         '''
         Test that services are preserved through the parent AppSessionConfigObject round-trip.
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target

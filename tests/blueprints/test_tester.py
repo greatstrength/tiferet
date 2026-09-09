@@ -24,7 +24,7 @@ from tiferet.contexts.tester import (
     TestSessionContext as _TestSessionContext,
     TESTER_CACHE_PREFIX,
 )
-from tiferet.mappers import TesterAggregate as ComponentTester
+from tiferet.domain import TesterObject
 
 # *** tests
 
@@ -53,14 +53,14 @@ def test_tester_build_cache_isolated_from_standard_app_catalogs():
     )
 
 # ** test: resolve_tester
-def test_resolve_tester_returns_seeded_default_aggregate():
+def test_resolve_tester_returns_seeded_default_domain_object():
     '''Test direct resolution from the tester cache catalog.'''
 
     # Resolve a default tester through the non-root blueprint function.
     tester = resolve_tester('aggregate.ErrorAggregate')
 
-    # Assert the resolved object is the expected aggregate representation.
-    assert isinstance(tester, ComponentTester)
+    # Assert the cache-hit object is the seeded domain variant.
+    assert isinstance(tester, TesterObject)
     assert tester.id == 'aggregate.ErrorAggregate'
 
 # ** test: resolve_tester_with_config
@@ -133,8 +133,8 @@ def test_build_app_dispatches_cached_feature_without_external_config() -> None:
     assert context.given(value=1).invoke(feature_id=feature.id).verify(None).run() is None
 
 # ** test: test_case
-def test_test_case_seeds_given_state_without_dispatching() -> None:
-    '''Test that test_case only supplies a given-state baseline.'''
+def test_test_case_seeds_given_state_without_dispatching(monkeypatch) -> None:
+    '''Test that test_case constructs Tester() and supplies given-state.'''
 
     # Define a minimal context spy that records baseline state.
     class TesterContext:
@@ -145,12 +145,18 @@ def test_test_case_seeds_given_state_without_dispatching() -> None:
             self.given_state = data
             return self
 
+    # Replace Tester construction so the decorator behavior is isolated.
+    context = TesterContext()
+    monkeypatch.setattr(
+        'tiferet.blueprints.tester.build_app',
+        lambda interface_id=None: context,
+    )
+
     # Decorate a test-shaped callable that returns its context unchanged.
     @create_test_case(value=1)
     def target(tester_ctx):
         return tester_ctx
 
-    # Assert the wrapper seeds state and does not call any run method.
-    context = TesterContext()
-    assert target(context) is context
+    # Assert the wrapper constructs the session and does not require a fixture.
+    assert target() is context
     assert context.given_state == {'value': 1}

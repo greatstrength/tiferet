@@ -16,10 +16,7 @@ from tiferet.mappers.error import (
     ErrorConfigObject,
     ErrorMessageConfigObject,
 )
-from tiferet.contexts.tester import (
-    create_aggregate_tester,
-    create_transfer_object_tester,
-)
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -39,11 +36,34 @@ ERROR_EQUALITY_FIELDS = ['id', 'name', 'error_code']
 # *** tests
 
 # ** tester: TestErrorAggregate
-@create_aggregate_tester(aggregate_cls=ErrorAggregate, sample_data=ERROR_SAMPLE_DATA, equality_fields=ERROR_EQUALITY_FIELDS, set_attribute_params=[('name', 'Updated Error', None), ('description', 'A new description', None), ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID)])
+@use_tester(
+    type='aggregate',
+    target_cls=ErrorAggregate,
+    sample_data=ERROR_SAMPLE_DATA,
+    equality_fields=ERROR_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('name', 'Updated Error', None),
+        ('description', 'A new description', None),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
 class TestErrorAggregate:
     '''
     Tests for ErrorAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * method: test_new
+    def test_new(self, test_ctx):
+        '''Verify aggregate construction against declared expected data.'''
+
+        test_ctx.assert_new()
+
+    # * method: test_set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''Verify declared set_attribute cases.'''
+
+        test_ctx.assert_set_attribute()
+
 
     aggregate_cls = ErrorAggregate
 
@@ -62,13 +82,15 @@ class TestErrorAggregate:
     # *** domain-specific mutation tests
 
     # * test: rename
-    def test_rename(self, target):
+    def test_rename(self, test_ctx):
         '''
         Test that rename() updates the error name.
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -80,13 +102,15 @@ class TestErrorAggregate:
         assert aggregate.name == 'Renamed Error'
 
     # * test: set_message_new
-    def test_set_message_new(self, target):
+    def test_set_message_new(self, test_ctx):
         '''
         Test that set_message() adds a new language message alongside existing ones.
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -100,13 +124,15 @@ class TestErrorAggregate:
         assert aggregate.message[1].text == 'Mensaje de error de prueba.'
 
     # * test: set_message_update
-    def test_set_message_update(self, target):
+    def test_set_message_update(self, test_ctx):
         '''
         Test that set_message() updates an existing language message in-place (no duplication).
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -119,13 +145,15 @@ class TestErrorAggregate:
         assert aggregate.message[0].text == 'Updated message'
 
     # * test: remove_message
-    def test_remove_message(self, target):
+    def test_remove_message(self, test_ctx):
         '''
         Test that remove_message() removes a message from a multi-message aggregate.
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -139,13 +167,15 @@ class TestErrorAggregate:
         assert aggregate.message[0].lang == 'es'
 
     # * test: remove_message_nonexistent
-    def test_remove_message_nonexistent(self, target):
+    def test_remove_message_nonexistent(self, test_ctx):
         '''
         Test that removing a non-existent language is a no-op.
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -160,11 +190,37 @@ class TestErrorAggregate:
         assert len(aggregate.message) == initial_count
 
 # ** tester: TestErrorConfigObject
-@create_transfer_object_tester(transfer_cls=ErrorConfigObject, aggregate_cls=ErrorAggregate, sample_data=ERROR_SAMPLE_DATA, aggregate_sample_data=ERROR_SAMPLE_DATA, equality_fields=ERROR_EQUALITY_FIELDS)
+@use_tester(
+    type='transfer_object',
+    target_cls=ErrorConfigObject,
+    aggregate_cls=ErrorAggregate,
+    sample_data=ERROR_SAMPLE_DATA,
+    aggregate_sample_data=ERROR_SAMPLE_DATA,
+    equality_fields=ERROR_EQUALITY_FIELDS,
+)
 class TestErrorConfigObject:
     '''
     Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
     '''
+
+    # * method: test_map
+    def test_map(self, test_ctx):
+        '''Verify transfer construction and mapping to the declared aggregate.'''
+
+        test_ctx.assert_map()
+
+    # * method: test_from_model
+    def test_from_model(self, test_ctx):
+        '''Verify aggregate conversion to the declared transfer-object type.'''
+
+        test_ctx.assert_from_model()
+
+    # * method: test_round_trip
+    def test_round_trip(self, test_ctx):
+        '''Verify aggregate conversion through the transfer object and back.'''
+
+        test_ctx.assert_round_trip()
+
 
     transfer_cls = ErrorConfigObject
     aggregate_cls = ErrorAggregate
@@ -234,13 +290,15 @@ class TestErrorConfigObject:
         assert mapped.message[0].text == 'Test error message.'
 
     # * test: from_model_messages
-    def test_from_model_messages(self, target):
+    def test_from_model_messages(self, test_ctx):
         '''
         Test that from_model() converts messages to ErrorMessageConfigObject instances.
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target
@@ -253,13 +311,15 @@ class TestErrorConfigObject:
         assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
 
     # * test: round_trip_messages
-    def test_round_trip_messages(self, target):
+    def test_round_trip_messages(self, test_ctx):
         '''
         Test that round-trip preserves message content field-by-field.
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
+
+        target = test_ctx.make_target()
 
         # Bind the generated target fixture to the established local name.
         aggregate = target

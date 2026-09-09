@@ -7,6 +7,8 @@ import pytest
 from unittest import mock
 
 # ** app
+from tiferet.assets import TiferetError
+from tiferet.assets.error import INVALID_TESTER_TYPE_ID
 from tiferet.events.core import DomainEvent
 from tiferet.events.tester import (
     AddTester,
@@ -91,3 +93,23 @@ def test_tester_events_via_domain_event_handle(tester):
         id=tester.id,
     ) == tester.id
     service.delete.assert_called_once_with(tester.id)
+
+# ** test: add_tester_rejects_invalid_type
+def test_add_tester_rejects_invalid_type() -> None:
+    '''Test AddTester raises catalogued INVALID_TESTER_TYPE before mapping.'''
+
+    # Invoke AddTester with an unrecognized discriminator.
+    service = mock.Mock(spec=TesterService)
+    with pytest.raises(TiferetError) as exc_info:
+        DomainEvent.handle(
+            AddTester,
+            dependencies={'tester_service': service},
+            id='unknown.Tester',
+            type='unknown',
+            module_path='tiferet.mappers.error',
+            class_name='ErrorAggregate',
+        )
+
+    # Assert the catalogued type error is raised before persistence.
+    assert exc_info.value.error_code == INVALID_TESTER_TYPE_ID
+    service.save.assert_not_called()

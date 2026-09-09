@@ -60,6 +60,13 @@ class AddTester(TesterEvent):
         :rtype: TesterAggregate
         '''
 
+        # Reject unrecognized tester discriminators before config construction.
+        self.verify(
+            expression=type in ('domain', 'aggregate', 'transfer_object'),
+            error_code=a.error.INVALID_TESTER_TYPE_ID,
+            type=type,
+        )
+
         # Dispatch the supplied data to its tester variant.
         tester = TesterAggregate.build_config_object(
             {
