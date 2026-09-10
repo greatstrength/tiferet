@@ -22,6 +22,7 @@ from ..contexts.app import (
 from ..contexts.cache import CacheContext
 from ..contexts.tester import (
     AggregateTesterContext,
+    ContextTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
@@ -84,6 +85,7 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
         'service_event': ServiceEventTesterContext,
         'generic': GenericTesterContext,
         'repo': RepoTesterContext,
+        'context': ContextTesterContext,
     }[tester.type]
 
     # Bind the selected subclass to the tester domain object.
@@ -220,12 +222,16 @@ def use_tester(
     module_path = fields.pop('module_path', None)
     class_name = fields.pop('class_name', None)
     aggregate_cls = fields.pop('aggregate_cls', None)
+    domain_cls = fields.pop('domain_cls', None)
     if target_cls is not None:
         module_path = module_path or target_cls.__module__
         class_name = class_name or target_cls.__name__
     if aggregate_cls is not None:
         fields.setdefault('aggregate_module_path', aggregate_cls.__module__)
         fields.setdefault('aggregate_class_name', aggregate_cls.__name__)
+    if domain_cls is not None:
+        fields.setdefault('domain_module_path', domain_cls.__module__)
+        fields.setdefault('domain_class_name', domain_cls.__name__)
 
     # Construct one tester and one master context at decoration time.
     tester = TesterObject(

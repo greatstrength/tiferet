@@ -219,3 +219,37 @@ def test_tester_object_get_target_returns_function_and_instance() -> None:
     assert target.lang == 'en_US'
     assert class_tester.sample_data is sample
     assert 'extra' not in sample
+
+# *** testers
+
+# ** tester: tester_object_context_type_tester
+class TesterObjectContextTypeTester:
+    '''Prove TesterObject accepts type=context without a subclass model.'''
+
+    # * test: accepts_context_type_and_optional_defaults
+    def test_accepts_context_type_and_optional_defaults(self) -> None:
+        '''type=context validates and optional context fields default empty.'''
+
+        tester = _TesterObject(
+            type='context',
+            id='context.RequestContext',
+            module_path='tiferet.contexts.request',
+            class_name='RequestContext',
+        )
+        assert tester.type == 'context'
+        assert tester.domain_module_path is None
+        assert tester.domain_class_name is None
+        assert tester.from_domain_cases == []
+        assert tester.domain_type_cases == []
+        assert tester.for_domain_cases == []
+        assert hasattr(tester, 'get_target_type')
+        assert hasattr(tester, 'get_domain_type')
+
+    # * test: context_tester_object_does_not_exist
+    def test_context_tester_object_does_not_exist(self) -> None:
+        '''ContextTesterObject is absent from the domain package.'''
+
+        import tiferet.domain as domain_package
+
+        assert not hasattr(domain_package, 'ContextTesterObject')
+        assert 'ContextTesterObject' not in domain_package.__all__

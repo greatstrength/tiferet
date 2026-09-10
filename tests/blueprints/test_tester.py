@@ -18,7 +18,9 @@ from tiferet.contexts.app import (
     APP_SERVICE_CACHE_PREFIX,
 )
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
+from tiferet.contexts.request import RequestContext
 from tiferet.contexts.tester import (
+    ContextTesterContext,
     DomainEventTesterContext,
     GenericTesterContext,
     RepoTesterContext,
@@ -26,7 +28,7 @@ from tiferet.contexts.tester import (
     TESTER_CACHE_PREFIX,
     TestSessionContext as _TestSessionContext,
 )
-from tiferet.domain import TesterObject
+from tiferet.domain import Request, TesterObject
 from tiferet.domain.error import ErrorMessage
 
 # *** tests
@@ -195,3 +197,42 @@ def test_use_tester_injects_generic_test_ctx(test_ctx) -> None:
     '''Test @use_tester injects GenericTesterContext as test_ctx.'''
 
     assert isinstance(test_ctx, GenericTesterContext)
+
+# *** testers
+
+# ** tester: context_tester_blueprint_tester
+class ContextTesterBlueprintTester:
+    '''Prove build_tester_context and @use_tester map type=context.'''
+
+    # * test: build_tester_context_selects_context_variant
+    def test_build_tester_context_selects_context_variant(self) -> None:
+        '''build_tester_context maps context to ContextTesterContext.'''
+
+        test_ctx = build_tester_context(
+            TesterObject(
+                type='context',
+                id='context.RequestContext',
+                module_path=RequestContext.__module__,
+                class_name=RequestContext.__name__,
+                domain_module_path=Request.__module__,
+                domain_class_name=Request.__name__,
+            ),
+        )
+        assert isinstance(test_ctx, ContextTesterContext)
+
+    # * test: use_tester_injects_context_test_ctx
+    @use_tester(
+        type='context',
+        target_cls=RequestContext,
+        domain_cls=Request,
+        sample_data={
+            'session_id': 'test-session',
+            'feature_id': 'test.feature',
+        },
+    )
+    def test_use_tester_injects_context_test_ctx(self, test_ctx) -> None:
+        '''@use_tester injects ContextTesterContext and fills domain identity.'''
+
+        assert isinstance(test_ctx, ContextTesterContext)
+        assert test_ctx.domain.domain_module_path == Request.__module__
+        assert test_ctx.domain.domain_class_name == Request.__name__

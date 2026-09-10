@@ -4,6 +4,7 @@
 
 # ** app
 from tiferet.assets.tester import (
+    CONTEXT_REQUEST_CONTEXT_TESTER_ID,
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
     SERVICE_EVENT_GET_ERROR_TESTER_ID,
@@ -129,6 +130,7 @@ def test_default_tester_catalog_and_session_are_data_only() -> None:
         'transfer_object',
         'service_event',
         'repo',
+        'context',
     }
     session = CORE_DEFAULT_TESTER_SESSIONS[TIFERET_TESTER_ID]
     assert session['name'] == 'Tester'
@@ -163,3 +165,22 @@ def test_error_config_repository_catalog_round_trips() -> None:
     assert tester.class_name == 'ErrorConfigRepository'
     assert tester.config_parameter == 'error_config'
     assert tester.aggregate_class_name == 'ErrorAggregate'
+
+# *** testers
+
+# ** tester: request_context_catalog_tester
+class RequestContextCatalogTester:
+    '''Prove the RequestContext catalog row model_validates.'''
+
+    # * test: request_context_catalog_row_validates
+    def test_request_context_catalog_row_validates(self) -> None:
+        '''The context.RequestContext catalog row is a valid TesterObject.'''
+
+        data = {
+            **CORE_DEFAULT_TESTERS[CONTEXT_REQUEST_CONTEXT_TESTER_ID],
+            'id': CONTEXT_REQUEST_CONTEXT_TESTER_ID,
+        }
+        tester = TesterObject.model_validate(data)
+        assert tester.type == 'context'
+        assert tester.class_name == 'RequestContext'
+        assert tester.domain_class_name == 'Request'
