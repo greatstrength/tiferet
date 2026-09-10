@@ -6,8 +6,6 @@ __all__ = [
     'a',
     'App',
     'CLI',
-    'Tester',
-    'test_case',
     'use_tester',
     'TiferetError',
     'TiferetAPIError',
@@ -44,7 +42,7 @@ try:
     from .assets import TiferetError, TiferetAPIError
     from .blueprints import build_app as App
     from .blueprints import build_cli as CLI
-    from .blueprints import build_test as Tester, test_case, use_tester
+    from .blueprints import use_tester
     from .domain import DomainObject
     from .events import (
         DomainEvent,

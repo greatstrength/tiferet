@@ -23,7 +23,6 @@ from ..contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     ServiceEventTesterContext,
-    TestRequestContext,
     TestSessionContext,
     TesterContext,
     TesterObject,
@@ -108,76 +107,6 @@ def resolve_tester(
         default_tester_index=cache.get_by_prefix(*TESTER_CACHE_PREFIX),
     )
 
-# ** blueprint: build_test_session_context
-def build_test_session_context(
-        app_session,
-        cache: CacheContext,
-        **context_kwargs,
-    ) -> TestSessionContext:
-    '''
-    Build a fluent test-session context from a resolved app session.
-
-    :param app_session: The resolved test application session.
-    :type app_session: Any
-    :param cache: The tester-scoped shared cache.
-    :type cache: CacheContext
-    :param context_kwargs: Additional context construction arguments.
-    :type context_kwargs: dict
-    :return: The fully wired fluent test-session context.
-    :rtype: TestSessionContext
-    '''
-
-    # Compose the app container and feature-level resolver for this session.
-    app_container = core.build_app_service_container(cache, app_session)
-    resolver = core.build_service_resolver(app_container)
-
-    # Compose the explicitly selected fluent session context and request handler.
-    return core.compose_session_context(
-        TestSessionContext,
-        app_session,
-        cache,
-        app_container,
-        resolver,
-        create_request_handler=build_test_request,
-        response_handler=core.response_handler,
-        **context_kwargs,
-    )
-
-# ** blueprint: build_app
-def build_app(
-        interface_id: str = a.tester.TIFERET_TESTER_ID,
-        module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
-        class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
-        **parameters: Any,
-    ) -> TestSessionContext:
-    '''
-    Build the default fluent test session or a consumer-declared test session.
-
-    :param interface_id: The test session identifier.
-    :type interface_id: str
-    :param module_path: The app-service module path for external sessions.
-    :type module_path: str
-    :param class_name: The app-service class name for external sessions.
-    :type class_name: str
-    :param parameters: Additional app-service constructor parameters.
-    :type parameters: dict
-    :return: The fully wired fluent test-session context.
-    :rtype: TestSessionContext
-    '''
-
-    # Build the tester cache and resolve the requested session.
-    cache = build_cache()
-    app_session = core.get_app_session(
-        interface_id,
-        cache,
-        module_path=module_path,
-        class_name=class_name,
-        **parameters,
-    )
-
-    # Compose and return the fluent test-session context.
-    return build_test_session_context(app_session, cache)
-
 # ** blueprint: build_tester_context
 def build_tester_context(tester: TesterObject) -> TesterContext:
     '''Select the variant tester context class from the tester type.
@@ -200,30 +129,49 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
     # Bind the selected subclass to the tester domain object.
     return context_cls.from_domain(tester)
 
-# ** function: inject_test_ctx
-def _inject_test_ctx(fn: Callable, tester: TesterObject) -> Callable:
-    '''Wrap a test callable so it receives a bound tester context as test_ctx.'''
+# ** blueprint: build_test_session
+def build_test_session(
+        tester_ctx: TesterContext,
+        **request_fields: Any,
+    ) -> TestSessionContext:
+    '''
+    Construct a test session bound to a tester context.
 
-    # Preserve metadata while injecting the bound context.
+    :param tester_ctx: The bound variant tester context.
+    :type tester_ctx: TesterContext
+    :param request_fields: Optional RequestContext initialization fields.
+    :type request_fields: dict
+    :return: A new test session for one test request.
+    :rtype: TestSessionContext
+    '''
+
+    # Construct the session directly; the tester context is a collaborator.
+    return TestSessionContext(tester_ctx, **request_fields)
+
+# ** function: inject_test_session
+def _inject_test_session(fn: Callable, test_ctx: TesterContext) -> Callable:
+    '''Wrap a test callable so it receives test_ctx and session by name.'''
+
+    # Preserve metadata while injecting the bound master and a new session.
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
 
-        # Bind a fresh variant context only when the test declares test_ctx.
-        parameters = list(inspect.signature(fn).parameters)
-        if 'test_ctx' not in parameters:
-            return fn(*args, **kwargs)
-        test_ctx = build_tester_context(tester)
-        if parameters and parameters[0] == 'self':
-            return fn(args[0], test_ctx, *args[1:], **kwargs)
-        return fn(test_ctx, *args, **kwargs)
+        # Always build both internally; inject only the names the test declares.
+        session = build_test_session(test_ctx)
+        parameters = inspect.signature(fn).parameters
+        if 'test_ctx' in parameters:
+            kwargs['test_ctx'] = test_ctx
+        if 'session' in parameters:
+            kwargs['session'] = session
+        return fn(*args, **kwargs)
 
-    # Strip test_ctx so pytest does not look up a missing fixture.
+    # Strip injected names so pytest does not look up missing fixtures.
     signature = inspect.signature(fn)
     wrapper.__signature__ = signature.replace(
         parameters=[
             parameter
             for name, parameter in signature.parameters.items()
-            if name != 'test_ctx'
+            if name not in ('test_ctx', 'session')
         ],
     )
     return wrapper
@@ -236,7 +184,7 @@ def use_tester(
         **fields: Any,
     ) -> Callable:
     '''
-    Decorate a test function or class with a bound tester context as test_ctx.
+    Decorate a test function or class with a bound tester context and session.
 
     :param type: The tester discriminator.
     :type type: str
@@ -261,7 +209,7 @@ def use_tester(
         fields.setdefault('aggregate_module_path', aggregate_cls.__module__)
         fields.setdefault('aggregate_class_name', aggregate_cls.__name__)
 
-    # Construct the single tester domain object once at decoration time.
+    # Construct one tester and one master context at decoration time.
     tester = TesterObject(
         type=type,
         id=id or f'{type}.{class_name}',
@@ -269,87 +217,15 @@ def use_tester(
         class_name=class_name,
         **fields,
     )
+    test_ctx = build_tester_context(tester)
 
     # Decorate a function, or wrap every test_* method on a class.
     def decorator(obj: Callable) -> Callable:
         if isinstance(obj, builtins.type):
             for name, member in list(obj.__dict__.items()):
                 if name.startswith('test_') and callable(member):
-                    setattr(obj, name, _inject_test_ctx(member, tester))
+                    setattr(obj, name, _inject_test_session(member, test_ctx))
             return obj
-        return _inject_test_ctx(obj, tester)
+        return _inject_test_session(obj, test_ctx)
 
     return decorator
-
-# ** blueprint: test_case
-def test_case(
-        interface_id: str = a.tester.TIFERET_TESTER_ID,
-        **given: Any,
-    ) -> Callable:
-    '''
-    Decorate a pytest test with a constant given-state baseline.
-
-    :param interface_id: The test session identifier passed to Tester().
-    :type interface_id: str
-    :param given: Given-state values to seed before the test body.
-    :type given: Any
-    :return: A decorator that injects the tester context.
-    :rtype: Callable
-    '''
-
-    # Return a wrapper that constructs the session without a pytest fixture.
-    def decorator(fn: Callable) -> Callable:
-
-        # Preserve function metadata while replacing fixture-based injection.
-        @functools.wraps(fn)
-        def wrapper(*args, **kwargs):
-
-            # Construct the fluent session and seed decoration-time state.
-            tester_ctx = build_app(interface_id=interface_id)
-            tester_ctx.given(**given)
-
-            # Return the test body's result without dispatching the chain.
-            return fn(tester_ctx, *args, **kwargs)
-
-        # Strip tester_ctx so pytest does not look up a missing fixture.
-        signature = inspect.signature(fn)
-        wrapper.__signature__ = signature.replace(
-            parameters=[
-                parameter
-                for name, parameter in signature.parameters.items()
-                if name != 'tester_ctx'
-            ],
-        )
-        return wrapper
-
-    # Return the given-state decorator.
-    return decorator
-
-# ** blueprint: build_test_request
-def build_test_request(
-        interface_id: str,
-        feature_id: str,
-        headers: Dict[str, str] = None,
-        data: Dict[str, Any] = None,
-    ) -> TestRequestContext:
-    '''
-    Build a test-aware request context for a fluent session chain.
-
-    :param interface_id: The test session identifier.
-    :type interface_id: str
-    :param feature_id: The pending feature identifier.
-    :type feature_id: str
-    :param headers: Optional request headers.
-    :type headers: Dict[str, str] | None
-    :param data: Optional request data.
-    :type data: Dict[str, Any] | None
-    :return: The initialized test request context.
-    :rtype: TestRequestContext
-    '''
-
-    # Construct the specialized request and stamp its owning session id.
-    return TestRequestContext(
-        headers={**(headers or {}), 'interface_id': interface_id},
-        data=data or {},
-        feature_id=feature_id,
-    )

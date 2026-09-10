@@ -16,7 +16,6 @@ from ..domain import (
     Verification,
 )
 from ..events import DomainEvent
-from .app import AppSessionContext
 from .core import BaseContext, add_default_cache_items
 from .request import RequestContext
 
@@ -120,6 +119,20 @@ class TesterContext(BaseContext):
         # Construct the declared target from supplied or sample data.
         target_data = data if data is not None else self.domain.sample_data
         return self.domain.get_target_type()(**target_data)
+
+    # * method: exercise_target
+    def _exercise_target(self, data: Dict[str, Any]) -> Any:
+        '''
+        Construct the bound tester target from overlaid request data.
+
+        :param data: Construction data already merged over sample payload.
+        :type data: Dict[str, Any]
+        :return: The constructed target.
+        :rtype: Any
+        '''
+
+        # Construct through the existing non-mutating factory.
+        return self.make_target(data=data)
 
     # * method: assert_new
     def assert_new(self, target: Any = None) -> None:
@@ -278,12 +291,15 @@ class TransferObjectTesterContext(TesterContext):
             self.domain.field_normalizers,
         )
 
-# ** context: test_request_context
-class TestRequestContext(RequestContext):
+# ** context: test_session_context
+class TestSessionContext(RequestContext):
     '''
-    Holds mutable test-chain state independently of the request result so
-    deferred test expectations can be evaluated after any dispatch path.
+    A unit test is one request. This session carries given-state, invocation
+    parameters, and deferred verifications for a single bound tester target.
     '''
+
+    # * attribute: tester_ctx
+    tester_ctx: TesterContext
 
     # * attribute: verifications
     verifications: List[Verification]
@@ -292,61 +308,83 @@ class TestRequestContext(RequestContext):
     outcome: Any
 
     # * init
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self, tester_ctx: TesterContext, **kwargs: Any) -> None:
         '''
-        Initialize a request context with an empty verification queue.
+        Initialize a test session bound to a read-only tester context.
 
+        :param tester_ctx: The bound variant tester context.
+        :type tester_ctx: TesterContext
         :param kwargs: Request-context initialization arguments.
         :type kwargs: Any
         '''
 
-        # Initialize the inherited request context unchanged.
+        # Initialize the inherited request context, binding a Request as domain.
         super().__init__(**kwargs)
+
+        # Hold the tester context as a collaborator, not as domain.
+        self.tester_ctx = tester_ctx
 
         # Initialize test-chain state separately from the request result.
         self.verifications = []
         self.outcome = None
 
     # * method: given
-    def given(self, **state: Any) -> 'TestRequestContext':
+    def given(self, **state: Any) -> 'TestSessionContext':
         '''
         Merge literal given-state into this request's data payload.
 
         :param state: Top-level request data to merge.
         :type state: Any
-        :return: This test request context.
-        :rtype: TestRequestContext
+        :return: This test session context.
+        :rtype: TestSessionContext
         '''
 
         # Shallowly merge state, allowing later values to replace prior ones.
         self.data.update(state)
 
-        # Return this context for fluent chaining.
+        # Return this session for fluent chaining.
+        return self
+
+    # * method: invoke
+    def invoke(self, **params: Any) -> 'TestSessionContext':
+        '''
+        Record that this session will exercise the bound tester target.
+
+        :param params: Parameters to merge into this request's data payload.
+        :type params: Any
+        :return: This test session context.
+        :rtype: TestSessionContext
+        '''
+
+        # Merge invocation parameters onto request data with the same shallow merge.
+        self.data.update(params)
+
+        # Return this session for fluent chaining.
         return self
 
     # * method: verify
     def verify(
             self,
-            predicate: Callable[[Any], bool] | Any,
+            assertion: Callable[[Any], bool] | Any,
             message: str | None = None,
-        ) -> 'TestRequestContext':
+        ) -> 'TestSessionContext':
         '''
-        Queue one deferred outcome verification for this test request.
+        Queue one deferred outcome verification for this test session.
 
-        :param predicate: The predicate or literal expected outcome.
-        :type predicate: Callable[[Any], bool] | Any
-        :param message: Optional failure message.
+        :param assertion: Predicate or literal expected outcome.
+        :type assertion: Callable[[Any], bool] | Any
+        :param message: Optional assertion failure message.
         :type message: str | None
-        :return: This test request context.
-        :rtype: TestRequestContext
+        :return: This test session context.
+        :rtype: TestSessionContext
         '''
 
-        # Normalize and queue the verification for post-dispatch evaluation.
+        # Normalize and queue the verification for post-run evaluation.
         self.verifications.append(
-            _create_verification(predicate=predicate, message=message)
+            _create_verification(predicate=assertion, message=message)
         )
 
-        # Return this context for fluent chaining.
+        # Return this session for fluent chaining.
         return self
 
     # * method: capture_outcome
@@ -354,11 +392,11 @@ class TestRequestContext(RequestContext):
         '''
         Store the outcome that every queued verification will inspect.
 
-        :param outcome: The dispatch outcome under test.
+        :param outcome: The tester outcome under test.
         :type outcome: Any
         '''
 
-        # Retain the dispatch outcome separately from the request result.
+        # Retain the outcome separately from the request result.
         self.outcome = outcome
 
     # * method: evaluate_verifications
@@ -399,226 +437,34 @@ class TestRequestContext(RequestContext):
         if failures:
             raise AssertionError('\n'.join(failures))
 
-# ** context: test_session_context
-class TestSessionContext(AppSessionContext):
-    '''
-    Fluent test-session context that holds one pending request across a
-    given/invoke/verify chain and dispatches it only when run is called.
-    '''
-
-    # * attribute: pending_request (private)
-    _pending_request: TestRequestContext | None
-
-    # * attribute: pending_event (private)
-    _pending_event: Any
-
-    # * init
-    def __init__(self, *args, **kwargs) -> None:
-        '''
-        Initialize the test session with no active fluent request.
-
-        :param args: Positional arguments forwarded to the application session.
-        :type args: tuple
-        :param kwargs: Keyword arguments forwarded to the application session.
-        :type kwargs: dict
-        '''
-
-        # Initialize the inherited application session collaborators.
-        super().__init__(*args, **kwargs)
-
-        # Start with no fluent request or directly invoked event.
-        self._pending_request = None
-        self._pending_event = None
-
-    # * method: build_request
-    def build_request(
-            self,
-            feature_id: str,
-            headers: Dict[str, str] = {},
-            data: Dict[str, Any] = {},
-        ) -> TestRequestContext:
-        '''
-        Return the active test request while a fluent chain is pending.
-
-        :param feature_id: The feature identifier for the pending request.
-        :type feature_id: str
-        :param headers: Headers to merge into the pending request.
-        :type headers: Dict[str, str]
-        :param data: Data to merge into the pending request.
-        :type data: Dict[str, Any]
-        :return: The active or newly created test request context.
-        :rtype: TestRequestContext
-        '''
-
-        # Reuse the pending request so every fluent operation shares state.
-        if self._pending_request is not None:
-            self._pending_request.feature_id = feature_id
-            self._pending_request.headers.update(headers or {})
-            self._pending_request.given(**(data or {}))
-            return self._pending_request
-
-        # Delegate standalone request construction to the wired handler.
-        return super().build_request(feature_id, headers=headers, data=data)
-
-    # * method: given
-    def given(
-            self,
-            preset_id: str = None,
-            **data: Any,
-        ) -> 'TestSessionContext':
-        '''
-        Add a named preset and literal state to the pending test request.
-
-        :param preset_id: Optional cache-seeded preset identifier.
-        :type preset_id: str | None
-        :param data: Literal state that overrides earlier state keys.
-        :type data: Any
-        :return: This test session context.
-        :rtype: TestSessionContext
-        '''
-
-        # Create the held request on the first fluent operation.
-        request = self._get_pending_request()
-
-        # Resolve and merge the named preset before literal state.
-        if preset_id is not None:
-            preset = self.cache.get(preset_id, *TEST_PRESET_CACHE_PREFIX)
-            if preset is None:
-                TiferetError.raise_error(
-                    a.error.TEST_PRESET_NOT_FOUND_ID,
-                    preset_id=preset_id,
-                )
-            request.given(**preset)
-
-        # Merge caller-supplied state last so it wins on key collisions.
-        request.given(**data)
-
-        # Return this session for fluent chaining.
-        return self
-
-    # * method: invoke
-    def invoke(
-            self,
-            feature_id: str = None,
-            event: Any = None,
-            **params: Any,
-        ) -> 'TestSessionContext':
-        '''
-        Select the feature or direct event to execute when the chain runs.
-
-        :param feature_id: Optional feature identifier for pipeline dispatch.
-        :type feature_id: str | None
-        :param event: Optional direct DomainEvent type, instance, or callable.
-        :type event: Any
-        :param params: Parameters to merge into the pending request state.
-        :type params: Any
-        :return: This test session context.
-        :rtype: TestSessionContext
-        '''
-
-        # Require exactly one dispatch target.
-        if (feature_id is None) == (event is None):
-            TiferetError.raise_error(
-                a.error.COMMAND_PARAMETER_REQUIRED_ID,
-                message='Specify exactly one test invocation target.',
-                parameters=['feature_id or event'],
-                command='TestSessionContext.invoke',
-            )
-
-        # Hold the invocation target and parameters on the shared request.
-        request = self._get_pending_request()
-        request.feature_id = feature_id
-        request.given(**params)
-        self._pending_event = event
-
-        # Return this session for fluent chaining.
-        return self
-
-    # * method: verify
-    def verify(
-            self,
-            assertion: Callable[[Any], bool] | Any,
-            message: str | None = None,
-        ) -> 'TestSessionContext':
-        '''
-        Queue an assertion to evaluate against the pending invocation outcome.
-
-        :param assertion: Predicate or literal expected outcome.
-        :type assertion: Callable[[Any], bool] | Any
-        :param message: Optional assertion failure message.
-        :type message: str | None
-        :return: This test session context.
-        :rtype: TestSessionContext
-        '''
-
-        # Queue the assertion on the held request.
-        self._get_pending_request().verify(assertion, message=message)
-
-        # Return this session for fluent chaining.
-        return self
-
     # * method: run
-    def run(self) -> Any:
+    def run(self, target: Any = None, **kwargs) -> Any:
         '''
-        Execute the pending invocation once and evaluate its verifications.
+        Evaluate this test against the bound tester target.
 
-        :return: The captured invocation result.
+        :param target: Reserved for a later live-target override; ignored here.
+        :type target: Any
+        :param kwargs: Reserved keyword arguments; ignored here.
+        :type kwargs: dict
+        :return: The captured tester outcome.
         :rtype: Any
         '''
 
-        # Require a pending request with an explicitly selected target.
-        request = self._get_pending_request()
-        if request.feature_id is None and self._pending_event is None:
-            TiferetError.raise_error(
-                a.error.COMMAND_PARAMETER_REQUIRED_ID,
-                message='A test invocation must be selected before run().',
-                parameters=['feature_id or event'],
-                command='TestSessionContext.run',
-            )
+        # Overlay given-state onto a copy of the tester sample payload.
+        tester = self.tester_ctx.domain
+        if tester.type in ('domain_event', 'service_event'):
+            sample = tester.sample_kwargs
+        else:
+            sample = tester.sample_data
+        payload = {**sample, **self.data}
 
-        # Dispatch once, capture the outcome, and consume queued verifications.
-        try:
-            if request.feature_id is not None:
-                self.execute_feature(request.feature_id, request)
-                result = self.build_response(request)
-            else:
-                result = self._dispatch_event(self._pending_event, request.data)
-            request.capture_outcome(result)
-            request.evaluate_verifications()
-            return result
-        finally:
-            # Clear the complete chain after a success or any raised failure.
-            self._pending_request = None
-            self._pending_event = None
+        # Exercise the bound tester and capture the outcome.
+        outcome = self.tester_ctx._exercise_target(data=payload)
+        self.capture_outcome(outcome)
 
-    # * method: _get_pending_request
-    def _get_pending_request(self) -> TestRequestContext:
-        '''Create and return the request shared by the active fluent chain.'''
-
-        # Build the held test request only once per chain.
-        if self._pending_request is None:
-            self._pending_request = super().build_request(
-                None,
-                data={},
-            )
-
-        # Return the held request context.
-        return self._pending_request
-
-    # * method: _dispatch_event
-    def _dispatch_event(self, event: Any, params: Dict[str, Any]) -> Any:
-        '''Dispatch a direct DomainEvent type, instance, or callable once.'''
-
-        # Handle event classes through the framework's standard event entry point.
-        if isinstance(event, type) and issubclass(event, DomainEvent):
-            return DomainEvent.handle(event, **params)
-
-        # Execute a prepared event instance without replacing its dependencies.
-        if isinstance(event, DomainEvent):
-            return event.execute(**params)
-
-        # Invoke a caller-provided callable directly.
-        return event(**params)
+        # Consume queued verifications and return the outcome.
+        self.evaluate_verifications()
+        return outcome
 
 # ** context: domain_event_tester_context
 class DomainEventTesterContext(TesterContext):
@@ -668,6 +514,20 @@ class DomainEventTesterContext(TesterContext):
                 **kwargs,
             },
         )
+
+    # * method: exercise_target
+    def _exercise_target(self, data: Dict[str, Any]) -> Any:
+        '''
+        Handle the bound event with overlaid request data.
+
+        :param data: Event kwargs already merged over sample kwargs.
+        :type data: Dict[str, Any]
+        :return: The event execution result.
+        :rtype: Any
+        '''
+
+        # Handle through the existing non-mutating event entry point.
+        return self.handle(**data)
 
     # * method: assert_missing_required_params
     def assert_missing_required_params(self) -> None:
