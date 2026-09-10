@@ -105,7 +105,6 @@ class AppEventTester:
         assert AppEvent(app_service=service).app_service is service
         assert GetAppSession(app_service=service).app_service is service
 
-
 # ** tester: add_app_session_tester
 @use_tester(
     type='domain_event',

@@ -83,7 +83,6 @@ def sample_feature() -> Feature:
         description='A sample feature for testing.',
     )
 
-
 # *** testers
 
 # ** tester: feature_event_tester
@@ -133,7 +132,6 @@ class FeatureEventTester:
         # Assert the base and a concrete event both expose the injected service.
         assert FeatureEvent(feature_service=service).feature_service is service
         assert AddFeature(feature_service=service).feature_service is service
-
 
 # ** tester: add_feature_tester
 @use_tester(

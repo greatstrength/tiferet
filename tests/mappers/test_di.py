@@ -159,7 +159,6 @@ class FlaggedDependencyAggregateTester:
 
         test_ctx.assert_set_attribute()
 
-
     aggregate_cls = FlaggedDependencyAggregate
 
     sample_data = FLAGGED_DEP_AGGREGATE_SAMPLE_DATA
@@ -173,7 +172,6 @@ class FlaggedDependencyAggregateTester:
         # invalid
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
-
 
     # * test: set_parameters_clears_when_none
     def test_set_parameters_clears_when_none(self, test_ctx):
@@ -248,7 +246,6 @@ class ServiceRegistrationAggregateTester:
 
         test_ctx.assert_set_attribute()
 
-
     aggregate_cls = ServiceRegistrationAggregate
 
     sample_data = SVC_CONFIG_AGGREGATE_SAMPLE_DATA
@@ -265,7 +262,6 @@ class ServiceRegistrationAggregateTester:
         # invalid
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
-
 
     # * test: set_default_type_updates
     def test_set_default_type_updates(self, test_ctx):
@@ -449,7 +445,6 @@ class ServiceRegistrationConfigObjectTester:
 
         test_ctx.assert_round_trip()
 
-
     transfer_cls = ServiceRegistrationConfigObject
     aggregate_cls = ServiceRegistrationAggregate
 
@@ -462,7 +457,6 @@ class ServiceRegistrationConfigObjectTester:
     equality_fields = SVC_CONFIG_EQUALITY_FIELDS
 
     field_normalizers = SVC_CONFIG_FIELD_NORMALIZERS
-
 
     # * test: to_primitive_to_data
     def test_to_primitive_to_data(self):
@@ -580,7 +574,6 @@ class ServiceRegistrationConfigObjectTester:
         # All dependencies should be FlaggedDependencyConfigObject instances.
         for dep in data_object.dependencies.values():
             assert isinstance(dep, FlaggedDependencyConfigObject)
-
 
     # ** constant: flagged_dep_sample_data
     flagged_dep_sample_data = {

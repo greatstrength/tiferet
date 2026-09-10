@@ -265,7 +265,6 @@ def test_build_cli_record_from_primitive() -> None:
     assert isinstance(record, CliRecord)
     assert record.fields == {'value': '99'}
 
-
 # *** tests (cli_request_context)
 
 # ** test: cli_request_context_handle_response_list
@@ -357,7 +356,6 @@ def test_cli_request_context_handle_response_primitive(
 
     # Assert the primitive is returned as-is.
     assert output == 'plain-string'
-
 
 # *** tests (cli_session_context)
 

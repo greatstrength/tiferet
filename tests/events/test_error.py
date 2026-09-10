@@ -93,7 +93,6 @@ class ErrorEventTester:
         assert ErrorEvent(error_service=service).error_service is service
         assert AddError(error_service=service).error_service is service
 
-
 # ** tester: add_error_tester
 @use_tester(
     type='domain_event',

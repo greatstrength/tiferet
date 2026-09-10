@@ -23,7 +23,6 @@ from tiferet.interfaces import LoggingService
 from tiferet.mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
 from tiferet.blueprints.tester import use_tester
 
-
 # *** fixtures
 
 # ** fixture: sample_formatter
@@ -43,7 +42,6 @@ def sample_formatter() -> Formatter:
         format='%(levelname)s - %(message)s',
         description='A simple formatter.',
     )
-
 
 # ** fixture: sample_handler
 @pytest.fixture
@@ -67,7 +65,6 @@ def sample_handler() -> Handler:
         description='A console handler.',
     )
 
-
 # ** fixture: sample_logger
 @pytest.fixture
 def sample_logger() -> Logger:
@@ -87,7 +84,6 @@ def sample_logger() -> Logger:
         description='The main application logger.',
         propagate=True,
     )
-
 
 # *** testers
 
@@ -136,7 +132,6 @@ class LoggingEventTester:
         # Assert the base and a concrete event both expose the injected service.
         assert LoggingEvent(logging_service=service).logging_service is service
         assert AddFormatter(logging_service=service).logging_service is service
-
 
 # ** tester: list_all_logging_configs_tester
 @use_tester(

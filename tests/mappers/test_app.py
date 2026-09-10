@@ -142,7 +142,6 @@ class AppSessionAggregateTester:
 
         test_ctx.assert_set_attribute()
 
-
     aggregate_cls = AppSessionAggregate
 
     sample_data = AGGREGATE_SAMPLE_DATA
@@ -160,7 +159,6 @@ class AppSessionAggregateTester:
         # invalid
         ('invalid_attr', 'value',                  ATTRIBUTE_NOT_SETTABLE_ID),
     ]
-
 
     # * fixture: aggr_factory
     @pytest.fixture
@@ -185,7 +183,6 @@ class AppSessionAggregateTester:
             return AppSessionAggregate(**data)
 
         return factory
-
 
     # * test: set_constants_clear_when_none
     def test_set_constants_clear_when_none(self, aggr_factory):
@@ -419,7 +416,6 @@ class AppSessionConfigObjectTester:
 
         test_ctx.assert_round_trip()
 
-
     transfer_cls = AppSessionConfigObject
     aggregate_cls = AppSessionAggregate
 
@@ -432,7 +428,6 @@ class AppSessionConfigObjectTester:
     equality_fields = EQUALITY_FIELDS
 
     field_normalizers = FIELD_NORMALIZERS
-
 
     # ** constant: dependency_sample_data
     dependency_sample_data = {

@@ -125,7 +125,6 @@ class ErrorAggregateTester:
         aggregate.rename('Renamed Error')
         assert aggregate.name == 'Renamed Error'
 
-
 # ** tester: error_config_object_tester
 @use_tester(
     type='transfer_object',

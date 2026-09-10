@@ -30,7 +30,6 @@ from tiferet.utils.sqlite import (
 )
 from tiferet.blueprints.tester import use_tester
 
-
 # *** functions
 
 # ** function: sqlite_mock_dependencies
@@ -43,14 +42,12 @@ def sqlite_mock_dependencies() -> dict:
     service.__exit__.return_value = None
     return {'sqlite_service': service}
 
-
 # ** fixture: mock_dependencies
 @pytest.fixture
 def mock_dependencies() -> dict:
     """Fixture providing a MagicMock SqliteService with context manager support."""
 
     return sqlite_mock_dependencies()
-
 
 # *** testers
 
@@ -100,7 +97,6 @@ class SqliteEventTester:
         assert SqliteEvent(sqlite_service=service).sqlite_service is service
         assert MutateSql(sqlite_service=service).sqlite_service is service
 
-
 # ** tester: is_valid_identifier_tester
 class IsValidIdentifierTester:
     '''
@@ -147,7 +143,6 @@ class IsValidIdentifierTester:
         assert is_valid_identifier('invalid table') is False
         assert is_valid_identifier('table-name') is False
         assert is_valid_identifier('table;drop') is False
-
 
 # ** tester: query_sql_tester
 @use_tester(

@@ -145,7 +145,6 @@ class CliArgumentAggregateTester:
 
         test_ctx.assert_set_attribute()
 
-
     aggregate_cls = CliArgumentAggregate
 
     sample_data = ARGUMENT_AGGREGATE_SAMPLE_DATA
@@ -194,7 +193,6 @@ class CliCommandAggregateTester:
         '''Verify declared set_attribute cases.'''
 
         test_ctx.assert_set_attribute()
-
 
     aggregate_cls = CliCommandAggregate
 
@@ -351,7 +349,6 @@ class CliCommandConfigObjectTester:
         '''Verify aggregate conversion through the transfer object and back.'''
 
         test_ctx.assert_round_trip()
-
 
     transfer_cls = CliCommandConfigObject
 

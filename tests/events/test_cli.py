@@ -87,7 +87,6 @@ class CliEventTester:
         assert CliEvent(cli_service=service).cli_service is service
         assert AddCliCommand(cli_service=service).cli_service is service
 
-
 # ** tester: add_cli_command_tester
 @use_tester(
     type='domain_event',

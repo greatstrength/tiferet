@@ -118,7 +118,6 @@ class DIEventTester:
         assert DIEvent(di_service=service).di_service is service
         assert AddServiceRegistration(di_service=service).di_service is service
 
-
 # ** tester: add_service_registration_tester
 @use_tester(
     type='domain_event',
