@@ -47,8 +47,8 @@ def error() -> ErrorAggregate:
 
 # *** testers
 
-# ** tester: error_event_tester
-class ErrorEventTester:
+# ** tester: test_error_event
+class TestErrorEvent:
     '''
     Tests for the ErrorEvent base event shared by all error events.
     '''
@@ -93,7 +93,7 @@ class ErrorEventTester:
         assert ErrorEvent(error_service=service).error_service is service
         assert AddError(error_service=service).error_service is service
 
-# ** tester: add_error_tester
+# ** tester: test_add_error
 @use_tester(
     type='domain_event',
     target_cls=AddError,
@@ -112,7 +112,7 @@ class ErrorEventTester:
     ),
     required_params=['id', 'name', 'message'],
 )
-class AddErrorTester:
+class TestAddError:
     '''
     Tests for AddError using the domain event test harness.
     '''
@@ -187,7 +187,7 @@ class AddErrorTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: get_error_tester
+# ** tester: test_get_error
 @use_tester(
     type='service_event',
     target_cls=GetError,
@@ -202,7 +202,7 @@ class AddErrorTester:
     service_attr='error_service',
     not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
 )
-class GetErrorTester:
+class TestGetError:
     '''
     Tests for GetError using the service event test harness.
     '''
@@ -258,7 +258,7 @@ class GetErrorTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: list_errors_tester
+# ** tester: test_list_errors
 @use_tester(
     type='domain_event',
     target_cls=ListErrors,
@@ -271,7 +271,7 @@ class GetErrorTester:
     sample_kwargs=dict(),
     required_params=[],
 )
-class ListErrorsTester:
+class TestListErrors:
     '''
     Tests for ListErrors using the domain event test harness.
     '''
@@ -294,7 +294,7 @@ class ListErrorsTester:
         assert result == [error]
         mock_dependencies['error_service'].list.assert_called_once()
 
-# ** tester: rename_error_tester
+# ** tester: test_rename_error
 @use_tester(
     type='service_event',
     target_cls=RenameError,
@@ -309,7 +309,7 @@ class ListErrorsTester:
     service_attr='error_service',
     not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
 )
-class RenameErrorTester:
+class TestRenameError:
     '''
     Tests for RenameError using the service event test harness.
     '''
@@ -353,7 +353,7 @@ class RenameErrorTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: set_error_message_tester
+# ** tester: test_set_error_message
 @use_tester(
     type='service_event',
     target_cls=SetErrorMessage,
@@ -372,7 +372,7 @@ class RenameErrorTester:
     service_attr='error_service',
     not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
 )
-class SetErrorMessageTester:
+class TestSetErrorMessage:
     '''
     Tests for SetErrorMessage using the service event test harness.
     '''
@@ -416,7 +416,7 @@ class SetErrorMessageTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: remove_error_message_tester
+# ** tester: test_remove_error_message
 @use_tester(
     type='service_event',
     target_cls=RemoveErrorMessage,
@@ -431,7 +431,7 @@ class SetErrorMessageTester:
     service_attr='error_service',
     not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
 )
-class RemoveErrorMessageTester:
+class TestRemoveErrorMessage:
     '''
     Tests for RemoveErrorMessage using the service event test harness.
     '''
@@ -488,7 +488,7 @@ class RemoveErrorMessageTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: remove_error_tester
+# ** tester: test_remove_error
 @use_tester(
     type='domain_event',
     target_cls=RemoveError,
@@ -501,7 +501,7 @@ class RemoveErrorMessageTester:
     sample_kwargs=dict(id='TEST_ERROR'),
     required_params=['id'],
 )
-class RemoveErrorTester:
+class TestRemoveError:
     '''
     Tests for RemoveError using the domain event test harness.
     '''

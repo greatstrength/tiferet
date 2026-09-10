@@ -130,7 +130,7 @@ TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
 
 # *** testers
 
-# ** tester: flagged_dependency_aggregate_tester
+# ** tester: test_flagged_dependency_aggregate
 @use_tester(
     type='aggregate',
     target_cls=FlaggedDependencyAggregate,
@@ -142,7 +142,7 @@ TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class FlaggedDependencyAggregateTester:
+class TestFlaggedDependencyAggregate:
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -215,7 +215,7 @@ class FlaggedDependencyAggregateTester:
             'add': 'added',
         }
 
-# ** tester: service_registration_aggregate_tester
+# ** tester: test_service_registration_aggregate
 @use_tester(
     type='aggregate',
     target_cls=ServiceRegistrationAggregate,
@@ -229,7 +229,7 @@ class FlaggedDependencyAggregateTester:
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class ServiceRegistrationAggregateTester:
+class TestServiceRegistrationAggregate:
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -412,7 +412,7 @@ class ServiceRegistrationAggregateTester:
         # The list should be unchanged.
         assert len(aggregate.dependencies) == initial_count
 
-# ** tester: service_registration_config_object_tester
+# ** tester: test_service_registration_config_object
 @use_tester(
     type='transfer_object',
     target_cls=ServiceRegistrationConfigObject,
@@ -422,7 +422,7 @@ class ServiceRegistrationAggregateTester:
     equality_fields=SVC_CONFIG_EQUALITY_FIELDS,
     field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS,
 )
-class ServiceRegistrationConfigObjectTester:
+class TestServiceRegistrationConfigObject:
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''

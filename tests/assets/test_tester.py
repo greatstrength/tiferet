@@ -168,8 +168,8 @@ def test_error_config_repository_catalog_round_trips() -> None:
 
 # *** testers
 
-# ** tester: request_context_catalog_tester
-class RequestContextCatalogTester:
+# ** tester: test_request_context_catalog
+class TestRequestContextCatalog:
     '''Prove the RequestContext catalog row model_validates.'''
 
     # * test: request_context_catalog_row_validates

@@ -127,7 +127,7 @@ def cli_yaml_file(tmp_path) -> str:
 
 # *** testers
 
-# ** tester: CliConfigRepositoryTester
+# ** tester: test_cli_config_repository
 @use_tester(
     type='repo',
     target_cls=CliConfigRepository,
@@ -147,7 +147,7 @@ def cli_yaml_file(tmp_path) -> str:
     list_ids=[TEST_CMD_ADD_ID, TEST_CMD_SUBTRACT_ID],
     delete_ids=[TEST_CMD_SUBTRACT_ID],
 )
-class CliConfigRepositoryTester:
+class TestCliConfigRepository:
     '''CliConfigRepository five-method coverage via RepoTesterContext.'''
 
     # * test: exists

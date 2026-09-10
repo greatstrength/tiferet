@@ -85,8 +85,8 @@ def sample_feature() -> Feature:
 
 # *** testers
 
-# ** tester: feature_event_tester
-class FeatureEventTester:
+# ** tester: test_feature_event
+class TestFeatureEvent:
     '''
     Tests for the FeatureEvent base event shared by all feature events.
     '''
@@ -133,7 +133,7 @@ class FeatureEventTester:
         assert FeatureEvent(feature_service=service).feature_service is service
         assert AddFeature(feature_service=service).feature_service is service
 
-# ** tester: add_feature_tester
+# ** tester: test_add_feature
 @use_tester(
     type='domain_event',
     target_cls=AddFeature,
@@ -149,7 +149,7 @@ class FeatureEventTester:
     ),
     required_params=['name', 'group_id'],
 )
-class AddFeatureTester:
+class TestAddFeature:
     '''
     Tests for AddFeature using the domain event test harness.
     '''
@@ -262,7 +262,7 @@ class AddFeatureTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: get_feature_tester
+# ** tester: test_get_feature
 @use_tester(
     type='service_event',
     target_cls=GetFeature,
@@ -277,7 +277,7 @@ class AddFeatureTester:
     service_attr='feature_service',
     not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
 )
-class GetFeatureTester:
+class TestGetFeature:
     '''
     Tests for GetFeature using the service event test harness.
     '''
@@ -357,7 +357,7 @@ class GetFeatureTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: list_features_tester
+# ** tester: test_list_features
 @use_tester(
     type='domain_event',
     target_cls=ListFeatures,
@@ -370,7 +370,7 @@ class GetFeatureTester:
     sample_kwargs=dict(group_id=None),
     required_params=[],
 )
-class ListFeaturesTester:
+class TestListFeatures:
     '''
     Tests for ListFeatures using the domain event test harness.
     '''
@@ -429,7 +429,7 @@ class ListFeaturesTester:
         assert result == []
         mock_dependencies['feature_service'].list.assert_called_once_with(group_id=None)
 
-# ** tester: remove_feature_tester
+# ** tester: test_remove_feature
 @use_tester(
     type='domain_event',
     target_cls=RemoveFeature,
@@ -442,7 +442,7 @@ class ListFeaturesTester:
     sample_kwargs=dict(id='group.sample_feature'),
     required_params=['id'],
 )
-class RemoveFeatureTester:
+class TestRemoveFeature:
     '''
     Tests for RemoveFeature using the domain event test harness.
     '''
@@ -487,7 +487,7 @@ class RemoveFeatureTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: update_feature_tester
+# ** tester: test_update_feature
 @use_tester(
     type='service_event',
     target_cls=UpdateFeature,
@@ -511,7 +511,7 @@ class RemoveFeatureTester:
         value='Updated Feature Name',
     ),
 )
-class UpdateFeatureTester:
+class TestUpdateFeature:
     '''
     Tests for UpdateFeature using the service event test harness.
     '''
@@ -617,7 +617,7 @@ class UpdateFeatureTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: add_feature_step_tester
+# ** tester: test_add_feature_step
 @use_tester(
     type='service_event',
     target_cls=AddFeatureStep,
@@ -644,7 +644,7 @@ class UpdateFeatureTester:
         service_id='container.attribute',
     ),
 )
-class AddFeatureStepTester:
+class TestAddFeatureStep:
     '''
     Tests for AddFeatureStep using the service event test harness.
     '''
@@ -740,7 +740,7 @@ class AddFeatureStepTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: update_feature_step_tester
+# ** tester: test_update_feature_step
 @use_tester(
     type='service_event',
     target_cls=UpdateFeatureStep,
@@ -766,7 +766,7 @@ class AddFeatureStepTester:
         value='Updated Name',
     ),
 )
-class UpdateFeatureStepTester:
+class TestUpdateFeatureStep:
     '''
     Tests for UpdateFeatureStep using the service event test harness.
     '''
@@ -917,7 +917,7 @@ class UpdateFeatureStepTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: remove_feature_step_tester
+# ** tester: test_remove_feature_step
 @use_tester(
     type='service_event',
     target_cls=RemoveFeatureStep,
@@ -939,7 +939,7 @@ class UpdateFeatureStepTester:
         position=0,
     ),
 )
-class RemoveFeatureStepTester:
+class TestRemoveFeatureStep:
     '''
     Tests for RemoveFeatureStep using the service event test harness.
     '''
@@ -1018,7 +1018,7 @@ class RemoveFeatureStepTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: reorder_feature_step_tester
+# ** tester: test_reorder_feature_step
 @use_tester(
     type='service_event',
     target_cls=ReorderFeatureStep,
@@ -1042,7 +1042,7 @@ class RemoveFeatureStepTester:
         end_position=1,
     ),
 )
-class ReorderFeatureStepTester:
+class TestReorderFeatureStep:
     '''
     Tests for ReorderFeatureStep using the service event test harness.
     '''

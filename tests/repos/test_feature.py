@@ -65,7 +65,6 @@ NEW_FEATURE_SAMPLE = {
     'id': 'new_group.new_feature',
     'name': 'New Feature',
     'description': 'A new test feature.',
-    'commands': [],
 }
 
 # *** fixtures
@@ -92,7 +91,7 @@ def feature_yaml_file(tmp_path) -> str:
 
 # *** testers
 
-# ** tester: FeatureConfigRepositoryTester
+# ** tester: test_feature_config_repository
 @use_tester(
     type='repo',
     target_cls=FeatureConfigRepository,
@@ -115,7 +114,7 @@ def feature_yaml_file(tmp_path) -> str:
     list_ids=[TEST_FEATURE_ID, ANOTHER_FEATURE_ID, OTHER_GROUP_FEATURE_ID],
     delete_ids=[ANOTHER_FEATURE_ID],
 )
-class FeatureConfigRepositoryTester:
+class TestFeatureConfigRepository:
     '''FeatureConfigRepository five-method coverage via RepoTesterContext.'''
 
     # * test: exists

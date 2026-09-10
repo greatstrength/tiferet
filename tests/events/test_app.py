@@ -58,8 +58,8 @@ def app_interface():
 
 # *** testers
 
-# ** tester: app_event_tester
-class AppEventTester:
+# ** tester: test_app_event
+class TestAppEvent:
     '''
     Tests for the AppEvent base event shared by all app events.
     '''
@@ -105,7 +105,7 @@ class AppEventTester:
         assert AppEvent(app_service=service).app_service is service
         assert GetAppSession(app_service=service).app_service is service
 
-# ** tester: add_app_session_tester
+# ** tester: test_add_app_session
 @use_tester(
     type='domain_event',
     target_cls=AddAppSession,
@@ -121,7 +121,7 @@ class AppEventTester:
     ),
     required_params=['id', 'name'],
 )
-class AddAppSessionTester:
+class TestAddAppSession:
     '''
     Tests for AddAppSession using the domain event test harness.
     '''
@@ -245,7 +245,7 @@ class AddAppSessionTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: get_app_session_tester
+# ** tester: test_get_app_session
 @use_tester(
     type='service_event',
     target_cls=GetAppSession,
@@ -261,7 +261,7 @@ class AddAppSessionTester:
     not_found_error_code=a.error.APP_SESSION_NOT_FOUND_ID,
     not_found_kwargs=dict(id='non_existent_id'),
 )
-class GetAppSessionTester:
+class TestGetAppSession:
     '''
     Tests for GetAppSession using the domain event test harness.
     '''
@@ -321,7 +321,7 @@ class GetAppSessionTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: list_app_sessions_tester
+# ** tester: test_list_app_sessions
 @use_tester(
     type='domain_event',
     target_cls=ListAppSessions,
@@ -333,7 +333,7 @@ class GetAppSessionTester:
     },
     sample_kwargs=dict(),
 )
-class ListAppSessionsTester:
+class TestListAppSessions:
     '''
     Tests for ListAppSessions using the domain event test harness.
     '''
@@ -378,7 +378,7 @@ class ListAppSessionsTester:
         assert result == [app_interface, another_interface]
         mock_dependencies['app_service'].list.assert_called_once_with()
 
-# ** tester: set_service_dependency_tester
+# ** tester: test_set_service_dependency
 @use_tester(
     type='service_event',
     target_cls=SetServiceDependency,
@@ -404,7 +404,7 @@ class ListAppSessionsTester:
         class_name='AppContext',
     ),
 )
-class SetServiceDependencyTester:
+class TestSetServiceDependency:
     '''
     Tests for SetServiceDependency using the domain event test harness.
     '''
@@ -526,7 +526,7 @@ class SetServiceDependencyTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: update_app_session_tester
+# ** tester: test_update_app_session
 @use_tester(
     type='service_event',
     target_cls=UpdateAppSession,
@@ -550,7 +550,7 @@ class SetServiceDependencyTester:
         value='Updated Name',
     ),
 )
-class UpdateAppSessionTester:
+class TestUpdateAppSession:
     '''
     Tests for UpdateAppSession using the domain event test harness.
     '''
@@ -637,7 +637,7 @@ class UpdateAppSessionTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: set_app_constants_tester
+# ** tester: test_set_app_constants
 @use_tester(
     type='service_event',
     target_cls=SetAppConstants,
@@ -659,7 +659,7 @@ class UpdateAppSessionTester:
         constants={'KEY': 'VALUE'},
     ),
 )
-class SetAppConstantsTester:
+class TestSetAppConstants:
     '''
     Tests for SetAppConstants using the domain event test harness.
     '''
@@ -778,7 +778,7 @@ class SetAppConstantsTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: remove_service_dependency_tester
+# ** tester: test_remove_service_dependency
 @use_tester(
     type='service_event',
     target_cls=RemoveServiceDependency,
@@ -800,7 +800,7 @@ class SetAppConstantsTester:
         service_id='dep',
     ),
 )
-class RemoveServiceDependencyTester:
+class TestRemoveServiceDependency:
     '''
     Tests for RemoveServiceDependency using the domain event test harness.
     '''
@@ -876,7 +876,7 @@ class RemoveServiceDependencyTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: remove_app_session_tester
+# ** tester: test_remove_app_session
 @use_tester(
     type='domain_event',
     target_cls=RemoveAppSession,
@@ -889,7 +889,7 @@ class RemoveServiceDependencyTester:
     sample_kwargs=dict(id='existing.interface'),
     required_params=['id'],
 )
-class RemoveAppSessionTester:
+class TestRemoveAppSession:
     '''
     Tests for RemoveAppSession using the domain event test harness.
     '''

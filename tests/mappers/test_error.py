@@ -74,7 +74,7 @@ def test_error_message_config_object_from_model():
 
 # *** testers
 
-# ** tester: error_aggregate_tester
+# ** tester: test_error_aggregate
 @use_tester(
     type='aggregate',
     target_cls=ErrorAggregate,
@@ -86,7 +86,7 @@ def test_error_message_config_object_from_model():
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class ErrorAggregateTester:
+class TestErrorAggregate:
     '''
     Tests for ErrorAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -225,7 +225,7 @@ class ErrorAggregateTester:
         # Assert the message list is unchanged.
         assert len(aggregate.message) == initial_count
 
-# ** tester: error_config_object_tester
+# ** tester: test_error_config_object
 @use_tester(
     type='transfer_object',
     target_cls=ErrorConfigObject,
@@ -234,7 +234,7 @@ class ErrorAggregateTester:
     aggregate_sample_data=ERROR_SAMPLE_DATA,
     equality_fields=ERROR_EQUALITY_FIELDS,
 )
-class ErrorConfigObjectTester:
+class TestErrorConfigObject:
     '''
     Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
     '''

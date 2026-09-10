@@ -72,8 +72,8 @@ def service_registration_aggregate(flagged_dependency_for_di) -> ServiceRegistra
 
 # *** testers
 
-# ** tester: di_event_tester
-class DIEventTester:
+# ** tester: test_di_event
+class TestDIEvent:
     '''
     Tests for the DIEvent base event shared by all DI events.
     '''
@@ -118,7 +118,7 @@ class DIEventTester:
         assert DIEvent(di_service=service).di_service is service
         assert AddServiceRegistration(di_service=service).di_service is service
 
-# ** tester: add_service_registration_tester
+# ** tester: test_add_service_registration
 @use_tester(
     type='domain_event',
     target_cls=AddServiceRegistration,
@@ -137,7 +137,7 @@ class DIEventTester:
     ),
     required_params=['id'],
 )
-class AddServiceRegistrationTester:
+class TestAddServiceRegistration:
     '''
     Tests for AddServiceRegistration using the domain event test harness.
     '''
@@ -272,7 +272,7 @@ class AddServiceRegistrationTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: set_default_service_registration_tester
+# ** tester: test_set_default_service_registration
 @use_tester(
     type='service_event',
     target_cls=SetDefaultServiceRegistration,
@@ -296,7 +296,7 @@ class AddServiceRegistrationTester:
         class_name='Cls',
     ),
 )
-class SetDefaultServiceRegistrationTester:
+class TestSetDefaultServiceRegistration:
     '''
     Tests for SetDefaultServiceRegistration using the domain event test harness.
     '''
@@ -402,7 +402,7 @@ class SetDefaultServiceRegistrationTester:
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
-# ** tester: set_service_dependency_tester
+# ** tester: test_set_service_dependency
 @use_tester(
     type='service_event',
     target_cls=SetServiceDependency,
@@ -429,7 +429,7 @@ class SetDefaultServiceRegistrationTester:
         class_name='ExampleAlpha',
     ),
 )
-class SetServiceDependencyTester:
+class TestSetServiceDependency:
     '''
     Tests for SetServiceDependency using the domain event test harness.
     '''
@@ -534,7 +534,7 @@ class SetServiceDependencyTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: remove_service_dependency_tester
+# ** tester: test_remove_service_dependency
 @use_tester(
     type='service_event',
     target_cls=RemoveServiceDependency,
@@ -556,7 +556,7 @@ class SetServiceDependencyTester:
         flag='alpha',
     ),
 )
-class RemoveServiceDependencyTester:
+class TestRemoveServiceDependency:
     '''
     Tests for RemoveServiceDependency using the domain event test harness.
     '''
@@ -647,7 +647,7 @@ class RemoveServiceDependencyTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: remove_service_registration_tester
+# ** tester: test_remove_service_registration
 @use_tester(
     type='domain_event',
     target_cls=RemoveServiceRegistration,
@@ -660,7 +660,7 @@ class RemoveServiceDependencyTester:
     sample_kwargs=dict(id='svc_to_delete'),
     required_params=['id'],
 )
-class RemoveServiceRegistrationTester:
+class TestRemoveServiceRegistration:
     '''
     Tests for RemoveServiceRegistration using the domain event test harness.
     '''
@@ -703,7 +703,7 @@ class RemoveServiceRegistrationTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: set_service_constants_tester
+# ** tester: test_set_service_constants
 @use_tester(
     type='domain_event',
     target_cls=SetServiceConstants,
@@ -715,7 +715,7 @@ class RemoveServiceRegistrationTester:
     },
     sample_kwargs=dict(constants={'key': 'value'}),
 )
-class SetServiceConstantsTester:
+class TestSetServiceConstants:
     '''
     Tests for SetServiceConstants using the domain event test harness.
     '''
@@ -850,7 +850,7 @@ class SetServiceConstantsTester:
         assert result == {'existing': 'old'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'old'})
 
-# ** tester: list_all_settings_tester
+# ** tester: test_list_all_settings
 @use_tester(
     type='domain_event',
     target_cls=ListAllSettings,
@@ -862,7 +862,7 @@ class SetServiceConstantsTester:
     },
     sample_kwargs=dict(),
 )
-class ListAllSettingsTester:
+class TestListAllSettings:
     '''
     Tests for ListAllSettings using the domain event test harness.
     '''

@@ -87,8 +87,8 @@ def sample_logger() -> Logger:
 
 # *** testers
 
-# ** tester: logging_event_tester
-class LoggingEventTester:
+# ** tester: test_logging_event
+class TestLoggingEvent:
     '''
     Tests for the LoggingEvent base event shared by all logging events.
     '''
@@ -133,7 +133,7 @@ class LoggingEventTester:
         assert LoggingEvent(logging_service=service).logging_service is service
         assert AddFormatter(logging_service=service).logging_service is service
 
-# ** tester: list_all_logging_configs_tester
+# ** tester: test_list_all_logging_configs
 @use_tester(
     type='domain_event',
     target_cls=ListAllLoggingConfigs,
@@ -146,7 +146,7 @@ class LoggingEventTester:
     sample_kwargs={},
     required_params=[],
 )
-class ListAllLoggingConfigsTester:
+class TestListAllLoggingConfigs:
     '''
     Tests for ListAllLoggingConfigs using the domain event test harness.
     '''
@@ -207,7 +207,7 @@ class ListAllLoggingConfigsTester:
         assert loggers == []
         mock_dependencies['logging_service'].list_all.assert_called_once_with()
 
-# ** tester: add_formatter_tester
+# ** tester: test_add_formatter
 @use_tester(
     type='domain_event',
     target_cls=AddFormatter,
@@ -226,7 +226,7 @@ class ListAllLoggingConfigsTester:
     ),
     required_params=['id', 'name', 'format'],
 )
-class AddFormatterTester:
+class TestAddFormatter:
     '''
     Tests for AddFormatter using the domain event test harness.
     '''
@@ -292,7 +292,7 @@ class AddFormatterTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: remove_formatter_tester
+# ** tester: test_remove_formatter
 @use_tester(
     type='domain_event',
     target_cls=RemoveFormatter,
@@ -305,7 +305,7 @@ class AddFormatterTester:
     sample_kwargs=dict(id='old_formatter'),
     required_params=['id'],
 )
-class RemoveFormatterTester:
+class TestRemoveFormatter:
     '''
     Tests for RemoveFormatter using the domain event test harness.
     '''
@@ -336,7 +336,7 @@ class RemoveFormatterTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: add_handler_tester
+# ** tester: test_add_handler
 @use_tester(
     type='domain_event',
     target_cls=AddHandler,
@@ -358,7 +358,7 @@ class RemoveFormatterTester:
     ),
     required_params=['id', 'name', 'module_path', 'class_name', 'level', 'formatter'],
 )
-class AddHandlerTester:
+class TestAddHandler:
     '''
     Tests for AddHandler using the domain event test harness.
     '''
@@ -423,7 +423,7 @@ class AddHandlerTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: remove_handler_tester
+# ** tester: test_remove_handler
 @use_tester(
     type='domain_event',
     target_cls=RemoveHandler,
@@ -436,7 +436,7 @@ class AddHandlerTester:
     sample_kwargs=dict(id='old_handler'),
     required_params=['id'],
 )
-class RemoveHandlerTester:
+class TestRemoveHandler:
     '''
     Tests for RemoveHandler using the domain event test harness.
     '''
@@ -467,7 +467,7 @@ class RemoveHandlerTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: add_logger_tester
+# ** tester: test_add_logger
 @use_tester(
     type='domain_event',
     target_cls=AddLogger,
@@ -487,7 +487,7 @@ class RemoveHandlerTester:
     ),
     required_params=['id', 'name', 'level', 'handlers'],
 )
-class AddLoggerTester:
+class TestAddLogger:
     '''
     Tests for AddLogger using the domain event test harness.
     '''
@@ -551,7 +551,7 @@ class AddLoggerTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: remove_logger_tester
+# ** tester: test_remove_logger
 @use_tester(
     type='domain_event',
     target_cls=RemoveLogger,
@@ -564,7 +564,7 @@ class AddLoggerTester:
     sample_kwargs=dict(id='old_logger'),
     required_params=['id'],
 )
-class RemoveLoggerTester:
+class TestRemoveLogger:
     '''
     Tests for RemoveLogger using the domain event test harness.
     '''

@@ -183,7 +183,7 @@ def test_feature_config_object_params_schema_round_trip():
 
 # *** testers
 
-# ** tester: event_feature_step_aggregate_tester
+# ** tester: test_event_feature_step_aggregate
 @use_tester(
     type='aggregate',
     target_cls=EventFeatureStepAggregate,
@@ -196,7 +196,7 @@ def test_feature_config_object_params_schema_round_trip():
         ('condition', '$r.y != 0', None),
     ],
 )
-class EventFeatureStepAggregateTester:
+class TestEventFeatureStepAggregate:
     '''
     Tests for EventFeatureStepAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -300,7 +300,7 @@ class EventFeatureStepAggregateTester:
         aggregate.set_attribute('name', 'Renamed Event')
         assert aggregate.name == 'Renamed Event'
 
-# ** tester: feature_aggregate_tester
+# ** tester: test_feature_aggregate
 @use_tester(
     type='aggregate',
     target_cls=FeatureAggregate,
@@ -313,7 +313,7 @@ class EventFeatureStepAggregateTester:
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class FeatureAggregateTester:
+class TestFeatureAggregate:
     '''
     Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -497,7 +497,7 @@ class FeatureAggregateTester:
         aggregate.set_description(None)
         assert aggregate.description is None
 
-# ** tester: feature_config_object_tester
+# ** tester: test_feature_config_object
 @use_tester(
     type='transfer_object',
     target_cls=FeatureConfigObject,
@@ -507,7 +507,7 @@ class FeatureAggregateTester:
     equality_fields=FEATURE_EQUALITY_FIELDS,
     field_normalizers=FEATURE_FIELD_NORMALIZERS,
 )
-class FeatureConfigObjectTester:
+class TestFeatureConfigObject:
     '''
     Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
     '''

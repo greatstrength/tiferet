@@ -200,8 +200,8 @@ def test_use_tester_injects_generic_test_ctx(test_ctx) -> None:
 
 # *** testers
 
-# ** tester: context_tester_blueprint_tester
-class ContextTesterBlueprintTester:
+# ** tester: test_context_tester_blueprint
+class TestContextTesterBlueprint:
     '''Prove build_tester_context and @use_tester map type=context.'''
 
     # * test: build_tester_context_selects_context_variant

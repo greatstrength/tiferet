@@ -706,8 +706,8 @@ def test_repo_tester_context_empty_cases_are_noops() -> None:
 
 # *** testers
 
-# ** tester: context_tester_context_tester
-class ContextTesterContextTester:
+# ** tester: test_context_tester_context
+class TestContextTesterContext:
     '''Prove ContextTesterContext registry, bind, and empty-case no-ops.'''
 
     # * test: omits_domain_type_and_preserves_registry
