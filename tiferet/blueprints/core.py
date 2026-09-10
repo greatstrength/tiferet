@@ -449,9 +449,11 @@ def build_logger_handler(
     retrieved sections over the cache-seeded defaults via
     :func:`merge_logging_settings`, builds the logger via
     :func:`create_logging_context`, caches the built logger under
-    ``LOGGER_CACHE_PREFIX``, and returns it. The cache-first branch means
-    ``dictConfig`` runs once per logger id per process rather than once per
-    request.
+    ``LOGGER_CACHE_PREFIX``, and returns it. When the list-all event is
+    unresolvable or ``execute()`` raises ``ServiceError`` (missing
+    ``config.yml``), the handler builds from cache-seeded ``LoggingSettings``
+    instead. The cache-first branch means ``dictConfig`` runs once per logger
+    id per process rather than once per request.
 
     :param cache: The shared cache context pre-seeded with default LoggingSettings.
     :type cache: CacheContext
@@ -470,11 +472,17 @@ def build_logger_handler(
         if logger:
             return logger
 
-        # Resolve the list-all event from the app-scoped container.
-        logging_list_all_evt = get_dependency('logging_list_all_evt', 'app')
+        # Load repository logging sections, falling back when the list-all
+        # event is unresolvable or the logging file is missing.
+        try:
+            logging_list_all_evt = get_dependency('logging_list_all_evt', 'app')
+            formatters, handlers, loggers = logging_list_all_evt.execute()
+        except Exception as error:
+            if type(error).__name__ != 'ServiceError':
+                raise
+            formatters, handlers, loggers = [], [], []
 
-        # Fetch repo configs and merge them over the cache-seeded defaults.
-        formatters, handlers, loggers = logging_list_all_evt.execute()
+        # Merge repo sections over cache-seeded defaults (empty repo keeps defaults).
         settings = merge_logging_settings(cache, formatters, handlers, loggers)
 
         # Build the logger and cache it under the logger cache prefix.

@@ -561,6 +561,10 @@ class TestSessionContext(AppSessionContext):
         '''
         Execute the pending invocation once and evaluate its verifications.
 
+        Feature dispatch builds a logger and formats catalogued domain errors
+        as ``TiferetAPIError``. Direct event invocation leaves ``TiferetError``
+        unmodified.
+
         :return: The captured invocation result.
         :rtype: Any
         '''
@@ -578,14 +582,37 @@ class TestSessionContext(AppSessionContext):
         # Dispatch once, capture the outcome, and consume queued verifications.
         try:
             if request.feature_id is not None:
-                self.execute_feature(request.feature_id, request)
+
+                # Build the session logger and dispatch the pending feature.
+                logger = self.build_logger()
+
+                try:
+                    self.execute_feature(
+                        request.feature_id,
+                        request,
+                        logger=logger,
+                    )
+
+                # Format a catalogued domain error as TiferetAPIError.
+                except TiferetError as error:
+                    logger.error(
+                        f'Error executing feature {request.feature_id}: {str(error)}'
+                    )
+                    self.handle_error(error)
+
+                # Extract the feature response for verification.
                 result = self.build_response(request)
+
+            # Dispatch a direct event without logging or error formatting.
             else:
                 result = self._dispatch_event(self._pending_event, request.data)
+
+            # Capture the outcome and consume queued verifications.
             request.capture_outcome(result)
             request.evaluate_verifications()
             return result
         finally:
+
             # Clear the complete chain after a success or any raised failure.
             self._pending_request = None
             self._pending_event = None

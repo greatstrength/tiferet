@@ -4,9 +4,10 @@
 
 # ** infra
 import pytest
+from unittest import mock
 
 # ** app
-from tiferet.assets import TiferetError
+from tiferet.assets import TiferetAPIError, TiferetError
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import RequestContext
 from tiferet.blueprints.tester import build_tester_context, use_tester
@@ -266,6 +267,133 @@ def test_session_context_merges_preset_and_rejects_missing_preset() -> None:
     with pytest.raises(TiferetError) as exc_info:
         context.given('missing')
     assert exc_info.value.error_code == 'TEST_PRESET_NOT_FOUND'
+
+# ** test: test_session_context_feature_path_builds_logger
+def test_session_context_feature_path_builds_logger_and_passes_it() -> None:
+    '''Test feature dispatch builds a logger and passes it into execute_feature.'''
+
+    # Compose a context with logger, execution, and response handlers wired.
+    logger = mock.Mock()
+    build_logger_handler = mock.Mock(return_value=logger)
+    execute_feature_handler = mock.Mock()
+    context = _TestSessionContext.from_domain(
+        type('Session', (), {'id': 'tester', 'logger_id': 'default'})(),
+        get_dependency=lambda *args: None,
+        build_logger_handler=build_logger_handler,
+        execute_feature_handler=execute_feature_handler,
+        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
+            session_id=session_id,
+            feature_id=feature_id,
+            headers=headers,
+            data=data,
+        ),
+        response_handler=mock.Mock(return_value='ok'),
+    )
+
+    # Run a successful feature chain and assert logger construction.
+    result = context.invoke(feature_id='test.empty').verify('ok').run()
+    assert result == 'ok'
+    build_logger_handler.assert_called_once_with('default')
+    execute_feature_handler.assert_called_once()
+    args, kwargs = execute_feature_handler.call_args
+    assert args[0] == 'test.empty'
+    assert kwargs.get('logger') is logger
+    assert context._pending_request is None
+
+# ** test: test_session_context_feature_path_formats_tiferet_error
+def test_session_context_feature_path_formats_tiferet_error() -> None:
+    '''Test a feature-path TiferetError is logged and raised as TiferetAPIError.'''
+
+    # Arrange a feature handler that raises a catalogued domain error.
+    logger = mock.Mock()
+    domain_error = TiferetError('FEATURE_NOT_FOUND', feature_id='test.empty')
+    api_error = TiferetAPIError(
+        error_code='FEATURE_NOT_FOUND',
+        name='Feature Not Found',
+        message='Feature not found: test.empty.',
+    )
+    raise_error_handler = mock.Mock(side_effect=api_error)
+    context = _TestSessionContext.from_domain(
+        type('Session', (), {'id': 'tester', 'logger_id': 'default'})(),
+        get_dependency=lambda *args: None,
+        build_logger_handler=mock.Mock(return_value=logger),
+        execute_feature_handler=mock.Mock(side_effect=domain_error),
+        raise_error_handler=raise_error_handler,
+        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
+            session_id=session_id,
+            feature_id=feature_id,
+            headers=headers,
+            data=data,
+        ),
+        response_handler=mock.Mock(),
+    )
+
+    # Dispatch the feature and capture the formatted API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.invoke(feature_id='test.empty').run()
+
+    # Assert logging, formatting, and pending-state cleanup.
+    assert exc_info.value is api_error
+    logger.error.assert_called_once()
+    raise_error_handler.assert_called_once_with(domain_error)
+    assert context._pending_request is None
+
+# ** test: test_session_context_event_path_keeps_tiferet_error
+def test_session_context_event_path_skips_logger_and_keeps_tiferet_error() -> None:
+    '''Test invoke(event=...) does not call build_logger or handle_error.'''
+
+    # Compose a context with logger and error handlers that must stay unused.
+    build_logger_handler = mock.Mock()
+    raise_error_handler = mock.Mock()
+
+    def raise_domain_error():
+        TiferetError.raise_error('FEATURE_NOT_FOUND', feature_id='missing')
+
+    context = _TestSessionContext.from_domain(
+        type('Session', (), {'id': 'tester', 'logger_id': 'default'})(),
+        get_dependency=lambda *args: None,
+        build_logger_handler=build_logger_handler,
+        raise_error_handler=raise_error_handler,
+        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
+            session_id=session_id,
+            feature_id=feature_id,
+            headers=headers,
+            data=data,
+        ),
+    )
+
+    # Dispatch the event and capture the unformatted domain error.
+    with pytest.raises(TiferetError) as exc_info:
+        context.invoke(event=raise_domain_error).run()
+
+    # Assert the event path skipped production logging and error formatting.
+    assert type(exc_info.value) is TiferetError
+    assert exc_info.value.error_code == 'FEATURE_NOT_FOUND'
+    build_logger_handler.assert_not_called()
+    raise_error_handler.assert_not_called()
+    assert context._pending_request is None
+
+# ** test: test_session_context_run_without_invoke_raises_tiferet_error
+def test_session_context_run_without_invoke_raises_tiferet_error() -> None:
+    '''Test harness run() target-selection errors remain raw TiferetError.'''
+
+    # Compose a context with no pending invocation.
+    context = _TestSessionContext.from_domain(
+        type('Session', (), {'id': 'tester'})(),
+        get_dependency=lambda *args: None,
+        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
+            session_id=session_id,
+            feature_id=feature_id,
+            headers=headers,
+            data=data,
+        ),
+    )
+
+    # Run without invoke and assert the harness error is unformatted.
+    with pytest.raises(TiferetError) as exc_info:
+        context.run()
+    assert type(exc_info.value) is TiferetError
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
 
 # ** test: build_tester_context_selects_variant_class
 def test_build_tester_context_selects_variant_class() -> None:
