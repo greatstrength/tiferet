@@ -6,10 +6,7 @@
 from tiferet.assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
-    DEFAULT_TESTER_CONFIG_FILE,
     SERVICE_EVENT_GET_ERROR_TESTER_ID,
-    TESTER_CONFIG_ID,
-    TESTER_SERVICE_ID,
     TIFERET_TESTER_ID,
 )
 from tiferet.blueprints.tester import use_tester
@@ -20,7 +17,6 @@ from tiferet.mappers.error import (
     ErrorAggregate,
     ErrorConfigObject,
 )
-from tiferet.mappers.tester import TesterAggregate
 
 # *** constants
 
@@ -135,10 +131,8 @@ def test_default_tester_catalog_and_session_are_data_only() -> None:
     session = CORE_DEFAULT_TESTER_SESSIONS[TIFERET_TESTER_ID]
     assert session['name'] == 'Tester'
     assert session['description'] == 'Default built-in test-harness application session'
-    assert session['constants'] == {
-        TESTER_CONFIG_ID: DEFAULT_TESTER_CONFIG_FILE,
-    }
-    assert session['services'][0]['service_id'] == TESTER_SERVICE_ID
+    assert 'constants' not in session
+    assert 'services' not in session
 
 # ** test: get_error_service_event_catalog_round_trips
 def test_get_error_service_event_catalog_round_trips() -> None:
@@ -152,7 +146,4 @@ def test_get_error_service_event_catalog_round_trips() -> None:
     assert tester.type == 'service_event'
     assert tester.class_name == 'GetError'
     assert tester.not_found_error_code == ERROR_NOT_FOUND_ID
-    config_object = TesterAggregate.build_config_object(data)
-    mapped = config_object.map()
-    assert mapped.type == 'service_event'
-    assert mapped.service_attr == 'error_service'
+    assert tester.service_attr == 'error_service'

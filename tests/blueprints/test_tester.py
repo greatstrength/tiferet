@@ -5,9 +5,6 @@
 # ** core
 import inspect
 
-# ** infra
-import yaml
-
 # ** app
 from tiferet import a, use_tester
 from tiferet.blueprints import tester as tester_blueprints
@@ -15,7 +12,6 @@ from tiferet.blueprints.tester import (
     build_cache,
     build_test_session,
     build_tester_context,
-    resolve_tester,
 )
 from tiferet.contexts.app import (
     APP_CONSTANT_CACHE_PREFIX,
@@ -58,46 +54,6 @@ def test_tester_build_cache_isolated_from_standard_app_catalogs():
         }
     )
 
-# ** test: resolve_tester
-def test_resolve_tester_returns_seeded_default_domain_object():
-    '''Test direct resolution from the tester cache catalog.'''
-
-    # Resolve a default tester through the non-root blueprint function.
-    tester = resolve_tester('aggregate.ErrorAggregate')
-
-    # Assert the cache-hit object is the seeded domain variant.
-    assert isinstance(tester, TesterObject)
-    assert tester.id == 'aggregate.ErrorAggregate'
-
-# ** test: resolve_tester_with_config
-def test_resolve_tester_uses_tester_session_service(tmp_path) -> None:
-    '''Test custom configuration resolves through the tester app service.
-
-    :param tmp_path: Pytest temporary path fixture.
-    :type tmp_path: object
-    '''
-
-    # Write a non-default tester definition to a temporary configuration file.
-    config_file = tmp_path / 'testers.yml'
-    with open(config_file, 'w', encoding='utf-8') as config_stream:
-        yaml.safe_dump(
-            {
-                'testers': {
-                    'domain.Custom': {
-                        'type': 'domain',
-                        'module_path': 'tiferet.domain.error',
-                        'class_name': 'ErrorMessage',
-                        'sample_data': {},
-                    },
-                },
-            },
-            config_stream,
-        )
-
-    # Resolve the tester through the default service declared on the session.
-    tester = resolve_tester('domain.Custom', tester_config=str(config_file))
-    assert tester.id == 'domain.Custom'
-
 # ** test: build_test_session
 def test_build_test_session_constructs_request_session() -> None:
     '''Test the thin session helper constructs a TestSessionContext.'''
@@ -129,6 +85,7 @@ def test_tester_build_app_is_not_a_hub() -> None:
     assert not hasattr(tester_blueprints, 'build_test_request')
     assert not hasattr(tester_blueprints, 'test_case')
     assert not hasattr(tester_blueprints, 'TestRequestContext')
+    assert not hasattr(tester_blueprints, 'resolve_tester')
 
     # Assert the remaining resolve path is not reintroduced on the session helper.
     source = inspect.getsource(tester_blueprints.build_test_session)
