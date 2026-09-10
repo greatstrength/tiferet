@@ -17,7 +17,6 @@ from tiferet.interfaces.middleware import MiddlewareService
 
 # ** tester: test_middleware_service
 @use_tester(
-    type='generic',
     target_cls=MiddlewareService,
 )
 class TestMiddlewareService:

@@ -32,7 +32,6 @@ from tiferet.blueprints.tester import use_tester
 
 # ** tester: test_create_service_module_path
 @use_tester(
-    type='generic',
     target_cls=create_service_module_path,
 )
 class TestCreateServiceModulePath:
@@ -66,7 +65,6 @@ class TestCreateServiceModulePath:
 
 # ** tester: test_create_service_dependency
 @use_tester(
-    type='generic',
     target_cls=create_service_dependency,
 )
 class TestCreateServiceDependency:
@@ -108,7 +106,6 @@ class TestCreateServiceDependency:
 
 # ** tester: test_create_app_service_dependency_data
 @use_tester(
-    type='generic',
     target_cls=create_app_service_dependency_data,
 )
 class TestCreateAppServiceDependencyData:
@@ -151,7 +148,6 @@ class TestCreateAppServiceDependencyData:
 
 # ** tester: test_create_service_registration_data
 @use_tester(
-    type='generic',
     target_cls=create_service_registration_data,
 )
 class TestCreateServiceRegistrationData:
@@ -194,7 +190,6 @@ class TestCreateServiceRegistrationData:
 
 # ** tester: test_create_default_feature_data
 @use_tester(
-    type='generic',
     target_cls=create_default_feature_data,
 )
 class TestCreateDefaultFeatureData:
@@ -249,7 +244,6 @@ class TestCreateDefaultFeatureData:
 
 # ** tester: test_create_params_schema
 @use_tester(
-    type='generic',
     target_cls=create_params_schema,
 )
 class TestCreateParamsSchema:
@@ -276,7 +270,6 @@ class TestCreateParamsSchema:
 
 # ** tester: test_create_default_app_session_data
 @use_tester(
-    type='generic',
     target_cls=create_default_app_session_data,
 )
 class TestCreateDefaultAppSessionData:
@@ -310,7 +303,6 @@ class TestCreateDefaultAppSessionData:
 
 # ** tester: test_create_default_formatter
 @use_tester(
-    type='generic',
     target_cls=create_default_formatter,
 )
 class TestCreateDefaultFormatter:
@@ -358,7 +350,6 @@ class TestCreateDefaultFormatter:
 
 # ** tester: test_create_default_handler
 @use_tester(
-    type='generic',
     target_cls=create_default_handler,
 )
 class TestCreateDefaultHandler:
@@ -420,7 +411,6 @@ class TestCreateDefaultHandler:
 
 # ** tester: test_create_default_logger
 @use_tester(
-    type='generic',
     target_cls=create_default_logger,
 )
 class TestCreateDefaultLogger:
@@ -476,7 +466,6 @@ class TestCreateDefaultLogger:
 
 # ** tester: test_create_default_cli_argument
 @use_tester(
-    type='generic',
     target_cls=create_default_cli_argument,
 )
 class TestCreateDefaultCliArgument:
@@ -524,7 +513,6 @@ class TestCreateDefaultCliArgument:
 
 # ** tester: test_create_default_cli_command_data
 @use_tester(
-    type='generic',
     target_cls=create_default_cli_command_data,
 )
 class TestCreateDefaultCliCommandData:
@@ -573,7 +561,6 @@ class TestCreateDefaultCliCommandData:
 
 # ** tester: test_tiferet_error
 @use_tester(
-    type='generic',
     target_cls=TiferetError,
     sample_data={'error_code': 'BASIC_ERROR'},
 )
@@ -631,7 +618,6 @@ class TestTiferetError:
 
 # ** tester: test_tiferet_api_error
 @use_tester(
-    type='generic',
     target_cls=TiferetAPIError,
     sample_data={'error_code': 'SOME_CODE'},
 )

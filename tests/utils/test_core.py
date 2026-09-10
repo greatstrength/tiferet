@@ -37,7 +37,6 @@ def sample_event() -> object:
 
 # ** tester: test_logging_middleware
 @use_tester(
-    type='generic',
     target_cls=LoggingMiddleware,
 )
 class TestLoggingMiddleware:
@@ -164,7 +163,6 @@ class TestLoggingMiddleware:
 
 # ** tester: test_timing_middleware
 @use_tester(
-    type='generic',
     target_cls=TimingMiddleware,
 )
 class TestTimingMiddleware:
@@ -288,7 +286,6 @@ class TestTimingMiddleware:
 
 # ** tester: test_cache_middleware
 @use_tester(
-    type='generic',
     target_cls=CacheMiddleware,
 )
 class TestCacheMiddleware:

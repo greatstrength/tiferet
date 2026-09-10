@@ -16,7 +16,6 @@ from tiferet.interfaces.sqlite import SqliteService
 
 # ** tester: test_sqlite_service
 @use_tester(
-    type='generic',
     target_cls=SqliteService,
 )
 class TestSqliteService:

@@ -60,7 +60,6 @@ def invalid_toml_file(tmp_path) -> Path:
 
 # ** tester: test_toml_loader
 @use_tester(
-    type='generic',
     target_cls=TomlLoader,
 )
 class TestTomlLoader:

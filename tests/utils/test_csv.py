@@ -131,7 +131,6 @@ def temp_dict_csv_file(tmp_path, sample_dict_csv_content) -> Path:
 
 # ** tester: test_csv_loader
 @use_tester(
-    type='generic',
     target_cls=CsvLoader,
 )
 class TestCsvLoader:
@@ -494,7 +493,6 @@ class TestCsvLoader:
 
 # ** tester: test_csv_dict_loader
 @use_tester(
-    type='generic',
     target_cls=CsvDictLoader,
 )
 class TestCsvDictLoader:

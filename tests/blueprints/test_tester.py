@@ -189,12 +189,11 @@ def test_use_tester_injects_repo_test_ctx(test_ctx) -> None:
 
 # ** test: use_tester_injects_generic_test_ctx
 @use_tester(
-    type='generic',
     target_cls=ErrorMessage,
     sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
 )
 def test_use_tester_injects_generic_test_ctx(test_ctx) -> None:
-    '''Test @use_tester injects GenericTesterContext as test_ctx.'''
+    '''Test @use_tester defaults to GenericTesterContext when type is omitted.'''
 
     assert isinstance(test_ctx, GenericTesterContext)
 

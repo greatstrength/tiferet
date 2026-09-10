@@ -17,7 +17,6 @@ from tiferet.mappers.di import ServiceRegistrationAggregate
 
 # ** tester: test_di_service
 @use_tester(
-    type='generic',
     target_cls=DIService,
 )
 class TestDIService:

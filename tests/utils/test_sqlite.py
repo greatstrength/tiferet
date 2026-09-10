@@ -57,7 +57,6 @@ def sample_insert_sql() -> str:
 
 # ** tester: test_sqlite_client
 @use_tester(
-    type='generic',
     target_cls=SqliteClient,
 )
 class TestSqliteClient:

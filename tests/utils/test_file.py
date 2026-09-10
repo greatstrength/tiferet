@@ -41,7 +41,6 @@ def temp_text_file(tmp_path):
 
 # ** tester: test_file_loader
 @use_tester(
-    type='generic',
     target_cls=FileLoader,
 )
 class TestFileLoader:

@@ -111,7 +111,6 @@ def temp_empty_yaml_file(tmp_path) -> Path:
 
 # ** tester: test_yaml_loader
 @use_tester(
-    type='generic',
     target_cls=YamlLoader,
 )
 class TestYamlLoader:

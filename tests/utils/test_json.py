@@ -121,7 +121,6 @@ def temp_nested_json_file(tmp_path, nested_json_data) -> Path:
 
 # ** tester: test_json_loader
 @use_tester(
-    type='generic',
     target_cls=JsonLoader,
 )
 class TestJsonLoader:
