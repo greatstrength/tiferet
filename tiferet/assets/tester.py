@@ -14,6 +14,7 @@ from .core import (
     create_default_tester_data,
     create_service_module_path,
 )
+from .error import ERROR_NOT_FOUND_ID
 
 # *** constants (ids)
 
@@ -25,6 +26,9 @@ AGGREGATE_ERROR_TESTER_ID = 'aggregate.ErrorAggregate'
 
 # ** constant: transfer_object_error_tester_id
 TRANSFER_OBJECT_ERROR_TESTER_ID = 'transfer_object.ErrorConfigObject'
+
+# ** constant: service_event_get_error_tester_id
+SERVICE_EVENT_GET_ERROR_TESTER_ID = 'service_event.GetError'
 
 # ** constant: tiferet_tester_id
 TIFERET_TESTER_ID = 'tester'
@@ -130,6 +134,27 @@ TRANSFER_OBJECT_ERROR_TESTER_DATA = create_default_tester_data(
     },
 )
 
+# ** constant: service_event_get_error_tester_data
+SERVICE_EVENT_GET_ERROR_TESTER_DATA = create_default_tester_data(
+    'service_event',
+    'tiferet.events.error',
+    'GetError',
+    {},
+    [],
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs={
+        'id': 'TEST_ERROR',
+    },
+    required_params=[],
+    service_attr='error_service',
+    not_found_error_code=ERROR_NOT_FOUND_ID,
+)
+
 # ** constant: tester_service_data
 TESTER_SERVICE_DATA = create_app_service_dependency_data(
     create_service_module_path(
@@ -165,6 +190,7 @@ CORE_DEFAULT_TESTERS: Dict[str, Dict[str, Any]] = {
     DOMAIN_ERROR_MESSAGE_TESTER_ID: DOMAIN_ERROR_MESSAGE_TESTER_DATA,
     AGGREGATE_ERROR_TESTER_ID: AGGREGATE_ERROR_TESTER_DATA,
     TRANSFER_OBJECT_ERROR_TESTER_ID: TRANSFER_OBJECT_ERROR_TESTER_DATA,
+    SERVICE_EVENT_GET_ERROR_TESTER_ID: SERVICE_EVENT_GET_ERROR_TESTER_DATA,
 }
 
 # ** constant: core_default_tester_sessions

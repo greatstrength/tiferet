@@ -45,7 +45,13 @@ class TesterAggregate(TesterObject, Aggregate):
         '''
 
         # Reject an unrecognized discriminator as a model defect.
-        if data.get('type') not in ('domain', 'aggregate', 'transfer_object'):
+        if data.get('type') not in (
+            'domain',
+            'aggregate',
+            'transfer_object',
+            'domain_event',
+            'service_event',
+        ):
             ModelError.raise_error(
                 'INVALID_TESTER_TYPE',
                 f'Invalid tester type: {data.get("type")}.',

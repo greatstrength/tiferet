@@ -4,6 +4,7 @@
 
 # ** core
 from typing import Any, Callable, Dict, List, Tuple
+from unittest.mock import Mock
 
 # ** app
 from .. import a
@@ -618,3 +619,121 @@ class TestSessionContext(AppSessionContext):
 
         # Invoke a caller-provided callable directly.
         return event(**params)
+
+# ** context: domain_event_tester_context
+class DomainEventTesterContext(TesterContext):
+    '''
+    Bound operational context for a domain-event tester. Omits domain_type so
+    ContextMeta keeps mapping TesterObject to TesterContext.
+    '''
+
+    # * method: mock_dependencies
+    def mock_dependencies(self) -> Dict[str, Any]:
+        '''
+        Build mocked constructor dependencies from the bound tester.
+
+        :return: Dependency name to mock instance.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Create a spec mock for each declared service dependency.
+        return {
+            name: Mock(spec=dependency.get_service_type())
+            for name, dependency in self.domain.dependencies.items()
+        }
+
+    # * method: handle
+    def handle(self, dependencies: Dict[str, Any] = None, **kwargs) -> Any:
+        '''
+        Invoke the bound event through DomainEvent.handle.
+
+        :param dependencies: Optional pre-configured mocks; built when omitted.
+        :type dependencies: Dict[str, Any]
+        :param kwargs: Overrides merged over the tester sample kwargs.
+        :type kwargs: dict
+        :return: The event execution result.
+        :rtype: Any
+        '''
+
+        # Use declared mocks when the caller does not supply them.
+        if dependencies is None:
+            dependencies = self.mock_dependencies()
+
+        # Merge sample kwargs with caller overrides and execute the event.
+        return DomainEvent.handle(
+            self.domain.get_target_type(),
+            dependencies=dependencies,
+            **{
+                **self.domain.sample_kwargs,
+                **kwargs,
+            },
+        )
+
+    # * method: assert_missing_required_params
+    def assert_missing_required_params(self) -> None:
+        '''
+        Verify each required parameter raises COMMAND_PARAMETER_REQUIRED when
+        missing or empty. An empty required_params list is a no-op.
+        '''
+
+        # Iterate declared required names without pytest parametrization.
+        for required_param in self.domain.required_params:
+            try:
+                self.handle(**{required_param: None})
+            except TiferetError as error:
+                assert error.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
+                assert required_param in str(error)
+                continue
+            raise AssertionError(
+                f'Expected COMMAND_PARAMETER_REQUIRED for {required_param}.'
+            )
+
+# ** context: service_event_tester_context
+class ServiceEventTesterContext(DomainEventTesterContext):
+    '''
+    Bound operational context for a service-event tester. Omits domain_type in
+    its own namespace so ContextMeta keeps mapping TesterObject to TesterContext.
+    '''
+
+    # * method: get_service_mock
+    def get_service_mock(self, dependencies: Dict[str, Any] = None) -> Mock:
+        '''
+        Return the primary service mock from a dependencies dict.
+
+        :param dependencies: Optional mocked dependencies; built when omitted.
+        :type dependencies: Dict[str, Any]
+        :return: The mock for the declared service attribute.
+        :rtype: Mock
+        '''
+
+        # Resolve mocks then return the declared primary service.
+        if dependencies is None:
+            dependencies = self.mock_dependencies()
+        return dependencies[self.domain.service_attr]
+
+    # * method: assert_not_found
+    def assert_not_found(self) -> None:
+        '''
+        Verify the bound event raises the configured not-found error when the
+        primary service get returns None. Unset service_attr or
+        not_found_error_code is a no-op.
+        '''
+
+        # Skip when the tester does not declare a not-found path.
+        if not self.domain.service_attr or not self.domain.not_found_error_code:
+            return
+
+        # Configure the primary service mock to miss.
+        dependencies = self.mock_dependencies()
+        self.get_service_mock(dependencies).get.return_value = None
+
+        # Execute with not-found kwargs, falling back to sample kwargs.
+        kwargs = self.domain.not_found_kwargs or self.domain.sample_kwargs
+        try:
+            self.handle(dependencies, **kwargs)
+        except TiferetError as error:
+            assert error.error_code == self.domain.not_found_error_code
+            return
+        raise AssertionError(
+            f'Expected {self.domain.not_found_error_code} when service get returns None.'
+        )

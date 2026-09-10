@@ -11,6 +11,7 @@ from tiferet.blueprints.tester import (
     build_app,
     build_cache,
     build_test_request,
+    build_tester_context,
     resolve_tester,
 )
 from tiferet.contexts.app import (
@@ -20,6 +21,8 @@ from tiferet.contexts.app import (
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.feature import FEATURE_CACHE_PREFIX, Feature
 from tiferet.contexts.tester import (
+    DomainEventTesterContext,
+    ServiceEventTesterContext,
     TestRequestContext as _TestRequestContext,
     TestSessionContext as _TestSessionContext,
     TESTER_CACHE_PREFIX,
@@ -160,3 +163,36 @@ def test_test_case_seeds_given_state_without_dispatching(monkeypatch) -> None:
     # Assert the wrapper constructs the session and does not require a fixture.
     assert target() is context
     assert context.given_state == {'value': 1}
+
+# ** test: build_tester_context_selects_event_variants
+def test_build_tester_context_selects_event_variants() -> None:
+    '''Test build_tester_context maps domain_event and service_event types.'''
+
+    domain_event_ctx = build_tester_context(
+        TesterObject(
+            type='domain_event',
+            id='domain_event.ListErrors',
+            module_path='tiferet.events.error',
+            class_name='ListErrors',
+        ),
+    )
+    service_event_ctx = build_tester_context(
+        TesterObject(
+            type='service_event',
+            id='service_event.GetError',
+            module_path='tiferet.events.error',
+            class_name='GetError',
+            dependencies={
+                'error_service': {
+                    'module_path': 'tiferet.interfaces',
+                    'class_name': 'ErrorService',
+                },
+            },
+            sample_kwargs={'id': 'TEST_ERROR'},
+            service_attr='error_service',
+            not_found_error_code='ERROR_NOT_FOUND',
+        ),
+    )
+    assert isinstance(domain_event_ctx, DomainEventTesterContext)
+    assert isinstance(service_event_ctx, ServiceEventTesterContext)
+    assert not isinstance(domain_event_ctx, ServiceEventTesterContext)

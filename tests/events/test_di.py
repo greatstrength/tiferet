@@ -24,7 +24,7 @@ from tiferet.mappers.di import (
     FlaggedDependencyAggregate,
 )
 from tiferet.interfaces.di import DIService
-from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.blueprints.tester import use_tester
 
 # *** fixtures
 
@@ -120,28 +120,28 @@ class TestDIEvent:
 
 
 # ** test: TestAddServiceRegistration
-class TestAddServiceRegistration(DomainEventTestBase):
-    '''
-    Tests for AddServiceRegistration using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddServiceRegistration
-
-    # * attribute: dependencies
-    dependencies = {'di_service': DIService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='domain_event',
+    target_cls=AddServiceRegistration,
+    dependencies={
+        'di_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'DIService',
+        },
+    },
+    sample_kwargs=dict(
         id='svc_new',
         module_path='tiferet.repos.example',
         class_name='ExampleRepository',
         parameters={'param': 'value'},
         flagged_dependencies=[],
-    )
-
-    # * attribute: required_params
-    required_params = ['id']
+    ),
+    required_params=['id'],
+)
+class TestAddServiceRegistration:
+    '''
+    Tests for AddServiceRegistration using the domain event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -156,13 +156,13 @@ class TestAddServiceRegistration(DomainEventTestBase):
         return {'di_service': service}
 
     # * method: test_default_type_only
-    def test_default_type_only(self, mock_dependencies):
+    def test_default_type_only(self, test_ctx, mock_dependencies):
         '''
         Test adding a registration with only a default type.
         '''
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the result is a ServiceRegistration instance.
         assert isinstance(result, ServiceRegistration)
@@ -177,13 +177,13 @@ class TestAddServiceRegistration(DomainEventTestBase):
         mock_dependencies['di_service'].save_registration.assert_called_once_with(result)
 
     # * method: test_dependencies_only
-    def test_dependencies_only(self, mock_dependencies):
+    def test_dependencies_only(self, test_ctx, mock_dependencies):
         '''
         Test adding a registration with only flagged dependencies.
         '''
 
         # Execute via the harness with flagged_dependencies and no default type.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             module_path=None,
             class_name=None,
@@ -211,13 +211,13 @@ class TestAddServiceRegistration(DomainEventTestBase):
         assert dep.module_path == 'tiferet.repos.example'
 
     # * method: test_default_and_dependencies
-    def test_default_and_dependencies(self, mock_dependencies):
+    def test_default_and_dependencies(self, test_ctx, mock_dependencies):
         '''
         Test adding a registration with both a default type and dependencies.
         '''
 
         # Execute via the harness with both default type and flagged_dependencies.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             flagged_dependencies=[
                 dict(
@@ -236,7 +236,7 @@ class TestAddServiceRegistration(DomainEventTestBase):
         assert result.dependencies[0].flag == 'beta'
 
     # * method: test_duplicate_id
-    def test_duplicate_id(self, mock_dependencies):
+    def test_duplicate_id(self, test_ctx, mock_dependencies):
         '''
         Test that adding a registration with an existing ID raises an error.
         '''
@@ -246,19 +246,19 @@ class TestAddServiceRegistration(DomainEventTestBase):
 
         # Execute and expect a SERVICE_REGISTRATION_ALREADY_EXISTS error.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies)
+            test_ctx.handle(mock_dependencies)
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_ALREADY_EXISTS_ID
 
     # * method: test_no_type_source
-    def test_no_type_source(self, mock_dependencies):
+    def test_no_type_source(self, test_ctx, mock_dependencies):
         '''
         Test that adding a registration with no default type and no dependencies fails.
         '''
 
         # Execute with neither default type nor flagged dependencies.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(
+            test_ctx.handle(
                 mock_dependencies,
                 module_path=None,
                 class_name=None,
@@ -267,39 +267,40 @@ class TestAddServiceRegistration(DomainEventTestBase):
 
         assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        test_ctx.assert_missing_required_params()
 
 # ** test: TestSetDefaultServiceRegistration
-class TestSetDefaultServiceRegistration(ServiceEventTestBase):
-    '''
-    Tests for SetDefaultServiceRegistration using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = SetDefaultServiceRegistration
-
-    # * attribute: dependencies
-    dependencies = {'di_service': DIService}
-
-    # * attribute: service_attr
-    service_attr = 'di_service'
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=SetDefaultServiceRegistration,
+    dependencies={
+        'di_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'DIService',
+        },
+    },
+    sample_kwargs=dict(
         id='svc_test',
         module_path='new.module',
         class_name='NewClass',
         parameters={'param': 'value'},
-    )
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
+    ),
+    service_attr='di_service',
+    not_found_error_code=a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
+    not_found_kwargs=dict(
         id='missing',
         module_path='mod',
         class_name='Cls',
-    )
+    ),
+)
+class TestSetDefaultServiceRegistration:
+    '''
+    Tests for SetDefaultServiceRegistration using the domain event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -314,13 +315,13 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
         return {'di_service': service}
 
     # * method: test_full_update
-    def test_full_update(self, mock_dependencies, service_registration_aggregate):
+    def test_full_update(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test updating both default type and parameters.
         '''
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the registration was updated.
         assert result is service_registration_aggregate
@@ -332,13 +333,13 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
         mock_dependencies['di_service'].save_registration.assert_called_once_with(result)
 
     # * method: test_parameters_only
-    def test_parameters_only(self, mock_dependencies, service_registration_aggregate):
+    def test_parameters_only(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test updating only parameters when module_path and class_name are not provided.
         '''
 
         # Execute with no type update, just parameters.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             module_path=None,
             class_name=None,
@@ -352,13 +353,13 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
         assert result.parameters == {'param_1': 'updated'}
 
     # * method: test_clear_parameters
-    def test_clear_parameters(self, mock_dependencies, service_registration_aggregate):
+    def test_clear_parameters(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test clearing parameters when parameters is None.
         '''
 
         # Execute with parameters=None to clear.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             module_path=None,
             class_name=None,
@@ -370,14 +371,14 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
         assert result.module_path == 'tiferet.repos.example'
 
     # * method: test_incomplete_type
-    def test_incomplete_type(self, mock_dependencies):
+    def test_incomplete_type(self, test_ctx, mock_dependencies):
         '''
         Test that providing only one of module_path or class_name raises an error.
         '''
 
         # Execute with only module_path (no class_name).
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(
+            test_ctx.handle(
                 mock_dependencies,
                 module_path='new.module',
                 class_name=None,
@@ -387,7 +388,7 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
         assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
     # * method: test_not_found
-    def test_not_found(self, mock_dependencies):
+    def test_not_found(self, test_ctx, mock_dependencies):
         '''
         Test that the event raises SERVICE_REGISTRATION_NOT_FOUND when
         the DI service returns None.
@@ -398,48 +399,41 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
 
         # Execute and expect the not-found error.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, **self.not_found_kwargs)
+            test_ctx.handle(mock_dependencies, **test_ctx.domain.not_found_kwargs)
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
-
 # ** test: TestSetServiceDependency
-class TestSetServiceDependency(ServiceEventTestBase):
-    '''
-    Tests for SetServiceDependency using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = SetServiceDependency
-
-    # * attribute: dependencies
-    dependencies = {'di_service': DIService}
-
-    # * attribute: service_attr
-    service_attr = 'di_service'
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=SetServiceDependency,
+    dependencies={
+        'di_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'DIService',
+        },
+    },
+    sample_kwargs=dict(
         id='svc_test',
         flag='alpha',
         module_path='tiferet.repos.example',
         class_name='ExampleAlpha',
         parameters={'param': 'value'},
-    )
-
-    # * attribute: required_params
-    required_params = ['flag']
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
+    ),
+    required_params=['flag'],
+    service_attr='di_service',
+    not_found_error_code=a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
+    not_found_kwargs=dict(
         id='missing',
         flag='alpha',
         module_path='tiferet.repos.example',
         class_name='ExampleAlpha',
-    )
+    ),
+)
+class TestSetServiceDependency:
+    '''
+    Tests for SetServiceDependency using the domain event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -454,7 +448,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         return {'di_service': service}
 
     # * method: test_add_new
-    def test_add_new(self, mock_dependencies, service_registration_aggregate):
+    def test_add_new(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test adding a new flagged dependency when the flag does not yet exist.
         '''
@@ -463,7 +457,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         service_registration_aggregate.dependencies = []
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the dependency was added.
         assert result == 'svc_test'
@@ -477,13 +471,13 @@ class TestSetServiceDependency(ServiceEventTestBase):
         mock_dependencies['di_service'].save_registration.assert_called_once()
 
     # * method: test_update_existing
-    def test_update_existing(self, mock_dependencies, service_registration_aggregate):
+    def test_update_existing(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test updating an existing flagged dependency.
         '''
 
         # Execute with the same flag as the fixture dependency.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             flag='test_alpha',
             module_path='tiferet.repos.updated',
@@ -503,14 +497,14 @@ class TestSetServiceDependency(ServiceEventTestBase):
         }
 
     # * method: test_incomplete_type
-    def test_incomplete_type(self, mock_dependencies):
+    def test_incomplete_type(self, test_ctx, mock_dependencies):
         '''
         Test that providing an empty class_name raises INVALID_FLAGGED_DEPENDENCY.
         '''
 
         # Execute with an empty class_name.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(
+            test_ctx.handle(
                 mock_dependencies,
                 flag='alpha',
                 module_path='tiferet.repos.example',
@@ -520,7 +514,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         assert exc_info.value.error_code == a.error.INVALID_FLAGGED_DEPENDENCY_ID
 
     # * method: test_not_found
-    def test_not_found(self, mock_dependencies):
+    def test_not_found(self, test_ctx, mock_dependencies):
         '''
         Test that the event raises SERVICE_REGISTRATION_NOT_FOUND when
         the DI service returns None.
@@ -531,43 +525,42 @@ class TestSetServiceDependency(ServiceEventTestBase):
 
         # Execute and expect the not-found error.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, **self.not_found_kwargs)
+            test_ctx.handle(mock_dependencies, **test_ctx.domain.not_found_kwargs)
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        test_ctx.assert_missing_required_params()
 
 # ** test: TestRemoveServiceDependency
-class TestRemoveServiceDependency(ServiceEventTestBase):
+@use_tester(
+    type='service_event',
+    target_cls=RemoveServiceDependency,
+    dependencies={
+        'di_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'DIService',
+        },
+    },
+    sample_kwargs=dict(
+        id='svc_test',
+        flag='test_alpha',
+    ),
+    required_params=['flag'],
+    service_attr='di_service',
+    not_found_error_code=a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
+    not_found_kwargs=dict(
+        id='missing_attr',
+        flag='alpha',
+    ),
+)
+class TestRemoveServiceDependency:
     '''
     Tests for RemoveServiceDependency using the domain event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = RemoveServiceDependency
-
-    # * attribute: dependencies
-    dependencies = {'di_service': DIService}
-
-    # * attribute: service_attr
-    service_attr = 'di_service'
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        id='svc_test',
-        flag='test_alpha',
-    )
-
-    # * attribute: required_params
-    required_params = ['flag']
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
-        id='missing_attr',
-        flag='alpha',
-    )
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -582,13 +575,13 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         return {'di_service': service}
 
     # * method: test_success_with_remaining_default
-    def test_success_with_remaining_default(self, mock_dependencies, service_registration_aggregate):
+    def test_success_with_remaining_default(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test removing a dependency while a default type remains configured.
         '''
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the dependency was removed but default type remains.
         assert result == 'svc_test'
@@ -600,13 +593,13 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         mock_dependencies['di_service'].save_registration.assert_called_once()
 
     # * method: test_nonexistent_flag
-    def test_nonexistent_flag(self, mock_dependencies, service_registration_aggregate):
+    def test_nonexistent_flag(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test removing a non-existent flag is idempotent when type sources remain.
         '''
 
         # Execute with a flag that doesn't exist.
-        result = self.handle(mock_dependencies, flag='non_existent_flag')
+        result = test_ctx.handle(mock_dependencies, flag='non_existent_flag')
 
         # Dependencies and default type remain unchanged.
         assert result == 'svc_test'
@@ -614,7 +607,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         assert service_registration_aggregate.module_path == 'tiferet.repos.example'
 
     # * method: test_invalid_after_removal
-    def test_invalid_after_removal(self, mock_dependencies, flagged_dependency_for_di):
+    def test_invalid_after_removal(self, test_ctx, mock_dependencies, flagged_dependency_for_di):
         '''
         Test that removing the last type source raises INVALID_SERVICE_REGISTRATION.
         '''
@@ -629,12 +622,12 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
 
         # Execute and expect INVALID_SERVICE_REGISTRATION.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, id='svc_only_deps', flag='test_alpha')
+            test_ctx.handle(mock_dependencies, id='svc_only_deps', flag='test_alpha')
 
         assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
     # * method: test_not_found
-    def test_not_found(self, mock_dependencies):
+    def test_not_found(self, test_ctx, mock_dependencies):
         '''
         Test that the event raises SERVICE_REGISTRATION_NOT_FOUND when
         the DI service returns None.
@@ -645,70 +638,88 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
 
         # Execute and expect the not-found error.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, **self.not_found_kwargs)
+            test_ctx.handle(mock_dependencies, **test_ctx.domain.not_found_kwargs)
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        test_ctx.assert_missing_required_params()
 
 # ** test: TestRemoveServiceRegistration
-class TestRemoveServiceRegistration(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=RemoveServiceRegistration,
+    dependencies={
+        'di_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'DIService',
+        },
+    },
+    sample_kwargs=dict(id='svc_to_delete'),
+    required_params=['id'],
+)
+class TestRemoveServiceRegistration:
     '''
     Tests for RemoveServiceRegistration using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = RemoveServiceRegistration
-
-    # * attribute: dependencies
-    dependencies = {'di_service': DIService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='svc_to_delete')
-
-    # * attribute: required_params
-    required_params = ['id']
-
     # * method: test_existing
-    def test_existing(self, mock_dependencies):
+    def test_existing(self, test_ctx):
         '''
         Test removing an existing service registration.
         '''
 
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the result is the deleted ID.
         assert result == 'svc_to_delete'
         mock_dependencies['di_service'].delete_registration.assert_called_once_with('svc_to_delete')
 
     # * method: test_nonexistent_is_idempotent
-    def test_nonexistent_is_idempotent(self, mock_dependencies):
+    def test_nonexistent_is_idempotent(self, test_ctx):
         '''
         Test that removing a non-existent registration is idempotent.
         '''
 
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute with a non-existent ID.
-        result = self.handle(mock_dependencies, id='missing_id')
+        result = test_ctx.handle(mock_dependencies, id='missing_id')
 
         # Assert the result is the ID and delete was called.
         assert result == 'missing_id'
         mock_dependencies['di_service'].delete_registration.assert_called_once_with('missing_id')
 
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        mock_dependencies = test_ctx.mock_dependencies()
+
+        test_ctx.assert_missing_required_params()
 
 # ** test: TestSetServiceConstants
-class TestSetServiceConstants(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=SetServiceConstants,
+    dependencies={
+        'di_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'DIService',
+        },
+    },
+    sample_kwargs=dict(constants={'key': 'value'}),
+)
+class TestSetServiceConstants:
     '''
     Tests for SetServiceConstants using the domain event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = SetServiceConstants
-
-    # * attribute: dependencies
-    dependencies = {'di_service': DIService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(constants={'key': 'value'})
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -723,20 +734,20 @@ class TestSetServiceConstants(DomainEventTestBase):
         return {'di_service': service}
 
     # * method: test_clear_all_with_none
-    def test_clear_all_with_none(self, mock_dependencies):
+    def test_clear_all_with_none(self, test_ctx, mock_dependencies):
         '''
         Test clearing all constants when None is passed.
         '''
 
         # Execute with constants=None.
-        result = self.handle(mock_dependencies, constants=None)
+        result = test_ctx.handle(mock_dependencies, constants=None)
 
         # Assert all constants were cleared.
         assert result == {}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({})
 
     # * method: test_partial_removal
-    def test_partial_removal(self, mock_dependencies):
+    def test_partial_removal(self, test_ctx, mock_dependencies):
         '''
         Test removing keys with None values while preserving others.
         '''
@@ -748,20 +759,20 @@ class TestSetServiceConstants(DomainEventTestBase):
         )
 
         # Execute with a removal.
-        result = self.handle(mock_dependencies, constants={'remove': None})
+        result = test_ctx.handle(mock_dependencies, constants={'remove': None})
 
         # Assert only the kept key remains.
         assert result == {'keep': 'value'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'keep': 'value'})
 
     # * method: test_add_new
-    def test_add_new(self, mock_dependencies):
+    def test_add_new(self, test_ctx, mock_dependencies):
         '''
         Test adding new constants on top of existing ones.
         '''
 
         # Execute with a new constant.
-        result = self.handle(mock_dependencies, constants={'new': 'value'})
+        result = test_ctx.handle(mock_dependencies, constants={'new': 'value'})
 
         # Assert both existing and new constants are present.
         assert result == {'existing': 'old', 'new': 'value'}
@@ -770,20 +781,20 @@ class TestSetServiceConstants(DomainEventTestBase):
         )
 
     # * method: test_update_existing
-    def test_update_existing(self, mock_dependencies):
+    def test_update_existing(self, test_ctx, mock_dependencies):
         '''
         Test updating existing constant values.
         '''
 
         # Execute with an updated constant.
-        result = self.handle(mock_dependencies, constants={'existing': 'new'})
+        result = test_ctx.handle(mock_dependencies, constants={'existing': 'new'})
 
         # Assert the constant was updated.
         assert result == {'existing': 'new'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'new'})
 
     # * method: test_mixed_operations
-    def test_mixed_operations(self, mock_dependencies):
+    def test_mixed_operations(self, test_ctx, mock_dependencies):
         '''
         Test adding, updating, and removing constants in a single call.
         '''
@@ -795,7 +806,7 @@ class TestSetServiceConstants(DomainEventTestBase):
         )
 
         # Execute with mixed operations.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             constants={
                 'remove': None,
@@ -810,20 +821,20 @@ class TestSetServiceConstants(DomainEventTestBase):
         mock_dependencies['di_service'].save_constants.assert_called_once_with(expected)
 
     # * method: test_empty_dict
-    def test_empty_dict(self, mock_dependencies):
+    def test_empty_dict(self, test_ctx, mock_dependencies):
         '''
         Test that an empty dict is idempotent (no changes).
         '''
 
         # Execute with an empty dict.
-        result = self.handle(mock_dependencies, constants={})
+        result = test_ctx.handle(mock_dependencies, constants={})
 
         # Assert existing constants remain unchanged.
         assert result == {'existing': 'old'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'old'})
 
     # * method: test_omitted_is_noop
-    def test_omitted_is_noop(self, mock_dependencies):
+    def test_omitted_is_noop(self, test_ctx, mock_dependencies):
         '''
         Test that omitting the constants argument preserves existing
         constants (the sentinel default is a no-op on omit, distinct from
@@ -840,35 +851,39 @@ class TestSetServiceConstants(DomainEventTestBase):
         assert result == {'existing': 'old'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'old'})
 
-
 # ** test: TestListAllSettings
-class TestListAllSettings(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=ListAllSettings,
+    dependencies={
+        'di_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'DIService',
+        },
+    },
+    sample_kwargs=dict(),
+)
+class TestListAllSettings:
     '''
     Tests for ListAllSettings using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = ListAllSettings
-
-    # * attribute: dependencies
-    dependencies = {'di_service': DIService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict()
-
     # * method: test_calls_list_all
-    def test_calls_list_all(self, mock_dependencies, service_registration_aggregate):
+    def test_calls_list_all(self, test_ctx, service_registration_aggregate):
         '''
         Test that ListAllSettings delegates to the DI service list_all method.
         '''
+
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Configure the service to return a registration and constants.
         expected = ([service_registration_aggregate], {'constant_1': 'value'})
         mock_dependencies['di_service'].list_all.return_value = expected
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the result matches the expected tuple.
         assert result == expected
         mock_dependencies['di_service'].list_all.assert_called_once()
+

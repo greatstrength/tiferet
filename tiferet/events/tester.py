@@ -62,7 +62,13 @@ class AddTester(TesterEvent):
 
         # Reject unrecognized tester discriminators before config construction.
         self.verify(
-            expression=type in ('domain', 'aggregate', 'transfer_object'),
+            expression=type in (
+                'domain',
+                'aggregate',
+                'transfer_object',
+                'domain_event',
+                'service_event',
+            ),
             error_code=a.error.INVALID_TESTER_TYPE_ID,
             type=type,
         )
