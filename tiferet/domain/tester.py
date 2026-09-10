@@ -30,6 +30,7 @@ class TesterObject(DomainObject):
         'service_event',
         'generic',
         'repo',
+        'context',
     ] = Field(
         ...,
         description='The type of tester object.',
@@ -179,6 +180,36 @@ class TesterObject(DomainObject):
         description='Identifiers deleted twice to prove idempotent delete.',
     )
 
+    # * attribute: domain_module_path
+    domain_module_path: str | None = Field(
+        default=None,
+        description='The module path of the domain object type under test.',
+    )
+
+    # * attribute: domain_class_name
+    domain_class_name: str | None = Field(
+        default=None,
+        description='The class name of the domain object type under test.',
+    )
+
+    # * attribute: from_domain_cases
+    from_domain_cases: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description='from_domain bind cases for a context tester.',
+    )
+
+    # * attribute: domain_type_cases
+    domain_type_cases: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description='Own-namespace domain_type declaration cases.',
+    )
+
+    # * attribute: for_domain_cases
+    for_domain_cases: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description='BaseContext.for_domain mapping cases.',
+    )
+
     # * method: _derive_expected_data (model validator)
     @model_validator(mode='before')
     @classmethod
@@ -261,6 +292,21 @@ class TesterObject(DomainObject):
         return getattr(
             import_module(self.aggregate_module_path),
             self.aggregate_class_name,
+        )
+
+    # * method: get_domain_type
+    def get_domain_type(self) -> type:
+        '''
+        Import and return the domain object type this tester targets.
+
+        :return: The target domain object type.
+        :rtype: type
+        '''
+
+        # Import the module and return the named domain class.
+        return getattr(
+            import_module(self.domain_module_path),
+            self.domain_class_name,
         )
 
 # ** model: verification

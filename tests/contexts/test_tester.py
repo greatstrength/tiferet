@@ -12,10 +12,12 @@ import pytest
 from tiferet.blueprints.tester import build_test_session, build_tester_context, use_tester
 from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.core import BaseContext
+from tiferet.contexts.cli import CliSessionContext
+from tiferet.contexts.core import BaseContext, ContextMeta
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.tester import (
     AggregateTesterContext,
+    ContextTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
@@ -30,6 +32,7 @@ from tiferet.contexts.tester import (
     add_default_testers,
 )
 from tiferet.domain import (
+    AppSession,
     Request,
     TesterObject,
     Verification,
@@ -112,6 +115,7 @@ def test_tester_context_registry_and_omitted_domain_type() -> None:
     assert 'domain_type' not in AggregateTesterContext.__dict__
     assert 'domain_type' not in TransferObjectTesterContext.__dict__
     assert 'domain_type' not in RepoTesterContext.__dict__
+    assert 'domain_type' not in ContextTesterContext.__dict__
     assert isinstance(BaseContext.from_domain(tester), TesterContext)
     assert isinstance(DomainTesterContext.from_domain(tester), DomainTesterContext)
 
@@ -699,3 +703,128 @@ def test_repo_tester_context_empty_cases_are_noops() -> None:
     test_ctx.assert_list(None)
     test_ctx.assert_save(None)
     test_ctx.assert_delete(None)
+
+# *** testers
+
+# ** tester: context_tester_context_tester
+class ContextTesterContextTester:
+    '''Prove ContextTesterContext registry, bind, and empty-case no-ops.'''
+
+    # * test: omits_domain_type_and_preserves_registry
+    def test_omits_domain_type_and_preserves_registry(self) -> None:
+        '''ContextTesterContext does not clobber ContextMeta mappings.'''
+
+        tester = TesterObject(
+            type='context',
+            id='context.RequestContext',
+            module_path=RequestContext.__module__,
+            class_name=RequestContext.__name__,
+            domain_module_path=Request.__module__,
+            domain_class_name=Request.__name__,
+        )
+        assert 'domain_type' not in ContextTesterContext.__dict__
+        assert BaseContext.for_domain(TesterObject) is TesterContext
+        assert BaseContext.for_domain(Request) is RequestContext
+        assert BaseContext.for_domain(AppSession) is AppSessionContext
+        assert BaseContext not in ContextMeta.registry.values()
+        assert isinstance(BaseContext.from_domain(tester), TesterContext)
+        bound = ContextTesterContext.from_domain(tester)
+        assert isinstance(bound, ContextTesterContext)
+        assert bound.domain is tester
+
+    # * test: empty_case_lists_are_no_ops
+    def test_empty_case_lists_are_no_ops(self) -> None:
+        '''Empty from_domain, domain_type, and for_domain cases return immediately.'''
+
+        test_ctx = ContextTesterContext.from_domain(
+            TesterObject(
+                type='context',
+                id='context.RequestContext',
+                module_path=RequestContext.__module__,
+                class_name=RequestContext.__name__,
+                domain_module_path=Request.__module__,
+                domain_class_name=Request.__name__,
+            ),
+        )
+        assert test_ctx.assert_from_domain() is None
+        assert test_ctx.assert_domain_type() is None
+        assert test_ctx.assert_for_domain() is None
+
+    # * test: declaring_request_context_cases
+    def test_declaring_request_context_cases(self) -> None:
+        '''RequestContext declaring cases pass the three context assertions.'''
+
+        test_ctx = ContextTesterContext.from_domain(
+            TesterObject(
+                type='context',
+                id='context.RequestContext',
+                module_path=RequestContext.__module__,
+                class_name=RequestContext.__name__,
+                sample_data={
+                    'session_id': 'test-session',
+                    'feature_id': 'test.feature',
+                },
+                domain_module_path=Request.__module__,
+                domain_class_name=Request.__name__,
+                from_domain_cases=[
+                    {
+                        'data': {
+                            'session_id': 'test-session',
+                            'feature_id': 'test.feature',
+                        },
+                    },
+                ],
+                domain_type_cases=[
+                    {
+                        'declares': True,
+                    },
+                ],
+                for_domain_cases=[
+                    {
+                        'domain_module_path': Request.__module__,
+                        'domain_class_name': Request.__name__,
+                        'context_module_path': RequestContext.__module__,
+                        'context_class_name': RequestContext.__name__,
+                    },
+                ],
+            ),
+        )
+        test_ctx.assert_from_domain()
+        test_ctx.assert_domain_type()
+        test_ctx.assert_for_domain()
+
+    # * test: omitting_cli_session_does_not_clobber_app_session
+    def test_omitting_cli_session_does_not_clobber_app_session(self) -> None:
+        '''An omitting case proves CliSessionContext leaves AppSession mapping.'''
+
+        test_ctx = ContextTesterContext.from_domain(
+            TesterObject(
+                type='context',
+                id='context.CliSessionContext',
+                module_path=CliSessionContext.__module__,
+                class_name=CliSessionContext.__name__,
+                domain_module_path=AppSession.__module__,
+                domain_class_name=AppSession.__name__,
+                domain_type_cases=[
+                    {
+                        'declares': False,
+                    },
+                ],
+                for_domain_cases=[
+                    {
+                        'domain_module_path': AppSession.__module__,
+                        'domain_class_name': AppSession.__name__,
+                        'context_module_path': AppSessionContext.__module__,
+                        'context_class_name': AppSessionContext.__name__,
+                    },
+                    {
+                        'domain_module_path': TesterObject.__module__,
+                        'domain_class_name': TesterObject.__name__,
+                        'context_module_path': TesterContext.__module__,
+                        'context_class_name': TesterContext.__name__,
+                    },
+                ],
+            ),
+        )
+        test_ctx.assert_domain_type()
+        test_ctx.assert_for_domain()
