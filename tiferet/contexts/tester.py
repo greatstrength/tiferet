@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import inspect
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import Mock
 
@@ -664,3 +665,210 @@ class GenericTesterContext(TesterContext):
         # Assert each abstract method name exists on the inspected type.
         for name in abstract_methods:
             assert hasattr(inspected, name)
+
+# ** context: repo_tester_context
+class RepoTesterContext(TesterContext):
+    '''
+    Bound operational context for a configuration-repository tester. Omits
+    domain_type so ContextMeta keeps mapping TesterObject to TesterContext.
+    '''
+
+    # * method: resolve_config_parameter
+    def _resolve_config_parameter(self) -> str:
+        '''
+        Return the constructor keyword that receives the config file path.
+
+        :return: The config-file constructor parameter name.
+        :rtype: str
+        '''
+
+        # Prefer the declared constructor keyword when the tester sets it.
+        if self.domain.config_parameter:
+            return self.domain.config_parameter
+
+        # Inspect the unique non-self, non-encoding constructor parameter.
+        parameters = inspect.signature(
+            self.domain.get_target_type().__init__,
+        ).parameters
+        names = [
+            name
+            for name in parameters
+            if name not in ('self', 'encoding')
+        ]
+        return names[0]
+
+    # * method: make_target
+    def make_target(
+            self,
+            config_file: str,
+            encoding: str = 'utf-8',
+        ) -> Any:
+        '''
+        Construct the repository class against a per-test config file.
+
+        :param config_file: The temporary configuration file path.
+        :type config_file: str
+        :param encoding: The file encoding.
+        :type encoding: str
+        :return: The constructed repository.
+        :rtype: Any
+        '''
+
+        # Bind the config path through the declared or inspected keyword.
+        parameter = self._resolve_config_parameter()
+        return self.domain.get_target_type()(
+            **{
+                parameter: config_file,
+                'encoding': encoding,
+            },
+        )
+
+    # * method: assert_new
+    def assert_new(self, config_file: str) -> None:
+        '''
+        Verify repository construction against a per-test config file.
+
+        :param config_file: The temporary configuration file path.
+        :type config_file: str
+        '''
+
+        # Construct the repository and lock its type.
+        target = self.make_target(config_file=config_file)
+        assert isinstance(target, self.domain.get_target_type())
+
+        # Lock default_role when the constructed repository exposes it.
+        if hasattr(target, 'default_role'):
+            assert target.default_role == 'to_data'
+
+    # * method: assert_exists
+    def assert_exists(self, repo: Any) -> None:
+        '''
+        Verify every declared exists case. An empty list is a no-op.
+
+        :param repo: The constructed repository under test.
+        :type repo: Any
+        '''
+
+        # Iterate optional exists cases without pytest parametrization.
+        for identifier, expected in self.domain.exists_cases:
+            assert repo.exists(identifier) is expected
+
+    # * method: assert_get
+    def assert_get(self, repo: Any) -> None:
+        '''
+        Verify every declared get case. An empty list is a no-op.
+
+        :param repo: The constructed repository under test.
+        :type repo: Any
+        '''
+
+        # Iterate optional get cases without pytest parametrization.
+        for identifier, expected in self.domain.get_cases:
+            actual = repo.get(identifier)
+
+            # Missing identifiers resolve to None.
+            if expected is None:
+                assert actual is None
+                continue
+
+            # Compare returned aggregates against declared expected data.
+            assert_model_matches(
+                actual,
+                expected,
+                self.domain.equality_fields,
+                self.domain.field_normalizers,
+            )
+
+    # * method: assert_list
+    def assert_list(self, repo: Any) -> None:
+        '''
+        Verify unfiltered list identifiers. An empty list_ids is a no-op.
+
+        :param repo: The constructed repository under test.
+        :type repo: Any
+        '''
+
+        # Skip when the tester does not declare expected identifiers.
+        if not self.domain.list_ids:
+            return
+
+        # Compare listed identifiers as an unordered set.
+        assert {item.id for item in repo.list()} == set(self.domain.list_ids)
+
+    # * method: assert_save
+    def assert_save(self, repo: Any, entity: Any = None) -> None:
+        '''
+        Save an aggregate and verify it round-trips through get.
+
+        Unset aggregate_class_name with no supplied entity is a no-op.
+
+        :param repo: The constructed repository under test.
+        :type repo: Any
+        :param entity: Optional aggregate to save; built when omitted.
+        :type entity: Any
+        '''
+
+        # Construct the declared aggregate when the caller did not supply one.
+        if entity is None:
+            if not self.domain.aggregate_class_name:
+                return
+            entity = self.domain.get_aggregate_type()(
+                **self.domain.aggregate_sample_data,
+            )
+
+        # Persist then reload the aggregate through the repository contract.
+        repo.save(entity)
+        loaded = repo.get(entity.id)
+        assert_model_matches(
+            loaded,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            self.domain.field_normalizers,
+        )
+
+    # * method: assert_delete
+    def assert_delete(self, repo: Any) -> None:
+        '''
+        Delete each declared id twice. An empty delete_ids list is a no-op.
+
+        :param repo: The constructed repository under test.
+        :type repo: Any
+        '''
+
+        # Iterate optional delete identifiers without pytest parametrization.
+        for identifier in self.domain.delete_ids:
+            repo.delete(identifier)
+            assert repo.get(identifier) is None
+            repo.delete(identifier)
+
+    # * method: assert_format_dispatch
+    def assert_format_dispatch(
+            self,
+            yaml_file: str,
+            json_file: str,
+            payload: dict | None = None,
+        ) -> None:
+        '''
+        Round-trip the same payload through YAML and JSON config files.
+
+        :param yaml_file: A YAML configuration file path.
+        :type yaml_file: str
+        :param json_file: A JSON configuration file path.
+        :type json_file: str
+        :param payload: Optional payload; defaults to a small root mapping.
+        :type payload: dict | None
+        '''
+
+        # Default the payload when the caller does not supply one.
+        if payload is None:
+            payload = {
+                'root': {
+                    'ok': True,
+                },
+            }
+
+        # Save and load the same payload through each format-specific path.
+        for config_file in (yaml_file, json_file):
+            repo = self.make_target(config_file=config_file)
+            repo._save(payload)
+            assert repo._load() == payload

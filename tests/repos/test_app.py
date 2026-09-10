@@ -9,9 +9,9 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import AppSessionConfigObject
+from tiferet.blueprints.tester import use_tester
+from tiferet.mappers import AppSessionAggregate
 from tiferet.repos.app import AppConfigRepository
-
 
 # *** constants
 
@@ -39,6 +39,13 @@ APP_DATA: Dict[str, Dict] = {
     },
 }
 
+# ** constant: new_app_sample
+NEW_APP_SAMPLE = {
+    'id': 'new.app',
+    'name': 'New App',
+    'description': 'A new test app interface.',
+}
+
 # *** fixtures
 
 # ** fixture: app_config_file
@@ -61,155 +68,63 @@ def app_config_file(tmp_path) -> str:
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: app_config_repo
-@pytest.fixture
-def app_config_repo(app_config_file: str) -> AppConfigRepository:
-    '''
-    Fixture to create an instance of the App Configuration Repository.
+# *** testers
 
-    :param app_config_file: The app YAML configuration file path.
-    :type app_config_file: str
-    :return: An instance of AppConfigRepository.
-    :rtype: AppConfigRepository
-    '''
+# ** tester: AppConfigRepositoryTester
+@use_tester(
+    type='repo',
+    target_cls=AppConfigRepository,
+    config_parameter='app_config',
+    equality_fields=['id', 'name'],
+    aggregate_cls=AppSessionAggregate,
+    aggregate_sample_data=NEW_APP_SAMPLE,
+    exists_cases=[
+        (TEST_APP_ID, True),
+        (ANOTHER_APP_ID, True),
+        ('missing.app', False),
+    ],
+    get_cases=[
+        (TEST_APP_ID, {'id': TEST_APP_ID, 'name': 'Test App'}),
+        (ANOTHER_APP_ID, {'id': ANOTHER_APP_ID, 'name': 'Another App'}),
+        ('missing.app', None),
+    ],
+    list_ids=[TEST_APP_ID, ANOTHER_APP_ID],
+    delete_ids=[ANOTHER_APP_ID],
+)
+class AppConfigRepositoryTester:
+    '''AppConfigRepository five-method coverage via RepoTesterContext.'''
 
-    # Create and return the AppConfigRepository instance.
-    return AppConfigRepository(app_config_file)
+    # * test: exists
+    def test_exists(self, test_ctx, app_config_file: str) -> None:
+        '''Verify exists cases against a seeded app config.'''
 
-# *** tests
+        repo = test_ctx.make_target(config_file=app_config_file)
+        test_ctx.assert_exists(repo)
 
-# ** test_int: app_config_repo_exists
-def test_int_app_config_repo_exists(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the exists method of the AppConfigRepository.
+    # * test: get
+    def test_get(self, test_ctx, app_config_file: str) -> None:
+        '''Verify get cases against a seeded app config.'''
 
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
+        repo = test_ctx.make_target(config_file=app_config_file)
+        test_ctx.assert_get(repo)
 
-    # Check if the app interfaces exist.
-    assert app_config_repo.exists(TEST_APP_ID)
-    assert app_config_repo.exists(ANOTHER_APP_ID)
-    assert not app_config_repo.exists('missing.app')
+    # * test: list
+    def test_list(self, test_ctx, app_config_file: str) -> None:
+        '''Verify listed identifiers against a seeded app config.'''
 
-# ** test_int: app_config_repo_get
-def test_int_app_config_repo_get(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the AppConfigRepository.
+        repo = test_ctx.make_target(config_file=app_config_file)
+        test_ctx.assert_list(repo)
 
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
+    # * test: save
+    def test_save(self, test_ctx, app_config_file: str) -> None:
+        '''Verify save round-trips the declared aggregate sample.'''
 
-    # Get app interfaces by id.
-    app = app_config_repo.get(TEST_APP_ID)
-    another_app = app_config_repo.get(ANOTHER_APP_ID)
+        repo = test_ctx.make_target(config_file=app_config_file)
+        test_ctx.assert_save(repo)
 
-    # Check the first app interface.
-    assert app
-    assert app.id == TEST_APP_ID
-    assert app.name == 'Test App'
+    # * test: delete
+    def test_delete(self, test_ctx, app_config_file: str) -> None:
+        '''Verify idempotent delete of declared identifiers.'''
 
-    # Check the second app interface.
-    assert another_app
-    assert another_app.id == ANOTHER_APP_ID
-    assert another_app.name == 'Another App'
-
-# ** test_int: app_config_repo_get_not_found
-def test_int_app_config_repo_get_not_found(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the AppConfigRepository for a non-existent app interface.
-
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
-
-    # Attempt to get a non-existent app interface.
-    app = app_config_repo.get('missing.app')
-
-    # Check that the app interface is None.
-    assert not app
-
-# ** test_int: app_config_repo_list
-def test_int_app_config_repo_list(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the list method of the AppConfigRepository for all app interfaces.
-
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
-
-    # List all app interfaces.
-    interfaces = app_config_repo.list()
-
-    # Check the interfaces.
-    assert interfaces
-    assert len(interfaces) == 2
-    interface_ids = [interface.id for interface in interfaces]
-    assert TEST_APP_ID in interface_ids
-    assert ANOTHER_APP_ID in interface_ids
-
-# ** test_int: app_config_repo_save
-def test_int_app_config_repo_save(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the save method of the AppConfigRepository.
-
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
-
-    # Create constant for new test app interface.
-    new_app_id = 'new.app'
-
-    # Create new app interface config data and map to an aggregate.
-    app = AppSessionConfigObject.model_validate(dict(
-        id=new_app_id,
-        name='New App',
-        description='A new test app interface.',
-        attributes={},
-        constants={},
-    )).map()
-
-    # Save the new app interface.
-    app_config_repo.save(app)
-
-    # Reload the app interface to verify it was saved.
-    new_app = app_config_repo.get(new_app_id)
-
-    # Check the new app interface.
-    assert new_app
-    assert new_app.id == new_app_id
-    assert new_app.name == 'New App'
-
-# ** test_int: app_config_repo_delete
-def test_int_app_config_repo_delete(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the delete method of the AppConfigRepository.
-
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
-
-    # Delete an existing app interface.
-    app_config_repo.delete(ANOTHER_APP_ID)
-
-    # Attempt to get the deleted app interface.
-    deleted_app = app_config_repo.get(ANOTHER_APP_ID)
-
-    # Check that the app interface is None.
-    assert not deleted_app
-
-    # Ensure that deleting a non-existent app interface is idempotent.
-    app_config_repo.delete('missing.app')
+        repo = test_ctx.make_target(config_file=app_config_file)
+        test_ctx.assert_delete(repo)

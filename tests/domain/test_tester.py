@@ -138,6 +138,28 @@ def test_tester_object_accepts_generic_type() -> None:
     assert hasattr(tester, 'get_target_type')
     assert hasattr(tester, 'get_target')
 
+# ** test: tester_object_accepts_repo_type_and_optional_fields
+def test_tester_object_accepts_repo_type_and_optional_fields() -> None:
+    '''Test that TesterObject accepts repo and defaults optional CRUD fields.'''
+
+    tester = _TesterObject(
+        type='repo',
+        id='repo.ErrorConfigRepository',
+        module_path='tiferet.repos.error',
+        class_name='ErrorConfigRepository',
+        config_parameter='error_config',
+        aggregate_module_path='tiferet.mappers.error',
+        aggregate_class_name='ErrorAggregate',
+    )
+    assert tester.type == 'repo'
+    assert tester.config_parameter == 'error_config'
+    assert tester.exists_cases == []
+    assert tester.get_cases == []
+    assert tester.list_ids == []
+    assert tester.delete_ids == []
+    assert tester.get_target_type().__name__ == 'ErrorConfigRepository'
+    assert tester.get_aggregate_type().__name__ == 'ErrorAggregate'
+
 # ** test: tester_object_rejects_non_generic_package_types
 @pytest.mark.parametrize(
     'invalid_type',
@@ -147,6 +169,11 @@ def test_tester_object_accepts_generic_type() -> None:
         'blueprint',
         'interface',
         'callable',
+        'repository',
+        'config_repository',
+        'sqlite',
+        'di_repo',
+        'logging_repo',
     ],
 )
 def test_tester_object_rejects_non_generic_package_types(invalid_type) -> None:

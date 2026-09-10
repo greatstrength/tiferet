@@ -3,18 +3,18 @@
 # *** imports
 
 # ** core
-from typing import Dict, List
+from typing import Dict
 
 # ** infra
 import pytest, yaml
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.mappers import (
     CliArgumentAggregate,
-    CliCommandConfigObject,
+    CliCommandAggregate,
 )
 from tiferet.repos.cli import CliConfigRepository
-
 
 # *** constants
 
@@ -82,6 +82,27 @@ CLI_DATA: Dict = {
     },
 }
 
+# ** constant: new_cmd_sample
+NEW_CMD_SAMPLE = {
+    'id': 'calc.multiply',
+    'name': 'Multiply Number Command',
+    'description': 'Multiplies two numbers.',
+    'key': 'multiply',
+    'group_key': 'calc',
+    'arguments': [
+        {
+            'name_or_flags': ['--value1', '-v1'],
+            'description': 'The first number to multiply.',
+            'type': 'str',
+        },
+        {
+            'name_or_flags': ['--value2', '-v2'],
+            'description': 'The second number to multiply.',
+            'type': 'str',
+        },
+    ],
+}
+
 # *** fixtures
 
 # ** fixture: cli_yaml_file
@@ -104,240 +125,96 @@ def cli_yaml_file(tmp_path) -> str:
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: cli_config_repo
-@pytest.fixture
-def cli_config_repo(cli_yaml_file: str) -> CliConfigRepository:
-    '''
-    Fixture to create an instance of the CLI Configuration Repository.
+# *** testers
 
-    :param cli_yaml_file: The CLI YAML configuration file path.
-    :type cli_yaml_file: str
-    :return: An instance of CliConfigRepository.
-    :rtype: CliConfigRepository
-    '''
+# ** tester: CliConfigRepositoryTester
+@use_tester(
+    type='repo',
+    target_cls=CliConfigRepository,
+    config_parameter='cli_config',
+    equality_fields=['id', 'name'],
+    aggregate_cls=CliCommandAggregate,
+    aggregate_sample_data=NEW_CMD_SAMPLE,
+    exists_cases=[
+        (TEST_CMD_ADD_ID, True),
+        (TEST_CMD_SUBTRACT_ID, True),
+        ('calc.missing', False),
+    ],
+    get_cases=[
+        (TEST_CMD_ADD_ID, {'id': TEST_CMD_ADD_ID, 'name': 'Add Number Command'}),
+        ('calc.missing', None),
+    ],
+    list_ids=[TEST_CMD_ADD_ID, TEST_CMD_SUBTRACT_ID],
+    delete_ids=[TEST_CMD_SUBTRACT_ID],
+)
+class CliConfigRepositoryTester:
+    '''CliConfigRepository five-method coverage via RepoTesterContext.'''
 
-    # Create and return the CliConfigRepository instance.
-    return CliConfigRepository(cli_yaml_file)
+    # * test: exists
+    def test_exists(self, test_ctx, cli_yaml_file: str) -> None:
+        '''Verify exists cases against a seeded CLI config.'''
 
-# *** tests
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+        test_ctx.assert_exists(repo)
 
-# ** test_int: cli_config_repo_list
-def test_int_cli_config_repo_list(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the list method of the CliConfigRepository.
+    # * test: get
+    def test_get(self, test_ctx, cli_yaml_file: str) -> None:
+        '''Verify get cases against a seeded CLI config.'''
 
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+        test_ctx.assert_get(repo)
 
-    # List all CLI commands.
-    commands = cli_config_repo.list()
+    # * test: list
+    def test_list(self, test_ctx, cli_yaml_file: str) -> None:
+        '''Verify listed identifiers against a seeded CLI config.'''
 
-    # Check the commands.
-    assert commands
-    assert len(commands) == 2
-    command_ids = [cmd.id for cmd in commands]
-    assert TEST_CMD_ADD_ID in command_ids
-    assert TEST_CMD_SUBTRACT_ID in command_ids
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+        test_ctx.assert_list(repo)
 
-# ** test_int: cli_config_repo_get
-def test_int_cli_config_repo_get(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the CliConfigRepository.
+    # * test: save
+    def test_save(self, test_ctx, cli_yaml_file: str) -> None:
+        '''Verify save round-trips the declared aggregate sample.'''
 
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+        test_ctx.assert_save(repo)
 
-    # Get a CLI command by id.
-    cmd = cli_config_repo.get(TEST_CMD_ADD_ID)
+    # * test: delete
+    def test_delete(self, test_ctx, cli_yaml_file: str) -> None:
+        '''Verify idempotent delete of declared identifiers.'''
 
-    # Check the command fields.
-    assert cmd
-    assert cmd.id == TEST_CMD_ADD_ID
-    assert cmd.name == 'Add Number Command'
-    assert cmd.description == 'Adds two numbers.'
-    assert cmd.key == 'add'
-    assert cmd.group_key == 'calc'
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+        test_ctx.assert_delete(repo)
 
-    # Check the nested arguments.
-    assert len(cmd.arguments) == 2
-    assert cmd.arguments[0].name_or_flags == ['--value1', '-v1']
-    assert cmd.arguments[0].description == 'The first number to add.'
-    assert cmd.arguments[1].name_or_flags == ['--value2', '-v2']
-    assert cmd.arguments[1].description == 'The second number to add.'
+    # * test: get_parent_arguments
+    def test_get_parent_arguments(self, test_ctx, cli_yaml_file: str) -> None:
+        '''Verify parent arguments remain a bespoke CLI method.'''
 
-# ** test_int: cli_config_repo_get_not_found
-def test_int_cli_config_repo_get_not_found(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the CliConfigRepository for a non-existent command.
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+        parent_args = repo.get_parent_arguments()
+        assert len(parent_args) == 2
+        assert parent_args[0].name_or_flags == ['--verbose', '-v']
+        assert parent_args[0].type == 'bool'
+        assert parent_args[1].name_or_flags == ['--config', '-c']
 
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
+    # * test: save_parent_arguments
+    def test_save_parent_arguments(self, test_ctx, cli_yaml_file: str) -> None:
+        '''Verify parent argument save remains a bespoke CLI method.'''
 
-    # Attempt to get a non-existent CLI command.
-    cmd = cli_config_repo.get('calc.missing')
-
-    # Check that the command is None.
-    assert not cmd
-
-# ** test_int: cli_config_repo_get_parent_arguments
-def test_int_cli_config_repo_get_parent_arguments(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the get_parent_arguments method of the CliConfigRepository.
-
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
-
-    # Get all parent-level CLI arguments.
-    parent_args = cli_config_repo.get_parent_arguments()
-
-    # Check the parent arguments.
-    assert parent_args
-    assert len(parent_args) == 2
-    assert parent_args[0].name_or_flags == ['--verbose', '-v']
-    assert parent_args[0].description == 'Enable verbose output.'
-    assert parent_args[0].type == 'bool'
-    assert parent_args[1].name_or_flags == ['--config', '-c']
-    assert parent_args[1].description == 'Path to configuration file.'
-
-# ** test_int: cli_config_repo_save
-def test_int_cli_config_repo_save(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the save method of the CliConfigRepository.
-
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
-
-    # Create constant for new test CLI command.
-    new_cmd_id = 'calc.multiply'
-
-    # Create new CLI command config data and map to an aggregate.
-    cmd = CliCommandConfigObject.model_validate(dict(
-        id=new_cmd_id,
-        name='Multiply Number Command',
-        description='Multiplies two numbers.',
-        key='multiply',
-        group_key='calc',
-        args=[
-            {
-                'name_or_flags': ['--value1', '-v1'],
-                'description': 'The first number to multiply.',
-                'type': 'str',
-            },
-            {
-                'name_or_flags': ['--value2', '-v2'],
-                'description': 'The second number to multiply.',
-                'type': 'str',
-            },
-        ],
-    )).map()
-
-    # Save the new CLI command.
-    cli_config_repo.save(cmd)
-
-    # Reload the CLI command to verify it was saved.
-    new_cmd = cli_config_repo.get(new_cmd_id)
-
-    # Check the new CLI command.
-    assert new_cmd
-    assert new_cmd.id == new_cmd_id
-    assert new_cmd.name == 'Multiply Number Command'
-    assert new_cmd.description == 'Multiplies two numbers.'
-    assert len(new_cmd.arguments) == 2
-
-# ** test_int: cli_config_repo_delete
-def test_int_cli_config_repo_delete(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the delete method of the CliConfigRepository.
-
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
-
-    # Delete an existing CLI command.
-    cli_config_repo.delete(TEST_CMD_SUBTRACT_ID)
-
-    # Attempt to get the deleted CLI command.
-    deleted_cmd = cli_config_repo.get(TEST_CMD_SUBTRACT_ID)
-
-    # Check that the CLI command is None.
-    assert not deleted_cmd
-
-    # Verify the remaining command still exists.
-    remaining_cmd = cli_config_repo.get(TEST_CMD_ADD_ID)
-    assert remaining_cmd
-    assert remaining_cmd.id == TEST_CMD_ADD_ID
-
-# ** test_int: cli_config_repo_delete_idempotent
-def test_int_cli_config_repo_delete_idempotent(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the delete method of the CliConfigRepository for idempotent behavior.
-
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
-
-    # Delete a non-existent CLI command (should not raise).
-    cli_config_repo.delete('calc.missing')
-
-    # Verify existing commands are unaffected.
-    commands = cli_config_repo.list()
-    assert len(commands) == 2
-
-# ** test_int: cli_config_repo_save_parent_arguments
-def test_int_cli_config_repo_save_parent_arguments(
-        cli_config_repo: CliConfigRepository,
-    ) -> None:
-    '''
-    Test the save_parent_arguments method of the CliConfigRepository.
-
-    :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliConfigRepository
-    '''
-
-    # Create new parent arguments.
-    new_parent_args = [
-        CliArgumentAggregate(
-            name_or_flags=['--debug', '-d'],
-            description='Enable debug mode.',
-            type='bool',
-        ),
-        CliArgumentAggregate(
-            name_or_flags=['--output', '-o'],
-            description='Output file path.',
-            type='str',
-        ),
-    ]
-
-    # Save the new parent arguments.
-    cli_config_repo.save_parent_arguments(new_parent_args)
-
-    # Reload parent arguments to verify they were saved.
-    reloaded_args = cli_config_repo.get_parent_arguments()
-
-    # Check the reloaded parent arguments.
-    assert reloaded_args
-    assert len(reloaded_args) == 2
-    assert reloaded_args[0].name_or_flags == ['--debug', '-d']
-    assert reloaded_args[0].description == 'Enable debug mode.'
-    assert reloaded_args[0].type == 'bool'
-    assert reloaded_args[1].name_or_flags == ['--output', '-o']
-    assert reloaded_args[1].description == 'Output file path.'
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+        new_parent_args = [
+            CliArgumentAggregate(
+                name_or_flags=['--debug', '-d'],
+                description='Enable debug mode.',
+                type='bool',
+            ),
+            CliArgumentAggregate(
+                name_or_flags=['--output', '-o'],
+                description='Output file path.',
+                type='str',
+            ),
+        ]
+        repo.save_parent_arguments(new_parent_args)
+        reloaded_args = repo.get_parent_arguments()
+        assert len(reloaded_args) == 2
+        assert reloaded_args[0].name_or_flags == ['--debug', '-d']
+        assert reloaded_args[1].name_or_flags == ['--output', '-o']
