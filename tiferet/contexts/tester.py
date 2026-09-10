@@ -61,19 +61,19 @@ def _create_verification(
     )
 
 # ** function: add_default_testers
-def add_default_testers(testers: Dict[str, Any]) -> Callable:
+def add_default_testers(items: Dict[str, Any]) -> Callable:
     '''
     Decorate a cache builder with default tester domain objects.
 
-    :param testers: Tester data keyed by tester identifier.
-    :type testers: Dict[str, Any]
+    :param items: Tester data keyed by tester identifier.
+    :type items: Dict[str, Any]
     :return: A cache-builder decorator.
     :rtype: Callable
     '''
 
     # Seed TesterObject instances the same way default errors are seeded.
     return add_default_cache_items(
-        testers,
+        items,
         TESTER_CACHE_PREFIX,
         model=TesterObject,
         id_field='id',
