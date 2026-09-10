@@ -10,7 +10,7 @@ This file records repository-specific facts. It is not a replacement for the wor
 | Fact | Value |
 |---|---|
 | Prototype branch | `v2.x-proto` |
-| Active prototype line | `v2.0.0` |
+| Active prototype line | `v2.1.0` |
 | RFP identifier prefix | `TIF2` |
 | RFP major | `2` |
 | Beta milestone pattern | `vX.Y.0bN` |
@@ -21,7 +21,7 @@ This file records repository-specific facts. It is not a replacement for the wor
 | Fact | Value |
 |---|---|
 | Owner / repository | `greatstrength/tiferet` |
-| Prototype milestone | `v2.0.0b17` (#35) |
+| Prototype milestone | `v2.1.0b2` (#38) |
 | Tiferet Framework project | #2 |
 
 Use the binding values rather than inventing a branch or RFP prefix. A different repository records its own values in its own binding file.

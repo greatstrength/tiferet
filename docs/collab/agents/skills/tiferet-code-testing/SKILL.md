@@ -1,74 +1,61 @@
 ---
 name: tiferet-code-testing
-description: Apply Tiferet test harness conventions when writing or extending tests in a Tiferet-family repo. Covers MapperAssertions, AggregateTestBase, TransferObjectTestBase, DomainEventTestBase, ServiceEventTestBase, and conftest hook registration.
+description: >-
+  Apply Tiferet tester-subdomain conventions when writing or extending tests
+  in a Tiferet-family repo. Covers one TesterObject, @use_tester /
+  build_tester_context, Tester() / TestSessionContext, omitting-domain_type
+  variant contexts, and test-module artifact grammar.
 ---
 
-# Testing Harness Code Style – Tiferet
+# Tester Subdomain Code Style – Tiferet
 
 ## When to use
-- When adding or modifying tests for Aggregates, TransferObjects (ConfigObjects), or DomainEvents.
-- When migrating standalone tests to the shared harnesses in `tiferet.testing`.
-- When adding `conftest.py` hook registrations for mapper or event test parametrization.
+- When adding or modifying tests for domain objects, Aggregates, TransferObjects (ConfigObjects), or DomainEvents.
+- When using `@use_tester` / `build_tester_context` or fluent `Tester()` / `@test_case`.
 - Pair with the relevant component skill (`tiferet-code-events`, `tiferet-code-mappers`, etc.) for the production artifact conventions.
 
 ## Artifact comment structure
 
-Test modules introduce two testing-specific artifact sections as their primary additions:
+After preamble groups (`imports` / `constants` / `functions` / `classes` — standalone helpers only, never a tester), test modules declare:
 
 ```
-# *** fixtures                          ← module-level pytest fixtures (testing-specific)
-# ** fixture: <snake_case_name>         ← individual fixture
+# *** fixtures                          ← module-level pytest fixtures
+# ** fixture: <snake_name>              ← matching def <snake_name>
 
-# *** tests                             ← test classes or standalone tests (testing-specific)
-# ** test: TestClassName                ← harness test class (PascalCase)
-# ** test: <snake_case_name>            ← standalone test function
+# *** tests                             ← module-level test functions only
+# ** test: <snake_name>                 ← matching def test_<snake_name>
+
+# *** testers                           ← tester classes last
+# ** tester: <snake_name>               ← class <Pascal>Tester (suffix Tester, not prefix Test)
 ```
 
-Standard preamble groups follow general styling rules and appear before `fixtures` and `tests`:
+Inside a tester class:
 
 ```
-# *** imports
-# ** core / # ** infra / # ** app
-
-# *** constants                         ← shared sample data and normalizers
-# ** constant: <snake_case_name>
+# * fixture: <name>                     ← pytest fixture method
+# * test: <name>                        ← pytest test method (never # * method:)
 ```
 
-Inside harness test classes:
-
-```
-# * attribute: <name>                   ← artifact member: harness class configuration attrs
-# * fixture: <name>                     ← artifact member: fixture overrides
-# * method: <name>                      ← artifact member: custom test methods
-```
-
-Repository integration tests use `# ** test_int: <name>`.
+Do not bulk-rename the existing `tests/` tree in this pass; new examples use this grammar.
 
 ## Key conventions
 
-**Mapper harnesses** (`tiferet.testing`):
-- `MapperAssertions` — shared comparison helpers.
-- `AggregateTestBase` — required attrs: `aggregate_cls`, `sample_data`, `equality_fields`, `set_attribute_params`; optional `field_normalizers`.
-- `set_attribute_params` rows are `(attr, value, expect_error_code | None)`. An invalid row asserts a `ModelError` carrying that code: `INVALID_MODEL_ATTRIBUTE_ID` (no such field), `INVALID_MODEL_VALUE_ID` (bad value), or `ATTRIBUTE_NOT_SETTABLE_ID` (refused by a subclass whitelist). Import all three from `tiferet.domain`.
-- `TransferObjectTestBase` — required attrs: `transfer_cls`, `aggregate_cls`, `sample_data`, `aggregate_sample_data`, `equality_fields`; optional `field_normalizers`, `map_kwargs`.
-- Put reusable dicts and normalizer functions under `# *** constants`.
-- For nested collections, define normalizer functions that accept dicts or domain objects and return comparable tuples.
+**Contour.** Tester is `tester.py` in packages that have it (`assets`, `domain`, `mappers`, `interfaces`, `repos`, `events`, `contexts`, `blueprints`). One `TesterObject`; `type` is `domain` / `aggregate` / `transfer_object` / `domain_event` / `service_event`. One `TesterConfigObject`. The former `tiferet/testing/` package was retired. Do not invent `tiferet/tester/`, `utils/tester.py`, or `di/tester.py`.
 
-**Event harnesses** (`tiferet.testing`):
-- `DomainEventTestBase` — required attrs: `event_cls`, `dependencies`, `sample_kwargs`, `required_params`.
-- `ServiceEventTestBase` — adds `service_attr`, `not_found_error_code`, `not_found_kwargs`.
-- Override `mock_dependencies` as a `# * fixture:` when service mocks need preconfigured behavior.
-- Use `self.handle(mock_dependencies, **overrides)` to invoke `DomainEvent.handle`.
+**Import law** (cite `tiferet-code-architecture`): contexts import assets/domain/siblings/events only; mappers import domain only; blueprints reach domain via contexts; assets and domain import no framework package. No pytest class generation or `pytest11` in `contexts/tester.py`.
 
-**Hook registration** in `conftest.py`:
-- `register_mapper_hooks(metafunc)` — parametrizes `AggregateTestBase.test_set_attribute`.
-- `register_event_hooks(metafunc)` — parametrizes `DomainEventTestBase.test_missing_required_params`.
+**Two surfaces, not collapsed:**
+- `@use_tester` / `build_tester_context` → bound variant context as `test_ctx`. `TesterContext.domain_type = TesterObject`. Variants omit `domain_type`: `DomainTesterContext`, `AggregateTesterContext`, `TransferObjectTesterContext`, `DomainEventTesterContext`, `ServiceEventTesterContext`. Call ordinary methods (`assert_new`, `assert_set_attribute`, `assert_map`, `handle`, …).
+- `Tester()` / `@test_case` → `TestSessionContext` (`given` / `invoke` / `verify` / `run`), still an `AppSessionContext` subclass. Feature, event, and harness errors are raw `TiferetError`. Do not document feature-path `TiferetAPIError` or session-as-request as current. `@test_case` injects `tester_ctx`.
+
+**Event `dependencies`:** `ServiceDependency` dicts (`module_path`, `class_name`).
+
+**Pytest** is an optional extra and the runner for `tests/`. Those files may import pytest and use `@use_tester`. Fixture injection is by parameter name; no Tiferet `use_fixture` decorator.
 
 **General:**
-- Tests use `pytest`.
 - Keep docstrings RST-style and keep one blank line after docstrings.
 - Use mocks for event/unit tests; use real temp files (`tmp_path`) for repository integration tests.
-- **Docstrings & guides:** The testing harness has no `docs/guides/` entry of its own — when a test module's harness usage is worth distilling, add it to the guide of the component under test (per `tiferet-guide-docs`) rather than inventing a testing-specific guide.
+- **Docstrings & guides:** Tester has no `docs/guides/` entry of its own — when a test module's tester usage is worth distilling, add it to the guide of the component under test (per `tiferet-guide-docs`).
 
 ## Example
 
@@ -83,7 +70,7 @@ import pytest
 # ** app
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -98,123 +85,76 @@ ERROR_SAMPLE_DATA = {
 # ** constant: equality_fields
 EQUALITY_FIELDS = ['id', 'name', 'error_code']
 
-# ** constant: message_tuple
-def MESSAGE_TUPLE(message):
-    '''
-    Normalize an error message dict or domain object into a comparable tuple.
+# *** testers
 
-    :param message: The message dict or domain object.
-    :type message: dict | object
-    :return: A comparable message tuple.
-    :rtype: tuple
-    '''
-
-    # Normalize dict input.
-    if isinstance(message, dict):
-        return (message['lang'], message['text'])
-
-    # Normalize domain object input.
-    return (message.lang, message.text)
-
-# ** constant: field_normalizers
-FIELD_NORMALIZERS = {
-    'message': lambda messages: tuple(
-        sorted(MESSAGE_TUPLE(m) for m in (messages or []))
-    ),
-}
-
-# *** tests
-
-# ** test: TestErrorAggregate
-class TestErrorAggregate(AggregateTestBase):
-    '''
-    Tests for ErrorAggregate using the mapper harness.
-    '''
-
-    # * attribute: aggregate_cls
-    aggregate_cls = ErrorAggregate
-
-    # * attribute: sample_data
-    sample_data = ERROR_SAMPLE_DATA
-
-    # * attribute: equality_fields
-    equality_fields = EQUALITY_FIELDS
-
-    # * attribute: field_normalizers
-    field_normalizers = FIELD_NORMALIZERS
-
-    # * attribute: set_attribute_params
-    set_attribute_params = [
+# ** tester: error_aggregate_tester
+@use_tester(
+    type='aggregate',
+    target_cls=ErrorAggregate,
+    sample_data=ERROR_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+    set_attribute_params=[
         ('name', 'Updated Error', None),
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
-    ]
+    ],
+)
+class ErrorAggregateTester:
+    '''Bound aggregate tester for ErrorAggregate.'''
 
-    # * method: test_rename
-    def test_rename(self, aggregate):
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify construction against declared expected data.
+
+        :param test_ctx: Bound AggregateTesterContext.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        test_ctx.assert_new()
+
+    # * test: rename
+    def test_rename(self, test_ctx):
         '''
         Test the domain-specific rename mutation.
 
-        :param aggregate: The harness-created ErrorAggregate fixture.
-        :type aggregate: ErrorAggregate
+        :param test_ctx: Bound AggregateTesterContext.
+        :type test_ctx: AggregateTesterContext
         '''
 
-        # Rename the aggregate.
+        aggregate = test_ctx.make_target()
         aggregate.rename('Renamed Error')
-
-        # Assert the mutation was applied.
         assert aggregate.name == 'Renamed Error'
 
 
-# ** test: TestErrorConfigObject
-class TestErrorConfigObject(TransferObjectTestBase):
-    '''
-    Tests for ErrorConfigObject using the transfer object harness.
-    '''
+# ** tester: error_config_object_tester
+@use_tester(
+    type='transfer_object',
+    target_cls=ErrorConfigObject,
+    aggregate_cls=ErrorAggregate,
+    sample_data=ERROR_SAMPLE_DATA,
+    aggregate_sample_data=ERROR_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+)
+class ErrorConfigObjectTester:
+    '''Bound transfer-object tester for ErrorConfigObject.'''
 
-    # * attribute: transfer_cls
-    transfer_cls = ErrorConfigObject
-
-    # * attribute: aggregate_cls
-    aggregate_cls = ErrorAggregate
-
-    # * attribute: sample_data
-    sample_data = ERROR_SAMPLE_DATA
-
-    # * attribute: aggregate_sample_data
-    aggregate_sample_data = ERROR_SAMPLE_DATA
-
-    # * attribute: equality_fields
-    equality_fields = EQUALITY_FIELDS
-
-    # * attribute: field_normalizers
-    field_normalizers = FIELD_NORMALIZERS
+    # * test: map
+    def test_map(self, test_ctx):
+        test_ctx.assert_map()
 ```
 
-`conftest.py` hook registration:
+Event testers use `type='domain_event'` or `type='service_event'` with:
 
 ```python
-# *** imports
-
-# ** app
-from tiferet.testing import register_mapper_hooks, register_event_hooks
-
-# *** functions
-
-# ** function: pytest_generate_tests
-def pytest_generate_tests(metafunc):
-    '''
-    Register Tiferet harness parametrization hooks.
-
-    :param metafunc: The pytest metafunc object.
-    :type metafunc: object
-    '''
-
-    # Register mapper harness parametrization.
-    register_mapper_hooks(metafunc)
-
-    # Register domain event harness parametrization.
-    register_event_hooks(metafunc)
+dependencies={
+    'error_service': {
+        'module_path': 'tiferet.interfaces',
+        'class_name': 'ErrorService',
+    },
+}
 ```
+
+Call `test_ctx.handle(mock_dependencies)` and `test_ctx.assert_missing_required_params()`. Service-event testers also set `service_attr` / `not_found_error_code` and may call `test_ctx.assert_not_found()`.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md

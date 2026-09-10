@@ -184,7 +184,7 @@ The `tiferet-code-*` skill suite provides self-contained, offline-capable style 
 | **`tiferet-code-blueprints`** | Adding or modifying blueprints |
 | **`tiferet-code-utils`** | Adding or modifying utilities |
 | **`tiferet-code-di`** | Adding or modifying DI layer classes or functions |
-| **`tiferet-code-testing`** | Writing or extending tests using the harness |
+| **`tiferet-code-testing`** | Writing or extending tests using the tester subdomain |
 
 **Fallback rule:** if a skill is not installed, read `docs/core/<component>.md` directly — the full-detail guides are the canonical source of truth.
 

@@ -238,165 +238,69 @@ Repositories use transfer objects to load from configuration and map to aggregat
 
 ## Testing Mappers
 
-Tests validate factory creation, mutation, mapping, serialization, and error handling using `pytest`.
+Tests validate construction, mutation, mapping, serialization, and error handling using pytest (optional extra; runner for `tests/`). Bind a variant tester context with `@use_tester` / `build_tester_context`. Full conventions: [testing.md](testing.md).
 
-**Structure:**
-- `# *** fixtures`
-- `# ** fixture: <name>`
-- `# *** tests`
-- `# ** test: <name>`
+**Test-module groups:** `# *** fixtures` → `# *** tests` (functions) → `# *** testers` (`*Tester` classes). Tester members are `# * fixture:` / `# * test:` only. Bulk remediating existing `tests/mappers/` files is not required of this documentation pass.
 
-**Example** – Aggregate tests cover constructor instantiation, `set_attribute` (success and invalid attribute error).
+**Aggregate testers** (`type='aggregate'` → `AggregateTesterContext`):
+- Pass `target_cls`, `sample_data`, `equality_fields`, and `set_attribute_params` as `(attr, value, expect_error_code | None)`.
+- Call `test_ctx.assert_new()` and `test_ctx.assert_set_attribute()`. Domain-specific mutations use `test_ctx.make_target()`.
+- Invalid `set_attribute` rows expect a `ModelError` whose `error_code` is `INVALID_MODEL_ATTRIBUTE_ID`, `INVALID_MODEL_VALUE_ID`, or `ATTRIBUTE_NOT_SETTABLE_ID` (import from `tiferet.domain`).
 
-#### `MapperAssertions` (mixin)
-Provides shared assertion helpers used by both base classes:
-- **`assert_model_matches(model, sample, equality_fields, field_normalizers)`** — Compares model attributes against a sample dict using configured fields. Per-field normalizers allow custom comparison logic for complex types.
-- **`assert_nested_list_matches(actual_list, expected_list, key_field, compare_fields)`** — Compares lists of domain objects by a key field (e.g., `service_id`, `flag`), useful for verifying nested collections through round-trips.
-
-#### `AggregateTestBase`
-Base class for testing Aggregate components. Subclasses define class attributes and inherit automatic tests.
-
-**Required class attributes:**
-- `aggregate_cls` — The Aggregate class under test.
-- `sample_data` — Dict of aggregate-format sample data.
-- `equality_fields` — List of field names to compare.
-- `set_attribute_params` — List of `(attr, value, expect_error_code | None)` tuples.
-
-**Optional class attributes:**
-- `field_normalizers` — Dict mapping field names to normalizer callables for complex comparisons.
-
-**Inherited tests:**
-- `test_new` — Verifies direct constructor instantiation and field values.
-- `test_set_attribute` — Parametrized test for valid and invalid attribute mutations. Parametrization is driven by `conftest.pytest_generate_tests`.
-
-**Override hook:**
-- `make_aggregate(data=None)` — Override when the aggregate has a custom constructor signature. The default implementation uses the standard Pydantic constructor: `self.aggregate_cls(**data)`.
-
-#### `TransferObjectTestBase`
-Base class for testing TransferObject components.
-
-**Required class attributes:**
-- `transfer_cls` — The TransferObject class under test.
-- `aggregate_cls` — The target Aggregate class.
-- `sample_data` — Dict of YAML-format sample data (as it appears in configuration).
-- `aggregate_sample_data` — Dict of aggregate-format expected data (with defaults filled in, lists instead of dicts, etc.).
-- `equality_fields` — List of field names to compare.
-
-**Optional class attributes:**
-- `field_normalizers` — Per-field normalizer callables.
-- `map_kwargs` — Extra kwargs to pass to `.map()`.
-
-**Inherited tests:**
-- `test_map` — Verifies `model_validate()` → `map()` produces a valid aggregate.
-- `test_from_model` — Verifies aggregate → TransferObject conversion via `from_model()` classmethod.
-- `test_round_trip` — Verifies aggregate → TransferObject → aggregate preserves data.
-
-**Override hook:**
-- `make_aggregate(data=None)` — Same purpose as `AggregateTestBase`.
-
-#### `conftest.py` Hook
-The `pytest_generate_tests` hook dynamically parametrizes `test_set_attribute` for any `AggregateTestBase` subclass, reading from the class's `set_attribute_params` attribute.
-
-### Test File Structure
-
-Harness-based test files follow this structure:
+**Transfer-object testers** (`type='transfer_object'` → `TransferObjectTesterContext`):
+- Pass `target_cls`, `aggregate_cls` (or `aggregate_module_path` / `aggregate_class_name`), `sample_data`, `aggregate_sample_data`, `equality_fields`; optional `field_normalizers`, `map_kwargs`.
+- Call `test_ctx.assert_map()`, `test_ctx.assert_from_model()`, `test_ctx.assert_round_trip()`.
 
 ```python
-"""Tiferet <Domain> Mapper Tests"""
-
-# *** imports
-
-# ** infra
-import pytest
-
-# ** app
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
-from ..core import TransferObject
-from ..<domain> import SomeAggregate, SomeConfigObject
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
+from tiferet.blueprints.tester import use_tester
 
+# *** testers
 
-# *** constants
+# ** tester: error_aggregate_tester
+@use_tester(
+    type='aggregate',
+    target_cls=ErrorAggregate,
+    sample_data=ERROR_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('name', 'Updated Error', None),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
+class ErrorAggregateTester:
 
-# ** constant: aggregate_sample_data
-AGGREGATE_SAMPLE_DATA = { ... }
+    # * test: new
+    def test_new(self, test_ctx):
+        test_ctx.assert_new()
 
-# ** constant: equality_fields
-EQUALITY_FIELDS = [ ... ]
+    # * test: rename
+    def test_rename(self, test_ctx):
+        aggregate = test_ctx.make_target()
+        aggregate.rename('Renamed Error')
+        assert aggregate.name == 'Renamed Error'
 
-# ** constant: item_tuple
-def ITEM_TUPLE(item):
-    '''Normalize a nested item (dict or domain object) into a comparable tuple.'''
-    ...
+# ** tester: error_config_object_tester
+@use_tester(
+    type='transfer_object',
+    target_cls=ErrorConfigObject,
+    aggregate_cls=ErrorAggregate,
+    sample_data=ERROR_SAMPLE_DATA,
+    aggregate_sample_data=ERROR_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+)
+class ErrorConfigObjectTester:
 
-# ** constant: field_normalizers
-FIELD_NORMALIZERS = {
-    'items': lambda items: tuple(sorted(ITEM_TUPLE(i) for i in (items or []))),
-}
-
-
-# *** classes
-
-# ** class: TestSomeAggregate
-class TestSomeAggregate(AggregateTestBase):
-    '''Tests for SomeAggregate.'''
-
-    aggregate_cls = SomeAggregate
-    sample_data = AGGREGATE_SAMPLE_DATA
-    equality_fields = EQUALITY_FIELDS
-    field_normalizers = FIELD_NORMALIZERS
-
-    set_attribute_params = [
-        ('name',         'Updated Name',  None),
-        ('invalid_attr', 'value',         INVALID_MODEL_ATTRIBUTE_ID),
-    ]
-
-    # * method: make_aggregate
-    def make_aggregate(self, data=None):
-        '''Override for custom constructor signature.'''
-        return SomeAggregate(
-            **(data if data is not None else self.sample_data)
-        )
-
-    # *** domain-specific mutation tests
-
-    # ** test: rename
-    def test_rename(self, aggregate):
-        '''Test domain-specific mutation.'''
-        aggregate.rename('New Name')
-        assert aggregate.name == 'New Name'
-
-
-# ** class: TestSomeConfigObject
-class TestSomeConfigObject(TransferObjectTestBase):
-    '''Tests for SomeConfigObject.'''
-
-    transfer_cls = SomeConfigObject
-    aggregate_cls = SomeAggregate
-    sample_data = { ... }  # YAML-format
-    aggregate_sample_data = AGGREGATE_SAMPLE_DATA
-    equality_fields = EQUALITY_FIELDS
-    field_normalizers = FIELD_NORMALIZERS
-
-    # * method: make_aggregate
-    def make_aggregate(self, data=None):
-        '''Override for custom constructor signature.'''
-        return SomeAggregate(
-            **(data if data is not None else self.aggregate_sample_data)
-        )
-
-    # *** child mapper: ChildConfigObject
-
-    # ** test: child_yaml_map_basic
-    def test_child_yaml_map_basic(self):
-        '''Test child mapper mapping.'''
-        ...
+    # * test: map
+    def test_map(self, test_ctx):
+        test_ctx.assert_map()
 ```
 
 ### Key Patterns
 
 #### Module-Level Constants
-Shared sample data, equality fields, and normalizers are defined as module-level constants under `# *** constants`. This avoids duplication when both the Aggregate and TransferObject test classes need the same data.
+Shared sample data, equality fields, and normalizers are defined as module-level constants under `# *** constants`. This avoids duplication when both the Aggregate and TransferObject testers need the same data.
 
 #### Normalizer Functions
 For fields containing nested domain objects (e.g., lists of services, arguments, dependencies), define a normalizer function that converts both dicts and domain objects into comparable tuples:
@@ -421,7 +325,7 @@ FIELD_NORMALIZERS = {
 When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppSessionConfigObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
 
 #### Standalone Tests
-Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject`) may use standalone test functions instead of the harness, placed after the class-based tests.
+Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject`) may use standalone `# ** test:` functions instead of a bound tester, placed under `# *** tests`.
 
 ## Package Layout
 
@@ -434,6 +338,7 @@ Mappers are defined in `tiferet/mappers/`:
 - `error.py` — `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
 - `feature.py` — `FeatureAggregate`, `FeatureConfigObject`, `EventFeatureStepAggregate`, `EventFeatureStepConfigObject`.
 - `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
+- `tester.py` — `TesterAggregate`, `TesterConfigObject`.
 - `__init__.py` — Public exports.
 
 Tests live in `tests/mappers/`.

@@ -69,14 +69,15 @@ The most common use is grouping unit tests by the class or method under test, so
 ```python
 # *** tests (GetFeature)
 
-# ** test: TestGetFeatureSuccess
+# ** test: get_feature_success
 ...
 
 # *** tests (AddFeature)
 
-# ** test: TestAddFeatureSuccess
+# ** test: add_feature_success
 ...
 ```
+Tester classes belong under `# *** testers`, not under `# *** tests` sub-groups. See [Test-Module Artifact Grammar](#test-module-artifact-grammar).
 **Grammar rules:**
 - Preserve the kind: the word after `# ***` stays the normal section kind (`constants`, `tests`, ...); the parenthetical is only a label.
 - The parenthetical names the sub-group; keep it short and consistent within the module.
@@ -432,98 +433,68 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
     mock_feature_service.get.assert_called_once_with('test.feature')
 ```
 
-## Domain Event Test Harness Style
+## Test-Module Artifact Grammar
 
-Domain event tests use a class-based harness that provides auto-mocking, auto-parametrized validation tests, and a consistent invocation helper. All harness-based test classes follow these conventions.
+After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` — standalone helpers only, never a tester), test modules declare group-level sections in this order:
 
-### Artifact Comments
+1. `# *** fixtures` — module-level pytest fixtures. Mid-level: `# ** fixture: <snake_name>` matching `def <snake_name>`.
+2. `# *** tests` — module-level test **functions** only. Mid-level: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
+3. `# *** testers` — tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class <Pascal>Tester` (suffix `Tester`, **not** prefix `Test`). Example: `# ** tester: error_aggregate_tester` → `class ErrorAggregateTester`.
 
-Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-level comment. Within each class:
+Under a tester class, members are:
 
-- `# * attribute: <name>` — class-level configuration attributes.
-- `# * fixture: <name>` — fixture overrides.
-- `# * method: <name>` — custom test methods.
+- `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name.
+- `# * test: <name>` — a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
+
+Fixture wiring is pytest parameter-name injection. `@use_tester` injects `test_ctx` into test methods. Do not label tester test methods `# * method:`.
+
+Bulk remediating existing `tests/` files to this grammar is not required of the current documentation pass; new examples use the new shape. Full tester-subdomain conventions live in [testing.md](testing.md).
 
 ```python
-# *** tests
+# *** testers
 
-# ** test: TestAddAppSession
-class TestAddAppSession(DomainEventTestBase):
-    '''
-    Tests for AddAppSession using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddAppSession
-
-    # * attribute: dependencies
-    dependencies = {'app_service': AppService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+# ** tester: add_app_session_tester
+@use_tester(
+    type='domain_event',
+    target_cls=AddAppSession,
+    dependencies={
+        'app_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'AppService',
+        },
+    },
+    sample_kwargs=dict(
         id='test.interface',
         name='Test Interface',
         module_path='tiferet.contexts.app',
         class_name='AppContext',
-    )
+    ),
+    required_params=['id', 'name', 'module_path', 'class_name'],
+)
+class AddAppSessionTester:
+    '''Bound domain-event tester for AddAppSession.'''
 
-    # * attribute: required_params
-    required_params = ['id', 'name', 'module_path', 'class_name']
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self):
+        '''Pre-configure the app service mock.'''
 
-    # * method: test_minimal_success
-    def test_minimal_success(self, mock_dependencies):
-        '''
-        Test creating a minimal app interface with only required parameters.
-        '''
+        service = mock.Mock(spec=AppService)
+        return {'app_service': service}
 
-        # Execute via the harness handle helper.
-        interface = self.handle(mock_dependencies)
+    # * test: minimal_success
+    def test_minimal_success(self, test_ctx, mock_dependencies):
+        '''Test creating a minimal app session with only required parameters.'''
 
-        # Assert the result is an AppSession instance.
+        interface = test_ctx.handle(mock_dependencies)
         assert isinstance(interface, AppSession)
-
-        # Assert the interface is saved via the app service.
         mock_dependencies['app_service'].save.assert_called_once_with(interface)
 ```
 
-### Required Class Attributes
-
-Every harness test class must declare these attributes with `# * attribute:` comments:
-
-| Attribute | Base | Description |
-|---|---|---|
-| `event_cls` | `DomainEventTestBase` | The `DomainEvent` subclass under test |
-| `dependencies` | `DomainEventTestBase` | Dict of dependency name → type (auto-mocked) |
-| `sample_kwargs` | `DomainEventTestBase` | Default kwargs for a successful `execute()` |
-| `required_params` | `DomainEventTestBase` | List of param names for auto validation tests |
-| `service_attr` | `ServiceEventTestBase` | Dependency name for the primary service |
-| `not_found_error_code` | `ServiceEventTestBase` | Error code for the not-found auto-test |
-| `not_found_kwargs` | `ServiceEventTestBase` | Kwargs that trigger the not-found path |
-
-### Fixture Overrides
-
-When a test class needs a pre-configured service mock (e.g., `get()` returns a real aggregate), override `mock_dependencies` as a fixture within the class:
-
-```python
-    # * fixture: mock_dependencies
-    @pytest.fixture
-    def mock_dependencies(self, app_session):
-        '''
-        Override to provide a service mock pre-configured with an app_session.
-        '''
-
-        # Create a mock AppService that returns the app_session on get.
-        service = mock.Mock(spec=AppService)
-        service.get.return_value = app_session
-        return {'app_service': service}
-```
-
-### Spacing Rules
-
-Harness test classes follow the same spacing conventions as production code:
+Tester classes follow the same spacing conventions as production code:
 - One empty line between each `# *` section.
 - One empty line after docstrings and between code snippets within methods.
-- One empty line between test classes.
+- One empty line between tester classes.
 
 ## Best Practices Summary
 
@@ -535,7 +506,7 @@ Harness test classes follow the same spacing conventions as production code:
 - Break methods into commented snippets.
 - Maintain consistent spacing.
 - Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
-- Prefer the domain event test harness (`DomainEventTestBase` / `ServiceEventTestBase`) for all new event tests.
+- Prefer `@use_tester` / `build_tester_context` for new component tests; see [testing.md](testing.md).
 
 These practices ensure Tiferet code remains consistent, maintainable, and AI-friendly. Explore source modules in `tiferet/` for implementation examples.
 
@@ -550,9 +521,9 @@ For implementation agents, the **`tiferet-code-<component>` skills** (see `docs/
 - **`tiferet-code-contexts`** / **[contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md)** – Context conventions (high-level and low-level runtime shape).
 - **`tiferet-code-di`** / **[di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md)** – Dependency injection layer conventions.
 - **`tiferet-code-domain`** / **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain object conventions (dual role, factory methods, read-only design).
-- **`tiferet-code-events`** / **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event conventions (dependency injection, validation, test harness).
+- **`tiferet-code-events`** / **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event conventions (dependency injection, validation, tester subdomain).
 - **`tiferet-code-interfaces`** / **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Service interface conventions.
 - **`tiferet-code-mappers`** / **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
 - **`tiferet-code-repos`** / **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** – Repository implementation conventions.
-- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Testing harness conventions (AggregateTestBase, TransferObjectTestBase, DomainEventTestBase).
+- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Tester subdomain conventions (`TesterObject`, `@use_tester`, `Tester()`).
 - **`tiferet-code-utils`** / **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** – Utility and infrastructure conventions.

@@ -36,7 +36,9 @@ The standard application entrypoint lives in `tiferet/blueprints/app.py`:
 - `compose_session_context()` wires the five handler slots and binds a session
  to the requested context class;
 - `get_error()`, `get_feature()`, and `build_logger_handler()` resolve and
- cache runtime objects lazily.
+ cache runtime objects lazily. When the logging list-all event is unresolvable
+ or the logging file is missing, `build_logger_handler` falls back to
+ cache-seeded `LoggingSettings`.
 
 The core module is not the standard application entrypoint. It exists so `app.py`, `cli.py`, `admin.py`, and `admin_cli.py` can reuse one composition vocabulary while choosing their own session-context and request/response surfaces.
 
