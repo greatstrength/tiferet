@@ -44,8 +44,8 @@ def cli_command():
 
 # *** testers
 
-# ** tester: cli_event_tester
-class CliEventTester:
+# ** tester: test_cli_event
+class TestCliEvent:
     '''
     Tests for the CliEvent base event shared by all CLI events.
     '''
@@ -87,7 +87,7 @@ class CliEventTester:
         assert CliEvent(cli_service=service).cli_service is service
         assert AddCliCommand(cli_service=service).cli_service is service
 
-# ** tester: add_cli_command_tester
+# ** tester: test_add_cli_command
 @use_tester(
     type='domain_event',
     target_cls=AddCliCommand,
@@ -105,7 +105,7 @@ class CliEventTester:
     ),
     required_params=['id'],
 )
-class AddCliCommandTester:
+class TestAddCliCommand:
     '''
     Tests for AddCliCommand using the domain event test harness.
     '''
@@ -210,7 +210,7 @@ class AddCliCommandTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: add_cli_argument_tester
+# ** tester: test_add_cli_argument
 @use_tester(
     type='service_event',
     target_cls=AddCliArgument,
@@ -234,7 +234,7 @@ class AddCliCommandTester:
         description='Verbose',
     ),
 )
-class AddCliArgumentTester:
+class TestAddCliArgument:
     '''
     Tests for AddCliArgument using the domain event test harness.
     '''
@@ -324,7 +324,7 @@ class AddCliArgumentTester:
 
         test_ctx.assert_not_found()
 
-# ** tester: list_cli_commands_tester
+# ** tester: test_list_cli_commands
 @use_tester(
     type='domain_event',
     target_cls=ListCliCommands,
@@ -336,7 +336,7 @@ class AddCliArgumentTester:
     },
     sample_kwargs=dict(),
 )
-class ListCliCommandsTester:
+class TestListCliCommands:
     '''
     Tests for ListCliCommands using the domain event test harness.
     '''
@@ -387,7 +387,7 @@ class ListCliCommandsTester:
         assert result[1].id == 'test.another'
         mock_dependencies['cli_service'].list.assert_called_once()
 
-# ** tester: get_parent_arguments_tester
+# ** tester: test_get_parent_arguments
 @use_tester(
     type='domain_event',
     target_cls=GetParentArguments,
@@ -399,7 +399,7 @@ class ListCliCommandsTester:
     },
     sample_kwargs=dict(),
 )
-class GetParentArgumentsTester:
+class TestGetParentArguments:
     '''
     Tests for GetParentArguments using the domain event test harness.
     '''

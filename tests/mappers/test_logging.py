@@ -134,7 +134,7 @@ def test_logging_settings_from_data_empty():
 
 # *** testers
 
-# ** tester: formatter_aggregate_tester
+# ** tester: test_formatter_aggregate
 @use_tester(
     type='aggregate',
     target_cls=FormatterAggregate,
@@ -146,7 +146,7 @@ def test_logging_settings_from_data_empty():
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class FormatterAggregateTester:
+class TestFormatterAggregate:
     '''
     Tests for FormatterAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -198,7 +198,7 @@ class FormatterAggregateTester:
         assert config['format'] == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
-# ** tester: handler_aggregate_tester
+# ** tester: test_handler_aggregate
 @use_tester(
     type='aggregate',
     target_cls=HandlerAggregate,
@@ -210,7 +210,7 @@ class FormatterAggregateTester:
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class HandlerAggregateTester:
+class TestHandlerAggregate:
     '''
     Tests for HandlerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -289,7 +289,7 @@ class HandlerAggregateTester:
         assert config['class'] == 'logging.FileHandler'
         assert config['level'] == 'INFO'
 
-# ** tester: logger_aggregate_tester
+# ** tester: test_logger_aggregate
 @use_tester(
     type='aggregate',
     target_cls=LoggerAggregate,
@@ -301,7 +301,7 @@ class HandlerAggregateTester:
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class LoggerAggregateTester:
+class TestLoggerAggregate:
     '''
     Tests for LoggerAggregate construction, set_attribute, and domain-specific behavior.
     '''
@@ -374,7 +374,7 @@ class LoggerAggregateTester:
         assert logger.handlers == []
         assert logger.level == 'WARNING'
 
-# ** tester: formatter_config_object_tester
+# ** tester: test_formatter_config_object
 @use_tester(
     type='transfer_object',
     target_cls=FormatterConfigObject,
@@ -383,7 +383,7 @@ class LoggerAggregateTester:
     aggregate_sample_data=FORMATTER_AGGREGATE_SAMPLE_DATA,
     equality_fields=FORMATTER_EQUALITY_FIELDS,
 )
-class FormatterConfigObjectTester:
+class TestFormatterConfigObject:
     '''
     Tests for FormatterConfigObject mapping and round-trip.
     '''
@@ -415,7 +415,7 @@ class FormatterConfigObjectTester:
 
     equality_fields = FORMATTER_EQUALITY_FIELDS
 
-# ** tester: handler_config_object_tester
+# ** tester: test_handler_config_object
 @use_tester(
     type='transfer_object',
     target_cls=HandlerConfigObject,
@@ -424,7 +424,7 @@ class FormatterConfigObjectTester:
     aggregate_sample_data=HANDLER_AGGREGATE_SAMPLE_DATA,
     equality_fields=HANDLER_EQUALITY_FIELDS,
 )
-class HandlerConfigObjectTester:
+class TestHandlerConfigObject:
     '''
     Tests for HandlerConfigObject mapping and round-trip.
     '''
@@ -456,7 +456,7 @@ class HandlerConfigObjectTester:
 
     equality_fields = HANDLER_EQUALITY_FIELDS
 
-# ** tester: logger_config_object_tester
+# ** tester: test_logger_config_object
 @use_tester(
     type='transfer_object',
     target_cls=LoggerConfigObject,
@@ -465,7 +465,7 @@ class HandlerConfigObjectTester:
     aggregate_sample_data=LOGGER_AGGREGATE_SAMPLE_DATA,
     equality_fields=LOGGER_EQUALITY_FIELDS,
 )
-class LoggerConfigObjectTester:
+class TestLoggerConfigObject:
     '''
     Tests for LoggerConfigObject mapping and round-trip.
     '''

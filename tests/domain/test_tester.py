@@ -222,8 +222,8 @@ def test_tester_object_get_target_returns_function_and_instance() -> None:
 
 # *** testers
 
-# ** tester: tester_object_context_type_tester
-class TesterObjectContextTypeTester:
+# ** tester: tester_object_context_type
+class TesterObjectContextType:
     '''Prove TesterObject accepts type=context without a subclass model.'''
 
     # * test: accepts_context_type_and_optional_defaults

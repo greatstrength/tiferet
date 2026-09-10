@@ -110,7 +110,7 @@ TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
 
 # *** testers
 
-# ** tester: app_session_aggregate_tester
+# ** tester: test_app_session_aggregate
 @use_tester(
     type='aggregate',
     target_cls=AppSessionAggregate,
@@ -125,7 +125,7 @@ TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ],
 )
-class AppSessionAggregateTester:
+class TestAppSessionAggregate:
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
@@ -383,7 +383,7 @@ class AppSessionAggregateTester:
         assert svc.class_name == 'FreshService'
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
-# ** tester: app_session_config_object_tester
+# ** tester: test_app_session_config_object
 @use_tester(
     type='transfer_object',
     target_cls=AppSessionConfigObject,
@@ -393,7 +393,7 @@ class AppSessionAggregateTester:
     equality_fields=EQUALITY_FIELDS,
     field_normalizers=FIELD_NORMALIZERS,
 )
-class AppSessionConfigObjectTester:
+class TestAppSessionConfigObject:
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''

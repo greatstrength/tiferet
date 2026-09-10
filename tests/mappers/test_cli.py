@@ -113,7 +113,7 @@ TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA = {
 
 # *** testers
 
-# ** tester: cli_argument_aggregate_tester
+# ** tester: test_cli_argument_aggregate
 @use_tester(
     type='aggregate',
     target_cls=CliArgumentAggregate,
@@ -128,7 +128,7 @@ TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA = {
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ],
 )
-class CliArgumentAggregateTester:
+class TestCliArgumentAggregate:
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
     '''
@@ -162,7 +162,7 @@ class CliArgumentAggregateTester:
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
-# ** tester: cli_command_aggregate_tester
+# ** tester: test_cli_command_aggregate
 @use_tester(
     type='aggregate',
     target_cls=CliCommandAggregate,
@@ -177,7 +177,7 @@ class CliArgumentAggregateTester:
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ],
 )
-class CliCommandAggregateTester:
+class TestCliCommandAggregate:
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
     '''
@@ -317,7 +317,7 @@ class CliCommandAggregateTester:
         assert aggregate.arguments[0].description == 'The numerator.'
         assert aggregate.arguments[0].type == 'int'
 
-# ** tester: cli_command_config_object_tester
+# ** tester: test_cli_command_config_object
 @use_tester(
     type='transfer_object',
     target_cls=CliCommandConfigObject,
@@ -327,7 +327,7 @@ class CliCommandAggregateTester:
     equality_fields=COMMAND_EQUALITY_FIELDS,
     field_normalizers=COMMAND_FIELD_NORMALIZERS,
 )
-class CliCommandConfigObjectTester:
+class TestCliCommandConfigObject:
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''

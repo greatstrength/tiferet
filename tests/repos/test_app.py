@@ -70,7 +70,7 @@ def app_config_file(tmp_path) -> str:
 
 # *** testers
 
-# ** tester: AppConfigRepositoryTester
+# ** tester: test_app_config_repository
 @use_tester(
     type='repo',
     target_cls=AppConfigRepository,
@@ -91,7 +91,7 @@ def app_config_file(tmp_path) -> str:
     list_ids=[TEST_APP_ID, ANOTHER_APP_ID],
     delete_ids=[ANOTHER_APP_ID],
 )
-class AppConfigRepositoryTester:
+class TestAppConfigRepository:
     '''AppConfigRepository five-method coverage via RepoTesterContext.'''
 
     # * test: exists

@@ -228,7 +228,7 @@ def execute(self, **kwargs) -> Any:
 
 Tests validate input validation, service interactions, and error handling using pytest (optional extra; runner for `tests/`). Bind a variant tester context with `@use_tester`. Full conventions: [testing.md](testing.md).
 
-**Test-module groups:** `# *** fixtures` → `# *** tests` (functions) → `# *** testers` (`*Tester` classes). Tester members are `# * fixture:` / `# * test:` only. Bulk remediating existing `tests/events/` files is not required of this documentation pass.
+**Test-module groups:** `# *** fixtures` → `# *** tests` (functions) → `# *** testers` (`Test*` tester classes). Tester members are `# * fixture:` / `# * test:` only. Bulk remediating existing `tests/events/` files is not required of this documentation pass.
 
 Event `type` values are `'domain_event'` (`DomainEventTesterContext`) and `'service_event'` (`ServiceEventTesterContext`). Both omit `domain_type`. Declare constructor mocks as `ServiceDependency` dicts:
 
@@ -254,7 +254,7 @@ dependencies:
     sample_kwargs=dict(id='ERR_001', name='Test Error', message='A test error.'),
     required_params=['id', 'name', 'message'],
 )
-class AddErrorTester:
+class TestAddError:
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -289,7 +289,7 @@ class AddErrorTester:
     service_attr='error_service',
     not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
 )
-class GetErrorTester:
+class TestGetError:
 
     # * fixture: mock_dependencies
     @pytest.fixture

@@ -93,7 +93,7 @@ def error_yaml_file(tmp_path) -> str:
 
 # *** testers
 
-# ** tester: ErrorConfigRepositoryTester
+# ** tester: test_error_config_repository
 @use_tester(
     type='repo',
     target_cls=ErrorConfigRepository,
@@ -117,7 +117,7 @@ def error_yaml_file(tmp_path) -> str:
     list_ids=[TEST_ERROR_CODE, TEST_FORMATTED_ERROR_CODE],
     delete_ids=[TEST_FORMATTED_ERROR_CODE],
 )
-class ErrorConfigRepositoryTester:
+class TestErrorConfigRepository:
     '''ErrorConfigRepository five-method coverage via RepoTesterContext.'''
 
     # * test: exists

@@ -51,8 +51,8 @@ def mock_dependencies() -> dict:
 
 # *** testers
 
-# ** tester: sqlite_event_tester
-class SqliteEventTester:
+# ** tester: test_sqlite_event
+class TestSqliteEvent:
     '''
     Tests for the SqliteEvent base event shared by all SQLite events.
     '''
@@ -97,8 +97,8 @@ class SqliteEventTester:
         assert SqliteEvent(sqlite_service=service).sqlite_service is service
         assert MutateSql(sqlite_service=service).sqlite_service is service
 
-# ** tester: is_valid_identifier_tester
-class IsValidIdentifierTester:
+# ** tester: test_is_valid_identifier
+class TestIsValidIdentifier:
     '''
     Tests for the module-level is_valid_identifier helper.
     '''
@@ -144,7 +144,7 @@ class IsValidIdentifierTester:
         assert is_valid_identifier('table-name') is False
         assert is_valid_identifier('table;drop') is False
 
-# ** tester: query_sql_tester
+# ** tester: test_query_sql
 @use_tester(
     type='domain_event',
     target_cls=QuerySql,
@@ -157,7 +157,7 @@ class IsValidIdentifierTester:
     sample_kwargs=dict(query="SELECT * FROM users"),
     required_params=['query'],
 )
-class QuerySqlTester:
+class TestQuerySql:
     '''
     Tests for QuerySql using the SQLite event test harness.
     '''
@@ -273,7 +273,7 @@ class QuerySqlTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: mutate_sql_tester
+# ** tester: test_mutate_sql
 @use_tester(
     type='domain_event',
     target_cls=MutateSql,
@@ -286,7 +286,7 @@ class QuerySqlTester:
     sample_kwargs=dict(statement="INSERT INTO users (name) VALUES ('Alice')"),
     required_params=['statement'],
 )
-class MutateSqlTester:
+class TestMutateSql:
     '''
     Tests for MutateSql using the SQLite event test harness.
     '''
@@ -404,7 +404,7 @@ class MutateSqlTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: bulk_mutate_sql_tester
+# ** tester: test_bulk_mutate_sql
 @use_tester(
     type='domain_event',
     target_cls=BulkMutateSql,
@@ -420,7 +420,7 @@ class MutateSqlTester:
     ),
     required_params=['statement', 'parameters_list'],
 )
-class BulkMutateSqlTester:
+class TestBulkMutateSql:
     '''
     Tests for BulkMutateSql using the SQLite event test harness.
     '''
@@ -518,7 +518,7 @@ class BulkMutateSqlTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: execute_script_sql_tester
+# ** tester: test_execute_script_sql
 @use_tester(
     type='domain_event',
     target_cls=ExecuteScriptSql,
@@ -531,7 +531,7 @@ class BulkMutateSqlTester:
     sample_kwargs=dict(script="CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);"),
     required_params=['script'],
 )
-class ExecuteScriptSqlTester:
+class TestExecuteScriptSql:
     '''
     Tests for ExecuteScriptSql using the SQLite event test harness.
     '''
@@ -591,7 +591,7 @@ class ExecuteScriptSqlTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: backup_sql_tester
+# ** tester: test_backup_sql
 @use_tester(
     type='domain_event',
     target_cls=BackupSql,
@@ -604,7 +604,7 @@ class ExecuteScriptSqlTester:
     sample_kwargs=dict(target_path='/tmp/backup.db'),
     required_params=['target_path'],
 )
-class BackupSqlTester:
+class TestBackupSql:
     '''
     Tests for BackupSql using the SQLite event test harness.
     '''
@@ -669,7 +669,7 @@ class BackupSqlTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: create_table_sql_tester
+# ** tester: test_create_table_sql
 @use_tester(
     type='domain_event',
     target_cls=CreateTableSql,
@@ -689,7 +689,7 @@ class BackupSqlTester:
     ),
     required_params=['table_name', 'columns'],
 )
-class CreateTableSqlTester:
+class TestCreateTableSql:
     '''
     Tests for CreateTableSql using the SQLite event test harness.
     '''
@@ -881,7 +881,7 @@ class CreateTableSqlTester:
 
         test_ctx.assert_missing_required_params()
 
-# ** tester: drop_table_sql_tester
+# ** tester: test_drop_table_sql
 @use_tester(
     type='domain_event',
     target_cls=DropTableSql,
@@ -894,7 +894,7 @@ class CreateTableSqlTester:
     sample_kwargs=dict(table_name='users'),
     required_params=['table_name'],
 )
-class DropTableSqlTester:
+class TestDropTableSql:
     '''
     Tests for DropTableSql using the SQLite event test harness.
     '''

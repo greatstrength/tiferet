@@ -119,7 +119,7 @@ from tiferet.mappers.error import ErrorAggregate
         ('invalid_attribute', 'value', 'INVALID_MODEL_ATTRIBUTE'),
     ],
 )
-class ErrorAggregateTester:
+class TestErrorAggregate:
 
     # * test: new
     def test_new(self, test_ctx):
@@ -173,7 +173,7 @@ After `# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` 
 
 1. `# *** fixtures` — module-level pytest fixtures. Sections: `# ** fixture: <snake_name>` matching `def <snake_name>`.
 2. `# *** tests` — module-level test **functions** only. Sections: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
-3. `# *** testers` — tester classes, last because they compose fixtures and tests. Sections: `# ** tester: <snake_name>` matching `class <Pascal>Tester` (suffix `Tester`, **not** prefix `Test`). Example: `# ** tester: error_aggregate_tester` → `class ErrorAggregateTester`.
+3. `# *** testers` — tester classes, last because they compose fixtures and tests. Sections: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
 
 Under a tester class, members are:
 
@@ -208,7 +208,7 @@ EQUALITY_FIELDS = ['id', 'name', 'error_code']
 
 # *** testers
 
-# ** tester: error_aggregate_tester
+# ** tester: test_error_aggregate
 @use_tester(
     type='aggregate',
     target_cls=ErrorAggregate,
@@ -219,7 +219,7 @@ EQUALITY_FIELDS = ['id', 'name', 'error_code']
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class ErrorAggregateTester:
+class TestErrorAggregate:
     '''Bound aggregate tester for ErrorAggregate.'''
 
     # * test: new
@@ -242,7 +242,7 @@ class ErrorAggregateTester:
         aggregate.rename('Renamed Error')
         assert aggregate.name == 'Renamed Error'
 
-# ** tester: error_config_object_tester
+# ** tester: test_error_config_object
 @use_tester(
     type='transfer_object',
     target_cls=ErrorConfigObject,
@@ -251,7 +251,7 @@ class ErrorAggregateTester:
     aggregate_sample_data=ERROR_SAMPLE_DATA,
     equality_fields=EQUALITY_FIELDS,
 )
-class ErrorConfigObjectTester:
+class TestErrorConfigObject:
     '''Bound transfer-object tester for ErrorConfigObject.'''
 
     # * test: map

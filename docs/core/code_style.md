@@ -439,7 +439,7 @@ After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` /
 
 1. `# *** fixtures` — module-level pytest fixtures. Mid-level: `# ** fixture: <snake_name>` matching `def <snake_name>`.
 2. `# *** tests` — module-level test **functions** only. Mid-level: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
-3. `# *** testers` — tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class <Pascal>Tester` (suffix `Tester`, **not** prefix `Test`). Example: `# ** tester: error_aggregate_tester` → `class ErrorAggregateTester`.
+3. `# *** testers` — tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
 
 Under a tester class, members are:
 
@@ -453,7 +453,7 @@ Full tester-subdomain conventions live in [testing.md](testing.md).
 ```python
 # *** testers
 
-# ** tester: add_app_session_tester
+# ** tester: test_add_app_session
 @use_tester(
     type='domain_event',
     target_cls=AddAppSession,
@@ -471,7 +471,7 @@ Full tester-subdomain conventions live in [testing.md](testing.md).
     ),
     required_params=['id', 'name', 'module_path', 'class_name'],
 )
-class AddAppSessionTester:
+class TestAddAppSession:
     '''Bound domain-event tester for AddAppSession.'''
 
     # * fixture: mock_dependencies
