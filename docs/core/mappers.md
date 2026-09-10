@@ -240,7 +240,7 @@ Repositories use transfer objects to load from configuration and map to aggregat
 
 Tests validate construction, mutation, mapping, serialization, and error handling using pytest (optional extra; runner for `tests/`). Bind a variant tester context with `@use_tester` / `build_tester_context`. Full conventions: [testing.md](testing.md).
 
-**Test-module groups:** `# *** fixtures` → `# *** tests` (functions) → `# *** testers` (`*Tester` classes). Tester members are `# * fixture:` / `# * test:` only. Bulk remediating existing `tests/mappers/` files is not required of this documentation pass.
+**Test-module groups:** `# *** fixtures` → `# *** tests` (functions) → `# *** testers` (`Test*` tester classes). Tester members are `# * fixture:` / `# * test:` only. Bulk remediating existing `tests/mappers/` files is not required of this documentation pass.
 
 **Aggregate testers** (`type='aggregate'` → `AggregateTesterContext`):
 - Pass `target_cls`, `sample_data`, `equality_fields`, and `set_attribute_params` as `(attr, value, expect_error_code | None)`.
@@ -258,7 +258,7 @@ from tiferet.blueprints.tester import use_tester
 
 # *** testers
 
-# ** tester: error_aggregate_tester
+# ** tester: test_error_aggregate
 @use_tester(
     type='aggregate',
     target_cls=ErrorAggregate,
@@ -269,7 +269,7 @@ from tiferet.blueprints.tester import use_tester
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class ErrorAggregateTester:
+class TestErrorAggregate:
 
     # * test: new
     def test_new(self, test_ctx):
@@ -281,7 +281,7 @@ class ErrorAggregateTester:
         aggregate.rename('Renamed Error')
         assert aggregate.name == 'Renamed Error'
 
-# ** tester: error_config_object_tester
+# ** tester: test_error_config_object
 @use_tester(
     type='transfer_object',
     target_cls=ErrorConfigObject,
@@ -290,7 +290,7 @@ class ErrorAggregateTester:
     aggregate_sample_data=ERROR_SAMPLE_DATA,
     equality_fields=EQUALITY_FIELDS,
 )
-class ErrorConfigObjectTester:
+class TestErrorConfigObject:
 
     # * test: map
     def test_map(self, test_ctx):

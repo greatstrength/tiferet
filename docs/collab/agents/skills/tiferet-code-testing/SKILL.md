@@ -87,7 +87,7 @@ EQUALITY_FIELDS = ['id', 'name', 'error_code']
 
 # *** testers
 
-# ** tester: error_aggregate_tester
+# ** tester: test_error_aggregate
 @use_tester(
     type='aggregate',
     target_cls=ErrorAggregate,
@@ -98,7 +98,7 @@ EQUALITY_FIELDS = ['id', 'name', 'error_code']
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class ErrorAggregateTester:
+class TestErrorAggregate:
     '''Bound aggregate tester for ErrorAggregate.'''
 
     # * test: new
@@ -125,7 +125,7 @@ class ErrorAggregateTester:
         aggregate.rename('Renamed Error')
         assert aggregate.name == 'Renamed Error'
 
-# ** tester: error_config_object_tester
+# ** tester: test_error_config_object
 @use_tester(
     type='transfer_object',
     target_cls=ErrorConfigObject,
@@ -134,7 +134,7 @@ class ErrorAggregateTester:
     aggregate_sample_data=ERROR_SAMPLE_DATA,
     equality_fields=EQUALITY_FIELDS,
 )
-class ErrorConfigObjectTester:
+class TestErrorConfigObject:
     '''Bound transfer-object tester for ErrorConfigObject.'''
 
     # * test: map
