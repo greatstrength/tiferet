@@ -7,17 +7,20 @@ from tiferet.assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
     DEFAULT_TESTER_CONFIG_FILE,
+    SERVICE_EVENT_GET_ERROR_TESTER_ID,
     TESTER_CONFIG_ID,
     TESTER_SERVICE_ID,
     TIFERET_TESTER_ID,
 )
 from tiferet.blueprints.tester import use_tester
-from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
+from tiferet.assets.error import ERROR_NOT_FOUND_ID
+from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID, TesterObject
 from tiferet.domain.error import ErrorMessage
 from tiferet.mappers.error import (
     ErrorAggregate,
     ErrorConfigObject,
 )
+from tiferet.mappers.tester import TesterAggregate
 
 # *** constants
 
@@ -127,6 +130,7 @@ def test_default_tester_catalog_and_session_are_data_only() -> None:
         'domain',
         'aggregate',
         'transfer_object',
+        'service_event',
     }
     session = CORE_DEFAULT_TESTER_SESSIONS[TIFERET_TESTER_ID]
     assert session['name'] == 'Tester'
@@ -135,3 +139,20 @@ def test_default_tester_catalog_and_session_are_data_only() -> None:
         TESTER_CONFIG_ID: DEFAULT_TESTER_CONFIG_FILE,
     }
     assert session['services'][0]['service_id'] == TESTER_SERVICE_ID
+
+# ** test: get_error_service_event_catalog_round_trips
+def test_get_error_service_event_catalog_round_trips() -> None:
+    '''Test the GetError catalog row validates and maps without type errors.'''
+
+    data = {
+        **CORE_DEFAULT_TESTERS[SERVICE_EVENT_GET_ERROR_TESTER_ID],
+        'id': SERVICE_EVENT_GET_ERROR_TESTER_ID,
+    }
+    tester = TesterObject.model_validate(data)
+    assert tester.type == 'service_event'
+    assert tester.class_name == 'GetError'
+    assert tester.not_found_error_code == ERROR_NOT_FOUND_ID
+    config_object = TesterAggregate.build_config_object(data)
+    mapped = config_object.map()
+    assert mapped.type == 'service_event'
+    assert mapped.service_attr == 'error_service'

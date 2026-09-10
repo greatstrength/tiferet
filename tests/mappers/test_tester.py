@@ -49,6 +49,38 @@ TRANSFER_OBJECT_TESTER_DATA = {
     'aggregate_sample_data': {'id': 'TEST', 'name': 'Test', 'message': []},
 }
 
+# ** constant: domain_event_tester_data
+DOMAIN_EVENT_TESTER_DATA = {
+    'id': 'domain_event.ListErrors',
+    'type': 'domain_event',
+    'module_path': 'tiferet.events.error',
+    'class_name': 'ListErrors',
+    'sample_data': {},
+    'equality_fields': [],
+    'sample_kwargs': {},
+    'required_params': [],
+}
+
+# ** constant: service_event_tester_data
+SERVICE_EVENT_TESTER_DATA = {
+    'id': 'service_event.GetError',
+    'type': 'service_event',
+    'module_path': 'tiferet.events.error',
+    'class_name': 'GetError',
+    'sample_data': {},
+    'equality_fields': [],
+    'dependencies': {
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    'sample_kwargs': {'id': 'TEST_ERROR'},
+    'required_params': [],
+    'service_attr': 'error_service',
+    'not_found_error_code': 'ERROR_NOT_FOUND',
+}
+
 # ** constant: tester_equality_fields
 TESTER_EQUALITY_FIELDS = [
     'id',
@@ -148,6 +180,8 @@ class TestTesterConfigObject:
         DOMAIN_TESTER_DATA,
         AGGREGATE_TESTER_DATA,
         TRANSFER_OBJECT_TESTER_DATA,
+        DOMAIN_EVENT_TESTER_DATA,
+        SERVICE_EVENT_TESTER_DATA,
     ],
 )
 def test_tester_config_object_dispatch(data) -> None:

@@ -21,7 +21,7 @@ from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import Error
 from tiferet.interfaces import ErrorService
 from tiferet.mappers import ErrorAggregate
-from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.blueprints.tester import use_tester
 
 # *** fixtures
 
@@ -95,28 +95,28 @@ class TestErrorEvent:
 
 
 # ** test: TestAddError
-class TestAddError(DomainEventTestBase):
-    '''
-    Tests for AddError using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddError
-
-    # * attribute: dependencies
-    dependencies = {'error_service': ErrorService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='domain_event',
+    target_cls=AddError,
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs=dict(
         id='NEW_ERROR',
         name='New Error',
         message='This is a new error message.',
         lang='en_US',
         additional_messages={},
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'name', 'message']
+    ),
+    required_params=['id', 'name', 'message'],
+)
+class TestAddError:
+    '''
+    Tests for AddError using the domain event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -131,13 +131,13 @@ class TestAddError(DomainEventTestBase):
         return {'error_service': service}
 
     # * method: test_success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx, mock_dependencies):
         '''
         Test adding a new error successfully.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the error was created correctly.
         assert isinstance(result, Error)
@@ -150,13 +150,13 @@ class TestAddError(DomainEventTestBase):
         mock_dependencies['error_service'].save.assert_called_once_with(result)
 
     # * method: test_with_additional_messages
-    def test_with_additional_messages(self, mock_dependencies):
+    def test_with_additional_messages(self, test_ctx, mock_dependencies):
         '''
         Test adding a new error with additional language messages.
         '''
 
         # Execute with additional messages.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             additional_messages={'es_ES': 'Este es un nuevo error.'},
         )
@@ -167,7 +167,7 @@ class TestAddError(DomainEventTestBase):
         assert any(msg.text == 'Este es un nuevo error.' and msg.lang == 'es_ES' for msg in result.message)
 
     # * method: test_already_exists
-    def test_already_exists(self, mock_dependencies):
+    def test_already_exists(self, test_ctx, mock_dependencies):
         '''
         Test that adding an error with an existing ID raises an error.
         '''
@@ -177,35 +177,36 @@ class TestAddError(DomainEventTestBase):
 
         # Execute and expect an ERROR_ALREADY_EXISTS error.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies)
+            test_ctx.handle(mock_dependencies)
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.ERROR_ALREADY_EXISTS_ID
 
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        test_ctx.assert_missing_required_params()
 
 # ** test: TestGetError
-class TestGetError(ServiceEventTestBase):
+@use_tester(
+    type='service_event',
+    target_cls=GetError,
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs=dict(id='TEST_ERROR'),
+    required_params=[],
+    service_attr='error_service',
+    not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
+)
+class TestGetError:
     '''
     Tests for GetError using the service event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = GetError
-
-    # * attribute: dependencies
-    dependencies = {'error_service': ErrorService}
-
-    # * attribute: service_attr
-    service_attr = 'error_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='TEST_ERROR')
-
-    # * attribute: required_params
-    required_params = []
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -220,20 +221,20 @@ class TestGetError(ServiceEventTestBase):
         return {'error_service': service}
 
     # * method: test_found_in_repo
-    def test_found_in_repo(self, mock_dependencies, error):
+    def test_found_in_repo(self, test_ctx, mock_dependencies, error):
         '''
         Test retrieving an error found in the repository.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the result matches the fixture.
         assert result == error
         mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
 
     # * method: test_not_found_ignores_built_in_catalog
-    def test_not_found_ignores_built_in_catalog(self, mock_dependencies):
+    def test_not_found_ignores_built_in_catalog(self, test_ctx, mock_dependencies):
         '''
         Test that a code present in CORE_DEFAULT_ERRORS but absent from the
         repository still raises ERROR_NOT_FOUND; the event never falls back
@@ -246,71 +247,73 @@ class TestGetError(ServiceEventTestBase):
         # Execute with a code that exists in the built-in catalog.
         error_id = a.error.ERROR_NOT_FOUND_ID
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, id=error_id)
+            test_ctx.handle(mock_dependencies, id=error_id)
 
         # Assert the not-found error is raised rather than a default resolved.
         assert exc_info.value.error_code == a.error.ERROR_NOT_FOUND_ID
         mock_dependencies['error_service'].get.assert_called_once_with(error_id)
 
+    # * method: test_not_found
+    def test_not_found(self, test_ctx):
+        '''Verify the configured not-found error when the service misses.'''
+
+        test_ctx.assert_not_found()
 
 # ** test: TestListErrors
-class TestListErrors(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=ListErrors,
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs=dict(),
+    required_params=[],
+)
+class TestListErrors:
     '''
     Tests for ListErrors using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = ListErrors
-
-    # * attribute: dependencies
-    dependencies = {'error_service': ErrorService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict()
-
-    # * attribute: required_params
-    required_params = []
-
     # * method: test_success
-    def test_success(self, mock_dependencies, error):
+    def test_success(self, test_ctx, error):
         '''
         Test listing errors from the repository.
         '''
+
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Configure the mock to return a list with the error fixture.
         mock_dependencies['error_service'].list.return_value = [error]
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the result matches.
         assert result == [error]
         mock_dependencies['error_service'].list.assert_called_once()
 
-
 # ** test: TestRenameError
-class TestRenameError(ServiceEventTestBase):
+@use_tester(
+    type='service_event',
+    target_cls=RenameError,
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs=dict(id='TEST_ERROR', new_name='Renamed Error'),
+    required_params=['new_name'],
+    service_attr='error_service',
+    not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
+)
+class TestRenameError:
     '''
     Tests for RenameError using the service event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = RenameError
-
-    # * attribute: dependencies
-    dependencies = {'error_service': ErrorService}
-
-    # * attribute: service_attr
-    service_attr = 'error_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='TEST_ERROR', new_name='Renamed Error')
-
-    # * attribute: required_params
-    required_params = ['new_name']
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -325,13 +328,13 @@ class TestRenameError(ServiceEventTestBase):
         return {'error_service': service}
 
     # * method: test_success
-    def test_success(self, mock_dependencies, error):
+    def test_success(self, test_ctx, mock_dependencies, error):
         '''
         Test renaming an existing error successfully.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the error was renamed.
         assert result == error
@@ -339,34 +342,41 @@ class TestRenameError(ServiceEventTestBase):
         mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
         mock_dependencies['error_service'].save.assert_called_once_with(error)
 
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        test_ctx.assert_missing_required_params()
+
+    # * method: test_not_found
+    def test_not_found(self, test_ctx):
+        '''Verify the configured not-found error when the service misses.'''
+
+        test_ctx.assert_not_found()
 
 # ** test: TestSetErrorMessage
-class TestSetErrorMessage(ServiceEventTestBase):
-    '''
-    Tests for SetErrorMessage using the service event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = SetErrorMessage
-
-    # * attribute: dependencies
-    dependencies = {'error_service': ErrorService}
-
-    # * attribute: service_attr
-    service_attr = 'error_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=SetErrorMessage,
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs=dict(
         id='TEST_ERROR',
         message='Updated error message.',
         lang='en_US',
-    )
-
-    # * attribute: required_params
-    required_params = ['message']
+    ),
+    required_params=['message'],
+    service_attr='error_service',
+    not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
+)
+class TestSetErrorMessage:
+    '''
+    Tests for SetErrorMessage using the service event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -381,13 +391,13 @@ class TestSetErrorMessage(ServiceEventTestBase):
         return {'error_service': service}
 
     # * method: test_success
-    def test_success(self, mock_dependencies, error):
+    def test_success(self, test_ctx, mock_dependencies, error):
         '''
         Test setting a message for an existing error successfully.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the ID is returned and the message was updated.
         assert result == 'TEST_ERROR'
@@ -395,30 +405,37 @@ class TestSetErrorMessage(ServiceEventTestBase):
         mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
         mock_dependencies['error_service'].save.assert_called_once_with(error)
 
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        test_ctx.assert_missing_required_params()
+
+    # * method: test_not_found
+    def test_not_found(self, test_ctx):
+        '''Verify the configured not-found error when the service misses.'''
+
+        test_ctx.assert_not_found()
 
 # ** test: TestRemoveErrorMessage
-class TestRemoveErrorMessage(ServiceEventTestBase):
+@use_tester(
+    type='service_event',
+    target_cls=RemoveErrorMessage,
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs=dict(id='TEST_ERROR', lang='es_ES'),
+    required_params=[],
+    service_attr='error_service',
+    not_found_error_code=a.error.ERROR_NOT_FOUND_ID,
+)
+class TestRemoveErrorMessage:
     '''
     Tests for RemoveErrorMessage using the service event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = RemoveErrorMessage
-
-    # * attribute: dependencies
-    dependencies = {'error_service': ErrorService}
-
-    # * attribute: service_attr
-    service_attr = 'error_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='TEST_ERROR', lang='es_ES')
-
-    # * attribute: required_params
-    required_params = []
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -436,13 +453,13 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
         return {'error_service': service}
 
     # * method: test_success
-    def test_success(self, mock_dependencies, error):
+    def test_success(self, test_ctx, mock_dependencies, error):
         '''
         Test removing a message from an existing error successfully.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the ID is returned and the message was removed.
         assert result == 'TEST_ERROR'
@@ -451,7 +468,7 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
         mock_dependencies['error_service'].save.assert_called_once_with(error)
 
     # * method: test_no_messages_left
-    def test_no_messages_left(self, mock_dependencies, error):
+    def test_no_messages_left(self, test_ctx, mock_dependencies, error):
         '''
         Test that removing the last message raises NO_ERROR_MESSAGES.
         '''
@@ -461,39 +478,55 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
 
         # Execute removing the only remaining message (en_US).
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, lang='en_US')
+            test_ctx.handle(mock_dependencies, lang='en_US')
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.NO_ERROR_MESSAGES_ID
 
+    # * method: test_not_found
+    def test_not_found(self, test_ctx):
+        '''Verify the configured not-found error when the service misses.'''
+
+        test_ctx.assert_not_found()
 
 # ** test: TestRemoveError
-class TestRemoveError(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=RemoveError,
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs=dict(id='TEST_ERROR'),
+    required_params=['id'],
+)
+class TestRemoveError:
     '''
     Tests for RemoveError using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = RemoveError
-
-    # * attribute: dependencies
-    dependencies = {'error_service': ErrorService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='TEST_ERROR')
-
-    # * attribute: required_params
-    required_params = ['id']
-
     # * method: test_success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test removing an existing error successfully.
         '''
 
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the ID is returned and delete was called.
         assert result == 'TEST_ERROR'
         mock_dependencies['error_service'].delete.assert_called_once_with('TEST_ERROR')
+
+    # * method: test_missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
+
+        mock_dependencies = test_ctx.mock_dependencies()
+
+        test_ctx.assert_missing_required_params()
+

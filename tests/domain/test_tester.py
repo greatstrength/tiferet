@@ -4,6 +4,7 @@
 
 # ** app
 from tiferet.domain import (
+    ServiceDependency,
     TesterObject as _TesterObject,
     Verification,
 )
@@ -64,6 +65,44 @@ def test_tester_object_optional_fields_and_aggregate_target() -> None:
     assert aggregate_tester.get_target_type() is ErrorAggregate
     assert transfer_tester.get_target_type() is ErrorConfigObject
     assert transfer_tester.get_aggregate_type() is ErrorAggregate
+
+# ** test: tester_object_accepts_event_types_and_optional_fields
+def test_tester_object_accepts_event_types_and_optional_fields() -> None:
+    '''Test domain_event and service_event types plus optional event fields.'''
+
+    domain_event = _TesterObject(
+        type='domain_event',
+        id='domain_event.ListErrors',
+        module_path='tiferet.events.error',
+        class_name='ListErrors',
+    )
+    service_event = _TesterObject(
+        type='service_event',
+        id='service_event.GetError',
+        module_path='tiferet.events.error',
+        class_name='GetError',
+        dependencies={
+            'error_service': {
+                'module_path': 'tiferet.interfaces',
+                'class_name': 'ErrorService',
+            },
+        },
+        sample_kwargs={'id': 'TEST_ERROR'},
+        required_params=[],
+        service_attr='error_service',
+        not_found_error_code='ERROR_NOT_FOUND',
+    )
+    assert domain_event.sample_kwargs == {}
+    assert domain_event.required_params == []
+    assert domain_event.service_attr is None
+    assert domain_event.not_found_error_code is None
+    assert domain_event.not_found_kwargs == {}
+    assert service_event.dependencies['error_service'].class_name == 'ErrorService'
+    assert isinstance(
+        service_event.dependencies['error_service'],
+        ServiceDependency,
+    )
+    assert service_event.get_target_type().__name__ == 'GetError'
 
 # ** test: verification_constructs_with_optional_message_default
 def test_verification_constructs_with_optional_message_default() -> None:

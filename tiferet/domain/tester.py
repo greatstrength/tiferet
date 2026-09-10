@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Literal, Tuple
 from pydantic import Field, model_validator
 
 # ** app
-from .core import DomainObject
+from .core import DomainObject, ServiceDependency
 
 # *** models
 
@@ -22,7 +22,13 @@ class TesterObject(DomainObject):
     '''
 
     # * attribute: type
-    type: Literal['domain', 'aggregate', 'transfer_object'] = Field(
+    type: Literal[
+        'domain',
+        'aggregate',
+        'transfer_object',
+        'domain_event',
+        'service_event',
+    ] = Field(
         ...,
         description='The type of tester object.',
     )
@@ -103,6 +109,42 @@ class TesterObject(DomainObject):
     map_kwargs: Dict[str, Any] = Field(
         default_factory=dict,
         description='Additional keyword arguments passed to map.',
+    )
+
+    # * attribute: dependencies
+    dependencies: Dict[str, ServiceDependency] = Field(
+        default_factory=dict,
+        description='Constructor-parameter name to a mock service dependency.',
+    )
+
+    # * attribute: sample_kwargs
+    sample_kwargs: Dict[str, Any] = Field(
+        default_factory=dict,
+        description='Default keyword arguments for event execute and handle.',
+    )
+
+    # * attribute: required_params
+    required_params: List[str] = Field(
+        default_factory=list,
+        description='Parameter names that must raise when missing or empty.',
+    )
+
+    # * attribute: service_attr
+    service_attr: str | None = Field(
+        default=None,
+        description='The primary service mock name for a service event.',
+    )
+
+    # * attribute: not_found_error_code
+    not_found_error_code: str | None = Field(
+        default=None,
+        description='Error code raised when the primary service get returns None.',
+    )
+
+    # * attribute: not_found_kwargs
+    not_found_kwargs: Dict[str, Any] = Field(
+        default_factory=dict,
+        description='Keyword arguments for the not-found path.',
     )
 
     # * method: _derive_expected_data (model validator)

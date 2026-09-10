@@ -12,7 +12,9 @@ from tiferet.contexts.request import RequestContext
 from tiferet.blueprints.tester import build_tester_context, use_tester
 from tiferet.contexts.tester import (
     AggregateTesterContext,
+    DomainEventTesterContext,
     DomainTesterContext,
+    ServiceEventTesterContext,
     TestRequestContext as _TestRequestContext,
     TestSessionContext as _TestSessionContext,
     TEST_PRESET_CACHE_PREFIX,
@@ -30,6 +32,7 @@ from tiferet.domain import (
 )
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.domain.error import ErrorMessage
+from tiferet.events.error import GetError
 from tiferet.mappers.error import (
     ErrorAggregate,
     ErrorConfigObject,
@@ -324,3 +327,67 @@ def test_use_tester_injects_test_ctx(test_ctx) -> None:
 
     assert isinstance(test_ctx, DomainTesterContext)
     test_ctx.assert_new()
+
+# ** test: event_tester_contexts_omit_domain_type
+def test_event_tester_contexts_omit_domain_type() -> None:
+    '''Test event contexts omit domain_type and leave TesterContext registered.'''
+
+    assert 'domain_type' not in DomainEventTesterContext.__dict__
+    assert 'domain_type' not in ServiceEventTesterContext.__dict__
+    assert BaseContext.for_domain(TesterObject) is TesterContext
+
+# ** test: service_event_tester_context_handle_and_asserts
+def test_service_event_tester_context_handle_and_asserts() -> None:
+    '''Test service-event mocks, handle, not-found, and missing-param no-op.'''
+
+    tester = TesterObject(
+        type='service_event',
+        id='service_event.GetError',
+        module_path=GetError.__module__,
+        class_name=GetError.__name__,
+        sample_data={},
+        dependencies={
+            'error_service': {
+                'module_path': 'tiferet.interfaces',
+                'class_name': 'ErrorService',
+            },
+        },
+        sample_kwargs={'id': 'TEST_ERROR'},
+        required_params=[],
+        service_attr='error_service',
+        not_found_error_code='ERROR_NOT_FOUND',
+    )
+    test_ctx = ServiceEventTesterContext.from_domain(tester)
+    assert isinstance(test_ctx, DomainEventTesterContext)
+    dependencies = test_ctx.mock_dependencies()
+    assert test_ctx.get_service_mock(dependencies) is dependencies['error_service']
+    error = ErrorAggregate(
+        id='TEST_ERROR',
+        name='Test Error',
+        message=[{'lang': 'en_US', 'text': 'An error occurred.'}],
+    )
+    dependencies['error_service'].get.return_value = error
+    assert test_ctx.handle(dependencies) is error
+    test_ctx.assert_not_found()
+    test_ctx.assert_missing_required_params()
+
+# ** test: use_tester_injects_service_event_test_ctx
+@use_tester(
+    type='service_event',
+    target_cls=GetError,
+    sample_data={},
+    dependencies={
+        'error_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'ErrorService',
+        },
+    },
+    sample_kwargs={'id': 'TEST_ERROR'},
+    service_attr='error_service',
+    not_found_error_code='ERROR_NOT_FOUND',
+)
+def test_use_tester_injects_service_event_test_ctx(test_ctx) -> None:
+    '''Test @use_tester injects ServiceEventTesterContext for service_event.'''
+
+    assert isinstance(test_ctx, ServiceEventTesterContext)
+    test_ctx.assert_not_found()

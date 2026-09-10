@@ -20,7 +20,9 @@ from ..contexts.cache import CacheContext
 from ..contexts.tester import (
     TESTER_CACHE_PREFIX,
     AggregateTesterContext,
+    DomainEventTesterContext,
     DomainTesterContext,
+    ServiceEventTesterContext,
     TestRequestContext,
     TestSessionContext,
     TesterContext,
@@ -191,6 +193,8 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
         'domain': DomainTesterContext,
         'aggregate': AggregateTesterContext,
         'transfer_object': TransferObjectTesterContext,
+        'domain_event': DomainEventTesterContext,
+        'service_event': ServiceEventTesterContext,
     }[tester.type]
 
     # Bind the selected subclass to the tester domain object.
