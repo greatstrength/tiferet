@@ -1,6 +1,6 @@
 ---
 name: tiferet-code-events
-description: Apply domain event conventions when adding or modifying domain events in a Tiferet-family repo. Covers per-module base events, the parameters_required decorator, verify/raise_error patterns, and the DomainEventTestBase harness.
+description: Apply domain event conventions when adding or modifying domain events in a Tiferet-family repo. Covers per-module base events, the parameters_required decorator, verify/raise_error patterns, and DomainEventTesterContext / ServiceEventTesterContext via @use_tester.
 ---
 
 # Domain Events Code Style – Tiferet
@@ -8,8 +8,8 @@ description: Apply domain event conventions when adding or modifying domain even
 ## When to use
 - When adding a new domain event class or modifying an existing one in `tiferet/events/`.
 - When implementing event-driven domain logic: validation, service interaction, orchestration.
-- When writing event tests using `DomainEventTestBase` or `ServiceEventTestBase`.
-- Pair with `tiferet-code-testing` for the full testing harness reference.
+- When writing event tests using `@use_tester` with `type='domain_event'` or `type='service_event'`.
+- Pair with `tiferet-code-testing` for the tester subdomain.
 
 ## Artifact comment structure
 

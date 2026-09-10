@@ -40,7 +40,7 @@ Thirteen self-contained code style skills that embed artifact comment labels, na
 | **`tiferet-code-blueprints`** | `docs/core/blueprints.md` | Adding or modifying blueprints |
 | **`tiferet-code-utils`** | `docs/core/utils.md` | Adding or modifying utilities |
 | **`tiferet-code-di`** | `docs/core/di.md` | Adding or modifying DI layer classes or functions |
-| **`tiferet-code-testing`** | `docs/core/testing.md` | Writing or extending tests using the harness |
+| **`tiferet-code-testing`** | `docs/core/testing.md` | Writing or extending tests using the tester subdomain |
 
 Each is a directory with a `SKILL.md` (YAML frontmatter + instructions). Code style skills are self-contained distillations — they embed key conventions and a working example so agents can apply them without fetching external URLs.
 

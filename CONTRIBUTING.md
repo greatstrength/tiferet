@@ -119,7 +119,7 @@ Warp/AI agents contributing to Tiferet follow the same conventions described abo
 - **`tiferet-code-blueprints`** — blueprint orchestration conventions ([blueprints.md](docs/core/blueprints.md)).
 - **`tiferet-code-utils`** — utility and infrastructure conventions ([utils.md](docs/core/utils.md)).
 - **`tiferet-code-di`** — DI layer conventions ([di.md](docs/core/di.md)).
-- **`tiferet-code-testing`** — test harness conventions ([testing.md](docs/core/testing.md)).
+- **`tiferet-code-testing`** — tester subdomain conventions ([testing.md](docs/core/testing.md)).
 
 A ready-to-apply **global agent rule** is preserved at [docs/collab/agent_rule.md](docs/collab/agent_rule.md) — copy it into your agent's global/user rules to apply these standards across every Tiferet repo.
 
