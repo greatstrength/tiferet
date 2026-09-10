@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.interfaces.core import ServiceError
 from tiferet.utils.file import FILE_NOT_FOUND_ID
 from tiferet.utils.csv import (
@@ -126,529 +127,580 @@ def temp_dict_csv_file(tmp_path, sample_dict_csv_content) -> Path:
     # Return the file path.
     return file_path
 
-# *** tests
+# *** testers
 
-# ** test: csv_loader_read_all
-def test_csv_loader_read_all(temp_csv_file: Path, sample_csv_rows: list):
-    '''
-    Test reading all rows from a CSV file.
+# ** tester: test_csv_loader
+@use_tester(
+    type='generic',
+    target_cls=CsvLoader,
+)
+class TestCsvLoader:
+    '''CsvLoader binder coverage via GenericTesterContext.'''
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    :param sample_csv_rows: The expected rows.
-    :type sample_csv_rows: list
-    '''
+    # * test: read_all
+    def test_read_all(
+            self,
+            test_ctx,
+            temp_csv_file: Path,
+            sample_csv_rows: list,
+        ) -> None:
+        '''
+        Test reading all rows from a CSV file.
 
-    # Read all rows from the CSV file.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        result = loader.read_all()
+        :param temp_csv_file: The path to the temporary CSV file.
+        :type temp_csv_file: pathlib.Path
+        :param sample_csv_rows: The expected rows.
+        :type sample_csv_rows: list
+        '''
 
-    # Verify the result matches the expected rows.
-    assert result == sample_csv_rows
+        # Read all rows from the CSV file.
+        with test_ctx.make_target(data={'path': temp_csv_file, 'mode': 'r'}) as loader:
+            result = loader.read_all()
 
-# ** test: csv_loader_read_row
-def test_csv_loader_read_row(temp_csv_file: Path):
-    '''
-    Test reading rows one at a time from a CSV file.
+        # Verify the result matches the expected rows.
+        assert result == sample_csv_rows
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    '''
+    # * test: read_row
+    def test_read_row(self, test_ctx, temp_csv_file: Path) -> None:
+        '''
+        Test reading rows one at a time from a CSV file.
 
-    # Read the first two rows individually.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        first = loader.read_row()
-        second = loader.read_row()
+        :param temp_csv_file: The path to the temporary CSV file.
+        :type temp_csv_file: pathlib.Path
+        '''
 
-    # Verify each row matches expected content.
-    assert first == ['name', 'age', 'city']
-    assert second == ['Alice', '30', 'New York']
+        # Read the first two rows individually.
+        with test_ctx.make_target(data={'path': temp_csv_file, 'mode': 'r'}) as loader:
+            first = loader.read_row()
+            second = loader.read_row()
 
-# ** test: csv_loader_read_row_eof
-def test_csv_loader_read_row_eof(temp_empty_csv_file: Path):
-    '''
-    Test that reading past EOF returns an empty list.
+        # Verify each row matches expected content.
+        assert first == ['name', 'age', 'city']
+        assert second == ['Alice', '30', 'New York']
 
-    :param temp_empty_csv_file: The path to the empty CSV file.
-    :type temp_empty_csv_file: pathlib.Path
-    '''
+    # * test: read_row_eof
+    def test_read_row_eof(self, test_ctx, temp_empty_csv_file: Path) -> None:
+        '''
+        Test that reading past EOF returns an empty list.
 
-    # Attempt to read from an empty CSV file.
-    with CsvLoader(path=temp_empty_csv_file, mode='r') as loader:
-        result = loader.read_row()
+        :param temp_empty_csv_file: The path to the empty CSV file.
+        :type temp_empty_csv_file: pathlib.Path
+        '''
 
-    # Verify empty list is returned at EOF.
-    assert result == []
+        # Attempt to read from an empty CSV file.
+        with test_ctx.make_target(
+            data={'path': temp_empty_csv_file, 'mode': 'r'},
+        ) as loader:
+            result = loader.read_row()
 
-# ** test: csv_loader_write_row
-def test_csv_loader_write_row(tmp_path):
-    '''
-    Test writing a single row to a CSV file.
+        # Verify empty list is returned at EOF.
+        assert result == []
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: write_row
+    def test_write_row(self, test_ctx, tmp_path) -> None:
+        '''
+        Test writing a single row to a CSV file.
 
-    # Write a single row to a new CSV file.
-    file_path = tmp_path / 'output.csv'
-    with CsvLoader(path=file_path, mode='w') as loader:
-        loader.write_row(['name', 'age'])
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Read back and verify the content.
-    with CsvLoader(path=file_path, mode='r') as loader:
-        rows = loader.read_all()
+        # Write a single row to a new CSV file.
+        file_path = tmp_path / 'output.csv'
+        with test_ctx.make_target(data={'path': file_path, 'mode': 'w'}) as loader:
+            loader.write_row(['name', 'age'])
 
-    # Verify the row was written.
-    assert rows == [['name', 'age']]
+        # Read back and verify the content.
+        with test_ctx.make_target(data={'path': file_path, 'mode': 'r'}) as loader:
+            rows = loader.read_all()
 
-# ** test: csv_loader_write_all
-def test_csv_loader_write_all(tmp_path):
-    '''
-    Test writing multiple rows to a CSV file.
+        # Verify the row was written.
+        assert rows == [['name', 'age']]
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: write_all
+    def test_write_all(self, test_ctx, tmp_path) -> None:
+        '''
+        Test writing multiple rows to a CSV file.
 
-    # Write multiple rows.
-    file_path = tmp_path / 'output.csv'
-    data = [['a', 'b'], ['1', '2'], ['3', '4']]
-    with CsvLoader(path=file_path, mode='w') as loader:
-        loader.write_all(data)
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Read back and verify.
-    with CsvLoader(path=file_path, mode='r') as loader:
-        result = loader.read_all()
+        # Write multiple rows.
+        file_path = tmp_path / 'output.csv'
+        data = [['a', 'b'], ['1', '2'], ['3', '4']]
+        with test_ctx.make_target(data={'path': file_path, 'mode': 'w'}) as loader:
+            loader.write_all(data)
 
-    # Verify all rows were written.
-    assert result == data
+        # Read back and verify.
+        with test_ctx.make_target(data={'path': file_path, 'mode': 'r'}) as loader:
+            result = loader.read_all()
 
-# ** test: csv_loader_save_and_reload
-def test_csv_loader_save_and_reload(tmp_path):
-    '''
-    Test round-trip: write rows then read them back.
+        # Verify all rows were written.
+        assert result == data
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: save_and_reload
+    def test_save_and_reload(self, tmp_path) -> None:
+        '''
+        Test round-trip: write rows then read them back.
 
-    # Define the file path and data.
-    file_path = tmp_path / 'roundtrip.csv'
-    data = [['x', 'y'], ['10', '20'], ['30', '40']]
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Save rows to CSV.
-    CsvLoader.save_rows(file_path, data)
+        # Define the file path and data.
+        file_path = tmp_path / 'roundtrip.csv'
+        data = [['x', 'y'], ['10', '20'], ['30', '40']]
 
-    # Reload the saved file.
-    result = CsvLoader.load_rows(file_path)
-
-    # Verify round-trip produces the same data.
-    assert result == data
-
-# ** test: csv_loader_load_rows_static
-def test_csv_loader_load_rows_static(temp_csv_file: Path, sample_csv_rows: list):
-    '''
-    Test the static load_rows helper.
-
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    :param sample_csv_rows: The expected rows.
-    :type sample_csv_rows: list
-    '''
-
-    # Load all rows using the static method.
-    result = CsvLoader.load_rows(temp_csv_file)
-
-    # Verify the result matches the expected rows.
-    assert result == sample_csv_rows
-
-# ** test: csv_loader_save_rows_static_list
-def test_csv_loader_save_rows_static_list(tmp_path):
-    '''
-    Test the static save_rows helper with list-based rows.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Save list rows using the static method.
-    file_path = tmp_path / 'list_output.csv'
-    data = [['col1', 'col2'], ['a', 'b']]
-    CsvLoader.save_rows(file_path, data)
-
-    # Reload and verify.
-    result = CsvLoader.load_rows(file_path)
-    assert result == data
-
-# ** test: csv_loader_save_rows_dict_mode
-def test_csv_loader_save_rows_dict_mode(tmp_path):
-    '''
-    Test the static save_rows helper with dict-based rows.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Save dict rows using the static method.
-    file_path = tmp_path / 'dict_output.csv'
-    data = [{'name': 'Alice', 'age': '30'}, {'name': 'Bob', 'age': '25'}]
-    CsvLoader.save_rows(file_path, data, fieldnames=['name', 'age'])
-
-    # Reload and verify (includes header row).
-    result = CsvLoader.load_rows(file_path)
-    assert result[0] == ['name', 'age']
-    assert result[1] == ['Alice', '30']
-    assert result[2] == ['Bob', '25']
-
-# ** test: csv_loader_save_rows_dict_no_fieldnames
-def test_csv_loader_save_rows_dict_no_fieldnames(tmp_path):
-    '''
-    Test that save_rows raises CSV_FIELDNAMES_REQUIRED when writing dicts without fieldnames.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Attempt to save dict rows without fieldnames.
-    file_path = tmp_path / 'dict_no_fields.csv'
-    data = [{'name': 'Alice'}]
-
-    with pytest.raises(ServiceError) as exc_info:
+        # Save rows to CSV.
         CsvLoader.save_rows(file_path, data)
 
-    # Verify the error code.
-    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
+        # Reload the saved file.
+        result = CsvLoader.load_rows(file_path)
 
-# ** test: csv_loader_append_row_static
-def test_csv_loader_append_row_static(tmp_path):
-    '''
-    Test the static append_row helper.
+        # Verify round-trip produces the same data.
+        assert result == data
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: load_rows_static
+    def test_load_rows_static(
+            self,
+            temp_csv_file: Path,
+            sample_csv_rows: list,
+        ) -> None:
+        '''
+        Test the static load_rows helper.
 
-    # Create an initial CSV file with one row.
-    file_path = tmp_path / 'append.csv'
-    CsvLoader.save_rows(file_path, [['header1', 'header2'], ['a', 'b']])
+        :param temp_csv_file: The path to the temporary CSV file.
+        :type temp_csv_file: pathlib.Path
+        :param sample_csv_rows: The expected rows.
+        :type sample_csv_rows: list
+        '''
 
-    # Append a new row.
-    CsvLoader.append_row(file_path, ['c', 'd'])
+        # Load all rows using the static method.
+        result = CsvLoader.load_rows(temp_csv_file)
 
-    # Reload and verify the appended row.
-    result = CsvLoader.load_rows(file_path)
-    assert len(result) == 3
-    assert result[2] == ['c', 'd']
+        # Verify the result matches the expected rows.
+        assert result == sample_csv_rows
 
-# ** test: csv_loader_yield_rows
-def test_csv_loader_yield_rows(temp_csv_file: Path, sample_csv_rows: list):
-    '''
-    Test yield_rows returns all rows as a generator.
+    # * test: save_rows_static_list
+    def test_save_rows_static_list(self, tmp_path) -> None:
+        '''
+        Test the static save_rows helper with list-based rows.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    :param sample_csv_rows: The expected rows.
-    :type sample_csv_rows: list
-    '''
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Yield all rows from the CSV file.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows())
+        # Save list rows using the static method.
+        file_path = tmp_path / 'list_output.csv'
+        data = [['col1', 'col2'], ['a', 'b']]
+        CsvLoader.save_rows(file_path, data)
 
-    # Verify all rows are yielded.
-    assert result == sample_csv_rows
+        # Reload and verify.
+        result = CsvLoader.load_rows(file_path)
+        assert result == data
 
-# ** test: csv_loader_yield_rows_with_range
-def test_csv_loader_yield_rows_with_range(temp_csv_file: Path):
-    '''
-    Test yield_rows with start_line and end_line filtering.
+    # * test: save_rows_dict_mode
+    def test_save_rows_dict_mode(self, tmp_path) -> None:
+        '''
+        Test the static save_rows helper with dict-based rows.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    '''
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Yield rows 2 through 3 (1-based).
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows(start_line=2, end_line=3))
+        # Save dict rows using the static method.
+        file_path = tmp_path / 'dict_output.csv'
+        data = [{'name': 'Alice', 'age': '30'}, {'name': 'Bob', 'age': '25'}]
+        CsvLoader.save_rows(file_path, data, fieldnames=['name', 'age'])
 
-    # Verify only the requested range is returned.
-    assert len(result) == 2
-    assert result[0] == ['Alice', '30', 'New York']
-    assert result[1] == ['Bob', '25', 'London']
+        # Reload and verify (includes header row).
+        result = CsvLoader.load_rows(file_path)
+        assert result[0] == ['name', 'age']
+        assert result[1] == ['Alice', '30']
+        assert result[2] == ['Bob', '25']
 
-# ** test: csv_loader_invalid_read_mode
-def test_csv_loader_invalid_read_mode(tmp_path):
-    '''
-    Test that building a reader in write-only mode raises CSV_INVALID_READ_MODE.
+    # * test: save_rows_dict_no_fieldnames
+    def test_save_rows_dict_no_fieldnames(self, tmp_path) -> None:
+        '''
+        Test that save_rows raises CSV_FIELDNAMES_REQUIRED when writing dicts without fieldnames.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Open in write mode and attempt to build a reader.
-    file_path = tmp_path / 'write_only.csv'
-    with CsvLoader(path=file_path, mode='w') as loader:
+        # Attempt to save dict rows without fieldnames.
+        file_path = tmp_path / 'dict_no_fields.csv'
+        data = [{'name': 'Alice'}]
+
         with pytest.raises(ServiceError) as exc_info:
-            loader.build_reader()
+            CsvLoader.save_rows(file_path, data)
 
-    # Verify the error code.
-    assert exc_info.value.error_code == CSV_INVALID_READ_MODE_ID
+        # Verify the error code.
+        assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
-# ** test: csv_loader_invalid_write_mode
-def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
-    '''
-    Test that building a writer in read-only mode raises CSV_INVALID_WRITE_MODE.
+    # * test: append_row_static
+    def test_append_row_static(self, tmp_path) -> None:
+        '''
+        Test the static append_row helper.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    '''
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Open in read mode and attempt to build a writer.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
+        # Create an initial CSV file with one row.
+        file_path = tmp_path / 'append.csv'
+        CsvLoader.save_rows(file_path, [['header1', 'header2'], ['a', 'b']])
+
+        # Append a new row.
+        CsvLoader.append_row(file_path, ['c', 'd'])
+
+        # Reload and verify the appended row.
+        result = CsvLoader.load_rows(file_path)
+        assert len(result) == 3
+        assert result[2] == ['c', 'd']
+
+    # * test: yield_rows
+    def test_yield_rows(
+            self,
+            test_ctx,
+            temp_csv_file: Path,
+            sample_csv_rows: list,
+        ) -> None:
+        '''
+        Test yield_rows returns all rows as a generator.
+
+        :param temp_csv_file: The path to the temporary CSV file.
+        :type temp_csv_file: pathlib.Path
+        :param sample_csv_rows: The expected rows.
+        :type sample_csv_rows: list
+        '''
+
+        # Yield all rows from the CSV file.
+        with test_ctx.make_target(data={'path': temp_csv_file, 'mode': 'r'}) as loader:
+            result = list(loader.yield_rows())
+
+        # Verify all rows are yielded.
+        assert result == sample_csv_rows
+
+    # * test: yield_rows_with_range
+    def test_yield_rows_with_range(self, test_ctx, temp_csv_file: Path) -> None:
+        '''
+        Test yield_rows with start_line and end_line filtering.
+
+        :param temp_csv_file: The path to the temporary CSV file.
+        :type temp_csv_file: pathlib.Path
+        '''
+
+        # Yield rows 2 through 3 (1-based).
+        with test_ctx.make_target(data={'path': temp_csv_file, 'mode': 'r'}) as loader:
+            result = list(loader.yield_rows(start_line=2, end_line=3))
+
+        # Verify only the requested range is returned.
+        assert len(result) == 2
+        assert result[0] == ['Alice', '30', 'New York']
+        assert result[1] == ['Bob', '25', 'London']
+
+    # * test: invalid_read_mode
+    def test_invalid_read_mode(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that building a reader in write-only mode raises CSV_INVALID_READ_MODE.
+
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
+
+        # Open in write mode and attempt to build a reader.
+        file_path = tmp_path / 'write_only.csv'
+        with test_ctx.make_target(data={'path': file_path, 'mode': 'w'}) as loader:
+            with pytest.raises(ServiceError) as exc_info:
+                loader.build_reader()
+
+        # Verify the error code.
+        assert exc_info.value.error_code == CSV_INVALID_READ_MODE_ID
+
+    # * test: invalid_write_mode
+    def test_invalid_write_mode(self, test_ctx, temp_csv_file: Path) -> None:
+        '''
+        Test that building a writer in read-only mode raises CSV_INVALID_WRITE_MODE.
+
+        :param temp_csv_file: The path to the temporary CSV file.
+        :type temp_csv_file: pathlib.Path
+        '''
+
+        # Open in read mode and attempt to build a writer.
+        with test_ctx.make_target(data={'path': temp_csv_file, 'mode': 'r'}) as loader:
+            with pytest.raises(ServiceError) as exc_info:
+                loader.build_writer()
+
+        # Verify the error code.
+        assert exc_info.value.error_code == CSV_INVALID_WRITE_MODE_ID
+
+    # * test: file_not_found
+    def test_file_not_found(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that opening a non-existent CSV file raises FILE_NOT_FOUND.
+
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
+
+        # Attempt to open a non-existent file.
         with pytest.raises(ServiceError) as exc_info:
-            loader.build_writer()
+            with test_ctx.make_target(
+                data={'path': tmp_path / 'missing.csv', 'mode': 'r'},
+            ) as loader:
+                loader.read_all()
 
-    # Verify the error code.
-    assert exc_info.value.error_code == CSV_INVALID_WRITE_MODE_ID
+        # Verify the error code.
+        assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 
-# ** test: csv_loader_file_not_found
-def test_csv_loader_file_not_found(tmp_path):
-    '''
-    Test that opening a non-existent CSV file raises FILE_NOT_FOUND.
+    # * test: empty_file
+    def test_empty_file(self, test_ctx, temp_empty_csv_file: Path) -> None:
+        '''
+        Test that reading an empty CSV file returns an empty list.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+        :param temp_empty_csv_file: The path to the empty CSV file.
+        :type temp_empty_csv_file: pathlib.Path
+        '''
 
-    # Attempt to open a non-existent file.
-    with pytest.raises(ServiceError) as exc_info:
-        with CsvLoader(path=tmp_path / 'missing.csv', mode='r') as loader:
+        # Read all rows from the empty file.
+        with test_ctx.make_target(
+            data={'path': temp_empty_csv_file, 'mode': 'r'},
+        ) as loader:
+            result = loader.read_all()
+
+        # Verify empty file returns empty list.
+        assert result == []
+
+    # * test: context_manager_resets_state
+    def test_context_manager_resets_state(self, test_ctx, temp_csv_file: Path) -> None:
+        '''
+        Test that __exit__ resets reader, writer, and file to None.
+
+        :param temp_csv_file: The path to the temporary CSV file.
+        :type temp_csv_file: pathlib.Path
+        '''
+
+        # Open and use the context manager.
+        loader = test_ctx.make_target(data={'path': temp_csv_file, 'mode': 'r'})
+        with loader:
             loader.read_all()
 
-    # Verify the error code.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+        # Verify state is reset after context exit.
+        assert loader.reader is None
+        assert loader.writer is None
+        assert loader.file is None
 
-# ** test: csv_loader_empty_file
-def test_csv_loader_empty_file(temp_empty_csv_file: Path):
-    '''
-    Test that reading an empty CSV file returns an empty list.
+# ** tester: test_csv_dict_loader
+@use_tester(
+    type='generic',
+    target_cls=CsvDictLoader,
+)
+class TestCsvDictLoader:
+    '''CsvDictLoader binder coverage via GenericTesterContext.'''
 
-    :param temp_empty_csv_file: The path to the empty CSV file.
-    :type temp_empty_csv_file: pathlib.Path
-    '''
+    # * test: read_all
+    def test_read_all(self, test_ctx, temp_dict_csv_file: Path) -> None:
+        '''
+        Test reading all rows as dicts using CsvDictLoader.
 
-    # Read all rows from the empty file.
-    with CsvLoader(path=temp_empty_csv_file, mode='r') as loader:
-        result = loader.read_all()
+        :param temp_dict_csv_file: The path to the temporary CSV file with header.
+        :type temp_dict_csv_file: pathlib.Path
+        '''
 
-    # Verify empty file returns empty list.
-    assert result == []
+        # Read all rows as dicts.
+        with test_ctx.make_target(
+            data={'path': temp_dict_csv_file, 'mode': 'r'},
+        ) as loader:
+            result = loader.read_all()
 
-# ** test: csv_loader_context_manager_resets_state
-def test_csv_loader_context_manager_resets_state(temp_csv_file: Path):
-    '''
-    Test that __exit__ resets reader, writer, and file to None.
+        # Verify the result is a list of dicts.
+        assert len(result) == 2
+        assert result[0] == {'name': 'Alice', 'age': '30', 'city': 'New York'}
+        assert result[1] == {'name': 'Bob', 'age': '25', 'city': 'London'}
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    '''
+    # * test: read_row
+    def test_read_row(self, test_ctx, temp_dict_csv_file: Path) -> None:
+        '''
+        Test reading rows one at a time as dicts.
 
-    # Open and use the context manager.
-    loader = CsvLoader(path=temp_csv_file, mode='r')
-    with loader:
-        loader.read_all()
+        :param temp_dict_csv_file: The path to the temporary CSV file with header.
+        :type temp_dict_csv_file: pathlib.Path
+        '''
 
-    # Verify state is reset after context exit.
-    assert loader.reader is None
-    assert loader.writer is None
-    assert loader.file is None
+        # Read the first row as a dict.
+        with test_ctx.make_target(
+            data={'path': temp_dict_csv_file, 'mode': 'r'},
+        ) as loader:
+            first = loader.read_row()
+            second = loader.read_row()
+            eof = loader.read_row()
 
-# ** test: csv_dict_loader_read_all
-def test_csv_dict_loader_read_all(temp_dict_csv_file: Path):
-    '''
-    Test reading all rows as dicts using CsvDictLoader.
+        # Verify each row and EOF behavior.
+        assert first == {'name': 'Alice', 'age': '30', 'city': 'New York'}
+        assert second == {'name': 'Bob', 'age': '25', 'city': 'London'}
+        assert eof == {}
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
-    '''
+    # * test: write_and_reload
+    def test_write_and_reload(self, test_ctx, tmp_path) -> None:
+        '''
+        Test round-trip: write dict rows with header then read them back.
 
-    # Read all rows as dicts.
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        result = loader.read_all()
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Verify the result is a list of dicts.
-    assert len(result) == 2
-    assert result[0] == {'name': 'Alice', 'age': '30', 'city': 'New York'}
-    assert result[1] == {'name': 'Bob', 'age': '25', 'city': 'London'}
+        # Define the file path and dict data.
+        file_path = tmp_path / 'dict_roundtrip.csv'
+        fieldnames = ['name', 'score']
+        data = [{'name': 'X', 'score': '100'}, {'name': 'Y', 'score': '200'}]
 
-# ** test: csv_dict_loader_read_row
-def test_csv_dict_loader_read_row(temp_dict_csv_file: Path):
-    '''
-    Test reading rows one at a time as dicts.
+        # Write dict rows with header.
+        with test_ctx.make_target(
+            data={'path': file_path, 'mode': 'w', 'fieldnames': fieldnames},
+        ) as loader:
+            loader.write_header()
+            loader.write_all(data)
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
-    '''
+        # Reload as dicts and verify.
+        with test_ctx.make_target(data={'path': file_path, 'mode': 'r'}) as loader:
+            result = loader.read_all()
 
-    # Read the first row as a dict.
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        first = loader.read_row()
-        second = loader.read_row()
-        eof = loader.read_row()
+        # Verify round-trip.
+        assert result == data
 
-    # Verify each row and EOF behavior.
-    assert first == {'name': 'Alice', 'age': '30', 'city': 'New York'}
-    assert second == {'name': 'Bob', 'age': '25', 'city': 'London'}
-    assert eof == {}
+    # * test: load_rows_static
+    def test_load_rows_static(self, temp_dict_csv_file: Path) -> None:
+        '''
+        Test the static load_rows helper on CsvDictLoader.
 
-# ** test: csv_dict_loader_write_and_reload
-def test_csv_dict_loader_write_and_reload(tmp_path):
-    '''
-    Test round-trip: write dict rows with header then read them back.
+        :param temp_dict_csv_file: The path to the temporary CSV file with header.
+        :type temp_dict_csv_file: pathlib.Path
+        '''
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+        # Load all rows as dicts using the static method.
+        result = CsvDictLoader.load_rows(temp_dict_csv_file)
 
-    # Define the file path and dict data.
-    file_path = tmp_path / 'dict_roundtrip.csv'
-    fieldnames = ['name', 'score']
-    data = [{'name': 'X', 'score': '100'}, {'name': 'Y', 'score': '200'}]
+        # Verify the result.
+        assert len(result) == 2
+        assert result[0]['name'] == 'Alice'
+        assert result[1]['name'] == 'Bob'
 
-    # Write dict rows with header.
-    with CsvDictLoader(path=file_path, mode='w', fieldnames=fieldnames) as loader:
-        loader.write_header()
-        loader.write_all(data)
+    # * test: save_rows_static
+    def test_save_rows_static(self, tmp_path) -> None:
+        '''
+        Test the static save_rows helper on CsvDictLoader.
 
-    # Reload as dicts and verify.
-    with CsvDictLoader(path=file_path, mode='r') as loader:
-        result = loader.read_all()
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Verify round-trip.
-    assert result == data
+        # Save dict rows using the static method.
+        file_path = tmp_path / 'dict_save.csv'
+        data = [{'a': '1', 'b': '2'}, {'a': '3', 'b': '4'}]
+        CsvDictLoader.save_rows(file_path, data, fieldnames=['a', 'b'])
 
-# ** test: csv_dict_loader_load_rows_static
-def test_csv_dict_loader_load_rows_static(temp_dict_csv_file: Path):
-    '''
-    Test the static load_rows helper on CsvDictLoader.
+        # Reload and verify.
+        result = CsvDictLoader.load_rows(file_path)
+        assert result == data
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
-    '''
+    # * test: save_rows_no_fieldnames
+    def test_save_rows_no_fieldnames(self, tmp_path) -> None:
+        '''
+        Test that CsvDictLoader.save_rows raises CSV_FIELDNAMES_REQUIRED without fieldnames.
 
-    # Load all rows as dicts using the static method.
-    result = CsvDictLoader.load_rows(temp_dict_csv_file)
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Verify the result.
-    assert len(result) == 2
-    assert result[0]['name'] == 'Alice'
-    assert result[1]['name'] == 'Bob'
+        # Attempt to save dict rows without fieldnames.
+        file_path = tmp_path / 'no_fields.csv'
+        data = [{'a': '1'}]
 
-# ** test: csv_dict_loader_save_rows_static
-def test_csv_dict_loader_save_rows_static(tmp_path):
-    '''
-    Test the static save_rows helper on CsvDictLoader.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Save dict rows using the static method.
-    file_path = tmp_path / 'dict_save.csv'
-    data = [{'a': '1', 'b': '2'}, {'a': '3', 'b': '4'}]
-    CsvDictLoader.save_rows(file_path, data, fieldnames=['a', 'b'])
-
-    # Reload and verify.
-    result = CsvDictLoader.load_rows(file_path)
-    assert result == data
-
-# ** test: csv_dict_loader_save_rows_no_fieldnames
-def test_csv_dict_loader_save_rows_no_fieldnames(tmp_path):
-    '''
-    Test that CsvDictLoader.save_rows raises CSV_FIELDNAMES_REQUIRED without fieldnames.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Attempt to save dict rows without fieldnames.
-    file_path = tmp_path / 'no_fields.csv'
-    data = [{'a': '1'}]
-
-    with pytest.raises(ServiceError) as exc_info:
-        CsvDictLoader.save_rows(file_path, data)
-
-    # Verify the error code.
-    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
-
-# ** test: csv_dict_loader_fieldnames_required_on_build_writer
-def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
-    '''
-    Test that building a DictWriter without fieldnames raises CSV_FIELDNAMES_REQUIRED.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Open in write mode without fieldnames.
-    file_path = tmp_path / 'no_fieldnames.csv'
-    with CsvDictLoader(path=file_path, mode='w') as loader:
         with pytest.raises(ServiceError) as exc_info:
-            loader.build_writer()
+            CsvDictLoader.save_rows(file_path, data)
 
-    # Verify the error code.
-    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
+        # Verify the error code.
+        assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
-# ** test: csv_dict_loader_yield_rows
-def test_csv_dict_loader_yield_rows(temp_dict_csv_file: Path):
-    '''
-    Test yield_rows returns dict rows as a generator.
+    # * test: fieldnames_required_on_build_writer
+    def test_fieldnames_required_on_build_writer(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that building a DictWriter without fieldnames raises CSV_FIELDNAMES_REQUIRED.
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
-    '''
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Yield all dict rows.
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows())
+        # Open in write mode without fieldnames.
+        file_path = tmp_path / 'no_fieldnames.csv'
+        with test_ctx.make_target(data={'path': file_path, 'mode': 'w'}) as loader:
+            with pytest.raises(ServiceError) as exc_info:
+                loader.build_writer()
 
-    # Verify all dict rows are yielded.
-    assert len(result) == 2
-    assert result[0]['name'] == 'Alice'
-    assert result[1]['name'] == 'Bob'
+        # Verify the error code.
+        assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
-# ** test: csv_dict_loader_yield_rows_with_range
-def test_csv_dict_loader_yield_rows_with_range(temp_dict_csv_file: Path):
-    '''
-    Test yield_rows with range filtering on dict rows.
+    # * test: yield_rows
+    def test_yield_rows(self, test_ctx, temp_dict_csv_file: Path) -> None:
+        '''
+        Test yield_rows returns dict rows as a generator.
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
-    '''
+        :param temp_dict_csv_file: The path to the temporary CSV file with header.
+        :type temp_dict_csv_file: pathlib.Path
+        '''
 
-    # Yield only the second data row (1-based, header excluded by DictReader).
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows(start_line=2, end_line=2))
+        # Yield all dict rows.
+        with test_ctx.make_target(
+            data={'path': temp_dict_csv_file, 'mode': 'r'},
+        ) as loader:
+            result = list(loader.yield_rows())
 
-    # Verify only the requested row is returned.
-    assert len(result) == 1
-    assert result[0]['name'] == 'Bob'
+        # Verify all dict rows are yielded.
+        assert len(result) == 2
+        assert result[0]['name'] == 'Alice'
+        assert result[1]['name'] == 'Bob'
 
-# ** test: csv_dict_loader_save_rows_no_header
-def test_csv_dict_loader_save_rows_no_header(tmp_path):
-    '''
-    Test that save_rows with include_header=False omits the header.
+    # * test: yield_rows_with_range
+    def test_yield_rows_with_range(self, test_ctx, temp_dict_csv_file: Path) -> None:
+        '''
+        Test yield_rows with range filtering on dict rows.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+        :param temp_dict_csv_file: The path to the temporary CSV file with header.
+        :type temp_dict_csv_file: pathlib.Path
+        '''
 
-    # Save dict rows without header.
-    file_path = tmp_path / 'no_header.csv'
-    data = [{'name': 'Alice', 'age': '30'}]
-    CsvDictLoader.save_rows(file_path, data, fieldnames=['name', 'age'], include_header=False)
+        # Yield only the second data row (1-based, header excluded by DictReader).
+        with test_ctx.make_target(
+            data={'path': temp_dict_csv_file, 'mode': 'r'},
+        ) as loader:
+            result = list(loader.yield_rows(start_line=2, end_line=2))
 
-    # Reload as list rows and verify no header.
-    result = CsvLoader.load_rows(file_path)
-    assert len(result) == 1
-    assert result[0] == ['Alice', '30']
+        # Verify only the requested row is returned.
+        assert len(result) == 1
+        assert result[0]['name'] == 'Bob'
+
+    # * test: save_rows_no_header
+    def test_save_rows_no_header(self, tmp_path) -> None:
+        '''
+        Test that save_rows with include_header=False omits the header.
+
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
+
+        # Save dict rows without header.
+        file_path = tmp_path / 'no_header.csv'
+        data = [{'name': 'Alice', 'age': '30'}]
+        CsvDictLoader.save_rows(
+            file_path,
+            data,
+            fieldnames=['name', 'age'],
+            include_header=False,
+        )
+
+        # Reload as list rows and verify no header.
+        result = CsvLoader.load_rows(file_path)
+        assert len(result) == 1
+        assert result[0] == ['Alice', '30']

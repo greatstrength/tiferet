@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.interfaces.core import ServiceError
 from tiferet.utils.file import FILE_NOT_FOUND_ID, INVALID_FILE_ID
 from tiferet.utils.yaml import (
@@ -106,254 +107,278 @@ def temp_empty_yaml_file(tmp_path) -> Path:
     # Return the file path.
     return file_path
 
-# *** tests
+# *** testers
 
-# ** test: yaml_loader_load_success
-def test_yaml_loader_load_success(temp_yaml_file: Path, sample_yaml_dict: dict):
-    '''
-    Test successful loading and parsing of a YAML file.
+# ** tester: test_yaml_loader
+@use_tester(
+    type='generic',
+    target_cls=YamlLoader,
+)
+class TestYamlLoader:
+    '''YamlLoader binder coverage via GenericTesterContext.'''
 
-    :param temp_yaml_file: The path to the temporary YAML file.
-    :type temp_yaml_file: pathlib.Path
-    :param sample_yaml_dict: The expected parsed dict.
-    :type sample_yaml_dict: dict
-    '''
+    # * test: load_success
+    def test_load_success(
+            self,
+            test_ctx,
+            temp_yaml_file: Path,
+            sample_yaml_dict: dict,
+        ) -> None:
+        '''
+        Test successful loading and parsing of a YAML file.
 
-    # Load the YAML file.
-    loader = YamlLoader(path=temp_yaml_file, mode='r')
-    result = loader.load()
+        :param temp_yaml_file: The path to the temporary YAML file.
+        :type temp_yaml_file: pathlib.Path
+        :param sample_yaml_dict: The expected parsed dict.
+        :type sample_yaml_dict: dict
+        '''
 
-    # Verify the result matches the expected dict.
-    assert result == sample_yaml_dict
+        # Load the YAML file.
+        loader = test_ctx.make_target(data={'path': temp_yaml_file, 'mode': 'r'})
+        result = loader.load()
 
-# ** test: yaml_loader_load_yml_extension
-def test_yaml_loader_load_yml_extension(temp_yml_file: Path, sample_yaml_dict: dict):
-    '''
-    Test successful loading of a .yml file.
+        # Verify the result matches the expected dict.
+        assert result == sample_yaml_dict
 
-    :param temp_yml_file: The path to the temporary .yml file.
-    :type temp_yml_file: pathlib.Path
-    :param sample_yaml_dict: The expected parsed dict.
-    :type sample_yaml_dict: dict
-    '''
+    # * test: load_yml_extension
+    def test_load_yml_extension(
+            self,
+            test_ctx,
+            temp_yml_file: Path,
+            sample_yaml_dict: dict,
+        ) -> None:
+        '''
+        Test successful loading of a .yml file.
 
-    # Load the .yml file.
-    loader = YamlLoader(path=temp_yml_file, mode='r')
-    result = loader.load()
+        :param temp_yml_file: The path to the temporary .yml file.
+        :type temp_yml_file: pathlib.Path
+        :param sample_yaml_dict: The expected parsed dict.
+        :type sample_yaml_dict: dict
+        '''
 
-    # Verify the result matches the expected dict.
-    assert result == sample_yaml_dict
+        # Load the .yml file.
+        loader = test_ctx.make_target(data={'path': temp_yml_file, 'mode': 'r'})
+        result = loader.load()
 
-# ** test: yaml_loader_load_with_transformations
-def test_yaml_loader_load_with_transformations(temp_yaml_file: Path):
-    '''
-    Test load() with start_node and data_factory transformations.
+        # Verify the result matches the expected dict.
+        assert result == sample_yaml_dict
 
-    :param temp_yaml_file: The path to the temporary YAML file.
-    :type temp_yaml_file: pathlib.Path
-    '''
+    # * test: load_with_transformations
+    def test_load_with_transformations(self, test_ctx, temp_yaml_file: Path) -> None:
+        '''
+        Test load() with start_node and data_factory transformations.
 
-    # Load using start_node to extract items and data_factory to get the count.
-    loader = YamlLoader(path=temp_yaml_file, mode='r')
-    result = loader.load(
-        start_node=lambda d: d['items'],
-        data_factory=lambda items: len(items),
-    )
+        :param temp_yaml_file: The path to the temporary YAML file.
+        :type temp_yaml_file: pathlib.Path
+        '''
 
-    # Verify the transformation chain produced the expected result.
-    assert result == 2
+        # Load using start_node to extract items and data_factory to get the count.
+        loader = test_ctx.make_target(data={'path': temp_yaml_file, 'mode': 'r'})
+        result = loader.load(
+            start_node=lambda d: d['items'],
+            data_factory=lambda items: len(items),
+        )
 
-# ** test: yaml_loader_load_empty_file
-def test_yaml_loader_load_empty_file(temp_empty_yaml_file: Path):
-    '''
-    Test that loading an empty YAML file returns an empty dict.
+        # Verify the transformation chain produced the expected result.
+        assert result == 2
 
-    :param temp_empty_yaml_file: The path to the empty YAML file.
-    :type temp_empty_yaml_file: pathlib.Path
-    '''
+    # * test: load_empty_file
+    def test_load_empty_file(self, test_ctx, temp_empty_yaml_file: Path) -> None:
+        '''
+        Test that loading an empty YAML file returns an empty dict.
 
-    # Load the empty YAML file.
-    loader = YamlLoader(path=temp_empty_yaml_file, mode='r')
-    result = loader.load()
+        :param temp_empty_yaml_file: The path to the empty YAML file.
+        :type temp_empty_yaml_file: pathlib.Path
+        '''
 
-    # Verify empty YAML returns an empty dict.
-    assert result == {}
+        # Load the empty YAML file.
+        loader = test_ctx.make_target(data={'path': temp_empty_yaml_file, 'mode': 'r'})
+        result = loader.load()
 
-# ** test: yaml_loader_save_and_reload
-def test_yaml_loader_save_and_reload(tmp_path):
-    '''
-    Test round-trip: save data to YAML then load it back.
+        # Verify empty YAML returns an empty dict.
+        assert result == {}
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: save_and_reload
+    def test_save_and_reload(self, test_ctx, tmp_path) -> None:
+        '''
+        Test round-trip: save data to YAML then load it back.
 
-    # Define the file path and data to save.
-    file_path = tmp_path / 'output.yaml'
-    data = {'key': 'value', 'numbers': [1, 2, 3]}
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Save the data to a YAML file.
-    saver = YamlLoader(path=file_path, mode='w')
-    saver.save(data)
+        # Define the file path and data to save.
+        file_path = tmp_path / 'output.yaml'
+        data = {'key': 'value', 'numbers': [1, 2, 3]}
 
-    # Reload the saved file.
-    loader = YamlLoader(path=file_path, mode='r')
-    result = loader.load()
+        # Save the data to a YAML file.
+        saver = test_ctx.make_target(data={'path': file_path, 'mode': 'w'})
+        saver.save(data)
 
-    # Verify round-trip produces the same data.
-    assert result == data
+        # Reload the saved file.
+        loader = test_ctx.make_target(data={'path': file_path, 'mode': 'r'})
+        result = loader.load()
 
-# ** test: yaml_loader_load_file_not_found
-def test_yaml_loader_load_file_not_found(tmp_path):
-    '''
-    Test that loading a non-existent YAML file raises a structured error.
+        # Verify round-trip produces the same data.
+        assert result == data
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: load_file_not_found
+    def test_load_file_not_found(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that loading a non-existent YAML file raises a structured error.
 
-    # Create a loader pointing to a non-existent file.
-    loader = YamlLoader(path=tmp_path / 'missing.yaml', mode='r')
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Attempt to load; expect FILE_NOT_FOUND error from FileLoader.
-    with pytest.raises(ServiceError) as exc_info:
-        loader.load()
+        # Create a loader pointing to a non-existent file.
+        loader = test_ctx.make_target(
+            data={'path': tmp_path / 'missing.yaml', 'mode': 'r'},
+        )
 
-    # Verify the error code.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+        # Attempt to load; expect FILE_NOT_FOUND error from FileLoader.
+        with pytest.raises(ServiceError) as exc_info:
+            loader.load()
 
-# ** test: yaml_loader_load_malformed_yaml
-def test_yaml_loader_load_malformed_yaml(tmp_path):
-    '''
-    Test that loading malformed YAML raises YAML_FILE_LOAD_ERROR.
+        # Verify the error code.
+        assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: load_malformed_yaml
+    def test_load_malformed_yaml(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that loading malformed YAML raises YAML_FILE_LOAD_ERROR.
 
-    # Write malformed YAML content.
-    file_path = tmp_path / 'bad.yaml'
-    file_path.write_text('key: [unclosed bracket', encoding='utf-8')
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Attempt to load the malformed YAML.
-    loader = YamlLoader(path=file_path, mode='r')
-    with pytest.raises(ServiceError) as exc_info:
-        loader.load()
+        # Write malformed YAML content.
+        file_path = tmp_path / 'bad.yaml'
+        file_path.write_text('key: [unclosed bracket', encoding='utf-8')
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == YAML_FILE_LOAD_ERROR_ID
-    assert 'path' in exc_info.value.kwargs
+        # Attempt to load the malformed YAML.
+        loader = test_ctx.make_target(data={'path': file_path, 'mode': 'r'})
+        with pytest.raises(ServiceError) as exc_info:
+            loader.load()
 
-# ** test: yaml_loader_save_write_failure
-def test_yaml_loader_save_write_failure(tmp_path):
-    '''
-    Test that a write failure raises YAML_FILE_SAVE_ERROR.
+        # Verify the error code and kwargs.
+        assert exc_info.value.error_code == YAML_FILE_LOAD_ERROR_ID
+        assert 'path' in exc_info.value.kwargs
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+    # * test: save_write_failure
+    def test_save_write_failure(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that a write failure raises YAML_FILE_SAVE_ERROR.
 
-    # Point to a path within a non-existent parent directory.
-    file_path = tmp_path / 'nonexistent_dir' / 'output.yaml'
-    saver = YamlLoader(path=file_path, mode='w')
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    # Attempt to save; expect an error due to missing parent directory.
-    with pytest.raises(ServiceError) as exc_info:
-        saver.save({'key': 'value'})
+        # Point to a path within a non-existent parent directory.
+        file_path = tmp_path / 'nonexistent_dir' / 'output.yaml'
+        saver = test_ctx.make_target(data={'path': file_path, 'mode': 'w'})
 
-    # Verify the error code (FILE_NOT_FOUND propagates from FileLoader).
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+        # Attempt to save; expect an error due to missing parent directory.
+        with pytest.raises(ServiceError) as exc_info:
+            saver.save({'key': 'value'})
 
-# ** test: yaml_loader_verify_yaml_file_success
-def test_yaml_loader_verify_yaml_file_success(temp_yaml_file: Path):
-    '''
-    Test that verify_yaml_file succeeds for a valid, existing YAML file.
+        # Verify the error code (FILE_NOT_FOUND propagates from FileLoader).
+        assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 
-    :param temp_yaml_file: The path to the temporary YAML file.
-    :type temp_yaml_file: pathlib.Path
-    '''
+    # * test: verify_yaml_file_success
+    def test_verify_yaml_file_success(self, test_ctx, temp_yaml_file: Path) -> None:
+        '''
+        Test that verify_yaml_file succeeds for a valid, existing YAML file.
 
-    # Create a loader and verify — should not raise.
-    loader = YamlLoader(path=temp_yaml_file, mode='r')
-    YamlLoader.verify_yaml_file(loader)
+        :param temp_yaml_file: The path to the temporary YAML file.
+        :type temp_yaml_file: pathlib.Path
+        '''
 
-# ** test: yaml_loader_verify_yaml_file_invalid_extension
-def test_yaml_loader_verify_yaml_file_invalid_extension(tmp_path):
-    '''
-    Test that verify_yaml_file raises INVALID_FILE for non-YAML extension.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Create a file with a .txt extension.
-    file_path = tmp_path / 'data.txt'
-    file_path.write_text('key: value', encoding='utf-8')
-
-    # Verify raises INVALID_FILE error.
-    loader = YamlLoader(path=file_path, mode='r')
-    with pytest.raises(ServiceError) as exc_info:
+        # Create a loader and verify — should not raise.
+        loader = test_ctx.make_target(data={'path': temp_yaml_file, 'mode': 'r'})
         YamlLoader.verify_yaml_file(loader)
 
-    # Verify the error code.
-    assert exc_info.value.error_code == INVALID_FILE_ID
+    # * test: verify_yaml_file_invalid_extension
+    def test_verify_yaml_file_invalid_extension(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that verify_yaml_file raises INVALID_FILE for non-YAML extension.
 
-# ** test: yaml_loader_verify_yaml_file_fallback
-def test_yaml_loader_verify_yaml_file_fallback(tmp_path):
-    '''
-    Test that verify_yaml_file falls back to default_path when primary has invalid extension.
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+        # Create a file with a .txt extension.
+        file_path = tmp_path / 'data.txt'
+        file_path.write_text('key: value', encoding='utf-8')
 
-    # Create the fallback YAML file.
-    fallback_path = tmp_path / 'fallback.yaml'
-    fallback_path.write_text('key: value', encoding='utf-8')
+        # Verify raises INVALID_FILE error.
+        loader = test_ctx.make_target(data={'path': file_path, 'mode': 'r'})
+        with pytest.raises(ServiceError) as exc_info:
+            YamlLoader.verify_yaml_file(loader)
 
-    # Create a loader with a non-YAML extension.
-    loader = YamlLoader(path=tmp_path / 'data.txt', mode='r')
+        # Verify the error code.
+        assert exc_info.value.error_code == INVALID_FILE_ID
 
-    # Verify succeeds using the fallback path.
-    YamlLoader.verify_yaml_file(loader, default_path=fallback_path)
+    # * test: verify_yaml_file_fallback
+    def test_verify_yaml_file_fallback(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that verify_yaml_file falls back to default_path when primary has invalid extension.
 
-# ** test: yaml_loader_verify_yaml_file_not_found
-def test_yaml_loader_verify_yaml_file_not_found(tmp_path):
-    '''
-    Test that verify_yaml_file raises YAML_FILE_NOT_FOUND for a missing YAML file.
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+        # Create the fallback YAML file.
+        fallback_path = tmp_path / 'fallback.yaml'
+        fallback_path.write_text('key: value', encoding='utf-8')
 
-    # Create a loader pointing to a non-existent YAML file.
-    loader = YamlLoader(path=tmp_path / 'missing.yaml', mode='r')
+        # Create a loader with a non-YAML extension.
+        loader = test_ctx.make_target(
+            data={'path': tmp_path / 'data.txt', 'mode': 'r'},
+        )
 
-    # Verify raises YAML_FILE_NOT_FOUND error.
-    with pytest.raises(ServiceError) as exc_info:
-        YamlLoader.verify_yaml_file(loader)
+        # Verify succeeds using the fallback path.
+        YamlLoader.verify_yaml_file(loader, default_path=fallback_path)
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == YAML_FILE_NOT_FOUND_ID
-    assert 'missing.yaml' in exc_info.value.kwargs.get('path', '')
+    # * test: verify_yaml_file_not_found
+    def test_verify_yaml_file_not_found(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that verify_yaml_file raises YAML_FILE_NOT_FOUND for a missing YAML file.
 
-# ** test: yaml_loader_context_manager_closes_on_error
-def test_yaml_loader_context_manager_closes_on_error(tmp_path):
-    '''
-    Test that the file stream is closed even when a parse error occurs.
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
+        # Create a loader pointing to a non-existent YAML file.
+        loader = test_ctx.make_target(
+            data={'path': tmp_path / 'missing.yaml', 'mode': 'r'},
+        )
 
-    # Write malformed YAML content.
-    file_path = tmp_path / 'broken.yaml'
-    file_path.write_text(': :\n  - [invalid', encoding='utf-8')
+        # Verify raises YAML_FILE_NOT_FOUND error.
+        with pytest.raises(ServiceError) as exc_info:
+            YamlLoader.verify_yaml_file(loader)
 
-    # Attempt to load, which should raise.
-    loader = YamlLoader(path=file_path, mode='r')
-    with pytest.raises(ServiceError):
-        loader.load()
+        # Verify the error code and kwargs.
+        assert exc_info.value.error_code == YAML_FILE_NOT_FOUND_ID
+        assert 'missing.yaml' in exc_info.value.kwargs.get('path', '')
 
-    # Verify the file stream is closed after the error.
-    assert loader.file is None
+    # * test: context_manager_closes_on_error
+    def test_context_manager_closes_on_error(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that the file stream is closed even when a parse error occurs.
+
+        :param tmp_path: The temporary directory path provided by pytest.
+        :type tmp_path: pathlib.Path
+        '''
+
+        # Write malformed YAML content.
+        file_path = tmp_path / 'broken.yaml'
+        file_path.write_text(': :\n  - [invalid', encoding='utf-8')
+
+        # Attempt to load, which should raise.
+        loader = test_ctx.make_target(data={'path': file_path, 'mode': 'r'})
+        with pytest.raises(ServiceError):
+            loader.load()
+
+        # Verify the file stream is closed after the error.
+        assert loader.file is None
