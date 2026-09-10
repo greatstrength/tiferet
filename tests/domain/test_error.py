@@ -2,142 +2,117 @@
 
 # *** imports
 
-# ** infra
-import pytest
-
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain.error import (
     Error,
     ErrorMessage,
 )
 
-# *** fixtures
+# *** constants
 
-# ** fixture: error_message
-@pytest.fixture
-def error_message() -> ErrorMessage:
-    '''
-    Fixture for a basic ErrorMessage instance.
+# ** constant: error_message_sample_data
+ERROR_MESSAGE_SAMPLE_DATA = {
+    'lang': 'en_US',
+    'text': 'An error occurred.',
+}
 
-    :return: The ErrorMessage instance.
-    :rtype: ErrorMessage
-    '''
+# ** constant: formatted_error_message_sample_data
+FORMATTED_ERROR_MESSAGE_SAMPLE_DATA = {
+    'lang': 'en_US',
+    'text': 'An error occurred: {error}',
+}
 
-    # Create and return a new ErrorMessage.
-    return ErrorMessage(lang='en_US', text='An error occurred.')
+# ** constant: error_sample_data
+ERROR_SAMPLE_DATA = {
+    'id': 'TEST_ERROR',
+    'name': 'Test Error',
+    'message': [ERROR_MESSAGE_SAMPLE_DATA],
+}
 
-# ** fixture: formatted_error_message
-@pytest.fixture
-def formatted_error_message() -> ErrorMessage:
-    '''
-    Fixture for an ErrorMessage instance with a format placeholder.
+# ** constant: formatted_error_sample_data
+FORMATTED_ERROR_SAMPLE_DATA = {
+    'id': 'TEST_FORMATTED_ERROR',
+    'name': 'Test Formatted Error',
+    'message': [FORMATTED_ERROR_MESSAGE_SAMPLE_DATA],
+}
 
-    :return: The ErrorMessage instance.
-    :rtype: ErrorMessage
-    '''
+# *** testers
 
-    # Create and return a new ErrorMessage with a format placeholder.
-    return ErrorMessage(lang='en_US', text='An error occurred: {error}')
+# ** tester: test_error_message
+@use_tester(
+    type='domain',
+    target_cls=ErrorMessage,
+    sample_data=ERROR_MESSAGE_SAMPLE_DATA,
+    equality_fields=['lang', 'text'],
+    description_cases=[
+        ('format', (), 'An error occurred.'),
+    ],
+)
+class TestErrorMessage:
+    '''Tests for ErrorMessage construction and format.'''
 
-# ** fixture: error
-@pytest.fixture
-def error(error_message: ErrorMessage) -> Error:
-    '''
-    Fixture for an Error instance.
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify ErrorMessage construction against declared sample data.'''
 
-    :param error_message: The ErrorMessage fixture.
-    :type error_message: ErrorMessage
-    :return: The Error instance.
-    :rtype: Error
-    '''
+        test_ctx.assert_new()
 
-    # Create and return a new Error via direct construction.
-    return Error(
-        id='TEST_ERROR',
-        name='Test Error',
-        message=[error_message],
-    )
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify format() returns the raw text when called with no arguments.'''
 
-# ** fixture: error_with_formatted_message
-@pytest.fixture
-def error_with_formatted_message(formatted_error_message: ErrorMessage) -> Error:
-    '''
-    Fixture for an Error instance with a formatted message.
+        test_ctx.assert_description()
 
-    :param formatted_error_message: The formatted ErrorMessage fixture.
-    :type formatted_error_message: ErrorMessage
-    :return: The Error instance.
-    :rtype: Error
-    '''
+    # * test: format_with_kwargs
+    def test_format_with_kwargs(self, test_ctx) -> None:
+        '''Test that ErrorMessage.format() substitutes kwargs into the template.'''
 
-    # Create and return a new Error with a formatted message.
-    return Error(
-        id='TEST_FORMATTED_ERROR',
-        name='Test Formatted Error',
-        message=[formatted_error_message],
-    )
+        formatted_error_message = test_ctx.make_target(
+            data=FORMATTED_ERROR_MESSAGE_SAMPLE_DATA,
+        )
 
-# *** tests
+        assert formatted_error_message.format(error='test failure') == (
+            'An error occurred: test failure'
+        )
 
-# ** test: error_construction_derives_error_code
-def test_error_construction_derives_error_code(error: Error) -> None:
-    '''
-    Test that constructing an Error derives error_code from id via the model validator.
+# ** tester: test_error
+@use_tester(
+    type='domain',
+    target_cls=Error,
+    sample_data=ERROR_SAMPLE_DATA,
+    expected_data={
+        'id': 'TEST_ERROR',
+        'name': 'Test Error',
+        'error_code': 'TEST_ERROR',
+    },
+    equality_fields=['id', 'name', 'error_code'],
+    description_cases=[
+        ('format_message', ('en_US',), 'An error occurred.'),
+        ('format_message', ('fr_FR',), None),
+    ],
+)
+class TestError:
+    '''Tests for Error construction, derived error_code, and format_message.'''
 
-    :param error: The Error fixture.
-    :type error: Error
-    '''
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify Error construction derives error_code from id.'''
 
-    # Assert the error fields are set correctly.
-    assert error.id == 'TEST_ERROR'
-    assert error.name == 'Test Error'
-    assert error.error_code == 'TEST_ERROR'
-    assert len(error.message) == 1
-    assert error.message[0].lang == 'en_US'
-    assert error.message[0].text == 'An error occurred.'
+        test_ctx.assert_new()
 
-# ** test: error_message_format
-def test_error_message_format(error_message: ErrorMessage, formatted_error_message: ErrorMessage) -> None:
-    '''
-    Test that ErrorMessage.format() returns raw text with no args and formatted text with kwargs.
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify format_message for a matching language and an unsupported language.'''
 
-    :param error_message: The basic ErrorMessage fixture.
-    :type error_message: ErrorMessage
-    :param formatted_error_message: The formatted ErrorMessage fixture.
-    :type formatted_error_message: ErrorMessage
-    '''
+        test_ctx.assert_description()
 
-    # Assert raw text is returned with no arguments.
-    assert error_message.format() == 'An error occurred.'
+    # * test: format_message_with_kwargs
+    def test_format_message_with_kwargs(self, test_ctx) -> None:
+        '''Test that Error.format_message() substitutes kwargs into the template.'''
 
-    # Assert formatted text is returned with kwargs.
-    assert formatted_error_message.format(error='test failure') == 'An error occurred: test failure'
+        error = test_ctx.make_target(data=FORMATTED_ERROR_SAMPLE_DATA)
 
-# ** test: error_format_method
-def test_error_format_method(error: Error, error_with_formatted_message: Error) -> None:
-    '''
-    Test that Error.format_message() returns correct text with and without format arguments.
-
-    :param error: The Error fixture.
-    :type error: Error
-    :param error_with_formatted_message: The Error with formatted message fixture.
-    :type error_with_formatted_message: Error
-    '''
-
-    # Assert plain message formatting.
-    assert error.format_message('en_US') == 'An error occurred.'
-
-    # Assert formatted message with kwargs.
-    assert error_with_formatted_message.format_message('en_US', error='test failure') == 'An error occurred: test failure'
-
-# ** test: error_format_method_unsupported_lang
-def test_error_format_method_unsupported_lang(error: Error) -> None:
-    '''
-    Test that Error.format_message() returns None for an unsupported language.
-
-    :param error: The Error fixture.
-    :type error: Error
-    '''
-
-    # Assert None is returned for unsupported language.
-    assert error.format_message('fr_FR') is None
+        assert error.format_message('en_US', error='test failure') == (
+            'An error occurred: test failure'
+        )

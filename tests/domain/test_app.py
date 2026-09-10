@@ -2,87 +2,83 @@
 
 # *** imports
 
-# ** infra
-import pytest
-
 # ** app
-from tiferet.domain.core import DomainObject
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain.app import (
     AppSession,
     AppServiceDependency,
 )
 
-# *** fixtures
+# *** constants
 
-# ** fixture: app_dependency
-@pytest.fixture
-def app_dependency() -> AppServiceDependency:
-    '''
-    Fixture for an AppServiceDependency instance.
+# ** constant: app_service_dependency_sample_data
+APP_SERVICE_DEPENDENCY_SAMPLE_DATA = {
+    'service_id': 'test_service',
+    'module_path': 'test_module_path',
+    'class_name': 'test_class_name',
+    'parameters': {'param1': 'value1', 'param2': 'value2'},
+}
 
-    :return: The AppServiceDependency instance.
-    :rtype: AppServiceDependency
-    '''
+# ** constant: app_session_sample_data
+APP_SESSION_SAMPLE_DATA = {
+    'id': 'test',
+    'name': 'Test App',
+    'description': 'The test app.',
+    'flags': ['test'],
+    'services': [APP_SERVICE_DEPENDENCY_SAMPLE_DATA],
+}
 
-    # Create and return a new AppServiceDependency.
-    return AppServiceDependency(service_id='test_service',
-        module_path='test_module_path',
-        class_name='test_class_name',
-        parameters={'param1': 'value1', 'param2': 'value2'},
-    )
+# *** testers
 
-# ** fixture: app_interface
-@pytest.fixture
-def app_interface(app_dependency: AppServiceDependency) -> AppSession:
-    '''
-    Fixture for an AppSession instance.
+# ** tester: test_app_service_dependency
+@use_tester(
+    type='domain',
+    target_cls=AppServiceDependency,
+    sample_data=APP_SERVICE_DEPENDENCY_SAMPLE_DATA,
+    equality_fields=['service_id', 'module_path', 'class_name', 'parameters'],
+)
+class TestAppServiceDependency:
+    '''Tests for AppServiceDependency construction.'''
 
-    :param app_dependency: The AppServiceDependency fixture.
-    :type app_dependency: AppServiceDependency
-    :return: The AppSession instance.
-    :rtype: AppSession
-    '''
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify AppServiceDependency construction against declared sample data.'''
 
-    # Create and return a new AppSession.
-    return AppSession(id='test',
-        name='Test App',
-        description='The test app.',
-        flags=['test'],
-        services=[app_dependency],
-    )
+        test_ctx.assert_new()
 
-# *** tests
+# ** tester: test_app_session
+@use_tester(
+    type='domain',
+    target_cls=AppSession,
+    sample_data=APP_SESSION_SAMPLE_DATA,
+    equality_fields=['id', 'name', 'description', 'flags'],
+    description_cases=[
+        ('get_service', ('invalid',), None),
+    ],
+)
+class TestAppSession:
+    '''Tests for AppSession construction and service lookup.'''
 
-# ** test: app_interface_get_service
-def test_app_interface_get_service(app_interface: AppSession) -> None:
-    '''
-    Test successful retrieval of a service dependency by service id.
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify AppSession construction against declared sample data.'''
 
-    :param app_interface: The AppSession fixture.
-    :type app_interface: AppSession
-    '''
+        test_ctx.assert_new()
 
-    # Retrieve the service dependency by service id.
-    service = app_interface.get_service('test_service')
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify get_service returns None for an unknown service id.'''
 
-    # Assert the service dependency fields match.
-    assert service.module_path == 'test_module_path'
-    assert service.class_name == 'test_class_name'
-    assert service.service_id == 'test_service'
-    assert service.parameters == {'param1': 'value1', 'param2': 'value2'}
+        test_ctx.assert_description()
 
-# ** test: app_interface_get_service_invalid
-def test_app_interface_get_service_invalid(app_interface: AppSession) -> None:
-    '''
-    Test that get_service returns None for an invalid service id.
+    # * test: get_service
+    def test_get_service(self, test_ctx) -> None:
+        '''Test successful retrieval of a service dependency by service id.'''
 
-    :param app_interface: The AppSession fixture.
-    :type app_interface: AppSession
-    '''
+        app_interface = test_ctx.make_target()
+        service = app_interface.get_service('test_service')
 
-    # Attempt to retrieve a non-existent service dependency.
-    service = app_interface.get_service('invalid')
-
-    # Assert None is returned.
-    assert service is None
-
+        assert service.module_path == 'test_module_path'
+        assert service.class_name == 'test_class_name'
+        assert service.service_id == 'test_service'
+        assert service.parameters == {'param1': 'value1', 'param2': 'value2'}

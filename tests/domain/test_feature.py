@@ -7,485 +7,387 @@ import pytest
 from pydantic import ValidationError
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain.feature import (
     Feature,
-    FeatureStep,
     EventFeatureStep,
     ParameterSpecification,
     RequestSpecification,
 )
 
-# *** fixtures
-
-# ** fixture: feature
-@pytest.fixture
-def feature() -> Feature:
-    '''
-    Fixture for a basic Feature instance.
-
-    :return: The Feature instance.
-    :rtype: Feature
-    '''
-
-    # Create and return a new Feature.
-    return Feature(
-        id='test_group.test_feature',
-        name='Test Feature',
-        group_id='test_group',
-        feature_key='test_feature',
-        description='Test Feature',
-        steps=[],
-    )
-
-# *** tests
-
-# ** test: feature_step_type_defaults_to_event
-def test_feature_step_type_defaults_to_event() -> None:
-    '''
-    Test that EventFeatureStep defaults type to 'event' and preserves it through round-trip serialization.
-    '''
-
-    # Create an EventFeatureStep with minimal required fields.
-    event = EventFeatureStep(
-        name='Test Event',
-        service_id='test_event_service',
-    )
-
-    # Assert type defaults to 'event'.
-    assert event.type == 'event'
-
-    # Serialize via model_dump() and reload.
-    primitive = event.model_dump()
-    reloaded = EventFeatureStep(**primitive)
-
-    # Assert type is preserved through round-trip.
-    assert reloaded.type == 'event'
-
-# ** test: event_feature_step_flags_creation_and_round_trip
-def test_event_feature_step_flags_creation_and_round_trip() -> None:
-    '''
-    Test that EventFeatureStep flags are set correctly and preserved through round-trip serialization.
-    '''
-
-    # Create an EventFeatureStep with flags.
-    event = EventFeatureStep(
-        name='Flagged Event',
-        service_id='flagged_event_service',
-        flags=['flag1', 'flag2'],
-    )
-
-    # Assert flags are set correctly.
-    assert event.flags == ['flag1', 'flag2']
-
-    # Serialize via model_dump() and reload.
-    primitive = event.model_dump()
-    reloaded = EventFeatureStep(**primitive)
-
-    # Assert flags are preserved through round-trip.
-    assert reloaded.flags == ['flag1', 'flag2']
-
-# ** test: feature_derive_keys_from_dotted_id
-def test_feature_derive_keys_from_dotted_id() -> None:
-    '''
-    Test that Feature auto-derives group_id and feature_key from a dotted id.
-    '''
-
-    # Create a Feature with only id and name.
-    feature = Feature(id='calc.add', name='Add')
-
-    # Assert group_id and feature_key are derived.
-    assert feature.group_id == 'calc'
-    assert feature.feature_key == 'add'
-    assert feature.description == 'Add'
-
-# ** test: feature_derive_keys_from_group_and_name
-def test_feature_derive_keys_from_group_and_name() -> None:
-    '''
-    Test that Feature auto-derives feature_key and id from group_id and name.
-    '''
-
-    # Create a Feature with group_id and name only.
-    feature = Feature(group_id='calc', name='Add Number')
-
-    # Assert feature_key is snake-cased from name, and id is composed.
-    assert feature.feature_key == 'add_number'
-    assert feature.id == 'calc.add_number'
-    assert feature.description == 'Add Number'
-
-# ** test: feature_derive_keys_description_defaults_to_name
-def test_feature_derive_keys_description_defaults_to_name() -> None:
-    '''
-    Test that description defaults to name when not provided.
-    '''
-
-    # Create a Feature without description.
-    feature = Feature(id='calc.add', name='Add')
-
-    # Assert description equals name.
-    assert feature.description == 'Add'
-
-# ** test: feature_derive_keys_explicit_description_preserved
-def test_feature_derive_keys_explicit_description_preserved() -> None:
-    '''
-    Test that an explicit description is not overwritten by the validator.
-    '''
-
-    # Create a Feature with an explicit description.
-    feature = Feature(id='calc.add', name='Add', description='Custom description')
-
-    # Assert the explicit description is preserved.
-    assert feature.description == 'Custom description'
-
-# ** test: event_feature_step_condition_defaults_to_none
-def test_event_feature_step_condition_defaults_to_none() -> None:
-    '''
-    Test that EventFeatureStep condition defaults to None when not provided.
-    '''
-
-    # Create an EventFeatureStep without condition.
-    event = EventFeatureStep(
-        name='Test Event',
-        service_id='test_event_service',
-    )
-
-    # Assert condition defaults to None.
-    assert event.condition is None
-
-# ** test: event_feature_step_condition_preserves_value
-def test_event_feature_step_condition_preserves_value() -> None:
-    '''
-    Test that EventFeatureStep condition is preserved through construction and round-trip.
-    '''
-
-    # Create an EventFeatureStep with a condition.
-    event = EventFeatureStep(
-        name='Conditional Event',
-        service_id='conditional_event_service',
-        condition='$r.x > 0',
-    )
-
-    # Assert condition is set correctly.
-    assert event.condition == '$r.x > 0'
-
-    # Serialize via model_dump() and reload.
-    primitive = event.model_dump()
-    reloaded = EventFeatureStep(**primitive)
-
-    # Assert condition is preserved through round-trip.
-    assert reloaded.condition == '$r.x > 0'
-
-# ** test: feature_event_middleware_defaults_to_empty
-def test_feature_event_middleware_defaults_to_empty() -> None:
-    '''
-    Test that EventFeatureStep middleware defaults to an empty list.
-    '''
-
-    # Create a EventFeatureStep without middleware.
-    event = EventFeatureStep(
-        name='Test Event',
-        service_id='test_event_service',
-    )
-
-    # Assert middleware defaults to empty list.
-    assert event.middleware == []
-
-# ** test: feature_event_middleware_preserves_value
-def test_feature_event_middleware_preserves_value() -> None:
-    '''
-    Test that EventFeatureStep middleware is preserved through construction and round-trip.
-    '''
-
-    # Create a EventFeatureStep with middleware.
-    event = EventFeatureStep(
-        name='Middleware Event',
-        service_id='middleware_event_service',
-        middleware=['timing_middleware', 'audit_middleware'],
-    )
-
-    # Assert middleware is set correctly.
-    assert event.middleware == ['timing_middleware', 'audit_middleware']
-
-    # Serialize via model_dump() and reload.
-    primitive = event.model_dump()
-    reloaded = EventFeatureStep(**primitive)
-
-    # Assert middleware is preserved through round-trip.
-    assert reloaded.middleware == ['timing_middleware', 'audit_middleware']
-
-# ** test: feature_middleware_defaults_to_empty
-def test_feature_middleware_defaults_to_empty() -> None:
-    '''
-    Test that Feature middleware defaults to an empty list.
-    '''
-
-    # Create a Feature without middleware.
-    feature = Feature(id='calc.add', name='Add')
-
-    # Assert middleware defaults to empty list.
-    assert feature.middleware == []
-
-# ** test: feature_middleware_preserves_value
-def test_feature_middleware_preserves_value() -> None:
-    '''
-    Test that Feature middleware is preserved through construction and round-trip.
-    '''
-
-    # Create a Feature with middleware.
-    feature = Feature(
-        id='calc.add',
-        name='Add',
-        middleware=['timing_middleware'],
-    )
-
-    # Assert middleware is set correctly.
-    assert feature.middleware == ['timing_middleware']
-
-    # Serialize via model_dump() and reload.
-    primitive = feature.model_dump()
-    reloaded = Feature(**primitive)
-
-    # Assert middleware is preserved through round-trip.
-    assert reloaded.middleware == ['timing_middleware']
-
-# ** test: feature_is_async_defaults_to_false
-def test_feature_is_async_defaults_to_false() -> None:
-    '''
-    Test that Feature is_async defaults to False.
-    '''
-
-    # Create a Feature without is_async.
-    feature = Feature(id='calc.add', name='Add')
-
-    # Assert is_async defaults to False.
-    assert feature.is_async is False
-
-# ** test: feature_is_async_preserves_value
-def test_feature_is_async_preserves_value() -> None:
-    '''
-    Test that Feature is_async is preserved through construction and round-trip.
-    '''
-
-    # Create an async Feature.
-    feature = Feature(
-        id='calc.add',
-        name='Add',
-        is_async=True,
-    )
-
-    # Assert is_async is set correctly.
-    assert feature.is_async is True
-
-    # Serialize via model_dump() and reload.
-    primitive = feature.model_dump()
-    reloaded = Feature(**primitive)
-
-    # Assert is_async is preserved through round-trip.
-    assert reloaded.is_async is True
-
-# ** test: feature_get_step_valid_and_invalid_indices
-def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
-    '''
-    Test that Feature.get_step() returns the correct step for valid indices and None for invalid indices.
-
-    :param feature: The Feature fixture.
-    :type feature: Feature
-    '''
-
-    # Create two EventFeatureStep steps.
-    step_0 = EventFeatureStep(
-        name='Step Zero',
-        service_id='step_zero_service',
-    )
-    step_1 = EventFeatureStep(
-        name='Step One',
-        service_id='step_one_service',
-    )
-
-    # Add steps to the feature.
-    feature.steps = [step_0, step_1]
-
-    # Assert valid indices return correct steps.
-    assert feature.get_step(0).name == 'Step Zero'
-    assert feature.get_step(1).name == 'Step One'
-
-    # Assert out-of-range index returns None.
-    assert feature.get_step(2) is None
-
-    # Assert invalid type returns None.
-    assert feature.get_step('invalid') is None
-
-# ** test: parameter_specification_get_type_mapping
-def test_parameter_specification_get_type_mapping() -> None:
-    '''
-    Test that ParameterSpecification.get_type maps declared type strings to Python types.
-    '''
-
-    # Assert each supported type string maps to its Python type.
-    assert ParameterSpecification(name='a', type='str').get_type() is str
-    assert ParameterSpecification(name='a', type='int').get_type() is int
-    assert ParameterSpecification(name='a', type='float').get_type() is float
-    assert ParameterSpecification(name='a', type='bool').get_type() is bool
-    assert ParameterSpecification(name='a', type='list').get_type() is list
-    assert ParameterSpecification(name='a', type='dict').get_type() is dict
-
-# ** test: parameter_specification_field_definition_required
-def test_parameter_specification_field_definition_required() -> None:
-    '''
-    Test that a required parameter produces a required field definition.
-    '''
-
-    # Build the field definition for a required parameter.
-    annotation, field = ParameterSpecification(name='a', type='int').field_definition()
-
-    # Assert the annotation and requiredness.
-    assert annotation is int
-    assert field.is_required()
-
-# ** test: parameter_specification_field_definition_optional_with_default
-def test_parameter_specification_field_definition_optional_with_default() -> None:
-    '''
-    Test that an optional parameter with a default is not required and carries the default.
-    '''
-
-    # Build the field definition for an optional parameter with a default.
-    spec = ParameterSpecification(name='b', type='float', required=False, default=1.0)
-    _annotation, field = spec.field_definition()
-
-    # Assert the field is optional with the configured default.
-    assert not field.is_required()
-    assert field.default == 1.0
-
-# ** test: request_specification_normalizes_shorthand
-def test_request_specification_normalizes_shorthand() -> None:
-    '''
-    Test that the shorthand keyed form expands to a required parameter.
-    '''
-
-    # Normalize a shorthand keyed mapping.
-    spec = RequestSpecification.model_validate({'a': 'int'})
-
-    # Assert the expanded parameter is required.
-    assert len(spec.parameters) == 1
-    assert spec.parameters[0].name == 'a'
-    assert spec.parameters[0].type == 'int'
-    assert spec.parameters[0].required is True
-
-# ** test: request_specification_normalizes_expanded
-def test_request_specification_normalizes_expanded() -> None:
-    '''
-    Test that the expanded keyed form preserves constraints and defaults.
-    '''
-
-    # Normalize an expanded keyed mapping.
-    spec = RequestSpecification.model_validate(
-        {'b': {'type': 'float', 'required': False, 'default': 1.0, 'minimum': 0}}
-    )
-    param = spec.parameters[0]
-
-    # Assert the parameter constraints are preserved.
-    assert param.name == 'b'
-    assert param.type == 'float'
-    assert param.required is False
-    assert param.default == 1.0
-    assert param.minimum == 0.0
-
-# ** test: request_specification_coerce_coerces_and_preserves_extra
-def test_request_specification_coerce_coerces_and_preserves_extra() -> None:
-    '''
-    Test that coerce coerces typed fields, applies defaults, and preserves extra keys.
-    '''
-
-    # Coerce a payload against a schema with a defaulted optional field.
-    spec = RequestSpecification.model_validate(
-        {'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}}
-    )
-    result = spec.coerce({'a': '5', 'extra': 'keep'})
-
-    # Assert coercion, default application, and extra-key preservation.
-    assert result['a'] == 5
-    assert isinstance(result['a'], int)
-    assert result['b'] == 1.0
-    assert result['extra'] == 'keep'
-
-# ** test: request_specification_coerce_missing_required_raises
-def test_request_specification_coerce_missing_required_raises() -> None:
-    '''
-    Test that missing required parameters raise the pydantic ValidationError
-    untouched, leaving the framework vocabulary to the orchestration layer.
-    '''
-
-    # Coerce an empty payload against a required schema.
-    spec = RequestSpecification.model_validate({'a': 'int'})
-    with pytest.raises(ValidationError) as exc_info:
-        spec.coerce({})
-
-    # Assert the single field violation is reported by pydantic itself.
-    assert len(exc_info.value.errors()) == 1
-
-# ** test: request_specification_coerce_aggregates_multiple_errors
-def test_request_specification_coerce_aggregates_multiple_errors() -> None:
-    '''
-    Test that multiple validation failures are aggregated into one error.
-    '''
-
-    # Coerce a payload that fails two fields.
-    spec = RequestSpecification.model_validate({'a': 'int', 'b': 'int'})
-    with pytest.raises(ValidationError) as exc_info:
-        spec.coerce({'a': 'x', 'b': 'y'})
-
-    # Assert both violations are aggregated into the single raised error.
-    assert len(exc_info.value.errors()) == 2
-
-# ** test: request_specification_coerce_choices
-def test_request_specification_coerce_choices() -> None:
-    '''
-    Test that choices restrict values via a Literal annotation.
-    '''
-
-    # Coerce a payload constrained by choices.
-    spec = RequestSpecification.model_validate(
-        {'mode': {'type': 'str', 'choices': ['add', 'sub']}}
-    )
-
-    # Assert a valid choice passes and an invalid choice fails.
-    assert spec.coerce({'mode': 'add'})['mode'] == 'add'
-    with pytest.raises(ValidationError):
-        spec.coerce({'mode': 'bad'})
-
-# ** test: request_specification_is_satisfied_by
-def test_request_specification_is_satisfied_by() -> None:
-    '''
-    Test the convenience is_satisfied_by predicate.
-    '''
-
-    # Build a simple required schema.
-    spec = RequestSpecification.model_validate({'a': 'int'})
-
-    # Assert satisfied and unsatisfied payloads.
-    assert spec.is_satisfied_by({'a': 3}) is True
-    assert spec.is_satisfied_by({}) is False
-
-# ** test: feature_params_schema_defaults_to_none
-def test_feature_params_schema_defaults_to_none() -> None:
-    '''
-    Test that Feature.params_schema defaults to None.
-    '''
-
-    # Create a Feature without a params schema.
-    feature = Feature(id='calc.add', name='Add')
-
-    # Assert the schema defaults to None.
-    assert feature.params_schema is None
-
-# ** test: feature_params_schema_construction
-def test_feature_params_schema_construction() -> None:
-    '''
-    Test that Feature.params_schema is built from keyed config.
-    '''
-
-    # Create a Feature with a keyed params schema.
-    feature = Feature(id='calc.add', name='Add', params_schema={'a': 'int', 'b': 'int'})
-
-    # Assert the schema parsed into a RequestSpecification.
-    assert isinstance(feature.params_schema, RequestSpecification)
-    assert [p.name for p in feature.params_schema.parameters] == ['a', 'b']
+# *** constants
+
+# ** constant: feature_sample_data
+FEATURE_SAMPLE_DATA = {
+    'id': 'calc.add',
+    'name': 'Add',
+}
+
+# ** constant: event_feature_step_sample_data
+EVENT_FEATURE_STEP_SAMPLE_DATA = {
+    'name': 'Test Event',
+    'service_id': 'test_event_service',
+}
+
+# ** constant: parameter_specification_sample_data
+PARAMETER_SPECIFICATION_SAMPLE_DATA = {
+    'name': 'a',
+    'type': 'int',
+}
+
+# ** constant: request_specification_sample_data
+REQUEST_SPECIFICATION_SAMPLE_DATA = {
+    'parameters': [
+        {'name': 'a', 'type': 'int', 'required': True},
+    ],
+}
+
+# *** testers
+
+# ** tester: test_event_feature_step
+@use_tester(
+    type='domain',
+    target_cls=EventFeatureStep,
+    sample_data=EVENT_FEATURE_STEP_SAMPLE_DATA,
+    expected_data={
+        'name': 'Test Event',
+        'service_id': 'test_event_service',
+        'type': 'event',
+        'condition': None,
+        'middleware': [],
+        'flags': [],
+    },
+    equality_fields=['name', 'service_id', 'type', 'condition', 'middleware', 'flags'],
+)
+class TestEventFeatureStep:
+    '''Tests for EventFeatureStep construction, defaults, and round-trip.'''
+
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify EventFeatureStep defaults type, condition, middleware, and flags.'''
+
+        test_ctx.assert_new()
+
+    # * test: flags_creation_and_round_trip
+    def test_flags_creation_and_round_trip(self, test_ctx) -> None:
+        '''Test that flags are set correctly and preserved through round-trip serialization.'''
+
+        event = test_ctx.make_target(
+            data={
+                'name': 'Flagged Event',
+                'service_id': 'flagged_event_service',
+                'flags': ['flag1', 'flag2'],
+            },
+        )
+
+        assert event.flags == ['flag1', 'flag2']
+        reloaded = EventFeatureStep(**event.model_dump())
+        assert reloaded.flags == ['flag1', 'flag2']
+
+    # * test: type_round_trip
+    def test_type_round_trip(self, test_ctx) -> None:
+        '''Test that type is preserved through round-trip serialization.'''
+
+        event = test_ctx.make_target()
+        reloaded = EventFeatureStep(**event.model_dump())
+
+        assert reloaded.type == 'event'
+
+    # * test: condition_preserves_value
+    def test_condition_preserves_value(self, test_ctx) -> None:
+        '''Test that condition is preserved through construction and round-trip.'''
+
+        event = test_ctx.make_target(
+            data={
+                'name': 'Conditional Event',
+                'service_id': 'conditional_event_service',
+                'condition': '$r.x > 0',
+            },
+        )
+
+        assert event.condition == '$r.x > 0'
+        reloaded = EventFeatureStep(**event.model_dump())
+        assert reloaded.condition == '$r.x > 0'
+
+    # * test: middleware_preserves_value
+    def test_middleware_preserves_value(self, test_ctx) -> None:
+        '''Test that middleware is preserved through construction and round-trip.'''
+
+        event = test_ctx.make_target(
+            data={
+                'name': 'Middleware Event',
+                'service_id': 'middleware_event_service',
+                'middleware': ['timing_middleware', 'audit_middleware'],
+            },
+        )
+
+        assert event.middleware == ['timing_middleware', 'audit_middleware']
+        reloaded = EventFeatureStep(**event.model_dump())
+        assert reloaded.middleware == ['timing_middleware', 'audit_middleware']
+
+# ** tester: test_feature
+@use_tester(
+    type='domain',
+    target_cls=Feature,
+    sample_data=FEATURE_SAMPLE_DATA,
+    expected_data={
+        'id': 'calc.add',
+        'name': 'Add',
+        'group_id': 'calc',
+        'feature_key': 'add',
+        'description': 'Add',
+        'middleware': [],
+        'is_async': False,
+        'params_schema': None,
+    },
+    equality_fields=[
+        'id',
+        'name',
+        'group_id',
+        'feature_key',
+        'description',
+        'middleware',
+        'is_async',
+        'params_schema',
+    ],
+)
+class TestFeature:
+    '''Tests for Feature construction, derived keys, and step lookup.'''
+
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify Feature derives group_id, feature_key, and description from id and name.'''
+
+        test_ctx.assert_new()
+
+    # * test: derive_keys_from_group_and_name
+    def test_derive_keys_from_group_and_name(self, test_ctx) -> None:
+        '''Test that Feature auto-derives feature_key and id from group_id and name.'''
+
+        feature = test_ctx.make_target(data={'group_id': 'calc', 'name': 'Add Number'})
+
+        assert feature.feature_key == 'add_number'
+        assert feature.id == 'calc.add_number'
+        assert feature.description == 'Add Number'
+
+    # * test: explicit_description_preserved
+    def test_explicit_description_preserved(self, test_ctx) -> None:
+        '''Test that an explicit description is not overwritten by the validator.'''
+
+        feature = test_ctx.make_target(
+            data={'id': 'calc.add', 'name': 'Add', 'description': 'Custom description'},
+        )
+
+        assert feature.description == 'Custom description'
+
+    # * test: middleware_preserves_value
+    def test_middleware_preserves_value(self, test_ctx) -> None:
+        '''Test that Feature middleware is preserved through construction and round-trip.'''
+
+        feature = test_ctx.make_target(
+            data={'id': 'calc.add', 'name': 'Add', 'middleware': ['timing_middleware']},
+        )
+
+        assert feature.middleware == ['timing_middleware']
+        reloaded = Feature(**feature.model_dump())
+        assert reloaded.middleware == ['timing_middleware']
+
+    # * test: is_async_preserves_value
+    def test_is_async_preserves_value(self, test_ctx) -> None:
+        '''Test that Feature is_async is preserved through construction and round-trip.'''
+
+        feature = test_ctx.make_target(
+            data={'id': 'calc.add', 'name': 'Add', 'is_async': True},
+        )
+
+        assert feature.is_async is True
+        reloaded = Feature(**feature.model_dump())
+        assert reloaded.is_async is True
+
+    # * test: get_step_valid_and_invalid_indices
+    def test_get_step_valid_and_invalid_indices(self, test_ctx) -> None:
+        '''Test that get_step returns the correct step or None for invalid indices.'''
+
+        feature = test_ctx.make_target(
+            data={
+                'id': 'test_group.test_feature',
+                'name': 'Test Feature',
+                'group_id': 'test_group',
+                'feature_key': 'test_feature',
+                'description': 'Test Feature',
+                'steps': [],
+            },
+        )
+        step_0 = EventFeatureStep(name='Step Zero', service_id='step_zero_service')
+        step_1 = EventFeatureStep(name='Step One', service_id='step_one_service')
+        feature.steps = [step_0, step_1]
+
+        assert feature.get_step(0).name == 'Step Zero'
+        assert feature.get_step(1).name == 'Step One'
+        assert feature.get_step(2) is None
+        assert feature.get_step('invalid') is None
+
+    # * test: params_schema_construction
+    def test_params_schema_construction(self, test_ctx) -> None:
+        '''Test that Feature.params_schema is built from keyed config.'''
+
+        feature = test_ctx.make_target(
+            data={'id': 'calc.add', 'name': 'Add', 'params_schema': {'a': 'int', 'b': 'int'}},
+        )
+
+        assert isinstance(feature.params_schema, RequestSpecification)
+        assert [p.name for p in feature.params_schema.parameters] == ['a', 'b']
+
+# ** tester: test_parameter_specification
+@use_tester(
+    type='domain',
+    target_cls=ParameterSpecification,
+    sample_data=PARAMETER_SPECIFICATION_SAMPLE_DATA,
+    equality_fields=['name', 'type'],
+    description_cases=[
+        ('get_type', (), int),
+    ],
+)
+class TestParameterSpecification:
+    '''Tests for ParameterSpecification type mapping and field definitions.'''
+
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify ParameterSpecification construction against declared sample data.'''
+
+        test_ctx.assert_new()
+
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify get_type maps the declared type string.'''
+
+        test_ctx.assert_description()
+
+    # * test: get_type_mapping
+    def test_get_type_mapping(self, test_ctx) -> None:
+        '''Test that get_type maps declared type strings to Python types.'''
+
+        assert test_ctx.make_target(data={'name': 'a', 'type': 'str'}).get_type() is str
+        assert test_ctx.make_target(data={'name': 'a', 'type': 'int'}).get_type() is int
+        assert test_ctx.make_target(data={'name': 'a', 'type': 'float'}).get_type() is float
+        assert test_ctx.make_target(data={'name': 'a', 'type': 'bool'}).get_type() is bool
+        assert test_ctx.make_target(data={'name': 'a', 'type': 'list'}).get_type() is list
+        assert test_ctx.make_target(data={'name': 'a', 'type': 'dict'}).get_type() is dict
+
+    # * test: field_definition_required
+    def test_field_definition_required(self, test_ctx) -> None:
+        '''Test that a required parameter produces a required field definition.'''
+
+        annotation, field = test_ctx.make_target().field_definition()
+
+        assert annotation is int
+        assert field.is_required()
+
+    # * test: field_definition_optional_with_default
+    def test_field_definition_optional_with_default(self, test_ctx) -> None:
+        '''Test that an optional parameter with a default is not required.'''
+
+        spec = test_ctx.make_target(
+            data={'name': 'b', 'type': 'float', 'required': False, 'default': 1.0},
+        )
+        _annotation, field = spec.field_definition()
+
+        assert not field.is_required()
+        assert field.default == 1.0
+
+# ** tester: test_request_specification
+@use_tester(
+    type='domain',
+    target_cls=RequestSpecification,
+    sample_data=REQUEST_SPECIFICATION_SAMPLE_DATA,
+    equality_fields=[],
+)
+class TestRequestSpecification:
+    '''Tests for RequestSpecification normalization, coerce, and is_satisfied_by.'''
+
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify RequestSpecification construction from canonical parameters.'''
+
+        test_ctx.assert_new()
+
+    # * test: normalizes_shorthand
+    def test_normalizes_shorthand(self) -> None:
+        '''Test that the shorthand keyed form expands to a required parameter.'''
+
+        spec = RequestSpecification.model_validate({'a': 'int'})
+
+        assert len(spec.parameters) == 1
+        assert spec.parameters[0].name == 'a'
+        assert spec.parameters[0].type == 'int'
+        assert spec.parameters[0].required is True
+
+    # * test: normalizes_expanded
+    def test_normalizes_expanded(self) -> None:
+        '''Test that the expanded keyed form preserves constraints and defaults.'''
+
+        spec = RequestSpecification.model_validate(
+            {'b': {'type': 'float', 'required': False, 'default': 1.0, 'minimum': 0}},
+        )
+        param = spec.parameters[0]
+
+        assert param.name == 'b'
+        assert param.type == 'float'
+        assert param.required is False
+        assert param.default == 1.0
+        assert param.minimum == 0.0
+
+    # * test: coerce_coerces_and_preserves_extra
+    def test_coerce_coerces_and_preserves_extra(self) -> None:
+        '''Test that coerce coerces typed fields, applies defaults, and preserves extra keys.'''
+
+        spec = RequestSpecification.model_validate(
+            {'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+        )
+        result = spec.coerce({'a': '5', 'extra': 'keep'})
+
+        assert result['a'] == 5
+        assert isinstance(result['a'], int)
+        assert result['b'] == 1.0
+        assert result['extra'] == 'keep'
+
+    # * test: coerce_missing_required_raises
+    def test_coerce_missing_required_raises(self, test_ctx) -> None:
+        '''Test that missing required parameters raise the pydantic ValidationError.'''
+
+        spec = test_ctx.make_target()
+        with pytest.raises(ValidationError) as exc_info:
+            spec.coerce({})
+
+        assert len(exc_info.value.errors()) == 1
+
+    # * test: coerce_aggregates_multiple_errors
+    def test_coerce_aggregates_multiple_errors(self) -> None:
+        '''Test that multiple validation failures are aggregated into one error.'''
+
+        spec = RequestSpecification.model_validate({'a': 'int', 'b': 'int'})
+        with pytest.raises(ValidationError) as exc_info:
+            spec.coerce({'a': 'x', 'b': 'y'})
+
+        assert len(exc_info.value.errors()) == 2
+
+    # * test: coerce_choices
+    def test_coerce_choices(self) -> None:
+        '''Test that choices restrict values via a Literal annotation.'''
+
+        spec = RequestSpecification.model_validate(
+            {'mode': {'type': 'str', 'choices': ['add', 'sub']}},
+        )
+
+        assert spec.coerce({'mode': 'add'})['mode'] == 'add'
+        with pytest.raises(ValidationError):
+            spec.coerce({'mode': 'bad'})
+
+    # * test: is_satisfied_by
+    def test_is_satisfied_by(self, test_ctx) -> None:
+        '''Test the convenience is_satisfied_by predicate.'''
+
+        spec = test_ctx.make_target()
+
+        assert spec.is_satisfied_by({'a': 3}) is True
+        assert spec.is_satisfied_by({}) is False

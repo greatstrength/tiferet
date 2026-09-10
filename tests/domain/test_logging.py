@@ -2,11 +2,8 @@
 
 # *** imports
 
-# ** infra
-import pytest
-
 # ** app
-from tiferet.domain.core import DomainObject
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain.logging import (
     Formatter,
     Handler,
@@ -14,273 +11,258 @@ from tiferet.domain.logging import (
     LoggingSettings,
 )
 
-# *** fixtures
+# *** constants
 
-# ** fixture: formatter
-@pytest.fixture
-def formatter() -> Formatter:
-    '''
-    Fixture for a full Formatter instance with datefmt.
+# ** constant: formatter_sample_data
+FORMATTER_SAMPLE_DATA = {
+    'id': 'simple',
+    'name': 'Simple Formatter',
+    'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    'datefmt': '%Y-%m-%d %H:%M:%S',
+}
 
-    :return: The Formatter instance.
-    :rtype: Formatter
-    '''
+# ** constant: handler_sample_data
+HANDLER_SAMPLE_DATA = {
+    'id': 'console',
+    'name': 'Console Handler',
+    'module_path': 'logging',
+    'class_name': 'StreamHandler',
+    'level': 'INFO',
+    'formatter': 'simple',
+    'stream': 'ext://sys.stdout',
+}
 
-    # Create and return a new Formatter.
-    return Formatter(id='simple',
-        name='Simple Formatter',
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-    )
+# ** constant: logger_sample_data
+LOGGER_SAMPLE_DATA = {
+    'id': 'app',
+    'name': 'App Logger',
+    'level': 'DEBUG',
+    'handlers': ['console'],
+    'propagate': True,
+}
 
-# ** fixture: handler
-@pytest.fixture
-def handler() -> Handler:
-    '''
-    Fixture for a Handler with stream set.
+# ** constant: root_logger_sample_data
+ROOT_LOGGER_SAMPLE_DATA = {
+    'id': 'root',
+    'name': 'Root Logger',
+    'level': 'WARNING',
+    'handlers': [],
+    'propagate': False,
+    'is_root': True,
+}
 
-    :return: The Handler instance.
-    :rtype: Handler
-    '''
+# *** testers
 
-    # Create and return a new Handler.
-    return Handler(id='console',
-        name='Console Handler',
-        module_path='logging',
-        class_name='StreamHandler',
-        level='INFO',
-        formatter='simple',
-        stream='ext://sys.stdout',
-    )
+# ** tester: test_formatter
+@use_tester(
+    type='domain',
+    target_cls=Formatter,
+    sample_data=FORMATTER_SAMPLE_DATA,
+    equality_fields=['id', 'name', 'format', 'datefmt'],
+    description_cases=[
+        (
+            'format_config',
+            (),
+            {
+                'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
+            },
+        ),
+    ],
+)
+class TestFormatter:
+    '''Tests for Formatter construction and format_config.'''
 
-# ** fixture: handler_no_optional
-@pytest.fixture
-def handler_no_optional() -> Handler:
-    '''
-    Fixture for a Handler without stream or filename set.
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify Formatter construction against declared sample data.'''
 
-    :return: The Handler instance.
-    :rtype: Handler
-    '''
+        test_ctx.assert_new()
 
-    # Create and return a new Handler without optional attributes.
-    return Handler(id='bare',
-        name='Bare Handler',
-        module_path='logging',
-        class_name='StreamHandler',
-        level='DEBUG',
-        formatter='simple',
-    )
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify format_config includes format and datefmt.'''
 
-# ** fixture: logger
-@pytest.fixture
-def logger() -> Logger:
-    '''
-    Fixture for a Logger with handlers and propagate=True.
+        test_ctx.assert_description()
 
-    :return: The Logger instance.
-    :rtype: Logger
-    '''
+    # * test: format_config_no_datefmt
+    def test_format_config_no_datefmt(self, test_ctx) -> None:
+        '''Test that format_config returns datefmt as None when not set.'''
 
-    # Create and return a new Logger.
-    return Logger(id='app',
-        name='App Logger',
-        level='DEBUG',
-        handlers=['console'],
-        propagate=True,
-    )
+        formatter = test_ctx.make_target(
+            data={'id': 'minimal', 'name': 'Minimal Formatter', 'format': '%(message)s'},
+        )
+        config = formatter.format_config()
 
-# ** fixture: logger_empty_handlers
-@pytest.fixture
-def logger_empty_handlers() -> Logger:
-    '''
-    Fixture for a Logger with empty handlers, propagate=False, and is_root=True.
+        assert config['format'] == '%(message)s'
+        assert config['datefmt'] is None
 
-    :return: The Logger instance.
-    :rtype: Logger
-    '''
+# ** tester: test_handler
+@use_tester(
+    type='domain',
+    target_cls=Handler,
+    sample_data=HANDLER_SAMPLE_DATA,
+    equality_fields=['id', 'name', 'module_path', 'class_name', 'level', 'formatter', 'stream'],
+    description_cases=[
+        (
+            'format_config',
+            (),
+            {
+                'class': 'logging.StreamHandler',
+                'level': 'INFO',
+                'formatter': 'simple',
+                'stream': 'ext://sys.stdout',
+            },
+        ),
+    ],
+)
+class TestHandler:
+    '''Tests for Handler construction and format_config.'''
 
-    # Create and return a new Logger with empty handlers.
-    return Logger(id='root',
-        name='Root Logger',
-        level='WARNING',
-        handlers=[],
-        propagate=False,
-        is_root=True,
-    )
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify Handler construction against declared sample data.'''
 
-# *** tests
+        test_ctx.assert_new()
 
-# ** test: formatter_format_config_success
-def test_formatter_format_config_success(formatter: Formatter) -> None:
-    '''
-    Test that Formatter.format_config() returns a dict with format and datefmt.
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify format_config includes class, level, formatter, and stream.'''
 
-    :param formatter: The Formatter fixture.
-    :type formatter: Formatter
-    '''
+        test_ctx.assert_description()
 
-    # Get the formatter configuration.
-    config = formatter.format_config()
+    # * test: format_config_no_optional
+    def test_format_config_no_optional(self, test_ctx) -> None:
+        '''Test that format_config omits stream and filename when not set.'''
 
-    # Assert the configuration contains the expected keys and values.
-    assert config['format'] == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
+        handler = test_ctx.make_target(
+            data={
+                'id': 'bare',
+                'name': 'Bare Handler',
+                'module_path': 'logging',
+                'class_name': 'StreamHandler',
+                'level': 'DEBUG',
+                'formatter': 'simple',
+            },
+        )
+        config = handler.format_config()
 
-# ** test: formatter_format_config_no_datefmt
-def test_formatter_format_config_no_datefmt() -> None:
-    '''
-    Test that Formatter.format_config() returns datefmt as None when not set.
-    '''
+        assert 'stream' not in config
+        assert 'filename' not in config
+        assert config['class'] == 'logging.StreamHandler'
+        assert config['level'] == 'DEBUG'
+        assert config['formatter'] == 'simple'
 
-    # Create a Formatter without datefmt.
-    formatter = Formatter(id='minimal',
-        name='Minimal Formatter',
-        format='%(message)s',
-    )
+# ** tester: test_logger
+@use_tester(
+    type='domain',
+    target_cls=Logger,
+    sample_data=LOGGER_SAMPLE_DATA,
+    equality_fields=['id', 'name', 'level', 'handlers', 'propagate'],
+    description_cases=[
+        (
+            'format_config',
+            (),
+            {
+                'level': 'DEBUG',
+                'handlers': ['console'],
+                'propagate': True,
+            },
+        ),
+    ],
+)
+class TestLogger:
+    '''Tests for Logger construction and format_config.'''
 
-    # Get the formatter configuration.
-    config = formatter.format_config()
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify Logger construction against declared sample data.'''
 
-    # Assert datefmt is None.
-    assert config['format'] == '%(message)s'
-    assert config['datefmt'] is None
+        test_ctx.assert_new()
 
-# ** test: handler_format_config_success
-def test_handler_format_config_success(handler: Handler) -> None:
-    '''
-    Test that Handler.format_config() returns a dict with class, level, formatter, and stream.
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify format_config includes level, handlers, and propagate.'''
 
-    :param handler: The Handler fixture.
-    :type handler: Handler
-    '''
+        test_ctx.assert_description()
 
-    # Get the handler configuration.
-    config = handler.format_config()
+    # * test: format_config_empty_handlers
+    def test_format_config_empty_handlers(self, test_ctx) -> None:
+        '''Test that format_config returns handlers as [] and propagate as False.'''
 
-    # Assert the configuration contains the expected keys and values.
-    assert config['class'] == 'logging.StreamHandler'
-    assert config['level'] == 'INFO'
-    assert config['formatter'] == 'simple'
-    assert config['stream'] == 'ext://sys.stdout'
-    assert 'filename' not in config
+        logger = test_ctx.make_target(data=ROOT_LOGGER_SAMPLE_DATA)
+        config = logger.format_config()
 
-# ** test: handler_format_config_no_optional
-def test_handler_format_config_no_optional(handler_no_optional: Handler) -> None:
-    '''
-    Test that Handler.format_config() omits stream and filename when not set.
+        assert config['handlers'] == []
+        assert config['propagate'] is False
+        assert config['level'] == 'WARNING'
 
-    :param handler_no_optional: The Handler fixture without optional attributes.
-    :type handler_no_optional: Handler
-    '''
+# ** tester: test_logging_settings
+@use_tester(
+    type='domain',
+    target_cls=LoggingSettings,
+    sample_data={},
+    equality_fields=['version', 'disable_existing_loggers'],
+    description_cases=[
+        (
+            'format_config',
+            (),
+            {
+                'version': 1,
+                'disable_existing_loggers': False,
+                'formatters': {},
+                'handlers': {},
+                'loggers': {},
+                'root': None,
+            },
+        ),
+    ],
+)
+class TestLoggingSettings:
+    '''Tests for LoggingSettings construction and dictConfig assembly.'''
 
-    # Get the handler configuration.
-    config = handler_no_optional.format_config()
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify LoggingSettings defaults.'''
 
-    # Assert optional attributes are not present.
-    assert 'stream' not in config
-    assert 'filename' not in config
+        test_ctx.assert_new()
 
-    # Assert required attributes are present.
-    assert config['class'] == 'logging.StreamHandler'
-    assert config['level'] == 'DEBUG'
-    assert config['formatter'] == 'simple'
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify format_config defaults to empty sections, version 1, and a None root.'''
 
-# ** test: logger_format_config_success
-def test_logger_format_config_success(logger: Logger) -> None:
-    '''
-    Test that Logger.format_config() returns a dict with level, handlers, and propagate.
+        test_ctx.assert_description()
 
-    :param logger: The Logger fixture.
-    :type logger: Logger
-    '''
+    # * test: format_config_assembles_sections
+    def test_format_config_assembles_sections(self, test_ctx) -> None:
+        '''Test that format_config assembles formatters, handlers, and the root entry.'''
 
-    # Get the logger configuration.
-    config = logger.format_config()
+        formatter = Formatter(**FORMATTER_SAMPLE_DATA)
+        handler = Handler(**HANDLER_SAMPLE_DATA)
+        root_logger = Logger(**ROOT_LOGGER_SAMPLE_DATA)
+        config = test_ctx.make_target(
+            data={
+                'formatters': [FORMATTER_SAMPLE_DATA],
+                'handlers': [HANDLER_SAMPLE_DATA],
+                'loggers': [ROOT_LOGGER_SAMPLE_DATA],
+            },
+        ).format_config()
 
-    # Assert the configuration contains the expected keys and values.
-    assert config['level'] == 'DEBUG'
-    assert config['handlers'] == ['console']
-    assert config['propagate'] is True
+        assert config['version'] == 1
+        assert config['disable_existing_loggers'] is False
+        assert config['formatters']['simple'] == formatter.format_config()
+        assert config['handlers']['console'] == handler.format_config()
+        assert config['root'] == root_logger.format_config()
+        assert 'root' not in config['loggers']
 
-# ** test: logger_format_config_empty_handlers
-def test_logger_format_config_empty_handlers(logger_empty_handlers: Logger) -> None:
-    '''
-    Test that Logger.format_config() returns handlers as [] and propagate as False.
+    # * test: format_config_non_root_logger
+    def test_format_config_non_root_logger(self, test_ctx) -> None:
+        '''Test that format_config keys non-root loggers under loggers and leaves root None.'''
 
-    :param logger_empty_handlers: The Logger fixture with empty handlers.
-    :type logger_empty_handlers: Logger
-    '''
+        logger = Logger(**LOGGER_SAMPLE_DATA)
+        config = test_ctx.make_target(
+            data={'loggers': [LOGGER_SAMPLE_DATA]},
+        ).format_config()
 
-    # Get the logger configuration.
-    config = logger_empty_handlers.format_config()
-
-    # Assert the configuration contains the expected keys and values.
-    assert config['handlers'] == []
-    assert config['propagate'] is False
-    assert config['level'] == 'WARNING'
-
-# ** test: logging_settings_format_config_assembles_sections
-def test_logging_settings_format_config_assembles_sections(formatter, handler, logger_empty_handlers) -> None:
-    '''
-    Test that LoggingSettings.format_config() assembles formatters, handlers, and
-    the root entry (from the is_root logger) into a dictConfig dictionary.
-
-    :param formatter: The Formatter fixture.
-    :type formatter: Formatter
-    :param handler: The Handler fixture.
-    :type handler: Handler
-    :param logger_empty_handlers: The root Logger fixture.
-    :type logger_empty_handlers: Logger
-    '''
-
-    # Assemble the configuration from the bundled value object.
-    config = LoggingSettings(
-        formatters=[formatter],
-        handlers=[handler],
-        loggers=[logger_empty_handlers],
-    ).format_config()
-
-    # Assert top-level shape and section membership.
-    assert config['version'] == 1
-    assert config['disable_existing_loggers'] is False
-    assert config['formatters']['simple'] == formatter.format_config()
-    assert config['handlers']['console'] == handler.format_config()
-    assert config['root'] == logger_empty_handlers.format_config()
-
-    # Assert the root logger is excluded from the keyed loggers section.
-    assert 'root' not in config['loggers']
-
-# ** test: logging_settings_format_config_non_root_logger
-def test_logging_settings_format_config_non_root_logger(logger) -> None:
-    '''
-    Test that LoggingSettings.format_config() keys non-root loggers under loggers
-    and leaves the root entry None.
-
-    :param logger: The non-root Logger fixture.
-    :type logger: Logger
-    '''
-
-    # Assemble the configuration with a single non-root logger.
-    config = LoggingSettings(loggers=[logger]).format_config()
-
-    # Assert the non-root logger is keyed under loggers and root is None.
-    assert config['loggers']['app'] == logger.format_config()
-    assert config['root'] is None
-
-# ** test: logging_settings_format_config_defaults
-def test_logging_settings_format_config_defaults() -> None:
-    '''
-    Test that LoggingSettings defaults to empty sections, version 1, and a None root.
-    '''
-
-    # Assemble the configuration from an empty value object.
-    config = LoggingSettings().format_config()
-
-    # Assert empty sections and default scalars.
-    assert config['version'] == 1
-    assert config['disable_existing_loggers'] is False
-    assert config['formatters'] == {}
-    assert config['handlers'] == {}
-    assert config['loggers'] == {}
-    assert config['root'] is None
+        assert config['loggers']['app'] == logger.format_config()
+        assert config['root'] is None

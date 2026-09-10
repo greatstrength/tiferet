@@ -2,11 +2,9 @@
 
 # *** imports
 
-# ** infra
-import pytest
-
 # ** app
-from tiferet.domain.core import DomainObject, ServiceDependency
+from tiferet.blueprints.tester import use_tester
+from tiferet.domain.core import ServiceDependency
 from tiferet.domain.di import (
     FlaggedDependency,
     ServiceRegistration,
@@ -38,298 +36,203 @@ class DummyDependencyBeta(DummyDependency):
 
     pass
 
-# *** fixtures
+# *** constants
 
-# ** fixture: flagged_dependency
-@pytest.fixture
-def flagged_dependency() -> FlaggedDependency:
-    '''
-    Fixture for a FlaggedDependency instance with flag test_alpha.
+# ** constant: flagged_dependency_sample_data
+FLAGGED_DEPENDENCY_SAMPLE_DATA = {
+    'flag': 'test_alpha',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependencyAlpha',
+    'parameters': {'test_param': 'test_value', 'param': 'value1'},
+}
 
-    :return: The FlaggedDependency instance.
-    :rtype: FlaggedDependency
-    '''
+# ** constant: flagged_dependency_beta_sample_data
+FLAGGED_DEPENDENCY_BETA_SAMPLE_DATA = {
+    'flag': 'test_beta',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependencyBeta',
+    'parameters': {'test_param': 'test_value', 'param': 'value2'},
+}
 
-    # Create and return a new FlaggedDependency.
-    return FlaggedDependency(flag='test_alpha',
-        module_path='tests.domain.test_di',
-        class_name='DummyDependencyAlpha',
-        parameters={'test_param': 'test_value', 'param': 'value1'},
-    )
+# ** constant: service_registration_sample_data
+SERVICE_REGISTRATION_SAMPLE_DATA = {
+    'id': 'test_service',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependency',
+    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
+}
 
-# ** fixture: flagged_dependency_to_add
-@pytest.fixture
-def flagged_dependency_to_add() -> FlaggedDependency:
-    '''
-    Fixture for a FlaggedDependency instance with flag test_beta.
+# ** constant: service_registration_no_default_sample_data
+SERVICE_REGISTRATION_NO_DEFAULT_SAMPLE_DATA = {
+    'id': 'test_service_no_default',
+    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
+}
 
-    :return: The FlaggedDependency instance.
-    :rtype: FlaggedDependency
-    '''
+# ** constant: service_registration_multi_sample_data
+SERVICE_REGISTRATION_MULTI_SAMPLE_DATA = {
+    'id': 'test_service_multi',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependency',
+    'dependencies': [
+        FLAGGED_DEPENDENCY_SAMPLE_DATA,
+        FLAGGED_DEPENDENCY_BETA_SAMPLE_DATA,
+    ],
+}
 
-    # Create and return a new FlaggedDependency.
-    return FlaggedDependency(flag='test_beta',
-        module_path='tests.domain.test_di',
-        class_name='DummyDependencyBeta',
-        parameters={'test_param': 'test_value', 'param': 'value2'},
-    )
+# *** testers
 
-# ** fixture: service_registration
-@pytest.fixture
-def service_registration(flagged_dependency: FlaggedDependency) -> ServiceRegistration:
-    '''
-    Fixture for a ServiceRegistration with a default type and one flagged override.
+# ** tester: test_flagged_dependency
+@use_tester(
+    type='domain',
+    target_cls=FlaggedDependency,
+    sample_data=FLAGGED_DEPENDENCY_SAMPLE_DATA,
+    equality_fields=['flag', 'module_path', 'class_name', 'parameters'],
+)
+class TestFlaggedDependency:
+    '''Tests for FlaggedDependency construction.'''
 
-    :param flagged_dependency: The FlaggedDependency fixture.
-    :type flagged_dependency: FlaggedDependency
-    :return: The ServiceRegistration instance.
-    :rtype: ServiceRegistration
-    '''
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify FlaggedDependency construction against declared sample data.'''
 
-    # Create and return a new ServiceRegistration.
-    return ServiceRegistration(id='test_service',
-        module_path='tests.domain.test_di',
-        class_name='DummyDependency',
-        dependencies=[flagged_dependency],
-    )
+        test_ctx.assert_new()
 
-# ** fixture: service_registration_no_default_type
-@pytest.fixture
-def service_registration_no_default_type(flagged_dependency: FlaggedDependency) -> ServiceRegistration:
-    '''
-    Fixture for a ServiceRegistration with no default type, only flagged overrides.
+# ** tester: test_service_registration
+@use_tester(
+    type='domain',
+    target_cls=ServiceRegistration,
+    sample_data=SERVICE_REGISTRATION_SAMPLE_DATA,
+    equality_fields=['id', 'module_path', 'class_name'],
+    description_cases=[
+        ('get_dependency', ('invalid',), None),
+    ],
+)
+class TestServiceRegistration:
+    '''Tests for ServiceRegistration construction, lookup, and type resolution.'''
 
-    :param flagged_dependency: The FlaggedDependency fixture.
-    :type flagged_dependency: FlaggedDependency
-    :return: The ServiceRegistration instance.
-    :rtype: ServiceRegistration
-    '''
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify ServiceRegistration construction against declared sample data.'''
 
-    # Create and return a new ServiceRegistration without default type.
-    return ServiceRegistration(id='test_service_no_default',
-        dependencies=[flagged_dependency],
-    )
+        test_ctx.assert_new()
 
-# ** fixture: service_registration_multiple_deps
-@pytest.fixture
-def service_registration_multiple_deps(
-        flagged_dependency: FlaggedDependency,
-        flagged_dependency_to_add: FlaggedDependency,
-    ) -> ServiceRegistration:
-    '''
-    Fixture for a ServiceRegistration with a default type and two flagged overrides.
+    # * test: description
+    def test_description(self, test_ctx) -> None:
+        '''Verify get_dependency returns None for an unknown flag.'''
 
-    :param flagged_dependency: The FlaggedDependency fixture (test_alpha).
-    :type flagged_dependency: FlaggedDependency
-    :param flagged_dependency_to_add: The FlaggedDependency fixture (test_beta).
-    :type flagged_dependency_to_add: FlaggedDependency
-    :return: The ServiceRegistration instance.
-    :rtype: ServiceRegistration
-    '''
+        test_ctx.assert_description()
 
-    # Create and return a new ServiceRegistration with multiple dependencies.
-    return ServiceRegistration(id='test_service_multi',
-        module_path='tests.domain.test_di',
-        class_name='DummyDependency',
-        dependencies=[flagged_dependency, flagged_dependency_to_add],
-    )
+    # * test: get_dependency
+    def test_get_dependency(self, test_ctx) -> None:
+        '''Test successful retrieval of a flagged dependency by flag.'''
 
-# *** tests
+        service_registration = test_ctx.make_target()
+        dep = service_registration.get_dependency('test_alpha')
 
-# ** test: service_registration_get_dependency
-def test_service_registration_get_dependency(service_registration: ServiceRegistration) -> None:
-    '''
-    Test successful retrieval of a flagged dependency by flag.
+        assert dep.flag == 'test_alpha'
+        assert dep.module_path == 'tests.domain.test_di'
+        assert dep.class_name == 'DummyDependencyAlpha'
+        assert dep.parameters == {'test_param': 'test_value', 'param': 'value1'}
 
-    :param service_registration: The ServiceRegistration fixture.
-    :type service_registration: ServiceRegistration
-    '''
+    # * test: get_dependency_multiple_flags
+    def test_get_dependency_multiple_flags(self, test_ctx) -> None:
+        '''Test priority order: first matching flag in the argument tuple wins.'''
 
-    # Retrieve the flagged dependency by flag.
-    dep = service_registration.get_dependency('test_alpha')
+        service_registration = test_ctx.make_target(
+            data=SERVICE_REGISTRATION_MULTI_SAMPLE_DATA,
+        )
 
-    # Assert the flagged dependency fields match.
-    assert dep.flag == 'test_alpha'
-    assert dep.module_path == 'tests.domain.test_di'
-    assert dep.class_name == 'DummyDependencyAlpha'
-    assert dep.parameters == {'test_param': 'test_value', 'param': 'value1'}
+        dep_alpha_first = service_registration.get_dependency('test_alpha', 'test_beta')
+        assert dep_alpha_first.flag == 'test_alpha'
+        assert dep_alpha_first.class_name == 'DummyDependencyAlpha'
 
-# ** test: service_registration_get_dependency_invalid
-def test_service_registration_get_dependency_invalid(service_registration: ServiceRegistration) -> None:
-    '''
-    Test that get_dependency returns None for an unknown flag.
+        dep_beta_first = service_registration.get_dependency('test_beta', 'test_alpha')
+        assert dep_beta_first.flag == 'test_beta'
+        assert dep_beta_first.class_name == 'DummyDependencyBeta'
 
-    :param service_registration: The ServiceRegistration fixture.
-    :type service_registration: ServiceRegistration
-    '''
+    # * test: get_service_type_default
+    def test_get_service_type_default(self, test_ctx) -> None:
+        '''Test that get_service_type returns the default type when no flags match.'''
 
-    # Attempt to retrieve a non-existent flagged dependency.
-    dep = service_registration.get_dependency('invalid')
+        resolved = test_ctx.make_target().get_service_type()
 
-    # Assert None is returned.
-    assert dep is None
+        assert resolved.__qualname__ == DummyDependency.__qualname__
 
-# ** test: service_registration_get_dependency_multiple_flags
-def test_service_registration_get_dependency_multiple_flags(
-        service_registration_multiple_deps: ServiceRegistration,
-    ) -> None:
-    '''
-    Test priority order: first matching flag in the argument tuple wins.
+    # * test: get_service_type_flagged
+    def test_get_service_type_flagged(self, test_ctx) -> None:
+        '''Test that get_service_type resolves the flagged type when a matching flag is provided.'''
 
-    :param service_registration_multiple_deps: The ServiceRegistration fixture with multiple dependencies.
-    :type service_registration_multiple_deps: ServiceRegistration
-    '''
+        resolved = test_ctx.make_target().get_service_type('test_alpha')
 
-    # Retrieve with test_alpha first — should return alpha.
-    dep_alpha_first = service_registration_multiple_deps.get_dependency('test_alpha', 'test_beta')
-    assert dep_alpha_first.flag == 'test_alpha'
-    assert dep_alpha_first.class_name == 'DummyDependencyAlpha'
+        assert resolved.__qualname__ == DummyDependencyAlpha.__qualname__
 
-    # Retrieve with test_beta first — should return beta.
-    dep_beta_first = service_registration_multiple_deps.get_dependency('test_beta', 'test_alpha')
-    assert dep_beta_first.flag == 'test_beta'
-    assert dep_beta_first.class_name == 'DummyDependencyBeta'
+    # * test: get_service_type_no_match
+    def test_get_service_type_no_match(self, test_ctx) -> None:
+        '''Test that get_service_type returns None when no flag matches and there is no default.'''
 
-# ** test: service_registration_get_service_type_default
-def test_service_registration_get_service_type_default(
-        service_registration: ServiceRegistration,
-    ) -> None:
-    '''
-    Test that get_service_type returns the default type when no flags match.
+        resolved = test_ctx.make_target(
+            data=SERVICE_REGISTRATION_NO_DEFAULT_SAMPLE_DATA,
+        ).get_service_type('unknown_flag')
 
-    :param service_registration: The ServiceRegistration fixture.
-    :type service_registration: ServiceRegistration
-    '''
+        assert resolved is None
 
-    # Resolve with no flags — should return the default DummyDependency.
-    resolved = service_registration.get_service_type()
+    # * test: get_service_type_flag_priority
+    def test_get_service_type_flag_priority(self, test_ctx) -> None:
+        '''Test that get_service_type respects flag priority order.'''
 
-    # Assert the default type is returned.
-    assert resolved.__qualname__ == DummyDependency.__qualname__
+        service_registration = test_ctx.make_target(
+            data=SERVICE_REGISTRATION_MULTI_SAMPLE_DATA,
+        )
 
-# ** test: service_registration_get_service_type_flagged
-def test_service_registration_get_service_type_flagged(
-        service_registration: ServiceRegistration,
-    ) -> None:
-    '''
-    Test that get_service_type resolves the flagged dependency type when a matching flag is provided.
+        resolved = service_registration.get_service_type('test_alpha', 'test_beta')
+        assert resolved.__qualname__ == DummyDependencyAlpha.__qualname__
 
-    :param service_registration: The ServiceRegistration fixture.
-    :type service_registration: ServiceRegistration
-    '''
+        resolved = service_registration.get_service_type('test_beta', 'test_alpha')
+        assert resolved.__qualname__ == DummyDependencyBeta.__qualname__
 
-    # Resolve with the test_alpha flag — should return DummyDependencyAlpha.
-    resolved = service_registration.get_service_type('test_alpha')
+    # * test: resolve_service_flagged
+    def test_resolve_service_flagged(self, test_ctx) -> None:
+        '''Test that resolve_service returns the flagged dependency's effective definition.'''
 
-    # Assert the flagged type takes priority over the default.
-    assert resolved.__qualname__ == DummyDependencyAlpha.__qualname__
+        dependency = test_ctx.make_target().resolve_service('test_alpha')
 
-# ** test: service_registration_get_service_type_no_match
-def test_service_registration_get_service_type_no_match(
-        service_registration_no_default_type: ServiceRegistration,
-    ) -> None:
-    '''
-    Test that get_service_type returns None when no flag matches and there is no default.
+        assert isinstance(dependency, ServiceDependency)
+        assert dependency.module_path == 'tests.domain.test_di'
+        assert dependency.class_name == 'DummyDependencyAlpha'
+        assert dependency.parameters == {'test_param': 'test_value', 'param': 'value1'}
 
-    :param service_registration_no_default_type: ServiceRegistration with no default type.
-    :type service_registration_no_default_type: ServiceRegistration
-    '''
+    # * test: resolve_service_default
+    def test_resolve_service_default(self, test_ctx) -> None:
+        '''Test that resolve_service falls back to the registration's default definition.'''
 
-    # Resolve with an unknown flag and no default — should return None.
-    resolved = service_registration_no_default_type.get_service_type('unknown_flag')
+        dependency = test_ctx.make_target().resolve_service()
 
-    # Assert None is returned.
-    assert resolved is None
+        assert isinstance(dependency, ServiceDependency)
+        assert dependency.module_path == 'tests.domain.test_di'
+        assert dependency.class_name == 'DummyDependency'
 
-# ** test: service_registration_get_service_type_flag_priority
-def test_service_registration_get_service_type_flag_priority(
-        service_registration_multiple_deps: ServiceRegistration,
-    ) -> None:
-    '''
-    Test that get_service_type respects flag priority order — first matching flag wins.
+    # * test: resolve_service_none
+    def test_resolve_service_none(self, test_ctx) -> None:
+        '''Test that resolve_service returns None when no flag matches and there is no default.'''
 
-    :param service_registration_multiple_deps: ServiceRegistration with two flagged overrides.
-    :type service_registration_multiple_deps: ServiceRegistration
-    '''
+        dependency = test_ctx.make_target(
+            data=SERVICE_REGISTRATION_NO_DEFAULT_SAMPLE_DATA,
+        ).resolve_service('unknown_flag')
 
-    # test_alpha first — should resolve alpha.
-    resolved = service_registration_multiple_deps.get_service_type('test_alpha', 'test_beta')
-    assert resolved.__qualname__ == DummyDependencyAlpha.__qualname__
+        assert dependency is None
 
-    # test_beta first — should resolve beta.
-    resolved = service_registration_multiple_deps.get_service_type('test_beta', 'test_alpha')
-    assert resolved.__qualname__ == DummyDependencyBeta.__qualname__
+    # * test: resolve_service_default_parameter_carry_through
+    def test_resolve_service_default_parameter_carry_through(self, test_ctx) -> None:
+        '''Test that resolve_service carries the registration's default parameters through.'''
 
-# ** test: service_registration_resolve_service_flagged
-def test_service_registration_resolve_service_flagged(
-        service_registration: ServiceRegistration,
-    ) -> None:
-    '''
-    Test that resolve_service returns the flagged dependency's effective definition.
+        registration = test_ctx.make_target(
+            data={
+                'id': 'param_service',
+                'module_path': 'tests.domain.test_di',
+                'class_name': 'DummyDependency',
+                'parameters': {'p': 'v'},
+            },
+        )
+        dependency = registration.resolve_service()
 
-    :param service_registration: The ServiceRegistration fixture.
-    :type service_registration: ServiceRegistration
-    '''
-
-    # Resolve the effective dependency under the matching flag.
-    dependency = service_registration.resolve_service('test_alpha')
-
-    # Assert it is a core ServiceDependency carrying the flagged type and parameters.
-    assert isinstance(dependency, ServiceDependency)
-    assert dependency.module_path == 'tests.domain.test_di'
-    assert dependency.class_name == 'DummyDependencyAlpha'
-    assert dependency.parameters == {'test_param': 'test_value', 'param': 'value1'}
-
-# ** test: service_registration_resolve_service_default
-def test_service_registration_resolve_service_default(
-        service_registration: ServiceRegistration,
-    ) -> None:
-    '''
-    Test that resolve_service falls back to the registration's default definition.
-
-    :param service_registration: The ServiceRegistration fixture.
-    :type service_registration: ServiceRegistration
-    '''
-
-    # Resolve with no flags — should fall back to the default definition.
-    dependency = service_registration.resolve_service()
-
-    # Assert the default type is returned as a core ServiceDependency.
-    assert isinstance(dependency, ServiceDependency)
-    assert dependency.module_path == 'tests.domain.test_di'
-    assert dependency.class_name == 'DummyDependency'
-
-# ** test: service_registration_resolve_service_none
-def test_service_registration_resolve_service_none(
-        service_registration_no_default_type: ServiceRegistration,
-    ) -> None:
-    '''
-    Test that resolve_service returns None when no flag matches and there is no default.
-
-    :param service_registration_no_default_type: ServiceRegistration with no default type.
-    :type service_registration_no_default_type: ServiceRegistration
-    '''
-
-    # Resolve with an unknown flag and no default — should return None.
-    dependency = service_registration_no_default_type.resolve_service('unknown_flag')
-
-    # Assert None is returned.
-    assert dependency is None
-
-# ** test: service_registration_resolve_service_default_parameter_carry_through
-def test_service_registration_resolve_service_default_parameter_carry_through() -> None:
-    '''
-    Test that resolve_service carries the registration's default parameters through.
-    '''
-
-    # Build a registration with default parameters.
-    registration = ServiceRegistration(
-        id='param_service',
-        module_path='tests.domain.test_di',
-        class_name='DummyDependency',
-        parameters={'p': 'v'},
-    )
-
-    # Resolve with no flags and assert the default parameters are preserved.
-    dependency = registration.resolve_service()
-    assert dependency.parameters == {'p': 'v'}
+        assert dependency.parameters == {'p': 'v'}

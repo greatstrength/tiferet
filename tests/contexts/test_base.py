@@ -7,79 +7,18 @@ import pytest
 
 # ** app
 from tiferet.assets import TiferetError
-from tiferet.contexts.core import BaseContext, ContextMeta, add_default_cache_items
-from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.feature import FeatureContext
-from tiferet.contexts.error import ErrorContext
+from tiferet.blueprints.tester import use_tester
 from tiferet.contexts.app import AppSessionContext
-from tiferet.domain import Feature, Error, AppSession
+from tiferet.contexts.cache import CacheContext
+from tiferet.contexts.core import BaseContext, ContextMeta, add_default_cache_items
+from tiferet.contexts.error import ErrorContext
+from tiferet.contexts.feature import FeatureContext
+from tiferet.contexts.request import RequestContext
+from tiferet.contexts.tester import TesterContext as _TesterContext
+from tiferet.domain import AppSession, Error, Feature, Request
+from tiferet.domain import TesterObject as _TesterObject
 
 # *** tests
-
-# ** test: context_meta_registers_domain_types
-def test_context_meta_registers_domain_types():
-    '''
-    Test that the metaclass registers contexts by their declared domain type.
-    '''
-
-    # Assert the known domain-to-context mappings are registered.
-    assert ContextMeta.registry.get(Feature) is FeatureContext
-    assert ContextMeta.registry.get(Error) is ErrorContext
-    assert ContextMeta.registry.get(AppSession) is AppSessionContext
-
-# ** test: base_context_not_registered
-def test_base_context_not_registered():
-    '''
-    Test that BaseContext itself is not registered (domain_type is None).
-    '''
-
-    # Assert no registry entry maps to BaseContext.
-    assert BaseContext not in ContextMeta.registry.values()
-
-# ** test: for_domain_success
-def test_for_domain_success():
-    '''
-    Test that for_domain resolves the registered context class for a domain type.
-    '''
-
-    # Assert the resolved class matches the registered context.
-    assert BaseContext.for_domain(Feature) is FeatureContext
-    assert BaseContext.for_domain(Error) is ErrorContext
-
-# ** test: for_domain_not_found
-def test_for_domain_not_found():
-    '''
-    Test that for_domain raises CONTEXT_NOT_FOUND for an unregistered domain type.
-    '''
-
-    # Define an unregistered domain-like type.
-    class Unregistered:
-        pass
-
-    # Assert that resolving an unregistered type raises a structured error.
-    with pytest.raises(TiferetError) as exc_info:
-        BaseContext.for_domain(Unregistered)
-
-    # Assert the error code and supplied kwarg.
-    assert exc_info.value.error_code == 'CONTEXT_NOT_FOUND'
-    assert exc_info.value.kwargs.get('domain_type') == 'Unregistered'
-
-# ** test: from_domain_binds_domain
-def test_from_domain_binds_domain():
-    '''
-    Test that from_domain resolves the context via the registry and binds the
-    domain object when called on BaseContext.
-    '''
-
-    # Build a sample error domain object.
-    error = Error(id='sample_error', name='Sample Error')
-
-    # Construct the context from the domain object.
-    context = BaseContext.from_domain(error)
-
-    # Assert the resolved context type and bound domain.
-    assert isinstance(context, ErrorContext)
-    assert context.domain is error
 
 # ** test: from_domain_explicit_subclass
 def test_from_domain_explicit_subclass():
@@ -204,3 +143,104 @@ def test_add_default_cache_items_isolates_by_prefix():
     assert cache.get('cli_config', 'app', 'constants') == 'config.yml'
     assert cache.get('cli_config', 'app', 'errors') is None
     assert cache.get('sample_error', 'app', 'constants') is None
+
+# *** testers
+
+# ** tester: test_error_context
+@use_tester(
+    type='context',
+    target_cls=ErrorContext,
+    domain_cls=Error,
+    sample_data={'id': 'sample_error', 'name': 'Sample Error'},
+    from_domain_cases=[
+        {
+            'data': {'id': 'sample_error', 'name': 'Sample Error'},
+        },
+    ],
+    domain_type_cases=[
+        {
+            'declares': True,
+        },
+    ],
+    for_domain_cases=[
+        {
+            'domain_module_path': Error.__module__,
+            'domain_class_name': Error.__name__,
+            'context_module_path': ErrorContext.__module__,
+            'context_class_name': ErrorContext.__name__,
+        },
+        {
+            'domain_module_path': Feature.__module__,
+            'domain_class_name': Feature.__name__,
+            'context_module_path': FeatureContext.__module__,
+            'context_class_name': FeatureContext.__name__,
+        },
+        {
+            'domain_module_path': AppSession.__module__,
+            'domain_class_name': AppSession.__name__,
+            'context_module_path': AppSessionContext.__module__,
+            'context_class_name': AppSessionContext.__name__,
+        },
+        {
+            'domain_module_path': _TesterObject.__module__,
+            'domain_class_name': _TesterObject.__name__,
+            'context_module_path': _TesterContext.__module__,
+            'context_class_name': _TesterContext.__name__,
+        },
+        {
+            'domain_module_path': Request.__module__,
+            'domain_class_name': Request.__name__,
+            'context_module_path': RequestContext.__module__,
+            'context_class_name': RequestContext.__name__,
+        },
+    ],
+)
+class TestErrorContext:
+    '''Prove ErrorContext from_domain identity bind and ContextMeta for_domain mapping.'''
+
+    # * test: from_domain
+    def test_from_domain(self, test_ctx) -> None:
+        '''Verify from_domain binds ctx.domain by identity.'''
+
+        test_ctx.assert_from_domain()
+
+    # * test: domain_type
+    def test_domain_type(self, test_ctx) -> None:
+        '''Verify ErrorContext declares domain_type as Error.'''
+
+        test_ctx.assert_domain_type()
+
+    # * test: for_domain
+    def test_for_domain(self, test_ctx) -> None:
+        '''Verify for_domain maps Error, Feature, AppSession, TesterObject, and Request.'''
+
+        test_ctx.assert_for_domain()
+
+    # * test: base_context_not_registered
+    def test_base_context_not_registered(self) -> None:
+        '''Test that BaseContext itself is not registered.'''
+
+        assert BaseContext not in ContextMeta.registry.values()
+
+    # * test: from_domain_via_base_context
+    def test_from_domain_via_base_context(self) -> None:
+        '''Test that BaseContext.from_domain resolves ErrorContext and binds the domain.'''
+
+        error = Error(id='sample_error', name='Sample Error')
+        context = BaseContext.from_domain(error)
+
+        assert isinstance(context, ErrorContext)
+        assert context.domain is error
+
+    # * test: for_domain_not_found
+    def test_for_domain_not_found(self) -> None:
+        '''Test that for_domain raises CONTEXT_NOT_FOUND for an unregistered domain type.'''
+
+        class Unregistered:
+            pass
+
+        with pytest.raises(TiferetError) as exc_info:
+            BaseContext.for_domain(Unregistered)
+
+        assert exc_info.value.error_code == 'CONTEXT_NOT_FOUND'
+        assert exc_info.value.kwargs.get('domain_type') == 'Unregistered'
