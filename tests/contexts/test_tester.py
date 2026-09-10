@@ -2,29 +2,31 @@
 
 # *** imports
 
+# ** core
+import inspect
+
 # ** infra
 import pytest
 
 # ** app
-from tiferet.assets import TiferetError
+from tiferet.blueprints.tester import build_test_session, build_tester_context, use_tester
+from tiferet.contexts.app import AppSessionContext
+from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import RequestContext
-from tiferet.blueprints.tester import build_tester_context, use_tester
 from tiferet.contexts.tester import (
     AggregateTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
     ServiceEventTesterContext,
-    TestRequestContext as _TestRequestContext,
-    TestSessionContext as _TestSessionContext,
-    TEST_PRESET_CACHE_PREFIX,
     TESTER_CACHE_PREFIX,
+    TEST_PRESET_CACHE_PREFIX,
+    TestSessionContext as _TestSessionContext,
     TesterContext,
     TransferObjectTesterContext,
     add_default_test_presets,
     add_default_testers,
 )
-from tiferet.contexts.cache import CacheContext
 from tiferet.domain import (
     Request,
     TesterObject,
@@ -37,6 +39,50 @@ from tiferet.mappers.error import (
     ErrorAggregate,
     ErrorConfigObject,
 )
+
+# *** constants
+
+# ** constant: error_message_sample_data
+ERROR_MESSAGE_SAMPLE_DATA = {
+    'lang': 'en_US',
+    'text': 'An error occurred.',
+}
+
+# *** functions
+
+# ** function: build_error_message_tester
+def _build_error_message_tester() -> TesterObject:
+    '''
+    Build a domain tester for ErrorMessage.
+
+    :return: The ErrorMessage tester domain object.
+    :rtype: TesterObject
+    '''
+
+    # Construct a reusable domain tester for session proofs.
+    return TesterObject(
+        type='domain',
+        id='domain.ErrorMessage',
+        module_path=ErrorMessage.__module__,
+        class_name=ErrorMessage.__name__,
+        sample_data=dict(ERROR_MESSAGE_SAMPLE_DATA),
+        equality_fields=['lang', 'text'],
+    )
+
+# *** fixtures
+
+# ** fixture: injection_marker
+@pytest.fixture
+def injection_marker() -> str:
+    '''
+    Provide a marker proving pytest fixtures still inject by name.
+
+    :return: The marker value.
+    :rtype: str
+    '''
+
+    # Return a distinct fixture value.
+    return 'marker'
 
 # *** tests
 
@@ -59,86 +105,101 @@ def test_tester_context_registry_and_omitted_domain_type() -> None:
     assert isinstance(BaseContext.from_domain(tester), TesterContext)
     assert isinstance(DomainTesterContext.from_domain(tester), DomainTesterContext)
 
-# ** test: test_request_context_preserves_request_context_registration
-def test_request_context_preserves_request_context_registration() -> None:
+# ** test: test_session_context_preserves_request_and_tester_registration
+def test_session_context_preserves_request_and_tester_registration() -> None:
     '''
-    Test that importing TestRequestContext does not replace RequestContext in
-    the domain-context registry.
+    Test that TestSessionContext omits domain_type and leaves Request and
+    TesterObject registrations unchanged.
     '''
 
-    # Assert the subclass does not redeclare a domain registration.
-    assert 'domain_type' not in _TestRequestContext.__dict__
-
-    # Assert Request retains its original registered context.
+    # Assert the session does not steal Request or TesterObject registration.
+    assert 'domain_type' not in _TestSessionContext.__dict__
     assert BaseContext.for_domain(Request) is RequestContext
+    assert BaseContext.for_domain(TesterObject) is TesterContext
 
-# ** test: test_request_context_given_merges_state_and_returns_self
-def test_request_context_given_merges_state_and_returns_self() -> None:
+    # Assert the session is a request, not an application hub.
+    assert issubclass(_TestSessionContext, RequestContext)
+    assert not issubclass(_TestSessionContext, AppSessionContext)
+
+# ** test: test_session_context_given_merges_state_and_returns_self
+def test_session_context_given_merges_state_and_returns_self() -> None:
     '''
     Test that given shallowly merges state, lets later values win, and supports
-    fluent chaining.
+    fluent chaining without mutating sample data.
     '''
 
-    # Create a test request and merge duplicate state keys.
-    context = _TestRequestContext()
-    returned_context = context.given(a=1).given(a=2)
+    # Bind a session to a domain tester and capture sample identity.
+    tester = _build_error_message_tester()
+    test_ctx = DomainTesterContext.from_domain(tester)
+    sample = test_ctx.domain.sample_data
+    session = build_test_session(test_ctx)
+    returned_session = session.given(a=1).given(a=2)
 
-    # Assert the original context was returned with the final shallow state.
-    assert returned_context is context
-    assert context.data == {'a': 2}
+    # Assert the original session was returned with the final shallow state.
+    assert returned_session is session
+    assert session.data == {'a': 2}
 
-# ** test: test_request_context_verify_normalizes_predicates_and_literals
-def test_request_context_verify_normalizes_predicates_and_literals() -> None:
+    # Assert given-state overlays the request, never the tester sample payload.
+    assert test_ctx.domain.sample_data is sample
+    assert 'a' not in sample
+    assert sample == ERROR_MESSAGE_SAMPLE_DATA
+
+# ** test: test_session_context_verify_normalizes_predicates_and_literals
+def test_session_context_verify_normalizes_predicates_and_literals() -> None:
     '''
     Test that verify queues exactly one Verification for callable and literal
-    expectations while returning the original fluent context.
+    expectations while returning the original fluent session.
     '''
 
-    # Queue a callable and literal expectation on one context.
-    context = _TestRequestContext()
+    # Queue a callable and literal expectation on one session.
+    session = build_test_session(DomainTesterContext.from_domain(
+        _build_error_message_tester(),
+    ))
     predicate = lambda outcome: outcome == 3
-    assert context.verify(predicate) is context
-    assert context.verify(3, message='literal outcome') is context
+    assert session.verify(predicate) is session
+    assert session.verify(3, message='literal outcome') is session
 
     # Assert both inputs have the unified Verification representation.
-    assert len(context.verifications) == 2
+    assert len(session.verifications) == 2
     assert all(
         isinstance(verification, Verification)
-        for verification in context.verifications
+        for verification in session.verifications
     )
-    assert context.verifications[0].predicate is predicate
-    assert context.verifications[0].source is predicate
-    assert context.verifications[1].source == 3
-    assert context.verifications[1].predicate(3)
+    assert session.verifications[0].predicate is predicate
+    assert session.verifications[0].source is predicate
+    assert session.verifications[1].source == 3
+    assert session.verifications[1].predicate(3)
 
-# ** test: test_request_context_evaluates_all_verifications_and_clears_queue
-def test_request_context_evaluates_all_verifications_and_clears_queue() -> None:
+# ** test: test_session_context_evaluates_all_verifications_and_clears_queue
+def test_session_context_evaluates_all_verifications_and_clears_queue() -> None:
     '''
     Test that verification failures aggregate once and the consumed queue is
     cleared on both failing and passing evaluation paths.
     '''
 
     # Queue two failing and one passing assertion against the shared outcome.
-    context = _TestRequestContext()
-    context.verify(lambda outcome: outcome == 1, message='first failure')
-    context.verify(lambda outcome: outcome == 3, message='second failure')
-    context.verify(lambda outcome: outcome == 2, message='passing check')
-    context.capture_outcome(2)
+    session = build_test_session(DomainTesterContext.from_domain(
+        _build_error_message_tester(),
+    ))
+    session.verify(lambda outcome: outcome == 1, message='first failure')
+    session.verify(lambda outcome: outcome == 3, message='second failure')
+    session.verify(lambda outcome: outcome == 2, message='passing check')
+    session.capture_outcome(2)
 
     # Assert all failures appear in one assertion and the queue is consumed.
     with pytest.raises(AssertionError) as exc_info:
-        context.evaluate_verifications()
+        session.evaluate_verifications()
     assert 'first failure' in str(exc_info.value)
     assert 'second failure' in str(exc_info.value)
-    assert len(context.verifications) == 0
+    assert len(session.verifications) == 0
 
     # Queue a passing assertion and assert successful evaluation also consumes it.
-    context.verify(2)
-    assert context.evaluate_verifications() is None
-    assert len(context.verifications) == 0
+    session.verify(2)
+    assert session.evaluate_verifications() is None
+    assert len(session.verifications) == 0
 
-# ** test: test_request_context_records_raised_predicates_and_continues
-def test_request_context_records_raised_predicates_and_continues() -> None:
+# ** test: test_session_context_records_raised_predicates_and_continues
+def test_session_context_records_raised_predicates_and_continues() -> None:
     '''
     Test that a raised predicate is recorded as a failure and does not stop a
     subsequent verification from running.
@@ -155,19 +216,21 @@ def test_request_context_records_raised_predicates_and_continues() -> None:
         return False
 
     # Queue both predicates and capture their shared outcome.
-    context = _TestRequestContext()
-    context.verify(raises_error, message='raised predicate')
-    context.verify(records_evaluation, message='continued predicate')
-    context.capture_outcome('outcome')
+    session = build_test_session(DomainTesterContext.from_domain(
+        _build_error_message_tester(),
+    ))
+    session.verify(raises_error, message='raised predicate')
+    session.verify(records_evaluation, message='continued predicate')
+    session.capture_outcome('outcome')
 
     # Assert both failures are reported and the later predicate was evaluated.
     with pytest.raises(AssertionError) as exc_info:
-        context.evaluate_verifications()
+        session.evaluate_verifications()
     assert 'raised predicate' in str(exc_info.value)
     assert 'predicate error' in str(exc_info.value)
     assert 'continued predicate' in str(exc_info.value)
     assert evaluated == ['outcome']
-    assert len(context.verifications) == 0
+    assert len(session.verifications) == 0
 
 # ** test: add_default_testers
 def test_add_default_testers_seeds_polymorphic_domain_objects() -> None:
@@ -214,61 +277,60 @@ def test_add_default_testers_seeds_polymorphic_domain_objects() -> None:
     assert aggregate_tester.id == 'aggregate.ErrorAggregate'
     assert aggregate_tester.type == 'aggregate'
 
-# ** test: test_session_context
-def test_session_context_runs_direct_event_and_clears_pending_state() -> None:
-    '''Test a direct event chain captures its result and clears its lifecycle.'''
+# ** test: add_default_test_presets
+def test_add_default_test_presets_seeds_raw_given_state() -> None:
+    '''Test named presets remain cache-seeded without a session hub.'''
 
-    # Define a self-contained direct event for the fluent session.
-    class AddEvent:
-        def __call__(self, a, b):
-            return a + b
-
-    # Compose a context with a specialized request factory.
-    context = _TestSessionContext.from_domain(
-        type('Session', (), {'id': 'tester'})(),
-        get_dependency=lambda *args: None,
-        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
-            session_id=session_id,
-            feature_id=feature_id,
-            headers=headers,
-            data=data,
-        ),
-    )
-
-    # Run a complete chain and verify its result and clean lifecycle.
-    result = context.given(a=1).invoke(event=AddEvent(), b=2).verify(3).run()
-    assert result == 3
-    assert context._pending_request is None
-
-# ** test: test_session_context_preset
-def test_session_context_merges_preset_and_rejects_missing_preset() -> None:
-    '''Test named presets merge state and unresolved names raise a domain error.'''
-
-    # Seed a test-session cache with one raw given-state preset.
+    # Seed a cache with one raw given-state preset.
     cache = add_default_test_presets({'sum': {'a': 1, 'b': 2}})(
         lambda: CacheContext(),
     )()
-    context = _TestSessionContext(
-        get_dependency=lambda *args: None,
-        cache=cache,
-        create_request_handler=lambda session_id, feature_id, headers, data: _TestRequestContext(
-            session_id=session_id,
-            feature_id=feature_id,
-            headers=headers,
-            data=data,
-        ),
-    )
-    context.domain = type('Session', (), {'id': 'tester'})()
 
-    # Assert preset state merges before literal overrides.
-    context.given('sum', b=3)
-    assert context._pending_request.data == {'a': 1, 'b': 3}
+    # Assert the preset is stored raw under the test-preset namespace.
     assert cache.get('sum', *TEST_PRESET_CACHE_PREFIX) == {'a': 1, 'b': 2}
 
-    # Assert missing presets raise the catalogued domain error.
-    with pytest.raises(TiferetError) as exc_info:
-        context.given('missing')
-    assert exc_info.value.error_code == 'TEST_PRESET_NOT_FOUND'
+# ** test: test_session_context_run_exercises_bound_tester
+def test_session_context_run_exercises_bound_tester() -> None:
+    '''Test given/verify/run exercises the bound tester without invoke.'''
+
+    # Bind a session and overlay a valid construction field.
+    tester = _build_error_message_tester()
+    test_ctx = DomainTesterContext.from_domain(tester)
+    sample = test_ctx.domain.sample_data
+    session = build_test_session(test_ctx)
+
+    # Run without invoke and verify the overlaid construction outcome.
+    result = session.given(text='overlay').verify(
+        lambda outcome: outcome.text == 'overlay',
+    ).run()
+    assert result.text == 'overlay'
+    assert result.lang == 'en_US'
+    assert len(session.verifications) == 0
+
+    # Assert sample data identity is unchanged after run.
+    assert test_ctx.domain.sample_data is sample
+    assert sample == ERROR_MESSAGE_SAMPLE_DATA
+
+    # Assert run does not call the application hub pipeline.
+    source = inspect.getsource(_TestSessionContext.run)
+    assert 'execute_feature' not in source
+    assert 'build_logger' not in source
+    assert 'handle_error' not in source
+    assert 'TiferetAPIError' not in source
+
+# ** test: test_session_context_invoke_merges_params_and_returns_self
+def test_session_context_invoke_merges_params_and_returns_self() -> None:
+    '''Test invoke merges onto request data and is not a feature pipeline.'''
+
+    # Invoke parameters onto a bound session and run the tester target.
+    session = build_test_session(DomainTesterContext.from_domain(
+        _build_error_message_tester(),
+    ))
+    assert session.invoke(text='from invoke') is session
+    assert session.data == {'text': 'from invoke'}
+    result = session.verify(lambda outcome: outcome.text == 'from invoke').run()
+    assert result.text == 'from invoke'
+    assert 'feature_id' not in inspect.signature(_TestSessionContext.invoke).parameters
 
 # ** test: build_tester_context_selects_variant_class
 def test_build_tester_context_selects_variant_class() -> None:
@@ -327,6 +389,77 @@ def test_use_tester_injects_test_ctx(test_ctx) -> None:
 
     assert isinstance(test_ctx, DomainTesterContext)
     test_ctx.assert_new()
+
+# ** test: use_tester_reuses_master_and_creates_new_sessions
+def test_use_tester_reuses_master_and_creates_new_sessions() -> None:
+    '''Test decoration builds one master and a new session per test method.'''
+
+    # Decorate a probe class with two test methods that return injected objects.
+    @use_tester(
+        type='domain',
+        target_cls=ErrorMessage,
+        sample_data=dict(ERROR_MESSAGE_SAMPLE_DATA),
+        equality_fields=['lang', 'text'],
+    )
+    class Probe:
+        def test_a(self, test_ctx, session):
+            return test_ctx, session
+
+        def test_b(self, test_ctx, session):
+            return test_ctx, session
+
+    # Invoke both wrappers and compare the injected instances.
+    probe = Probe()
+    test_ctx_a, session_a = probe.test_a()
+    test_ctx_b, session_b = probe.test_b()
+    assert test_ctx_a is test_ctx_b
+    assert session_a is not session_b
+    assert isinstance(session_a, _TestSessionContext)
+    assert isinstance(session_b, _TestSessionContext)
+    assert session_a.tester_ctx is test_ctx_a
+    assert session_b.tester_ctx is test_ctx_b
+
+# ** test: use_tester_injects_by_parameter_name
+@use_tester(
+    type='domain',
+    target_cls=ErrorMessage,
+    sample_data=dict(ERROR_MESSAGE_SAMPLE_DATA),
+    equality_fields=['lang', 'text'],
+)
+def test_use_tester_injects_by_parameter_name(
+        injection_marker,
+        session,
+        test_ctx,
+    ) -> None:
+    '''Test injection is by parameter name and keeps pytest fixtures working.'''
+
+    # Assert the pytest fixture was not displaced by positional injection.
+    assert injection_marker == 'marker'
+    assert isinstance(test_ctx, DomainTesterContext)
+    assert isinstance(session, _TestSessionContext)
+    assert session.tester_ctx is test_ctx
+    assert 'test_ctx' not in inspect.signature(
+        test_use_tester_injects_by_parameter_name,
+    ).parameters
+    assert 'session' not in inspect.signature(
+        test_use_tester_injects_by_parameter_name,
+    ).parameters
+    assert 'tester_ctx' not in inspect.signature(
+        test_use_tester_injects_by_parameter_name,
+    ).parameters
+
+# ** test: use_tester_injects_only_declared_session
+@use_tester(
+    type='domain',
+    target_cls=ErrorMessage,
+    sample_data=dict(ERROR_MESSAGE_SAMPLE_DATA),
+    equality_fields=['lang', 'text'],
+)
+def test_use_tester_injects_only_declared_session(session) -> None:
+    '''Test a session-only test still receives a session bound to the master.'''
+
+    assert isinstance(session, _TestSessionContext)
+    assert isinstance(session.tester_ctx, DomainTesterContext)
 
 # ** test: event_tester_contexts_omit_domain_type
 def test_event_tester_contexts_omit_domain_type() -> None:

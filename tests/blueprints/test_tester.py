@@ -2,15 +2,18 @@
 
 # *** imports
 
+# ** core
+import inspect
+
 # ** infra
 import yaml
 
 # ** app
-from tiferet import Tester as RootTester, a, test_case as create_test_case
+from tiferet import a, use_tester
+from tiferet.blueprints import tester as tester_blueprints
 from tiferet.blueprints.tester import (
-    build_app,
     build_cache,
-    build_test_request,
+    build_test_session,
     build_tester_context,
     resolve_tester,
 )
@@ -19,15 +22,14 @@ from tiferet.contexts.app import (
     APP_SERVICE_CACHE_PREFIX,
 )
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
-from tiferet.contexts.feature import FEATURE_CACHE_PREFIX, Feature
 from tiferet.contexts.tester import (
     DomainEventTesterContext,
     ServiceEventTesterContext,
-    TestRequestContext as _TestRequestContext,
-    TestSessionContext as _TestSessionContext,
     TESTER_CACHE_PREFIX,
+    TestSessionContext as _TestSessionContext,
 )
 from tiferet.domain import TesterObject
+from tiferet.domain.error import ErrorMessage
 
 # *** tests
 
@@ -95,74 +97,50 @@ def test_resolve_tester_uses_tester_session_service(tmp_path) -> None:
     tester = resolve_tester('domain.Custom', tester_config=str(config_file))
     assert tester.id == 'domain.Custom'
 
-# ** test: build_test_request
-def test_build_test_request_creates_specialized_context() -> None:
-    '''Test that the fluent tester handler creates a TestRequestContext.'''
+# ** test: build_test_session
+def test_build_test_session_constructs_request_session() -> None:
+    '''Test the thin session helper constructs a TestSessionContext.'''
 
-    # Build the request through the tester-specific handler.
-    request = build_test_request('tester', 'test.feature', data={'value': 1})
-
-    # Verify its specialized type and stamped request fields.
-    assert isinstance(request, _TestRequestContext)
-    assert request.headers['interface_id'] == 'tester'
-    assert request.feature_id == 'test.feature'
-    assert request.data == {'value': 1}
-
-# ** test: build_app
-def test_build_app_returns_default_test_session_context() -> None:
-    '''Test that the zero-argument Tester composition is ready to use.'''
-
-    # Build the default cache-seeded tester session.
-    context = build_app()
-
-    # Verify the fluent test-session context is composed.
-    assert isinstance(context, _TestSessionContext)
-    assert context.domain.id == a.tester.TIFERET_TESTER_ID
-    assert RootTester is build_app
-
-# ** test: build_app_feature_dispatch
-def test_build_app_dispatches_cached_feature_without_external_config() -> None:
-    '''Test the default Tester dispatches a cached feature without config I/O.'''
-
-    # Compose the default tester and seed an empty executable feature.
-    context = build_app()
-    feature = Feature(
-        id='test.empty',
-        name='Empty Test Feature',
+    # Bind a domain tester and construct a session without the decorator.
+    test_ctx = build_tester_context(
+        TesterObject(
+            type='domain',
+            id='domain.ErrorMessage',
+            module_path=ErrorMessage.__module__,
+            class_name=ErrorMessage.__name__,
+            sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
+        ),
     )
-    context.cache.set(feature.id, feature, *FEATURE_CACHE_PREFIX)
+    session = build_test_session(test_ctx, data={'text': 'overlay'})
 
-    # Dispatch through the inherited feature handler without loading config.yml.
-    assert context.given(value=1).invoke(feature_id=feature.id).verify(None).run() is None
+    # Verify the session is a request bound to the supplied master.
+    assert isinstance(session, _TestSessionContext)
+    assert session.tester_ctx is test_ctx
+    assert session.data == {'text': 'overlay'}
 
-# ** test: test_case
-def test_test_case_seeds_given_state_without_dispatching(monkeypatch) -> None:
-    '''Test that test_case constructs Tester() and supplies given-state.'''
+# ** test: tester_build_app_is_not_a_hub
+def test_tester_build_app_is_not_a_hub() -> None:
+    '''Test tester build_app no longer composes a mini-App session hub.'''
 
-    # Define a minimal context spy that records baseline state.
-    class TesterContext:
-        def __init__(self):
-            self.given_state = None
+    # Assert the retired mini-App surface is gone from the tester blueprint.
+    assert not hasattr(tester_blueprints, 'build_app')
+    assert not hasattr(tester_blueprints, 'build_test_session_context')
+    assert not hasattr(tester_blueprints, 'build_test_request')
+    assert not hasattr(tester_blueprints, 'test_case')
+    assert not hasattr(tester_blueprints, 'TestRequestContext')
 
-        def given(self, **data):
-            self.given_state = data
-            return self
+    # Assert the remaining resolve path is not reintroduced on the session helper.
+    source = inspect.getsource(tester_blueprints.build_test_session)
+    assert 'get_app_session' not in source
+    assert 'compose_session_context' not in source
+    assert 'build_app_service_container' not in source
+    assert 'build_service_resolver' not in source
 
-    # Replace Tester construction so the decorator behavior is isolated.
-    context = TesterContext()
-    monkeypatch.setattr(
-        'tiferet.blueprints.tester.build_app',
-        lambda interface_id=None: context,
-    )
+# ** test: use_tester_is_exported
+def test_use_tester_is_exported() -> None:
+    '''Test use_tester remains the public tester decorator export.'''
 
-    # Decorate a test-shaped callable that returns its context unchanged.
-    @create_test_case(value=1)
-    def target(tester_ctx):
-        return tester_ctx
-
-    # Assert the wrapper constructs the session and does not require a fixture.
-    assert target() is context
-    assert context.given_state == {'value': 1}
+    assert use_tester is tester_blueprints.use_tester
 
 # ** test: build_tester_context_selects_event_variants
 def test_build_tester_context_selects_event_variants() -> None:
