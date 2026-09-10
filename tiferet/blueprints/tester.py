@@ -17,8 +17,6 @@ from ..contexts.app import (
     add_default_app_sessions,
 )
 from ..contexts.cache import CacheContext
-from ..contexts.error import add_default_errors
-from ..contexts.logging import add_default_logging_settings
 from ..contexts.tester import (
     TESTER_CACHE_PREFIX,
     AggregateTesterContext,
@@ -37,15 +35,12 @@ from . import core
 # *** blueprints
 
 # ** blueprint: build_cache
-@add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
 @add_default_app_sessions(a.tester.CORE_DEFAULT_TESTER_SESSIONS)
 @add_default_testers(a.tester.CORE_DEFAULT_TESTERS)
 @add_default_app_constants(
     {
         a.app.DI_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
         a.app.FEATURE_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
-        a.app.LOGGING_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
-        a.app.ERROR_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
     },
 )
 @add_default_app_services(
@@ -53,19 +48,10 @@ from . import core
         a.app.DI_SERVICE_ID: a.app.DI_SERVICE_DATA,
         a.app.FEATURE_SERVICE_ID: a.app.FEATURE_SERVICE_DATA,
         a.app.GET_FEATURE_EVT_ID: a.app.GET_FEATURE_EVT_DATA,
-        a.app.LOGGING_SERVICE_ID: a.app.LOGGING_SERVICE_DATA,
-        a.app.LOGGING_LIST_ALL_EVT_ID: a.app.LOGGING_LIST_ALL_EVT_DATA,
-        a.app.ERROR_SERVICE_ID: a.app.ERROR_SERVICE_DATA,
-        a.app.GET_ERROR_EVT_ID: a.app.GET_ERROR_EVT_DATA,
     },
 )
-@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
-    '''Build the tester-dialect cache without standard app session catalogs.
-
-    Seeds logging settings, default errors, and the logging/error service
-    trios needed for production-parity feature dispatch, while remaining
-    isolated from ``CORE_DEFAULT_APP_SESSIONS``, CLI, and middleware.
+    '''Build the tester-dialect cache without standard app catalogs.
 
     :param cache: Optional root namespace seed values.
     :type cache: Dict[str, Any] | None
@@ -73,7 +59,7 @@ def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
     :rtype: CacheContext
     '''
 
-    # Extend the bare core cache with tester dialect catalogs plus logging/errors.
+    # Extend the bare core cache with only tester dialect catalogs.
     return core.build_cache(cache)
 
 # ** blueprint: resolve_tester
