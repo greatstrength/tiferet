@@ -128,9 +128,9 @@ TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
         ],
     }
 
-# *** tests
+# *** testers
 
-# ** tester: TestFlaggedDependencyAggregate
+# ** tester: flagged_dependency_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=FlaggedDependencyAggregate,
@@ -142,23 +142,22 @@ TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class TestFlaggedDependencyAggregate:
+class FlaggedDependencyAggregateTester:
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
         test_ctx.assert_set_attribute()
-
 
     aggregate_cls = FlaggedDependencyAggregate
 
@@ -173,8 +172,6 @@ class TestFlaggedDependencyAggregate:
         # invalid
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
-
-    # *** domain-specific mutation tests
 
     # * test: set_parameters_clears_when_none
     def test_set_parameters_clears_when_none(self, test_ctx):
@@ -218,7 +215,7 @@ class TestFlaggedDependencyAggregate:
             'add': 'added',
         }
 
-# ** tester: TestServiceRegistrationAggregate
+# ** tester: service_registration_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=ServiceRegistrationAggregate,
@@ -232,23 +229,22 @@ class TestFlaggedDependencyAggregate:
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class TestServiceRegistrationAggregate:
+class ServiceRegistrationAggregateTester:
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
         test_ctx.assert_set_attribute()
-
 
     aggregate_cls = ServiceRegistrationAggregate
 
@@ -266,8 +262,6 @@ class TestServiceRegistrationAggregate:
         # invalid
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
-
-    # *** domain-specific mutation tests
 
     # * test: set_default_type_updates
     def test_set_default_type_updates(self, test_ctx):
@@ -418,7 +412,7 @@ class TestServiceRegistrationAggregate:
         # The list should be unchanged.
         assert len(aggregate.dependencies) == initial_count
 
-# ** tester: TestServiceRegistrationConfigObject
+# ** tester: service_registration_config_object_tester
 @use_tester(
     type='transfer_object',
     target_cls=ServiceRegistrationConfigObject,
@@ -428,29 +422,28 @@ class TestServiceRegistrationAggregate:
     equality_fields=SVC_CONFIG_EQUALITY_FIELDS,
     field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS,
 )
-class TestServiceRegistrationConfigObject:
+class ServiceRegistrationConfigObjectTester:
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''
 
-    # * method: test_map
+    # * test: map
     def test_map(self, test_ctx):
         '''Verify transfer construction and mapping to the declared aggregate.'''
 
         test_ctx.assert_map()
 
-    # * method: test_from_model
+    # * test: from_model
     def test_from_model(self, test_ctx):
         '''Verify aggregate conversion to the declared transfer-object type.'''
 
         test_ctx.assert_from_model()
 
-    # * method: test_round_trip
+    # * test: round_trip
     def test_round_trip(self, test_ctx):
         '''Verify aggregate conversion through the transfer object and back.'''
 
         test_ctx.assert_round_trip()
-
 
     transfer_cls = ServiceRegistrationConfigObject
     aggregate_cls = ServiceRegistrationAggregate
@@ -464,8 +457,6 @@ class TestServiceRegistrationConfigObject:
     equality_fields = SVC_CONFIG_EQUALITY_FIELDS
 
     field_normalizers = SVC_CONFIG_FIELD_NORMALIZERS
-
-    # *** domain-specific tests
 
     # * test: to_primitive_to_data
     def test_to_primitive_to_data(self):
@@ -583,8 +574,6 @@ class TestServiceRegistrationConfigObject:
         # All dependencies should be FlaggedDependencyConfigObject instances.
         for dep in data_object.dependencies.values():
             assert isinstance(dep, FlaggedDependencyConfigObject)
-
-    # *** child mapper: FlaggedDependencyConfigObject
 
     # ** constant: flagged_dep_sample_data
     flagged_dep_sample_data = {

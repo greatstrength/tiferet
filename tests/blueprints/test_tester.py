@@ -100,6 +100,15 @@ def test_use_tester_is_exported() -> None:
 
     assert use_tester is tester_blueprints.use_tester
 
+# ** test: use_tester_keeps_pytest_out_of_tiferet
+def test_use_tester_keeps_pytest_out_of_tiferet() -> None:
+    '''Test wrap-all does not import pytest or add a use_fixture decorator.'''
+
+    source = inspect.getsource(tester_blueprints)
+    assert 'import pytest' not in source
+    assert 'pytest11' not in source
+    assert not hasattr(tester_blueprints, 'use_fixture')
+
 # ** test: build_tester_context_selects_event_variants
 def test_build_tester_context_selects_event_variants() -> None:
     '''Test build_tester_context maps domain_event and service_event types.'''

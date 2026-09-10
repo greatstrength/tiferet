@@ -103,7 +103,7 @@ Those methods are ordinary `# * method:` members on the context, not generated `
 
 `build_tester_context(tester)` selects the variant from `tester.type` and returns `context_cls.from_domain(tester)`.
 
-`@use_tester` constructs one `TesterObject` at decoration time (`target_cls` supplies `module_path` / `class_name`; `aggregate_cls` supplies aggregate coordinates; `id` defaults to `{type}.{class_name}`) and injects a fresh bound context as `test_ctx` into each `test_*` callable that declares that parameter. Wrapping is **test-method-only** today: member fixtures do not receive `test_ctx` unless they are `test_*` methods.
+`@use_tester` constructs one `TesterObject` and one master `TesterContext` at decoration time (`target_cls` supplies `module_path` / `class_name`; `aggregate_cls` supplies aggregate coordinates; `id` defaults to `{type}.{class_name}`). Class form wraps every callable member whose signature lists `test_ctx` or `session`, including `# * fixture:` methods, and strips those names from the pytest signature. Function form wraps the decorated callable the same way. Two `test_*` methods on the same class receive the same `test_ctx` instance.
 
 ```python
 from tiferet.blueprints.tester import use_tester
@@ -165,7 +165,7 @@ Fluent `run()` does **not** go through `AppSessionContext.run()`. Feature dispat
 
 Pytest is an optional extra (`pip install tiferet[test]`) and the runner for `tests/` (`testpaths = ["tests", "tests_int"]` in `pyproject.toml`). Files under `tests/` may import pytest and use `@use_tester`. The `tiferet/` package does not import pytest.
 
-Fixture wiring is pytest parameter-name injection. There is no Tiferet `use_fixture` decorator. A `# * test:` may list any `# *** fixtures` name, any same-class `# * fixture:` name, and `test_ctx` (`@use_tester` still injects `test_ctx` into test methods).
+Fixture wiring is pytest parameter-name injection. There is no Tiferet `use_fixture` decorator. A `# * test:` may list any `# *** fixtures` name, any same-class `# * fixture:` name, and `test_ctx`. Class-form `@use_tester` injects `test_ctx` into any member that lists it, including `# * fixture:` methods.
 
 ## Test-Module Artifact Grammar
 
@@ -177,10 +177,8 @@ After `# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` 
 
 Under a tester class, members are:
 
-- `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name.
+- `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name, and may list `test_ctx`.
 - `# * test: <name>` — a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
-
-Bulk remediating the existing `tests/` tree to this grammar is not required of this documentation pass. Examples in this guide are written in the new shape; live files may still use `class TestFoo` / `# ** test:` classes until a later pass.
 
 ```python
 """Tiferet Error Mapper Tests"""
@@ -243,7 +241,6 @@ class ErrorAggregateTester:
         aggregate = test_ctx.make_target()
         aggregate.rename('Renamed Error')
         assert aggregate.name == 'Renamed Error'
-
 
 # ** tester: error_config_object_tester
 @use_tester(

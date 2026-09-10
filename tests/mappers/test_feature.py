@@ -109,7 +109,81 @@ TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
 
 # *** tests
 
-# ** tester: TestEventFeatureStepAggregate
+# ** test: feature_config_object_maps_params_schema
+def test_feature_config_object_maps_params_schema():
+    '''
+    Test that FeatureConfigObject maps a keyed params_schema into the aggregate.
+    '''
+
+    # Create a YAML object with a keyed params_schema and map it.
+    yaml_obj = FeatureConfigObject.model_validate(dict(
+        id='calc.add',
+        name='Add Number',
+        group_id='calc',
+        feature_key='add',
+        steps=[],
+        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+    ))
+    aggregate = yaml_obj.map()
+
+    # Verify the params_schema mapped onto the aggregate with constraints intact.
+    params = {p.name: p for p in aggregate.params_schema.parameters}
+    assert params['a'].type == 'int'
+    assert params['a'].required is True
+    assert params['b'].type == 'float'
+    assert params['b'].required is False
+    assert params['b'].default == 1.0
+
+# ** test: feature_config_object_serializes_params_schema_keyed
+def test_feature_config_object_serializes_params_schema_keyed():
+    '''
+    Test that params_schema serializes to the ergonomic keyed mapping.
+    '''
+
+    # Build an aggregate carrying a params_schema.
+    aggregate = FeatureConfigObject.model_validate(dict(
+        id='calc.add',
+        name='Add Number',
+        group_id='calc',
+        feature_key='add',
+        steps=[],
+        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+    )).map()
+
+    # Serialize the aggregate back to data form.
+    data = FeatureConfigObject.from_model(aggregate).to_primitive('to_data')
+
+    # Verify shorthand and expanded keyed forms.
+    assert data['params_schema']['a'] == 'int'
+    assert data['params_schema']['b']['type'] == 'float'
+    assert data['params_schema']['b']['default'] == 1.0
+    assert data['params_schema']['b']['required'] is False
+
+# ** test: feature_config_object_params_schema_round_trip
+def test_feature_config_object_params_schema_round_trip():
+    '''
+    Test that params_schema is preserved through a map/from_model round-trip.
+    '''
+
+    # Map then reverse-map the feature.
+    aggregate = FeatureConfigObject.model_validate(dict(
+        id='calc.add',
+        name='Add Number',
+        group_id='calc',
+        feature_key='add',
+        steps=[],
+        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+    )).map()
+    aggregate2 = FeatureConfigObject.from_model(aggregate).map()
+
+    # Verify the params survive the round-trip.
+    params = {p.name: (p.type, p.required, p.default) for p in aggregate2.params_schema.parameters}
+    assert params['a'] == ('int', True, None)
+    assert params['b'] == ('float', False, 1.0)
+
+# *** testers
+
+# ** tester: event_feature_step_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=EventFeatureStepAggregate,
@@ -122,23 +196,22 @@ TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
         ('condition', '$r.y != 0', None),
     ],
 )
-class TestEventFeatureStepAggregate:
+class EventFeatureStepAggregateTester:
     '''
     Tests for EventFeatureStepAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
         test_ctx.assert_set_attribute()
-
 
     aggregate_cls = EventFeatureStepAggregate
 
@@ -153,8 +226,6 @@ class TestEventFeatureStepAggregate:
         ('data_key', 'new_key', None),
         ('condition', '$r.y != 0', None),
     ]
-
-    # *** domain-specific mutation tests
 
     # * test: set_pass_on_error
     def test_set_pass_on_error(self, test_ctx):
@@ -229,7 +300,7 @@ class TestEventFeatureStepAggregate:
         aggregate.set_attribute('name', 'Renamed Event')
         assert aggregate.name == 'Renamed Event'
 
-# ** tester: TestFeatureAggregate
+# ** tester: feature_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=FeatureAggregate,
@@ -242,23 +313,22 @@ class TestEventFeatureStepAggregate:
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class TestFeatureAggregate:
+class FeatureAggregateTester:
     '''
     Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
         test_ctx.assert_set_attribute()
-
 
     aggregate_cls = FeatureAggregate
 
@@ -275,8 +345,6 @@ class TestFeatureAggregate:
         # invalid
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
-
-    # *** domain-specific tests
 
     # * test: smart_derivation
     def test_smart_derivation(self, test_ctx):
@@ -429,7 +497,7 @@ class TestFeatureAggregate:
         aggregate.set_description(None)
         assert aggregate.description is None
 
-# ** tester: TestFeatureConfigObject
+# ** tester: feature_config_object_tester
 @use_tester(
     type='transfer_object',
     target_cls=FeatureConfigObject,
@@ -439,29 +507,28 @@ class TestFeatureAggregate:
     equality_fields=FEATURE_EQUALITY_FIELDS,
     field_normalizers=FEATURE_FIELD_NORMALIZERS,
 )
-class TestFeatureConfigObject:
+class FeatureConfigObjectTester:
     '''
     Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
     '''
 
-    # * method: test_map
+    # * test: map
     def test_map(self, test_ctx):
         '''Verify transfer construction and mapping to the declared aggregate.'''
 
         test_ctx.assert_map()
 
-    # * method: test_from_model
+    # * test: from_model
     def test_from_model(self, test_ctx):
         '''Verify aggregate conversion to the declared transfer-object type.'''
 
         test_ctx.assert_from_model()
 
-    # * method: test_round_trip
+    # * test: round_trip
     def test_round_trip(self, test_ctx):
         '''Verify aggregate conversion through the transfer object and back.'''
 
         test_ctx.assert_round_trip()
-
 
     transfer_cls = FeatureConfigObject
     aggregate_cls = FeatureAggregate
@@ -475,8 +542,6 @@ class TestFeatureConfigObject:
     equality_fields = FEATURE_EQUALITY_FIELDS
 
     field_normalizers = FEATURE_FIELD_NORMALIZERS
-
-    # *** child mapper: EventFeatureStepConfigObject
 
     # ** constant: feature_event_sample_data
     feature_event_sample_data = {
@@ -631,75 +696,3 @@ class TestFeatureConfigObject:
         # Verify the middleware is attached to the step.
         assert step.middleware == ['timing_middleware']
         assert agg.steps[0].middleware == ['timing_middleware']
-
-# ** test: feature_config_object_maps_params_schema
-def test_feature_config_object_maps_params_schema():
-    '''
-    Test that FeatureConfigObject maps a keyed params_schema into the aggregate.
-    '''
-
-    # Create a YAML object with a keyed params_schema and map it.
-    yaml_obj = FeatureConfigObject.model_validate(dict(
-        id='calc.add',
-        name='Add Number',
-        group_id='calc',
-        feature_key='add',
-        steps=[],
-        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
-    ))
-    aggregate = yaml_obj.map()
-
-    # Verify the params_schema mapped onto the aggregate with constraints intact.
-    params = {p.name: p for p in aggregate.params_schema.parameters}
-    assert params['a'].type == 'int'
-    assert params['a'].required is True
-    assert params['b'].type == 'float'
-    assert params['b'].required is False
-    assert params['b'].default == 1.0
-
-# ** test: feature_config_object_serializes_params_schema_keyed
-def test_feature_config_object_serializes_params_schema_keyed():
-    '''
-    Test that params_schema serializes to the ergonomic keyed mapping.
-    '''
-
-    # Build an aggregate carrying a params_schema.
-    aggregate = FeatureConfigObject.model_validate(dict(
-        id='calc.add',
-        name='Add Number',
-        group_id='calc',
-        feature_key='add',
-        steps=[],
-        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
-    )).map()
-
-    # Serialize the aggregate back to data form.
-    data = FeatureConfigObject.from_model(aggregate).to_primitive('to_data')
-
-    # Verify shorthand and expanded keyed forms.
-    assert data['params_schema']['a'] == 'int'
-    assert data['params_schema']['b']['type'] == 'float'
-    assert data['params_schema']['b']['default'] == 1.0
-    assert data['params_schema']['b']['required'] is False
-
-# ** test: feature_config_object_params_schema_round_trip
-def test_feature_config_object_params_schema_round_trip():
-    '''
-    Test that params_schema is preserved through a map/from_model round-trip.
-    '''
-
-    # Map then reverse-map the feature.
-    aggregate = FeatureConfigObject.model_validate(dict(
-        id='calc.add',
-        name='Add Number',
-        group_id='calc',
-        feature_key='add',
-        steps=[],
-        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
-    )).map()
-    aggregate2 = FeatureConfigObject.from_model(aggregate).map()
-
-    # Verify the params survive the round-trip.
-    params = {p.name: (p.type, p.required, p.default) for p in aggregate2.params_schema.parameters}
-    assert params['a'] == ('int', True, None)
-    assert params['b'] == ('float', False, 1.0)

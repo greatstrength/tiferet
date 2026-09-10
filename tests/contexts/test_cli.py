@@ -72,6 +72,40 @@ def cli_context(app_interface):
     )
     return ctx
 
+# *** fixtures (cli_request_context)
+
+# ** fixture: cli_request_context
+@pytest.fixture
+def cli_request_context() -> CliRequestContext:
+    '''
+    Fixture for a CliRequestContext with a None result.
+
+    :return: A CliRequestContext instance.
+    :rtype: CliRequestContext
+    '''
+
+    # Construct and return a basic CLI request context.
+    return CliRequestContext(feature_id='test.feature')
+
+# *** fixtures (cli_session_context)
+
+# ** fixture: cli_session_context
+@pytest.fixture
+def cli_session_context(app_interface):
+    '''
+    Fixture for a minimal CliSessionContext with neither parse_cli_args nor any
+    hub handler injected; tests wire ``_build_response`` themselves.
+
+    :return: A CliSessionContext instance.
+    :rtype: CliSessionContext
+    '''
+
+    # Build a CliSessionContext without a parse_cli_args closure.
+    return CliSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+    )
+
 # *** tests
 
 # ** test: group_commands_by_key
@@ -167,7 +201,7 @@ def test_build_parser_merges_parent_args_and_skips_collisions():
     assert parsed['a'] == 5
     assert parsed['verbose'] is True
 
-# *** build_cli_record
+# *** tests (build_cli_record)
 
 # ** test: build_cli_record_from_domain_object
 def test_build_cli_record_from_domain_object() -> None:
@@ -231,21 +265,7 @@ def test_build_cli_record_from_primitive() -> None:
     assert isinstance(record, CliRecord)
     assert record.fields == {'value': '99'}
 
-
-# *** CliRequestContext
-
-# ** fixture: cli_request_context
-@pytest.fixture
-def cli_request_context() -> CliRequestContext:
-    '''
-    Fixture for a CliRequestContext with a None result.
-
-    :return: A CliRequestContext instance.
-    :rtype: CliRequestContext
-    '''
-
-    # Construct and return a basic CLI request context.
-    return CliRequestContext(feature_id='test.feature')
+# *** tests (cli_request_context)
 
 # ** test: cli_request_context_handle_response_list
 def test_cli_request_context_handle_response_list(
@@ -337,25 +357,7 @@ def test_cli_request_context_handle_response_primitive(
     # Assert the primitive is returned as-is.
     assert output == 'plain-string'
 
-
-# *** CliSessionContext
-
-# ** fixture: cli_session_context
-@pytest.fixture
-def cli_session_context(app_interface):
-    '''
-    Fixture for a minimal CliSessionContext with neither parse_cli_args nor any
-    hub handler injected; tests wire ``_build_response`` themselves.
-
-    :return: A CliSessionContext instance.
-    :rtype: CliSessionContext
-    '''
-
-    # Build a CliSessionContext without a parse_cli_args closure.
-    return CliSessionContext.from_domain(
-        app_interface,
-        get_dependency=mock.Mock(),
-    )
+# *** tests (cli_session_context)
 
 # ** test: cli_session_context_build_response_prints_format_output
 def test_cli_session_context_build_response_prints_format_output(
@@ -510,7 +512,7 @@ def test_cli_session_context_run_new_path(
     mock_run.assert_called_once_with('calc.add', headers={'h': '1'}, data={'a': 1})
     assert result == 'parsed-result'
 
-# *** add_default_cli_commands / get_default_cli_commands
+# *** tests (add_default_cli_commands)
 
 # ** test: add_default_cli_commands_seeds_cache
 def test_add_default_cli_commands_seeds_cache() -> None:

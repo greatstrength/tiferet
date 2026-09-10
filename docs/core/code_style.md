@@ -446,9 +446,9 @@ Under a tester class, members are:
 - `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name.
 - `# * test: <name>` — a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
 
-Fixture wiring is pytest parameter-name injection. `@use_tester` injects `test_ctx` into test methods. Do not label tester test methods `# * method:`.
+Fixture wiring is pytest parameter-name injection. Class-form `@use_tester` injects `test_ctx` into any member that lists it, including `# * fixture:` methods, and strips `test_ctx` from the pytest signature. Do not label tester test methods `# * method:`.
 
-Bulk remediating existing `tests/` files to this grammar is not required of the current documentation pass; new examples use the new shape. Full tester-subdomain conventions live in [testing.md](testing.md).
+Full tester-subdomain conventions live in [testing.md](testing.md).
 
 ```python
 # *** testers

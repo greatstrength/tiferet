@@ -23,7 +23,6 @@ from tiferet.interfaces import LoggingService
 from tiferet.mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
 from tiferet.blueprints.tester import use_tester
 
-
 # *** fixtures
 
 # ** fixture: sample_formatter
@@ -43,7 +42,6 @@ def sample_formatter() -> Formatter:
         format='%(levelname)s - %(message)s',
         description='A simple formatter.',
     )
-
 
 # ** fixture: sample_handler
 @pytest.fixture
@@ -67,7 +65,6 @@ def sample_handler() -> Handler:
         description='A console handler.',
     )
 
-
 # ** fixture: sample_logger
 @pytest.fixture
 def sample_logger() -> Logger:
@@ -88,16 +85,15 @@ def sample_logger() -> Logger:
         propagate=True,
     )
 
+# *** testers
 
-# *** tests
-
-# ** class: TestLoggingEvent
-class TestLoggingEvent:
+# ** tester: logging_event_tester
+class LoggingEventTester:
     '''
     Tests for the LoggingEvent base event shared by all logging events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that LoggingEvent extends DomainEvent.
@@ -106,7 +102,7 @@ class TestLoggingEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(LoggingEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete logging event extends LoggingEvent.
@@ -124,7 +120,7 @@ class TestLoggingEvent:
         ):
             assert issubclass(event_cls, LoggingEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing a logging event wires the shared service attribute.
@@ -137,8 +133,7 @@ class TestLoggingEvent:
         assert LoggingEvent(logging_service=service).logging_service is service
         assert AddFormatter(logging_service=service).logging_service is service
 
-
-# ** test: TestListAllLoggingConfigs
+# ** tester: list_all_logging_configs_tester
 @use_tester(
     type='domain_event',
     target_cls=ListAllLoggingConfigs,
@@ -151,12 +146,12 @@ class TestLoggingEvent:
     sample_kwargs={},
     required_params=[],
 )
-class TestListAllLoggingConfigs:
+class ListAllLoggingConfigsTester:
     '''
     Tests for ListAllLoggingConfigs using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx, sample_formatter, sample_handler, sample_logger):
         '''
         Test successful listing of all logging configurations.
@@ -189,7 +184,7 @@ class TestListAllLoggingConfigs:
         assert loggers == [sample_logger]
         mock_dependencies['logging_service'].list_all.assert_called_once_with()
 
-    # * method: test_empty
+    # * test: empty
     def test_empty(self, test_ctx):
         '''
         Test listing when no configurations exist.
@@ -212,7 +207,7 @@ class TestListAllLoggingConfigs:
         assert loggers == []
         mock_dependencies['logging_service'].list_all.assert_called_once_with()
 
-# ** test: TestAddFormatter
+# ** tester: add_formatter_tester
 @use_tester(
     type='domain_event',
     target_cls=AddFormatter,
@@ -231,12 +226,12 @@ class TestListAllLoggingConfigs:
     ),
     required_params=['id', 'name', 'format'],
 )
-class TestAddFormatter:
+class AddFormatterTester:
     '''
     Tests for AddFormatter using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx):
         '''
         Test successful addition of a formatter.
@@ -260,7 +255,7 @@ class TestAddFormatter:
         saved_formatter = mock_dependencies['logging_service'].save_formatter.call_args[0][0]
         assert saved_formatter.id == 'detailed'
 
-    # * method: test_minimal
+    # * test: minimal
     def test_minimal(self, test_ctx):
         '''
         Test adding a formatter with only required fields.
@@ -289,7 +284,7 @@ class TestAddFormatter:
         assert result.datefmt is None
         mock_dependencies['logging_service'].save_formatter.assert_called_once()
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
@@ -297,7 +292,7 @@ class TestAddFormatter:
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestRemoveFormatter
+# ** tester: remove_formatter_tester
 @use_tester(
     type='domain_event',
     target_cls=RemoveFormatter,
@@ -310,12 +305,12 @@ class TestAddFormatter:
     sample_kwargs=dict(id='old_formatter'),
     required_params=['id'],
 )
-class TestRemoveFormatter:
+class RemoveFormatterTester:
     '''
     Tests for RemoveFormatter using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx):
         '''
         Test successful removal of a formatter.
@@ -333,7 +328,7 @@ class TestRemoveFormatter:
         assert result == 'old_formatter'
         mock_dependencies['logging_service'].delete_formatter.assert_called_once_with('old_formatter')
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
@@ -341,7 +336,7 @@ class TestRemoveFormatter:
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestAddHandler
+# ** tester: add_handler_tester
 @use_tester(
     type='domain_event',
     target_cls=AddHandler,
@@ -363,12 +358,12 @@ class TestRemoveFormatter:
     ),
     required_params=['id', 'name', 'module_path', 'class_name', 'level', 'formatter'],
 )
-class TestAddHandler:
+class AddHandlerTester:
     '''
     Tests for AddHandler using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx):
         '''
         Test successful addition of a handler.
@@ -390,7 +385,7 @@ class TestAddHandler:
         assert result.filename == '/var/log/app.log'
         mock_dependencies['logging_service'].save_handler.assert_called_once()
 
-    # * method: test_with_stream
+    # * test: with_stream
     def test_with_stream(self, test_ctx):
         '''
         Test adding a stream handler.
@@ -420,7 +415,7 @@ class TestAddHandler:
         assert result.filename is None
         mock_dependencies['logging_service'].save_handler.assert_called_once()
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
@@ -428,7 +423,7 @@ class TestAddHandler:
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestRemoveHandler
+# ** tester: remove_handler_tester
 @use_tester(
     type='domain_event',
     target_cls=RemoveHandler,
@@ -441,12 +436,12 @@ class TestAddHandler:
     sample_kwargs=dict(id='old_handler'),
     required_params=['id'],
 )
-class TestRemoveHandler:
+class RemoveHandlerTester:
     '''
     Tests for RemoveHandler using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx):
         '''
         Test successful removal of a handler.
@@ -464,7 +459,7 @@ class TestRemoveHandler:
         assert result == 'old_handler'
         mock_dependencies['logging_service'].delete_handler.assert_called_once_with('old_handler')
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
@@ -472,7 +467,7 @@ class TestRemoveHandler:
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestAddLogger
+# ** tester: add_logger_tester
 @use_tester(
     type='domain_event',
     target_cls=AddLogger,
@@ -492,12 +487,12 @@ class TestRemoveHandler:
     ),
     required_params=['id', 'name', 'level', 'handlers'],
 )
-class TestAddLogger:
+class AddLoggerTester:
     '''
     Tests for AddLogger using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx):
         '''
         Test successful addition of a logger.
@@ -520,7 +515,7 @@ class TestAddLogger:
         assert result.propagate is False
         mock_dependencies['logging_service'].save_logger.assert_called_once()
 
-    # * method: test_minimal
+    # * test: minimal
     def test_minimal(self, test_ctx):
         '''
         Test adding a logger with only required fields.
@@ -548,7 +543,7 @@ class TestAddLogger:
         assert result.description is None
         mock_dependencies['logging_service'].save_logger.assert_called_once()
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
@@ -556,7 +551,7 @@ class TestAddLogger:
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestRemoveLogger
+# ** tester: remove_logger_tester
 @use_tester(
     type='domain_event',
     target_cls=RemoveLogger,
@@ -569,12 +564,12 @@ class TestAddLogger:
     sample_kwargs=dict(id='old_logger'),
     required_params=['id'],
 )
-class TestRemoveLogger:
+class RemoveLoggerTester:
     '''
     Tests for RemoveLogger using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx):
         '''
         Test successful removal of a logger.
@@ -592,7 +587,7 @@ class TestRemoveLogger:
         assert result == 'old_logger'
         mock_dependencies['logging_service'].delete_logger.assert_called_once_with('old_logger')
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 

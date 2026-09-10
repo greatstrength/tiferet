@@ -36,7 +36,7 @@ Inside a tester class:
 # * test: <name>                        ← pytest test method (never # * method:)
 ```
 
-Do not bulk-rename the existing `tests/` tree in this pass; new examples use this grammar.
+Class-form `@use_tester` injects `test_ctx` into any member that lists it, including `# * fixture:` methods.
 
 ## Key conventions
 
@@ -50,7 +50,7 @@ Do not bulk-rename the existing `tests/` tree in this pass; new examples use thi
 
 **Event `dependencies`:** `ServiceDependency` dicts (`module_path`, `class_name`).
 
-**Pytest** is an optional extra and the runner for `tests/`. Those files may import pytest and use `@use_tester`. Fixture injection is by parameter name; no Tiferet `use_fixture` decorator.
+**Pytest** is an optional extra and the runner for `tests/`. Those files may import pytest and use `@use_tester`. Fixture injection is by parameter name; no Tiferet `use_fixture` decorator. Class-form `@use_tester` injects `test_ctx` into members that list it, including fixtures.
 
 **General:**
 - Keep docstrings RST-style and keep one blank line after docstrings.
@@ -124,7 +124,6 @@ class ErrorAggregateTester:
         aggregate = test_ctx.make_target()
         aggregate.rename('Renamed Error')
         assert aggregate.name == 'Renamed Error'
-
 
 # ** tester: error_config_object_tester
 @use_tester(

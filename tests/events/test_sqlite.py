@@ -30,7 +30,6 @@ from tiferet.utils.sqlite import (
 )
 from tiferet.blueprints.tester import use_tester
 
-
 # *** functions
 
 # ** function: sqlite_mock_dependencies
@@ -43,7 +42,6 @@ def sqlite_mock_dependencies() -> dict:
     service.__exit__.return_value = None
     return {'sqlite_service': service}
 
-
 # ** fixture: mock_dependencies
 @pytest.fixture
 def mock_dependencies() -> dict:
@@ -51,16 +49,15 @@ def mock_dependencies() -> dict:
 
     return sqlite_mock_dependencies()
 
+# *** testers
 
-# *** tests
-
-# ** class: TestSqliteEvent
-class TestSqliteEvent:
+# ** tester: sqlite_event_tester
+class SqliteEventTester:
     '''
     Tests for the SqliteEvent base event shared by all SQLite events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that SqliteEvent extends DomainEvent.
@@ -69,7 +66,7 @@ class TestSqliteEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(SqliteEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete SQLite event extends SqliteEvent.
@@ -87,7 +84,7 @@ class TestSqliteEvent:
         ):
             assert issubclass(event_cls, SqliteEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing a SQLite event wires the shared service attribute.
@@ -100,14 +97,13 @@ class TestSqliteEvent:
         assert SqliteEvent(sqlite_service=service).sqlite_service is service
         assert MutateSql(sqlite_service=service).sqlite_service is service
 
-
-# ** class: TestIsValidIdentifier
-class TestIsValidIdentifier:
+# ** tester: is_valid_identifier_tester
+class IsValidIdentifierTester:
     '''
     Tests for the module-level is_valid_identifier helper.
     '''
 
-    # * method: test_valid_identifiers
+    # * test: valid_identifiers
     def test_valid_identifiers(self):
         '''
         Test that valid identifiers are accepted.
@@ -119,7 +115,7 @@ class TestIsValidIdentifier:
         assert is_valid_identifier('_private') is True
         assert is_valid_identifier('table1') is True
 
-    # * method: test_rejects_empty
+    # * test: rejects_empty
     def test_rejects_empty(self):
         '''
         Test that an empty name is rejected.
@@ -128,7 +124,7 @@ class TestIsValidIdentifier:
         # Assert an empty string is invalid.
         assert is_valid_identifier('') is False
 
-    # * method: test_rejects_leading_digit
+    # * test: rejects_leading_digit
     def test_rejects_leading_digit(self):
         '''
         Test that a leading-digit name is rejected.
@@ -137,7 +133,7 @@ class TestIsValidIdentifier:
         # Assert a name starting with a digit is invalid.
         assert is_valid_identifier('1table') is False
 
-    # * method: test_rejects_non_alphanumeric
+    # * test: rejects_non_alphanumeric
     def test_rejects_non_alphanumeric(self):
         '''
         Test that names with non-alphanumeric characters are rejected.
@@ -148,8 +144,7 @@ class TestIsValidIdentifier:
         assert is_valid_identifier('table-name') is False
         assert is_valid_identifier('table;drop') is False
 
-
-# ** test: TestQuerySql
+# ** tester: query_sql_tester
 @use_tester(
     type='domain_event',
     target_cls=QuerySql,
@@ -162,12 +157,12 @@ class TestIsValidIdentifier:
     sample_kwargs=dict(query="SELECT * FROM users"),
     required_params=['query'],
 )
-class TestQuerySql:
+class QuerySqlTester:
     '''
     Tests for QuerySql using the SQLite event test harness.
     '''
 
-    # * method: test_fetch_all
+    # * test: fetch_all
     def test_fetch_all(self, test_ctx, mock_dependencies):
         '''
         Test successful execution of a multi-row query.
@@ -185,7 +180,7 @@ class TestQuerySql:
         mock_dependencies['sqlite_service'].fetch_all.assert_called_once_with("SELECT * FROM users", ())
         mock_dependencies['sqlite_service'].fetch_one.assert_not_called()
 
-    # * method: test_fetch_one
+    # * test: fetch_one
     def test_fetch_one(self, test_ctx, mock_dependencies):
         '''
         Test successful execution of a single-row query.
@@ -204,7 +199,7 @@ class TestQuerySql:
         mock_dependencies['sqlite_service'].fetch_one.assert_called_once_with(query, (1,))
         mock_dependencies['sqlite_service'].fetch_all.assert_not_called()
 
-    # * method: test_empty_result
+    # * test: empty_result
     def test_empty_result(self, test_ctx, mock_dependencies):
         '''
         Test execution returning empty result (no rows).
@@ -219,7 +214,7 @@ class TestQuerySql:
         # Assert empty list returned.
         assert result == []
 
-    # * method: test_parameterized
+    # * test: parameterized
     def test_parameterized(self, test_ctx, mock_dependencies):
         '''
         Test execution with named parameters.
@@ -238,7 +233,7 @@ class TestQuerySql:
         assert result == expected
         mock_dependencies['sqlite_service'].fetch_all.assert_called_once_with(query, params)
 
-    # * method: test_invalid_query
+    # * test: invalid_query
     def test_invalid_query(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for non-SELECT query.
@@ -252,7 +247,7 @@ class TestQuerySql:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Query must start with SELECT or WITH" in str(exc_info.value)
 
-    # * method: test_service_error_propagates
+    # * test: service_error_propagates
     def test_service_error_propagates(self, test_ctx, mock_dependencies):
         '''
         Test that a service error from the SQLite service propagates unconverted.
@@ -272,13 +267,13 @@ class TestQuerySql:
         assert exc_info.value.error_code == SQLITE_QUERY_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestMutateSql
+# ** tester: mutate_sql_tester
 @use_tester(
     type='domain_event',
     target_cls=MutateSql,
@@ -291,12 +286,12 @@ class TestQuerySql:
     sample_kwargs=dict(statement="INSERT INTO users (name) VALUES ('Alice')"),
     required_params=['statement'],
 )
-class TestMutateSql:
+class MutateSqlTester:
     '''
     Tests for MutateSql using the SQLite event test harness.
     '''
 
-    # * method: test_insert_success
+    # * test: insert_success
     def test_insert_success(self, test_ctx, mock_dependencies):
         '''
         Test successful INSERT execution.
@@ -316,7 +311,7 @@ class TestMutateSql:
             "INSERT INTO users (name) VALUES ('Alice')", ()
         )
 
-    # * method: test_update_success
+    # * test: update_success
     def test_update_success(self, test_ctx, mock_dependencies):
         '''
         Test successful UPDATE execution.
@@ -333,7 +328,7 @@ class TestMutateSql:
         assert result['rowcount'] == 5
         assert result['lastrowid'] is None
 
-    # * method: test_delete_success
+    # * test: delete_success
     def test_delete_success(self, test_ctx, mock_dependencies):
         '''
         Test successful DELETE execution.
@@ -350,7 +345,7 @@ class TestMutateSql:
         assert result['rowcount'] == 1
         assert result['lastrowid'] is None
 
-    # * method: test_parameterized
+    # * test: parameterized
     def test_parameterized(self, test_ctx, mock_dependencies):
         '''
         Test execution with parameters.
@@ -369,7 +364,7 @@ class TestMutateSql:
         assert result == {'rowcount': 1, 'lastrowid': 101}
         mock_dependencies['sqlite_service'].execute.assert_called_once_with(statement, params)
 
-    # * method: test_invalid_statement
+    # * test: invalid_statement
     def test_invalid_statement(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for non-mutation statement.
@@ -383,7 +378,7 @@ class TestMutateSql:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
 
-    # * method: test_service_error_propagates
+    # * test: service_error_propagates
     def test_service_error_propagates(self, test_ctx, mock_dependencies):
         '''
         Test that a service error from the SQLite service propagates unconverted.
@@ -403,13 +398,13 @@ class TestMutateSql:
         assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestBulkMutateSql
+# ** tester: bulk_mutate_sql_tester
 @use_tester(
     type='domain_event',
     target_cls=BulkMutateSql,
@@ -425,12 +420,12 @@ class TestMutateSql:
     ),
     required_params=['statement', 'parameters_list'],
 )
-class TestBulkMutateSql:
+class BulkMutateSqlTester:
     '''
     Tests for BulkMutateSql using the SQLite event test harness.
     '''
 
-    # * method: test_insert_success
+    # * test: insert_success
     def test_insert_success(self, test_ctx, mock_dependencies):
         '''
         Test successful bulk INSERT execution.
@@ -448,7 +443,7 @@ class TestBulkMutateSql:
         assert result['lastrowids'] == [102]
         mock_dependencies['sqlite_service'].executemany.assert_called_once()
 
-    # * method: test_update_success
+    # * test: update_success
     def test_update_success(self, test_ctx, mock_dependencies):
         '''
         Test successful bulk UPDATE execution.
@@ -469,7 +464,7 @@ class TestBulkMutateSql:
         assert result['total_rowcount'] == 2
         assert result['lastrowids'] is None
 
-    # * method: test_invalid_statement
+    # * test: invalid_statement
     def test_invalid_statement(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for non-mutation statement.
@@ -483,7 +478,7 @@ class TestBulkMutateSql:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
 
-    # * method: test_empty_parameters_list
+    # * test: empty_parameters_list
     def test_empty_parameters_list(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for empty parameters list.
@@ -497,7 +492,7 @@ class TestBulkMutateSql:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Parameters list must not be empty" in str(exc_info.value)
 
-    # * method: test_service_error_propagates
+    # * test: service_error_propagates
     def test_service_error_propagates(self, test_ctx, mock_dependencies):
         '''
         Test that a service error from the SQLite service propagates unconverted.
@@ -517,13 +512,13 @@ class TestBulkMutateSql:
         assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestExecuteScriptSql
+# ** tester: execute_script_sql_tester
 @use_tester(
     type='domain_event',
     target_cls=ExecuteScriptSql,
@@ -536,12 +531,12 @@ class TestBulkMutateSql:
     sample_kwargs=dict(script="CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);"),
     required_params=['script'],
 )
-class TestExecuteScriptSql:
+class ExecuteScriptSqlTester:
     '''
     Tests for ExecuteScriptSql using the SQLite event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx, mock_dependencies):
         '''
         Test successful execution of a multi-statement script.
@@ -556,7 +551,7 @@ class TestExecuteScriptSql:
             "CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);"
         )
 
-    # * method: test_whitespace_only_script
+    # * test: whitespace_only_script
     def test_whitespace_only_script(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for whitespace-only script.
@@ -570,7 +565,7 @@ class TestExecuteScriptSql:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert 'script' in exc_info.value.kwargs.get('parameters')
 
-    # * method: test_service_error_propagates
+    # * test: service_error_propagates
     def test_service_error_propagates(self, test_ctx, mock_dependencies):
         '''
         Test that a service error from the SQLite service propagates unconverted.
@@ -590,13 +585,13 @@ class TestExecuteScriptSql:
         assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestBackupSql
+# ** tester: backup_sql_tester
 @use_tester(
     type='domain_event',
     target_cls=BackupSql,
@@ -609,12 +604,12 @@ class TestExecuteScriptSql:
     sample_kwargs=dict(target_path='/tmp/backup.db'),
     required_params=['target_path'],
 )
-class TestBackupSql:
+class BackupSqlTester:
     '''
     Tests for BackupSql using the SQLite event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx, mock_dependencies):
         '''
         Test successful database backup.
@@ -630,7 +625,7 @@ class TestBackupSql:
             '/tmp/backup.db', pages=-1, progress=None
         )
 
-    # * method: test_with_options
+    # * test: with_options
     def test_with_options(self, test_ctx, mock_dependencies):
         '''
         Test backup with custom pages and progress callback.
@@ -648,7 +643,7 @@ class TestBackupSql:
             '/tmp/backup.db', pages=5, progress=progress_callback
         )
 
-    # * method: test_service_error_propagates
+    # * test: service_error_propagates
     def test_service_error_propagates(self, test_ctx, mock_dependencies):
         '''
         Test that a backup service error propagates unconverted.
@@ -668,13 +663,13 @@ class TestBackupSql:
         assert exc_info.value.error_code == SQLITE_BACKUP_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestCreateTableSql
+# ** tester: create_table_sql_tester
 @use_tester(
     type='domain_event',
     target_cls=CreateTableSql,
@@ -694,12 +689,12 @@ class TestBackupSql:
     ),
     required_params=['table_name', 'columns'],
 )
-class TestCreateTableSql:
+class CreateTableSqlTester:
     '''
     Tests for CreateTableSql using the SQLite event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx, mock_dependencies):
         '''
         Test successful table creation with columns.
@@ -719,7 +714,7 @@ class TestCreateTableSql:
         assert '"name" TEXT NOT NULL' in generated_sql
         assert '"email" TEXT' in generated_sql
 
-    # * method: test_with_constraints
+    # * test: with_constraints
     def test_with_constraints(self, test_ctx, mock_dependencies):
         '''
         Test table creation with constraints.
@@ -739,7 +734,7 @@ class TestCreateTableSql:
         assert 'UNIQUE(name)' in generated_sql
         assert 'CHECK(price >= 0)' in generated_sql
 
-    # * method: test_if_not_exists_false
+    # * test: if_not_exists_false
     def test_if_not_exists_false(self, test_ctx, mock_dependencies):
         '''
         Test table creation without IF NOT EXISTS clause.
@@ -759,7 +754,7 @@ class TestCreateTableSql:
         assert 'CREATE TABLE "temp_table"' in generated_sql
         assert 'IF NOT EXISTS' not in generated_sql
 
-    # * method: test_idempotent
+    # * test: idempotent
     def test_idempotent(self, test_ctx, mock_dependencies):
         '''
         Test that creating an existing table with if_not_exists=True succeeds.
@@ -774,7 +769,7 @@ class TestCreateTableSql:
         assert result2['success'] is True
         assert mock_dependencies['sqlite_service'].execute.call_count == 2
 
-    # * method: test_duplicate_without_if_not_exists
+    # * test: duplicate_without_if_not_exists
     def test_duplicate_without_if_not_exists(self, test_ctx, mock_dependencies):
         '''
         Test that creating an existing table with if_not_exists=False propagates
@@ -800,7 +795,7 @@ class TestCreateTableSql:
         assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_invalid_table_name
+    # * test: invalid_table_name
     def test_invalid_table_name(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for invalid table name (special characters).
@@ -817,7 +812,7 @@ class TestCreateTableSql:
             test_ctx.handle(mock_dependencies, table_name='table-name', columns={'id': 'INTEGER'})
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
 
-    # * method: test_empty_columns
+    # * test: empty_columns
     def test_empty_columns(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for empty columns dictionary.
@@ -831,7 +826,7 @@ class TestCreateTableSql:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Columns must be a non-empty dictionary" in str(exc_info.value)
 
-    # * method: test_invalid_column_name
+    # * test: invalid_column_name
     def test_invalid_column_name(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for invalid column name.
@@ -845,7 +840,7 @@ class TestCreateTableSql:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Column name must be a non-empty string" in str(exc_info.value)
 
-    # * method: test_invalid_column_type
+    # * test: invalid_column_type
     def test_invalid_column_type(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for invalid column type.
@@ -860,7 +855,7 @@ class TestCreateTableSql:
         assert "Column type" in str(exc_info.value)
         assert "must be a non-empty string" in str(exc_info.value)
 
-    # * method: test_service_error_propagates
+    # * test: service_error_propagates
     def test_service_error_propagates(self, test_ctx, mock_dependencies):
         '''
         Test that a service error from the SQLite service propagates unconverted.
@@ -880,13 +875,13 @@ class TestCreateTableSql:
         assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestDropTableSql
+# ** tester: drop_table_sql_tester
 @use_tester(
     type='domain_event',
     target_cls=DropTableSql,
@@ -899,12 +894,12 @@ class TestCreateTableSql:
     sample_kwargs=dict(table_name='users'),
     required_params=['table_name'],
 )
-class TestDropTableSql:
+class DropTableSqlTester:
     '''
     Tests for DropTableSql using the SQLite event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx, mock_dependencies):
         '''
         Test successful table drop.
@@ -921,7 +916,7 @@ class TestDropTableSql:
         generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
         assert 'DROP TABLE IF EXISTS "users"' in generated_sql
 
-    # * method: test_without_if_exists
+    # * test: without_if_exists
     def test_without_if_exists(self, test_ctx, mock_dependencies):
         '''
         Test table drop without IF EXISTS clause.
@@ -936,7 +931,7 @@ class TestDropTableSql:
         assert 'DROP TABLE "temp_table"' in generated_sql
         assert 'IF EXISTS' not in generated_sql
 
-    # * method: test_idempotent
+    # * test: idempotent
     def test_idempotent(self, test_ctx, mock_dependencies):
         '''
         Test that dropping a non-existent table with if_exists=True succeeds.
@@ -950,7 +945,7 @@ class TestDropTableSql:
         generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
         assert 'DROP TABLE IF EXISTS "non_existent_table"' in generated_sql
 
-    # * method: test_non_existent_without_if_exists
+    # * test: non_existent_without_if_exists
     def test_non_existent_without_if_exists(self, test_ctx, mock_dependencies):
         '''
         Test that dropping a non-existent table with if_exists=False propagates
@@ -971,7 +966,7 @@ class TestDropTableSql:
         assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_invalid_table_name
+    # * test: invalid_table_name
     def test_invalid_table_name(self, test_ctx, mock_dependencies):
         '''
         Test validation failure for invalid table name (special characters).
@@ -988,7 +983,7 @@ class TestDropTableSql:
             test_ctx.handle(mock_dependencies, table_name='table-name')
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
 
-    # * method: test_with_data
+    # * test: with_data
     def test_with_data(self, test_ctx, mock_dependencies):
         '''
         Test dropping a table with existing data succeeds.
@@ -1001,7 +996,7 @@ class TestDropTableSql:
         assert result['success'] is True
         mock_dependencies['sqlite_service'].execute.assert_called_once()
 
-    # * method: test_service_error_propagates
+    # * test: service_error_propagates
     def test_service_error_propagates(self, test_ctx, mock_dependencies):
         '''
         Test that a service error from the SQLite service propagates unconverted.
@@ -1021,7 +1016,7 @@ class TestDropTableSql:
         assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
         assert not isinstance(exc_info.value, TiferetError)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
