@@ -7,6 +7,7 @@ from tiferet.assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
     SERVICE_EVENT_GET_ERROR_TESTER_ID,
+    REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID,
     TIFERET_TESTER_ID,
 )
 from tiferet.blueprints.tester import use_tester
@@ -127,6 +128,7 @@ def test_default_tester_catalog_and_session_are_data_only() -> None:
         'aggregate',
         'transfer_object',
         'service_event',
+        'repo',
     }
     session = CORE_DEFAULT_TESTER_SESSIONS[TIFERET_TESTER_ID]
     assert session['name'] == 'Tester'
@@ -147,3 +149,17 @@ def test_get_error_service_event_catalog_round_trips() -> None:
     assert tester.class_name == 'GetError'
     assert tester.not_found_error_code == ERROR_NOT_FOUND_ID
     assert tester.service_attr == 'error_service'
+
+# ** test: error_config_repository_catalog_round_trips
+def test_error_config_repository_catalog_round_trips() -> None:
+    '''Test the ErrorConfigRepository catalog row validates as type repo.'''
+
+    data = {
+        **CORE_DEFAULT_TESTERS[REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID],
+        'id': REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID,
+    }
+    tester = TesterObject.model_validate(data)
+    assert tester.type == 'repo'
+    assert tester.class_name == 'ErrorConfigRepository'
+    assert tester.config_parameter == 'error_config'
+    assert tester.aggregate_class_name == 'ErrorAggregate'

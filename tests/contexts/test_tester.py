@@ -19,6 +19,7 @@ from tiferet.contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
+    RepoTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
     TEST_PRESET_CACHE_PREFIX,
@@ -110,6 +111,7 @@ def test_tester_context_registry_and_omitted_domain_type() -> None:
     assert 'domain_type' not in DomainTesterContext.__dict__
     assert 'domain_type' not in AggregateTesterContext.__dict__
     assert 'domain_type' not in TransferObjectTesterContext.__dict__
+    assert 'domain_type' not in RepoTesterContext.__dict__
     assert isinstance(BaseContext.from_domain(tester), TesterContext)
     assert isinstance(DomainTesterContext.from_domain(tester), DomainTesterContext)
 
@@ -660,3 +662,40 @@ def test_session_run_rejects_target_on_specialized_tester() -> None:
     )
     with pytest.raises(ValueError):
         session.run(target=_add_values)
+
+# ** test: repo_tester_context_omits_domain_type
+def test_repo_tester_context_omits_domain_type() -> None:
+    '''Test RepoTesterContext omits domain_type and binds via from_domain.'''
+
+    tester = TesterObject(
+        type='repo',
+        id='repo.ErrorConfigRepository',
+        module_path='tiferet.repos.error',
+        class_name='ErrorConfigRepository',
+        config_parameter='error_config',
+    )
+    test_ctx = RepoTesterContext.from_domain(tester)
+    assert 'domain_type' not in RepoTesterContext.__dict__
+    assert BaseContext.for_domain(TesterObject) is TesterContext
+    assert BaseContext.for_domain(Request) is RequestContext
+    assert isinstance(test_ctx, RepoTesterContext)
+    assert isinstance(test_ctx, TesterContext)
+
+# ** test: repo_tester_context_empty_cases_are_noops
+def test_repo_tester_context_empty_cases_are_noops() -> None:
+    '''Test empty CRUD lists and unset aggregate_class_name are no-ops.'''
+
+    test_ctx = RepoTesterContext.from_domain(
+        TesterObject(
+            type='repo',
+            id='repo.ErrorConfigRepository',
+            module_path='tiferet.repos.error',
+            class_name='ErrorConfigRepository',
+            config_parameter='error_config',
+        ),
+    )
+    test_ctx.assert_exists(None)
+    test_ctx.assert_get(None)
+    test_ctx.assert_list(None)
+    test_ctx.assert_save(None)
+    test_ctx.assert_delete(None)

@@ -25,6 +25,7 @@ from ..contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
+    RepoTesterContext,
     ServiceEventTesterContext,
     TestSessionContext,
     TesterContext,
@@ -82,6 +83,7 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
         'domain_event': DomainEventTesterContext,
         'service_event': ServiceEventTesterContext,
         'generic': GenericTesterContext,
+        'repo': RepoTesterContext,
     }[tester.type]
 
     # Bind the selected subclass to the tester domain object.

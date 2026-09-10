@@ -21,6 +21,7 @@ from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.tester import (
     DomainEventTesterContext,
     GenericTesterContext,
+    RepoTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
     TestSessionContext as _TestSessionContext,
@@ -156,6 +157,33 @@ def test_build_tester_context_selects_generic_variant() -> None:
         ),
     )
     assert isinstance(test_ctx, GenericTesterContext)
+
+# ** test: build_tester_context_selects_repo_variant
+def test_build_tester_context_selects_repo_variant() -> None:
+    '''Test build_tester_context maps repo to RepoTesterContext.'''
+
+    test_ctx = build_tester_context(
+        TesterObject(
+            type='repo',
+            id='repo.ErrorConfigRepository',
+            module_path='tiferet.repos.error',
+            class_name='ErrorConfigRepository',
+            config_parameter='error_config',
+        ),
+    )
+    assert isinstance(test_ctx, RepoTesterContext)
+
+# ** test: use_tester_injects_repo_test_ctx
+@use_tester(
+    type='repo',
+    module_path='tiferet.repos.error',
+    class_name='ErrorConfigRepository',
+    config_parameter='error_config',
+)
+def test_use_tester_injects_repo_test_ctx(test_ctx) -> None:
+    '''Test @use_tester injects RepoTesterContext as test_ctx.'''
+
+    assert isinstance(test_ctx, RepoTesterContext)
 
 # ** test: use_tester_injects_generic_test_ctx
 @use_tester(

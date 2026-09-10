@@ -29,6 +29,7 @@ class TesterObject(DomainObject):
         'domain_event',
         'service_event',
         'generic',
+        'repo',
     ] = Field(
         ...,
         description='The type of tester object.',
@@ -146,6 +147,36 @@ class TesterObject(DomainObject):
     not_found_kwargs: Dict[str, Any] = Field(
         default_factory=dict,
         description='Keyword arguments for the not-found path.',
+    )
+
+    # * attribute: config_parameter
+    config_parameter: str | None = Field(
+        default=None,
+        description='Constructor keyword for the repository config file path.',
+    )
+
+    # * attribute: exists_cases
+    exists_cases: List[Tuple[str, bool]] = Field(
+        default_factory=list,
+        description='Repository exists assertions as (id, expected).',
+    )
+
+    # * attribute: get_cases
+    get_cases: List[Tuple[str, Dict[str, Any] | None]] = Field(
+        default_factory=list,
+        description='Repository get assertions as (id, expected_data_or_None).',
+    )
+
+    # * attribute: list_ids
+    list_ids: List[str] = Field(
+        default_factory=list,
+        description='Expected identifiers from an unfiltered list().',
+    )
+
+    # * attribute: delete_ids
+    delete_ids: List[str] = Field(
+        default_factory=list,
+        description='Identifiers deleted twice to prove idempotent delete.',
     )
 
     # * method: _derive_expected_data (model validator)
