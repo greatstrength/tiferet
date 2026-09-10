@@ -47,6 +47,7 @@ from tiferet.contexts.app import (
     AppSessionContext,
 )
 from tiferet.domain import Error, Feature, AppSession, AppServiceDependency
+from tiferet.interfaces import ServiceError
 from tiferet.utils.core import CacheMiddleware
 from tiferet.repos.app import AppConfigRepository
 from tiferet.repos.di import DIConfigRepository
@@ -1066,6 +1067,56 @@ def test_build_logger_handler_caches_built_logger():
 
     # Assert the logger was cached under the logger cache prefix.
     assert cache.get('default', *LOGGER_CACHE_PREFIX) is first_logger
+
+# ** test: build_logger_handler_falls_back_when_list_all_unresolvable
+def test_build_logger_handler_falls_back_when_list_all_unresolvable():
+    '''
+    Test that build_logger_handler builds from cache-seeded LoggingSettings
+    when logging_list_all_evt cannot be resolved.
+    '''
+
+    # Arrange a cache seeded with default logging settings and an unresolvable event.
+    cache = build_cache()
+    get_dependency = mock.Mock(side_effect=ServiceError(
+        'DI_DEPENDENCY_NOT_REGISTERED',
+        'No dependency is registered under the id: logging_list_all_evt.',
+    ))
+
+    # Build and invoke the handler for a fresh logger id.
+    handler = build_logger_handler(cache, get_dependency)
+    logger = handler('default')
+
+    # Assert a logger was built from cache-seeded defaults.
+    get_dependency.assert_called_once_with('logging_list_all_evt', 'app')
+    import logging as stdlib_logging
+    assert isinstance(logger, stdlib_logging.Logger)
+    assert cache.get('default', *LOGGER_CACHE_PREFIX) is logger
+
+# ** test: build_logger_handler_falls_back_when_execute_raises_service_error
+def test_build_logger_handler_falls_back_when_execute_raises_service_error():
+    '''
+    Test that build_logger_handler builds from cache-seeded LoggingSettings
+    when logging_list_all_evt.execute raises ServiceError.
+    '''
+
+    # Arrange a cache and a list-all event whose execute fails as ServiceError.
+    cache = build_cache()
+    logging_evt = mock.Mock()
+    logging_evt.execute.side_effect = ServiceError(
+        'YAML_FILE_NOT_FOUND',
+        'YAML file not found.',
+    )
+    get_dependency = mock.Mock(return_value=logging_evt)
+
+    # Build and invoke the handler for a fresh logger id.
+    handler = build_logger_handler(cache, get_dependency)
+    logger = handler('fallback')
+
+    # Assert execute was attempted and a logger was still constructed.
+    logging_evt.execute.assert_called_once()
+    import logging as stdlib_logging
+    assert isinstance(logger, stdlib_logging.Logger)
+    assert cache.get('fallback', *LOGGER_CACHE_PREFIX) is logger
 
 # ** test: compose_session_context_wires_five_handlers
 def test_compose_session_context_wires_five_handlers():
