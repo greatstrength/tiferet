@@ -68,6 +68,7 @@ class AddTester(TesterEvent):
                 'transfer_object',
                 'domain_event',
                 'service_event',
+                'generic',
             ),
             error_code=a.error.INVALID_TESTER_TYPE_ID,
             type=type,

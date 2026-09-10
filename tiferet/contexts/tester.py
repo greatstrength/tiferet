@@ -442,7 +442,7 @@ class TestSessionContext(RequestContext):
         '''
         Evaluate this test against the bound tester target.
 
-        :param target: Reserved for a later live-target override; ignored here.
+        :param target: Optional live instance or callable for a generic tester.
         :type target: Any
         :param kwargs: Reserved keyword arguments; ignored here.
         :type kwargs: dict
@@ -450,8 +450,26 @@ class TestSessionContext(RequestContext):
         :rtype: Any
         '''
 
-        # Overlay given-state onto a copy of the tester sample payload.
+        # Reject a live target on specialized testers.
         tester = self.tester_ctx.domain
+        if tester.type != 'generic' and target is not None:
+            raise ValueError(
+                'run(target=...) is only valid when tester type is generic.'
+            )
+
+        # Evaluate a generic tester against a live object or get_target().
+        if tester.type == 'generic':
+            resolved = target if target is not None else tester.get_target()
+            self.tester_ctx.assert_contract(target=resolved)
+            if callable(resolved) and not isinstance(resolved, type):
+                outcome = resolved(**self.data)
+            else:
+                outcome = resolved
+            self.capture_outcome(outcome)
+            self.evaluate_verifications()
+            return outcome
+
+        # Overlay given-state onto a copy of the tester sample payload.
         if tester.type in ('domain_event', 'service_event'):
             sample = tester.sample_kwargs
         else:
@@ -597,3 +615,52 @@ class ServiceEventTesterContext(DomainEventTesterContext):
         raise AssertionError(
             f'Expected {self.domain.not_found_error_code} when service get returns None.'
         )
+
+# ** context: generic_tester_context
+class GenericTesterContext(TesterContext):
+    '''
+    Bound operational context for a generic tester. Omits domain_type so
+    ContextMeta keeps mapping TesterObject to TesterContext.
+    '''
+
+    # * method: make_target
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
+        '''
+        Return the live generic target, optionally constructing a concrete class.
+
+        :param data: Optional construction data; defaults to get_target().
+        :type data: Dict[str, Any]
+        :return: The live target object, callable, class, or instance.
+        :rtype: Any
+        '''
+
+        # Use declaration-time get_target when the caller did not supply data.
+        if data is None:
+            return self.domain.get_target()
+
+        # Instantiate a concrete class from the supplied dict without mutation.
+        return self.domain.get_target_type()(**data)
+
+    # * method: assert_contract
+    def assert_contract(self, target: Any = None) -> None:
+        '''
+        Lock ABC abstract method names on the inspected type.
+
+        Missing or empty ``__abstractmethods__`` is a no-op.
+
+        :param target: Optional live object or class; built when omitted.
+        :type target: Any
+        '''
+
+        # Resolve the object under contract when the caller did not supply one.
+        obj = target if target is not None else self.make_target()
+        inspected = obj if isinstance(obj, type) else type(obj)
+        abstract_methods = getattr(inspected, '__abstractmethods__', None)
+
+        # Return immediately when there is no ABC contract to lock.
+        if not abstract_methods:
+            return
+
+        # Assert each abstract method name exists on the inspected type.
+        for name in abstract_methods:
+            assert hasattr(inspected, name)

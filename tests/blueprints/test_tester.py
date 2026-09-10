@@ -24,6 +24,7 @@ from tiferet.contexts.app import (
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.tester import (
     DomainEventTesterContext,
+    GenericTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
     TestSessionContext as _TestSessionContext,
@@ -174,3 +175,29 @@ def test_build_tester_context_selects_event_variants() -> None:
     assert isinstance(domain_event_ctx, DomainEventTesterContext)
     assert isinstance(service_event_ctx, ServiceEventTesterContext)
     assert not isinstance(domain_event_ctx, ServiceEventTesterContext)
+
+# ** test: build_tester_context_selects_generic_variant
+def test_build_tester_context_selects_generic_variant() -> None:
+    '''Test build_tester_context maps generic to GenericTesterContext.'''
+
+    test_ctx = build_tester_context(
+        TesterObject(
+            type='generic',
+            id='generic.ErrorMessage',
+            module_path=ErrorMessage.__module__,
+            class_name=ErrorMessage.__name__,
+            sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
+        ),
+    )
+    assert isinstance(test_ctx, GenericTesterContext)
+
+# ** test: use_tester_injects_generic_test_ctx
+@use_tester(
+    type='generic',
+    target_cls=ErrorMessage,
+    sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
+)
+def test_use_tester_injects_generic_test_ctx(test_ctx) -> None:
+    '''Test @use_tester injects GenericTesterContext as test_ctx.'''
+
+    assert isinstance(test_ctx, GenericTesterContext)

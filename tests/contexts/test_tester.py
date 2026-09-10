@@ -18,6 +18,7 @@ from tiferet.contexts.tester import (
     AggregateTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
+    GenericTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
     TEST_PRESET_CACHE_PREFIX,
@@ -35,6 +36,7 @@ from tiferet.domain import (
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.domain.error import ErrorMessage
 from tiferet.events.error import GetError
+from tiferet.interfaces import ErrorService
 from tiferet.mappers.error import (
     ErrorAggregate,
     ErrorConfigObject,
@@ -68,6 +70,12 @@ def _build_error_message_tester() -> TesterObject:
         sample_data=dict(ERROR_MESSAGE_SAMPLE_DATA),
         equality_fields=['lang', 'text'],
     )
+
+# ** function: add_values
+def _add_values(a, b):
+    '''Add two values for generic run proving tests.'''
+
+    return a + b
 
 # *** fixtures
 
@@ -524,3 +532,93 @@ def test_use_tester_injects_service_event_test_ctx(test_ctx) -> None:
 
     assert isinstance(test_ctx, ServiceEventTesterContext)
     test_ctx.assert_not_found()
+
+# ** test: generic_tester_context_omits_domain_type
+def test_generic_tester_context_omits_domain_type() -> None:
+    '''Test GenericTesterContext omits domain_type and leaves registry mappings.'''
+
+    assert 'domain_type' not in GenericTesterContext.__dict__
+    assert BaseContext.for_domain(TesterObject) is TesterContext
+    assert BaseContext.for_domain(Request) is RequestContext
+    assert not hasattr(GenericTesterContext, 'given')
+    assert not hasattr(GenericTesterContext, 'invoke')
+    assert not hasattr(GenericTesterContext, 'verify')
+    assert not hasattr(GenericTesterContext, 'run')
+
+# ** test: generic_tester_context_assert_contract
+def test_generic_tester_context_assert_contract() -> None:
+    '''Test assert_contract no-ops on concrete classes and locks a real ABC.'''
+
+    concrete_ctx = GenericTesterContext.from_domain(
+        TesterObject(
+            type='generic',
+            id='generic.ErrorMessage',
+            module_path=ErrorMessage.__module__,
+            class_name=ErrorMessage.__name__,
+            sample_data=dict(ERROR_MESSAGE_SAMPLE_DATA),
+        ),
+    )
+    assert concrete_ctx.assert_contract() is None
+
+    abc_ctx = GenericTesterContext.from_domain(
+        TesterObject(
+            type='generic',
+            id='generic.ErrorService',
+            module_path=ErrorService.__module__,
+            class_name=ErrorService.__name__,
+        ),
+    )
+    assert abc_ctx.assert_contract(target=ErrorService) is None
+    for name in ErrorService.__abstractmethods__:
+        assert hasattr(ErrorService, name)
+
+# ** test: session_run_generic_invokes_local_callable
+def test_session_run_generic_invokes_local_callable() -> None:
+    '''Test generic run(target=fn) uses given-state and does not mutate sample_data.'''
+
+    test_ctx = GenericTesterContext.from_domain(
+        TesterObject(
+            type='generic',
+            id='generic.add_values',
+            module_path=__name__,
+            class_name='_add_values',
+        ),
+    )
+    sample = test_ctx.domain.sample_data
+    domain = test_ctx.domain
+    session = build_test_session(test_ctx)
+    result = session.given(a=1, b=2).verify(3).run(target=_add_values)
+    assert result == 3
+    assert test_ctx.domain is domain
+    assert test_ctx.domain.sample_data is sample
+
+    source = inspect.getsource(_TestSessionContext.run)
+    assert 'execute_feature' not in source
+    assert '_dispatch_event' not in source
+    assert 'build_logger' not in source
+    assert 'handle_error' not in source
+
+# ** test: session_run_generic_uses_get_target_without_invoke
+def test_session_run_generic_uses_get_target_without_invoke() -> None:
+    '''Test generic run() without invoke still exercises get_target().'''
+
+    test_ctx = GenericTesterContext.from_domain(
+        TesterObject(
+            type='generic',
+            id='generic.add_values',
+            module_path=__name__,
+            class_name='_add_values',
+        ),
+    )
+    result = build_test_session(test_ctx).given(a=2, b=3).verify(5).run()
+    assert result == 5
+
+# ** test: session_run_rejects_target_on_specialized_tester
+def test_session_run_rejects_target_on_specialized_tester() -> None:
+    '''Test specialized run raises when a live target is supplied.'''
+
+    session = build_test_session(
+        DomainTesterContext.from_domain(_build_error_message_tester()),
+    )
+    with pytest.raises(ValueError):
+        session.run(target=_add_values)
