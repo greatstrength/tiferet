@@ -111,9 +111,9 @@ TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA = {
         ],
     }
 
-# *** tests
+# *** testers
 
-# ** tester: TestCliArgumentAggregate
+# ** tester: cli_argument_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=CliArgumentAggregate,
@@ -128,18 +128,18 @@ TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA = {
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ],
 )
-class TestCliArgumentAggregate:
+class CliArgumentAggregateTester:
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
@@ -163,7 +163,7 @@ class TestCliArgumentAggregate:
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
-# ** tester: TestCliCommandAggregate
+# ** tester: cli_command_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=CliCommandAggregate,
@@ -178,18 +178,18 @@ class TestCliArgumentAggregate:
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ],
 )
-class TestCliCommandAggregate:
+class CliCommandAggregateTester:
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
@@ -319,7 +319,7 @@ class TestCliCommandAggregate:
         assert aggregate.arguments[0].description == 'The numerator.'
         assert aggregate.arguments[0].type == 'int'
 
-# ** tester: TestCliCommandConfigObject
+# ** tester: cli_command_config_object_tester
 @use_tester(
     type='transfer_object',
     target_cls=CliCommandConfigObject,
@@ -329,24 +329,24 @@ class TestCliCommandAggregate:
     equality_fields=COMMAND_EQUALITY_FIELDS,
     field_normalizers=COMMAND_FIELD_NORMALIZERS,
 )
-class TestCliCommandConfigObject:
+class CliCommandConfigObjectTester:
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''
 
-    # * method: test_map
+    # * test: map
     def test_map(self, test_ctx):
         '''Verify transfer construction and mapping to the declared aggregate.'''
 
         test_ctx.assert_map()
 
-    # * method: test_from_model
+    # * test: from_model
     def test_from_model(self, test_ctx):
         '''Verify aggregate conversion to the declared transfer-object type.'''
 
         test_ctx.assert_from_model()
 
-    # * method: test_round_trip
+    # * test: round_trip
     def test_round_trip(self, test_ctx):
         '''Verify aggregate conversion through the transfer object and back.'''
 

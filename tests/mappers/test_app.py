@@ -108,9 +108,9 @@ TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
         },
     }
 
-# *** tests
+# *** testers
 
-# ** tester: TestAppSessionAggregate
+# ** tester: app_session_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=AppSessionAggregate,
@@ -125,18 +125,18 @@ TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ],
 )
-class TestAppSessionAggregate:
+class AppSessionAggregateTester:
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
@@ -161,9 +161,8 @@ class TestAppSessionAggregate:
         ('invalid_attr', 'value',                  ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
-    # *** fixtures
 
-    # ** fixture: aggr_factory
+    # * fixture: aggr_factory
     @pytest.fixture
     def aggr_factory(self):
         '''
@@ -187,7 +186,6 @@ class TestAppSessionAggregate:
 
         return factory
 
-    # *** domain-specific mutation tests
 
     # * test: set_constants_clear_when_none
     def test_set_constants_clear_when_none(self, aggr_factory):
@@ -228,7 +226,7 @@ class TestAppSessionAggregate:
         # The key set to None should be removed.
         assert aggr.constants == {'keep': '1', 'add': 'yes'}
 
-    # ** test: remove_service_various_positions_and_missing
+    # * test: remove_service_various_positions_and_missing
     @pytest.mark.parametrize(
         "initial_ids, remove_id, expected_removed, expected_remaining",
         [
@@ -388,7 +386,7 @@ class TestAppSessionAggregate:
         assert svc.class_name == 'FreshService'
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
-# ** tester: TestAppSessionConfigObject
+# ** tester: app_session_config_object_tester
 @use_tester(
     type='transfer_object',
     target_cls=AppSessionConfigObject,
@@ -398,24 +396,24 @@ class TestAppSessionAggregate:
     equality_fields=EQUALITY_FIELDS,
     field_normalizers=FIELD_NORMALIZERS,
 )
-class TestAppSessionConfigObject:
+class AppSessionConfigObjectTester:
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
 
-    # * method: test_map
+    # * test: map
     def test_map(self, test_ctx):
         '''Verify transfer construction and mapping to the declared aggregate.'''
 
         test_ctx.assert_map()
 
-    # * method: test_from_model
+    # * test: from_model
     def test_from_model(self, test_ctx):
         '''Verify aggregate conversion to the declared transfer-object type.'''
 
         test_ctx.assert_from_model()
 
-    # * method: test_round_trip
+    # * test: round_trip
     def test_round_trip(self, test_ctx):
         '''Verify aggregate conversion through the transfer object and back.'''
 
@@ -435,7 +433,6 @@ class TestAppSessionConfigObject:
 
     field_normalizers = FIELD_NORMALIZERS
 
-    # *** child mapper: AppServiceDependencyConfigObject
 
     # ** constant: dependency_sample_data
     dependency_sample_data = {

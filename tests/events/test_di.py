@@ -70,15 +70,15 @@ def service_registration_aggregate(flagged_dependency_for_di) -> ServiceRegistra
         dependencies=[flagged_dependency_for_di],
     )
 
-# *** tests
+# *** testers
 
-# ** class: TestDIEvent
-class TestDIEvent:
+# ** tester: di_event_tester
+class DIEventTester:
     '''
     Tests for the DIEvent base event shared by all DI events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that DIEvent extends DomainEvent.
@@ -87,7 +87,7 @@ class TestDIEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(DIEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete DI event extends DIEvent.
@@ -105,7 +105,7 @@ class TestDIEvent:
         ):
             assert issubclass(event_cls, DIEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing a DI event wires the shared service attribute.
@@ -119,7 +119,7 @@ class TestDIEvent:
         assert AddServiceRegistration(di_service=service).di_service is service
 
 
-# ** test: TestAddServiceRegistration
+# ** tester: add_service_registration_tester
 @use_tester(
     type='domain_event',
     target_cls=AddServiceRegistration,
@@ -138,7 +138,7 @@ class TestDIEvent:
     ),
     required_params=['id'],
 )
-class TestAddServiceRegistration:
+class AddServiceRegistrationTester:
     '''
     Tests for AddServiceRegistration using the domain event test harness.
     '''
@@ -155,7 +155,7 @@ class TestAddServiceRegistration:
         service.registration_exists.return_value = False
         return {'di_service': service}
 
-    # * method: test_default_type_only
+    # * test: default_type_only
     def test_default_type_only(self, test_ctx, mock_dependencies):
         '''
         Test adding a registration with only a default type.
@@ -176,7 +176,7 @@ class TestAddServiceRegistration:
         mock_dependencies['di_service'].registration_exists.assert_called_once_with('svc_new')
         mock_dependencies['di_service'].save_registration.assert_called_once_with(result)
 
-    # * method: test_dependencies_only
+    # * test: dependencies_only
     def test_dependencies_only(self, test_ctx, mock_dependencies):
         '''
         Test adding a registration with only flagged dependencies.
@@ -210,7 +210,7 @@ class TestAddServiceRegistration:
         assert dep.flag == 'alpha'
         assert dep.module_path == 'tiferet.repos.example'
 
-    # * method: test_default_and_dependencies
+    # * test: default_and_dependencies
     def test_default_and_dependencies(self, test_ctx, mock_dependencies):
         '''
         Test adding a registration with both a default type and dependencies.
@@ -235,7 +235,7 @@ class TestAddServiceRegistration:
         assert len(result.dependencies) == 1
         assert result.dependencies[0].flag == 'beta'
 
-    # * method: test_duplicate_id
+    # * test: duplicate_id
     def test_duplicate_id(self, test_ctx, mock_dependencies):
         '''
         Test that adding a registration with an existing ID raises an error.
@@ -250,7 +250,7 @@ class TestAddServiceRegistration:
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_ALREADY_EXISTS_ID
 
-    # * method: test_no_type_source
+    # * test: no_type_source
     def test_no_type_source(self, test_ctx, mock_dependencies):
         '''
         Test that adding a registration with no default type and no dependencies fails.
@@ -267,13 +267,13 @@ class TestAddServiceRegistration:
 
         assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestSetDefaultServiceRegistration
+# ** tester: set_default_service_registration_tester
 @use_tester(
     type='service_event',
     target_cls=SetDefaultServiceRegistration,
@@ -297,7 +297,7 @@ class TestAddServiceRegistration:
         class_name='Cls',
     ),
 )
-class TestSetDefaultServiceRegistration:
+class SetDefaultServiceRegistrationTester:
     '''
     Tests for SetDefaultServiceRegistration using the domain event test harness.
     '''
@@ -314,7 +314,7 @@ class TestSetDefaultServiceRegistration:
         service.get_registration.return_value = service_registration_aggregate
         return {'di_service': service}
 
-    # * method: test_full_update
+    # * test: full_update
     def test_full_update(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test updating both default type and parameters.
@@ -332,7 +332,7 @@ class TestSetDefaultServiceRegistration:
         # Assert the service was called to save.
         mock_dependencies['di_service'].save_registration.assert_called_once_with(result)
 
-    # * method: test_parameters_only
+    # * test: parameters_only
     def test_parameters_only(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test updating only parameters when module_path and class_name are not provided.
@@ -352,7 +352,7 @@ class TestSetDefaultServiceRegistration:
         # Parameters should be cleaned via set_default_type.
         assert result.parameters == {'param_1': 'updated'}
 
-    # * method: test_clear_parameters
+    # * test: clear_parameters
     def test_clear_parameters(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test clearing parameters when parameters is None.
@@ -370,7 +370,7 @@ class TestSetDefaultServiceRegistration:
         assert result.parameters == {}
         assert result.module_path == 'tiferet.repos.example'
 
-    # * method: test_incomplete_type
+    # * test: incomplete_type
     def test_incomplete_type(self, test_ctx, mock_dependencies):
         '''
         Test that providing only one of module_path or class_name raises an error.
@@ -387,7 +387,7 @@ class TestSetDefaultServiceRegistration:
 
         assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx, mock_dependencies):
         '''
         Test that the event raises SERVICE_REGISTRATION_NOT_FOUND when
@@ -403,7 +403,7 @@ class TestSetDefaultServiceRegistration:
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
-# ** test: TestSetServiceDependency
+# ** tester: set_service_dependency_tester
 @use_tester(
     type='service_event',
     target_cls=SetServiceDependency,
@@ -430,7 +430,7 @@ class TestSetDefaultServiceRegistration:
         class_name='ExampleAlpha',
     ),
 )
-class TestSetServiceDependency:
+class SetServiceDependencyTester:
     '''
     Tests for SetServiceDependency using the domain event test harness.
     '''
@@ -447,7 +447,7 @@ class TestSetServiceDependency:
         service.get_registration.return_value = service_registration_aggregate
         return {'di_service': service}
 
-    # * method: test_add_new
+    # * test: add_new
     def test_add_new(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test adding a new flagged dependency when the flag does not yet exist.
@@ -470,7 +470,7 @@ class TestSetServiceDependency:
         # Assert save was called.
         mock_dependencies['di_service'].save_registration.assert_called_once()
 
-    # * method: test_update_existing
+    # * test: update_existing
     def test_update_existing(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test updating an existing flagged dependency.
@@ -496,7 +496,7 @@ class TestSetServiceDependency:
             'param': 'value1',
         }
 
-    # * method: test_incomplete_type
+    # * test: incomplete_type
     def test_incomplete_type(self, test_ctx, mock_dependencies):
         '''
         Test that providing an empty class_name raises INVALID_FLAGGED_DEPENDENCY.
@@ -513,7 +513,7 @@ class TestSetServiceDependency:
 
         assert exc_info.value.error_code == a.error.INVALID_FLAGGED_DEPENDENCY_ID
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx, mock_dependencies):
         '''
         Test that the event raises SERVICE_REGISTRATION_NOT_FOUND when
@@ -529,13 +529,13 @@ class TestSetServiceDependency:
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestRemoveServiceDependency
+# ** tester: remove_service_dependency_tester
 @use_tester(
     type='service_event',
     target_cls=RemoveServiceDependency,
@@ -557,7 +557,7 @@ class TestSetServiceDependency:
         flag='alpha',
     ),
 )
-class TestRemoveServiceDependency:
+class RemoveServiceDependencyTester:
     '''
     Tests for RemoveServiceDependency using the domain event test harness.
     '''
@@ -574,7 +574,7 @@ class TestRemoveServiceDependency:
         service.get_registration.return_value = service_registration_aggregate
         return {'di_service': service}
 
-    # * method: test_success_with_remaining_default
+    # * test: success_with_remaining_default
     def test_success_with_remaining_default(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test removing a dependency while a default type remains configured.
@@ -592,7 +592,7 @@ class TestRemoveServiceDependency:
         # Assert save was called.
         mock_dependencies['di_service'].save_registration.assert_called_once()
 
-    # * method: test_nonexistent_flag
+    # * test: nonexistent_flag
     def test_nonexistent_flag(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
         Test removing a non-existent flag is idempotent when type sources remain.
@@ -606,7 +606,7 @@ class TestRemoveServiceDependency:
         assert service_registration_aggregate.get_dependency('test_alpha') is not None
         assert service_registration_aggregate.module_path == 'tiferet.repos.example'
 
-    # * method: test_invalid_after_removal
+    # * test: invalid_after_removal
     def test_invalid_after_removal(self, test_ctx, mock_dependencies, flagged_dependency_for_di):
         '''
         Test that removing the last type source raises INVALID_SERVICE_REGISTRATION.
@@ -626,7 +626,7 @@ class TestRemoveServiceDependency:
 
         assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx, mock_dependencies):
         '''
         Test that the event raises SERVICE_REGISTRATION_NOT_FOUND when
@@ -642,13 +642,13 @@ class TestRemoveServiceDependency:
 
         assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestRemoveServiceRegistration
+# ** tester: remove_service_registration_tester
 @use_tester(
     type='domain_event',
     target_cls=RemoveServiceRegistration,
@@ -661,12 +661,12 @@ class TestRemoveServiceDependency:
     sample_kwargs=dict(id='svc_to_delete'),
     required_params=['id'],
 )
-class TestRemoveServiceRegistration:
+class RemoveServiceRegistrationTester:
     '''
     Tests for RemoveServiceRegistration using the domain event test harness.
     '''
 
-    # * method: test_existing
+    # * test: existing
     def test_existing(self, test_ctx):
         '''
         Test removing an existing service registration.
@@ -681,7 +681,7 @@ class TestRemoveServiceRegistration:
         assert result == 'svc_to_delete'
         mock_dependencies['di_service'].delete_registration.assert_called_once_with('svc_to_delete')
 
-    # * method: test_nonexistent_is_idempotent
+    # * test: nonexistent_is_idempotent
     def test_nonexistent_is_idempotent(self, test_ctx):
         '''
         Test that removing a non-existent registration is idempotent.
@@ -696,7 +696,7 @@ class TestRemoveServiceRegistration:
         assert result == 'missing_id'
         mock_dependencies['di_service'].delete_registration.assert_called_once_with('missing_id')
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
@@ -704,7 +704,7 @@ class TestRemoveServiceRegistration:
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestSetServiceConstants
+# ** tester: set_service_constants_tester
 @use_tester(
     type='domain_event',
     target_cls=SetServiceConstants,
@@ -716,7 +716,7 @@ class TestRemoveServiceRegistration:
     },
     sample_kwargs=dict(constants={'key': 'value'}),
 )
-class TestSetServiceConstants:
+class SetServiceConstantsTester:
     '''
     Tests for SetServiceConstants using the domain event test harness.
     '''
@@ -733,7 +733,7 @@ class TestSetServiceConstants:
         service.list_all.return_value = ([], {'existing': 'old'})
         return {'di_service': service}
 
-    # * method: test_clear_all_with_none
+    # * test: clear_all_with_none
     def test_clear_all_with_none(self, test_ctx, mock_dependencies):
         '''
         Test clearing all constants when None is passed.
@@ -746,7 +746,7 @@ class TestSetServiceConstants:
         assert result == {}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({})
 
-    # * method: test_partial_removal
+    # * test: partial_removal
     def test_partial_removal(self, test_ctx, mock_dependencies):
         '''
         Test removing keys with None values while preserving others.
@@ -765,7 +765,7 @@ class TestSetServiceConstants:
         assert result == {'keep': 'value'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'keep': 'value'})
 
-    # * method: test_add_new
+    # * test: add_new
     def test_add_new(self, test_ctx, mock_dependencies):
         '''
         Test adding new constants on top of existing ones.
@@ -780,7 +780,7 @@ class TestSetServiceConstants:
             {'existing': 'old', 'new': 'value'}
         )
 
-    # * method: test_update_existing
+    # * test: update_existing
     def test_update_existing(self, test_ctx, mock_dependencies):
         '''
         Test updating existing constant values.
@@ -793,7 +793,7 @@ class TestSetServiceConstants:
         assert result == {'existing': 'new'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'new'})
 
-    # * method: test_mixed_operations
+    # * test: mixed_operations
     def test_mixed_operations(self, test_ctx, mock_dependencies):
         '''
         Test adding, updating, and removing constants in a single call.
@@ -820,7 +820,7 @@ class TestSetServiceConstants:
         assert result == expected
         mock_dependencies['di_service'].save_constants.assert_called_once_with(expected)
 
-    # * method: test_empty_dict
+    # * test: empty_dict
     def test_empty_dict(self, test_ctx, mock_dependencies):
         '''
         Test that an empty dict is idempotent (no changes).
@@ -833,7 +833,7 @@ class TestSetServiceConstants:
         assert result == {'existing': 'old'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'old'})
 
-    # * method: test_omitted_is_noop
+    # * test: omitted_is_noop
     def test_omitted_is_noop(self, test_ctx, mock_dependencies):
         '''
         Test that omitting the constants argument preserves existing
@@ -851,7 +851,7 @@ class TestSetServiceConstants:
         assert result == {'existing': 'old'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'old'})
 
-# ** test: TestListAllSettings
+# ** tester: list_all_settings_tester
 @use_tester(
     type='domain_event',
     target_cls=ListAllSettings,
@@ -863,12 +863,12 @@ class TestSetServiceConstants:
     },
     sample_kwargs=dict(),
 )
-class TestListAllSettings:
+class ListAllSettingsTester:
     '''
     Tests for ListAllSettings using the domain event test harness.
     '''
 
-    # * method: test_calls_list_all
+    # * test: calls_list_all
     def test_calls_list_all(self, test_ctx, service_registration_aggregate):
         '''
         Test that ListAllSettings delegates to the DI service list_all method.

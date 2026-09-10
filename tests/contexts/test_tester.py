@@ -427,6 +427,44 @@ def test_use_tester_reuses_master_and_creates_new_sessions() -> None:
     assert session_a.tester_ctx is test_ctx_a
     assert session_b.tester_ctx is test_ctx_b
 
+# ** test: use_tester_wraps_class_fixture_members
+def test_use_tester_wraps_class_fixture_members() -> None:
+    '''Test class-form @use_tester injects test_ctx into member fixtures.'''
+
+    # Decorate a probe class whose fixture lists test_ctx.
+    @use_tester(
+        type='domain',
+        target_cls=ErrorMessage,
+        sample_data=dict(ERROR_MESSAGE_SAMPLE_DATA),
+        equality_fields=['lang', 'text'],
+    )
+    class Probe:
+        @pytest.fixture
+        def bound(self, test_ctx):
+            return test_ctx
+
+        def test_same(self, test_ctx):
+            return test_ctx
+
+    # Unwrap the restored fixture object without importing pytest in tiferet/.
+    fixture_member = Probe.__dict__['bound']
+    inner = getattr(
+        fixture_member,
+        '_fixture_function',
+        getattr(fixture_member, '__wrapped__', fixture_member),
+    )
+
+    # Assert test_ctx was stripped from the pytest-visible signatures.
+    assert 'test_ctx' not in inspect.signature(inner).parameters
+    assert 'test_ctx' not in inspect.signature(Probe.test_same).parameters
+
+    # Assert the fixture and test method receive the same decoration-time master.
+    probe = Probe()
+    fixture_ctx = inner(probe)
+    test_ctx = probe.test_same()
+    assert fixture_ctx is test_ctx
+    assert isinstance(test_ctx, DomainTesterContext)
+
 # ** test: use_tester_injects_by_parameter_name
 @use_tester(
     type='domain',

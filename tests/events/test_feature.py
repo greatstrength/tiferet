@@ -28,6 +28,40 @@ from tiferet.interfaces import FeatureService
 from tiferet.mappers import FeatureAggregate
 from tiferet.blueprints.tester import use_tester
 
+# *** functions
+
+# ** function: populate_three_steps
+def _populate_three_steps(sample_feature):
+    '''
+    Pre-populate a feature with three ordered steps.
+
+    :param sample_feature: The feature aggregate to populate.
+    :type sample_feature: FeatureAggregate
+    :return: The three added steps.
+    :rtype: tuple
+    '''
+
+    # Add three ordered steps used by reorder tests.
+    first = sample_feature.add_step(
+        name='first',
+        service_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+    second = sample_feature.add_step(
+        name='second',
+        service_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+    third = sample_feature.add_step(
+        name='third',
+        service_id='container.third',
+        parameters={'index': 2},
+        data_key='third_key',
+    )
+    return first, second, third
+
 # *** fixtures
 
 # ** fixture: sample_feature
@@ -50,15 +84,15 @@ def sample_feature() -> Feature:
     )
 
 
-# *** tests
+# *** testers
 
-# ** class: TestFeatureEvent
-class TestFeatureEvent:
+# ** tester: feature_event_tester
+class FeatureEventTester:
     '''
     Tests for the FeatureEvent base event shared by all feature events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that FeatureEvent extends DomainEvent.
@@ -67,7 +101,7 @@ class TestFeatureEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(FeatureEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete feature event extends FeatureEvent.
@@ -87,7 +121,7 @@ class TestFeatureEvent:
         ):
             assert issubclass(event_cls, FeatureEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing a feature event wires the shared service attribute.
@@ -101,7 +135,7 @@ class TestFeatureEvent:
         assert AddFeature(feature_service=service).feature_service is service
 
 
-# ** test: TestAddFeature
+# ** tester: add_feature_tester
 @use_tester(
     type='domain_event',
     target_cls=AddFeature,
@@ -117,7 +151,7 @@ class TestFeatureEvent:
     ),
     required_params=['name', 'group_id'],
 )
-class TestAddFeature:
+class AddFeatureTester:
     '''
     Tests for AddFeature using the domain event test harness.
     '''
@@ -134,7 +168,7 @@ class TestAddFeature:
         service.exists.return_value = False
         return {'feature_service': service}
 
-    # * method: test_minimal_success
+    # * test: minimal_success
     def test_minimal_success(self, test_ctx, mock_dependencies):
         '''
         Test successful creation of a feature with minimal required parameters.
@@ -155,7 +189,7 @@ class TestAddFeature:
         mock_dependencies['feature_service'].exists.assert_called_once_with(result.id)
         mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
-    # * method: test_full_parameters
+    # * test: full_parameters
     def test_full_parameters(self, test_ctx, mock_dependencies):
         '''
         Test creation of a feature when all optional parameters are provided.
@@ -186,7 +220,7 @@ class TestAddFeature:
         mock_dependencies['feature_service'].exists.assert_called_once_with(result.id)
         mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
-    # * method: test_duplicate_id
+    # * test: duplicate_id
     def test_duplicate_id(self, test_ctx, mock_dependencies):
         '''
         Test that adding a feature with an existing ID raises FEATURE_ALREADY_EXISTS.
@@ -206,7 +240,7 @@ class TestAddFeature:
         mock_dependencies['feature_service'].exists.assert_called_once()
         mock_dependencies['feature_service'].save.assert_not_called()
 
-    # * method: test_contextual_kwargs_not_forwarded
+    # * test: contextual_kwargs_not_forwarded
     def test_contextual_kwargs_not_forwarded(self, test_ctx, mock_dependencies):
         '''
         Test that contextual pipeline kwargs are not forwarded into FeatureAggregate.
@@ -224,13 +258,13 @@ class TestAddFeature:
         assert not hasattr(result, 'request')
         mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestGetFeature
+# ** tester: get_feature_tester
 @use_tester(
     type='service_event',
     target_cls=GetFeature,
@@ -245,7 +279,7 @@ class TestAddFeature:
     service_attr='feature_service',
     not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
 )
-class TestGetFeature:
+class GetFeatureTester:
     '''
     Tests for GetFeature using the service event test harness.
     '''
@@ -262,7 +296,7 @@ class TestGetFeature:
         service.get.return_value = sample_feature
         return {'feature_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successful retrieval of a feature.
@@ -275,7 +309,7 @@ class TestGetFeature:
         assert result is sample_feature
         mock_dependencies['feature_service'].get.assert_called_once_with('group.sample_feature')
 
-    # * method: test_fallback_to_default_index
+    # * test: fallback_to_default_index
     def test_fallback_to_default_index(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that a repository miss falls back to a matching default_feature_index entry.
@@ -294,7 +328,7 @@ class TestGetFeature:
         assert result is sample_feature
         mock_dependencies['feature_service'].get.assert_called_once_with('group.sample_feature')
 
-    # * method: test_miss_with_nonmatching_index
+    # * test: miss_with_nonmatching_index
     def test_miss_with_nonmatching_index(self, test_ctx, mock_dependencies):
         '''
         Test that a repository miss with no matching default raises FEATURE_NOT_FOUND.
@@ -313,19 +347,19 @@ class TestGetFeature:
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.FEATURE_NOT_FOUND_ID
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx):
         '''Verify the configured not-found error when the service misses.'''
 
         test_ctx.assert_not_found()
 
-# ** test: TestListFeatures
+# ** tester: list_features_tester
 @use_tester(
     type='domain_event',
     target_cls=ListFeatures,
@@ -338,12 +372,12 @@ class TestGetFeature:
     sample_kwargs=dict(group_id=None),
     required_params=[],
 )
-class TestListFeatures:
+class ListFeaturesTester:
     '''
     Tests for ListFeatures using the domain event test harness.
     '''
 
-    # * method: test_all
+    # * test: all
     def test_all(self, test_ctx, sample_feature):
         '''
         Test listing all features.
@@ -361,7 +395,7 @@ class TestListFeatures:
         assert result == [sample_feature]
         mock_dependencies['feature_service'].list.assert_called_once_with(group_id=None)
 
-    # * method: test_by_group_id
+    # * test: by_group_id
     def test_by_group_id(self, test_ctx, sample_feature):
         '''
         Test listing features filtered by group_id.
@@ -379,7 +413,7 @@ class TestListFeatures:
         assert result == [sample_feature]
         mock_dependencies['feature_service'].list.assert_called_once_with(group_id='group')
 
-    # * method: test_empty_result
+    # * test: empty_result
     def test_empty_result(self, test_ctx):
         '''
         Test listing features when the service returns an empty list.
@@ -397,7 +431,7 @@ class TestListFeatures:
         assert result == []
         mock_dependencies['feature_service'].list.assert_called_once_with(group_id=None)
 
-# ** test: TestRemoveFeature
+# ** tester: remove_feature_tester
 @use_tester(
     type='domain_event',
     target_cls=RemoveFeature,
@@ -410,12 +444,12 @@ class TestListFeatures:
     sample_kwargs=dict(id='group.sample_feature'),
     required_params=['id'],
 )
-class TestRemoveFeature:
+class RemoveFeatureTester:
     '''
     Tests for RemoveFeature using the domain event test harness.
     '''
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx):
         '''
         Test successful deletion of a feature.
@@ -430,7 +464,7 @@ class TestRemoveFeature:
         assert result == 'group.sample_feature'
         mock_dependencies['feature_service'].delete.assert_called_once_with('group.sample_feature')
 
-    # * method: test_idempotent_multiple_calls
+    # * test: idempotent_multiple_calls
     def test_idempotent_multiple_calls(self, test_ctx):
         '''
         Test idempotent deletion with multiple calls.
@@ -447,7 +481,7 @@ class TestRemoveFeature:
         assert result_second == 'group.sample_feature'
         assert mock_dependencies['feature_service'].delete.call_count == 2
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
@@ -455,7 +489,7 @@ class TestRemoveFeature:
 
         test_ctx.assert_missing_required_params()
 
-# ** test: TestUpdateFeature
+# ** tester: update_feature_tester
 @use_tester(
     type='service_event',
     target_cls=UpdateFeature,
@@ -479,7 +513,7 @@ class TestRemoveFeature:
         value='Updated Feature Name',
     ),
 )
-class TestUpdateFeature:
+class UpdateFeatureTester:
     '''
     Tests for UpdateFeature using the service event test harness.
     '''
@@ -496,7 +530,7 @@ class TestUpdateFeature:
         service.get.return_value = sample_feature
         return {'feature_service': service}
 
-    # * method: test_name_success
+    # * test: name_success
     def test_name_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully updating a feature name.
@@ -510,7 +544,7 @@ class TestUpdateFeature:
         assert result.name == 'Updated Feature Name'
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # * method: test_description_success
+    # * test: description_success
     def test_description_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully updating a feature description.
@@ -528,7 +562,7 @@ class TestUpdateFeature:
         assert result.description == 'Updated description.'
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # * method: test_clear_description
+    # * test: clear_description
     def test_clear_description(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test clearing a feature description.
@@ -545,7 +579,7 @@ class TestUpdateFeature:
         assert result is sample_feature
         assert result.description is None
 
-    # * method: test_invalid_attribute
+    # * test: invalid_attribute
     def test_invalid_attribute(self, test_ctx, mock_dependencies):
         '''
         Test that an unsupported attribute raises INVALID_FEATURE_ATTRIBUTE.
@@ -559,7 +593,7 @@ class TestUpdateFeature:
         assert exc_info.value.error_code == a.error.INVALID_FEATURE_ATTRIBUTE_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
-    # * method: test_missing_name_value
+    # * test: missing_name_value
     def test_missing_name_value(self, test_ctx, mock_dependencies):
         '''
         Test that updating name with empty value raises FEATURE_NAME_REQUIRED.
@@ -573,19 +607,19 @@ class TestUpdateFeature:
         assert exc_info.value.error_code == a.error.FEATURE_NAME_REQUIRED_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx):
         '''Verify the configured not-found error when the service misses.'''
 
         test_ctx.assert_not_found()
 
-# ** test: TestAddFeatureStep
+# ** tester: add_feature_step_tester
 @use_tester(
     type='service_event',
     target_cls=AddFeatureStep,
@@ -612,7 +646,7 @@ class TestUpdateFeature:
         service_id='container.attribute',
     ),
 )
-class TestAddFeatureStep:
+class AddFeatureStepTester:
     '''
     Tests for AddFeatureStep using the service event test harness.
     '''
@@ -629,7 +663,7 @@ class TestAddFeatureStep:
         service.get.return_value = sample_feature
         return {'feature_service': service}
 
-    # * method: test_append_success
+    # * test: append_success
     def test_append_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully appending a new step to a feature.
@@ -654,7 +688,7 @@ class TestAddFeatureStep:
         mock_dependencies['feature_service'].get.assert_called_once_with(sample_feature.id)
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # * method: test_insert_success
+    # * test: insert_success
     def test_insert_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test inserting a step at a specific position.
@@ -696,19 +730,19 @@ class TestAddFeatureStep:
         inserted = sample_feature.steps[1]
         assert inserted.service_id == 'container.inserted'
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx):
         '''Verify the configured not-found error when the service misses.'''
 
         test_ctx.assert_not_found()
 
-# ** test: TestUpdateFeatureStep
+# ** tester: update_feature_step_tester
 @use_tester(
     type='service_event',
     target_cls=UpdateFeatureStep,
@@ -734,7 +768,7 @@ class TestAddFeatureStep:
         value='Updated Name',
     ),
 )
-class TestUpdateFeatureStep:
+class UpdateFeatureStepTester:
     '''
     Tests for UpdateFeatureStep using the service event test harness.
     '''
@@ -760,7 +794,7 @@ class TestUpdateFeatureStep:
         service.get.return_value = sample_feature
         return {'feature_service': service}
 
-    # * method: test_update_string_attributes_success
+    # * test: update_string_attributes_success
     @pytest.mark.parametrize(
         'attribute, new_value, getter',
         [
@@ -795,7 +829,7 @@ class TestUpdateFeatureStep:
         assert getter(step) == new_value
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # * method: test_update_parameters_success
+    # * test: update_parameters_success
     def test_update_parameters_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test updating the parameters attribute on a feature step.
@@ -813,7 +847,7 @@ class TestUpdateFeatureStep:
         assert result == sample_feature.id
         assert step.parameters == {'baz': 'qux'}
 
-    # * method: test_update_pass_on_error_success
+    # * test: update_pass_on_error_success
     def test_update_pass_on_error_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test updating the pass_on_error flag.
@@ -831,7 +865,7 @@ class TestUpdateFeatureStep:
         assert result == sample_feature.id
         assert step.pass_on_error is True
 
-    # * method: test_invalid_attribute
+    # * test: invalid_attribute
     def test_invalid_attribute(self, test_ctx, mock_dependencies):
         '''
         Test that an unsupported attribute raises INVALID_FEATURE_COMMAND_ATTRIBUTE.
@@ -845,7 +879,7 @@ class TestUpdateFeatureStep:
         assert exc_info.value.error_code == a.error.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
-    # * method: test_missing_name_or_service_id_value
+    # * test: missing_name_or_service_id_value
     @pytest.mark.parametrize('attribute', ['name', 'service_id'])
     def test_missing_name_or_service_id_value(self, test_ctx, mock_dependencies, attribute):
         '''
@@ -860,7 +894,7 @@ class TestUpdateFeatureStep:
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
-    # * method: test_step_not_found
+    # * test: step_not_found
     def test_step_not_found(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that updating a step at an invalid position raises FEATURE_COMMAND_NOT_FOUND.
@@ -873,19 +907,19 @@ class TestUpdateFeatureStep:
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.FEATURE_COMMAND_NOT_FOUND_ID
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx):
         '''Verify the configured not-found error when the service misses.'''
 
         test_ctx.assert_not_found()
 
-# ** test: TestRemoveFeatureStep
+# ** tester: remove_feature_step_tester
 @use_tester(
     type='service_event',
     target_cls=RemoveFeatureStep,
@@ -907,7 +941,7 @@ class TestUpdateFeatureStep:
         position=0,
     ),
 )
-class TestRemoveFeatureStep:
+class RemoveFeatureStepTester:
     '''
     Tests for RemoveFeatureStep using the service event test harness.
     '''
@@ -924,7 +958,7 @@ class TestRemoveFeatureStep:
         service.get.return_value = sample_feature
         return {'feature_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully removing a step at a valid position.
@@ -952,7 +986,7 @@ class TestRemoveFeatureStep:
         assert sample_feature.steps == [second]
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # * method: test_invalid_position_idempotent
+    # * test: invalid_position_idempotent
     def test_invalid_position_idempotent(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test idempotent behavior when an invalid position is provided.
@@ -974,19 +1008,19 @@ class TestRemoveFeatureStep:
         assert sample_feature.steps == [original]
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx):
         '''Verify the configured not-found error when the service misses.'''
 
         test_ctx.assert_not_found()
 
-# ** test: TestReorderFeatureStep
+# ** tester: reorder_feature_step_tester
 @use_tester(
     type='service_event',
     target_cls=ReorderFeatureStep,
@@ -1010,7 +1044,7 @@ class TestRemoveFeatureStep:
         end_position=1,
     ),
 )
-class TestReorderFeatureStep:
+class ReorderFeatureStepTester:
     '''
     Tests for ReorderFeatureStep using the service event test harness.
     '''
@@ -1027,40 +1061,14 @@ class TestReorderFeatureStep:
         service.get.return_value = sample_feature
         return {'feature_service': service}
 
-    # * method: _populate_three_steps
-    def _populate_three_steps(self, sample_feature):
-        '''
-        Helper to pre-populate the feature with three steps.
-        '''
-
-        first = sample_feature.add_step(
-            name='first',
-            service_id='container.first',
-            parameters={'index': 0},
-            data_key='first_key',
-        )
-        second = sample_feature.add_step(
-            name='second',
-            service_id='container.second',
-            parameters={'index': 1},
-            data_key='second_key',
-        )
-        third = sample_feature.add_step(
-            name='third',
-            service_id='container.third',
-            parameters={'index': 2},
-            data_key='third_key',
-        )
-        return first, second, third
-
-    # * method: test_forward
+    # * test: forward
     def test_forward(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test moving a feature step forward in the workflow.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute: move first to end.
         result = test_ctx.handle(mock_dependencies, start_position=0, end_position=2)
@@ -1069,14 +1077,14 @@ class TestReorderFeatureStep:
         assert result == sample_feature.id
         assert sample_feature.steps == [second, third, first]
 
-    # * method: test_backward
+    # * test: backward
     def test_backward(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test moving a feature step backward in the workflow.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute: move last to front.
         result = test_ctx.handle(mock_dependencies, start_position=2, end_position=0)
@@ -1085,14 +1093,14 @@ class TestReorderFeatureStep:
         assert result == sample_feature.id
         assert sample_feature.steps == [third, first, second]
 
-    # * method: test_clamp_low
+    # * test: clamp_low
     def test_clamp_low(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that end_position is clamped to the start of the list when below 0.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute with negative end_position.
         result = test_ctx.handle(mock_dependencies, start_position=2, end_position=-5)
@@ -1101,14 +1109,14 @@ class TestReorderFeatureStep:
         assert result == sample_feature.id
         assert sample_feature.steps == [third, first, second]
 
-    # * method: test_clamp_high
+    # * test: clamp_high
     def test_clamp_high(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that end_position is clamped to the end of the list when above max.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute with large end_position.
         result = test_ctx.handle(mock_dependencies, start_position=0, end_position=10)
@@ -1117,7 +1125,7 @@ class TestReorderFeatureStep:
         assert result == sample_feature.id
         assert sample_feature.steps == [second, third, first]
 
-    # * method: test_invalid_start_position_idempotent
+    # * test: invalid_start_position_idempotent
     def test_invalid_start_position_idempotent(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test idempotent behavior when start_position is out of range.
@@ -1145,13 +1153,13 @@ class TestReorderFeatureStep:
         assert result == sample_feature.id
         assert sample_feature.steps == original_steps
 
-    # * method: test_missing_required_params
+    # * test: missing_required_params
     def test_missing_required_params(self, test_ctx):
         '''Verify required parameters raise COMMAND_PARAMETER_REQUIRED.'''
 
         test_ctx.assert_missing_required_params()
 
-    # * method: test_not_found
+    # * test: not_found
     def test_not_found(self, test_ctx):
         '''Verify the configured not-found error when the service misses.'''
 

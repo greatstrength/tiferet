@@ -35,7 +35,46 @@ ERROR_EQUALITY_FIELDS = ['id', 'name', 'error_code']
 
 # *** tests
 
-# ** tester: TestErrorAggregate
+# ** test: error_message_config_object_map
+def test_error_message_config_object_map():
+    '''
+    Test that ErrorMessageConfigObject maps to an ErrorMessage domain object.
+    '''
+
+    # Create from data and map.
+    yaml_obj = ErrorMessageConfigObject.model_validate(
+        dict(lang='en', text='Test message'),
+    )
+    msg = yaml_obj.map()
+
+    # Assert the mapped domain object.
+    assert isinstance(msg, ErrorMessage)
+    assert msg.lang == 'en'
+    assert msg.text == 'Test message'
+
+# ** test: error_message_config_object_from_model
+def test_error_message_config_object_from_model():
+    '''
+    Test that ErrorMessageConfigObject can be created from an ErrorMessage domain object.
+    '''
+
+    # Create an ErrorMessage via direct constructor.
+    model = ErrorMessage(
+        lang='es',
+        text='Mensaje de prueba',
+    )
+
+    # Convert to YAML object.
+    yaml_obj = ErrorMessageConfigObject.from_model(model)
+
+    # Assert the YAML object fields.
+    assert isinstance(yaml_obj, ErrorMessageConfigObject)
+    assert yaml_obj.lang == 'es'
+    assert yaml_obj.text == 'Mensaje de prueba'
+
+# *** testers
+
+# ** tester: error_aggregate_tester
 @use_tester(
     type='aggregate',
     target_cls=ErrorAggregate,
@@ -47,23 +86,22 @@ ERROR_EQUALITY_FIELDS = ['id', 'name', 'error_code']
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ],
 )
-class TestErrorAggregate:
+class ErrorAggregateTester:
     '''
     Tests for ErrorAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    # * method: test_new
+    # * test: new
     def test_new(self, test_ctx):
         '''Verify aggregate construction against declared expected data.'''
 
         test_ctx.assert_new()
 
-    # * method: test_set_attribute
+    # * test: set_attribute
     def test_set_attribute(self, test_ctx):
         '''Verify declared set_attribute cases.'''
 
         test_ctx.assert_set_attribute()
-
 
     aggregate_cls = ErrorAggregate
 
@@ -78,8 +116,6 @@ class TestErrorAggregate:
         # invalid
         ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
-
-    # *** domain-specific mutation tests
 
     # * test: rename
     def test_rename(self, test_ctx):
@@ -189,7 +225,7 @@ class TestErrorAggregate:
         # Assert the message list is unchanged.
         assert len(aggregate.message) == initial_count
 
-# ** tester: TestErrorConfigObject
+# ** tester: error_config_object_tester
 @use_tester(
     type='transfer_object',
     target_cls=ErrorConfigObject,
@@ -198,29 +234,28 @@ class TestErrorAggregate:
     aggregate_sample_data=ERROR_SAMPLE_DATA,
     equality_fields=ERROR_EQUALITY_FIELDS,
 )
-class TestErrorConfigObject:
+class ErrorConfigObjectTester:
     '''
     Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
     '''
 
-    # * method: test_map
+    # * test: map
     def test_map(self, test_ctx):
         '''Verify transfer construction and mapping to the declared aggregate.'''
 
         test_ctx.assert_map()
 
-    # * method: test_from_model
+    # * test: from_model
     def test_from_model(self, test_ctx):
         '''Verify aggregate conversion to the declared transfer-object type.'''
 
         test_ctx.assert_from_model()
 
-    # * method: test_round_trip
+    # * test: round_trip
     def test_round_trip(self, test_ctx):
         '''Verify aggregate conversion through the transfer object and back.'''
 
         test_ctx.assert_round_trip()
-
 
     transfer_cls = ErrorConfigObject
     aggregate_cls = ErrorAggregate
@@ -230,8 +265,6 @@ class TestErrorConfigObject:
     aggregate_sample_data = ERROR_SAMPLE_DATA
 
     equality_fields = ERROR_EQUALITY_FIELDS
-
-    # *** domain-specific tests
 
     # * test: from_data
     def test_from_data(self):
@@ -359,40 +392,3 @@ class TestErrorConfigObject:
         assert yaml_obj.name == 'Test Error'
         assert len(yaml_obj.message) == 2
         assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
-
-# ** test: error_message_config_object_map
-def test_error_message_config_object_map():
-    '''
-    Test that ErrorMessageConfigObject maps to an ErrorMessage domain object.
-    '''
-
-    # Create from data and map.
-    yaml_obj = ErrorMessageConfigObject.model_validate(
-        dict(lang='en', text='Test message'),
-    )
-    msg = yaml_obj.map()
-
-    # Assert the mapped domain object.
-    assert isinstance(msg, ErrorMessage)
-    assert msg.lang == 'en'
-    assert msg.text == 'Test message'
-
-# ** test: error_message_config_object_from_model
-def test_error_message_config_object_from_model():
-    '''
-    Test that ErrorMessageConfigObject can be created from an ErrorMessage domain object.
-    '''
-
-    # Create an ErrorMessage via direct constructor.
-    model = ErrorMessage(
-        lang='es',
-        text='Mensaje de prueba',
-    )
-
-    # Convert to YAML object.
-    yaml_obj = ErrorMessageConfigObject.from_model(model)
-
-    # Assert the YAML object fields.
-    assert isinstance(yaml_obj, ErrorMessageConfigObject)
-    assert yaml_obj.lang == 'es'
-    assert yaml_obj.text == 'Mensaje de prueba'

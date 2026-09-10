@@ -178,6 +178,64 @@ def _inject_test_session(fn: Callable, test_ctx: TesterContext) -> Callable:
     )
     return wrapper
 
+# ** function: wrap_member
+def _wrap_member(member: Any, test_ctx: TesterContext) -> Any:
+    '''
+    Wrap a class member when its signature lists test_ctx or session.
+
+    Duck-type unwrap pytest fixture objects without importing pytest, wrap
+    the inner callable, and restore the fixture object.
+
+    :param member: The class member to inspect.
+    :type member: Any
+    :param test_ctx: The decoration-time master tester context.
+    :type test_ctx: TesterContext
+    :return: The wrapped member, or the original member when no wrap applies.
+    :rtype: Any
+    '''
+
+    # Duck-type unwrap a pytest fixture object to its underlying function.
+    inner = member
+    restore_attr = None
+    for attr in ('_fixture_function', 'func'):
+        candidate = getattr(member, attr, None)
+        if callable(candidate) and candidate is not member:
+            inner = candidate
+            restore_attr = attr
+            break
+    else:
+        candidate = getattr(member, '__wrapped__', None)
+        if (
+            callable(candidate)
+            and candidate is not member
+            and not inspect.isfunction(member)
+        ):
+            inner = candidate
+            restore_attr = '__wrapped__'
+
+    # Skip members whose callable signature cannot be read.
+    if not callable(inner):
+        return member
+    try:
+        parameters = inspect.signature(inner).parameters
+    except (TypeError, ValueError):
+        return member
+
+    # Wrap only members that declare test_ctx or session.
+    if 'test_ctx' not in parameters and 'session' not in parameters:
+        return member
+    wrapped = _inject_test_session(inner, test_ctx)
+
+    # Restore a fixture object so pytest still recognizes the member.
+    if restore_attr is None:
+        return wrapped
+    setattr(member, restore_attr, wrapped)
+    if getattr(member, '__wrapped__', None) is inner:
+        member.__wrapped__ = wrapped
+    if getattr(member, '_fixture_function', None) is inner:
+        member._fixture_function = wrapped
+    return member
+
 # ** blueprint: use_tester
 def use_tester(
         type: str,
@@ -221,12 +279,13 @@ def use_tester(
     )
     test_ctx = build_tester_context(tester)
 
-    # Decorate a function, or wrap every test_* method on a class.
+    # Decorate a function, or wrap every class member that lists test_ctx or session.
     def decorator(obj: Callable) -> Callable:
         if isinstance(obj, builtins.type):
             for name, member in list(obj.__dict__.items()):
-                if name.startswith('test_') and callable(member):
-                    setattr(obj, name, _inject_test_session(member, test_ctx))
+                if name.startswith('__'):
+                    continue
+                setattr(obj, name, _wrap_member(member, test_ctx))
             return obj
         return _inject_test_session(obj, test_ctx)
 
