@@ -51,6 +51,7 @@ class TesterAggregate(TesterObject, Aggregate):
             'transfer_object',
             'domain_event',
             'service_event',
+            'generic',
         ):
             ModelError.raise_error(
                 'INVALID_TESTER_TYPE',

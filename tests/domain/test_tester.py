@@ -2,6 +2,10 @@
 
 # *** imports
 
+# ** infra
+import pytest
+from pydantic import ValidationError
+
 # ** app
 from tiferet.domain import (
     ServiceDependency,
@@ -119,3 +123,72 @@ def test_verification_constructs_with_optional_message_default() -> None:
     assert verification.predicate is predicate
     assert verification.source == 3
     assert verification.message is None
+
+# ** test: tester_object_accepts_generic_type
+def test_tester_object_accepts_generic_type() -> None:
+    '''Test that TesterObject accepts the generic discriminator.'''
+
+    tester = _TesterObject(
+        type='generic',
+        id='generic.ErrorMessage',
+        module_path='tiferet.domain.error',
+        class_name='ErrorMessage',
+    )
+    assert tester.type == 'generic'
+    assert hasattr(tester, 'get_target_type')
+    assert hasattr(tester, 'get_target')
+
+# ** test: tester_object_rejects_non_generic_package_types
+@pytest.mark.parametrize(
+    'invalid_type',
+    [
+        'util',
+        'assets',
+        'blueprint',
+        'interface',
+        'callable',
+    ],
+)
+def test_tester_object_rejects_non_generic_package_types(invalid_type) -> None:
+    '''Test Pydantic rejects package-named and callable discriminators.'''
+
+    with pytest.raises(ValidationError):
+        _TesterObject(
+            type=invalid_type,
+            id='invalid.Tester',
+            module_path='tiferet.domain.error',
+            class_name='ErrorMessage',
+        )
+
+# ** test: tester_object_get_target_returns_function_and_instance
+def test_tester_object_get_target_returns_function_and_instance() -> None:
+    '''Test get_target returns a function as-is and a concrete class instance.'''
+
+    from os.path import join as path_join
+
+    function_tester = _TesterObject(
+        type='generic',
+        id='generic.join',
+        module_path='os.path',
+        class_name='join',
+    )
+    assert function_tester.get_target() is path_join
+    assert function_tester.get_target_type() is path_join
+
+    sample_data = {
+        'lang': 'en_US',
+        'text': 'An error occurred.',
+    }
+    class_tester = _TesterObject(
+        type='generic',
+        id='generic.ErrorMessage',
+        module_path='tiferet.domain.error',
+        class_name='ErrorMessage',
+        sample_data=sample_data,
+    )
+    sample = class_tester.sample_data
+    target = class_tester.get_target()
+    assert isinstance(target, ErrorMessage)
+    assert target.lang == 'en_US'
+    assert class_tester.sample_data is sample
+    assert 'extra' not in sample

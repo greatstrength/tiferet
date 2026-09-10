@@ -28,6 +28,7 @@ class TesterObject(DomainObject):
         'transfer_object',
         'domain_event',
         'service_event',
+        'generic',
     ] = Field(
         ...,
         description='The type of tester object.',
@@ -183,6 +184,38 @@ class TesterObject(DomainObject):
 
         # Import the module and return the named target class.
         return getattr(import_module(self.module_path), self.class_name)
+
+    # * method: get_target
+    def get_target(self) -> Any:
+        '''
+        Import and return the live target this tester describes.
+
+        Functions and other non-class callables are returned as-is. Abstract
+        classes are returned uninstantiated. Concrete classes are constructed
+        from declaration-time sample data. Other attributes are returned as-is.
+
+        :return: The live target object, callable, class, or instance.
+        :rtype: Any
+        '''
+
+        # Import the named attribute from the declared module.
+        obj = getattr(import_module(self.module_path), self.class_name)
+
+        # Return functions and other non-class callables without calling them.
+        if callable(obj) and not isinstance(obj, type):
+            return obj
+
+        # Return abstract classes uninstantiated.
+        if isinstance(obj, type):
+            abstract_methods = getattr(obj, '__abstractmethods__', None)
+            if abstract_methods:
+                return obj
+
+            # Construct a concrete class from declaration-time sample data.
+            return obj(**self.sample_data)
+
+        # Return constants and other module-level values as-is.
+        return obj
 
     # * method: get_aggregate_type
     def get_aggregate_type(self) -> type:
