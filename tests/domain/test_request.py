@@ -2,84 +2,73 @@
 
 # *** imports
 
-# ** infra
-import pytest
-
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain.request import Request
 
-# *** tests
+# *** constants
 
-# ** test: request_defaults
-def test_request_defaults() -> None:
-    '''
-    Test that Request defaults headers/data to empty dicts and feature_id to None.
-    '''
+# ** constant: request_sample_data
+REQUEST_SAMPLE_DATA = {
+    'session_id': 'fixed-session',
+    'feature_id': 'calc.add',
+    'headers': {'h': '1'},
+    'data': {'a': 1},
+}
 
-    # Create a Request with no arguments.
-    request = Request()
+# *** testers
 
-    # Assert the defaults.
-    assert request.headers == {}
-    assert request.data == {}
-    assert request.feature_id is None
+# ** tester: test_request
+@use_tester(
+    type='domain',
+    target_cls=Request,
+    sample_data=REQUEST_SAMPLE_DATA,
+    equality_fields=['session_id', 'feature_id', 'headers', 'data'],
+)
+class TestRequest:
+    '''Tests for Request construction, defaults, and session_id derivation.'''
 
-# ** test: request_session_id_auto_derived
-def test_request_session_id_auto_derived() -> None:
-    '''
-    Test that a session_id is auto-generated when not supplied.
-    '''
+    # * test: new
+    def test_new(self, test_ctx) -> None:
+        '''Verify Request construction against declared sample data.'''
 
-    # Create a Request without a session id.
-    request = Request()
+        test_ctx.assert_new()
 
-    # Assert a session id was generated.
-    assert isinstance(request.session_id, str)
-    assert request.session_id
+    # * test: defaults
+    def test_defaults(self, test_ctx) -> None:
+        '''Test that Request defaults headers/data to empty dicts and feature_id to None.'''
 
-    # Assert two requests receive distinct session ids.
-    assert Request().session_id != request.session_id
+        request = test_ctx.make_target(data={})
 
-# ** test: request_session_id_preserved
-def test_request_session_id_preserved() -> None:
-    '''
-    Test that an explicit session_id is preserved.
-    '''
+        assert request.headers == {}
+        assert request.data == {}
+        assert request.feature_id is None
 
-    # Create a Request with an explicit session id.
-    request = Request(session_id='fixed-session')
+    # * test: session_id_auto_derived
+    def test_session_id_auto_derived(self, test_ctx) -> None:
+        '''Test that a session_id is auto-generated when not supplied.'''
 
-    # Assert the session id is preserved.
-    assert request.session_id == 'fixed-session'
+        request = test_ctx.make_target(data={})
 
-# ** test: request_construction_with_fields
-def test_request_construction_with_fields() -> None:
-    '''
-    Test that Request stores supplied fields.
-    '''
+        assert isinstance(request.session_id, str)
+        assert request.session_id
+        assert test_ctx.make_target(data={}).session_id != request.session_id
 
-    # Create a fully-specified Request.
-    request = Request(feature_id='calc.add', headers={'h': '1'}, data={'a': 1})
+    # * test: session_id_preserved
+    def test_session_id_preserved(self, test_ctx) -> None:
+        '''Test that an explicit session_id is preserved.'''
 
-    # Assert the fields are stored.
-    assert request.feature_id == 'calc.add'
-    assert request.headers == {'h': '1'}
-    assert request.data == {'a': 1}
+        request = test_ctx.make_target()
 
-# ** test: request_model_dump_round_trip
-def test_request_model_dump_round_trip() -> None:
-    '''
-    Test that a Request round-trips through model_dump.
-    '''
+        assert request.session_id == 'fixed-session'
 
-    # Create a Request and serialize it.
-    request = Request(feature_id='calc.add', data={'a': 1})
-    primitive = request.model_dump()
+    # * test: model_dump_round_trip
+    def test_model_dump_round_trip(self, test_ctx) -> None:
+        '''Test that a Request round-trips through model_dump.'''
 
-    # Reload the Request from the serialized data.
-    reloaded = Request(**primitive)
+        request = test_ctx.make_target(data={'feature_id': 'calc.add', 'data': {'a': 1}})
+        reloaded = Request(**request.model_dump())
 
-    # Assert the round-trip preserves the fields.
-    assert reloaded.feature_id == 'calc.add'
-    assert reloaded.data == {'a': 1}
-    assert reloaded.session_id == request.session_id
+        assert reloaded.feature_id == 'calc.add'
+        assert reloaded.data == {'a': 1}
+        assert reloaded.session_id == request.session_id

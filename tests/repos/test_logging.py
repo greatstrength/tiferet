@@ -6,6 +6,7 @@
 import pytest, yaml
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.mappers import FormatterConfigObject, HandlerConfigObject, LoggerConfigObject
 from tiferet.repos.logging import LoggingConfigRepository
 
@@ -79,297 +80,199 @@ def logging_config_file(tmp_path) -> str:
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: logging_config_repo
-@pytest.fixture
-def logging_config_repo(logging_config_file: str) -> LoggingConfigRepository:
-    '''
-    Fixture to create an instance of the Logging Configuration Repository.
+# *** testers
 
-    :param logging_config_file: The logging YAML configuration file path.
-    :type logging_config_file: str
-    :return: An instance of LoggingConfigRepository.
-    :rtype: LoggingConfigRepository
-    '''
+# ** tester: test_logging_config_repository
+@use_tester(
+    type='repo',
+    target_cls=LoggingConfigRepository,
+    config_parameter='logging_config',
+)
+class TestLoggingConfigRepository:
+    '''LoggingConfigRepository construction plus bespoke formatter/handler/logger methods.'''
 
-    # Create and return the LoggingConfigRepository instance.
-    return LoggingConfigRepository(logging_config_file)
+    # * test: new
+    def test_new(self, test_ctx, logging_config_file: str) -> None:
+        '''Verify repository construction and default_role.'''
 
-# *** tests
+        test_ctx.assert_new(config_file=logging_config_file)
 
-# ** test_int: logging_config_repo_list_all
-def test_int_logging_config_repo_list_all(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test the list_all method of the LoggingConfigRepository.
+    # * test: format_dispatch
+    def test_format_dispatch(self, test_ctx, tmp_path) -> None:
+        '''Verify YAML and JSON payload round-trip.'''
 
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
+        yaml_file = tmp_path / 'dispatch.yaml'
+        json_file = tmp_path / 'dispatch.json'
+        yaml_file.write_text('root: {}\n', encoding='utf-8')
+        json_file.write_text('{"root": {}}\n', encoding='utf-8')
+        test_ctx.assert_format_dispatch(str(yaml_file), str(json_file))
 
-    # List all formatters, handlers, and loggers.
-    formatters, handlers, loggers = logging_config_repo.list_all()
+    # * test: list_all
+    def test_list_all(self, test_ctx, logging_config_file: str) -> None:
+        '''Test the list_all method of the LoggingConfigRepository.'''
 
-    # Check formatters.
-    assert formatters
-    assert len(formatters) == 1
-    assert formatters[0].id == TEST_FORMATTER_ID
-    assert formatters[0].name == 'Test Formatter'
-    assert formatters[0].format == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        formatters, handlers, loggers = repo.list_all()
 
-    # Check handlers.
-    assert handlers
-    assert len(handlers) == 1
-    assert handlers[0].id == TEST_HANDLER_ID
-    assert handlers[0].name == 'Test Handler'
-    assert handlers[0].level == 'INFO'
-    assert handlers[0].formatter == TEST_FORMATTER_ID
+        assert formatters
+        assert len(formatters) == 1
+        assert formatters[0].id == TEST_FORMATTER_ID
+        assert formatters[0].name == 'Test Formatter'
+        assert formatters[0].format == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
-    # Check loggers.
-    assert loggers
-    assert len(loggers) == 1
-    assert loggers[0].id == TEST_LOGGER_ID
-    assert loggers[0].name == 'Test Logger'
-    assert loggers[0].level == 'DEBUG'
-    assert TEST_HANDLER_ID in loggers[0].handlers
+        assert handlers
+        assert len(handlers) == 1
+        assert handlers[0].id == TEST_HANDLER_ID
+        assert handlers[0].name == 'Test Handler'
+        assert handlers[0].level == 'INFO'
+        assert handlers[0].formatter == TEST_FORMATTER_ID
 
-# ** test_int: logging_config_repo_save_formatter
-def test_int_logging_config_repo_save_formatter(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test the save_formatter method of the LoggingConfigRepository.
+        assert loggers
+        assert len(loggers) == 1
+        assert loggers[0].id == TEST_LOGGER_ID
+        assert loggers[0].name == 'Test Logger'
+        assert loggers[0].level == 'DEBUG'
+        assert TEST_HANDLER_ID in loggers[0].handlers
 
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
+    # * test: save_formatter
+    def test_save_formatter(self, test_ctx, logging_config_file: str) -> None:
+        '''Test the save_formatter method of the LoggingConfigRepository.'''
 
-    # Create constant for new test formatter.
-    NEW_FORMATTER_ID = 'new_test_formatter'
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        NEW_FORMATTER_ID = 'new_test_formatter'
+        formatter = FormatterConfigObject.model_validate(dict(
+            id=NEW_FORMATTER_ID,
+            name='New Test Formatter',
+            description='A new test formatter',
+            format='%(levelname)s - %(message)s',
+            datefmt='%H:%M:%S'
+        )).map()
 
-    # Create new formatter.
-    formatter = FormatterConfigObject.model_validate(dict(
-        id=NEW_FORMATTER_ID,
-        name='New Test Formatter',
-        description='A new test formatter',
-        format='%(levelname)s - %(message)s',
-        datefmt='%H:%M:%S'
-    )).map()
+        repo.save_formatter(formatter)
+        formatters, _, _ = repo.list_all()
 
-    # Save the formatter.
-    logging_config_repo.save_formatter(formatter)
+        formatter_ids = [f.id for f in formatters]
+        assert NEW_FORMATTER_ID in formatter_ids
+        new_formatter = next(f for f in formatters if f.id == NEW_FORMATTER_ID)
+        assert new_formatter.name == 'New Test Formatter'
+        assert new_formatter.format == '%(levelname)s - %(message)s'
 
-    # Reload the formatters to verify the changes.
-    formatters, _, _ = logging_config_repo.list_all()
+    # * test: save_handler
+    def test_save_handler(self, test_ctx, logging_config_file: str) -> None:
+        '''Test the save_handler method of the LoggingConfigRepository.'''
 
-    # Check that the new formatter exists.
-    formatter_ids = [f.id for f in formatters]
-    assert NEW_FORMATTER_ID in formatter_ids
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        NEW_HANDLER_ID = 'new_test_handler'
+        handler = HandlerConfigObject.model_validate(dict(
+            id=NEW_HANDLER_ID,
+            name='New Test Handler',
+            description='A new test handler',
+            module_path='logging',
+            class_name='FileHandler',
+            level='ERROR',
+            formatter=TEST_FORMATTER_ID,
+            filename='test.log'
+        )).map()
 
-    # Get the new formatter and verify its attributes.
-    new_formatter = next(f for f in formatters if f.id == NEW_FORMATTER_ID)
-    assert new_formatter.name == 'New Test Formatter'
-    assert new_formatter.format == '%(levelname)s - %(message)s'
+        repo.save_handler(handler)
+        _, handlers, _ = repo.list_all()
 
-# ** test_int: logging_config_repo_save_handler
-def test_int_logging_config_repo_save_handler(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test the save_handler method of the LoggingConfigRepository.
+        handler_ids = [h.id for h in handlers]
+        assert NEW_HANDLER_ID in handler_ids
+        new_handler = next(h for h in handlers if h.id == NEW_HANDLER_ID)
+        assert new_handler.name == 'New Test Handler'
+        assert new_handler.level == 'ERROR'
+        assert new_handler.class_name == 'FileHandler'
 
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
+    # * test: save_logger
+    def test_save_logger(self, test_ctx, logging_config_file: str) -> None:
+        '''Test the save_logger method of the LoggingConfigRepository.'''
 
-    # Create constant for new test handler.
-    NEW_HANDLER_ID = 'new_test_handler'
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        NEW_LOGGER_ID = 'new_test_logger'
+        logger = LoggerConfigObject.model_validate(dict(
+            id=NEW_LOGGER_ID,
+            name='New Test Logger',
+            description='A new test logger',
+            level='WARNING',
+            handlers=[TEST_HANDLER_ID],
+            propagate=True,
+            is_root=False
+        )).map()
 
-    # Create new handler.
-    handler = HandlerConfigObject.model_validate(dict(
-        id=NEW_HANDLER_ID,
-        name='New Test Handler',
-        description='A new test handler',
-        module_path='logging',
-        class_name='FileHandler',
-        level='ERROR',
-        formatter=TEST_FORMATTER_ID,
-        filename='test.log'
-    )).map()
+        repo.save_logger(logger)
+        _, _, loggers = repo.list_all()
 
-    # Save the handler.
-    logging_config_repo.save_handler(handler)
+        logger_ids = [l.id for l in loggers]
+        assert NEW_LOGGER_ID in logger_ids
+        new_logger = next(l for l in loggers if l.id == NEW_LOGGER_ID)
+        assert new_logger.name == 'New Test Logger'
+        assert new_logger.level == 'WARNING'
+        assert new_logger.propagate == True
 
-    # Reload the handlers to verify the changes.
-    _, handlers, _ = logging_config_repo.list_all()
+    # * test: delete_formatter
+    def test_delete_formatter(self, test_ctx, logging_config_file: str) -> None:
+        '''Test the delete_formatter method of the LoggingConfigRepository.'''
 
-    # Check that the new handler exists.
-    handler_ids = [h.id for h in handlers]
-    assert NEW_HANDLER_ID in handler_ids
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        repo.delete_formatter(TEST_FORMATTER_ID)
+        formatters, _, _ = repo.list_all()
 
-    # Get the new handler and verify its attributes.
-    new_handler = next(h for h in handlers if h.id == NEW_HANDLER_ID)
-    assert new_handler.name == 'New Test Handler'
-    assert new_handler.level == 'ERROR'
-    assert new_handler.class_name == 'FileHandler'
+        formatter_ids = [f.id for f in formatters]
+        assert TEST_FORMATTER_ID not in formatter_ids
 
-# ** test_int: logging_config_repo_save_logger
-def test_int_logging_config_repo_save_logger(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test the save_logger method of the LoggingConfigRepository.
+    # * test: delete_handler
+    def test_delete_handler(self, test_ctx, logging_config_file: str) -> None:
+        '''Test the delete_handler method of the LoggingConfigRepository.'''
 
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        repo.delete_handler(TEST_HANDLER_ID)
+        _, handlers, _ = repo.list_all()
 
-    # Create constant for new test logger.
-    NEW_LOGGER_ID = 'new_test_logger'
+        handler_ids = [h.id for h in handlers]
+        assert TEST_HANDLER_ID not in handler_ids
 
-    # Create new logger.
-    logger = LoggerConfigObject.model_validate(dict(
-        id=NEW_LOGGER_ID,
-        name='New Test Logger',
-        description='A new test logger',
-        level='WARNING',
-        handlers=[TEST_HANDLER_ID],
-        propagate=True,
-        is_root=False
-    )).map()
+    # * test: delete_logger
+    def test_delete_logger(self, test_ctx, logging_config_file: str) -> None:
+        '''Test the delete_logger method of the LoggingConfigRepository.'''
 
-    # Save the logger.
-    logging_config_repo.save_logger(logger)
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        repo.delete_logger(TEST_LOGGER_ID)
+        _, _, loggers = repo.list_all()
 
-    # Reload the loggers to verify the changes.
-    _, _, loggers = logging_config_repo.list_all()
+        logger_ids = [l.id for l in loggers]
+        assert TEST_LOGGER_ID not in logger_ids
 
-    # Check that the new logger exists.
-    logger_ids = [l.id for l in loggers]
-    assert NEW_LOGGER_ID in logger_ids
+    # * test: delete_idempotent
+    def test_delete_idempotent(self, test_ctx, logging_config_file: str) -> None:
+        '''Test that delete methods are idempotent (no error on non-existent ID).'''
 
-    # Get the new logger and verify its attributes.
-    new_logger = next(l for l in loggers if l.id == NEW_LOGGER_ID)
-    assert new_logger.name == 'New Test Logger'
-    assert new_logger.level == 'WARNING'
-    assert new_logger.propagate == True
+        repo = test_ctx.make_target(config_file=logging_config_file)
+        repo.delete_formatter('NON_EXISTENT_FORMATTER')
+        repo.delete_handler('NON_EXISTENT_HANDLER')
+        repo.delete_logger('NON_EXISTENT_LOGGER')
 
-# ** test_int: logging_config_repo_delete_formatter
-def test_int_logging_config_repo_delete_formatter(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test the delete_formatter method of the LoggingConfigRepository.
+        assert True
 
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
+    # * test: empty_sections
+    def test_empty_sections(self, test_ctx, tmp_path) -> None:
+        '''Test that the repository handles empty/missing sections gracefully.'''
 
-    # Delete an existing formatter.
-    logging_config_repo.delete_formatter(TEST_FORMATTER_ID)
-
-    # Attempt to list all formatters.
-    formatters, _, _ = logging_config_repo.list_all()
-
-    # Check that the formatter is deleted.
-    formatter_ids = [f.id for f in formatters]
-    assert TEST_FORMATTER_ID not in formatter_ids
-
-# ** test_int: logging_config_repo_delete_handler
-def test_int_logging_config_repo_delete_handler(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test the delete_handler method of the LoggingConfigRepository.
-
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
-
-    # Delete an existing handler.
-    logging_config_repo.delete_handler(TEST_HANDLER_ID)
-
-    # Attempt to list all handlers.
-    _, handlers, _ = logging_config_repo.list_all()
-
-    # Check that the handler is deleted.
-    handler_ids = [h.id for h in handlers]
-    assert TEST_HANDLER_ID not in handler_ids
-
-# ** test_int: logging_config_repo_delete_logger
-def test_int_logging_config_repo_delete_logger(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test the delete_logger method of the LoggingConfigRepository.
-
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
-
-    # Delete an existing logger.
-    logging_config_repo.delete_logger(TEST_LOGGER_ID)
-
-    # Attempt to list all loggers.
-    _, _, loggers = logging_config_repo.list_all()
-
-    # Check that the logger is deleted.
-    logger_ids = [l.id for l in loggers]
-    assert TEST_LOGGER_ID not in logger_ids
-
-# ** test_int: logging_config_repo_delete_idempotent
-def test_int_logging_config_repo_delete_idempotent(
-        logging_config_repo: LoggingConfigRepository,
-    ):
-    '''
-    Test that delete methods are idempotent (no error on non-existent ID).
-
-    :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingConfigRepository
-    '''
-
-    # Delete a non-existent formatter (should not raise error).
-    logging_config_repo.delete_formatter('NON_EXISTENT_FORMATTER')
-
-    # Delete a non-existent handler (should not raise error).
-    logging_config_repo.delete_handler('NON_EXISTENT_HANDLER')
-
-    # Delete a non-existent logger (should not raise error).
-    logging_config_repo.delete_logger('NON_EXISTENT_LOGGER')
-
-    # If we reach here, the test passes (no exceptions raised).
-    assert True
-
-# ** test_int: logging_config_repo_empty_sections
-def test_int_logging_config_repo_empty_sections(tmp_path):
-    '''
-    Test that the repository handles empty/missing sections gracefully.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    '''
-
-    # Create a YAML file with empty logging sections.
-    file_path = tmp_path / 'empty_logging.yaml'
-    empty_data = {
-        'logging': {
-            'formatters': {},
-            'handlers': {},
-            'loggers': {}
+        file_path = tmp_path / 'empty_logging.yaml'
+        empty_data = {
+            'logging': {
+                'formatters': {},
+                'handlers': {},
+                'loggers': {}
+            }
         }
-    }
 
-    # Write the empty data to the YAML file.
-    with open(file_path, 'w', encoding='utf-8') as f:
-        yaml.safe_dump(empty_data, f)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(empty_data, f)
 
-    # Create repository instance.
-    repo = LoggingConfigRepository(str(file_path))
+        repo = test_ctx.make_target(config_file=str(file_path))
+        formatters, handlers, loggers = repo.list_all()
 
-    # List all (should return empty lists).
-    formatters, handlers, loggers = repo.list_all()
-
-    # Check that all lists are empty.
-    assert len(formatters) == 0
-    assert len(handlers) == 0
-    assert len(loggers) == 0
+        assert len(formatters) == 0
+        assert len(handlers) == 0
+        assert len(loggers) == 0
