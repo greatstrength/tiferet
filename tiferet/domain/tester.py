@@ -32,8 +32,8 @@ class TesterObject(DomainObject):
         'repo',
         'context',
     ] = Field(
-        ...,
-        description='The type of tester object.',
+        default='generic',
+        description='The type of tester object. Defaults to generic.',
     )
 
     # * attribute: id

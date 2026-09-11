@@ -9,97 +9,112 @@ import inspect
 import pytest
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.interfaces.core import Service
 from tiferet.interfaces.middleware import MiddlewareService
 
-# *** fixtures
+# *** testers
 
-# ** fixture: passthrough_middleware
-@pytest.fixture
-def passthrough_middleware() -> MiddlewareService:
-    '''
-    A concrete synchronous middleware that records invocation and continues the chain.
+# ** tester: test_middleware_service
+@use_tester(
+    target_cls=MiddlewareService,
+)
+class TestMiddlewareService:
+    '''MiddlewareService ABC lock, signature, and passthrough wrap.'''
 
-    :return: A concrete MiddlewareService subclass instance.
-    :rtype: MiddlewareService
-    '''
+    # * fixture: passthrough_middleware
+    @pytest.fixture
+    def passthrough_middleware(self) -> MiddlewareService:
+        '''
+        A concrete synchronous middleware that records invocation and continues the chain.
 
-    # Define a concrete middleware that wraps and continues the chain.
-    class PassthroughMiddleware(MiddlewareService):
+        :return: A concrete MiddlewareService subclass instance.
+        :rtype: MiddlewareService
+        '''
 
-        def __init__(self):
-            self.calls = []
+        # Define a concrete middleware that wraps and continues the chain.
+        class PassthroughMiddleware(MiddlewareService):
 
-        def __call__(self, event, kwargs, next_fn):
-            self.calls.append((event, kwargs))
-            return next_fn()
+            def __init__(self):
+                self.calls = []
 
-    # Return an instance of the concrete middleware.
-    return PassthroughMiddleware()
+            def __call__(self, event, kwargs, next_fn):
+                self.calls.append((event, kwargs))
+                return next_fn()
 
-# *** tests
+        # Return an instance of the concrete middleware.
+        return PassthroughMiddleware()
 
-# ** test: middleware_service_is_service
-def test_middleware_service_is_service():
-    '''
-    Test that MiddlewareService is a Service subclass.
-    '''
+    # * test: contract
+    def test_contract(self, test_ctx) -> None:
+        '''Lock the ABC abstract method names.'''
 
-    # Verify MiddlewareService derives from the Service base class.
-    assert issubclass(MiddlewareService, Service)
+        test_ctx.assert_contract()
 
-# ** test: middleware_service_has_call
-def test_middleware_service_has_call():
-    '''
-    Test that MiddlewareService defines __call__ with the expected signature.
-    '''
+    # * test: is_service
+    def test_is_service(self) -> None:
+        '''
+        Test that MiddlewareService is a Service subclass.
+        '''
 
-    # Verify the method exists.
-    assert hasattr(MiddlewareService, '__call__')
+        # Verify MiddlewareService derives from the Service base class.
+        assert issubclass(MiddlewareService, Service)
 
-    # Inspect the signature.
-    sig = inspect.signature(MiddlewareService.__call__)
-    params = list(sig.parameters.keys())
+    # * test: has_call
+    def test_has_call(self) -> None:
+        '''
+        Test that MiddlewareService defines __call__ with the expected signature.
+        '''
 
-    # Verify parameter names.
-    assert params == ['self', 'event', 'kwargs', 'next_fn']
+        # Verify the method exists.
+        assert hasattr(MiddlewareService, '__call__')
 
-# ** test: middleware_service_call_is_abstract
-def test_middleware_service_call_is_abstract():
-    '''
-    Test that __call__ is marked as abstract.
-    '''
+        # Inspect the signature.
+        sig = inspect.signature(MiddlewareService.__call__)
+        params = list(sig.parameters.keys())
 
-    # Verify __call__ is in the abstract methods set.
-    assert '__call__' in MiddlewareService.__abstractmethods__
+        # Verify parameter names.
+        assert params == ['self', 'event', 'kwargs', 'next_fn']
 
-# ** test: middleware_service_cannot_instantiate
-def test_middleware_service_cannot_instantiate():
-    '''
-    Test that MiddlewareService cannot be instantiated directly.
-    '''
+    # * test: call_is_abstract
+    def test_call_is_abstract(self) -> None:
+        '''
+        Test that __call__ is marked as abstract.
+        '''
 
-    # Verify direct instantiation raises a TypeError due to the abstract method.
-    with pytest.raises(TypeError):
-        MiddlewareService()
+        # Verify __call__ is in the abstract methods set.
+        assert '__call__' in MiddlewareService.__abstractmethods__
 
-# ** test: middleware_service_concrete_wraps_and_continues
-def test_middleware_service_concrete_wraps_and_continues(passthrough_middleware: MiddlewareService):
-    '''
-    Test that a concrete middleware invokes next_fn and returns its result.
+    # * test: cannot_instantiate
+    def test_cannot_instantiate(self) -> None:
+        '''
+        Test that MiddlewareService cannot be instantiated directly.
+        '''
 
-    :param passthrough_middleware: A concrete synchronous middleware instance.
-    :type passthrough_middleware: MiddlewareService
-    '''
+        # Verify direct instantiation raises a TypeError due to the abstract method.
+        with pytest.raises(TypeError):
+            MiddlewareService()
 
-    # Arrange a sentinel event and kwargs plus a next_fn returning a known result.
-    event = object()
-    kwargs = {'a': 1}
-    next_fn = lambda: 'result'
+    # * test: concrete_wraps_and_continues
+    def test_concrete_wraps_and_continues(
+            self,
+            passthrough_middleware: MiddlewareService,
+        ) -> None:
+        '''
+        Test that a concrete middleware invokes next_fn and returns its result.
 
-    # Execute the middleware.
-    result = passthrough_middleware(event, kwargs, next_fn)
+        :param passthrough_middleware: A concrete synchronous middleware instance.
+        :type passthrough_middleware: MiddlewareService
+        '''
 
-    # Verify the chain continued and the result propagated.
-    assert result == 'result'
-    assert passthrough_middleware.calls == [(event, kwargs)]
+        # Arrange a sentinel event and kwargs plus a next_fn returning a known result.
+        event = object()
+        kwargs = {'a': 1}
+        next_fn = lambda: 'result'
+
+        # Execute the middleware.
+        result = passthrough_middleware(event, kwargs, next_fn)
+
+        # Verify the chain continued and the result propagated.
+        assert result == 'result'
+        assert passthrough_middleware.calls == [(event, kwargs)]

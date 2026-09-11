@@ -198,7 +198,7 @@ def _wrap_member(member: Any, test_ctx: TesterContext) -> Any:
 
 # ** blueprint: use_tester
 def use_tester(
-        type: str,
+        type: str = 'generic',
         target_cls: type = None,
         id: str = None,
         **fields: Any,
@@ -206,7 +206,8 @@ def use_tester(
     '''
     Decorate a test function or class with a bound tester context and session.
 
-    :param type: The tester discriminator.
+    :param type: The tester discriminator. Defaults to generic. Pass a type
+        only when the decorator should convert to a specialized context.
     :type type: str
     :param target_cls: Optional class that supplies module_path and class_name.
     :type target_cls: type

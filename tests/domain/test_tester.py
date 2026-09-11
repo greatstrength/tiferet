@@ -129,7 +129,6 @@ def test_tester_object_accepts_generic_type() -> None:
     '''Test that TesterObject accepts the generic discriminator.'''
 
     tester = _TesterObject(
-        type='generic',
         id='generic.ErrorMessage',
         module_path='tiferet.domain.error',
         class_name='ErrorMessage',
