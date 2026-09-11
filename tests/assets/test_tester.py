@@ -22,6 +22,8 @@ EXPECTED_TESTER_IDS = [
     tester_assets.AGGREGATE_ERROR_TESTER_ID,
     tester_assets.TRANSFER_OBJECT_ERROR_TESTER_ID,
     tester_assets.SERVICE_EVENT_GET_ERROR_TESTER_ID,
+    tester_assets.REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID,
+    tester_assets.CONTEXT_REQUEST_CONTEXT_TESTER_ID,
 ]
 
 # ** constant: expected_tester_types
@@ -30,6 +32,8 @@ EXPECTED_TESTER_TYPES = {
     tester_assets.AGGREGATE_ERROR_TESTER_ID: 'aggregate',
     tester_assets.TRANSFER_OBJECT_ERROR_TESTER_ID: 'transfer_object',
     tester_assets.SERVICE_EVENT_GET_ERROR_TESTER_ID: 'service_event',
+    tester_assets.REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID: 'repo',
+    tester_assets.CONTEXT_REQUEST_CONTEXT_TESTER_ID: 'context',
 }
 
 # ** constant: forbidden_config_names
@@ -115,10 +119,10 @@ class TestCoreDefaultTesters:
     # * method: test_has_exactly_four_specialized_rows
     def test_has_exactly_four_specialized_rows(self) -> None:
         '''
-        Test that the catalog has exactly the four specialized tester ids.
+        Test that the catalog keys are the specialized, repo, and context rows.
         '''
 
-        # Assert the catalog keys are exactly the four specialized ids.
+        # Assert the catalog keys match the expected tester ids.
         assert list(tester_assets.CORE_DEFAULT_TESTERS) == EXPECTED_TESTER_IDS
 
     # * method: test_rows_validate_as_tester_object
@@ -141,17 +145,130 @@ class TestCoreDefaultTesters:
     # * method: test_no_repo_context_or_generic_rows
     def test_no_repo_context_or_generic_rows(self) -> None:
         '''
-        Test that the catalog has no repo, context, or generic rows.
+        Test that the catalog has no generic rows.
         '''
-
-        # Assert no catalog key uses a type-extension prefix.
-        for tester_id in tester_assets.CORE_DEFAULT_TESTERS:
-            assert not tester_id.startswith('repo.')
-            assert not tester_id.startswith('context.')
 
         # Assert no catalog row uses the generic type.
         for tester_data in tester_assets.CORE_DEFAULT_TESTERS.values():
             assert tester_data['type'] != 'generic'
+
+# ** tester: TestCoreDefaultTestersRepoRow
+class TestCoreDefaultTestersRepoRow:
+    '''
+    Tests for the CORE_DEFAULT_TESTERS repo.ErrorConfigRepository row.
+    '''
+
+    # * method: test_exactly_one_repo_row
+    def test_exactly_one_repo_row(self) -> None:
+        '''
+        Test that the catalog has exactly one repo row keyed repo.ErrorConfigRepository.
+        '''
+
+        # Collect catalog ids whose type is repo.
+        repo_ids = [
+            tester_id
+            for tester_id, tester_data in tester_assets.CORE_DEFAULT_TESTERS.items()
+            if tester_data['type'] == 'repo'
+        ]
+
+        # Assert the single repo row key.
+        assert repo_ids == [
+            tester_assets.REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID,
+        ]
+
+    # * method: test_row_model_validates
+    def test_row_model_validates(self) -> None:
+        '''
+        Test that the repo catalog row model_validates as TesterObject.
+        '''
+
+        # Validate the row using the group-dict key as id.
+        payload = dict(tester_assets.REPO_ERROR_CONFIG_REPOSITORY_TESTER_DATA)
+        payload['id'] = tester_assets.REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID
+        tester = TESTER_OBJECT.model_validate(payload)
+
+        # Assert identity and repo fields.
+        assert tester.type == 'repo'
+        assert tester.class_name == 'ErrorConfigRepository'
+        assert tester.config_parameter == 'error_config'
+        assert tester.aggregate_class_name == 'ErrorAggregate'
+
+    # * method: test_assets_module_import_law
+    def test_assets_module_import_law(self) -> None:
+        '''
+        Test that assets/tester.py has no pytest and no live repo/mapper imports.
+        '''
+
+        # Read the catalog module source.
+        source = Path(tester_assets.__file__).read_text()
+
+        # Assert pytest and live class imports are absent.
+        assert 'import pytest' not in source
+        assert 'from tiferet.repos' not in source
+        assert 'from tiferet.mappers' not in source
+        assert 'from ..repos' not in source
+        assert 'from ..mappers' not in source
+
+# ** tester: TestCoreDefaultTestersContextRequestContext
+class TestCoreDefaultTestersContextRequestContext:
+    '''
+    Tests for the CORE_DEFAULT_TESTERS context.RequestContext row.
+    '''
+
+    # * method: test_exactly_one_context_row
+    def test_exactly_one_context_row(self) -> None:
+        '''
+        Test that the catalog has exactly one context row keyed context.RequestContext.
+        '''
+
+        # Collect catalog ids whose type is context.
+        context_ids = [
+            tester_id
+            for tester_id, tester_data in tester_assets.CORE_DEFAULT_TESTERS.items()
+            if tester_data['type'] == 'context'
+        ]
+
+        # Assert the single context row key.
+        assert context_ids == [
+            tester_assets.CONTEXT_REQUEST_CONTEXT_TESTER_ID,
+        ]
+
+        # Assert hub contexts are not catalogued.
+        for tester_id in tester_assets.CORE_DEFAULT_TESTERS:
+            assert 'AppSessionContext' not in tester_id
+            assert 'CliSessionContext' not in tester_id
+
+    # * method: test_row_model_validates
+    def test_row_model_validates(self) -> None:
+        '''
+        Test that the context catalog row model_validates as TesterObject.
+        '''
+
+        # Validate the row using the group-dict key as id.
+        payload = dict(tester_assets.CONTEXT_REQUEST_CONTEXT_TESTER_DATA)
+        payload['id'] = tester_assets.CONTEXT_REQUEST_CONTEXT_TESTER_ID
+        tester = TESTER_OBJECT.model_validate(payload)
+
+        # Assert identity and context fields.
+        assert tester.type == 'context'
+        assert tester.class_name == 'RequestContext'
+        assert tester.domain_class_name == 'Request'
+        assert tester.domain_module_path == 'tiferet.domain.request'
+
+    # * method: test_assets_module_has_no_live_context_imports
+    def test_assets_module_has_no_live_context_imports(self) -> None:
+        '''
+        Test that assets/tester.py imports no live context or domain class.
+        '''
+
+        # Read the catalog module source.
+        source = Path(tester_assets.__file__).read_text()
+
+        # Assert live context and domain imports are absent.
+        assert 'from tiferet.contexts' not in source
+        assert 'from tiferet.domain' not in source
+        assert 'from ..contexts' not in source
+        assert 'from ..domain' not in source
 
 # ** tester: TestCoreDefaultTesterSessions
 class TestCoreDefaultTesterSessions:

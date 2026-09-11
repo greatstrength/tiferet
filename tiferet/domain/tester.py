@@ -52,9 +52,12 @@ class TesterObject(DomainObject):
         'transfer_object',
         'domain_event',
         'service_event',
+        'generic',
+        'repo',
+        'context',
     ] = Field(
-        ...,
-        description='The specialized tester type.',
+        default='generic',
+        description='The type of tester object. Defaults to generic.',
     )
 
     # * attribute: id
@@ -171,6 +174,66 @@ class TesterObject(DomainObject):
         description='Not-found keyword arguments. Empty means use sample_kwargs.',
     )
 
+    # * attribute: config_parameter
+    config_parameter: str | None = Field(
+        default=None,
+        description='The repository constructor keyword for the config file path.',
+    )
+
+    # * attribute: exists_cases
+    exists_cases: List[Tuple[str, bool]] = Field(
+        default_factory=list,
+        description='Exists cases of (id, expected) for assert_exists.',
+    )
+
+    # * attribute: get_cases
+    get_cases: List[Tuple[str, Dict[str, Any] | None]] = Field(
+        default_factory=list,
+        description='Get cases of (id, expected_data_or_None) for assert_get.',
+    )
+
+    # * attribute: list_ids
+    list_ids: List[str] = Field(
+        default_factory=list,
+        description='Expected ids from list() with no filter.',
+    )
+
+    # * attribute: delete_ids
+    delete_ids: List[str] = Field(
+        default_factory=list,
+        description='Ids to delete, assert missing, then delete again.',
+    )
+
+    # * attribute: domain_module_path
+    domain_module_path: str | None = Field(
+        default=None,
+        description='The module path of the domain object type under test.',
+    )
+
+    # * attribute: domain_class_name
+    domain_class_name: str | None = Field(
+        default=None,
+        description='The domain object class name under test.',
+    )
+
+    # * attribute: from_domain_cases
+    from_domain_cases: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description='Cases for assert_from_domain.',
+    )
+
+    # * attribute: domain_type_cases
+    domain_type_cases: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description='Cases for assert_domain_type.',
+    )
+
+    # * attribute: for_domain_cases
+    for_domain_cases: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description='Cases for assert_for_domain.',
+    )
+
     # * method: _derive_expected_data (model validator)
     @model_validator(mode='before')
     @classmethod
@@ -208,6 +271,34 @@ class TesterObject(DomainObject):
         # Import the module and return the named class.
         return getattr(import_module(self.module_path), self.class_name)
 
+    # * method: get_target
+    def get_target(self) -> Any:
+        '''
+        Import and return the live target identified by this tester.
+
+        :return: The callable, class, constructed instance, or attribute.
+        :rtype: Any
+        '''
+
+        # Import the named attribute.
+        obj = getattr(import_module(self.module_path), self.class_name)
+
+        # Return functions and other non-class callables as-is.
+        if callable(obj) and not isinstance(obj, type):
+            return obj
+
+        # Return ABC classes without instantiating them.
+        if isinstance(obj, type):
+            abstracts = getattr(obj, '__abstractmethods__', None)
+            if abstracts:
+                return obj
+
+            # Construct a concrete class from a copy of sample_data.
+            return obj(**dict(self.sample_data or {}))
+
+        # Return constants and other attributes as-is.
+        return obj
+
     # * method: get_aggregate_type
     def get_aggregate_type(self) -> type:
         '''
@@ -219,3 +310,15 @@ class TesterObject(DomainObject):
 
         # Import the aggregate module and return the named class.
         return getattr(import_module(self.aggregate_module_path), self.aggregate_class_name)
+
+    # * method: get_domain_type
+    def get_domain_type(self) -> type:
+        '''
+        Import and return the domain object class identified by this tester.
+
+        :return: The domain object class type.
+        :rtype: type
+        '''
+
+        # Import the domain module and return the named class.
+        return getattr(import_module(self.domain_module_path), self.domain_class_name)

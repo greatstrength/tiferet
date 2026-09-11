@@ -29,11 +29,16 @@ from tiferet.contexts.tester import (
     AggregateTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
+    ContextTesterContext,
+    GenericTesterContext,
+    RepoTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
     TransferObjectTesterContext,
 )
+from tiferet.contexts.request import RequestContext
 from tiferet.domain.error import ErrorMessage
+from tiferet.domain.request import Request
 from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
 
 # *** constants
@@ -53,6 +58,21 @@ SPECIALIZED_CONTEXT_MAP = {
     'domain_event': (DomainEventTesterContext, ErrorMessage),
     'service_event': (ServiceEventTesterContext, ErrorMessage),
 }
+
+# ** constant: generic_probe
+def _generic_probe():
+    '''Return a sentinel for generic blueprint injection tests.'''
+
+    # Return a stable sentinel.
+    return 'generic-probe'
+
+# ** constant: repo_probe
+class _RepoProbe:
+    '''A dummy repository constructor for repo selector tests.'''
+
+    def __init__(self, error_config: str, encoding: str = 'utf-8'):
+        self.error_config = error_config
+        self.encoding = encoding
 
 # *** testers
 
@@ -90,15 +110,9 @@ class TestBuildTesterContext:
 
         # Use a stand-in so TesterObject construction is not involved.
         class StandIn:
-            type = 'generic'
+            type = 'unmapped'
 
         # Assert unknown map keys raise KeyError.
-        with pytest.raises(KeyError):
-            build_tester_context(StandIn())
-        StandIn.type = 'repo'
-        with pytest.raises(KeyError):
-            build_tester_context(StandIn())
-        StandIn.type = 'context'
         with pytest.raises(KeyError):
             build_tester_context(StandIn())
 
@@ -331,3 +345,157 @@ class TestNoPytestInBlueprints:
         # Assert pytest is not imported.
         assert 'import pytest' not in source
         assert 'from pytest' not in source
+
+# ** tester: TestBuildTesterContextRepo
+class TestBuildTesterContextRepo:
+    '''
+    Tests for build_tester_context and @use_tester repo mapping.
+    '''
+
+    # * method: test_build_tester_context_maps_repo
+    def test_build_tester_context_maps_repo(self) -> None:
+        '''
+        Test that build_tester_context maps type='repo' to RepoTesterContext.
+        '''
+
+        # Bind a repo tester.
+        tester = TESTER_OBJECT(
+            type='repo',
+            id='repo._RepoProbe',
+            module_path=__name__,
+            class_name='_RepoProbe',
+            config_parameter='error_config',
+        )
+        bound = build_tester_context(tester)
+
+        # Assert the repo variant was selected.
+        assert isinstance(bound, RepoTesterContext)
+        assert bound.domain is tester
+
+    # * method: test_use_tester_injects_repo_tester_context
+    def test_use_tester_injects_repo_tester_context(self) -> None:
+        '''
+        Test that @use_tester(type='repo') injects RepoTesterContext as test_ctx.
+        '''
+
+        # Decorate a throwaway non-Test* probe class.
+        @use_tester(
+            type='repo',
+            target_cls=_RepoProbe,
+            config_parameter='error_config',
+        )
+        class Probe:
+            def check(self, test_ctx):
+                return test_ctx
+
+        # Assert the injected context is the repo variant.
+        ctx = Probe().check()
+        assert isinstance(ctx, RepoTesterContext)
+
+# ** tester: TestBuildTesterContextContextType
+class TestBuildTesterContextContextType:
+    '''
+    Tests for build_tester_context context type mapping.
+    '''
+
+    # * method: test_build_tester_context_maps_context
+    def test_build_tester_context_maps_context(self) -> None:
+        '''
+        Test that build_tester_context maps type='context' to ContextTesterContext.
+        '''
+
+        # Bind a context tester pointing at RequestContext.
+        tester = TESTER_OBJECT(
+            type='context',
+            id='context.RequestContext',
+            module_path=RequestContext.__module__,
+            class_name='RequestContext',
+            domain_module_path=Request.__module__,
+            domain_class_name='Request',
+        )
+        bound = build_tester_context(tester)
+
+        # Assert the context variant was selected.
+        assert isinstance(bound, ContextTesterContext)
+        assert bound.domain is tester
+
+# ** tester: TestUseTesterContextType
+class TestUseTesterContextType:
+    '''
+    Tests for @use_tester context type injection and domain_cls.
+    '''
+
+    # * method: test_use_tester_injects_context_tester_context
+    def test_use_tester_injects_context_tester_context(self) -> None:
+        '''
+        Test that @use_tester(type='context') injects ContextTesterContext as test_ctx.
+        '''
+
+        # Decorate a throwaway non-Test* probe class with domain_cls.
+        @use_tester(
+            type='context',
+            target_cls=RequestContext,
+            domain_cls=Request,
+        )
+        class Probe:
+            def check(self, test_ctx):
+                return test_ctx
+
+        # Assert the injected context is the context variant with domain identity filled.
+        ctx = Probe().check()
+        assert isinstance(ctx, ContextTesterContext)
+        assert ctx.domain.domain_module_path == Request.__module__
+        assert ctx.domain.domain_class_name == 'Request'
+
+# *** tests
+
+# ** test: build_tester_context_maps_generic
+def test_build_tester_context_maps_generic() -> None:
+    '''
+    Test that build_tester_context maps type='generic' to GenericTesterContext.
+    '''
+
+    # Bind a generic tester.
+    tester = TESTER_OBJECT(
+        type='generic',
+        id='generic._generic_probe',
+        module_path=__name__,
+        class_name='_generic_probe',
+    )
+    bound = build_tester_context(tester)
+
+    # Assert the generic variant was selected.
+    assert isinstance(bound, GenericTesterContext)
+    assert bound.domain is tester
+
+# ** test: use_tester_generic_injects_generic_tester_context_as_test_ctx
+def test_use_tester_generic_injects_generic_tester_context_as_test_ctx() -> None:
+    '''
+    Test that @use_tester(type='generic') injects GenericTesterContext as test_ctx.
+    '''
+
+    # Decorate a throwaway non-Test* probe class.
+    @use_tester(type='generic', target_cls=_generic_probe)
+    class Probe:
+        def test_one(self, test_ctx):
+            return test_ctx
+
+    # Assert the injected context is the generic variant.
+    ctx = Probe().test_one()
+    assert isinstance(ctx, GenericTesterContext)
+
+# ** test: use_tester_omitted_type_defaults_to_generic
+def test_use_tester_omitted_type_defaults_to_generic() -> None:
+    '''
+    Test that omitting type= injects GenericTesterContext as test_ctx.
+    '''
+
+    # Decorate a throwaway non-Test* probe class without type=.
+    @use_tester(target_cls=_generic_probe)
+    class Probe:
+        def test_one(self, test_ctx):
+            return test_ctx
+
+    # Assert omitting type= selects the generic variant.
+    ctx = Probe().test_one()
+    assert isinstance(ctx, GenericTesterContext)

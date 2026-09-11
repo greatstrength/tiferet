@@ -26,6 +26,12 @@ SERVICE_EVENT_GET_ERROR_TESTER_ID = 'service_event.GetError'
 # ** constant: tiferet_tester_id
 TIFERET_TESTER_ID = 'tester'
 
+# ** constant: repo_error_config_repository_tester_id
+REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID = 'repo.ErrorConfigRepository'
+
+# ** constant: context_request_context_tester_id
+CONTEXT_REQUEST_CONTEXT_TESTER_ID = 'context.RequestContext'
+
 # *** constants (data)
 
 # ** constant: domain_error_message_tester_data
@@ -112,6 +118,95 @@ SERVICE_EVENT_GET_ERROR_TESTER_DATA = create_default_tester_data(
     not_found_error_code=ERROR_NOT_FOUND_ID,
 )
 
+# ** constant: repo_error_config_repository_tester_data
+REPO_ERROR_CONFIG_REPOSITORY_TESTER_DATA = create_default_tester_data(
+    type='repo',
+    module_path='tiferet.repos.error',
+    class_name='ErrorConfigRepository',
+    sample_data={
+    },
+    equality_fields=[
+        'id',
+        'name',
+    ],
+    config_parameter='error_config',
+    aggregate_module_path='tiferet.mappers.error',
+    aggregate_class_name='ErrorAggregate',
+    aggregate_sample_data={
+        'id': 'NEW_ERROR_CODE',
+        'name': 'New Error',
+        'message': [
+            {
+                'lang': 'en',
+                'text': 'A new error occurred',
+            },
+            {
+                'lang': 'es',
+                'text': 'Ocurrió un nuevo error',
+            },
+        ],
+    },
+    exists_cases=[
+        ('TEST_ERROR_CODE', True),
+        ('TEST_FORMATTED_ERROR_CODE', True),
+        ('MISSING_ERROR_CODE', False),
+    ],
+    get_cases=[
+        ('TEST_ERROR_CODE', {
+            'id': 'TEST_ERROR_CODE',
+            'name': 'Test Error',
+        }),
+        ('TEST_FORMATTED_ERROR_CODE', {
+            'id': 'TEST_FORMATTED_ERROR_CODE',
+            'name': 'Test Formatted Error',
+        }),
+        ('MISSING_ERROR_CODE', None),
+    ],
+    list_ids=[
+        'TEST_ERROR_CODE',
+        'TEST_FORMATTED_ERROR_CODE',
+    ],
+    delete_ids=[
+        'TEST_FORMATTED_ERROR_CODE',
+    ],
+)
+
+# ** constant: context_request_context_tester_data
+CONTEXT_REQUEST_CONTEXT_TESTER_DATA = create_default_tester_data(
+    type='context',
+    module_path='tiferet.contexts.request',
+    class_name='RequestContext',
+    sample_data={
+        'session_id': 'test-session',
+        'feature_id': 'test.feature',
+    },
+    equality_fields=[
+    ],
+    domain_module_path='tiferet.domain.request',
+    domain_class_name='Request',
+    from_domain_cases=[
+        {
+            'data': {
+                'session_id': 'test-session',
+                'feature_id': 'test.feature',
+            },
+        },
+    ],
+    domain_type_cases=[
+        {
+            'declares': True,
+        },
+    ],
+    for_domain_cases=[
+        {
+            'domain_module_path': 'tiferet.domain.request',
+            'domain_class_name': 'Request',
+            'context_module_path': 'tiferet.contexts.request',
+            'context_class_name': 'RequestContext',
+        },
+    ],
+)
+
 # ** constant: default_tester_app_session_data
 DEFAULT_TESTER_APP_SESSION_DATA = create_default_app_session_data(
     'Tester',
@@ -126,6 +221,8 @@ CORE_DEFAULT_TESTERS = {
     AGGREGATE_ERROR_TESTER_ID: AGGREGATE_ERROR_TESTER_DATA,
     TRANSFER_OBJECT_ERROR_TESTER_ID: TRANSFER_OBJECT_ERROR_TESTER_DATA,
     SERVICE_EVENT_GET_ERROR_TESTER_ID: SERVICE_EVENT_GET_ERROR_TESTER_DATA,
+    REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID: REPO_ERROR_CONFIG_REPOSITORY_TESTER_DATA,
+    CONTEXT_REQUEST_CONTEXT_TESTER_ID: CONTEXT_REQUEST_CONTEXT_TESTER_DATA,
 }
 
 # ** constant: core_default_tester_sessions

@@ -18,6 +18,9 @@ from ..contexts.tester import (
     AggregateTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
+    ContextTesterContext,
+    GenericTesterContext,
+    RepoTesterContext,
     ServiceEventTesterContext,
     TesterContext,
     TesterObject,
@@ -169,6 +172,9 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
         'transfer_object': TransferObjectTesterContext,
         'domain_event': DomainEventTesterContext,
         'service_event': ServiceEventTesterContext,
+        'generic': GenericTesterContext,
+        'repo': RepoTesterContext,
+        'context': ContextTesterContext,
     }[tester.type]
 
     # Bind and return the selected context.
@@ -195,7 +201,7 @@ def build_test_session(
 
 # ** blueprint: use_tester
 def use_tester(
-        type: str,
+        type: str = 'generic',
         target_cls: type = None,
         id: str = None,
         **fields,
@@ -203,7 +209,7 @@ def use_tester(
     '''
     Decorate a test class or function with a bound tester context and session.
 
-    :param type: The specialized tester type. Required; has no default.
+    :param type: The tester type. Defaults to generic.
     :type type: str
     :param target_cls: Optional target class used to fill module_path and class_name.
     :type target_cls: type
@@ -219,6 +225,7 @@ def use_tester(
     module_path = fields.pop('module_path', None)
     class_name = fields.pop('class_name', None)
     aggregate_cls = fields.pop('aggregate_cls', None)
+    domain_cls = fields.pop('domain_cls', None)
 
     # Fill import coordinates from target_cls when those fields are unset.
     if target_cls is not None:
@@ -231,6 +238,11 @@ def use_tester(
     if aggregate_cls is not None:
         fields.setdefault('aggregate_module_path', aggregate_cls.__module__)
         fields.setdefault('aggregate_class_name', aggregate_cls.__name__)
+
+    # Fill domain import coordinates from domain_cls when unset.
+    if domain_cls is not None:
+        fields.setdefault('domain_module_path', domain_cls.__module__)
+        fields.setdefault('domain_class_name', domain_cls.__name__)
 
     # Derive the tester id from type and class_name when omitted.
     tester_id = id
