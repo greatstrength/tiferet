@@ -43,4 +43,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '2.0.3'
+__version__ = '2.1.0'
