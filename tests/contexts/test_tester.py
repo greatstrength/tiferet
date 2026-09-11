@@ -46,11 +46,11 @@ VARIANT_CLASSES = [
     tester_contexts.TransferObjectTesterContext,
     tester_contexts.DomainEventTesterContext,
     tester_contexts.ServiceEventTesterContext,
+    tester_contexts.GenericTesterContext,
 ]
 
 # ** constant: forbidden_context_names
 FORBIDDEN_CONTEXT_NAMES = [
-    'GenericTesterContext',
     'RepoTesterContext',
     'ContextTesterContext',
     'TestRequestContext',
@@ -107,6 +107,34 @@ def get_error_tester(**overrides):
     payload.update(overrides)
     return TESTER_OBJECT.model_validate(payload)
 
+# ** constant: probe_function
+def _probe_function():
+    '''Return a sentinel for generic session run tests.'''
+
+    # Return a stable sentinel.
+    return 7
+
+# ** constant: generic_tester
+def generic_tester(**overrides):
+    '''
+    Build a generic tester pointing at _probe_function.
+
+    :param overrides: Optional TesterObject field overrides.
+    :type overrides: dict
+    :return: A generic TesterObject.
+    :rtype: object
+    '''
+
+    # Merge generic identity with caller overrides.
+    payload = {
+        'type': 'generic',
+        'id': 'generic._probe_function',
+        'module_path': __name__,
+        'class_name': '_probe_function',
+    }
+    payload.update(overrides)
+    return TESTER_OBJECT(**payload)
+
 # ** constant: required_param_event
 class RequiredParamEvent(DomainEvent):
     '''
@@ -157,7 +185,7 @@ class TestTesterContextRegistry:
     # * method: test_extension_contexts_absent
     def test_extension_contexts_absent(self) -> None:
         '''
-        Test that generic, repo, and context tester contexts are not defined.
+        Test that repo and context tester contexts are not defined.
         '''
 
         # Assert each forbidden context name is absent.
@@ -261,19 +289,22 @@ class TestSessionRunAgainstBoundTester:
         assert 'second' in str(caught.value)
         assert session.verifications == []
 
-    # * method: test_run_ignores_target
-    def test_run_ignores_target(self) -> None:
+    # * method: test_run_rejects_target_on_specialized_type
+    def test_run_rejects_target_on_specialized_type(self) -> None:
         '''
-        Test run(target=...) still succeeds and ignores the target argument.
+        Test run(target=...) raises when the bound tester is not generic.
         '''
 
-        # Run with an explicit target that must be ignored.
+        # Run with an explicit target on a specialized tester.
         test_ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
         session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
-        outcome = session.run(target=object())
 
-        # Assert the bound tester still constructed ErrorMessage.
-        assert outcome.lang == 'en_US'
+        # Assert a live target is rejected off the generic type.
+        with pytest.raises(ValueError) as caught:
+            session.run(target=object())
+        assert str(caught.value) == (
+            'run(target=...) is only valid when tester type is generic.'
+        )
 
     # * method: test_run_source_is_not_a_hub
     def test_run_source_is_not_a_hub(self) -> None:
@@ -450,3 +481,194 @@ class TestAddDefaultTesters:
         assert seeded.type == 'domain'
         assert seeded.id == 'domain.ErrorMessage'
         assert tester_contexts.TESTER_CACHE_PREFIX == ('app', 'testers')
+
+# *** tests
+
+# ** test: generic_tester_context_omits_domain_type
+def test_generic_tester_context_omits_domain_type() -> None:
+    '''
+    Test that GenericTesterContext omits domain_type from its own namespace.
+    '''
+
+    # Assert the variant does not re-register TesterObject.
+    assert 'domain_type' not in tester_contexts.GenericTesterContext.__dict__
+
+# ** test: for_domain_tester_object_remains_tester_context
+def test_for_domain_tester_object_remains_tester_context() -> None:
+    '''
+    Test that BaseContext.for_domain(TesterObject) remains TesterContext.
+    '''
+
+    # Assert the master registry mapping is unchanged.
+    assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
+
+# ** test: for_domain_request_remains_request_context
+def test_for_domain_request_remains_request_context() -> None:
+    '''
+    Test that BaseContext.for_domain(Request) remains RequestContext.
+    '''
+
+    # Assert the request registry mapping is unchanged.
+    assert BaseContext.for_domain(Request) is RequestContext
+
+# ** test: assert_contract_noop_on_concrete_class
+def test_assert_contract_noop_on_concrete_class() -> None:
+    '''
+    Test that assert_contract returns without assertion on a concrete class or instance.
+    '''
+
+    # Bind a generic tester context and a concrete probe.
+    class Probe:
+        def __init__(self, value=0):
+            self.value = value
+
+    ctx = tester_contexts.GenericTesterContext.from_domain(generic_tester())
+
+    # Assert no-op on the class and on an instance.
+    ctx.assert_contract(Probe)
+    ctx.assert_contract(Probe(value=1))
+
+# ** test: assert_contract_noop_on_empty_abc
+def test_assert_contract_noop_on_empty_abc() -> None:
+    '''
+    Test that missing or empty __abstractmethods__ returns without assertion.
+    '''
+
+    # Bind a generic tester context.
+    ctx = tester_contexts.GenericTesterContext.from_domain(generic_tester())
+
+    class EmptyABC:
+        __abstractmethods__ = frozenset()
+
+    class MissingAttr:
+        pass
+
+    # Assert no-op on empty and missing abstract-method sets.
+    ctx.assert_contract(EmptyABC)
+    ctx.assert_contract(MissingAttr)
+    ctx.assert_contract(None)
+
+# ** test: assert_contract_locks_error_service_abc
+def test_assert_contract_locks_error_service_abc() -> None:
+    '''
+    Test that assert_contract returns for ErrorService abstract method names.
+    '''
+
+    # Import the ABC from this test file, never from the context module.
+    from tiferet.interfaces import ErrorService
+
+    # Bind a generic tester context and lock the ABC.
+    ctx = tester_contexts.GenericTesterContext.from_domain(generic_tester())
+    ctx.assert_contract(ErrorService)
+
+# ** test: assert_contract_fails_when_abstract_name_missing
+def test_assert_contract_fails_when_abstract_name_missing() -> None:
+    '''
+    Test that assert_contract raises when an abstract name is missing.
+    '''
+
+    # Bind a generic tester context.
+    ctx = tester_contexts.GenericTesterContext.from_domain(generic_tester())
+
+    class MissingAbstract:
+        __abstractmethods__ = frozenset({'not_there'})
+
+    # Assert the missing abstract name fails.
+    with pytest.raises(AssertionError):
+        ctx.assert_contract(MissingAbstract)
+
+# ** test: generic_tester_context_has_no_fluent_verbs
+def test_generic_tester_context_has_no_fluent_verbs() -> None:
+    '''
+    Test that given, invoke, verify, and run are not defined on GenericTesterContext.
+    '''
+
+    # Assert fluent session verbs are not on the generic variant.
+    for name in ('given', 'invoke', 'verify', 'run'):
+        assert name not in tester_contexts.GenericTesterContext.__dict__
+        assert not hasattr(tester_contexts.GenericTesterContext, name)
+
+# ** test: run_target_invokes_local_callable_with_given_state
+def test_run_target_invokes_local_callable_with_given_state() -> None:
+    '''
+    Test that run(target=_add) invokes the callable with given-state kwargs.
+    '''
+
+    def _add(a, b):
+        return a + b
+
+    # Bind a generic session and overlay given-state.
+    ctx = tester_contexts.GenericTesterContext.from_domain(generic_tester())
+    session = TEST_SESSION_CONTEXT(tester_ctx=ctx)
+    outcome = session.given(a=1, b=2).verify(3).run(target=_add)
+
+    # Assert the callable received request data as kwargs.
+    assert outcome == 3
+
+# ** test: run_generic_does_not_call_feature_pipeline
+def test_run_generic_does_not_call_feature_pipeline() -> None:
+    '''
+    Test that generic run does not call the feature pipeline.
+    '''
+
+    # Bind a generic session and install pipeline sentinels.
+    ctx = tester_contexts.GenericTesterContext.from_domain(generic_tester())
+    session = TEST_SESSION_CONTEXT(tester_ctx=ctx)
+    calls = []
+
+    def _record(name):
+        def _hook(*args, **kwargs):
+            calls.append(name)
+        return _hook
+
+    session.execute_feature = _record('execute_feature')
+    session._dispatch_event = _record('_dispatch_event')
+    session.build_logger = _record('build_logger')
+    session.handle_error = _record('handle_error')
+
+    def _probe():
+        return 7
+
+    # Run with an explicit target and via get_target.
+    assert session.run(target=_probe) == 7
+    assert session.run() == 7
+    assert calls == []
+
+# ** test: run_target_does_not_write_sample_data_or_domain
+def test_run_target_does_not_write_sample_data_or_domain() -> None:
+    '''
+    Test that run(target=obj) leaves sample_data and the bound domain unchanged.
+    '''
+
+    # Bind a generic tester with sample_data.
+    tester = generic_tester(sample_data={'value': 1})
+    ctx = tester_contexts.GenericTesterContext.from_domain(tester)
+    domain_ref = ctx.domain
+    sample_id = id(tester.sample_data)
+    before = dict(tester.sample_data)
+
+    # Run with an explicit live object.
+    TEST_SESSION_CONTEXT(tester_ctx=ctx).run(target=object())
+
+    # Assert declaration-time state is unchanged.
+    assert tester.sample_data == before
+    assert id(tester.sample_data) == sample_id
+    assert ctx.domain is domain_ref
+    assert ctx.domain is tester
+
+# ** test: run_raises_when_target_set_on_non_generic
+def test_run_raises_when_target_set_on_non_generic() -> None:
+    '''
+    Test that run(target=...) raises ValueError when the tester type is not generic.
+    '''
+
+    # Bind a specialized domain tester.
+    ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
+    session = TEST_SESSION_CONTEXT(tester_ctx=ctx)
+
+    # Assert the reserved target argument is rejected.
+    with pytest.raises(ValueError) as caught:
+        session.run(target=object())
+    assert str(caught.value) == (
+        'run(target=...) is only valid when tester type is generic.'
+    )

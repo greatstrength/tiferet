@@ -36,7 +36,6 @@ SPECIALIZED_TYPES = [
 
 # ** constant: rejected_types
 REJECTED_TYPES = [
-    'generic',
     'repo',
     'context',
     'callable',
@@ -66,6 +65,30 @@ FORBIDDEN_FIELDS = [
     'domain_type_cases',
     'for_domain_cases',
 ]
+
+# ** constant: probe_function
+def _probe_function():
+    '''Return a sentinel for generic function-target tests.'''
+
+    # Return a stable sentinel.
+    return 'probe-function'
+
+# ** constant: probe_constant
+PROBE_CONSTANT = 'generic-constant'
+
+# ** constant: probe_concrete
+class _ProbeConcrete:
+    '''A concrete class constructed from sample_data in get_target tests.'''
+
+    def __init__(self, value=0, **kwargs):
+        kwargs['mutated'] = True
+        self.value = value
+
+# ** constant: probe_abc
+class _ProbeABC:
+    '''A class with a non-empty abstract-method set.'''
+
+    __abstractmethods__ = frozenset({'do_work'})
 
 # *** testers
 
@@ -106,15 +129,17 @@ class TestTesterObject:
         with pytest.raises(ValidationError):
             TESTER_OBJECT(type=tester_type, **TESTER_REQUIRED)
 
-    # * method: test_type_has_no_default
-    def test_type_has_no_default(self) -> None:
+    # * method: test_type_defaults_to_generic
+    def test_type_defaults_to_generic(self) -> None:
         '''
-        Test that constructing without type fails because type has no default.
+        Test that constructing without type yields generic.
         '''
 
-        # Constructing without type must raise ValidationError.
-        with pytest.raises(ValidationError):
-            TESTER_OBJECT(**TESTER_REQUIRED)
+        # Constructing without type defaults to generic.
+        tester = TESTER_OBJECT(**TESTER_REQUIRED)
+
+        # Assert the default type is generic.
+        assert tester.type == 'generic'
 
     # * method: test_optional_fields_default_empty
     def test_optional_fields_default_empty(self) -> None:
@@ -246,14 +271,13 @@ class TestTesterObject:
         assert dependency.module_path == 'tiferet.interfaces.error'
         assert dependency.class_name == 'ErrorService'
 
-    # * method: test_get_target_and_get_domain_type_absent
-    def test_get_target_and_get_domain_type_absent(self) -> None:
+    # * method: test_get_domain_type_absent
+    def test_get_domain_type_absent(self) -> None:
         '''
-        Test that get_target and get_domain_type are not defined on TesterObject.
+        Test that get_domain_type is not defined on TesterObject.
         '''
 
-        # Assert the type-extension helpers are absent.
-        assert not hasattr(TESTER_OBJECT, 'get_target')
+        # Assert the context-type helper is absent.
         assert not hasattr(TESTER_OBJECT, 'get_domain_type')
 
     # * method: test_subclass_models_absent
@@ -336,3 +360,184 @@ class TestVerification:
         assert labeled.predicate is is_ok
         assert labeled.source == 'ok'
         assert labeled.message == 'failed'
+
+# *** tests
+
+# ** test: tester_object_type_accepts_generic
+def test_tester_object_type_accepts_generic() -> None:
+    '''
+    Test that TesterObject constructs with type='generic'.
+    '''
+
+    # Construct a generic tester.
+    tester = TESTER_OBJECT(type='generic', **TESTER_REQUIRED)
+
+    # Assert the type is stored as generic.
+    assert tester.type == 'generic'
+
+# ** test: tester_object_type_defaults_to_generic
+def test_tester_object_type_defaults_to_generic() -> None:
+    '''
+    Test that TesterObject constructed without type= has type == 'generic'.
+    '''
+
+    # Construct without an explicit type.
+    tester = TESTER_OBJECT(**TESTER_REQUIRED)
+
+    # Assert the default type is generic.
+    assert tester.type == 'generic'
+
+# ** test: tester_object_type_rejects_util
+def test_tester_object_type_rejects_util() -> None:
+    '''
+    Test that type='util' raises ValidationError.
+    '''
+
+    # Constructing with a rejected type must raise ValidationError.
+    with pytest.raises(ValidationError):
+        TESTER_OBJECT(type='util', **TESTER_REQUIRED)
+
+# ** test: tester_object_type_rejects_assets
+def test_tester_object_type_rejects_assets() -> None:
+    '''
+    Test that type='assets' raises ValidationError.
+    '''
+
+    # Constructing with a rejected type must raise ValidationError.
+    with pytest.raises(ValidationError):
+        TESTER_OBJECT(type='assets', **TESTER_REQUIRED)
+
+# ** test: tester_object_type_rejects_blueprint
+def test_tester_object_type_rejects_blueprint() -> None:
+    '''
+    Test that type='blueprint' raises ValidationError.
+    '''
+
+    # Constructing with a rejected type must raise ValidationError.
+    with pytest.raises(ValidationError):
+        TESTER_OBJECT(type='blueprint', **TESTER_REQUIRED)
+
+# ** test: tester_object_type_rejects_interface
+def test_tester_object_type_rejects_interface() -> None:
+    '''
+    Test that type='interface' raises ValidationError.
+    '''
+
+    # Constructing with a rejected type must raise ValidationError.
+    with pytest.raises(ValidationError):
+        TESTER_OBJECT(type='interface', **TESTER_REQUIRED)
+
+# ** test: tester_object_type_rejects_callable
+def test_tester_object_type_rejects_callable() -> None:
+    '''
+    Test that type='callable' raises ValidationError.
+    '''
+
+    # Constructing with a rejected type must raise ValidationError.
+    with pytest.raises(ValidationError):
+        TESTER_OBJECT(type='callable', **TESTER_REQUIRED)
+
+# ** test: get_target_returns_function_callable
+def test_get_target_returns_function_callable() -> None:
+    '''
+    Test that get_target returns a module-level function object.
+    '''
+
+    # Construct a generic tester pointing at a module-level function.
+    tester = TESTER_OBJECT(
+        type='generic',
+        id='generic._probe_function',
+        module_path=__name__,
+        class_name='_probe_function',
+    )
+
+    # Assert get_target returns the function itself.
+    assert tester.get_target() is _probe_function
+
+# ** test: get_target_returns_concrete_class_instance_from_sample_data
+def test_get_target_returns_concrete_class_instance_from_sample_data() -> None:
+    '''
+    Test that get_target constructs a concrete class from sample_data.
+    '''
+
+    # Construct a generic tester pointing at a concrete class.
+    tester = TESTER_OBJECT(
+        type='generic',
+        id='generic._ProbeConcrete',
+        module_path=__name__,
+        class_name='_ProbeConcrete',
+        sample_data={'value': 1},
+    )
+
+    # Assert the instance is built from sample_data.
+    instance = tester.get_target()
+    assert isinstance(instance, _ProbeConcrete)
+    assert instance.value == 1
+
+# ** test: get_target_does_not_mutate_sample_data
+def test_get_target_does_not_mutate_sample_data() -> None:
+    '''
+    Test that get_target does not mutate the stored sample_data mapping.
+    '''
+
+    # Construct a concrete-class tester with sample_data.
+    tester = TESTER_OBJECT(
+        type='generic',
+        id='generic._ProbeConcrete',
+        module_path=__name__,
+        class_name='_ProbeConcrete',
+        sample_data={'value': 1},
+    )
+    sample_id = id(tester.sample_data)
+    before = dict(tester.sample_data)
+
+    # Resolve the target, which copies sample_data into the constructor.
+    tester.get_target()
+
+    # Assert the stored mapping is unchanged.
+    assert tester.sample_data == before
+    assert id(tester.sample_data) == sample_id
+    assert 'mutated' not in tester.sample_data
+
+# ** test: get_target_returns_abc_class
+def test_get_target_returns_abc_class() -> None:
+    '''
+    Test that get_target returns an ABC class without instantiating it.
+    '''
+
+    # Construct a generic tester pointing at a class with abstract methods.
+    tester = TESTER_OBJECT(
+        type='generic',
+        id='generic._ProbeABC',
+        module_path=__name__,
+        class_name='_ProbeABC',
+    )
+
+    # Assert the class is returned, not an instance.
+    assert tester.get_target() is _ProbeABC
+
+# ** test: get_target_returns_constant_as_is
+def test_get_target_returns_constant_as_is() -> None:
+    '''
+    Test that get_target returns a module-level non-callable attribute unchanged.
+    '''
+
+    # Construct a generic tester pointing at a module-level constant.
+    tester = TESTER_OBJECT(
+        type='generic',
+        id='generic.PROBE_CONSTANT',
+        module_path=__name__,
+        class_name='PROBE_CONSTANT',
+    )
+
+    # Assert the constant is returned as-is.
+    assert tester.get_target() is PROBE_CONSTANT
+
+# ** test: get_target_type_still_exists
+def test_get_target_type_still_exists() -> None:
+    '''
+    Test that TesterObject.get_target_type is still callable.
+    '''
+
+    # Assert the specialized import helper remains.
+    assert callable(TESTER_OBJECT.get_target_type)

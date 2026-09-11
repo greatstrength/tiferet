@@ -470,6 +470,74 @@ class ServiceEventTesterContext(DomainEventTesterContext):
                 f'Expected TiferetError {self.domain.not_found_error_code}'
             )
 
+# ** context: generic_tester_context
+class GenericTesterContext(TesterContext):
+    '''
+    A generic tester context that resolves a live object, optionally invokes
+    it, and optionally locks an ABC without a per-package type key.
+    '''
+
+    # * method: assert_contract
+    def assert_contract(self, target=None) -> None:
+        '''
+        Assert each abstract method name exists on the inspected type.
+
+        :param target: The live object or type to inspect. None is a no-op.
+        :type target: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Missing targets are a no-op.
+        if target is None:
+            return
+
+        # Inspect the type, not an instance.
+        inspected = target if isinstance(target, type) else type(target)
+        abstracts = getattr(inspected, '__abstractmethods__', None)
+
+        # Missing or empty abstract-method sets are a no-op.
+        if not abstracts:
+            return
+
+        # Lock each abstract method name onto the inspected type.
+        for name in abstracts:
+            assert hasattr(inspected, name)
+
+    # * method: make_target
+    def make_target(self, data: dict | None = None) -> Any:
+        '''
+        Resolve the live generic target without mutating sample_data.
+
+        :param data: Optional constructor payload for a concrete class.
+        :type data: dict | None
+        :return: The resolved callable, class, instance, or attribute.
+        :rtype: Any
+        '''
+
+        # Default construction uses the tester's get_target algorithm.
+        if data is None:
+            return self.domain.get_target()
+
+        # Import the named attribute once.
+        obj = self.domain.get_target_type()
+
+        # Return functions and other non-class callables as-is.
+        if callable(obj) and not isinstance(obj, type):
+            return obj
+
+        # Return ABC classes without instantiating them.
+        if isinstance(obj, type):
+            abstracts = getattr(obj, '__abstractmethods__', None)
+            if abstracts:
+                return obj
+
+            # Construct a concrete class from a copy of the overlay data.
+            return obj(**dict(data))
+
+        # Return constants and other attributes as-is.
+        return obj
+
 # ** context: test_session_context
 class TestSessionContext(RequestContext):
     '''
@@ -620,7 +688,7 @@ class TestSessionContext(RequestContext):
         '''
         Exercise the bound tester with request overlay and evaluate verifications.
 
-        :param target: Ignored. Reserved for later type-extension children.
+        :param target: An optional live object. Valid only when the tester type is generic.
         :type target: Any
         :param kwargs: Unused extra keyword arguments.
         :type kwargs: dict
@@ -628,8 +696,32 @@ class TestSessionContext(RequestContext):
         :rtype: Any
         '''
 
-        # Choose sample kwargs for events, otherwise sample data.
+        # Resolve a generic live object without the specialized exercise path.
         tester = self.tester_ctx.domain
+        if tester.type == 'generic':
+            resolved = tester.get_target() if target is None else target
+
+            # Lock the ABC contract on the resolved object.
+            self.tester_ctx.assert_contract(resolved)
+
+            # Invoke non-class callables with request given-state as kwargs.
+            if callable(resolved) and not isinstance(resolved, type):
+                outcome = resolved(**self.data)
+            else:
+                outcome = resolved
+
+            # Capture, evaluate, and return the generic outcome.
+            self.capture_outcome(outcome)
+            self.evaluate_verifications()
+            return self.outcome
+
+        # Reject a live target on specialized tester types.
+        if target is not None:
+            raise ValueError(
+                'run(target=...) is only valid when tester type is generic.'
+            )
+
+        # Choose sample kwargs for events, otherwise sample data.
         if tester.type in ('domain_event', 'service_event'):
             sample = tester.sample_kwargs
         else:

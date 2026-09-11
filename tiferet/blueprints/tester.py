@@ -18,6 +18,7 @@ from ..contexts.tester import (
     AggregateTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
+    GenericTesterContext,
     ServiceEventTesterContext,
     TesterContext,
     TesterObject,
@@ -169,6 +170,7 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
         'transfer_object': TransferObjectTesterContext,
         'domain_event': DomainEventTesterContext,
         'service_event': ServiceEventTesterContext,
+        'generic': GenericTesterContext,
     }[tester.type]
 
     # Bind and return the selected context.
@@ -195,7 +197,7 @@ def build_test_session(
 
 # ** blueprint: use_tester
 def use_tester(
-        type: str,
+        type: str = 'generic',
         target_cls: type = None,
         id: str = None,
         **fields,
@@ -203,7 +205,7 @@ def use_tester(
     '''
     Decorate a test class or function with a bound tester context and session.
 
-    :param type: The specialized tester type. Required; has no default.
+    :param type: The tester type. Defaults to generic.
     :type type: str
     :param target_cls: Optional target class used to fill module_path and class_name.
     :type target_cls: type

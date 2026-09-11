@@ -52,9 +52,10 @@ class TesterObject(DomainObject):
         'transfer_object',
         'domain_event',
         'service_event',
+        'generic',
     ] = Field(
-        ...,
-        description='The specialized tester type.',
+        default='generic',
+        description='The type of tester object. Defaults to generic.',
     )
 
     # * attribute: id
@@ -207,6 +208,34 @@ class TesterObject(DomainObject):
 
         # Import the module and return the named class.
         return getattr(import_module(self.module_path), self.class_name)
+
+    # * method: get_target
+    def get_target(self) -> Any:
+        '''
+        Import and return the live target identified by this tester.
+
+        :return: The callable, class, constructed instance, or attribute.
+        :rtype: Any
+        '''
+
+        # Import the named attribute.
+        obj = getattr(import_module(self.module_path), self.class_name)
+
+        # Return functions and other non-class callables as-is.
+        if callable(obj) and not isinstance(obj, type):
+            return obj
+
+        # Return ABC classes without instantiating them.
+        if isinstance(obj, type):
+            abstracts = getattr(obj, '__abstractmethods__', None)
+            if abstracts:
+                return obj
+
+            # Construct a concrete class from a copy of sample_data.
+            return obj(**dict(self.sample_data or {}))
+
+        # Return constants and other attributes as-is.
+        return obj
 
     # * method: get_aggregate_type
     def get_aggregate_type(self) -> type:
