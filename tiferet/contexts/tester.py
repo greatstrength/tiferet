@@ -4,6 +4,7 @@
 
 # ** core
 import inspect
+from importlib import import_module
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import Mock
 
@@ -734,6 +735,102 @@ class RepoTesterContext(TesterContext):
             repo = self.make_target(path)
             repo._save(payload)
             assert repo._load() == payload
+
+# ** context: context_tester_context
+class ContextTesterContext(TesterContext):
+    '''
+    A context tester context that proves from_domain binding, own-namespace
+    domain_type versus omission, and BaseContext.for_domain mapping.
+    '''
+
+    # * method: assert_from_domain
+    def assert_from_domain(self) -> None:
+        '''
+        Assert each from_domain case binds the target context to the domain object.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists are no-ops.
+        for case in self.domain.from_domain_cases:
+
+            # Construct the domain object from the case payload.
+            domain_obj = self.domain.get_domain_type()(**case['data'])
+
+            # Bind via the target class, not the registry.
+            ctx = self.domain.get_target_type().from_domain(
+                domain_obj,
+                **case.get('kwargs', {}),
+            )
+
+            # Assert the bound context is the target type and holds identity.
+            assert isinstance(ctx, self.domain.get_target_type())
+            assert ctx.domain is domain_obj
+
+    # * method: assert_domain_type
+    def assert_domain_type(self) -> None:
+        '''
+        Assert each domain_type case against the target context class.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists are no-ops.
+        target_cls = self.domain.get_target_type()
+        for case in self.domain.domain_type_cases:
+
+            # Declaring contexts own domain_type in their namespace.
+            if case['declares']:
+                assert 'domain_type' in target_cls.__dict__
+                assert target_cls.domain_type is self.domain.get_domain_type()
+                continue
+
+            # Omitting contexts leave domain_type out of their own namespace.
+            assert 'domain_type' not in target_cls.__dict__
+
+    # * method: assert_for_domain
+    def assert_for_domain(self) -> None:
+        '''
+        Assert each for_domain case against the ContextMeta registry.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists are no-ops.
+        for case in self.domain.for_domain_cases:
+
+            # Import the domain and context classes named by the case.
+            domain_cls = getattr(
+                import_module(case['domain_module_path']),
+                case['domain_class_name'],
+            )
+            context_cls = getattr(
+                import_module(case['context_module_path']),
+                case['context_class_name'],
+            )
+
+            # Assert the registry mapping; CONTEXT_NOT_FOUND propagates.
+            assert BaseContext.for_domain(domain_cls) is context_cls
+
+    # * method: make_target
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
+        '''
+        Bind the target context via from_domain using sample_data.
+
+        :param data: Unused. Context construction does not overlay request data.
+        :type data: Dict[str, Any]
+        :return: The bound target context.
+        :rtype: Any
+        '''
+
+        # Construct the domain object from declaration-time sample data.
+        domain_obj = self.domain.get_domain_type()(**(self.domain.sample_data or {}))
+
+        # Bind via the target class from_domain, not __init__.
+        return self.domain.get_target_type().from_domain(domain_obj)
 
 # ** context: test_session_context
 class TestSessionContext(RequestContext):

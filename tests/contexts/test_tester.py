@@ -13,6 +13,8 @@ from tiferet.assets import TiferetError
 from tiferet.assets.error import ERROR_NOT_FOUND_ID
 from tiferet.assets.tester import (
     AGGREGATE_ERROR_TESTER_DATA,
+    CONTEXT_REQUEST_CONTEXT_TESTER_DATA,
+    CONTEXT_REQUEST_CONTEXT_TESTER_ID,
     CORE_DEFAULT_TESTERS,
     DOMAIN_ERROR_MESSAGE_TESTER_DATA,
     SERVICE_EVENT_GET_ERROR_TESTER_DATA,
@@ -20,7 +22,8 @@ from tiferet.assets.tester import (
 )
 from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.core import BaseContext
+from tiferet.contexts.cli import CliSessionContext
+from tiferet.contexts.core import BaseContext, ContextMeta
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts import tester as tester_contexts
 from tiferet.domain import AppSession, Request
@@ -48,11 +51,11 @@ VARIANT_CLASSES = [
     tester_contexts.ServiceEventTesterContext,
     tester_contexts.GenericTesterContext,
     tester_contexts.RepoTesterContext,
+    tester_contexts.ContextTesterContext,
 ]
 
 # ** constant: forbidden_context_names
 FORBIDDEN_CONTEXT_NAMES = [
-    'ContextTesterContext',
     'TestRequestContext',
 ]
 
@@ -156,6 +159,23 @@ def repo_tester(**overrides):
     payload.update(overrides)
     return TESTER_OBJECT(**payload)
 
+# ** constant: context_tester
+def context_tester(**overrides):
+    '''
+    Build a context tester from the RequestContext catalog row.
+
+    :param overrides: Optional TesterObject field overrides.
+    :type overrides: dict
+    :return: A context TesterObject.
+    :rtype: object
+    '''
+
+    # Merge the catalog row with an id and caller overrides.
+    payload = dict(CONTEXT_REQUEST_CONTEXT_TESTER_DATA)
+    payload['id'] = CONTEXT_REQUEST_CONTEXT_TESTER_ID
+    payload.update(overrides)
+    return TESTER_OBJECT.model_validate(payload)
+
 # ** constant: required_param_event
 class RequiredParamEvent(DomainEvent):
     '''
@@ -206,7 +226,7 @@ class TestTesterContextRegistry:
     # * method: test_extension_contexts_absent
     def test_extension_contexts_absent(self) -> None:
         '''
-        Test that context tester contexts are not defined.
+        Test that retired tester context names are not defined.
         '''
 
         # Assert each forbidden context name is absent.
@@ -573,6 +593,120 @@ class TestRepoTesterContext:
         assert 'from ..interfaces' not in source
         assert 'from ..di' not in source
         assert 'from ..blueprints' not in source
+
+# ** tester: TestContextTesterContext
+class TestContextTesterContext:
+    '''
+    Tests for ContextTesterContext registry, no-ops, and assertions.
+    '''
+
+    # * method: test_omits_domain_type
+    def test_omits_domain_type(self) -> None:
+        '''
+        Test that ContextTesterContext omits domain_type from its own namespace.
+        '''
+
+        # Assert the variant does not re-register TesterObject.
+        assert 'domain_type' not in tester_contexts.ContextTesterContext.__dict__
+
+    # * method: test_registry_mappings_unchanged
+    def test_registry_mappings_unchanged(self) -> None:
+        '''
+        Test that TesterObject, Request, and AppSession registry mappings stay.
+        '''
+
+        # Assert master mappings and that BaseContext is not a registry value.
+        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
+        assert BaseContext.for_domain(Request) is RequestContext
+        assert BaseContext.for_domain(AppSession) is AppSessionContext
+        assert BaseContext not in ContextMeta.registry.values()
+
+    # * method: test_from_domain_binds_subclass
+    def test_from_domain_binds_subclass(self) -> None:
+        '''
+        Test that ContextTesterContext.from_domain binds that subclass.
+        '''
+
+        # Bind a context tester through the variant and the registry.
+        tester = context_tester()
+        bound = tester_contexts.ContextTesterContext.from_domain(tester)
+        master = BaseContext.from_domain(tester)
+
+        # Assert the variant binds while the registry stays on the master.
+        assert isinstance(bound, tester_contexts.ContextTesterContext)
+        assert bound.domain is tester
+        assert type(master) is TESTER_CONTEXT
+
+    # * method: test_empty_case_lists_are_no_ops
+    def test_empty_case_lists_are_no_ops(self) -> None:
+        '''
+        Test that empty from_domain / domain_type / for_domain case lists no-op.
+        '''
+
+        # Bind a context tester with empty optional case lists.
+        ctx = tester_contexts.ContextTesterContext.from_domain(
+            context_tester(
+                from_domain_cases=[],
+                domain_type_cases=[],
+                for_domain_cases=[],
+            )
+        )
+        ctx.assert_from_domain()
+        ctx.assert_domain_type()
+        ctx.assert_for_domain()
+
+    # * method: test_declaring_request_context_cases
+    def test_declaring_request_context_cases(self) -> None:
+        '''
+        Test catalog-row cases against RequestContext pass the three assertions.
+        '''
+
+        # Bind the RequestContext catalog tester and run the three asserts.
+        ctx = tester_contexts.ContextTesterContext.from_domain(context_tester())
+        ctx.assert_from_domain()
+        ctx.assert_domain_type()
+        ctx.assert_for_domain()
+
+    # * method: test_omitting_cli_session_context_cases
+    def test_omitting_cli_session_context_cases(self) -> None:
+        '''
+        Test an omitting case against CliSessionContext without hub kwargs.
+        '''
+
+        # Bind a tester targeting CliSessionContext, which omits domain_type.
+        tester = TESTER_OBJECT(
+            type='context',
+            id='context.CliSessionContext',
+            module_path=CliSessionContext.__module__,
+            class_name='CliSessionContext',
+            domain_module_path='tiferet.domain.app',
+            domain_class_name='AppSession',
+            domain_type_cases=[
+                {
+                    'declares': False,
+                },
+            ],
+            for_domain_cases=[
+                {
+                    'domain_module_path': 'tiferet.domain.app',
+                    'domain_class_name': 'AppSession',
+                    'context_module_path': 'tiferet.contexts.app',
+                    'context_class_name': 'AppSessionContext',
+                },
+                {
+                    'domain_module_path': 'tiferet.domain.tester',
+                    'domain_class_name': 'TesterObject',
+                    'context_module_path': 'tiferet.contexts.tester',
+                    'context_class_name': 'TesterContext',
+                },
+            ],
+        )
+        ctx = tester_contexts.ContextTesterContext.from_domain(tester)
+
+        # Assert omission and registry mappings without hub from_domain kwargs.
+        ctx.assert_domain_type()
+        ctx.assert_for_domain()
+        assert 'domain_type' not in CliSessionContext.__dict__
 
 # *** tests
 

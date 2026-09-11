@@ -29,13 +29,16 @@ from tiferet.contexts.tester import (
     AggregateTesterContext,
     DomainEventTesterContext,
     DomainTesterContext,
+    ContextTesterContext,
     GenericTesterContext,
     RepoTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
     TransferObjectTesterContext,
 )
+from tiferet.contexts.request import RequestContext
 from tiferet.domain.error import ErrorMessage
+from tiferet.domain.request import Request
 from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
 
 # *** constants
@@ -107,7 +110,7 @@ class TestBuildTesterContext:
 
         # Use a stand-in so TesterObject construction is not involved.
         class StandIn:
-            type = 'context'
+            type = 'unmapped'
 
         # Assert unknown map keys raise KeyError.
         with pytest.raises(KeyError):
@@ -388,6 +391,61 @@ class TestBuildTesterContextRepo:
         # Assert the injected context is the repo variant.
         ctx = Probe().check()
         assert isinstance(ctx, RepoTesterContext)
+
+# ** tester: TestBuildTesterContextContextType
+class TestBuildTesterContextContextType:
+    '''
+    Tests for build_tester_context context type mapping.
+    '''
+
+    # * method: test_build_tester_context_maps_context
+    def test_build_tester_context_maps_context(self) -> None:
+        '''
+        Test that build_tester_context maps type='context' to ContextTesterContext.
+        '''
+
+        # Bind a context tester pointing at RequestContext.
+        tester = TESTER_OBJECT(
+            type='context',
+            id='context.RequestContext',
+            module_path=RequestContext.__module__,
+            class_name='RequestContext',
+            domain_module_path=Request.__module__,
+            domain_class_name='Request',
+        )
+        bound = build_tester_context(tester)
+
+        # Assert the context variant was selected.
+        assert isinstance(bound, ContextTesterContext)
+        assert bound.domain is tester
+
+# ** tester: TestUseTesterContextType
+class TestUseTesterContextType:
+    '''
+    Tests for @use_tester context type injection and domain_cls.
+    '''
+
+    # * method: test_use_tester_injects_context_tester_context
+    def test_use_tester_injects_context_tester_context(self) -> None:
+        '''
+        Test that @use_tester(type='context') injects ContextTesterContext as test_ctx.
+        '''
+
+        # Decorate a throwaway non-Test* probe class with domain_cls.
+        @use_tester(
+            type='context',
+            target_cls=RequestContext,
+            domain_cls=Request,
+        )
+        class Probe:
+            def check(self, test_ctx):
+                return test_ctx
+
+        # Assert the injected context is the context variant with domain identity filled.
+        ctx = Probe().check()
+        assert isinstance(ctx, ContextTesterContext)
+        assert ctx.domain.domain_module_path == Request.__module__
+        assert ctx.domain.domain_class_name == 'Request'
 
 # *** tests
 

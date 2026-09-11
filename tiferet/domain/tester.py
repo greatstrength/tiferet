@@ -54,6 +54,7 @@ class TesterObject(DomainObject):
         'service_event',
         'generic',
         'repo',
+        'context',
     ] = Field(
         default='generic',
         description='The type of tester object. Defaults to generic.',
@@ -203,6 +204,36 @@ class TesterObject(DomainObject):
         description='Ids to delete, assert missing, then delete again.',
     )
 
+    # * attribute: domain_module_path
+    domain_module_path: str | None = Field(
+        default=None,
+        description='The module path of the domain object type under test.',
+    )
+
+    # * attribute: domain_class_name
+    domain_class_name: str | None = Field(
+        default=None,
+        description='The domain object class name under test.',
+    )
+
+    # * attribute: from_domain_cases
+    from_domain_cases: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description='Cases for assert_from_domain.',
+    )
+
+    # * attribute: domain_type_cases
+    domain_type_cases: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description='Cases for assert_domain_type.',
+    )
+
+    # * attribute: for_domain_cases
+    for_domain_cases: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description='Cases for assert_for_domain.',
+    )
+
     # * method: _derive_expected_data (model validator)
     @model_validator(mode='before')
     @classmethod
@@ -279,3 +310,15 @@ class TesterObject(DomainObject):
 
         # Import the aggregate module and return the named class.
         return getattr(import_module(self.aggregate_module_path), self.aggregate_class_name)
+
+    # * method: get_domain_type
+    def get_domain_type(self) -> type:
+        '''
+        Import and return the domain object class identified by this tester.
+
+        :return: The domain object class type.
+        :rtype: type
+        '''
+
+        # Import the domain module and return the named class.
+        return getattr(import_module(self.domain_module_path), self.domain_class_name)

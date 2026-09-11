@@ -36,7 +36,6 @@ SPECIALIZED_TYPES = [
 
 # ** constant: rejected_types
 REJECTED_TYPES = [
-    'context',
     'callable',
 ]
 
@@ -49,15 +48,6 @@ FORBIDDEN_SUBCLASS_NAMES = [
     'ServiceEventTesterObject',
     'RepoTesterObject',
     'ContextTesterObject',
-]
-
-# ** constant: forbidden_fields
-FORBIDDEN_FIELDS = [
-    'domain_module_path',
-    'domain_class_name',
-    'from_domain_cases',
-    'domain_type_cases',
-    'for_domain_cases',
 ]
 
 # ** constant: repo_tester_payload
@@ -227,6 +217,13 @@ class TestTesterObject:
         assert tester.list_ids == []
         assert tester.delete_ids == []
 
+        # Assert context optional fields default empty.
+        assert tester.domain_module_path is None
+        assert tester.domain_class_name is None
+        assert tester.from_domain_cases == []
+        assert tester.domain_type_cases == []
+        assert tester.for_domain_cases == []
+
     # * method: test_derive_expected_data_from_sample_data
     def test_derive_expected_data_from_sample_data(self) -> None:
         '''
@@ -326,15 +323,6 @@ class TestTesterObject:
         assert dependency.module_path == 'tiferet.interfaces.error'
         assert dependency.class_name == 'ErrorService'
 
-    # * method: test_get_domain_type_absent
-    def test_get_domain_type_absent(self) -> None:
-        '''
-        Test that get_domain_type is not defined on TesterObject.
-        '''
-
-        # Assert the context-type helper is absent.
-        assert not hasattr(TESTER_OBJECT, 'get_domain_type')
-
     # * method: test_subclass_models_absent
     def test_subclass_models_absent(self) -> None:
         '''
@@ -346,16 +334,6 @@ class TestTesterObject:
             assert not hasattr(tester_mod, name)
             with pytest.raises(ImportError):
                 __import__(f'tiferet.domain.{name}')
-
-    # * method: test_context_fields_absent
-    def test_context_fields_absent(self) -> None:
-        '''
-        Test that context optional fields are absent from TesterObject.
-        '''
-
-        # Assert each context-type field is absent from the model.
-        for field in FORBIDDEN_FIELDS:
-            assert field not in TESTER_OBJECT.model_fields
 
     # * method: test_package_exports
     def test_package_exports(self) -> None:
@@ -468,6 +446,65 @@ class TestTesterObjectRepoType:
         assert not hasattr(tester_mod, 'RepoTesterObject')
         assert 'RepoTesterObject' not in domain.__all__
         assert not hasattr(domain, 'RepoTesterObject')
+
+# ** tester: TestTesterObjectContextType
+class TestTesterObjectContextType:
+    '''
+    Tests for the context tester type on TesterObject.
+    '''
+
+    # * method: test_type_accepts_context
+    def test_type_accepts_context(self) -> None:
+        '''
+        Test that TesterObject.type accepts 'context'.
+        '''
+
+        # Construct a context tester pointing at RequestContext.
+        tester = TESTER_OBJECT(
+            type='context',
+            id='context.RequestContext',
+            module_path='tiferet.contexts.request',
+            class_name='RequestContext',
+        )
+
+        # Assert the type is stored as context.
+        assert tester.type == 'context'
+
+    # * method: test_context_tester_object_absent
+    def test_context_tester_object_absent(self) -> None:
+        '''
+        Test that ContextTesterObject is absent from tiferet.domain.
+        '''
+
+        # Import the domain package for export inspection.
+        from tiferet import domain
+
+        # Assert the collapsed subclass is not defined or exported.
+        assert not hasattr(tester_mod, 'ContextTesterObject')
+        assert 'ContextTesterObject' not in domain.__all__
+        assert not hasattr(domain, 'ContextTesterObject')
+
+    # * method: test_optional_context_fields_default_empty
+    def test_optional_context_fields_default_empty(self) -> None:
+        '''
+        Test that unset domain identity and case lists default empty.
+        '''
+
+        # Construct with only required identity fields.
+        tester = TESTER_OBJECT(
+            type='context',
+            id='context.RequestContext',
+            module_path='tiferet.contexts.request',
+            class_name='RequestContext',
+        )
+
+        # Assert optional context fields default None or empty.
+        assert tester.domain_module_path is None
+        assert tester.domain_class_name is None
+        assert tester.from_domain_cases == []
+        assert tester.domain_type_cases == []
+        assert tester.for_domain_cases == []
+        assert callable(tester.get_domain_type)
 
 # *** tests
 
