@@ -47,11 +47,11 @@ VARIANT_CLASSES = [
     tester_contexts.DomainEventTesterContext,
     tester_contexts.ServiceEventTesterContext,
     tester_contexts.GenericTesterContext,
+    tester_contexts.RepoTesterContext,
 ]
 
 # ** constant: forbidden_context_names
 FORBIDDEN_CONTEXT_NAMES = [
-    'RepoTesterContext',
     'ContextTesterContext',
     'TestRequestContext',
 ]
@@ -135,6 +135,27 @@ def generic_tester(**overrides):
     payload.update(overrides)
     return TESTER_OBJECT(**payload)
 
+# ** constant: repo_tester
+def repo_tester(**overrides):
+    '''
+    Build a repo tester pointing at ErrorConfigRepository.
+
+    :param overrides: Optional TesterObject field overrides.
+    :type overrides: dict
+    :return: A repo TesterObject.
+    :rtype: object
+    '''
+
+    # Merge repo identity with caller overrides.
+    payload = {
+        'type': 'repo',
+        'id': 'repo.ErrorConfigRepository',
+        'module_path': 'tiferet.repos.error',
+        'class_name': 'ErrorConfigRepository',
+    }
+    payload.update(overrides)
+    return TESTER_OBJECT(**payload)
+
 # ** constant: required_param_event
 class RequiredParamEvent(DomainEvent):
     '''
@@ -185,7 +206,7 @@ class TestTesterContextRegistry:
     # * method: test_extension_contexts_absent
     def test_extension_contexts_absent(self) -> None:
         '''
-        Test that repo and context tester contexts are not defined.
+        Test that context tester contexts are not defined.
         '''
 
         # Assert each forbidden context name is absent.
@@ -236,7 +257,6 @@ class TestSessionIsARequest:
         assert not hasattr(tester_contexts, 'TEST_PRESET_CACHE_PREFIX')
         assert not hasattr(tester_contexts, 'add_default_test_presets')
         assert 'import pytest' not in source
-        assert 'import inspect' not in source
 
 # ** tester: TestSessionRunAgainstBoundTester
 class TestSessionRunAgainstBoundTester:
@@ -481,6 +501,78 @@ class TestAddDefaultTesters:
         assert seeded.type == 'domain'
         assert seeded.id == 'domain.ErrorMessage'
         assert tester_contexts.TESTER_CACHE_PREFIX == ('app', 'testers')
+
+# ** tester: TestRepoTesterContext
+class TestRepoTesterContext:
+    '''
+    Tests for RepoTesterContext registry, no-ops, and import law.
+    '''
+
+    # * method: test_omits_domain_type
+    def test_omits_domain_type(self) -> None:
+        '''
+        Test that RepoTesterContext omits domain_type from its own namespace.
+        '''
+
+        # Assert the variant does not re-register TesterObject.
+        assert 'domain_type' not in tester_contexts.RepoTesterContext.__dict__
+
+    # * method: test_for_domain_remains_tester_context
+    def test_for_domain_remains_tester_context(self) -> None:
+        '''
+        Test that BaseContext.for_domain(TesterObject) remains TesterContext.
+        '''
+
+        # Assert the master registry mapping is unchanged.
+        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
+
+    # * method: test_from_domain_binds_subclass
+    def test_from_domain_binds_subclass(self) -> None:
+        '''
+        Test that RepoTesterContext.from_domain binds that subclass.
+        '''
+
+        # Bind a repo tester through the variant and the registry.
+        tester = repo_tester()
+        bound = tester_contexts.RepoTesterContext.from_domain(tester)
+        master = BaseContext.from_domain(tester)
+
+        # Assert the variant binds while the registry stays on the master.
+        assert isinstance(bound, tester_contexts.RepoTesterContext)
+        assert bound.domain is tester
+        assert type(master) is TESTER_CONTEXT
+
+    # * method: test_empty_case_lists_are_no_ops
+    def test_empty_case_lists_are_no_ops(self) -> None:
+        '''
+        Test that empty repo case lists and unset aggregate_class_name are no-ops.
+        '''
+
+        # Bind a repo tester with empty optional fields.
+        ctx = tester_contexts.RepoTesterContext.from_domain(repo_tester())
+        ctx.assert_exists(None)
+        ctx.assert_get(None)
+        ctx.assert_list(None)
+        ctx.assert_delete(None)
+        ctx.assert_save(None)
+
+    # * method: test_module_import_law
+    def test_module_import_law(self) -> None:
+        '''
+        Test that tiferet/contexts/tester.py has no pytest or forbidden app imports.
+        '''
+
+        # Read the production module source.
+        source = Path(tester_contexts.__file__).read_text()
+
+        # Assert pytest and forbidden app packages are not imported.
+        assert 'import pytest' not in source
+        assert 'from ..repos' not in source
+        assert 'from ..mappers' not in source
+        assert 'from ..utils' not in source
+        assert 'from ..interfaces' not in source
+        assert 'from ..di' not in source
+        assert 'from ..blueprints' not in source
 
 # *** tests
 

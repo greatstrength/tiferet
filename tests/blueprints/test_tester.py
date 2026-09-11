@@ -30,6 +30,7 @@ from tiferet.contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
+    RepoTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
     TransferObjectTesterContext,
@@ -61,6 +62,14 @@ def _generic_probe():
 
     # Return a stable sentinel.
     return 'generic-probe'
+
+# ** constant: repo_probe
+class _RepoProbe:
+    '''A dummy repository constructor for repo selector tests.'''
+
+    def __init__(self, error_config: str, encoding: str = 'utf-8'):
+        self.error_config = error_config
+        self.encoding = encoding
 
 # *** testers
 
@@ -98,12 +107,9 @@ class TestBuildTesterContext:
 
         # Use a stand-in so TesterObject construction is not involved.
         class StandIn:
-            type = 'repo'
+            type = 'context'
 
         # Assert unknown map keys raise KeyError.
-        with pytest.raises(KeyError):
-            build_tester_context(StandIn())
-        StandIn.type = 'context'
         with pytest.raises(KeyError):
             build_tester_context(StandIn())
 
@@ -336,6 +342,52 @@ class TestNoPytestInBlueprints:
         # Assert pytest is not imported.
         assert 'import pytest' not in source
         assert 'from pytest' not in source
+
+# ** tester: TestBuildTesterContextRepo
+class TestBuildTesterContextRepo:
+    '''
+    Tests for build_tester_context and @use_tester repo mapping.
+    '''
+
+    # * method: test_build_tester_context_maps_repo
+    def test_build_tester_context_maps_repo(self) -> None:
+        '''
+        Test that build_tester_context maps type='repo' to RepoTesterContext.
+        '''
+
+        # Bind a repo tester.
+        tester = TESTER_OBJECT(
+            type='repo',
+            id='repo._RepoProbe',
+            module_path=__name__,
+            class_name='_RepoProbe',
+            config_parameter='error_config',
+        )
+        bound = build_tester_context(tester)
+
+        # Assert the repo variant was selected.
+        assert isinstance(bound, RepoTesterContext)
+        assert bound.domain is tester
+
+    # * method: test_use_tester_injects_repo_tester_context
+    def test_use_tester_injects_repo_tester_context(self) -> None:
+        '''
+        Test that @use_tester(type='repo') injects RepoTesterContext as test_ctx.
+        '''
+
+        # Decorate a throwaway non-Test* probe class.
+        @use_tester(
+            type='repo',
+            target_cls=_RepoProbe,
+            config_parameter='error_config',
+        )
+        class Probe:
+            def check(self, test_ctx):
+                return test_ctx
+
+        # Assert the injected context is the repo variant.
+        ctx = Probe().check()
+        assert isinstance(ctx, RepoTesterContext)
 
 # *** tests
 

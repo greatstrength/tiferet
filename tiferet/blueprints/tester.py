@@ -19,6 +19,7 @@ from ..contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
+    RepoTesterContext,
     ServiceEventTesterContext,
     TesterContext,
     TesterObject,
@@ -171,6 +172,7 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
         'domain_event': DomainEventTesterContext,
         'service_event': ServiceEventTesterContext,
         'generic': GenericTesterContext,
+        'repo': RepoTesterContext,
     }[tester.type]
 
     # Bind and return the selected context.

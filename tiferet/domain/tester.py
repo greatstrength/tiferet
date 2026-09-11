@@ -53,6 +53,7 @@ class TesterObject(DomainObject):
         'domain_event',
         'service_event',
         'generic',
+        'repo',
     ] = Field(
         default='generic',
         description='The type of tester object. Defaults to generic.',
@@ -170,6 +171,36 @@ class TesterObject(DomainObject):
     not_found_kwargs: Dict[str, Any] = Field(
         default_factory=dict,
         description='Not-found keyword arguments. Empty means use sample_kwargs.',
+    )
+
+    # * attribute: config_parameter
+    config_parameter: str | None = Field(
+        default=None,
+        description='The repository constructor keyword for the config file path.',
+    )
+
+    # * attribute: exists_cases
+    exists_cases: List[Tuple[str, bool]] = Field(
+        default_factory=list,
+        description='Exists cases of (id, expected) for assert_exists.',
+    )
+
+    # * attribute: get_cases
+    get_cases: List[Tuple[str, Dict[str, Any] | None]] = Field(
+        default_factory=list,
+        description='Get cases of (id, expected_data_or_None) for assert_get.',
+    )
+
+    # * attribute: list_ids
+    list_ids: List[str] = Field(
+        default_factory=list,
+        description='Expected ids from list() with no filter.',
+    )
+
+    # * attribute: delete_ids
+    delete_ids: List[str] = Field(
+        default_factory=list,
+        description='Ids to delete, assert missing, then delete again.',
     )
 
     # * method: _derive_expected_data (model validator)

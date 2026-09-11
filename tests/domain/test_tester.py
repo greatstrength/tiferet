@@ -36,7 +36,6 @@ SPECIALIZED_TYPES = [
 
 # ** constant: rejected_types
 REJECTED_TYPES = [
-    'repo',
     'context',
     'callable',
 ]
@@ -54,17 +53,66 @@ FORBIDDEN_SUBCLASS_NAMES = [
 
 # ** constant: forbidden_fields
 FORBIDDEN_FIELDS = [
-    'config_parameter',
-    'exists_cases',
-    'get_cases',
-    'list_ids',
-    'delete_ids',
     'domain_module_path',
     'domain_class_name',
     'from_domain_cases',
     'domain_type_cases',
     'for_domain_cases',
 ]
+
+# ** constant: repo_tester_payload
+REPO_TESTER_PAYLOAD = {
+    'type': 'repo',
+    'id': 'repo.ErrorConfigRepository',
+    'module_path': 'tiferet.repos.error',
+    'class_name': 'ErrorConfigRepository',
+    'config_parameter': 'error_config',
+    'sample_data': {
+    },
+    'equality_fields': [
+        'id',
+        'name',
+    ],
+    'aggregate_module_path': 'tiferet.mappers.error',
+    'aggregate_class_name': 'ErrorAggregate',
+    'aggregate_sample_data': {
+        'id': 'NEW_ERROR_CODE',
+        'name': 'New Error',
+        'message': [
+            {
+                'lang': 'en',
+                'text': 'A new error occurred',
+            },
+            {
+                'lang': 'es',
+                'text': 'Ocurrió un nuevo error',
+            },
+        ],
+    },
+    'exists_cases': [
+        ('TEST_ERROR_CODE', True),
+        ('TEST_FORMATTED_ERROR_CODE', True),
+        ('MISSING_ERROR_CODE', False),
+    ],
+    'get_cases': [
+        ('TEST_ERROR_CODE', {
+            'id': 'TEST_ERROR_CODE',
+            'name': 'Test Error',
+        }),
+        ('TEST_FORMATTED_ERROR_CODE', {
+            'id': 'TEST_FORMATTED_ERROR_CODE',
+            'name': 'Test Formatted Error',
+        }),
+        ('MISSING_ERROR_CODE', None),
+    ],
+    'list_ids': [
+        'TEST_ERROR_CODE',
+        'TEST_FORMATTED_ERROR_CODE',
+    ],
+    'delete_ids': [
+        'TEST_FORMATTED_ERROR_CODE',
+    ],
+}
 
 # ** constant: probe_function
 def _probe_function():
@@ -171,6 +219,13 @@ class TestTesterObject:
         assert tester.service_attr is None
         assert tester.not_found_error_code is None
         assert tester.not_found_kwargs == {}
+
+        # Assert repo optional fields default empty.
+        assert tester.config_parameter is None
+        assert tester.exists_cases == []
+        assert tester.get_cases == []
+        assert tester.list_ids == []
+        assert tester.delete_ids == []
 
     # * method: test_derive_expected_data_from_sample_data
     def test_derive_expected_data_from_sample_data(self) -> None:
@@ -292,13 +347,13 @@ class TestTesterObject:
             with pytest.raises(ImportError):
                 __import__(f'tiferet.domain.{name}')
 
-    # * method: test_repo_context_fields_absent
-    def test_repo_context_fields_absent(self) -> None:
+    # * method: test_context_fields_absent
+    def test_context_fields_absent(self) -> None:
         '''
-        Test that repo and context optional fields are absent from TesterObject.
+        Test that context optional fields are absent from TesterObject.
         '''
 
-        # Assert each type-extension field is absent from the model.
+        # Assert each context-type field is absent from the model.
         for field in FORBIDDEN_FIELDS:
             assert field not in TESTER_OBJECT.model_fields
 
@@ -360,6 +415,59 @@ class TestVerification:
         assert labeled.predicate is is_ok
         assert labeled.source == 'ok'
         assert labeled.message == 'failed'
+
+# ** tester: TestTesterObjectRepoType
+class TestTesterObjectRepoType:
+    '''
+    Tests for the repo tester type on TesterObject.
+    '''
+
+    # * method: test_type_accepts_repo
+    def test_type_accepts_repo(self) -> None:
+        '''
+        Test that TesterObject.type accepts 'repo'.
+        '''
+
+        # Construct a repo tester.
+        tester = TESTER_OBJECT(type='repo', **TESTER_REQUIRED)
+
+        # Assert the type is stored as repo.
+        assert tester.type == 'repo'
+
+    # * method: test_repo_field_set_model_validates
+    def test_repo_field_set_model_validates(self) -> None:
+        '''
+        Test that the catalog repo field set model_validates as TesterObject.
+        '''
+
+        # Validate the §4.6 field set.
+        tester = TESTER_OBJECT.model_validate(REPO_TESTER_PAYLOAD)
+
+        # Assert identity and repo fields are stored.
+        assert tester.type == 'repo'
+        assert tester.id == 'repo.ErrorConfigRepository'
+        assert tester.config_parameter == 'error_config'
+        assert tester.list_ids == [
+            'TEST_ERROR_CODE',
+            'TEST_FORMATTED_ERROR_CODE',
+        ]
+        assert tester.delete_ids == [
+            'TEST_FORMATTED_ERROR_CODE',
+        ]
+
+    # * method: test_repo_tester_object_absent
+    def test_repo_tester_object_absent(self) -> None:
+        '''
+        Test that RepoTesterObject is absent from tiferet.domain.
+        '''
+
+        # Import the domain package for export inspection.
+        from tiferet import domain
+
+        # Assert the collapsed subclass is not defined or exported.
+        assert not hasattr(tester_mod, 'RepoTesterObject')
+        assert 'RepoTesterObject' not in domain.__all__
+        assert not hasattr(domain, 'RepoTesterObject')
 
 # *** tests
 

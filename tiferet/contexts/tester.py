@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import inspect
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import Mock
 
@@ -537,6 +538,202 @@ class GenericTesterContext(TesterContext):
 
         # Return constants and other attributes as-is.
         return obj
+
+# ** context: repo_tester_context
+class RepoTesterContext(TesterContext):
+    '''
+    A repository tester context that constructs against a temporary config
+    file and asserts exists / get / list / save / delete plus format dispatch.
+    '''
+
+    # * method: make_target
+    def make_target(self, config_file: str, encoding: str = 'utf-8') -> Any:
+        '''
+        Construct the repository class against a required config file path.
+
+        :param config_file: The configuration file path.
+        :type config_file: str
+        :param encoding: The file encoding.
+        :type encoding: str
+        :return: The constructed repository instance.
+        :rtype: Any
+        '''
+
+        # Use the declared constructor keyword when the tester sets it.
+        parameter = self.domain.config_parameter
+        if not parameter:
+            signature = inspect.signature(self.domain.get_target_type().__init__)
+            candidates = [
+                name for name, param in signature.parameters.items()
+                if name not in ('self', 'encoding')
+                and param.kind not in (
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                )
+            ]
+            parameter = candidates[0]
+
+        # Construct without mutating the bound tester or sample_data.
+        return self.domain.get_target_type()(**{
+            parameter: config_file,
+            'encoding': encoding,
+        })
+
+    # * method: assert_new
+    def assert_new(self, config_file: str) -> None:
+        '''
+        Assert make_target constructs the bound repository type.
+
+        :param config_file: The configuration file path.
+        :type config_file: str
+        :return: None
+        :rtype: None
+        '''
+
+        # Construct the repository against the required path.
+        target = self.make_target(config_file)
+
+        # Assert the instance type and default serialization role.
+        assert isinstance(target, self.domain.get_target_type())
+        if hasattr(target, 'default_role'):
+            assert target.default_role == 'to_data'
+
+    # * method: assert_exists
+    def assert_exists(self, repo) -> None:
+        '''
+        Assert each exists case against the constructed repository.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists are no-ops.
+        for id, expected in self.domain.exists_cases:
+            assert repo.exists(id) is expected
+
+    # * method: assert_get
+    def assert_get(self, repo) -> None:
+        '''
+        Assert each get case against the constructed repository.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists are no-ops.
+        for id, expected in self.domain.get_cases:
+
+            # Missing ids return None.
+            if expected is None:
+                assert repo.get(id) is None
+                continue
+
+            # Compare selected fields on the retrieved aggregate.
+            self.assert_model_matches(repo.get(id), expected)
+
+    # * method: assert_list
+    def assert_list(self, repo) -> None:
+        '''
+        Assert list() ids match the tester's list_ids set.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty list_ids is a no-op.
+        if not self.domain.list_ids:
+            return
+
+        # Compare unfiltered list ids as a set.
+        assert {item.id for item in repo.list()} == set(self.domain.list_ids)
+
+    # * method: assert_save
+    def assert_save(self, repo, entity=None) -> None:
+        '''
+        Assert save persists the aggregate and get returns matching fields.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :param entity: An optional aggregate to save.
+        :type entity: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # No-op when there is no entity and no aggregate class to construct.
+        if entity is None:
+            if not self.domain.aggregate_class_name:
+                return
+            entity = self.domain.get_aggregate_type()(
+                **self.domain.aggregate_sample_data
+            )
+
+        # Persist the entity and compare the stored copy.
+        repo.save(entity)
+        self.assert_model_matches(
+            repo.get(entity.id),
+            {
+                field: getattr(entity, field)
+                for field in self.domain.equality_fields
+            },
+        )
+
+    # * method: assert_delete
+    def assert_delete(self, repo) -> None:
+        '''
+        Assert each delete id is removed and a second delete does not raise.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty delete_ids is a no-op.
+        for id in self.domain.delete_ids:
+            repo.delete(id)
+            assert repo.get(id) is None
+            repo.delete(id)
+
+    # * method: assert_format_dispatch
+    def assert_format_dispatch(
+            self,
+            yaml_file: str,
+            json_file: str,
+            payload: dict | None = None,
+        ) -> None:
+        '''
+        Assert YAML and JSON paths round-trip the same payload via _save / _load.
+
+        :param yaml_file: A YAML configuration file path.
+        :type yaml_file: str
+        :param json_file: A JSON configuration file path.
+        :type json_file: str
+        :param payload: Optional payload. Defaults to ``{'root': {'ok': True}}``.
+        :type payload: dict | None
+        :return: None
+        :rtype: None
+        '''
+
+        # Default the round-trip payload when the caller omitted it.
+        if payload is None:
+            payload = {
+                'root': {
+                    'ok': True,
+                },
+            }
+
+        # Round-trip the payload on each format path.
+        for path in (yaml_file, json_file):
+            repo = self.make_target(path)
+            repo._save(payload)
+            assert repo._load() == payload
 
 # ** context: test_session_context
 class TestSessionContext(RequestContext):
