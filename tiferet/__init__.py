@@ -13,6 +13,7 @@ __all__ = [
     'Service',
     'Aggregate',
     'TransferObject',
+    'use_tester',
 ]
 
 # ** app
@@ -25,6 +26,7 @@ try:
     from .assets import TiferetError, TiferetAPIError
     from .blueprints import build_app as App
     from .blueprints import build_cli as CLI
+    from .blueprints import use_tester
     from .domain import DomainObject
     from .events import DomainEvent
     from .interfaces import Service
