@@ -17,7 +17,7 @@ Top-level comments denote major module sections, which fall into two kinds: **pr
 - `# *** functions` — module-level, side-effect-free helper functions. A helper belongs here when it takes only its arguments and returns a plain value: no `self`, no injected services, and no domain-object returns. Prefer this over duplicating the same logic as a static method across classes.
 - `# *** classes` — generic or base classes not tied to a specific construct type (e.g., the base classes defined in a `settings.py`).
 
-**Construct groups** form the primary body of a module and are selected by what the module defines — for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. The `# *** exports` group lists the public API and appears only in `__init__.py`.
+**Construct groups** form the primary body of a module and are selected by what the module defines — for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. Test modules that decorate classes with `@use_tester` use `# *** testers` / `# ** tester: <TestClassName>` (class names stay `Test*`). Leftover and standalone pytest modules may still use `# *** tests` / `# ** test:`. The `# *** exports` group lists the public API and appears only in `__init__.py`.
 
 A module combines its preamble groups with its construct group(s), ordered `imports` → `constants` → `functions`, then `classes` and/or the construct group(s). For example, a domain-event module that needs a pure helper is laid out as:
 ```python

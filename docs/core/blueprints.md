@@ -24,17 +24,17 @@ This design keeps application code simple while maintaining full extensibility a
 
 ## Types of Blueprints
 
-Tiferet currently defines four public blueprints:
+Tiferet currently defines these public blueprints:
 
 - **App blueprint**: `build_app` — used for general script and custom interfaces. Exposed globally as `App`.
 - **CLI blueprint**: `build_cli` — a thin entrypoint that resolves and realizes a CLI session (which must point at `CliSessionContext`) and delegates `sys.argv` translation and feature dispatch to `CliSessionContext.run`. Exposed globally as `CLI`.
 - **Admin App blueprint**: `build_admin_app` — builds the built-in management session (`admin`) with admin-scoped service resolution. Exposed globally as `AdminApp`.
 - **Admin CLI blueprint**: `build_admin_cli` — builds the built-in management CLI (`admin_cli`) and powers the `tiferet` console script. Exposed globally as `AdminCLI`.
+- **Tester blueprints**: `use_tester`, `build_tester_context`, `build_test_session`, and a tester-scoped `build_cache` in `tiferet/blueprints/tester.py`. `use_tester` is exported from `tiferet` and `tiferet.blueprints`. This is **not** a mini-App: it does not call `get_app_session` or wire five handlers. Tester-scoped `build_cache` wraps `core.build_cache`; do not stack `add_default_testers` on `core.py`. Cookbook: [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md).
 
 Future specialized blueprints may include:
 
 - Web blueprint — for web framework integration (Flask, FastAPI, etc.)
-- Test blueprint — for integration and unit testing with mocked services
 
 ### CLI Blueprint Build Procedure
 
@@ -238,7 +238,7 @@ Always pass `build_logger_handler` (never a long-lived `logging_context` constru
 
 ## Testing Blueprints
 
-Blueprint tests use `pytest` with `unittest.mock`. Focus on:
+Unit tests of a named component use `@use_tester` — see [docs/core/testing.md](testing.md). Blueprint composition tests (cache, session, five-handler wiring) use `pytest` with `unittest.mock`. Focus on:
 
 - Correct composition of the app service and app session (`create_app_service` / `get_app_session`)
 - Cache defaults merged with session overrides in `build_app_service_container`
@@ -263,6 +263,8 @@ Explore source in `tiferet/blueprints/` and blueprint tests in the top-level `te
 ## Related Documentation
 
 - [docs/guides/blueprints.md](../guides/blueprints.md) — blueprint strategies and patterns
+- [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md) — `@use_tester` cookbook
+- [docs/core/testing.md](testing.md) — v2.1.0 unit-test model
 - [docs/guides/admin.md](../guides/admin.md) — admin application and CLI catalog
 - [docs/core/contexts.md](contexts.md) — five-handler context contract
 - [docs/core/di.md](di.md) — dependency injection and service provider design

@@ -146,13 +146,7 @@ Domain objects are extended in the mappers layer as Aggregates (with mutation me
 
 ## Testing Domain Objects
 
-Tests validate instantiation, behavior, and edge cases using `pytest`.
-
-**Structure:**
-- `# *** fixtures`
-- `# ** fixture: <name>`
-- `# *** tests`
-- `# ** test: <name>`
+Unit tests of a named domain object use `@use_tester` (`type='domain'`) with `# *** testers` / `# ** tester:` — see [docs/core/testing.md](testing.md). Standalone pytest modules may still use `# *** fixtures` / `# *** tests`.
 
 **Example** – Error domain object tests cover constructor instantiation, `format_message`, and multilingual support (structured response assembly is tested in `ErrorContext`).
 
@@ -167,6 +161,7 @@ Domain objects are defined in `tiferet/domain/`:
 - `error.py` – `Error`, `ErrorMessage`.
 - `feature.py` – `Feature`, `FeatureStep`, `EventFeatureStep`.
 - `logging.py` – `Formatter`, `Handler`, `Logger`, `LoggingSettings`.
+- `tester.py` – `TesterObject`, `Verification` (unit-test identity; no Aggregate/TransferObject pair). See [docs/guides/domain/tester.md](../guides/domain/tester.md).
 - `__init__.py` – Public exports for all domain objects.
 
 Tests live in `tests/domain/`.

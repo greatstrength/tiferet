@@ -15,7 +15,8 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.0.0b3** (pre-release – actively evolving toward stable v2)
+Current status: **2.1.0**
+Unit tests use `@use_tester` — see [Testing Harness](docs/core/testing.md).
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -101,6 +102,7 @@ You should see:
 **Core architecture**  
 - [Code Style & Artifact Comments](docs/core/code_style.md)  
 - [Blueprints (build_app)](docs/core/blueprints.md)  
+- [Testing Harness](docs/core/testing.md)  
 - [Domain Objects](docs/core/domain.md)  
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
@@ -116,7 +118,8 @@ You should see:
 - [Feature Workflows](docs/guides/domain/feature.md)  
 - [Error Handling](docs/guides/domain/error.md)  
 - [CLI Integration](docs/guides/domain/cli.md)  
-- [Logging](docs/guides/domain/logging.md)
+- [Logging](docs/guides/domain/logging.md)  
+- [Tester](docs/guides/domain/tester.md)
 
 **Event Guides**  
 - [Application Events](docs/guides/events/app.md)  
@@ -137,7 +140,8 @@ You should see:
 **Other Component Guides**  
 - [Interfaces](docs/guides/interfaces.md)  
 - [Mappers (Aggregates & Transfer Objects)](docs/guides/mappers.md)  
-- [Repositories](docs/guides/repos.md)
+- [Repositories](docs/guides/repos.md)  
+- [Tester Blueprints](docs/guides/blueprints/tester.md)
 
 **Tutorial**  
 → [Build a complete Calculator (events + CLI + configs)](docs/tutorial/basic_calculator/index.md)

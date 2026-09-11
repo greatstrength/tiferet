@@ -179,13 +179,17 @@ from . import blueprints as bps
 
 ```
 tiferet/assets/
-├── __init__.py      — Public exports; exposes `const` and `bps` module aliases
-├── constants.py     — Error-code identifier constants
-├── error.py         — The DEFAULT_ERRORS catalog (imports ids from constants.py)
-├── exceptions.py    — TiferetError and TiferetAPIError
-├── blueprints.py    — Bootstrap default constants and service wiring
-└── logging.py       — Default logging formatters, handlers, and loggers
+├── __init__.py      — Public exports (`core`, `error`, `app`, …). Does **not** export `tester`.
+├── core.py          — Factories including `create_default_tester_data`; TiferetError / TiferetAPIError
+├── error.py         — The CORE_DEFAULT_ERRORS catalog
+├── app.py           — CORE_DEFAULT_SERVICES / CORE_DEFAULT_CONSTANTS
+├── tester.py        — CORE_DEFAULT_TESTERS / CORE_DEFAULT_TESTER_SESSIONS (cache catalogs, not YAML)
+├── feature.py       — Default feature definitions
+├── logging.py       — Default logging formatters, handlers, and loggers
+└── cli.py           — Default CLI command definitions
 ```
+
+`create_default_tester_data` lives on `assets/core.py` and omits `id`, matching the other `create_default_*` factories. Seed it with `add_default_testers` from tester-scoped `build_cache`, not from `core.py`.
 
 ## Conclusion
 

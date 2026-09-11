@@ -40,6 +40,7 @@ Both sections may appear in the same module. `# *** functions` must appear first
 - Blueprints are **module-level functions**, not classes.
 - Blueprints are **thin orchestrators** — they wire and delegate; they do not implement domain logic.
 - The canonical entry point is `build_app` in `tiferet/blueprints/core.py`, exported as `App`. The CLI entry point is `build_cli` in `tiferet/blueprints/cli.py`, exported as `CLI`.
+- Tester unit tests use `@use_tester` (`tiferet/blueprints/tester.py`, exported from `tiferet`). Tester-scoped `build_cache` wraps `core.build_cache`; do not stack `add_default_testers` on `core.py`. Not a mini-App: no `test_case`, `Tester()`, `resolve_tester`, `tester_config`, or testers YAML. `type` defaults to `'generic'`; `aggregate_cls` / `domain_cls` fill import coordinates.
 - The `core.build_app` composition chain:
   1. `build_cache()` — build the `CacheContext` pre-seeded with default errors, app services, app constants, app sessions, and logging settings.
   2. `get_app_session(interface_id, cache, ...)` — return a cache-seeded default session when available; otherwise compose the app service and resolve the session via `GetAppSession`.

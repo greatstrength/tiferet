@@ -21,7 +21,7 @@
 
 ## The ids / data / groups Catalog Pattern
 
-Every default catalog in `assets/` — `assets/error.py`'s `CORE_DEFAULT_ERRORS`, `assets/app.py`'s `CORE_DEFAULT_SERVICES`/`CORE_DEFAULT_CONSTANTS`, `assets/feature.py`'s default features, `assets/logging.py`'s formatters/handlers/loggers, `assets/cli.py`'s default commands — follows the same three-section shape:
+Every default catalog in `assets/` — `assets/error.py`'s `CORE_DEFAULT_ERRORS`, `assets/app.py`'s `CORE_DEFAULT_SERVICES`/`CORE_DEFAULT_CONSTANTS`, `assets/feature.py`'s default features, `assets/logging.py`'s formatters/handlers/loggers, `assets/cli.py`'s default commands, `assets/tester.py`'s `CORE_DEFAULT_TESTERS` — follows the same three-section shape:
 
 ```python
 # *** constants (ids)
@@ -56,6 +56,7 @@ Each factory builds one data constant's dict shape and lives in `assets/core.py`
 | `create_default_feature_data(name, group_id, feature_key, steps, ...)` | A `Feature` workflow definition | `add_default_features` |
 | `create_params_schema(**params)` | A `params_schema` dict for a feature definition | Passed as `create_default_feature_data`'s `params_schema` argument |
 | `create_default_app_session_data(name, description=None)` | An `AppSession` definition | `add_default_app_sessions` (`contexts/app.py`) |
+| `create_default_tester_data(type, module_path, class_name, sample_data, equality_fields, **variant_kwargs)` | A `TesterObject` definition (no `id`) | `add_default_testers` (`contexts/tester.py`) |
 | `create_default_formatter` / `create_default_handler` / `create_default_logger` | Logging configuration entries | `LoggingSettings` assembly (`contexts/logging.py`) |
 | `create_default_cli_argument` / `create_default_cli_command_data` | CLI argument/command definitions | `add_default_cli_commands` |
 | `create_service_module_path(app_base_path, base_path, domain_path)` | A fully-qualified module path string (e.g. `'tiferet.repos.error'`) | Every `*_data` factory above, to build `module_path` |
@@ -71,7 +72,9 @@ Optional fields follow a uniform pattern: a factory parameter defaulting to `Non
 
 ## Cache Seeding via `add_default_*` Decorators
 
-The catalog itself only produces plain dicts — reconstitution into domain objects happens outside `assets/`, in `contexts/`. Each `add_default_*` decorator (e.g. `add_default_app_services`, `add_default_app_sessions`, `add_default_errors`) wraps a cache-builder callable: after the wrapped builder constructs the `CacheContext`, the decorator iterates the group dict, calls `<DomainObject>.model_validate({**data, 'id_field': id})` to re-inject the id, and stores the result under a dedicated cache-key prefix (e.g. `APP_SERVICE_CACHE_PREFIX = ('app', 'services')`). The blueprint layer reads that prefix straight back out via `cache.get_by_prefix(...)` or `cache.get(id, *prefix)` — no `get_default_*` counterpart exists for the app or admin catalogs; `get_default_cli_commands` (`contexts/cli.py`) remains the one shared-getter case, kept because it has multiple production callers across blueprint modules. This indirection is why a data constant never carries its own id: the cache key *is* the id, and the decorator is the single place that reunites them.
+`CORE_DEFAULT_TESTERS` is a cache declaration, not a `testers:` YAML section. `add_default_testers` (`contexts/tester.py`) reconstitutes rows under `TESTER_CACHE_PREFIX = ('app', 'testers')`. `tiferet/assets/__init__.py` `__all__` does not export the tester module — import `tiferet.assets.tester` (or `create_default_tester_data` from `tiferet.assets.core`) directly.
+
+The catalog itself only produces plain dicts — reconstitution into domain objects happens outside `assets/`, in `contexts/`. Each `add_default_*` decorator (e.g. `add_default_app_services`, `add_default_app_sessions`, `add_default_errors`, `add_default_testers`) wraps a cache-builder callable: after the wrapped builder constructs the `CacheContext`, the decorator iterates the group dict, calls `<DomainObject>.model_validate({**data, 'id_field': id})` to re-inject the id, and stores the result under a dedicated cache-key prefix (e.g. `APP_SERVICE_CACHE_PREFIX = ('app', 'services')`, `TESTER_CACHE_PREFIX = ('app', 'testers')`). The blueprint layer reads that prefix straight back out via `cache.get_by_prefix(...)` or `cache.get(id, *prefix)` — no `get_default_*` counterpart exists for the app, admin, or tester catalogs; `get_default_cli_commands` (`contexts/cli.py`) remains the one shared-getter case, kept because it has multiple production callers across blueprint modules. This indirection is why a data constant never carries its own id: the cache key *is* the id, and the decorator is the single place that reunites them.
 
 ## When to Deviate
 
@@ -85,5 +88,7 @@ A catalog that only ever has one entry (no meaningful "many rows" shape) does no
 ## Related Documentation
 
 - [docs/guides/errors.md](errors.md) — `TiferetError`/`TiferetAPIError`, the other artifact kind this layer hosts
+- [docs/guides/domain/tester.md](domain/tester.md) — `TesterObject` catalog rows vs decorator-supplied fields
+- [docs/core/testing.md](../core/testing.md) — v2.1.0 unit-test model
 - [docs/core/assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md) — assets layer artifact kinds and code-style conventions
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — constant declaration style and artifact comments
