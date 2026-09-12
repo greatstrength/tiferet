@@ -113,18 +113,29 @@ Export: `from tiferet import use_tester` and `from tiferet.blueprints import use
 
 `@use_tester(...)` constructs a `TesterObject` from decorator kwargs at decoration time. Catalog rows and decorator fields are the same model; they are two ways to fill it.
 
-### Artifact comments in tester-decorated tests
+### Test-module artifact kinds
+
+Fixtures, tests, and testers are **sibling** artifact kinds. Testers compose the other two; they do not replace them. After preamble, order is `# *** fixtures` → `# *** tests` → `# *** testers` (omit empty). Incoming remediation (RFP-015 / #1121) keeps all three.
+
+- `# *** fixtures` / `# ** fixture: <snake>` — module-level pytest fixtures.
+- `# *** tests` / `# ** test: <snake>` — module-level test **functions** only.
+- `# *** testers` / `# ** tester: test_<snake>` — tester **classes** (`class Test*`), last.
+
+Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected tests). Class-form `@use_tester` injects `test_ctx` / `session` into members that list them, including `# * fixture:` methods.
 
 ```
 # *** testers
-# ** tester: TestErrorMessage
+
+# ** tester: test_error_message
+@use_tester(type='domain', target_cls=ErrorMessage, ...)
 class TestErrorMessage:
-    # * method: test_format
+
+    # * test: format
     def test_format(self, test_ctx, session):
         ...
 ```
 
-Class names stay `Test*`. Standalone functions that are not a decorated harness may still use `# *** tests` / `# ** test:`.
+See [docs/core/code_style.md § Test-Module Artifact Grammar](code_style.md#test-module-artifact-grammar).
 
 ### Per-type algorithms (summary)
 
@@ -192,6 +203,6 @@ A later freeze deletes this package. Until then, leave it in place.
 - [docs/guides/contexts.md](../guides/contexts.md) — tester context registry and `TestSessionContext`
 - [docs/guides/blueprints.md](../guides/blueprints.md) — tester-scoped `build_cache`
 - [docs/guides/assets.md](../guides/assets.md) — `CORE_DEFAULT_TESTERS` catalog pattern
-- [docs/core/code_style.md](code_style.md) — Artifact comments (`# *** testers` / `# ** tester:`)
+- [docs/core/code_style.md](code_style.md) — Test-module artifact grammar (`# *** fixtures` / `# *** tests` / `# *** testers`)
 - [docs/core/mappers.md](mappers.md) — Aggregate and TransferObject conventions
 - [docs/core/events.md](events.md) — Domain event patterns

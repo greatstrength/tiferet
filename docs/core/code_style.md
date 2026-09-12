@@ -17,7 +17,7 @@ Top-level comments denote major module sections, which fall into two kinds: **pr
 - `# *** functions` — module-level, side-effect-free helper functions. A helper belongs here when it takes only its arguments and returns a plain value: no `self`, no injected services, and no domain-object returns. Prefer this over duplicating the same logic as a static method across classes.
 - `# *** classes` — generic or base classes not tied to a specific construct type (e.g., the base classes defined in a `settings.py`).
 
-**Construct groups** form the primary body of a module and are selected by what the module defines — for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. Test modules that decorate classes with `@use_tester` use `# *** testers` / `# ** tester: <TestClassName>` (class names stay `Test*`). Leftover and standalone pytest modules may still use `# *** tests` / `# ** test:`. The `# *** exports` group lists the public API and appears only in `__init__.py`.
+**Construct groups** form the primary body of a module and are selected by what the module defines — for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. Test modules use three sibling construct groups after preamble — `# *** fixtures`, `# *** tests`, `# *** testers` — omit empty; testers compose fixtures and tests, they do not replace them. See [Test-Module Artifact Grammar](#test-module-artifact-grammar). The `# *** exports` group lists the public API and appears only in `__init__.py`.
 
 A module combines its preamble groups with its construct group(s), ordered `imports` → `constants` → `functions`, then `classes` and/or the construct group(s). For example, a domain-event module that needs a pure helper is laid out as:
 ```python
@@ -65,18 +65,19 @@ EN_US = 'en_US'
 # ** constant: error_not_found_id
 ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
 ```
-The most common use is grouping unit tests by the class or method under test, so a single test module can hold several focused groups:
+The most common use is grouping **module-level test functions** by the class or method under test, so a single test module can hold several focused groups:
 ```python
 # *** tests (GetFeature)
 
-# ** test: TestGetFeatureSuccess
+# ** test: get_feature_success
 ...
 
 # *** tests (AddFeature)
 
-# ** test: TestAddFeatureSuccess
+# ** test: add_feature_success
 ...
 ```
+Tester **classes** belong under `# *** testers`, not under `# *** tests` sub-groups. See [Test-Module Artifact Grammar](#test-module-artifact-grammar).
 **Grammar rules:**
 - Preserve the kind: the word after `# ***` stays the normal section kind (`constants`, `tests`, ...); the parenthetical is only a label.
 - The parenthetical names the sub-group; keep it short and consistent within the module.
@@ -411,9 +412,52 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
     mock_feature_service.get.assert_called_once_with('test.feature')
 ```
 
+## Test-Module Artifact Grammar
+
+After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` — standalone helpers only, never a tester), test modules declare group-level sections in this order:
+
+1. `# *** fixtures` — module-level pytest fixtures. Mid-level: `# ** fixture: <snake_name>` matching `def <snake_name>`.
+2. `# *** tests` — module-level test **functions** only. Mid-level: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
+3. `# *** testers` — tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
+
+Omit any empty group. Function-only modules omit `# *** testers`. Fixture-and-function modules omit `# *** testers`. Incoming test-module remediation (RFP-015 / #1121) keeps all three kinds; it does not collapse fixtures or tests into testers.
+
+Under a tester class, members are:
+
+- `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name.
+- `# * test: <name>` — a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
+
+Fixture wiring is pytest parameter-name injection. Class-form `@use_tester` injects `test_ctx` / `session` into any member that lists them, including `# * fixture:` methods, and strips those names from the pytest signature. Do not label tester test methods `# * method:`.
+
+Full tester-subdomain conventions live in [testing.md](testing.md).
+
+```python
+# *** testers
+
+# ** tester: test_error_message
+@use_tester(
+    type='domain',
+    target_cls=ErrorMessage,
+    sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
+    equality_fields=['lang', 'text'],
+    description_cases=[('format', (), 'An error occurred.')],
+)
+class TestErrorMessage:
+    '''Bound domain tester for ErrorMessage.'''
+
+    # * test: new_and_format
+    def test_new_and_format(self, test_ctx, session):
+        '''Construct from sample data and assert description cases.'''
+
+        test_ctx.assert_new()
+        test_ctx.assert_description()
+```
+
 ## Domain Event Test Harness Style
 
-Domain event tests use a class-based harness that provides auto-mocking, auto-parametrized validation tests, and a consistent invocation helper. All harness-based test classes follow these conventions.
+This section documents leftover `tiferet.testing` subclasses (`DomainEventTestBase` / `ServiceEventTestBase`) that still live under `# *** tests` until test-module remediation (RFP-015 / #1121). **New** unit tests use [Test-Module Artifact Grammar](#test-module-artifact-grammar) and `@use_tester`, not these bases.
+
+Domain event tests that still use the leftover class-based harness follow these conventions.
 
 ### Artifact Comments
 
@@ -514,7 +558,7 @@ Harness test classes follow the same spacing conventions as production code:
 - Break methods into commented snippets.
 - Maintain consistent spacing.
 - Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
-- Prefer the domain event test harness (`DomainEventTestBase` / `ServiceEventTestBase`) for all new event tests.
+- Prefer `@use_tester` and the three test-module kinds (`fixtures` / `tests` / `testers`) for new unit tests. Leave leftover `tiferet.testing` subclasses in place until RFP-015 / #1121.
 
 These practices ensure Tiferet code remains consistent, maintainable, and AI-friendly. Explore source modules in `tiferet/` for implementation examples.
 
@@ -533,5 +577,5 @@ For implementation agents, the **`tiferet-code-<component>` skills** (see `.agen
 - **`tiferet-code-interfaces`** / **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Service interface conventions.
 - **`tiferet-code-mappers`** / **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
 - **`tiferet-code-repos`** / **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** – Repository implementation conventions.
-- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Testing harness conventions (AggregateTestBase, TransferObjectTestBase, DomainEventTestBase).
+- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Testing conventions (`@use_tester`, test-module `fixtures` / `tests` / `testers`, leftover `tiferet.testing`).
 - **`tiferet-code-utils`** / **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** – Utility and infrastructure conventions.

@@ -12,13 +12,15 @@ description: Apply Tiferet test harness conventions when writing or extending te
 
 ## Artifact comment structure
 
+Fixtures, tests, and testers are sibling kinds. Testers compose the other two; they do not replace them. After preamble, omit empty groups:
+
 ```
-# *** testers
-# ** tester: TestClassName          ← PascalCase; class name stays Test*
-# * method: test_<name>
+# *** fixtures          # ** fixture: <snake>
+# *** tests             # ** test: <snake>     ← module-level functions only
+# *** testers           # ** tester: test_<snake>  ← class Test*
 ```
 
-Standalone functions (not a decorated harness) may still use `# *** tests` / `# ** test:`. Preamble: `# *** imports`, `# *** constants`.
+Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected tests). Incoming RFP-015 / #1121 keeps all three kinds.
 
 ## Key conventions
 
@@ -48,7 +50,7 @@ from tiferet.domain.error import ErrorMessage
 
 # *** testers
 
-# ** tester: TestErrorMessage
+# ** tester: test_error_message
 @use_tester(
     type='domain',
     target_cls=ErrorMessage,
@@ -61,7 +63,7 @@ class TestErrorMessage:
     Tests for ErrorMessage.
     '''
 
-    # * method: test_new_and_format
+    # * test: new_and_format
     def test_new_and_format(self, test_ctx, session):
         '''
         Construct from sample data and assert description cases.
