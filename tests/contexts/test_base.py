@@ -14,25 +14,6 @@ from tiferet.contexts.cache import CacheContext
 from tiferet.domain import DomainObject, Error
 from tiferet.events.core import TiferetError
 
-# *** fixtures
-
-# ** fixture: base_cache_builder
-@pytest.fixture
-def base_cache_builder() -> Callable:
-    '''
-    Fixture providing a plain cache-builder callable with no pre-seeding.
-
-    :return: A callable that returns a fresh CacheContext.
-    :rtype: Callable
-    '''
-
-    # Define a minimal cache-builder mirroring the unwrapped build_cache.
-    def build_cache() -> CacheContext:
-        return CacheContext()
-
-    # Return the cache-builder.
-    return build_cache
-
 # *** classes
 
 # ** class: registered_domain
@@ -69,6 +50,25 @@ class ChildContext(ConcreteContext):
     '''
 
     pass
+
+# *** fixtures
+
+# ** fixture: base_cache_builder
+@pytest.fixture
+def base_cache_builder() -> Callable:
+    '''
+    Fixture providing a plain cache-builder callable with no pre-seeding.
+
+    :return: A callable that returns a fresh CacheContext.
+    :rtype: Callable
+    '''
+
+    # Define a minimal cache-builder mirroring the unwrapped build_cache.
+    def build_cache() -> CacheContext:
+        return CacheContext()
+
+    # Return the cache-builder.
+    return build_cache
 
 # *** tests
 

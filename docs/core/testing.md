@@ -115,7 +115,7 @@ Export: `from tiferet import use_tester` and `from tiferet.blueprints import use
 
 ### Test-module artifact kinds
 
-Fixtures, tests, and testers are **sibling** artifact kinds. Testers compose the other two; they do not replace them. After preamble, order is `# *** fixtures` → `# *** tests` → `# *** testers` (omit empty). Incoming remediation (RFP-015 / #1121) keeps all three.
+Fixtures, tests, and testers are **sibling** artifact kinds. Testers compose the other two; they do not replace them. After preamble, order is `# *** fixtures` → `# *** tests` → `# *** testers` (omit empty). Keep all three kinds.
 
 - `# *** fixtures` / `# ** fixture: <snake>` — module-level pytest fixtures.
 - `# *** tests` / `# ** test: <snake>` — module-level test **functions** only.

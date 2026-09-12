@@ -14,7 +14,6 @@ from tiferet.mappers.app import (
 )
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
-
 # *** constants
 
 # ** constant: svc_tuple
@@ -76,10 +75,16 @@ SESSION_FIELD_NORMALIZERS = {
     'services': lambda svcs: tuple(sorted(SVC_TUPLE(s) for s in (svcs or []))),
 }
 
+# ** constant: dependency_sample_data
+dependency_sample_data = {
+    'module_path': 'example.service.module',
+    'class_name': 'ExampleServiceImpl',
+    'parameters': {'timeout': '30', 'retries': '3', 'ssl': '1'},
+}
 
-# *** classes
+# *** testers
 
-# ** class: TestAppSessionAggregate
+# ** tester: test_app_session_aggregate
 class TestAppSessionAggregate(AggregateTestBase):
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
@@ -132,7 +137,7 @@ class TestAppSessionAggregate(AggregateTestBase):
 
         return factory
 
-    # * method: test_add_service
+    # * test: add_service
     def test_add_service(self, aggregate):
         '''
         Test that add_service appends a new service dependency.
@@ -158,7 +163,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         assert svc.parameters == {'p': '1'}
         assert len(aggregate.services) == initial_count + 1
 
-    # * method: test_remove_service
+    # * test: remove_service
     def test_remove_service(self, aggregate):
         '''
         Test that remove_service removes an existing service and returns it.
@@ -177,7 +182,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         assert aggregate.get_service('test_service') is None
         assert len(aggregate.services) == initial_count - 1
 
-    # * method: test_remove_service_missing_is_idempotent
+    # * test: remove_service_missing_is_idempotent
     def test_remove_service_missing_is_idempotent(self, aggregate):
         '''
         Test that remove_service returns None and leaves the list unchanged for a missing service.
@@ -193,7 +198,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         assert removed is None
         assert len(aggregate.services) == initial_count
 
-    # * method: test_set_service_update_existing
+    # * test: set_service_update_existing
     def test_set_service_update_existing(self, aggregate):
         '''
         Test that set_service updates an existing service and merges parameters.
@@ -214,7 +219,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         # test_param set to None should be removed; new_param added.
         assert svc.parameters == {'new_param': 'new_val'}
 
-    # * method: test_set_service_create_new
+    # * test: set_service_create_new
     def test_set_service_create_new(self, aggregate):
         '''
         Test that set_service creates a new service when none exists.
@@ -238,7 +243,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         assert svc.class_name == 'BrandNewClass'
         assert svc.parameters == {'x': '42'}
 
-    # * method: test_set_constants_clear
+    # * test: set_constants_clear
     def test_set_constants_clear(self, aggregate):
         '''
         Test that set_constants clears all constants when called with None.
@@ -250,7 +255,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         # Verify they are cleared.
         assert aggregate.constants == {}
 
-    # * method: test_set_constants_merge
+    # * test: set_constants_merge
     def test_set_constants_merge(self, aggregate):
         '''
         Test that set_constants merges and removes None-valued keys.
@@ -265,7 +270,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         assert aggregate.constants['SESSION_KEY'] == 'session_value'
 
 
-# ** class: TestAppSessionConfigObject
+# ** tester: test_app_session_config_object
 class TestAppSessionConfigObject(TransferObjectTestBase):
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and child mapper.
@@ -306,7 +311,7 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
     # * attribute: field_normalizers
     field_normalizers = SESSION_FIELD_NORMALIZERS
 
-    # * method: test_child_mapper_map_with_service_id
+    # * test: child_mapper_map_with_service_id
     def test_child_mapper_map_with_service_id(self):
         '''
         Test AppServiceDependencyConfigObject.map(service_id=...) injects service_id.
@@ -327,7 +332,7 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
         assert dep.class_name == 'ChildClass'
         assert dep.parameters == {'key': 'val'}
 
-    # * method: test_round_trip_preserves_services
+    # * test: round_trip_preserves_services
     def test_round_trip_preserves_services(self, aggregate):
         '''
         Test that services are preserved through the AppSessionConfigObject round-trip.
@@ -345,16 +350,7 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
             compare_fields=['module_path', 'class_name', 'parameters'],
         )
 
-    # *** child mapper: AppServiceDependencyConfigObject
-
-    # ** constant: dependency_sample_data
-    dependency_sample_data = {
-        'module_path': 'example.service.module',
-        'class_name': 'ExampleServiceImpl',
-        'parameters': {'timeout': '30', 'retries': '3', 'ssl': '1'},
-    }
-
-    # ** test: app_service_dependency_yaml_map_basic
+    # * test: app_service_dependency_yaml_map_basic
     def test_app_service_dependency_yaml_map_basic(self):
         '''
         Test mapping an AppServiceDependencyConfigObject to an AppServiceDependency.
@@ -362,7 +358,7 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
 
         # Create a YAML object and map it.
         yaml_obj = AppServiceDependencyConfigObject.model_validate(
-            self.dependency_sample_data,
+            dependency_sample_data,
         )
         dep = yaml_obj.map(service_id='injected_svc')
 
@@ -373,7 +369,7 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
         assert dep.class_name == 'ExampleServiceImpl'
         assert dep.parameters == {'timeout': '30', 'retries': '3', 'ssl': '1'}
 
-    # ** test: app_service_dependency_yaml_aliasing_params
+    # * test: app_service_dependency_yaml_aliasing_params
     def test_app_service_dependency_yaml_aliasing_params(self):
         '''
         Test that the "params" alias is correctly deserialized.
@@ -390,7 +386,7 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
         # Verify aliased parameters were deserialized correctly.
         assert dep.parameters == {'alias_key': 'value'}
 
-    # ** test: app_service_dependency_yaml_roles_to_model_excludes
+    # * test: app_service_dependency_yaml_roles_to_model_excludes
     def test_app_service_dependency_yaml_roles_to_model_excludes(self):
         '''
         Test that to_model role excludes parameters and service_id.
