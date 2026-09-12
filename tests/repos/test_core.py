@@ -6,137 +6,54 @@
 import pytest
 
 # ** app
+from tiferet import use_tester
 from tiferet.repos.core import ConfigurationRepository, UNSUPPORTED_CONFIG_FILE_TYPE_ID
 from tiferet.utils import YamlLoader, JsonLoader
 from tiferet.interfaces.core import ServiceError
 
-
 # *** fixtures
 
-# ** fixture: yaml_repo
+# ** fixture: yaml_config_file
 @pytest.fixture
-def yaml_repo(tmp_path) -> ConfigurationRepository:
+def yaml_config_file(tmp_path) -> str:
     '''
-    Provide a ConfigurationRepository backed by a temporary YAML file.
+    Provide a temporary YAML configuration file path.
 
     :param tmp_path: The pytest temporary directory.
     :type tmp_path: pathlib.Path
-    :return: A YAML-backed configuration repository.
-    :rtype: ConfigurationRepository
+    :return: The YAML configuration file path.
+    :rtype: str
     '''
 
     # Create an empty YAML configuration file.
     file_path = tmp_path / 'config.yaml'
     file_path.write_text('root: {}\n', encoding='utf-8')
 
-    # Return a repository pointed at the YAML file.
-    return ConfigurationRepository(str(file_path))
+    # Return the file path as a string.
+    return str(file_path)
 
-# ** fixture: json_repo
+# ** fixture: json_config_file
 @pytest.fixture
-def json_repo(tmp_path) -> ConfigurationRepository:
+def json_config_file(tmp_path) -> str:
     '''
-    Provide a ConfigurationRepository backed by a temporary JSON file.
+    Provide a temporary JSON configuration file path.
 
     :param tmp_path: The pytest temporary directory.
     :type tmp_path: pathlib.Path
-    :return: A JSON-backed configuration repository.
-    :rtype: ConfigurationRepository
+    :return: The JSON configuration file path.
+    :rtype: str
     '''
 
     # Create an empty JSON configuration file.
     file_path = tmp_path / 'config.json'
     file_path.write_text('{"root": {}}\n', encoding='utf-8')
 
-    # Return a repository pointed at the JSON file.
-    return ConfigurationRepository(str(file_path))
-
+    # Return the file path as a string.
+    return str(file_path)
 
 # *** tests
 
-# ** test_int: default_role_is_to_data
-def test_int_default_role_is_to_data(yaml_repo: ConfigurationRepository) -> None:
-    '''
-    Test that the configuration repository defaults to the format-agnostic 'to_data' role.
-
-    :param yaml_repo: The YAML-backed configuration repository.
-    :type yaml_repo: ConfigurationRepository
-    '''
-
-    # The default role should be 'to_data'.
-    assert yaml_repo.default_role == 'to_data'
-
-# ** test_int: get_loader_yaml
-def test_int_get_loader_yaml(yaml_repo: ConfigurationRepository) -> None:
-    '''
-    Test that a YAML configuration file resolves to a YamlLoader.
-
-    :param yaml_repo: The YAML-backed configuration repository.
-    :type yaml_repo: ConfigurationRepository
-    '''
-
-    # Resolve the loader for the YAML file.
-    loader = yaml_repo._get_loader()
-
-    # The loader should be a YamlLoader.
-    assert isinstance(loader, YamlLoader)
-
-# ** test_int: get_loader_json
-def test_int_get_loader_json(json_repo: ConfigurationRepository) -> None:
-    '''
-    Test that a JSON configuration file resolves to a JsonLoader.
-
-    :param json_repo: The JSON-backed configuration repository.
-    :type json_repo: ConfigurationRepository
-    '''
-
-    # Resolve the loader for the JSON file.
-    loader = json_repo._get_loader()
-
-    # The loader should be a JsonLoader.
-    assert isinstance(loader, JsonLoader)
-
-# ** test_int: load_save_round_trip_yaml
-def test_int_load_save_round_trip_yaml(yaml_repo: ConfigurationRepository) -> None:
-    '''
-    Test that data saved to a YAML configuration file is loaded back intact.
-
-    :param yaml_repo: The YAML-backed configuration repository.
-    :type yaml_repo: ConfigurationRepository
-    '''
-
-    # Persist a sample structure.
-    yaml_repo._save({'root': {'alpha': 1, 'beta': 'two'}})
-
-    # Load the full structure back.
-    data = yaml_repo._load()
-
-    # The round-tripped data should match what was saved.
-    assert data == {'root': {'alpha': 1, 'beta': 'two'}}
-
-    # The start_node selector should resolve nested data.
-    nested = yaml_repo._load(start_node=lambda d: d.get('root', {}))
-    assert nested == {'alpha': 1, 'beta': 'two'}
-
-# ** test_int: load_save_round_trip_json
-def test_int_load_save_round_trip_json(json_repo: ConfigurationRepository) -> None:
-    '''
-    Test that data saved to a JSON configuration file is loaded back intact.
-
-    :param json_repo: The JSON-backed configuration repository.
-    :type json_repo: ConfigurationRepository
-    '''
-
-    # Persist a sample structure.
-    json_repo._save({'root': {'alpha': 1, 'beta': 'two'}})
-
-    # Load the full structure back.
-    data = json_repo._load()
-
-    # The round-tripped data should match what was saved.
-    assert data == {'root': {'alpha': 1, 'beta': 'two'}}
-
-# ** test_int: unsupported_config_file_type
+# ** test: int_unsupported_config_file_type
 def test_int_unsupported_config_file_type(tmp_path) -> None:
     '''
     Test that an unsupported configuration file extension raises UNSUPPORTED_CONFIG_FILE_TYPE.
@@ -154,3 +71,125 @@ def test_int_unsupported_config_file_type(tmp_path) -> None:
 
     # The error code should indicate an unsupported configuration file type.
     assert exc_info.value.error_code == UNSUPPORTED_CONFIG_FILE_TYPE_ID
+
+# *** testers
+
+# ** tester: test_configuration_repository
+@use_tester(
+    type='repo',
+    target_cls=ConfigurationRepository,
+    config_parameter='config_file',
+    sample_data={
+    },
+    exists_cases=[
+    ],
+    get_cases=[
+    ],
+    list_ids=[
+    ],
+    delete_ids=[
+    ],
+)
+class TestConfigurationRepository:
+    '''
+    Tests for ConfigurationRepository using the repo tester binder.
+    '''
+
+    # * test: new
+    def test_new(self, test_ctx, yaml_config_file: str) -> None:
+        '''
+        Test that make_target constructs the repository with the default role.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param yaml_config_file: The YAML configuration file path.
+        :type yaml_config_file: str
+        '''
+
+        # Assert construction and the default serialization role.
+        test_ctx.assert_new(config_file=yaml_config_file)
+
+    # * test: format_dispatch
+    def test_format_dispatch(
+            self,
+            test_ctx,
+            yaml_config_file: str,
+            json_config_file: str,
+        ) -> None:
+        '''
+        Test that YAML and JSON paths round-trip the same payload.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param yaml_config_file: The YAML configuration file path.
+        :type yaml_config_file: str
+        :param json_config_file: The JSON configuration file path.
+        :type json_config_file: str
+        '''
+
+        # Assert YAML and JSON format dispatch via _save / _load.
+        test_ctx.assert_format_dispatch(
+            yaml_file=yaml_config_file,
+            json_file=json_config_file,
+        )
+
+    # * test: get_loader_yaml
+    def test_get_loader_yaml(self, test_ctx, yaml_config_file: str) -> None:
+        '''
+        Test that a YAML configuration file resolves to a YamlLoader.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param yaml_config_file: The YAML configuration file path.
+        :type yaml_config_file: str
+        '''
+
+        # Construct the repository against the YAML path.
+        repo = test_ctx.make_target(config_file=yaml_config_file)
+
+        # The loader should be a YamlLoader.
+        assert isinstance(repo._get_loader(), YamlLoader)
+
+    # * test: get_loader_json
+    def test_get_loader_json(self, test_ctx, json_config_file: str) -> None:
+        '''
+        Test that a JSON configuration file resolves to a JsonLoader.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param json_config_file: The JSON configuration file path.
+        :type json_config_file: str
+        '''
+
+        # Construct the repository against the JSON path.
+        repo = test_ctx.make_target(config_file=json_config_file)
+
+        # The loader should be a JsonLoader.
+        assert isinstance(repo._get_loader(), JsonLoader)
+
+    # * test: load_start_node
+    def test_load_start_node(self, test_ctx, yaml_config_file: str) -> None:
+        '''
+        Test that the start_node selector resolves nested YAML data.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param yaml_config_file: The YAML configuration file path.
+        :type yaml_config_file: str
+        '''
+
+        # Construct the repository and persist a nested structure.
+        repo = test_ctx.make_target(config_file=yaml_config_file)
+        repo._save({
+            'root': {
+                'alpha': 1,
+                'beta': 'two',
+            },
+        })
+
+        # The start_node selector should resolve nested data.
+        nested = repo._load(start_node=lambda d: d.get('root', {}))
+        assert nested == {
+            'alpha': 1,
+            'beta': 'two',
+        }

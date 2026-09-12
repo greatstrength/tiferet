@@ -9,9 +9,9 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
+from tiferet import use_tester
 from tiferet.mappers import ServiceRegistrationConfigObject
 from tiferet.repos.di import DIConfigRepository
-
 
 # *** constants
 
@@ -74,188 +74,219 @@ def di_config_file(tmp_path) -> str:
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: di_config_repo
-@pytest.fixture
-def di_config_repo(di_config_file: str) -> DIConfigRepository:
+# *** testers
+
+# ** tester: test_di_config_repository
+@use_tester(
+    type='repo',
+    target_cls=DIConfigRepository,
+    config_parameter='di_config',
+    sample_data={
+    },
+    equality_fields=[
+        'id',
+        'name',
+    ],
+    exists_cases=[
+    ],
+    get_cases=[
+    ],
+    list_ids=[
+    ],
+    delete_ids=[
+    ],
+)
+class TestDIConfigRepository:
     '''
-    Fixture to create an instance of the DI Configuration Repository.
-
-    :param di_config_file: The DI YAML configuration file path.
-    :type di_config_file: str
-    :return: An instance of DIConfigRepository.
-    :rtype: DIConfigRepository
-    '''
-
-    # Create and return the DIConfigRepository instance.
-    return DIConfigRepository(di_config_file)
-
-# *** tests
-
-# ** test_int: di_config_repo_registration_exists
-def test_int_di_config_repo_registration_exists(
-        di_config_repo: DIConfigRepository,
-    ) -> None:
-    '''
-    Test the registration_exists method of the DIConfigRepository.
-
-    :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIConfigRepository
-    '''
-
-    # Check if the service configurations exist.
-    assert di_config_repo.registration_exists(DI_SERVICE_ID)
-    assert di_config_repo.registration_exists(ANOTHER_SERVICE_ID)
-    assert not di_config_repo.registration_exists('missing_service')
-
-# ** test_int: di_config_repo_get_registration
-def test_int_di_config_repo_get_registration(
-        di_config_repo: DIConfigRepository,
-    ) -> None:
-    '''
-    Test the get_registration method of the DIConfigRepository.
-
-    :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIConfigRepository
+    Tests for DIConfigRepository using the repo tester binder.
     '''
 
-    # Get service configurations by id.
-    config = di_config_repo.get_registration(DI_SERVICE_ID)
-    another_config = di_config_repo.get_registration(ANOTHER_SERVICE_ID)
+    # * test: registration_exists
+    def test_registration_exists(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test the registration_exists method of the DIConfigRepository.
 
-    # Check the first service configuration.
-    assert config
-    assert config.id == DI_SERVICE_ID
-    assert config.name == 'DI Service'
-    assert config.module_path == 'tiferet.services.di'
-    assert config.class_name == 'DIServiceImpl'
-    assert config.parameters.get('config_file') == 'app/configs/di.yml'
-    assert len(config.dependencies) == 1
-    assert config.dependencies[0].flag == 'yaml'
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The DI YAML configuration file path.
+        :type di_config_file: str
+        '''
 
-    # Check the second service configuration.
-    assert another_config
-    assert another_config.id == ANOTHER_SERVICE_ID
-    assert another_config.name == 'Another Service'
-    assert another_config.module_path == 'tiferet.services.another'
-    assert another_config.class_name == 'AnotherServiceImpl'
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=di_config_file)
 
-# ** test_int: di_config_repo_get_registration_not_found
-def test_int_di_config_repo_get_registration_not_found(
-        di_config_repo: DIConfigRepository,
-    ) -> None:
-    '''
-    Test the get_registration method of the DIConfigRepository for a non-existent configuration.
+        # Check if the service configurations exist.
+        assert repo.registration_exists(DI_SERVICE_ID)
+        assert repo.registration_exists(ANOTHER_SERVICE_ID)
+        assert not repo.registration_exists('missing_service')
 
-    :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIConfigRepository
-    '''
+    # * test: get_registration
+    def test_get_registration(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test the get_registration method of the DIConfigRepository.
 
-    # Attempt to get a non-existent service configuration.
-    config = di_config_repo.get_registration('missing_service')
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The DI YAML configuration file path.
+        :type di_config_file: str
+        '''
 
-    # Check that the configuration is None.
-    assert not config
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=di_config_file)
 
-# ** test_int: di_config_repo_list_all
-def test_int_di_config_repo_list_all(
-        di_config_repo: DIConfigRepository,
-    ) -> None:
-    '''
-    Test the list_all method of the DIConfigRepository.
+        # Get service configurations by id.
+        config = repo.get_registration(DI_SERVICE_ID)
+        another_config = repo.get_registration(ANOTHER_SERVICE_ID)
 
-    :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIConfigRepository
-    '''
+        # Check the first service configuration.
+        assert config
+        assert config.id == DI_SERVICE_ID
+        assert config.name == 'DI Service'
+        assert config.module_path == 'tiferet.services.di'
+        assert config.class_name == 'DIServiceImpl'
+        assert config.parameters.get('config_file') == 'app/configs/di.yml'
+        assert len(config.dependencies) == 1
+        assert config.dependencies[0].flag == 'yaml'
 
-    # List all service configurations and constants.
-    configurations, constants = di_config_repo.list_all()
+        # Check the second service configuration.
+        assert another_config
+        assert another_config.id == ANOTHER_SERVICE_ID
+        assert another_config.name == 'Another Service'
+        assert another_config.module_path == 'tiferet.services.another'
+        assert another_config.class_name == 'AnotherServiceImpl'
 
-    # Check the configurations.
-    assert configurations
-    assert len(configurations) == 2
-    config_ids = [config.id for config in configurations]
-    assert DI_SERVICE_ID in config_ids
-    assert ANOTHER_SERVICE_ID in config_ids
+    # * test: get_registration_not_found
+    def test_get_registration_not_found(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test the get_registration method of the DIConfigRepository for a missing id.
 
-    # Check the constants.
-    assert constants
-    assert constants.get('sample_const') == 'sample_value'
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The DI YAML configuration file path.
+        :type di_config_file: str
+        '''
 
-# ** test_int: di_config_repo_save_registration
-def test_int_di_config_repo_save_registration(
-        di_config_repo: DIConfigRepository,
-    ) -> None:
-    '''
-    Test the save_registration method of the DIConfigRepository.
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=di_config_file)
 
-    :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIConfigRepository
-    '''
+        # Attempt to get a non-existent service configuration.
+        config = repo.get_registration('missing_service')
 
-    # Create constant for new service configuration.
-    new_service_id = 'new_service'
+        # Check that the configuration is None.
+        assert not config
 
-    # Create new service configuration data and map to an aggregate.
-    config = ServiceRegistrationConfigObject.model_validate(dict(
-        id=new_service_id,
-        name='New Service',
-        module_path='tiferet.services.new',
-        class_name='NewServiceImpl',
-    )).map()
+    # * test: list_all
+    def test_list_all(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test the list_all method of the DIConfigRepository.
 
-    # Save the new service configuration.
-    di_config_repo.save_registration(config)
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The DI YAML configuration file path.
+        :type di_config_file: str
+        '''
 
-    # Reload the service configuration to verify it was saved.
-    new_config = di_config_repo.get_registration(new_service_id)
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=di_config_file)
 
-    # Check the new service configuration.
-    assert new_config
-    assert new_config.id == new_service_id
-    assert new_config.name == 'New Service'
-    assert new_config.module_path == 'tiferet.services.new'
-    assert new_config.class_name == 'NewServiceImpl'
+        # List all service configurations and constants.
+        configurations, constants = repo.list_all()
 
-# ** test_int: di_config_repo_delete_registration
-def test_int_di_config_repo_delete_registration(
-        di_config_repo: DIConfigRepository,
-    ) -> None:
-    '''
-    Test the delete_registration method of the DIConfigRepository.
+        # Check the configurations.
+        assert configurations
+        assert len(configurations) == 2
+        config_ids = [config.id for config in configurations]
+        assert DI_SERVICE_ID in config_ids
+        assert ANOTHER_SERVICE_ID in config_ids
 
-    :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIConfigRepository
-    '''
+        # Check the constants.
+        assert constants
+        assert constants.get('sample_const') == 'sample_value'
 
-    # Delete an existing service configuration.
-    di_config_repo.delete_registration(ANOTHER_SERVICE_ID)
+    # * test: save_registration
+    def test_save_registration(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test the save_registration method of the DIConfigRepository.
 
-    # Attempt to get the deleted service configuration.
-    deleted_config = di_config_repo.get_registration(ANOTHER_SERVICE_ID)
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The DI YAML configuration file path.
+        :type di_config_file: str
+        '''
 
-    # Check that the service configuration is None.
-    assert not deleted_config
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=di_config_file)
 
-    # Ensure that deleting a non-existent service configuration is idempotent.
-    di_config_repo.delete_registration('missing_service')
+        # Create constant for new service configuration.
+        new_service_id = 'new_service'
 
-# ** test_int: di_config_repo_save_constants
-def test_int_di_config_repo_save_constants(
-        di_config_repo: DIConfigRepository,
-    ) -> None:
-    '''
-    Test the save_constants method of the DIConfigRepository.
+        # Create new service configuration data and map to an aggregate.
+        config = ServiceRegistrationConfigObject.model_validate(dict(
+            id=new_service_id,
+            name='New Service',
+            module_path='tiferet.services.new',
+            class_name='NewServiceImpl',
+        )).map()
 
-    :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIConfigRepository
-    '''
+        # Save the new service configuration.
+        repo.save_registration(config)
 
-    # Save new constants.
-    di_config_repo.save_constants({'new_const': 'new_value'})
+        # Reload the service configuration to verify it was saved.
+        new_config = repo.get_registration(new_service_id)
 
-    # Reload and verify the constants were saved alongside existing ones.
-    _, constants = di_config_repo.list_all()
+        # Check the new service configuration.
+        assert new_config
+        assert new_config.id == new_service_id
+        assert new_config.name == 'New Service'
+        assert new_config.module_path == 'tiferet.services.new'
+        assert new_config.class_name == 'NewServiceImpl'
 
-    # Check that both old and new constants exist.
-    assert constants.get('sample_const') == 'sample_value'
-    assert constants.get('new_const') == 'new_value'
+    # * test: delete_registration
+    def test_delete_registration(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test the delete_registration method of the DIConfigRepository.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The DI YAML configuration file path.
+        :type di_config_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=di_config_file)
+
+        # Delete an existing service configuration.
+        repo.delete_registration(ANOTHER_SERVICE_ID)
+
+        # Attempt to get the deleted service configuration.
+        deleted_config = repo.get_registration(ANOTHER_SERVICE_ID)
+
+        # Check that the service configuration is None.
+        assert not deleted_config
+
+        # Ensure that deleting a non-existent service configuration is idempotent.
+        repo.delete_registration('missing_service')
+
+    # * test: save_constants
+    def test_save_constants(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test the save_constants method of the DIConfigRepository.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The DI YAML configuration file path.
+        :type di_config_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=di_config_file)
+
+        # Save new constants.
+        repo.save_constants({'new_const': 'new_value'})
+
+        # Reload and verify the constants were saved alongside existing ones.
+        _, constants = repo.list_all()
+
+        # Check that both old and new constants exist.
+        assert constants.get('sample_const') == 'sample_value'
+        assert constants.get('new_const') == 'new_value'

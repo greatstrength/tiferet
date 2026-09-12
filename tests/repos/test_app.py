@@ -9,9 +9,9 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import AppSessionConfigObject
+from tiferet import use_tester
+from tiferet.mappers import AppSessionAggregate
 from tiferet.repos.app import AppConfigRepository
-
 
 # *** constants
 
@@ -61,154 +61,136 @@ def app_config_file(tmp_path) -> str:
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: app_config_repo
-@pytest.fixture
-def app_config_repo(app_config_file: str) -> AppConfigRepository:
+# *** testers
+
+# ** tester: test_app_config_repository
+@use_tester(
+    type='repo',
+    target_cls=AppConfigRepository,
+    config_parameter='app_config',
+    sample_data={
+    },
+    equality_fields=[
+        'id',
+        'name',
+    ],
+    aggregate_cls=AppSessionAggregate,
+    aggregate_sample_data={
+        'id': 'new.app',
+        'name': 'New App',
+        'description': 'A new test app session.',
+        'constants': {},
+    },
+    exists_cases=[
+        ('test.app', True),
+        ('another.app', True),
+        ('missing.app', False),
+    ],
+    get_cases=[
+        ('test.app', {
+            'id': 'test.app',
+            'name': 'Test App',
+        }),
+        ('another.app', {
+            'id': 'another.app',
+            'name': 'Another App',
+        }),
+        ('missing.app', None),
+    ],
+    list_ids=[
+        'test.app',
+        'another.app',
+    ],
+    delete_ids=[
+        ANOTHER_APP_ID,
+    ],
+)
+class TestAppConfigRepository:
     '''
-    Fixture to create an instance of the App Configuration Repository.
-
-    :param app_config_file: The app YAML configuration file path.
-    :type app_config_file: str
-    :return: An instance of AppConfigRepository.
-    :rtype: AppConfigRepository
-    '''
-
-    # Create and return the AppConfigRepository instance.
-    return AppConfigRepository(app_config_file)
-
-# *** tests
-
-# ** test_int: app_config_repo_exists
-def test_int_app_config_repo_exists(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the exists method of the AppConfigRepository.
-
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
-
-    # Check if the app interfaces exist.
-    assert app_config_repo.exists(TEST_APP_ID)
-    assert app_config_repo.exists(ANOTHER_APP_ID)
-    assert not app_config_repo.exists('missing.app')
-
-# ** test_int: app_config_repo_get
-def test_int_app_config_repo_get(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the AppConfigRepository.
-
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
-
-    # Get app sessions by id.
-    app = app_config_repo.get(TEST_APP_ID)
-    another_app = app_config_repo.get(ANOTHER_APP_ID)
-
-    # Check the first app session.
-    assert app
-    assert app.id == TEST_APP_ID
-    assert app.name == 'Test App'
-
-    # Check the second app session.
-    assert another_app
-    assert another_app.id == ANOTHER_APP_ID
-    assert another_app.name == 'Another App'
-
-# ** test_int: app_config_repo_get_not_found
-def test_int_app_config_repo_get_not_found(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the AppConfigRepository for a non-existent app interface.
-
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
+    Tests for AppConfigRepository using the repo tester.
     '''
 
-    # Attempt to get a non-existent app interface.
-    app = app_config_repo.get('missing.app')
+    # * test: exists
+    def test_exists(self, test_ctx, app_config_file: str) -> None:
+        '''
+        Test the exists method of the AppConfigRepository.
 
-    # Check that the app interface is None.
-    assert not app
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param app_config_file: The app YAML configuration file path.
+        :type app_config_file: str
+        '''
 
-# ** test_int: app_config_repo_list
-def test_int_app_config_repo_list(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the list method of the AppConfigRepository for all app interfaces.
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=app_config_file)
 
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
+        # Assert exists cases against the seeded ids.
+        test_ctx.assert_exists(repo)
 
-    # List all app interfaces.
-    interfaces = app_config_repo.list()
+    # * test: get
+    def test_get(self, test_ctx, app_config_file: str) -> None:
+        '''
+        Test the get method of the AppConfigRepository.
 
-    # Check the interfaces.
-    assert interfaces
-    assert len(interfaces) == 2
-    interface_ids = [interface.id for interface in interfaces]
-    assert TEST_APP_ID in interface_ids
-    assert ANOTHER_APP_ID in interface_ids
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param app_config_file: The app YAML configuration file path.
+        :type app_config_file: str
+        '''
 
-# ** test_int: app_config_repo_save
-def test_int_app_config_repo_save(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the save method of the AppConfigRepository.
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=app_config_file)
 
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
+        # Assert get cases against the seeded ids.
+        test_ctx.assert_get(repo)
 
-    # Create constant for new test app interface.
-    new_app_id = 'new.app'
+    # * test: list
+    def test_list(self, test_ctx, app_config_file: str) -> None:
+        '''
+        Test the list method of the AppConfigRepository.
 
-    # Create new app session config data and map to an aggregate.
-    app = AppSessionConfigObject.model_validate(dict(
-        id=new_app_id,
-        name='New App',
-        description='A new test app session.',
-        constants={},
-    )).map()
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param app_config_file: The app YAML configuration file path.
+        :type app_config_file: str
+        '''
 
-    # Save the new app session.
-    app_config_repo.save(app)
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=app_config_file)
 
-    # Reload the app session to verify it was saved.
-    new_app = app_config_repo.get(new_app_id)
+        # Assert unfiltered list ids.
+        test_ctx.assert_list(repo)
 
-    # Check the new app session.
-    assert new_app
-    assert new_app.id == new_app_id
-    assert new_app.name == 'New App'
+    # * test: save
+    def test_save(self, test_ctx, app_config_file: str) -> None:
+        '''
+        Test the save method of the AppConfigRepository.
 
-# ** test_int: app_config_repo_delete
-def test_int_app_config_repo_delete(
-        app_config_repo: AppConfigRepository,
-    ) -> None:
-    '''
-    Test the delete method of the AppConfigRepository.
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param app_config_file: The app YAML configuration file path.
+        :type app_config_file: str
+        '''
 
-    :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppConfigRepository
-    '''
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=app_config_file)
 
-    # Delete an existing app interface.
-    app_config_repo.delete(ANOTHER_APP_ID)
+        # Assert save persists the aggregate sample.
+        test_ctx.assert_save(repo)
 
-    # Attempt to get the deleted app interface.
-    deleted_app = app_config_repo.get(ANOTHER_APP_ID)
+    # * test: delete
+    def test_delete(self, test_ctx, app_config_file: str) -> None:
+        '''
+        Test the delete method of the AppConfigRepository.
 
-    # Check that the app interface is None.
-    assert not deleted_app
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param app_config_file: The app YAML configuration file path.
+        :type app_config_file: str
+        '''
 
-    # Ensure that deleting a non-existent app interface is idempotent.
-    app_config_repo.delete('missing.app')
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=app_config_file)
+
+        # Assert delete removes the id and is idempotent.
+        test_ctx.assert_delete(repo)
