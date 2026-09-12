@@ -420,7 +420,7 @@ After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` /
 2. `# *** tests` — module-level test **functions** only. Mid-level: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
 3. `# *** testers` — tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
 
-Omit any empty group. Function-only modules omit `# *** testers`. Fixture-and-function modules omit `# *** testers`. Incoming test-module remediation (RFP-015 / #1121) keeps all three kinds; it does not collapse fixtures or tests into testers.
+Omit any empty group. Function-only modules omit `# *** testers`. Fixture-and-function modules omit `# *** testers`. Keep all three kinds; do not collapse fixtures or tests into testers.
 
 Under a tester class, members are:
 
@@ -455,7 +455,7 @@ class TestErrorMessage:
 
 ## Domain Event Test Harness Style
 
-This section documents leftover `tiferet.testing` subclasses (`DomainEventTestBase` / `ServiceEventTestBase`) that still live under `# *** tests` until test-module remediation (RFP-015 / #1121). **New** unit tests use [Test-Module Artifact Grammar](#test-module-artifact-grammar) and `@use_tester`, not these bases.
+This section documents leftover `tiferet.testing` subclasses (`DomainEventTestBase` / `ServiceEventTestBase`). Those classes now live under `# *** testers` with `# ** tester: test_<snake>` and `# * test:` members. **New** unit tests use [Test-Module Artifact Grammar](#test-module-artifact-grammar) and `@use_tester`, not these bases.
 
 Domain event tests that still use the leftover class-based harness follow these conventions.
 

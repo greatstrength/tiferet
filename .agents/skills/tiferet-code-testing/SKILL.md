@@ -20,7 +20,7 @@ Fixtures, tests, and testers are sibling kinds. Testers compose the other two; t
 # *** testers           # ** tester: test_<snake>  ← class Test*
 ```
 
-Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected tests). Incoming RFP-015 / #1121 keeps all three kinds.
+Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected tests). Keep all three kinds.
 
 ## Key conventions
 
