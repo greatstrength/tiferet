@@ -23,12 +23,14 @@ Every context in `tiferet/contexts/` has a single, well-defined responsibility:
 | Context | Responsibility |
 | --- | --- |
 | `AppSessionContext` | Session hub: `build_logger` → `build_request` → `execute_feature` → `handle_error` / `build_response` via five required handlers. |
-| `CliSessionContext` | High-level CLI session: injects `parse_cli_args`, overrides `run(argv)` and CLI-aware `build_response`. |
+| `CliSessionContext` | High-level CLI session: injects `parse_cli_args`, overrides `run(argv)` and CLI-aware `build_response`. Omits `domain_type` so `AppSession` stays mapped to `AppSessionContext`. |
 | `FeatureContext` | Domain-bound feature executor: reads `self.domain`, resolves steps from DI, parses parameters, runs sync/async steps. |
 | `ErrorContext` | Format exceptions into structured, localized API responses from a pre-loaded `Error`. |
 | `LoggingContext` | Build a logger from a pre-assembled `LoggingSettings` domain object (`from_domain` + `build_logger`). |
 | `CacheContext` | Provide an in-memory keyed cache for reusable objects (features, errors, loggers, defaults). |
 | `RequestContext` | Carry request headers, data, and the feature result through the execution pipeline; produce the final response via `handle_response`. |
+| `TesterContext` | Master unit-test context bound to one `TesterObject`. Declares `domain_type = TesterObject`. |
+| `TestSessionContext` | The test session *is* the request: a `RequestContext` with fluent `given` / `invoke` / `verify` / `run`. Omits `domain_type` so `Request` stays mapped to `RequestContext`. |
 
 Contexts are consumed by blueprints and by `AppSessionContext` (and its subclasses) — not by domain events. Domain events only receive injected **services**, never contexts.
 
@@ -166,6 +168,22 @@ features:
 
 `RequestContext` is a plain data carrier populated by `build_request` / `create_request_handler` and mutated by step handlers via `set_result(result, data_key)`. Its `handle_response` method builds the final response object returned by the hub's `response_handler` (default: `request.handle_response()`). CLI runs may use `CliRequestContext`, which maps list/dict results into typed CLI output models.
 
+`TestSessionContext` (`tiferet/contexts/tester.py`) extends `RequestContext` the same way `CliRequestContext` does: it omits `domain_type` so it is not registered and does not shadow `RequestContext`. It is **not** an `AppSessionContext` and is not a mini-App.
+
+### TesterContext registry and session overlay
+
+`TesterContext` is the only tester class that declares `domain_type`. Variants (`DomainTesterContext`, `AggregateTesterContext`, `TransferObjectTesterContext`, `DomainEventTesterContext`, `ServiceEventTesterContext`, `GenericTesterContext`, `RepoTesterContext`, `ContextTesterContext`) inherit construction helpers and **omit** `domain_type` — the `CliSessionContext` analog — so they do not clobber `TesterObject` → `TesterContext`. They also must not declare `domain_type = Request` or `domain_type = AppSession`.
+
+Fluent verbs live on `TestSessionContext`:
+
+```python
+session.given(a=1, b=2).verify(3).run(target=_add)
+```
+
+`given` / `invoke` merge last-write-wins onto `session.data`. They never copy into `tester.sample_data`. `run` overlays `{**sample, **session.data}` without mutating the sample dict. `run(target=...)` is valid only for `type='generic'`.
+
+Per-type `assert_*` / `handle` / `make_target(config_file=)` algorithms: [docs/guides/blueprints/tester.md](blueprints/tester.md). Domain model: [docs/guides/domain/tester.md](domain/tester.md).
+
 ### ErrorContext and LoggingContext
 
 Both are configuration-driven, but they are no longer long-lived children of the hub:
@@ -277,6 +295,9 @@ Do not share a single `CacheContext` instance across sessions. Each `AppSessionC
 ## Related Documentation
 
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context base classes, five-handler contract, artifact comments, and code style reference
+- [docs/core/testing.md](../core/testing.md) — v2.1.0 unit-test model (`TesterContext`, `TestSessionContext`, leftover `tiferet.testing`)
+- [docs/guides/domain/tester.md](domain/tester.md) — `TesterObject` and `Verification`
+- [docs/guides/blueprints/tester.md](blueprints/tester.md) — `@use_tester` cookbook and per-type algorithms
 - [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — Blueprint design (`build_app`, `build_cli`, `build_admin_app`, `build_admin_cli`)
 - [docs/guides/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/blueprints.md) — Blueprint strategies and patterns
 - [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) — Admin application and CLI catalog

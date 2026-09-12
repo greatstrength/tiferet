@@ -51,6 +51,7 @@ Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app
   - Keep both forms pure: they may inspect fields and perform local computation, but must not assign fields, call services, perform I/O, depend on time or randomness, or conceal a domain operation. Put those operations in an event, context, or utility.
   - Model a value as a `Field` rather than a property when it is supplied, persisted, serialized, or independently validated. A property is derived presentation or interpretation, not shadow state.
 - Naming: PascalCase class names matching the domain concept (`AppSession`, `Feature`, `Error`, `CliCommand`).
+- `TesterObject` (`domain/tester.py`) is one model with a `type` discriminator. Do not add per-type subclass models. `Verification` is a queued check value, not a tester catalog row. Distillation: `docs/guides/domain/tester.md`.
 ## Validator selection
 
 Choose the narrowest validation mechanism that expresses the rule. Validators preserve a model's construction contract; they are not substitutes for descriptive properties or methods.

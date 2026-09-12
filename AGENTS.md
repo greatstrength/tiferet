@@ -307,11 +307,12 @@ Applications are configured in a consolidated root `config.yml` file:
 
 - **Framework:** `pytest` (with `pytest_env` for environment variables).
 - **Test location:** `tests/<component>/` at the repository root (e.g., `tests/domain/`, `tests/events/`, `tests/mappers/`).
-- **Integration tests:** `tiferet/tests_int/`.
 - **Run tests:** `pytest tests/` (or plain `pytest` per `pyproject.toml`) from project root (with venv activated).
-- **Test structure:** Uses artifact comments (`# *** fixtures`, `# ** fixture: <name>`, `# *** tests`, `# ** test: <name>`).
+- **Unit tests:** `@use_tester` (`tiferet.blueprints.tester`, exported from `tiferet`). One `TesterObject`; `TesterContext` plus omitting-`domain_type` variants; `TestSessionContext` is a `RequestContext`. Inject `test_ctx` and `session` by parameter name. Types: `domain` | `aggregate` | `transfer_object` | `domain_event` | `service_event` | `generic` | `repo` | `context`. Test-module artifacts are three sibling kinds after preamble: `# *** fixtures` / `# *** tests` / `# *** testers` (omit empty). Testers compose fixtures and tests; they do not replace them. Incoming RFP-015 / #1121 keeps all three.
+- **Leftover:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) still exists. Do not delete it. Do not migrate `tests/events` or `tests/mappers` in this cycle.
+- **Guide:** [docs/core/testing.md](docs/core/testing.md).
 - **Mocking:** Use `unittest.mock`. Mock injected services. Verify calls and return values.
-- **Event testing:** Always invoke via `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`.
+- **Event testing:** `DomainEventTesterContext.handle` (or leftover `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`).
 
 ## Utilities
 

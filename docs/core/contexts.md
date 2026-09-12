@@ -152,6 +152,10 @@ The app-context module (`tiferet/contexts/app.py`) provides seeders for the boot
 
 The seeders own reconstitution and prefix namespacing; there are no `get_default_*` counterparts for these catalogs. The blueprint layer reads a prefix straight off the cache — `cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)` in `build_app_service_container`, `cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX)` in `build_admin_service_resolver`, and so on — matching the idiom `blueprints/core.py` already uses for `get_error` and `get_feature`. Admin blueprints stack additional seeders (`add_default_admin_services`, `add_default_admin_constants`, `add_default_features(ADMIN_DEFAULT_FEATURES)`, `add_default_errors(ADMIN_DEFAULT_ERRORS)`, and for the admin CLI `add_default_cli_commands(ADMIN_DEFAULT_COMMANDS)`).
 
+### TesterContext (unit tests)
+
+`TesterContext` (`tiferet/contexts/tester.py`) declares `domain_type = TesterObject` in its own namespace. Type-specific variants omit `domain_type` (the `CliSessionContext` analog) so they do not clobber that registration. `TestSessionContext` extends `RequestContext` and also omits `domain_type`, so `Request` stays mapped to `RequestContext`. Overlay given-state onto `session.data`, never `sample_data`. Do not register tester variants against `Request` or `AppSession`. See [docs/core/testing.md](testing.md) and [docs/guides/contexts.md](../guides/contexts.md).
+
 ## Writing Contexts
 
 ### Creating a New Context
@@ -192,7 +196,7 @@ class FlaskApiContext(AppSessionContext):
 
 ## Testing Contexts
 
-Tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `# *** tests`.
+Hub and handler tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `# *** tests`. Unit tests of a named component use `@use_tester` (`# *** testers` / `# ** tester:`) — see [docs/core/testing.md](testing.md). Do not compose a mini-`AppSessionContext` to unit-test a domain object.
 
 **Example** – `AppSessionContext` test:
 ```python
@@ -238,7 +242,8 @@ Contexts define the runtime shape of Tiferet applications, orchestrating user in
 
 ## Related Documentation
 
-- [docs/guides/contexts.md](../guides/contexts.md) — Context strategies and runtime patterns
+- [docs/guides/contexts.md](../guides/contexts.md) — Context strategies and runtime patterns, including TesterContext registry rules
+- [docs/core/testing.md](testing.md) — v2.1.0 unit-test model
 - [docs/core/blueprints.md](blueprints.md) — Blueprint composition and handler wiring
 - [docs/guides/blueprints.md](../guides/blueprints.md) — Blueprint strategies, including admin entry points
 - [docs/guides/admin.md](../guides/admin.md) — Admin application and CLI catalog
