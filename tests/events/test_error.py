@@ -46,15 +46,15 @@ def error() -> ErrorAggregate:
         }]
     )
 
-# *** tests
+# *** testers
 
-# ** class: TestErrorEvent
+# ** tester: test_error_event
 class TestErrorEvent:
     '''
     Tests for the ErrorEvent base event shared by all error events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that ErrorEvent extends DomainEvent.
@@ -63,7 +63,7 @@ class TestErrorEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(ErrorEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete error event extends ErrorEvent.
@@ -81,7 +81,7 @@ class TestErrorEvent:
         ):
             assert issubclass(event_cls, ErrorEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing an error event wires the shared service attribute.
@@ -95,7 +95,7 @@ class TestErrorEvent:
         assert AddError(error_service=service).error_service is service
 
 
-# ** test: TestAddError
+# ** tester: test_add_error
 class TestAddError(DomainEventTestBase):
     '''
     Tests for AddError using the domain event test harness.
@@ -131,7 +131,7 @@ class TestAddError(DomainEventTestBase):
         service.exists.return_value = False
         return {'error_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test adding a new error successfully.
@@ -150,7 +150,7 @@ class TestAddError(DomainEventTestBase):
         mock_dependencies['error_service'].exists.assert_called_once_with('NEW_ERROR')
         mock_dependencies['error_service'].save.assert_called_once_with(result)
 
-    # * method: test_with_additional_messages
+    # * test: with_additional_messages
     def test_with_additional_messages(self, mock_dependencies):
         '''
         Test adding a new error with additional language messages.
@@ -167,7 +167,7 @@ class TestAddError(DomainEventTestBase):
         assert any(msg.text == 'This is a new error message.' and msg.lang == 'en_US' for msg in result.message)
         assert any(msg.text == 'Este es un nuevo error.' and msg.lang == 'es_ES' for msg in result.message)
 
-    # * method: test_already_exists
+    # * test: already_exists
     def test_already_exists(self, mock_dependencies):
         '''
         Test that adding an error with an existing ID raises an error.
@@ -184,7 +184,7 @@ class TestAddError(DomainEventTestBase):
         assert exc_info.value.error_code == a.error.ERROR_ALREADY_EXISTS_ID
 
 
-# ** test: TestGetError
+# ** tester: test_get_error
 class TestGetError(ServiceEventTestBase):
     '''
     Tests for GetError using the service event test harness.
@@ -220,7 +220,7 @@ class TestGetError(ServiceEventTestBase):
         service.get.return_value = error
         return {'error_service': service}
 
-    # * method: test_found_in_repo
+    # * test: found_in_repo
     def test_found_in_repo(self, mock_dependencies, error):
         '''
         Test retrieving an error found in the repository.
@@ -233,7 +233,7 @@ class TestGetError(ServiceEventTestBase):
         assert result == error
         mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
 
-    # * method: test_not_found_ignores_built_in_catalog
+    # * test: not_found_ignores_built_in_catalog
     def test_not_found_ignores_built_in_catalog(self, mock_dependencies):
         '''
         Test that a code present in CORE_DEFAULT_ERRORS but absent from the
@@ -254,7 +254,7 @@ class TestGetError(ServiceEventTestBase):
         mock_dependencies['error_service'].get.assert_called_once_with(error_id)
 
 
-# ** test: TestListErrors
+# ** tester: test_list_errors
 class TestListErrors(DomainEventTestBase):
     '''
     Tests for ListErrors using the domain event test harness.
@@ -272,7 +272,7 @@ class TestListErrors(DomainEventTestBase):
     # * attribute: required_params
     required_params = []
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies, error):
         '''
         Test listing errors from the repository.
@@ -289,7 +289,7 @@ class TestListErrors(DomainEventTestBase):
         mock_dependencies['error_service'].list.assert_called_once()
 
 
-# ** test: TestRenameError
+# ** tester: test_rename_error
 class TestRenameError(ServiceEventTestBase):
     '''
     Tests for RenameError using the service event test harness.
@@ -325,7 +325,7 @@ class TestRenameError(ServiceEventTestBase):
         service.get.return_value = error
         return {'error_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies, error):
         '''
         Test renaming an existing error successfully.
@@ -341,7 +341,7 @@ class TestRenameError(ServiceEventTestBase):
         mock_dependencies['error_service'].save.assert_called_once_with(error)
 
 
-# ** test: TestSetErrorMessage
+# ** tester: test_set_error_message
 class TestSetErrorMessage(ServiceEventTestBase):
     '''
     Tests for SetErrorMessage using the service event test harness.
@@ -381,7 +381,7 @@ class TestSetErrorMessage(ServiceEventTestBase):
         service.get.return_value = error
         return {'error_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies, error):
         '''
         Test setting a message for an existing error successfully.
@@ -397,7 +397,7 @@ class TestSetErrorMessage(ServiceEventTestBase):
         mock_dependencies['error_service'].save.assert_called_once_with(error)
 
 
-# ** test: TestRemoveErrorMessage
+# ** tester: test_remove_error_message
 class TestRemoveErrorMessage(ServiceEventTestBase):
     '''
     Tests for RemoveErrorMessage using the service event test harness.
@@ -436,7 +436,7 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
         service.get.return_value = error
         return {'error_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies, error):
         '''
         Test removing a message from an existing error successfully.
@@ -451,7 +451,7 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
         mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
         mock_dependencies['error_service'].save.assert_called_once_with(error)
 
-    # * method: test_no_messages_left
+    # * test: no_messages_left
     def test_no_messages_left(self, mock_dependencies, error):
         '''
         Test that removing the last message raises NO_ERROR_MESSAGES.
@@ -468,7 +468,7 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
         assert exc_info.value.error_code == a.error.NO_ERROR_MESSAGES_ID
 
 
-# ** test: TestRemoveError
+# ** tester: test_remove_error
 class TestRemoveError(DomainEventTestBase):
     '''
     Tests for RemoveError using the domain event test harness.
@@ -486,7 +486,7 @@ class TestRemoveError(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id']
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test removing an existing error successfully.

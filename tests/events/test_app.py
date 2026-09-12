@@ -54,15 +54,15 @@ def app_session():
         ],
     )
 
-# *** tests
+# *** testers
 
-# ** class: TestAppEvent
+# ** tester: test_app_event
 class TestAppEvent:
     '''
     Tests for the AppEvent base event shared by all app events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that AppEvent extends DomainEvent.
@@ -71,7 +71,7 @@ class TestAppEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(AppEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete app event extends AppEvent.
@@ -90,7 +90,7 @@ class TestAppEvent:
         ):
             assert issubclass(event_cls, AppEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing an app event wires the shared service attribute.
@@ -103,7 +103,7 @@ class TestAppEvent:
         assert AppEvent(app_service=service).app_service is service
         assert GetAppSession(app_service=service).app_service is service
 
-# ** test: TestSetServiceDependency
+# ** tester: test_set_service_dependency
 class TestSetServiceDependency(ServiceEventTestBase):
     '''
     Tests for SetServiceDependency using the domain event test harness.
@@ -152,7 +152,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         service.get.return_value = app_session
         return {'app_service': service}
 
-    # * method: test_creates_new_service
+    # * test: creates_new_service
     def test_creates_new_service(self, mock_dependencies, app_session):
         '''
         Test that SetServiceDependency creates a new dependency when it does not exist.
@@ -177,7 +177,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-    # * method: test_updates_existing_and_merges_parameters
+    # * test: updates_existing_and_merges_parameters
     def test_updates_existing_and_merges_parameters(self, mock_dependencies, app_session):
         '''
         Test that SetServiceDependency updates an existing dependency and merges parameters.
@@ -216,7 +216,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-    # * method: test_parameters_none_clears_existing
+    # * test: parameters_none_clears_existing
     def test_parameters_none_clears_existing(self, mock_dependencies, app_session):
         '''
         Test that passing parameters=None clears existing parameters.
@@ -245,7 +245,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-# ** test: TestSetAppConstants
+# ** tester: test_set_app_constants
 class TestSetAppConstants(ServiceEventTestBase):
     '''
     Tests for SetAppConstants using the domain event test harness.
@@ -290,7 +290,7 @@ class TestSetAppConstants(ServiceEventTestBase):
         service.get.return_value = app_session
         return {'app_service': service}
 
-    # * method: test_full_clear
+    # * test: full_clear
     def test_full_clear(self, mock_dependencies, app_session):
         '''
         Test that SetAppConstants clears all constants when constants=None.
@@ -314,7 +314,7 @@ class TestSetAppConstants(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-    # * method: test_merge_override_and_remove
+    # * test: merge_override_and_remove
     def test_merge_override_and_remove(self, mock_dependencies, app_session):
         '''
         Test that SetAppConstants merges, overrides, and removes None-valued keys.
@@ -350,7 +350,7 @@ class TestSetAppConstants(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-    # * method: test_add_new_constants
+    # * test: add_new_constants
     def test_add_new_constants(self, mock_dependencies, app_session):
         '''
         Test that SetAppConstants adds new constants when none exist.
@@ -380,7 +380,7 @@ class TestSetAppConstants(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-# ** test: TestRemoveServiceDependency
+# ** tester: test_remove_service_dependency
 class TestRemoveServiceDependency(ServiceEventTestBase):
     '''
     Tests for RemoveServiceDependency using the domain event test harness.
@@ -425,7 +425,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         service.get.return_value = app_session
         return {'app_service': service}
 
-    # * method: test_removes_existing
+    # * test: removes_existing
     def test_removes_existing(self, mock_dependencies, app_session):
         '''
         Test that RemoveServiceDependency removes an existing service dependency.
@@ -449,7 +449,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-    # * method: test_missing_service_is_idempotent
+    # * test: missing_service_is_idempotent
     def test_missing_service_is_idempotent(self, mock_dependencies, app_session):
         '''
         Test that removing a non-existent service dependency is idempotent.
@@ -472,7 +472,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         # The updated session should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_session)
 
-# ** test: TestAddAppSession
+# ** tester: test_add_app_session
 class TestAddAppSession(DomainEventTestBase):
     '''
     Tests for AddAppSession using the domain event test harness.
@@ -493,7 +493,7 @@ class TestAddAppSession(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id', 'name']
 
-    # * method: test_add_app_session_success
+    # * test: add_app_session_success
     def test_add_app_session_success(self, mock_dependencies):
         '''
         Test that AddAppSession creates and persists an AppSession with required params.
@@ -515,7 +515,7 @@ class TestAddAppSession(DomainEventTestBase):
         # Assert the session is persisted via the app service.
         mock_dependencies['app_service'].save.assert_called_once_with(session)
 
-    # * method: test_add_app_session_full_parameters
+    # * test: add_app_session_full_parameters
     def test_add_app_session_full_parameters(self, mock_dependencies):
         '''
         Test that AddAppSession passes through optional parameters correctly.
@@ -549,7 +549,7 @@ class TestAddAppSession(DomainEventTestBase):
         # Assert the session is persisted.
         mock_dependencies['app_service'].save.assert_called_once()
 
-# ** test: TestGetAppSession
+# ** tester: test_get_app_session
 class TestGetAppSession(ServiceEventTestBase):
     '''
     Tests for GetAppSession using the domain event test harness.
@@ -576,7 +576,7 @@ class TestGetAppSession(ServiceEventTestBase):
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(id='nonexistent.session')
 
-    # * method: test_get_app_session_success
+    # * test: get_app_session_success
     def test_get_app_session_success(self, mock_dependencies):
         '''
         Test successful retrieval of an app session.
@@ -596,7 +596,7 @@ class TestGetAppSession(ServiceEventTestBase):
         assert result is app_session
         mock_dependencies['app_service'].get.assert_called_once_with('test.session')
 
-    # * method: test_get_app_session_not_found
+    # * test: get_app_session_not_found
     def test_get_app_session_not_found(self, mock_dependencies):
         '''
         Test that GetAppSession raises APP_SESSION_NOT_FOUND_ID when the session is missing.
@@ -612,7 +612,7 @@ class TestGetAppSession(ServiceEventTestBase):
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
 
-# ** test: TestUpdateAppSession
+# ** tester: test_update_app_session
 class TestUpdateAppSession(ServiceEventTestBase):
     '''
     Tests for UpdateAppSession using the domain event test harness.
@@ -655,7 +655,7 @@ class TestUpdateAppSession(ServiceEventTestBase):
         service.get.return_value = session
         return {'app_service': service}
 
-    # * method: test_update_app_session_success
+    # * test: update_app_session_success
     def test_update_app_session_success(self, mock_dependencies):
         '''
         Test that UpdateAppSession updates provided scalar attributes and persists the session.
@@ -676,7 +676,7 @@ class TestUpdateAppSession(ServiceEventTestBase):
         # Assert the updated session was persisted.
         mock_dependencies['app_service'].save.assert_called_once_with(result)
 
-    # * method: test_update_app_session_not_found
+    # * test: update_app_session_not_found
     def test_update_app_session_not_found(self, mock_dependencies):
         '''
         Test that UpdateAppSession raises APP_SESSION_NOT_FOUND_ID when the session is missing.
@@ -698,7 +698,7 @@ class TestUpdateAppSession(ServiceEventTestBase):
         # Assert no save was attempted for a missing session.
         mock_dependencies['app_service'].save.assert_not_called()
 
-    # * method: test_update_app_session_missing_id
+    # * test: update_app_session_missing_id
     def test_update_app_session_missing_id(self, mock_dependencies):
         '''
         Test that UpdateAppSession enforces the required id parameter.
@@ -715,7 +715,7 @@ class TestUpdateAppSession(ServiceEventTestBase):
         # Assert the service was never consulted.
         mock_dependencies['app_service'].get.assert_not_called()
 
-    # * method: test_update_app_session_partial_leaves_unset_fields_unchanged
+    # * test: update_app_session_partial_leaves_unset_fields_unchanged
     def test_update_app_session_partial_leaves_unset_fields_unchanged(self, mock_dependencies):
         '''
         Test that omitted optional fields are left unchanged.
@@ -728,7 +728,7 @@ class TestUpdateAppSession(ServiceEventTestBase):
         assert result.name == 'Only Name Updated'
         assert result.logger_id == 'default'
 
-# ** test: TestListAppSessions
+# ** tester: test_list_app_sessions
 class TestListAppSessions(DomainEventTestBase):
     '''
     Tests for ListAppSessions using the domain event test harness.
@@ -743,7 +743,7 @@ class TestListAppSessions(DomainEventTestBase):
     # * attribute: sample_kwargs
     sample_kwargs = dict()
 
-    # * method: test_list_app_sessions_success
+    # * test: list_app_sessions_success
     def test_list_app_sessions_success(self, mock_dependencies):
         '''
         Test that ListAppSessions returns the list returned by the app service.
@@ -760,7 +760,7 @@ class TestListAppSessions(DomainEventTestBase):
         assert result == sessions
         mock_dependencies['app_service'].list.assert_called_once_with()
 
-# ** test: TestRemoveAppSession
+# ** tester: test_remove_app_session
 class TestRemoveAppSession(DomainEventTestBase):
     '''
     Tests for RemoveAppSession using the domain event test harness.
@@ -778,7 +778,7 @@ class TestRemoveAppSession(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id']
 
-    # * method: test_remove_app_session_success
+    # * test: remove_app_session_success
     def test_remove_app_session_success(self, mock_dependencies):
         '''
         Test that RemoveAppSession deletes the session via the app service.
@@ -791,7 +791,7 @@ class TestRemoveAppSession(DomainEventTestBase):
         assert result is None
         mock_dependencies['app_service'].delete.assert_called_once_with('test.session')
 
-    # * method: test_remove_app_session_missing_is_idempotent
+    # * test: remove_app_session_missing_is_idempotent
     def test_remove_app_session_missing_is_idempotent(self, mock_dependencies):
         '''
         Test that removing a non-existent session is idempotent.

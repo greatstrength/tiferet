@@ -15,7 +15,6 @@ from tiferet.mappers.error import (
 )
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
-
 # *** constants
 
 # ** constant: error_sample_data
@@ -31,251 +30,7 @@ ERROR_SAMPLE_DATA = {
 # ** constant: error_equality_fields
 ERROR_EQUALITY_FIELDS = ['id', 'name', 'error_code']
 
-
-# *** classes
-
-# ** class: TestErrorAggregate
-class TestErrorAggregate(AggregateTestBase):
-    '''
-    Tests for ErrorAggregate construction, set_attribute, and domain-specific mutations.
-    '''
-
-    aggregate_cls = ErrorAggregate
-
-    sample_data = ERROR_SAMPLE_DATA
-
-    equality_fields = ERROR_EQUALITY_FIELDS
-
-    set_attribute_params = [
-        # valid
-        ('name', 'Updated Error', None),
-        ('description', 'A new description', None),
-        # invalid
-        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
-    ]
-
-    # *** domain-specific mutation tests
-
-    # ** test: rename
-    def test_rename(self, aggregate):
-        '''
-        Test that rename() updates the error name.
-
-        :param aggregate: The error aggregate fixture.
-        :type aggregate: ErrorAggregate
-        '''
-
-        # Rename the error.
-        aggregate.rename('Renamed Error')
-
-        # Assert the name was updated.
-        assert aggregate.name == 'Renamed Error'
-
-    # ** test: set_message_new
-    def test_set_message_new(self, aggregate):
-        '''
-        Test that set_message() adds a new language message alongside existing ones.
-
-        :param aggregate: The error aggregate fixture.
-        :type aggregate: ErrorAggregate
-        '''
-
-        # Add a new Spanish message.
-        aggregate.set_message('es', 'Mensaje de error de prueba.')
-
-        # Assert both messages exist.
-        assert len(aggregate.message) == 2
-        assert aggregate.message[1].lang == 'es'
-        assert aggregate.message[1].text == 'Mensaje de error de prueba.'
-
-    # ** test: set_message_update
-    def test_set_message_update(self, aggregate):
-        '''
-        Test that set_message() updates an existing language message in-place (no duplication).
-
-        :param aggregate: The error aggregate fixture.
-        :type aggregate: ErrorAggregate
-        '''
-
-        # Update the existing English message.
-        aggregate.set_message('en', 'Updated message')
-
-        # Assert only one message exists and it was updated.
-        assert len(aggregate.message) == 1
-        assert aggregate.message[0].text == 'Updated message'
-
-    # ** test: remove_message
-    def test_remove_message(self, aggregate):
-        '''
-        Test that remove_message() removes a message from a multi-message aggregate.
-
-        :param aggregate: The error aggregate fixture.
-        :type aggregate: ErrorAggregate
-        '''
-
-        # Add a second message, then remove the first.
-        aggregate.set_message('es', 'Mensaje de prueba')
-        aggregate.remove_message('en')
-
-        # Assert only the Spanish message remains.
-        assert len(aggregate.message) == 1
-        assert aggregate.message[0].lang == 'es'
-
-    # ** test: remove_message_nonexistent
-    def test_remove_message_nonexistent(self, aggregate):
-        '''
-        Test that removing a non-existent language is a no-op.
-
-        :param aggregate: The error aggregate fixture.
-        :type aggregate: ErrorAggregate
-        '''
-
-        # Record the initial count.
-        initial_count = len(aggregate.message)
-
-        # Attempt to remove a non-existent language.
-        aggregate.remove_message('fr')
-
-        # Assert the message list is unchanged.
-        assert len(aggregate.message) == initial_count
-
-
-# ** class: TestErrorConfigObject
-class TestErrorConfigObject(TransferObjectTestBase):
-    '''
-    Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
-    '''
-
-    transfer_cls = ErrorConfigObject
-    aggregate_cls = ErrorAggregate
-
-    sample_data = ERROR_SAMPLE_DATA
-
-    aggregate_sample_data = ERROR_SAMPLE_DATA
-
-    equality_fields = ERROR_EQUALITY_FIELDS
-
-    # *** domain-specific tests
-
-    # ** test: from_data
-    def test_from_data(self):
-        '''
-        Test that model_validate() initializes scalar fields and nested ErrorMessageConfigObject instances.
-        '''
-
-        # Create a YAML object from sample data.
-        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
-
-        # Assert scalar fields.
-        assert yaml_obj.name == 'TEST_ERROR'
-        assert yaml_obj.error_code == 'TEST_ERROR'
-
-        # Assert nested messages.
-        assert len(yaml_obj.message) == 1
-        assert isinstance(yaml_obj.message[0], ErrorMessageConfigObject)
-        assert yaml_obj.message[0].lang == 'en'
-        assert yaml_obj.message[0].text == 'Test error message.'
-
-    # ** test: to_primitive_to_data
-    def test_to_primitive_to_data(self):
-        '''
-        Test that to_primitive('to_data') excludes id and serializes messages correctly.
-        '''
-
-        # Create a YAML object and serialize.
-        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
-        primitive = yaml_obj.to_primitive('to_data')
-
-        # Assert id is excluded.
-        assert isinstance(primitive, dict)
-        assert primitive.pop('id', None) is None
-
-        # Assert remaining fields.
-        assert primitive.get('name') == 'TEST_ERROR'
-        assert primitive.get('error_code') == 'TEST_ERROR'
-        assert len(primitive.get('message')) == 1
-        assert primitive.get('message')[0].get('lang') == 'en'
-        assert primitive.get('message')[0].get('text') == 'Test error message.'
-
-    # ** test: map_messages
-    def test_map_messages(self):
-        '''
-        Test that map() produces ErrorMessage domain objects in the message list.
-        '''
-
-        # Create YAML object and map.
-        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
-        mapped = yaml_obj.map()
-
-        # Assert messages are ErrorMessage instances.
-        assert len(mapped.message) == 1
-        assert isinstance(mapped.message[0], ErrorMessage)
-        assert mapped.message[0].lang == 'en'
-        assert mapped.message[0].text == 'Test error message.'
-
-    # ** test: from_model_messages
-    def test_from_model_messages(self, aggregate):
-        '''
-        Test that from_model() converts messages to ErrorMessageConfigObject instances.
-
-        :param aggregate: The error aggregate fixture.
-        :type aggregate: ErrorAggregate
-        '''
-
-        # Convert aggregate to YAML object.
-        yaml_obj = ErrorConfigObject.from_model(aggregate)
-
-        # Assert messages are ErrorMessageConfigObject instances.
-        assert len(yaml_obj.message) == 1
-        assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
-
-    # ** test: round_trip_messages
-    def test_round_trip_messages(self, aggregate):
-        '''
-        Test that round-trip preserves message content field-by-field.
-
-        :param aggregate: The error aggregate fixture.
-        :type aggregate: ErrorAggregate
-        '''
-
-        # Round-trip: aggregate -> YAML object -> aggregate.
-        yaml_obj = ErrorConfigObject.from_model(aggregate)
-        round_tripped = yaml_obj.map()
-
-        # Assert message content preserved.
-        assert len(round_tripped.message) == len(aggregate.message)
-        for original, restored in zip(aggregate.message, round_tripped.message):
-            assert restored.lang == original.lang
-            assert restored.text == original.text
-
-    # ** test: from_model_via_error_constructor
-    def test_from_model_via_error_constructor(self):
-        '''
-        Test that from_model() works with a directly constructed Error model with multilingual messages.
-        '''
-
-        # Create an Error model via the direct constructor.
-        error = Error(
-            id='test_error',
-            name='Test Error',
-            message=[
-                {'lang': 'en', 'text': 'Test message'},
-                {'lang': 'es', 'text': 'Mensaje de prueba'},
-            ],
-        )
-
-        # Convert to YAML object.
-        yaml_obj = ErrorConfigObject.from_model(error)
-
-        # Assert the YAML object is valid.
-        assert isinstance(yaml_obj, ErrorConfigObject)
-        assert yaml_obj.id == 'test_error'
-        assert yaml_obj.name == 'Test Error'
-        assert len(yaml_obj.message) == 2
-        assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
-
-
-# *** standalone tests
+# *** tests
 
 # ** test: error_message_yaml_object_map
 def test_error_message_yaml_object_map():
@@ -314,3 +69,241 @@ def test_error_message_yaml_object_from_model():
     assert isinstance(yaml_obj, ErrorMessageConfigObject)
     assert yaml_obj.lang == 'es'
     assert yaml_obj.text == 'Mensaje de prueba'
+
+# *** testers
+
+# ** tester: test_error_aggregate
+class TestErrorAggregate(AggregateTestBase):
+    '''
+    Tests for ErrorAggregate construction, set_attribute, and domain-specific mutations.
+    '''
+
+    aggregate_cls = ErrorAggregate
+
+    sample_data = ERROR_SAMPLE_DATA
+
+    equality_fields = ERROR_EQUALITY_FIELDS
+
+    set_attribute_params = [
+        # valid
+        ('name', 'Updated Error', None),
+        ('description', 'A new description', None),
+        # invalid
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ]
+
+    # * test: rename
+    def test_rename(self, aggregate):
+        '''
+        Test that rename() updates the error name.
+
+        :param aggregate: The error aggregate fixture.
+        :type aggregate: ErrorAggregate
+        '''
+
+        # Rename the error.
+        aggregate.rename('Renamed Error')
+
+        # Assert the name was updated.
+        assert aggregate.name == 'Renamed Error'
+
+    # * test: set_message_new
+    def test_set_message_new(self, aggregate):
+        '''
+        Test that set_message() adds a new language message alongside existing ones.
+
+        :param aggregate: The error aggregate fixture.
+        :type aggregate: ErrorAggregate
+        '''
+
+        # Add a new Spanish message.
+        aggregate.set_message('es', 'Mensaje de error de prueba.')
+
+        # Assert both messages exist.
+        assert len(aggregate.message) == 2
+        assert aggregate.message[1].lang == 'es'
+        assert aggregate.message[1].text == 'Mensaje de error de prueba.'
+
+    # * test: set_message_update
+    def test_set_message_update(self, aggregate):
+        '''
+        Test that set_message() updates an existing language message in-place (no duplication).
+
+        :param aggregate: The error aggregate fixture.
+        :type aggregate: ErrorAggregate
+        '''
+
+        # Update the existing English message.
+        aggregate.set_message('en', 'Updated message')
+
+        # Assert only one message exists and it was updated.
+        assert len(aggregate.message) == 1
+        assert aggregate.message[0].text == 'Updated message'
+
+    # * test: remove_message
+    def test_remove_message(self, aggregate):
+        '''
+        Test that remove_message() removes a message from a multi-message aggregate.
+
+        :param aggregate: The error aggregate fixture.
+        :type aggregate: ErrorAggregate
+        '''
+
+        # Add a second message, then remove the first.
+        aggregate.set_message('es', 'Mensaje de prueba')
+        aggregate.remove_message('en')
+
+        # Assert only the Spanish message remains.
+        assert len(aggregate.message) == 1
+        assert aggregate.message[0].lang == 'es'
+
+    # * test: remove_message_nonexistent
+    def test_remove_message_nonexistent(self, aggregate):
+        '''
+        Test that removing a non-existent language is a no-op.
+
+        :param aggregate: The error aggregate fixture.
+        :type aggregate: ErrorAggregate
+        '''
+
+        # Record the initial count.
+        initial_count = len(aggregate.message)
+
+        # Attempt to remove a non-existent language.
+        aggregate.remove_message('fr')
+
+        # Assert the message list is unchanged.
+        assert len(aggregate.message) == initial_count
+
+
+# ** tester: test_error_config_object
+class TestErrorConfigObject(TransferObjectTestBase):
+    '''
+    Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
+    '''
+
+    transfer_cls = ErrorConfigObject
+    aggregate_cls = ErrorAggregate
+
+    sample_data = ERROR_SAMPLE_DATA
+
+    aggregate_sample_data = ERROR_SAMPLE_DATA
+
+    equality_fields = ERROR_EQUALITY_FIELDS
+
+    # * test: from_data
+    def test_from_data(self):
+        '''
+        Test that model_validate() initializes scalar fields and nested ErrorMessageConfigObject instances.
+        '''
+
+        # Create a YAML object from sample data.
+        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
+
+        # Assert scalar fields.
+        assert yaml_obj.name == 'TEST_ERROR'
+        assert yaml_obj.error_code == 'TEST_ERROR'
+
+        # Assert nested messages.
+        assert len(yaml_obj.message) == 1
+        assert isinstance(yaml_obj.message[0], ErrorMessageConfigObject)
+        assert yaml_obj.message[0].lang == 'en'
+        assert yaml_obj.message[0].text == 'Test error message.'
+
+    # * test: to_primitive_to_data
+    def test_to_primitive_to_data(self):
+        '''
+        Test that to_primitive('to_data') excludes id and serializes messages correctly.
+        '''
+
+        # Create a YAML object and serialize.
+        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
+        primitive = yaml_obj.to_primitive('to_data')
+
+        # Assert id is excluded.
+        assert isinstance(primitive, dict)
+        assert primitive.pop('id', None) is None
+
+        # Assert remaining fields.
+        assert primitive.get('name') == 'TEST_ERROR'
+        assert primitive.get('error_code') == 'TEST_ERROR'
+        assert len(primitive.get('message')) == 1
+        assert primitive.get('message')[0].get('lang') == 'en'
+        assert primitive.get('message')[0].get('text') == 'Test error message.'
+
+    # * test: map_messages
+    def test_map_messages(self):
+        '''
+        Test that map() produces ErrorMessage domain objects in the message list.
+        '''
+
+        # Create YAML object and map.
+        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
+        mapped = yaml_obj.map()
+
+        # Assert messages are ErrorMessage instances.
+        assert len(mapped.message) == 1
+        assert isinstance(mapped.message[0], ErrorMessage)
+        assert mapped.message[0].lang == 'en'
+        assert mapped.message[0].text == 'Test error message.'
+
+    # * test: from_model_messages
+    def test_from_model_messages(self, aggregate):
+        '''
+        Test that from_model() converts messages to ErrorMessageConfigObject instances.
+
+        :param aggregate: The error aggregate fixture.
+        :type aggregate: ErrorAggregate
+        '''
+
+        # Convert aggregate to YAML object.
+        yaml_obj = ErrorConfigObject.from_model(aggregate)
+
+        # Assert messages are ErrorMessageConfigObject instances.
+        assert len(yaml_obj.message) == 1
+        assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
+
+    # * test: round_trip_messages
+    def test_round_trip_messages(self, aggregate):
+        '''
+        Test that round-trip preserves message content field-by-field.
+
+        :param aggregate: The error aggregate fixture.
+        :type aggregate: ErrorAggregate
+        '''
+
+        # Round-trip: aggregate -> YAML object -> aggregate.
+        yaml_obj = ErrorConfigObject.from_model(aggregate)
+        round_tripped = yaml_obj.map()
+
+        # Assert message content preserved.
+        assert len(round_tripped.message) == len(aggregate.message)
+        for original, restored in zip(aggregate.message, round_tripped.message):
+            assert restored.lang == original.lang
+            assert restored.text == original.text
+
+    # * test: from_model_via_error_constructor
+    def test_from_model_via_error_constructor(self):
+        '''
+        Test that from_model() works with a directly constructed Error model with multilingual messages.
+        '''
+
+        # Create an Error model via the direct constructor.
+        error = Error(
+            id='test_error',
+            name='Test Error',
+            message=[
+                {'lang': 'en', 'text': 'Test message'},
+                {'lang': 'es', 'text': 'Mensaje de prueba'},
+            ],
+        )
+
+        # Convert to YAML object.
+        yaml_obj = ErrorConfigObject.from_model(error)
+
+        # Assert the YAML object is valid.
+        assert isinstance(yaml_obj, ErrorConfigObject)
+        assert yaml_obj.id == 'test_error'
+        assert yaml_obj.name == 'Test Error'
+        assert len(yaml_obj.message) == 2
+        assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)

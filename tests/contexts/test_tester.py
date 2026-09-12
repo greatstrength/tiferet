@@ -189,525 +189,6 @@ class RequiredParamEvent(DomainEvent):
     def execute(self, needed: str = None, **kwargs):
         return needed
 
-# *** testers
-
-# ** tester: TestTesterContextRegistry
-class TestTesterContextRegistry:
-    '''
-    Tests for tester context registry and omitting-domain_type variants.
-    '''
-
-    # * method: test_master_and_variant_registration
-    def test_master_and_variant_registration(self) -> None:
-        '''
-        Test TesterObject maps to TesterContext and variants omit domain_type.
-        '''
-
-        # Assert the master registers TesterObject.
-        assert TESTER_CONTEXT.domain_type is TESTER_OBJECT
-        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
-
-        # Assert Request and AppSession registry entries are unchanged.
-        assert BaseContext.for_domain(Request) is RequestContext
-        assert BaseContext.for_domain(AppSession) is AppSessionContext
-
-        # Assert each variant omits domain_type and from_domain binds that subclass.
-        tester = error_message_tester()
-        for variant_cls in VARIANT_CLASSES:
-            assert 'domain_type' not in variant_cls.__dict__
-            bound = variant_cls.from_domain(tester)
-            assert isinstance(bound, variant_cls)
-            assert bound.domain is tester
-
-        # Assert registry from_domain still selects the master.
-        master = BaseContext.from_domain(tester)
-        assert type(master) is TESTER_CONTEXT
-
-    # * method: test_extension_contexts_absent
-    def test_extension_contexts_absent(self) -> None:
-        '''
-        Test that retired tester context names are not defined.
-        '''
-
-        # Assert each forbidden context name is absent.
-        for name in FORBIDDEN_CONTEXT_NAMES:
-            assert not hasattr(tester_contexts, name)
-
-# ** tester: TestSessionIsARequest
-class TestSessionIsARequest:
-    '''
-    Tests that the test session is a request, not an application session.
-    '''
-
-    # * method: test_session_is_request_context
-    def test_session_is_request_context(self) -> None:
-        '''
-        Test TestSessionContext subclasses RequestContext and omits domain_type.
-        '''
-
-        # Assert the session omits domain_type and is not an AppSessionContext.
-        assert 'domain_type' not in TEST_SESSION_CONTEXT.__dict__
-        assert issubclass(TEST_SESSION_CONTEXT, RequestContext)
-        assert not issubclass(TEST_SESSION_CONTEXT, AppSessionContext)
-
-        # Construct a session and assert it binds a Request as domain.
-        test_ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
-        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
-        assert isinstance(session.domain, Request)
-        assert session.tester_ctx is test_ctx
-
-        # Assert fluent methods return self and overlay last-write-wins.
-        assert session.given(a=1) is session
-        assert session.invoke(b=2) is session
-        assert session.verify(True) is session
-        overlay = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
-        assert overlay.given(a=1).given(a=2).data == {'a': 2}
-
-    # * method: test_module_does_not_steal_the_hub
-    def test_module_does_not_steal_the_hub(self) -> None:
-        '''
-        Test the tester context module does not import AppSessionContext or presets.
-        '''
-
-        # Read the production module source.
-        source = Path(tester_contexts.__file__).read_text()
-
-        # Assert hub and preset artifacts are absent.
-        assert 'AppSessionContext' not in source
-        assert not hasattr(tester_contexts, 'TEST_PRESET_CACHE_PREFIX')
-        assert not hasattr(tester_contexts, 'add_default_test_presets')
-        assert 'import pytest' not in source
-
-# ** tester: TestSessionRunAgainstBoundTester
-class TestSessionRunAgainstBoundTester:
-    '''
-    Tests for TestSessionContext.run against a bound tester.
-    '''
-
-    # * method: test_domain_run_overlays_request_not_sample
-    def test_domain_run_overlays_request_not_sample(self) -> None:
-        '''
-        Test given/verify/run overlays request data without mutating sample_data.
-        '''
-
-        # Bind a domain tester and capture sample identity.
-        tester = error_message_tester()
-        test_ctx = tester_contexts.DomainTesterContext.from_domain(tester)
-        sample_id = id(test_ctx.domain.sample_data)
-        sample_lang = test_ctx.domain.sample_data['lang']
-
-        # Overlay lang on the request and verify the constructed outcome.
-        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
-        outcome = (
-            session
-            .given(lang='fr_FR')
-            .verify(lambda result: result.lang == 'fr_FR')
-            .run()
-        )
-
-        # Assert overlay lived on the request and sample identity is unchanged.
-        assert outcome.lang == 'fr_FR'
-        assert session.data['lang'] == 'fr_FR'
-        assert id(test_ctx.domain.sample_data) == sample_id
-        assert test_ctx.domain.sample_data['lang'] == sample_lang
-        assert session.verifications == []
-
-    # * method: test_two_failing_verifies_raise_one_error
-    def test_two_failing_verifies_raise_one_error(self) -> None:
-        '''
-        Test two failing verify predicates raise one AssertionError.
-        '''
-
-        # Queue two failing literal predicates.
-        test_ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
-        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
-
-        # Assert one AssertionError is raised and the queue is cleared.
-        with pytest.raises(AssertionError) as caught:
-            session.verify(False, message='first').verify(False, message='second').run()
-        assert 'first' in str(caught.value)
-        assert 'second' in str(caught.value)
-        assert session.verifications == []
-
-    # * method: test_run_rejects_target_on_specialized_type
-    def test_run_rejects_target_on_specialized_type(self) -> None:
-        '''
-        Test run(target=...) raises when the bound tester is not generic.
-        '''
-
-        # Run with an explicit target on a specialized tester.
-        test_ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
-        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
-
-        # Assert a live target is rejected off the generic type.
-        with pytest.raises(ValueError) as caught:
-            session.run(target=object())
-        assert str(caught.value) == (
-            'run(target=...) is only valid when tester type is generic.'
-        )
-
-    # * method: test_run_source_is_not_a_hub
-    def test_run_source_is_not_a_hub(self) -> None:
-        '''
-        Test run and its module do not mention hub dispatch or TiferetAPIError.
-        '''
-
-        # Read the production module source.
-        source = Path(tester_contexts.__file__).read_text()
-
-        # Assert hub dispatch names are absent.
-        assert 'execute_feature' not in source
-        assert 'build_logger' not in source
-        assert 'handle_error' not in source
-        assert 'TiferetAPIError' not in source
-
-    # * method: test_service_event_run_goes_through_handle
-    def test_service_event_run_goes_through_handle(self) -> None:
-        '''
-        Test a service-event session run dispatches through handle.
-        '''
-
-        # Bind a GetError tester and wrap handle.
-        tester = get_error_tester()
-        test_ctx = tester_contexts.ServiceEventTesterContext.from_domain(tester)
-        calls = []
-        original = test_ctx.handle
-
-        def wrapped_handle(dependencies=None, **kwargs):
-            calls.append('handle')
-            return original(dependencies=dependencies, **kwargs)
-
-        test_ctx.handle = wrapped_handle
-        TEST_SESSION_CONTEXT(tester_ctx=test_ctx).run()
-
-        # Assert handle ran and execute_feature was not involved.
-        assert calls == ['handle']
-
-    # * method: test_get_error_not_found_propagates
-    def test_get_error_not_found_propagates(self) -> None:
-        '''
-        Test a raw TiferetError from GetError propagates from run.
-        '''
-
-        # Configure the service mock to miss.
-        tester = get_error_tester()
-        test_ctx = tester_contexts.ServiceEventTesterContext.from_domain(tester)
-        deps = test_ctx.mock_dependencies()
-        deps['error_service'].get.return_value = None
-        test_ctx.mock_dependencies = lambda: deps
-
-        # Assert run propagates the not-found error without wrapping.
-        with pytest.raises(TiferetError) as caught:
-            TEST_SESSION_CONTEXT(tester_ctx=test_ctx).run()
-        assert caught.value.error_code == ERROR_NOT_FOUND_ID
-
-# ** tester: TestVariantAssertions
-class TestVariantAssertions:
-    '''
-    Tests for variant assertion methods and empty-list no-ops.
-    '''
-
-    # * method: test_empty_case_lists_are_no_ops
-    def test_empty_case_lists_are_no_ops(self) -> None:
-        '''
-        Test empty optional case lists do not raise.
-        '''
-
-        # Domain description cases default empty.
-        domain_ctx = tester_contexts.DomainTesterContext.from_domain(
-            error_message_tester(description_cases=[])
-        )
-        domain_ctx.assert_description()
-
-        # Aggregate set-attribute cases default empty.
-        aggregate_ctx = tester_contexts.AggregateTesterContext.from_domain(
-            error_aggregate_tester(set_attribute_params=[])
-        )
-        aggregate_ctx.assert_set_attribute()
-
-        # Event required-params default empty.
-        event_ctx = tester_contexts.DomainEventTesterContext.from_domain(
-            get_error_tester(required_params=[])
-        )
-        event_ctx.assert_missing_required_params()
-
-        # Not-found is a no-op when the contract is unset.
-        unset_ctx = tester_contexts.ServiceEventTesterContext.from_domain(
-            get_error_tester(service_attr=None, not_found_error_code=None)
-        )
-        unset_ctx.assert_not_found()
-
-    # * method: test_assert_description
-    def test_assert_description(self) -> None:
-        '''
-        Test assert_description uses (name, args, expected) cases.
-        '''
-
-        # Assert ErrorMessage.format() with empty args.
-        ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
-        ctx.assert_description()
-
-    # * method: test_assert_set_attribute_mutates_fresh_target
-    def test_assert_set_attribute_mutates_fresh_target(self) -> None:
-        '''
-        Test assert_set_attribute mutates a fresh aggregate, not self.domain.
-        '''
-
-        # Bind an aggregate tester and capture sample identity.
-        tester = error_aggregate_tester()
-        ctx = tester_contexts.AggregateTesterContext.from_domain(tester)
-        sample_id = id(ctx.domain.sample_data)
-        original_name = ctx.domain.sample_data['name']
-
-        # Assert mutations succeed and do not write back to the tester.
-        ctx.assert_set_attribute()
-        assert ctx.domain is tester
-        assert id(ctx.domain.sample_data) == sample_id
-        assert ctx.domain.sample_data['name'] == original_name
-        assert isinstance(ctx.domain, TESTER_OBJECT)
-        assert not isinstance(ctx.domain, ErrorAggregate)
-
-    # * method: test_assert_missing_required_params
-    def test_assert_missing_required_params(self) -> None:
-        '''
-        Test assert_missing_required_params against a local domain event.
-        '''
-
-        # Bind a tester pointing at the local event.
-        tester = TESTER_OBJECT(
-            type='domain_event',
-            id='domain_event.RequiredParamEvent',
-            module_path=RequiredParamEvent.__module__,
-            class_name='RequiredParamEvent',
-            required_params=['needed'],
-        )
-        ctx = tester_contexts.DomainEventTesterContext.from_domain(tester)
-        ctx.assert_missing_required_params()
-
-    # * method: test_assert_not_found
-    def test_assert_not_found(self) -> None:
-        '''
-        Test assert_not_found against GetError without pytest.raises in the context.
-        '''
-
-        # Assert the service-event not-found contract.
-        ctx = tester_contexts.ServiceEventTesterContext.from_domain(get_error_tester())
-        ctx.assert_not_found()
-
-# ** tester: TestAddDefaultTesters
-class TestAddDefaultTesters:
-    '''
-    Tests for add_default_testers cache seeding.
-    '''
-
-    # * method: test_seeds_tester_object_instances
-    def test_seeds_tester_object_instances(self) -> None:
-        '''
-        Test add_default_testers seeds TesterObject instances under the prefix.
-        '''
-
-        # Wrap a cache builder with the default tester catalog.
-        @tester_contexts.add_default_testers(CORE_DEFAULT_TESTERS)
-        def build_cache(cache=None):
-            return CacheContext(cache)
-
-        # Assert seeded values are TesterObject instances under the prefix.
-        cache = build_cache()
-        seeded = cache.get(
-            'domain.ErrorMessage',
-            *tester_contexts.TESTER_CACHE_PREFIX,
-        )
-        assert isinstance(seeded, TESTER_OBJECT)
-        assert seeded.type == 'domain'
-        assert seeded.id == 'domain.ErrorMessage'
-        assert tester_contexts.TESTER_CACHE_PREFIX == ('app', 'testers')
-
-# ** tester: TestRepoTesterContext
-class TestRepoTesterContext:
-    '''
-    Tests for RepoTesterContext registry, no-ops, and import law.
-    '''
-
-    # * method: test_omits_domain_type
-    def test_omits_domain_type(self) -> None:
-        '''
-        Test that RepoTesterContext omits domain_type from its own namespace.
-        '''
-
-        # Assert the variant does not re-register TesterObject.
-        assert 'domain_type' not in tester_contexts.RepoTesterContext.__dict__
-
-    # * method: test_for_domain_remains_tester_context
-    def test_for_domain_remains_tester_context(self) -> None:
-        '''
-        Test that BaseContext.for_domain(TesterObject) remains TesterContext.
-        '''
-
-        # Assert the master registry mapping is unchanged.
-        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
-
-    # * method: test_from_domain_binds_subclass
-    def test_from_domain_binds_subclass(self) -> None:
-        '''
-        Test that RepoTesterContext.from_domain binds that subclass.
-        '''
-
-        # Bind a repo tester through the variant and the registry.
-        tester = repo_tester()
-        bound = tester_contexts.RepoTesterContext.from_domain(tester)
-        master = BaseContext.from_domain(tester)
-
-        # Assert the variant binds while the registry stays on the master.
-        assert isinstance(bound, tester_contexts.RepoTesterContext)
-        assert bound.domain is tester
-        assert type(master) is TESTER_CONTEXT
-
-    # * method: test_empty_case_lists_are_no_ops
-    def test_empty_case_lists_are_no_ops(self) -> None:
-        '''
-        Test that empty repo case lists and unset aggregate_class_name are no-ops.
-        '''
-
-        # Bind a repo tester with empty optional fields.
-        ctx = tester_contexts.RepoTesterContext.from_domain(repo_tester())
-        ctx.assert_exists(None)
-        ctx.assert_get(None)
-        ctx.assert_list(None)
-        ctx.assert_delete(None)
-        ctx.assert_save(None)
-
-    # * method: test_module_import_law
-    def test_module_import_law(self) -> None:
-        '''
-        Test that tiferet/contexts/tester.py has no pytest or forbidden app imports.
-        '''
-
-        # Read the production module source.
-        source = Path(tester_contexts.__file__).read_text()
-
-        # Assert pytest and forbidden app packages are not imported.
-        assert 'import pytest' not in source
-        assert 'from ..repos' not in source
-        assert 'from ..mappers' not in source
-        assert 'from ..utils' not in source
-        assert 'from ..interfaces' not in source
-        assert 'from ..di' not in source
-        assert 'from ..blueprints' not in source
-
-# ** tester: TestContextTesterContext
-class TestContextTesterContext:
-    '''
-    Tests for ContextTesterContext registry, no-ops, and assertions.
-    '''
-
-    # * method: test_omits_domain_type
-    def test_omits_domain_type(self) -> None:
-        '''
-        Test that ContextTesterContext omits domain_type from its own namespace.
-        '''
-
-        # Assert the variant does not re-register TesterObject.
-        assert 'domain_type' not in tester_contexts.ContextTesterContext.__dict__
-
-    # * method: test_registry_mappings_unchanged
-    def test_registry_mappings_unchanged(self) -> None:
-        '''
-        Test that TesterObject, Request, and AppSession registry mappings stay.
-        '''
-
-        # Assert master mappings and that BaseContext is not a registry value.
-        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
-        assert BaseContext.for_domain(Request) is RequestContext
-        assert BaseContext.for_domain(AppSession) is AppSessionContext
-        assert BaseContext not in ContextMeta.registry.values()
-
-    # * method: test_from_domain_binds_subclass
-    def test_from_domain_binds_subclass(self) -> None:
-        '''
-        Test that ContextTesterContext.from_domain binds that subclass.
-        '''
-
-        # Bind a context tester through the variant and the registry.
-        tester = context_tester()
-        bound = tester_contexts.ContextTesterContext.from_domain(tester)
-        master = BaseContext.from_domain(tester)
-
-        # Assert the variant binds while the registry stays on the master.
-        assert isinstance(bound, tester_contexts.ContextTesterContext)
-        assert bound.domain is tester
-        assert type(master) is TESTER_CONTEXT
-
-    # * method: test_empty_case_lists_are_no_ops
-    def test_empty_case_lists_are_no_ops(self) -> None:
-        '''
-        Test that empty from_domain / domain_type / for_domain case lists no-op.
-        '''
-
-        # Bind a context tester with empty optional case lists.
-        ctx = tester_contexts.ContextTesterContext.from_domain(
-            context_tester(
-                from_domain_cases=[],
-                domain_type_cases=[],
-                for_domain_cases=[],
-            )
-        )
-        ctx.assert_from_domain()
-        ctx.assert_domain_type()
-        ctx.assert_for_domain()
-
-    # * method: test_declaring_request_context_cases
-    def test_declaring_request_context_cases(self) -> None:
-        '''
-        Test catalog-row cases against RequestContext pass the three assertions.
-        '''
-
-        # Bind the RequestContext catalog tester and run the three asserts.
-        ctx = tester_contexts.ContextTesterContext.from_domain(context_tester())
-        ctx.assert_from_domain()
-        ctx.assert_domain_type()
-        ctx.assert_for_domain()
-
-    # * method: test_omitting_cli_session_context_cases
-    def test_omitting_cli_session_context_cases(self) -> None:
-        '''
-        Test an omitting case against CliSessionContext without hub kwargs.
-        '''
-
-        # Bind a tester targeting CliSessionContext, which omits domain_type.
-        tester = TESTER_OBJECT(
-            type='context',
-            id='context.CliSessionContext',
-            module_path=CliSessionContext.__module__,
-            class_name='CliSessionContext',
-            domain_module_path='tiferet.domain.app',
-            domain_class_name='AppSession',
-            domain_type_cases=[
-                {
-                    'declares': False,
-                },
-            ],
-            for_domain_cases=[
-                {
-                    'domain_module_path': 'tiferet.domain.app',
-                    'domain_class_name': 'AppSession',
-                    'context_module_path': 'tiferet.contexts.app',
-                    'context_class_name': 'AppSessionContext',
-                },
-                {
-                    'domain_module_path': 'tiferet.domain.tester',
-                    'domain_class_name': 'TesterObject',
-                    'context_module_path': 'tiferet.contexts.tester',
-                    'context_class_name': 'TesterContext',
-                },
-            ],
-        )
-        ctx = tester_contexts.ContextTesterContext.from_domain(tester)
-
-        # Assert omission and registry mappings without hub from_domain kwargs.
-        ctx.assert_domain_type()
-        ctx.assert_for_domain()
-        assert 'domain_type' not in CliSessionContext.__dict__
-
 # *** tests
 
 # ** test: generic_tester_context_omits_domain_type
@@ -898,3 +379,522 @@ def test_run_raises_when_target_set_on_non_generic() -> None:
     assert str(caught.value) == (
         'run(target=...) is only valid when tester type is generic.'
     )
+
+# *** testers
+
+# ** tester: test_tester_context_registry
+class TestTesterContextRegistry:
+    '''
+    Tests for tester context registry and omitting-domain_type variants.
+    '''
+
+    # * test: master_and_variant_registration
+    def test_master_and_variant_registration(self) -> None:
+        '''
+        Test TesterObject maps to TesterContext and variants omit domain_type.
+        '''
+
+        # Assert the master registers TesterObject.
+        assert TESTER_CONTEXT.domain_type is TESTER_OBJECT
+        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
+
+        # Assert Request and AppSession registry entries are unchanged.
+        assert BaseContext.for_domain(Request) is RequestContext
+        assert BaseContext.for_domain(AppSession) is AppSessionContext
+
+        # Assert each variant omits domain_type and from_domain binds that subclass.
+        tester = error_message_tester()
+        for variant_cls in VARIANT_CLASSES:
+            assert 'domain_type' not in variant_cls.__dict__
+            bound = variant_cls.from_domain(tester)
+            assert isinstance(bound, variant_cls)
+            assert bound.domain is tester
+
+        # Assert registry from_domain still selects the master.
+        master = BaseContext.from_domain(tester)
+        assert type(master) is TESTER_CONTEXT
+
+    # * test: extension_contexts_absent
+    def test_extension_contexts_absent(self) -> None:
+        '''
+        Test that retired tester context names are not defined.
+        '''
+
+        # Assert each forbidden context name is absent.
+        for name in FORBIDDEN_CONTEXT_NAMES:
+            assert not hasattr(tester_contexts, name)
+
+# ** tester: test_session_is_a_request
+class TestSessionIsARequest:
+    '''
+    Tests that the test session is a request, not an application session.
+    '''
+
+    # * test: session_is_request_context
+    def test_session_is_request_context(self) -> None:
+        '''
+        Test TestSessionContext subclasses RequestContext and omits domain_type.
+        '''
+
+        # Assert the session omits domain_type and is not an AppSessionContext.
+        assert 'domain_type' not in TEST_SESSION_CONTEXT.__dict__
+        assert issubclass(TEST_SESSION_CONTEXT, RequestContext)
+        assert not issubclass(TEST_SESSION_CONTEXT, AppSessionContext)
+
+        # Construct a session and assert it binds a Request as domain.
+        test_ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
+        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
+        assert isinstance(session.domain, Request)
+        assert session.tester_ctx is test_ctx
+
+        # Assert fluent methods return self and overlay last-write-wins.
+        assert session.given(a=1) is session
+        assert session.invoke(b=2) is session
+        assert session.verify(True) is session
+        overlay = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
+        assert overlay.given(a=1).given(a=2).data == {'a': 2}
+
+    # * test: module_does_not_steal_the_hub
+    def test_module_does_not_steal_the_hub(self) -> None:
+        '''
+        Test the tester context module does not import AppSessionContext or presets.
+        '''
+
+        # Read the production module source.
+        source = Path(tester_contexts.__file__).read_text()
+
+        # Assert hub and preset artifacts are absent.
+        assert 'AppSessionContext' not in source
+        assert not hasattr(tester_contexts, 'TEST_PRESET_CACHE_PREFIX')
+        assert not hasattr(tester_contexts, 'add_default_test_presets')
+        assert 'import pytest' not in source
+
+# ** tester: test_session_run_against_bound_tester
+class TestSessionRunAgainstBoundTester:
+    '''
+    Tests for TestSessionContext.run against a bound tester.
+    '''
+
+    # * test: domain_run_overlays_request_not_sample
+    def test_domain_run_overlays_request_not_sample(self) -> None:
+        '''
+        Test given/verify/run overlays request data without mutating sample_data.
+        '''
+
+        # Bind a domain tester and capture sample identity.
+        tester = error_message_tester()
+        test_ctx = tester_contexts.DomainTesterContext.from_domain(tester)
+        sample_id = id(test_ctx.domain.sample_data)
+        sample_lang = test_ctx.domain.sample_data['lang']
+
+        # Overlay lang on the request and verify the constructed outcome.
+        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
+        outcome = (
+            session
+            .given(lang='fr_FR')
+            .verify(lambda result: result.lang == 'fr_FR')
+            .run()
+        )
+
+        # Assert overlay lived on the request and sample identity is unchanged.
+        assert outcome.lang == 'fr_FR'
+        assert session.data['lang'] == 'fr_FR'
+        assert id(test_ctx.domain.sample_data) == sample_id
+        assert test_ctx.domain.sample_data['lang'] == sample_lang
+        assert session.verifications == []
+
+    # * test: two_failing_verifies_raise_one_error
+    def test_two_failing_verifies_raise_one_error(self) -> None:
+        '''
+        Test two failing verify predicates raise one AssertionError.
+        '''
+
+        # Queue two failing literal predicates.
+        test_ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
+        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
+
+        # Assert one AssertionError is raised and the queue is cleared.
+        with pytest.raises(AssertionError) as caught:
+            session.verify(False, message='first').verify(False, message='second').run()
+        assert 'first' in str(caught.value)
+        assert 'second' in str(caught.value)
+        assert session.verifications == []
+
+    # * test: run_rejects_target_on_specialized_type
+    def test_run_rejects_target_on_specialized_type(self) -> None:
+        '''
+        Test run(target=...) raises when the bound tester is not generic.
+        '''
+
+        # Run with an explicit target on a specialized tester.
+        test_ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
+        session = TEST_SESSION_CONTEXT(tester_ctx=test_ctx)
+
+        # Assert a live target is rejected off the generic type.
+        with pytest.raises(ValueError) as caught:
+            session.run(target=object())
+        assert str(caught.value) == (
+            'run(target=...) is only valid when tester type is generic.'
+        )
+
+    # * test: run_source_is_not_a_hub
+    def test_run_source_is_not_a_hub(self) -> None:
+        '''
+        Test run and its module do not mention hub dispatch or TiferetAPIError.
+        '''
+
+        # Read the production module source.
+        source = Path(tester_contexts.__file__).read_text()
+
+        # Assert hub dispatch names are absent.
+        assert 'execute_feature' not in source
+        assert 'build_logger' not in source
+        assert 'handle_error' not in source
+        assert 'TiferetAPIError' not in source
+
+    # * test: service_event_run_goes_through_handle
+    def test_service_event_run_goes_through_handle(self) -> None:
+        '''
+        Test a service-event session run dispatches through handle.
+        '''
+
+        # Bind a GetError tester and wrap handle.
+        tester = get_error_tester()
+        test_ctx = tester_contexts.ServiceEventTesterContext.from_domain(tester)
+        calls = []
+        original = test_ctx.handle
+
+        def wrapped_handle(dependencies=None, **kwargs):
+            calls.append('handle')
+            return original(dependencies=dependencies, **kwargs)
+
+        test_ctx.handle = wrapped_handle
+        TEST_SESSION_CONTEXT(tester_ctx=test_ctx).run()
+
+        # Assert handle ran and execute_feature was not involved.
+        assert calls == ['handle']
+
+    # * test: get_error_not_found_propagates
+    def test_get_error_not_found_propagates(self) -> None:
+        '''
+        Test a raw TiferetError from GetError propagates from run.
+        '''
+
+        # Configure the service mock to miss.
+        tester = get_error_tester()
+        test_ctx = tester_contexts.ServiceEventTesterContext.from_domain(tester)
+        deps = test_ctx.mock_dependencies()
+        deps['error_service'].get.return_value = None
+        test_ctx.mock_dependencies = lambda: deps
+
+        # Assert run propagates the not-found error without wrapping.
+        with pytest.raises(TiferetError) as caught:
+            TEST_SESSION_CONTEXT(tester_ctx=test_ctx).run()
+        assert caught.value.error_code == ERROR_NOT_FOUND_ID
+
+# ** tester: test_variant_assertions
+class TestVariantAssertions:
+    '''
+    Tests for variant assertion methods and empty-list no-ops.
+    '''
+
+    # * test: empty_case_lists_are_no_ops
+    def test_empty_case_lists_are_no_ops(self) -> None:
+        '''
+        Test empty optional case lists do not raise.
+        '''
+
+        # Domain description cases default empty.
+        domain_ctx = tester_contexts.DomainTesterContext.from_domain(
+            error_message_tester(description_cases=[])
+        )
+        domain_ctx.assert_description()
+
+        # Aggregate set-attribute cases default empty.
+        aggregate_ctx = tester_contexts.AggregateTesterContext.from_domain(
+            error_aggregate_tester(set_attribute_params=[])
+        )
+        aggregate_ctx.assert_set_attribute()
+
+        # Event required-params default empty.
+        event_ctx = tester_contexts.DomainEventTesterContext.from_domain(
+            get_error_tester(required_params=[])
+        )
+        event_ctx.assert_missing_required_params()
+
+        # Not-found is a no-op when the contract is unset.
+        unset_ctx = tester_contexts.ServiceEventTesterContext.from_domain(
+            get_error_tester(service_attr=None, not_found_error_code=None)
+        )
+        unset_ctx.assert_not_found()
+
+    # * test: assert_description
+    def test_assert_description(self) -> None:
+        '''
+        Test assert_description uses (name, args, expected) cases.
+        '''
+
+        # Assert ErrorMessage.format() with empty args.
+        ctx = tester_contexts.DomainTesterContext.from_domain(error_message_tester())
+        ctx.assert_description()
+
+    # * test: assert_set_attribute_mutates_fresh_target
+    def test_assert_set_attribute_mutates_fresh_target(self) -> None:
+        '''
+        Test assert_set_attribute mutates a fresh aggregate, not self.domain.
+        '''
+
+        # Bind an aggregate tester and capture sample identity.
+        tester = error_aggregate_tester()
+        ctx = tester_contexts.AggregateTesterContext.from_domain(tester)
+        sample_id = id(ctx.domain.sample_data)
+        original_name = ctx.domain.sample_data['name']
+
+        # Assert mutations succeed and do not write back to the tester.
+        ctx.assert_set_attribute()
+        assert ctx.domain is tester
+        assert id(ctx.domain.sample_data) == sample_id
+        assert ctx.domain.sample_data['name'] == original_name
+        assert isinstance(ctx.domain, TESTER_OBJECT)
+        assert not isinstance(ctx.domain, ErrorAggregate)
+
+    # * test: assert_missing_required_params
+    def test_assert_missing_required_params(self) -> None:
+        '''
+        Test assert_missing_required_params against a local domain event.
+        '''
+
+        # Bind a tester pointing at the local event.
+        tester = TESTER_OBJECT(
+            type='domain_event',
+            id='domain_event.RequiredParamEvent',
+            module_path=RequiredParamEvent.__module__,
+            class_name='RequiredParamEvent',
+            required_params=['needed'],
+        )
+        ctx = tester_contexts.DomainEventTesterContext.from_domain(tester)
+        ctx.assert_missing_required_params()
+
+    # * test: assert_not_found
+    def test_assert_not_found(self) -> None:
+        '''
+        Test assert_not_found against GetError without pytest.raises in the context.
+        '''
+
+        # Assert the service-event not-found contract.
+        ctx = tester_contexts.ServiceEventTesterContext.from_domain(get_error_tester())
+        ctx.assert_not_found()
+
+# ** tester: test_add_default_testers
+class TestAddDefaultTesters:
+    '''
+    Tests for add_default_testers cache seeding.
+    '''
+
+    # * test: seeds_tester_object_instances
+    def test_seeds_tester_object_instances(self) -> None:
+        '''
+        Test add_default_testers seeds TesterObject instances under the prefix.
+        '''
+
+        # Wrap a cache builder with the default tester catalog.
+        @tester_contexts.add_default_testers(CORE_DEFAULT_TESTERS)
+        def build_cache(cache=None):
+            return CacheContext(cache)
+
+        # Assert seeded values are TesterObject instances under the prefix.
+        cache = build_cache()
+        seeded = cache.get(
+            'domain.ErrorMessage',
+            *tester_contexts.TESTER_CACHE_PREFIX,
+        )
+        assert isinstance(seeded, TESTER_OBJECT)
+        assert seeded.type == 'domain'
+        assert seeded.id == 'domain.ErrorMessage'
+        assert tester_contexts.TESTER_CACHE_PREFIX == ('app', 'testers')
+
+# ** tester: test_repo_tester_context
+class TestRepoTesterContext:
+    '''
+    Tests for RepoTesterContext registry, no-ops, and import law.
+    '''
+
+    # * test: omits_domain_type
+    def test_omits_domain_type(self) -> None:
+        '''
+        Test that RepoTesterContext omits domain_type from its own namespace.
+        '''
+
+        # Assert the variant does not re-register TesterObject.
+        assert 'domain_type' not in tester_contexts.RepoTesterContext.__dict__
+
+    # * test: for_domain_remains_tester_context
+    def test_for_domain_remains_tester_context(self) -> None:
+        '''
+        Test that BaseContext.for_domain(TesterObject) remains TesterContext.
+        '''
+
+        # Assert the master registry mapping is unchanged.
+        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
+
+    # * test: from_domain_binds_subclass
+    def test_from_domain_binds_subclass(self) -> None:
+        '''
+        Test that RepoTesterContext.from_domain binds that subclass.
+        '''
+
+        # Bind a repo tester through the variant and the registry.
+        tester = repo_tester()
+        bound = tester_contexts.RepoTesterContext.from_domain(tester)
+        master = BaseContext.from_domain(tester)
+
+        # Assert the variant binds while the registry stays on the master.
+        assert isinstance(bound, tester_contexts.RepoTesterContext)
+        assert bound.domain is tester
+        assert type(master) is TESTER_CONTEXT
+
+    # * test: empty_case_lists_are_no_ops
+    def test_empty_case_lists_are_no_ops(self) -> None:
+        '''
+        Test that empty repo case lists and unset aggregate_class_name are no-ops.
+        '''
+
+        # Bind a repo tester with empty optional fields.
+        ctx = tester_contexts.RepoTesterContext.from_domain(repo_tester())
+        ctx.assert_exists(None)
+        ctx.assert_get(None)
+        ctx.assert_list(None)
+        ctx.assert_delete(None)
+        ctx.assert_save(None)
+
+    # * test: module_import_law
+    def test_module_import_law(self) -> None:
+        '''
+        Test that tiferet/contexts/tester.py has no pytest or forbidden app imports.
+        '''
+
+        # Read the production module source.
+        source = Path(tester_contexts.__file__).read_text()
+
+        # Assert pytest and forbidden app packages are not imported.
+        assert 'import pytest' not in source
+        assert 'from ..repos' not in source
+        assert 'from ..mappers' not in source
+        assert 'from ..utils' not in source
+        assert 'from ..interfaces' not in source
+        assert 'from ..di' not in source
+        assert 'from ..blueprints' not in source
+
+# ** tester: test_context_tester_context
+class TestContextTesterContext:
+    '''
+    Tests for ContextTesterContext registry, no-ops, and assertions.
+    '''
+
+    # * test: omits_domain_type
+    def test_omits_domain_type(self) -> None:
+        '''
+        Test that ContextTesterContext omits domain_type from its own namespace.
+        '''
+
+        # Assert the variant does not re-register TesterObject.
+        assert 'domain_type' not in tester_contexts.ContextTesterContext.__dict__
+
+    # * test: registry_mappings_unchanged
+    def test_registry_mappings_unchanged(self) -> None:
+        '''
+        Test that TesterObject, Request, and AppSession registry mappings stay.
+        '''
+
+        # Assert master mappings and that BaseContext is not a registry value.
+        assert BaseContext.for_domain(TESTER_OBJECT) is TESTER_CONTEXT
+        assert BaseContext.for_domain(Request) is RequestContext
+        assert BaseContext.for_domain(AppSession) is AppSessionContext
+        assert BaseContext not in ContextMeta.registry.values()
+
+    # * test: from_domain_binds_subclass
+    def test_from_domain_binds_subclass(self) -> None:
+        '''
+        Test that ContextTesterContext.from_domain binds that subclass.
+        '''
+
+        # Bind a context tester through the variant and the registry.
+        tester = context_tester()
+        bound = tester_contexts.ContextTesterContext.from_domain(tester)
+        master = BaseContext.from_domain(tester)
+
+        # Assert the variant binds while the registry stays on the master.
+        assert isinstance(bound, tester_contexts.ContextTesterContext)
+        assert bound.domain is tester
+        assert type(master) is TESTER_CONTEXT
+
+    # * test: empty_case_lists_are_no_ops
+    def test_empty_case_lists_are_no_ops(self) -> None:
+        '''
+        Test that empty from_domain / domain_type / for_domain case lists no-op.
+        '''
+
+        # Bind a context tester with empty optional case lists.
+        ctx = tester_contexts.ContextTesterContext.from_domain(
+            context_tester(
+                from_domain_cases=[],
+                domain_type_cases=[],
+                for_domain_cases=[],
+            )
+        )
+        ctx.assert_from_domain()
+        ctx.assert_domain_type()
+        ctx.assert_for_domain()
+
+    # * test: declaring_request_context_cases
+    def test_declaring_request_context_cases(self) -> None:
+        '''
+        Test catalog-row cases against RequestContext pass the three assertions.
+        '''
+
+        # Bind the RequestContext catalog tester and run the three asserts.
+        ctx = tester_contexts.ContextTesterContext.from_domain(context_tester())
+        ctx.assert_from_domain()
+        ctx.assert_domain_type()
+        ctx.assert_for_domain()
+
+    # * test: omitting_cli_session_context_cases
+    def test_omitting_cli_session_context_cases(self) -> None:
+        '''
+        Test an omitting case against CliSessionContext without hub kwargs.
+        '''
+
+        # Bind a tester targeting CliSessionContext, which omits domain_type.
+        tester = TESTER_OBJECT(
+            type='context',
+            id='context.CliSessionContext',
+            module_path=CliSessionContext.__module__,
+            class_name='CliSessionContext',
+            domain_module_path='tiferet.domain.app',
+            domain_class_name='AppSession',
+            domain_type_cases=[
+                {
+                    'declares': False,
+                },
+            ],
+            for_domain_cases=[
+                {
+                    'domain_module_path': 'tiferet.domain.app',
+                    'domain_class_name': 'AppSession',
+                    'context_module_path': 'tiferet.contexts.app',
+                    'context_class_name': 'AppSessionContext',
+                },
+                {
+                    'domain_module_path': 'tiferet.domain.tester',
+                    'domain_class_name': 'TesterObject',
+                    'context_module_path': 'tiferet.contexts.tester',
+                    'context_class_name': 'TesterContext',
+                },
+            ],
+        )
+        ctx = tester_contexts.ContextTesterContext.from_domain(tester)
+
+        # Assert omission and registry mappings without hub from_domain kwargs.
+        ctx.assert_domain_type()
+        ctx.assert_for_domain()
+        assert 'domain_type' not in CliSessionContext.__dict__

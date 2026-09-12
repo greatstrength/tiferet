@@ -5,9 +5,9 @@
 # ** app
 from tiferet.testing.hooks import register_event_hooks
 
-# *** hooks
+# *** functions
 
-# ** hook: pytest_generate_tests
+# ** function: pytest_generate_tests
 def pytest_generate_tests(metafunc):
     '''
     Dynamically parametrize test_missing_required_params for DomainEventTestBase subclasses.

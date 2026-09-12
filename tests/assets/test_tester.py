@@ -48,13 +48,13 @@ FORBIDDEN_CONFIG_NAMES = [
 
 # *** testers
 
-# ** tester: TestCreateDefaultTesterData
+# ** tester: test_create_default_tester_data
 class TestCreateDefaultTesterData:
     '''
     Tests for create_default_tester_data.
     '''
 
-    # * method: test_returns_required_keys_without_id
+    # * test: returns_required_keys_without_id
     def test_returns_required_keys_without_id(self) -> None:
         '''
         Test that the factory returns the required keys and does not embed id.
@@ -97,7 +97,7 @@ class TestCreateDefaultTesterData:
             ('format', (), 'An error occurred.'),
         ]
 
-    # * method: test_defined_on_assets_core
+    # * test: defined_on_assets_core
     def test_defined_on_assets_core(self) -> None:
         '''
         Test that the factory lives on assets.core and is not defined in assets.tester.
@@ -110,13 +110,13 @@ class TestCreateDefaultTesterData:
         tester_source = Path(tester_assets.__file__).read_text()
         assert 'def create_default_tester_data' not in tester_source
 
-# ** tester: TestCoreDefaultTesters
+# ** tester: test_core_default_testers
 class TestCoreDefaultTesters:
     '''
     Tests for CORE_DEFAULT_TESTERS.
     '''
 
-    # * method: test_has_exactly_four_specialized_rows
+    # * test: has_exactly_four_specialized_rows
     def test_has_exactly_four_specialized_rows(self) -> None:
         '''
         Test that the catalog keys are the specialized, repo, and context rows.
@@ -125,7 +125,7 @@ class TestCoreDefaultTesters:
         # Assert the catalog keys match the expected tester ids.
         assert list(tester_assets.CORE_DEFAULT_TESTERS) == EXPECTED_TESTER_IDS
 
-    # * method: test_rows_validate_as_tester_object
+    # * test: rows_validate_as_tester_object
     def test_rows_validate_as_tester_object(self) -> None:
         '''
         Test that each catalog row model_validates as TesterObject when id is the key.
@@ -142,7 +142,7 @@ class TestCoreDefaultTesters:
             assert tester.type == EXPECTED_TESTER_TYPES[tester_id]
             assert 'id' not in tester_data
 
-    # * method: test_no_repo_context_or_generic_rows
+    # * test: no_repo_context_or_generic_rows
     def test_no_repo_context_or_generic_rows(self) -> None:
         '''
         Test that the catalog has no generic rows.
@@ -152,13 +152,13 @@ class TestCoreDefaultTesters:
         for tester_data in tester_assets.CORE_DEFAULT_TESTERS.values():
             assert tester_data['type'] != 'generic'
 
-# ** tester: TestCoreDefaultTestersRepoRow
+# ** tester: test_core_default_testers_repo_row
 class TestCoreDefaultTestersRepoRow:
     '''
     Tests for the CORE_DEFAULT_TESTERS repo.ErrorConfigRepository row.
     '''
 
-    # * method: test_exactly_one_repo_row
+    # * test: exactly_one_repo_row
     def test_exactly_one_repo_row(self) -> None:
         '''
         Test that the catalog has exactly one repo row keyed repo.ErrorConfigRepository.
@@ -176,7 +176,7 @@ class TestCoreDefaultTestersRepoRow:
             tester_assets.REPO_ERROR_CONFIG_REPOSITORY_TESTER_ID,
         ]
 
-    # * method: test_row_model_validates
+    # * test: row_model_validates
     def test_row_model_validates(self) -> None:
         '''
         Test that the repo catalog row model_validates as TesterObject.
@@ -193,7 +193,7 @@ class TestCoreDefaultTestersRepoRow:
         assert tester.config_parameter == 'error_config'
         assert tester.aggregate_class_name == 'ErrorAggregate'
 
-    # * method: test_assets_module_import_law
+    # * test: assets_module_import_law
     def test_assets_module_import_law(self) -> None:
         '''
         Test that assets/tester.py has no pytest and no live repo/mapper imports.
@@ -209,13 +209,13 @@ class TestCoreDefaultTestersRepoRow:
         assert 'from ..repos' not in source
         assert 'from ..mappers' not in source
 
-# ** tester: TestCoreDefaultTestersContextRequestContext
+# ** tester: test_core_default_testers_context_request_context
 class TestCoreDefaultTestersContextRequestContext:
     '''
     Tests for the CORE_DEFAULT_TESTERS context.RequestContext row.
     '''
 
-    # * method: test_exactly_one_context_row
+    # * test: exactly_one_context_row
     def test_exactly_one_context_row(self) -> None:
         '''
         Test that the catalog has exactly one context row keyed context.RequestContext.
@@ -238,7 +238,7 @@ class TestCoreDefaultTestersContextRequestContext:
             assert 'AppSessionContext' not in tester_id
             assert 'CliSessionContext' not in tester_id
 
-    # * method: test_row_model_validates
+    # * test: row_model_validates
     def test_row_model_validates(self) -> None:
         '''
         Test that the context catalog row model_validates as TesterObject.
@@ -255,7 +255,7 @@ class TestCoreDefaultTestersContextRequestContext:
         assert tester.domain_class_name == 'Request'
         assert tester.domain_module_path == 'tiferet.domain.request'
 
-    # * method: test_assets_module_has_no_live_context_imports
+    # * test: assets_module_has_no_live_context_imports
     def test_assets_module_has_no_live_context_imports(self) -> None:
         '''
         Test that assets/tester.py imports no live context or domain class.
@@ -270,13 +270,13 @@ class TestCoreDefaultTestersContextRequestContext:
         assert 'from ..contexts' not in source
         assert 'from ..domain' not in source
 
-# ** tester: TestCoreDefaultTesterSessions
+# ** tester: test_core_default_tester_sessions
 class TestCoreDefaultTesterSessions:
     '''
     Tests for CORE_DEFAULT_TESTER_SESSIONS.
     '''
 
-    # * method: test_tester_session_catalog
+    # * test: tester_session_catalog
     def test_tester_session_catalog(self) -> None:
         '''
         Test the tester-scoped app session id, catalog, and session payload.
@@ -294,13 +294,13 @@ class TestCoreDefaultTesterSessions:
         assert 'tester_service' not in session_data
         assert 'tester_config' not in session_data
 
-# ** tester: TestAssetsPackageExports
+# ** tester: test_assets_package_exports
 class TestAssetsPackageExports:
     '''
     Tests that the assets package root does not export tester catalog symbols.
     '''
 
-    # * method: test_package_root_unchanged
+    # * test: package_root_unchanged
     def test_package_root_unchanged(self) -> None:
         '''
         Test that tester is not in assets __all__ and the factory is not a package attribute.
@@ -316,7 +316,7 @@ class TestAssetsPackageExports:
         # Assert the factory remains importable from assets.core.
         assert assets_core.create_default_tester_data is create_default_tester_data
 
-    # * method: test_config_stack_remains_absent
+    # * test: config_stack_remains_absent
     def test_config_stack_remains_absent(self) -> None:
         '''
         Test that tester config-stack constants remain absent.
