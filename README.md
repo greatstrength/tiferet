@@ -15,7 +15,7 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.1.0**
+Current status: **2.1.1**
 Unit tests use `@use_tester` — see [Testing Harness](docs/core/testing.md).
 
 ## Quick Start – Add two numbers in ~3 minutes
