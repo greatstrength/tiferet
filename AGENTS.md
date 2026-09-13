@@ -272,7 +272,7 @@ Key patterns:
 - Constructor param convention: `<domain>_config` (e.g., `error_config`, `app_config`).
 - Reads use `self._load(start_node=..., data_factory=...)` and `model_validate` to construct TransferObjects; writes use `TransferObject.from_model` → `to_primitive(self.default_role)` → `self._save(data=...)`.
 - Delete operations are always idempotent.
-- Tests are integration tests using `tmp_path` fixtures with real temporary YAML files.
+- Tests live in `tests/repos/` and use `@use_tester(type='repo')` with `tmp_path` seed fixtures and `test_ctx.make_target(config_file=...)`.
 
 See [docs/core/repos.md](docs/core/repos.md) for structured code design and [docs/guides/repos.md](docs/guides/repos.md) for cross-cutting strategies.
 
@@ -308,7 +308,7 @@ Applications are configured in a consolidated root `config.yml` file:
 - **Framework:** `pytest` (with `pytest_env` for environment variables).
 - **Test location:** `tests/<component>/` at the repository root (e.g., `tests/domain/`, `tests/events/`, `tests/mappers/`).
 - **Run tests:** `pytest tests/` (or plain `pytest` per `pyproject.toml`) from project root (with venv activated).
-- **Unit tests:** `@use_tester` (`tiferet.blueprints.tester`, exported from `tiferet`). One `TesterObject`; `TesterContext` plus omitting-`domain_type` variants; `TestSessionContext` is a `RequestContext`. Inject `test_ctx` and `session` by parameter name. Types: `domain` | `aggregate` | `transfer_object` | `domain_event` | `service_event` | `generic` | `repo` | `context`. Test-module artifacts are three sibling kinds after preamble: `# *** fixtures` / `# *** tests` / `# *** testers` (omit empty). Testers compose fixtures and tests; they do not replace them. Incoming RFP-015 / #1121 keeps all three.
+- **Unit tests:** `@use_tester` (`tiferet.blueprints.tester`, exported from `tiferet`). One `TesterObject`; `TesterContext` plus omitting-`domain_type` variants; `TestSessionContext` is a `RequestContext`. Inject `test_ctx` and `session` by parameter name. Types: `domain` | `aggregate` | `transfer_object` | `domain_event` | `service_event` | `generic` | `repo` | `context`. Test-module artifacts are three sibling kinds after preamble: `# *** fixtures` / `# *** tests` / `# *** testers` (omit empty). Testers compose fixtures and tests; they do not replace them.
 - **Leftover:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) still exists. Do not delete it. Do not migrate `tests/events` or `tests/mappers` in this cycle.
 - **Guide:** [docs/core/testing.md](docs/core/testing.md).
 - **Mocking:** Use `unittest.mock`. Mock injected services. Verify calls and return values.

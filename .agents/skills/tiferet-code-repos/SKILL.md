@@ -75,7 +75,7 @@ full_data.get('errors', {}).pop(id, None)
 self._save(full_data)
 ```
 
-**Testing:** Integration tests only — use `tmp_path` fixtures with real temp YAML/JSON files. Use `# ** test_int: <name>` labels for integration test cases.
+**Testing:** File-backed tests in `tests/repos/` — `tmp_path` seed fixtures write real YAML/JSON; `@use_tester(type='repo', target_cls=<Repo>, config_parameter='<domain>_config')` constructs with `test_ctx.make_target(config_file=...)` and calls `assert_exists` / `assert_get` / `assert_list` / `assert_save` / `assert_delete`. Do not add a module-level `*_config_repo` fixture. Do not use `session.run()` for CRUD. Leftover free functions stay under `# *** tests` (e.g. `pytest.raises(ServiceError)` for an unsupported extension). Grammar: `# *** fixtures` → `# *** tests` (omit if none) → `# *** testers` / `# ** tester: test_<snake>` / `# * test:`.
 
 ## Example
 

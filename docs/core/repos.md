@@ -335,7 +335,7 @@ services:
 
 ### 3. Write Tests
 
-Create tests in `tests/repos/test_<domain>.py` using `tmp_path` fixtures with real temporary configuration files.
+Create tests in `tests/repos/test_<domain>.py`. Seed YAML/JSON with `tmp_path` fixtures, then bind a `@use_tester(type='repo')` class that constructs via `test_ctx.make_target(config_file=...)`.
 
 ### Best Practices
 - Use artifact comments consistently (`# *** repos`, `# ** repo:`, `# *`).
@@ -348,35 +348,51 @@ Create tests in `tests/repos/test_<domain>.py` using `tmp_path` fixtures with re
 
 ## Testing Repositories
 
-Repository tests are **integration tests** that operate against real temporary configuration files, not mocks. This is because the repository's value lies in the specific interaction between the loader and the transfer objects.
+Repository tests in `tests/repos/` are **file-backed integration tests**. They write real YAML/JSON via `tmp_path`, then construct the repository with `test_ctx.make_target(config_file=...)`. They do not mock the loader, and they do not drive CRUD through `session.run()`.
 
-**Structure:**
-- `# *** constants` — sample data dictionaries.
-- `# *** fixtures` / `# ** fixture: <name>` — `tmp_path`-based configuration file and repository instance.
-- `# *** tests` / `# ** test_int: <name>` — integration test cases.
+**Structure** after preamble (`# *** imports` / `# *** constants`):
+- `# *** fixtures` / `# ** fixture: <name>` — `tmp_path` seed fixtures that write sample constants to a temp file. Do not construct the repository in a module-level `*_config_repo` fixture.
+- `# *** tests` / `# ** test: <name>` — leftover module-level functions only (omit if none). `tests/repos/test_core.py` keeps `pytest.raises(ServiceError)` for an unsupported extension here; `_get_loader` `isinstance` stays in `tests/` (contexts must not import `utils`).
+- `# *** testers` / `# ** tester: test_<snake>` — `class Test*` with `@use_tester(type='repo', target_cls=<Repo>, config_parameter='<domain>_config', ...)`. Members are `# * test:` / `# * fixture:`.
 
-**Example** — Error repository test fixture:
+CRUD cases live on the `TesterObject` (`exists_cases`, `get_cases`, `list_ids`, `delete_ids`, `aggregate_cls` / `aggregate_sample_data`). Methods call `test_ctx.assert_exists` / `assert_get` / `assert_list` / `assert_save` / `assert_delete` after `make_target`. Empty CRUD lists are no-ops (DI/logging binders). Domain-specific extras (feature `list(group_id=)`, CLI parent arguments) stay bespoke `# * test:` on the same class.
+
+**Example** — Error repository tester:
 ```python
-# ** fixture: error_config
+# ** fixture: error_yaml_file
 @pytest.fixture
-def error_config(tmp_path) -> str:
+def error_yaml_file(tmp_path) -> str:
     file_path = tmp_path / 'test_error.yaml'
     with open(file_path, 'w', encoding='utf-8') as f:
         yaml.safe_dump(ERROR_DATA, f)
     return str(file_path)
 
-# ** fixture: error_config_repo
-@pytest.fixture
-def error_config_repo(error_config: str) -> ErrorConfigRepository:
-    return ErrorConfigRepository(error_config)
+# *** testers
+
+# ** tester: test_error_config_repository
+@use_tester(
+    type='repo',
+    target_cls=ErrorConfigRepository,
+    config_parameter='error_config',
+    sample_data={},
+    equality_fields=['id', 'name'],
+    aggregate_cls=ErrorAggregate,
+    aggregate_sample_data={'id': 'NEW_ERROR_CODE', 'name': 'New Error'},
+    exists_cases=[('TEST_ERROR_CODE', True), ('MISSING_ERROR_CODE', False)],
+    get_cases=[('TEST_ERROR_CODE', {'id': 'TEST_ERROR_CODE', 'name': 'Test Error'}), ('MISSING_ERROR_CODE', None)],
+    list_ids=['TEST_ERROR_CODE'],
+    delete_ids=['TEST_FORMATTED_ERROR_CODE'],
+)
+class TestErrorConfigRepository:
+
+    # * test: exists
+    def test_exists(self, test_ctx, error_yaml_file: str) -> None:
+        repo = test_ctx.make_target(config_file=error_yaml_file)
+        test_ctx.assert_exists(repo)
 ```
 
-Standard test cases cover:
-- **exists** — positive and negative lookups.
-- **get** — retrieval by ID; `None` for missing entries.
-- **list** — full enumeration with count and field assertions.
-- **save** — round-trip: save then retrieve and verify fields.
-- **delete** — delete then confirm `exists` returns `False`; idempotent delete of non-existent IDs.
+Worked tree: `tests/repos/test_{error,feature,app,cli}.py` (five-method CRUD), `test_{di,logging}.py` (empty CRUD lists plus bespoke methods), `test_core.py` (unsupported extension).
+See [docs/core/testing.md](testing.md) for `@use_tester` and [Test-Module Artifact Grammar](code_style.md#test-module-artifact-grammar).
 
 ## Package Layout
 
@@ -397,4 +413,4 @@ Tests live in `tests/repos/`.
 
 Repositories provide the concrete data-access layer for the Tiferet framework, implementing Service interfaces with utility-backed persistence. Their structured design ensures consistency, testability, and clean DI resolution. Repositories are never exported directly — consuming code depends only on the abstract Service interface.
 
-Explore source in `tiferet/repos/` and tests in `tiferet/repos/tests/` for implementation details.
+Explore source in `tiferet/repos/` and tests in `tests/repos/` for implementation details.
