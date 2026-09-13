@@ -218,27 +218,40 @@ Use the composite pattern when the sections are tightly coupled and always loade
 
 ## Testing Repositories
 
-Repository tests use `pytest` with temporary YAML files created via `tmp_path`:
+Repository tests in `tests/repos/` seed real YAML/JSON with `tmp_path` fixtures, then bind `@use_tester(type='repo')` testers. Construction is `test_ctx.make_target(config_file=...)`, not a module-level repository fixture and not `session.run()`.
 
 ```python
+# ** fixture: error_yaml_file
 @pytest.fixture
-def config_file(tmp_path) -> str:
-    file_path = tmp_path / 'test_config.yaml'
+def error_yaml_file(tmp_path) -> str:
+    file_path = tmp_path / 'test_error.yaml'
     with open(file_path, 'w', encoding='utf-8') as f:
-        yaml.dump(SAMPLE_DATA, f)
+        yaml.safe_dump(ERROR_DATA, f)
     return str(file_path)
+
+# *** testers
+
+# ** tester: test_error_config_repository
+@use_tester(
+    type='repo',
+    target_cls=ErrorConfigRepository,
+    config_parameter='error_config',
+    sample_data={},
+    equality_fields=['id', 'name'],
+    aggregate_cls=ErrorAggregate,
+    ...
+)
+class TestErrorConfigRepository:
+
+    # * test: exists
+    def test_exists(self, test_ctx, error_yaml_file: str) -> None:
+        repo = test_ctx.make_target(config_file=error_yaml_file)
+        test_ctx.assert_exists(repo)
 ```
 
-Standard test cases cover:
+Standard coverage uses `assert_exists` / `assert_get` / `assert_list` / `assert_save` / `assert_delete`. Empty CRUD lists are no-ops for multi-section binders (DI/logging); those extra methods stay bespoke `# * test:`. Unsupported-extension coverage stays `pytest.raises(ServiceError)` in `tests/repos/test_core.py`.
 
-- **exists** — positive and negative lookups.
-- **get** — retrieval by ID; `None` for missing entries.
-- **list / list_all** — full enumeration with count and field assertions.
-- **save** — round-trip: save then retrieve and verify fields.
-- **delete** — delete then confirm `exists` returns `False`.
-- **save_constants** (where applicable) — merge semantics and overwrite behavior.
-
-Tests operate against real temporary files, not mocks, because the repository's value is in the specific interaction between the utility and the transfer objects.
+Full grammar and worked tree: [docs/core/repos.md](../core/repos.md#testing-repositories) and [docs/core/testing.md](../core/testing.md).
 
 ## Creating a New Repository
 
@@ -247,7 +260,7 @@ Tests operate against real temporary files, not mocks, because the repository's 
    - Extend the Service interface together with `ConfigurationRepository`.
    - Forward the `<domain>_config` path to the `ConfigurationRepository` base in `__init__`.
    - Implement each method using the read/write patterns above.
-3. **Write tests** in `tests/repos/test_<domain>.py` with sample configuration data and `tmp_path` fixtures.
+3. **Write tests** in `tests/repos/test_<domain>.py`: `tmp_path` seed fixtures plus `@use_tester(type='repo')`.
 4. **Register via DI** — add the repository to the DI configuration file with `module_path` and `class_name`. No `__init__.py` export needed.
 
 ## Related Documentation
