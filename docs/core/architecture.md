@@ -22,7 +22,7 @@ Four layers hold ten pattern cores — the packages. An application extends thos
 The layers are:
 
 - **Decision support** — `assets`, `blueprints`, `contexts`. Catalogs, composition, and the live session graph.
-- **Policy** — `domain`, `di`, `events`. Nouns, resolution, and units of work.
+- **Policy** — `domain`, `di`, `events`. The noun, their units of work, and how they resolve.
 - **Potentials** — `mappers`, `interfaces`, `utils`. Mutation and representation, contracts, and substrate capability.
 - **Operations** — `repos`. Persistence that implements a contract and is never imported.
 
@@ -49,7 +49,18 @@ Infrastructure verifies **shape** — names, flags, file structure, constructor 
 
 ## The ten patterns
 
-Each entry states the job, the imports that follow from it, and the constraint the pattern exists to enforce.
+Each entry states the job, the imports that follow from it, and the constraint the pattern exists to enforce. The package chapters are the full write-ups:
+
+- [assets.md](assets.md) — bootstrap primitives, no inbound edges
+- [blueprints.md](blueprints.md) — composition; handler closures that stay resident
+- [contexts.md](contexts.md) — live session graph; runtime handler hub
+- [domain.md](domain.md) — the noun that will not mutate itself
+- [di.md](di.md) — rules of resolution for dialect services
+- [events.md](events.md) — the unit of work
+- [mappers.md](mappers.md) — mutation and representation
+- [interfaces.md](interfaces.md) — the enduring contract
+- [utils.md](utils.md) — substrate capability, physical or computational
+- [repos.md](repos.md) — persistence; never imported, never exported
 
 ### Decision support
 
@@ -87,7 +98,7 @@ The session context is a **runtime handler hub**. It sequences injected callable
 
 ### Policy
 
-Policy names what the system is allowed to mean: the noun, the resolution of a declared id, and the unit of work.
+Policy names the noun, their units of work, and how they resolve.
 
 #### `domain`
 
@@ -99,7 +110,7 @@ The noun that will not change itself. Domain objects house data and offer read-o
 
 #### `di`
 
-Resolution: a declared service id plus flags becomes a live instance. `di` does not decide what the work is.
+Services and utilities belong to the dialect. `di` holds the rules of their resolution: a declared service id plus flags becomes a live instance. That is why `di` sits in policy. It does not decide what the work is, and it does not implement a dialect service.
 
 - **Legal `# ** app`:** `domain`; `interfaces` (including `ServiceError`).
 - **Illegal:** `assets`; `events`; `repos`; `blueprints`; `contexts`; `mappers`; `utils`.
@@ -113,7 +124,7 @@ The unit of work. An event commands, executes, and returns a noun. It is the onl
 
 - **Legal `# ** app`:** `assets`, `domain`, `mappers`, `utils`, `interfaces`.
 - **Illegal:** `di`, `repos`, `contexts`, `blueprints`. Inbound edges come from `assets`, `blueprints` (bootstrap), and `contexts` (client); `di` does not import events.
-- **Constraint:** `execute` returns a domain model when one exists, otherwise anything it can legally reach beneath it — an aggregate, a transfer object, a util result, or an interface-shaped value. Never a context, a blueprint, or a repo. Error constants are `a.<submodule>.*` (`a.error`, `a.app`, `a.feat`, `a.cli`, `a.logging`), never `a.const`.
+- **Constraint:** `execute` returns a domain model when one exists, otherwise anything it can legally reach beneath it — an aggregate, a transfer object, a util result, or an interface-shaped value. Never a context, a blueprint, or a repo. Error constants are `a.<submodule>.*` (`a.error`, `a.app`, `a.feat`, `a.cli`, `a.logging`).
 
 Without events there is nothing for a feature to wire. A consumer's first act after configuration is writing an `execute`.
 
@@ -225,18 +236,5 @@ This chapter states the layers and the pattern cores. It does not show how to bu
 Composition and the live session graph are specified in [blueprints.md](blueprints.md) and [contexts.md](contexts.md). This chapter does not walk the call tree.
 
 The session context is a handler hub. It sequences injected callables whose arity is that of the context type. The event remains the unit of work. A feature step names a service id and receives a live operator; provenance (bootstrap catalog, session-scoped service, feature-level registry) is not visible at the call site.
-
-## Pattern chapters
-
-- [assets.md](assets.md) — bootstrap primitives, no inbound edges
-- [blueprints.md](blueprints.md) — composition; handler closures that stay resident
-- [contexts.md](contexts.md) — live session graph; runtime handler hub
-- [di.md](di.md) — resolution of a declared id
-- [domain.md](domain.md) — the noun that will not mutate itself
-- [events.md](events.md) — the unit of work
-- [mappers.md](mappers.md) — mutation and representation
-- [interfaces.md](interfaces.md) — the enduring contract
-- [utils.md](utils.md) — substrate capability, physical or computational
-- [repos.md](repos.md) — persistence; never imported, never exported
 
 Style and annotation grammar live in [code_style.md](code_style.md). Per-application distillation lives in `docs/guides/` and is not this constitution.
