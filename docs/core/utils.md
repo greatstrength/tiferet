@@ -1,124 +1,43 @@
 # Utilities in Tiferet
 
-**Project:** Tiferet Framework  
-**Repository:** https://github.com/greatstrength/tiferet  
+**Project:** Tiferet Framework
+**Repository:** https://github.com/greatstrength/tiferet
 
-## Overview
+Foundation is the capability the rest of the system stands on — physical or computational. Utilities are that foundation. That position is **Yesod**. See [architecture.md](architecture.md).
 
-Utilities are a core component of the Tiferet framework, providing concrete infrastructure implementations that satisfy the **Services** (unified vertical contracts) defined in `tiferet/interfaces/`. They form the infrastructure layer that bridges abstract Service contracts — consumed by domain events and contexts — with underlying repeatable processes, whether those processes involve file system I/O, database access, computational algorithms, or external system integrations.
+Legal `# ** app` imports: `interfaces` (including `ServiceError`); `mappers`; sibling utils. Used by `events` (direct or via an interface), `repos` (loaders), and `mappers` only as a runtime visitor callable. Contexts and blueprints do not import this package.
 
-The utility pattern encapsulates **any reusable infrastructure concern** behind a consistent, injectable, and testable Service contract. While the current `tiferet/utils/` package contains file and data access utilities (YAML, JSON, CSV, SQLite), the architectural role extends to computational infrastructure as well — sorting algorithms, heuristics, AI model invocations, embedding pipelines, or any other repeatable process that domain events should consume without coupling to implementation details.
+## Two axes, not two kinds
 
-This document describes the structure, design principles, and best practices for writing and extending utilities, adhering to Tiferet's structured code style ([docs/core/code_style.md](code_style.md)).
+The natural way to describe this package is as two kinds of thing — service-backed physical infrastructure on one side, raw computational helpers on the other. That description is wrong, and it is worth dismantling before anything else, because it invites people to place a util by asking what it is made of.
 
-## What is a Utility?
+The two questions are **independent axes**:
 
-A **Utility** in Tiferet is a concrete class that implements one or more Services from `tiferet/interfaces/` and encapsulates a repeatable infrastructure process. Key characteristics:
+1. **Does it carry a Netzach contract?** Two conditions, both required: the computation is genuinely *extensible* — a second implementation is plausible, not hypothetical — and the capability must be *reachable by a feature step*, since only a declared service id can be resolved into a workflow.
+2. **Is it physical or computational?** A separate question that does not bear on the first at all.
 
-- Implements a Service contract (e.g., `FileLoader` implements `FileService`, `SqliteClient` implements `SqliteService`).
-- Encapsulates infrastructure concerns — both **physical** (file I/O, database connections, network calls) and **computational** (algorithms, heuristics, model inference, data transformation pipelines).
-- Uses `ServiceError.raise_for(self, ...)` from `tiferet/interfaces/core.py` for structured error handling with framework-defined error codes.
-- Provides both instance methods (for stateful or lifecycle-managed operations) and static convenience methods (for one-shot operations).
-- Is exported from `tiferet/utils/__init__.py` with both full names and shorthand aliases (e.g., `FileLoader` / `File`, `YamlLoader` / `Yaml`).
+The off-diagonal cell is occupied, which is what settles it. `LoggingMiddleware`, `CacheMiddleware`, and `TimingMiddleware` are computational rather than physical, and they are service-backed via `MiddlewareService` — precisely because middleware is extensible by nature and has to be wired in by declaration. A computational utility absolutely may be a service. A physical one failing either condition would be imported and called directly.
 
-### Physical vs. Computational Infrastructure
+Notice that the contract decision here is just Netzach's rejection criterion applied one position down. "Perceived, not invented" is the same test: a contract is warranted when the capability genuinely admits a second implementor, and an interface introduced for symmetry is a false abstraction. The reachability condition ties to Chesed, since being reachable means having been declared into a resolution stream. The `utils`/`interfaces` boundary is not a third rule to memorize — it is two existing rules meeting. See [interfaces.md](interfaces.md) and [di.md](di.md).
 
-Utilities serve two complementary infrastructure roles:
+One honest consequence: **there is no contract-free util in the framework at all.** `FileLoader` itself implements `FileService`, so every file-backed util inherits a contract transitively — `yaml`, `json`, `toml`, `csv`, `csvdict`. `SqliteClient` carries two. The three middlewares carry `MiddlewareService`. The contract-free container is a real affordance with zero in-framework instances, so illustrate it from a dialect rather than presenting it as a framework fact. Stated positively: for every capability the framework placed here, both conditions were satisfied — which is exactly why the taxonomy looked like a kind rather than a test.
 
-- **Physical infrastructure**: File system access, database connections, network clients, external API wrappers. These utilities manage resource lifecycle (open/close, connect/disconnect) and typically use the context manager protocol.
-- **Computational infrastructure**: Sorting algorithms, search heuristics, AI/ML model invocations, embedding generation, data transformation pipelines. These utilities encapsulate repeatable computational processes that domain events consume via injected Services, keeping domain logic decoupled from algorithmic implementation.
+## Life in the system
 
-In both cases, the pattern is identical: a utility provides a concrete, reusable implementation behind a Service contract, making it injectable, testable, and swappable.
+A util encapsulates a repeatable process. File I/O, a SQLite connection, a YAML load, a sort, an embedding call — the domain event should not know which.
 
-### Role in Runtime
+Physical infrastructure usually owns a resource and therefore implements the context-manager protocol. `FileLoader` opens and closes a stream. `SqliteClient` commits on success and rolls back on exception. Computational infrastructure is often stateless and needs no `__enter__`. The pattern of the class does not change: artifact comments, structured errors, a focused job.
 
-- **Repositories and proxies** are the primary consumers of physical infrastructure utilities (e.g., `FeatureConfigRepository` uses `YamlLoader`).
-- **Domain events** consume utilities indirectly through injected Services, keeping domain logic decoupled from infrastructure.
-- **Contexts** may use utilities directly for low-level operations when a full repository is unnecessary.
-- **Application code** (scripts, CLI handlers) may use utilities directly for quick operations outside the DDD layer.
+Errors are `ServiceError.raise_for(self, ...)`, not raw exceptions and not `TiferetError` imported from assets. Yesod talks in contract failures. The event above it turns those into named domain outcomes when the production requires it.
 
-## The FileLoader Base Class
+Repos are the primary consumers of loaders. `FeatureConfigRepository` uses `YamlLoader` through `ConfigurationRepository`; it does not reimplement `safe_load`. Events consume Service-backed utils through the injected interface, and raw utils by import. Mappers never import this package. If an aggregate needs a visitor, it takes a `Callable` and the util arrives at runtime.
 
-`FileLoader` implements `FileService` and provides the foundation for all file-based utilities:
+`LoggingMiddleware` and `TimingMiddleware` are Yesod wrapped around Tiferet: they implement `MiddlewareService` and take a `logger_id`. They do not become events.
 
-- **Path management** — accepts `str` or `pathlib.Path`, stores as `Path`.
-- **Mode and encoding validation** — `verify_mode()` and `verify_encoding()` with structured error handling.
-- **File existence checks** — `verify_file()` (static) adapts behavior to read vs. write modes.
-- **Context manager protocol** — `__enter__` opens the file stream, `__exit__` closes it.
-- **Already-open guard** — prevents double-open via `open_file()`.
+## The FileLoader base
 
-Format-specific loaders (`YamlLoader`, `JsonLoader`, `CsvLoader`, `SqliteClient`) extend `FileLoader` and override or add methods as needed.
+`FileLoader` implements `FileService` and is the parent of the file-shaped utils. Path is stored as `pathlib.Path`. Mode and encoding are verified. `verify_file` adapts existence checks to read versus write. `__enter__` opens; `__exit__` closes. Double-open is guarded.
 
-## Current Utility Classes
-
-### FileLoader (alias: File)
-
-Base utility implementing `FileService`. Manages file stream lifecycle with validation and context-manager support.
-
-- `open_file()` / `close_file()` — stream lifecycle.
-- `verify_file(path, mode)` (static) — existence checks adapted to mode.
-- `verify_mode()` / `verify_encoding()` — validation.
-
-### YamlLoader (alias: Yaml)
-
-Extends `FileLoader` for YAML file operations using PyYAML's `safe_load` and `safe_dump`.
-
-- Overrides `verify_file` to enforce `.yaml`/`.yml` extension.
-- `load(start_node, data_factory)` with node navigation and transformation.
-- `save(data, data_path)` with path-based partial updates using cached content.
-- Caches existing content in write mode on `__enter__`.
-
-### JsonLoader (alias: Json)
-
-Extends `FileLoader` for JSON operations using the built-in `json` module.
-
-- `verify_json_file()` (static) — enforces `.json` extension with optional fallback path.
-- `load(start_node, data_factory)` — parse, transform, return.
-- `save(data, data_path)` — serialize with indent=2.
-- `parse_json_path(data, path)` (static) — dot-notation navigation with array index support.
-
-### CsvLoader (alias: Csv)
-
-Extends `FileLoader` for list-based CSV rows using the `csv` module.
-
-- CSV-compatible modes: `'r'`, `'w'`, `'a'`, `'r+'`, `'w+'`, `'a+'`.
-- Lazy `csv.reader` / `csv.writer` initialization.
-- Instance methods: `read_row()`, `read_all()`, `write_row()`, `write_all()`.
-- Static helpers: `load_rows()`, `save_rows()`, `append_row()`, `append_rows()`.
-- Generator: `yield_rows()` with line-range filtering.
-
-### CsvDictLoader (alias: CsvDict)
-
-Extends `CsvLoader` for dict-based rows (`DictReader` / `DictWriter`).
-
-- Requires explicit `fieldnames` for writing.
-- Header control via `include_header`.
-- Inherits all static helpers from `CsvLoader` with `is_dict=True` support.
-
-### SqliteClient (alias: Sqlite)
-
-Extends `FileLoader` and implements `SqliteService`.
-
-- Manages `sqlite3.Connection` and `Cursor` internally.
-- Supports URI modes (`'ro'`, `'rw'`, `'rwc'`) and `':memory:'`.
-- Auto-commit on successful `__exit__`, auto-rollback on exception.
-- Methods: `execute()`, `executemany()`, `executescript()`, `fetch_one()`, `fetch_all()`, `commit()`, `rollback()`, `backup()`.
-- `__enter__` returns `self` (not a file stream).
-
-## Structured Code Design of Utilities
-
-Utilities follow Tiferet's artifact comment structure:
-
-- `# *** utils` — top-level section.
-- `# ** util: <snake_case_name>` — individual utility class.
-- `# * attribute: <name>` — instance attributes.
-- `# * init` — constructor.
-- `# * method: <name>` — instance methods.
-- `# * method: <name> (static)` — static methods.
-
-**Spacing rules** match `code_style.md`: one empty line between major sections, after docstrings, and between code snippets.
-
-**Example** — artifact structure for `FileLoader`:
 ```python
 # *** utils
 
@@ -131,214 +50,80 @@ class FileLoader(FileService):
     # * attribute: path
     path: Path
 
-    # * attribute: mode
-    mode: str
-
     # * init
     def __init__(self, path, mode='r', encoding=None, newline=None, **kwargs):
-        ...
-
-    # * method: verify_file (static)
-    @staticmethod
-    def verify_file(path, mode='r'):
-        ...
-
-    # * method: verify_mode
-    def verify_mode(self):
         ...
 
     # * method: open_file
     def open_file(self):
         ...
 
-    # * method: close_file
-    def close_file(self):
-        ...
-
     # * method: __enter__
     def __enter__(self):
         ...
-
-    # * method: __exit__
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        ...
 ```
 
-## Creating New and Extending Utilities
+What the reader just saw: the util *is* the file contract. Format loaders (`YamlLoader`, `JsonLoader`, `CsvLoader`, `CsvDictLoader`) extend this and add `load` / `save`. `SqliteClient` extends it, implements `SqliteService` as well, and returns `self` from `__enter__` because the resource is a connection, not a stream.
 
-### Physical Infrastructure Example — TomlLoader
+One-shot static helpers (`CsvLoader.load_rows`, `JsonLoader.parse_json_path`) exist so a caller who does not need a long-lived instance is not forced to manage one. They are still Yesod, not events.
 
-```python
-# *** imports
+A new computational util (`EmbeddingClient`) implements an `EmbeddingService` if it must be injectable, or remains a raw class if events will import it directly.
 
-# ** core
-import tomllib
+## Uniform in lifecycle, deliberately not uniform in capability
 
-# ** app
-from .file import FileLoader
-from ..interfaces.core import ServiceError
+What every util here shares is the contract-and-lifecycle layer: `FileService` via `FileLoader`, `open_file` / `close_file`, context-manager semantics, and one failure mechanism in `ServiceError.raise_for`. That much is genuinely uniform, and a reader who expects uniformity is right about it.
 
-# *** constants
+What they do **not** share is the operational surface, which follows each medium's real capability:
 
-# ** constant: invalid_toml_file_id
-INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
+- `yaml` and `json` expose `load` and `save`.
+- **`TomlLoader` exposes `load` only**, and documents why: writing is not supported because the `tomllib` / `tomli` library only provides parsing.
+- `CsvLoader` exposes `read_row` / `read_all` / `write_row` / `write_all`, plus statics.
+- `SqliteClient` exposes a connection-and-cursor model with `execute`.
 
-# *** utils
+`TomlLoader` is the one to study, because a util that refuses to fake a `save` is Netzach's perceived-not-invented criterion and Gevurah's honest-ontology rule enforced one position down. **A capability that claims more than its substrate can honor is a false abstraction**, and a `save` that raised at runtime would be worse than an absent one. The variety in this package is real; the coherence is in the discipline rather than in the shape.
 
-# ** util: toml_loader
-class TomlLoader(FileLoader):
-    '''
-    Utility for loading TOML files.
-    '''
+## The line this position holds is structural, not semantic
 
-    # * init
-    def __init__(self, path, mode='rb', **kwargs):
-        super().__init__(path=path, mode=mode, **kwargs)
+A domain object is an image that may be reflected across many mediums, and Yesod's job is keeping that image intact against variation in data structure and storage. Never against variation in domain meaning. Fracture here is structural mangling, not model contamination.
 
-    # * method: load
-    def load(self, start_node=lambda x: x, data_factory=lambda x: x):
-        '''
-        Load and parse TOML content.
-        '''
-        try:
-            with self:
-                data = tomllib.load(self.file)
-                return data_factory(start_node(data))
-        except tomllib.TOMLDecodeError as e:
-            ServiceError.raise_for(
-                self,
-                INVALID_TOML_FILE_ID,
-                error=str(e),
-                path=str(self.path),
-            )
-```
+That is the mechanical half of a distinction whose semantic half belongs to Gevurah, and stating both together is what keeps either from being mistaken for the other. See [domain.md](domain.md).
 
-### Computational Infrastructure Example — EmbeddingClient
+**It cannot see the domain, and that is structural rather than conventional.** `YamlLoader.load` takes `start_node` and `data_factory` as `Callable` and returns `Any`; the module imports only `FileLoader` and `ServiceError`. The domain shape is handed in from outside as a callable, so the position has no means of forming a semantic opinion even if it wanted one. Which is why the legal-but-unused `mappers` import is in character rather than an oversight awaiting correction.
 
-```python
-# *** imports
+**The failure vocabulary is provably narrow.** Everything this position can fail on is medium: file not found, load error, save error, plus an extension check. There is no error here for data that does not make sense. This is the second position with a demonstrably narrow failure set — after Chesed, whose only legitimate failure is not-found — and in both cases the narrowness is what buys the generality.
 
-# ** app
-from ..interfaces.embedding import EmbeddingService
-from ..interfaces.core import ServiceError
+**Two-way at the boundary, in a single artifact.** `load` brings a substrate's contents in; `save` puts them out; it is the same class doing both. Every other position is either one-way at the outer boundary or moves data that is already inside: `assets` emits, `repos` absorbs, and `mappers` are bidirectional only within the system's own vocabulary. Do not overstate it — CLI invocation data enters through blueprint parsing, so this is two-way-in-one-artifact rather than the sole point of entry. The useful consequence is that the reflection the descent otherwise seems to lack happens *here*: the import graph is a one-way DAG, but inbound traffic originates at Yesod's `load`, which makes the ninth position the reflecting surface rather than the tenth.
 
-# *** utils
+**The contract across every shape is identity preservation across contact with the non-domain.** Round-trip for storage — what is read back is what was written. Pass-through for middleware. Deterministic transform for computation. The middleware docstrings state it outright: the result of `next_fn` is returned unchanged and any exception is re-raised unaltered. That is the framework asserting non-corruption in its own words, with no metaphor vocabulary anywhere near it. `CacheMiddleware` also explicitly declines to import `CacheContext` in order to preserve this boundary.
 
-# ** util: embedding_client
-class EmbeddingClient(EmbeddingService):
-    '''
-    Utility for generating text embeddings via an external model API.
-    '''
+One thing this position is **not**: an anticorruption layer. An ACL prevents *meaning* from being contaminated; Yesod prevents *data* from being mangled. The ACL composite decomposes across Netzach, Malkuth, Hod, and Tiferet, and Yesod is not among them. See [architecture.md](architecture.md).
 
-    # * init
-    def __init__(self, model_name: str, api_key: str):
-        self.model_name = model_name
-        self.api_key = api_key
+Worth saying plainly rather than treating as luck: this may be the position where the metaphor earns the most, because `utils` is the framework's least predictive package name — a grab-bag noun that tells a reader nothing about what may go in it. "Foundation" predicts the boundary discipline above; "utils" predicts nothing at all.
 
-    # * method: embed
-    def embed(self, text: str) -> list[float]:
-        '''
-        Generate an embedding vector for the given text.
-        '''
-        # Call external API and return vector.
-        ...
-```
+## Current utilities
 
-## Best Practices
+- `FileLoader` / `File` — `FileService`
+- `YamlLoader` / `Yaml` — YAML via PyYAML
+- `JsonLoader` / `Json` — JSON with path support
+- `TomlLoader` / `Toml` — TOML read only; the substrate does not write
+- `CsvLoader` / `Csv`, `CsvDictLoader` / `CsvDict` — list and dict CSV
+- `SqliteClient` / `Sqlite` — `SqliteService` + `FileService`; `mode='rw'`, URI and `:memory:`
+- `LoggingMiddleware`, `CacheMiddleware`, `TimingMiddleware` — `MiddlewareService`
 
-- Use artifact comments (`# *** utils` / `# ** util:` / `# * method:`) consistently.
-- Raise errors only via `ServiceError.raise_for(self, ...)` — never raise raw exceptions from utilities.
-- Implement context manager protocol (`__enter__` / `__exit__`) for resource-owning utilities.
-- Provide static one-shot helpers for common operations (e.g., `CsvLoader.load_rows()`).
-- Keep utilities focused on infrastructure — domain logic belongs in domain events and contexts.
-- Align every utility with a Service contract from `tiferet/interfaces/`.
-- Stateless computational utilities need not implement context managers.
+## Structured code design
 
-## Testing Utilities
+Use `# *** utils` / `# ** util:` / `# * method` (and `# * method: <name> (static)`). Tests use `tmp_path` for files and `:memory:` for SQLite. Full grammar: [code_style.md](code_style.md). Cookbooks live under [docs/guides/utils.md](../guides/utils.md).
 
-Use `pytest` with `tmp_path` fixture for file-based utilities. Test structure follows artifact comments:
+## In short
 
-```python
-# *** fixtures
-
-# ** fixture: temp_file
-@pytest.fixture
-def temp_file(tmp_path) -> Path:
-    '''
-    Create a temporary file for testing.
-    '''
-    file_path = tmp_path / 'test.txt'
-    file_path.write_text('hello', encoding='utf-8')
-    return file_path
-
-# *** tests
-
-# ** test: file_loader_open_close
-def test_file_loader_open_close(temp_file):
-    '''
-    Test opening and closing a file stream.
-    '''
-    loader = FileLoader(path=temp_file, mode='r', encoding='utf-8')
-    loader.open_file()
-    assert loader.file is not None
-    loader.close_file()
-    assert loader.file is None
-
-# ** test: file_loader_invalid_mode
-def test_file_loader_invalid_mode(temp_file):
-    '''
-    Test that an invalid mode raises INVALID_FILE_MODE.
-    '''
-    loader = FileLoader(path=temp_file, mode='z')
-    with pytest.raises(TiferetError) as exc_info:
-        loader.open_file()
-    assert exc_info.value.error_code == INVALID_FILE_MODE_ID  # local constant in tiferet/utils/file.py
-```
-
-**Key testing patterns:**
-- Test success paths, error paths, and edge cases.
-- Use in-memory databases for `SqliteClient` tests.
-- Mock computational utilities when testing domain events that consume them.
-- Verify structured error codes, not just exception types.
-
-## Package Layout
-
-```
-tiferet/utils/
-├── __init__.py          — Exports + aliases (File, Yaml, Json, Csv, CsvDict, Sqlite)
-├── file.py              — FileLoader (alias: File) — implements FileService
-├── yaml.py              — YamlLoader (alias: Yaml) — YAML read/write via PyYAML
-├── json.py              — JsonLoader (alias: Json) — JSON read/write with path support
-├── csv.py               — CsvLoader (alias: Csv), CsvDictLoader (alias: CsvDict)
-├── sqlite.py            — SqliteClient (alias: Sqlite) — implements SqliteService + FileService
-└── tests/
-    ├── __init__.py
-    ├── test_file.py
-    ├── test_yaml.py
-    ├── test_json.py
-    ├── test_csv.py
-    └── test_sqlite.py
-```
-
-## Relationship to Service Interfaces
-
-Utilities implement Services from `tiferet/interfaces/`:
-
-- `FileLoader` → `FileService` (`interfaces/file.py`)
-- `SqliteClient` → `SqliteService` (`interfaces/sqlite.py`) + `FileService` (via `FileLoader`)
-- `YamlLoader` / `JsonLoader` / `CsvLoader` satisfy the `ConfigurationService` pattern indirectly via repositories that consume them.
-
-Future utilities follow the same pattern: define a Service interface in `tiferet/interfaces/`, implement the concrete utility in `tiferet/utils/`, and export with an alias.
-
-## Conclusion
-
-Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes — both physical and computational — behind injectable Service contracts. Their consistent pattern — Service implementation, `ServiceError` handling, context-manager lifecycle, and artifact organization — ensures reliability, testability, and alignment with the framework's DDD architecture.
-
-Explore source in `tiferet/utils/`, contracts in `tiferet/interfaces/`, and tests in `tiferet/utils/tests/`.
-
-For user-facing guides on consuming utilities directly, see:
-- [docs/guides/utils/file.md](../guides/utils/file.md)
-- [docs/guides/utils/yaml.md](../guides/utils/yaml.md)
-- [docs/guides/utils/json.md](../guides/utils/json.md)
-- [docs/guides/utils/csv.md](../guides/utils/csv.md)
-- [docs/guides/utils/sqlite.md](../guides/utils/sqlite.md)
+- Utils are foundation: physical or computational. That is Yesod.
+- Contract-carrying and physical-versus-computational are independent axes, not two kinds. A contract is warranted when the capability is extensible *and* reachable by a feature step.
+- The middlewares are the off-diagonal case: computational and service-backed. There is no contract-free util in the framework, so illustrate that affordance from a dialect.
+- Uniform in lifecycle, various in capability. `TomlLoader` exposes `load` only, because a capability claiming more than its substrate can honor is a false abstraction.
+- The line here is structural, never semantic. Fracture is mangled data, not a contaminated model — and this position cannot form a semantic opinion, since the domain shape arrives as a `Callable`.
+- The failure vocabulary is medium-only. No error here means "that does not make sense."
+- Two-way in one artifact: `load` in, `save` out. Inbound traffic originates here, which makes the ninth position the reflecting surface rather than the tenth.
+- This is not an anticorruption layer. ACL guards meaning; Yesod guards structure.
+- Legal imports: `interfaces`, `mappers`, siblings. Not events, domain, repos, di, contexts, or blueprints.
+- Raise `ServiceError`. Own resources with a context manager. Offer static one-shots when they help.
+- Mappers visit via `Callable`. They do not import this package.
