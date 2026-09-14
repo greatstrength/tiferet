@@ -3,126 +3,48 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-A composable system begins with primitives that do not depend on the composition. `assets` holds exceptions, named error codes, and bootstrap catalogs with no inbound framework edges. This is the **Keter** position: it emits data but does not absorb dependencies or participate in runtime orchestration. Core assets may be used by other assets, `blueprints`, `contexts`, and `events`, typically through `from .. import assets as a`; they do not flow to `domain`, `interfaces`, `mappers`, `di`, `utils`, or `repos`. See [architecture.md](architecture.md).
+Decision support begins here. Composition has to begin from something that does not depend on the composition. `assets` is that package: shared primitives — exceptions, named error codes, and bootstrap catalogs — with no inbound framework edges.
 
-Legal `# ** app` imports: none. The package imports only standard-library and third-party primitives. An asset that required a domain object or service would become a runtime dependency rather than a shared primitive.
+It does not execute a feature, mutate a noun, or open a file. It declares concepts of the app that must exist before the app exists, so the app may exist. A blueprint needs names to seed. A session needs errors to raise. A dialect needs a Bounded Context to enter. Catalogs and constants are the emission. The package does not become runtime. See [architecture.md](architecture.md).
 
-## Life in the system
+Legal `# ** app` imports: none. The package imports only standard-library and third-party primitives. An asset that required a domain object or a service would already be a runtime collaborator rather than a prerequisite.
 
-Assets declare. They do not execute a feature, mutate a noun, or open a file. `TiferetError` is the structured failure the rest of the framework raises. Namespaced catalogs (`error.py`, `app.py`, `feature.py` as `feat`, `cli.py`, `di.py`, `logging.py`) hold the identifiers and default definitions the factory will seed into the application runtime cache. `__init__.py` re-exports the public exceptions and the module aliases.
+The package uses the standard code-style components and has no unique component of its own. Artifact grammar is [code_style.md](code_style.md). Catalog construction is [docs/guides/assets.md](../guides/assets.md).
 
-The package contains five artifact kinds: imports, constants, functions, standalone classes, and exports. It contains no domain objects, aggregates, services, events, or contexts.
+## Bounded Context before use
 
-### Acyclic in both directions
+Acyclicity is the bootstrap constraint. `assets` has no framework imports because its primary purpose is to describe the structure and prerequisites of the application Bounded Context before that context is used. A package that imported framework behavior could not serve as the origin of composition.
 
-**Acyclicity defines this position.** `assets` has no framework imports, while its declared values flow only to designated consumer packages. A package that depended on framework behavior would not serve as the origin.
+That description is the catalog. Default errors, services, constants, features, commands, and logging settings are declared prerequisites of a running session. A blueprint seeds those catalogs into the cache. A session may override what a catalog declares. The catalog itself is not mutated. Mutable state belongs to a domain noun.
 
-One of the intrinsic advantages of layers is that the lower layers can exist without the higher ones. That is also why phased introduction works at all. You can stand up `assets` and `domain` with nothing else in the repository and they are complete; you cannot stand up `repos` without the three positions it absorbs from.
+The catalogs are data, not the nouns they name. Factories in this package assemble structured definitions — identifiers, names, messages, service coordinates, feature steps — so entries do not diverge into unstructured inline dictionaries. Reconstitution into domain objects happens outside this package, during cache seeding. The same principle holds across every catalog in the package, in the framework and in a dialect.
 
-### Unity through differentiation
+A consumer's assets are the same pattern, not a second one. They declare that dialect's Bounded Context — its errors, resolvable operators, exposed features — before any `execute` exists. Framework catalogs and dialect catalogs differ in content, not in job.
 
-The import idiom follows this boundary. The package is imported **whole**—`from .. import assets as a`—and referenced through differentiated members: `a.error`, `a.feat`, `a.cli`, `a.app`, and `a.logging`.
+## Emission
 
-This namespaced access preserves one package boundary while keeping catalogs distinct. It also predicts the repository's import idiom rather than treating `assets` as an undifferentiated constants module.
+Assets hold no operational behavior. Their catalogs are loaded during composition and referenced on every runtime path, but the package does not run a feature, change domain state, or touch a substrate. The contents are not renegotiated while the application runs.
 
-### Static, and on every runtime path
+Emission is narrow. `assets` emits to `blueprints`, `contexts`, and `events`. Blueprints seed catalogs into the cache. Contexts and events raise named errors through `a.<submodule>` (`a.error`, `a.app`, `a.feat`, `a.cli`, `a.logging`).
 
-Assets hold no operational behavior. Their catalogs are loaded during composition and referenced by the runtime, but the package does not execute features, mutate domain state, or access a substrate.
+Core assets may be used by other assets. They do not automatically flow to `domain`, `interfaces`, `mappers`, `di`, `utils`, or `repos`. Where those packages need a catalogued value, it arrives as data assembled by a blueprint — reverse dependency across an import-law gap, the same shape that lets `di` resolve what these catalogs named without importing this package.
 
-Its contents are not renegotiated at runtime. A blueprint seeds a catalog into the cache during composition, and an interface may override what it declares, but the catalog itself is not mutated. Mutable state belongs to a domain noun.
+`TiferetError` is a standalone class, not a domain object. `error_code` and `kwargs` are what an event's `raise_error` and a context's error handler both understand. Assets name the failure. They do not present it. Localized formatting belongs to the domain noun after the runtime handler hub has loaded the catalogued `Error`.
 
-The emission path is narrow. Blueprints seed catalogs into the cache, while contexts and events raise named errors through `a.<submodule>`. Mappers and repositories receive required values as data rather than importing `assets`.
+## Importing `a`
 
-## What an asset looks like
+The public binding is the root alias `a`. Current releases export it from the framework root (`from tiferet import a`) and import it downward into the packages that consume catalogs and named errors (`from .. import a`, or `from .. import assets as a`). The package is imported whole and referenced through differentiated members.
 
-A constant is a `SCREAMING_SNAKE_CASE` value with its own `# ** constant:` label. Structured defaults are built from a factory, not annotated inline:
-
-```python
-# ** constant: error_not_found
-ERROR_NOT_FOUND = create_default_error(
-    ERROR_NOT_FOUND_ID,
-    'Error Not Found',
-    [(EN_US, 'Error not found: {id}.')],
-)
-
-# ** constant: default_errors
-DEFAULT_ERRORS = {
-    ERROR_NOT_FOUND_ID: ERROR_NOT_FOUND,
-}
-```
-
-The identifier, human name, and default message are data rather than a domain `Error`. The `create_default_error` factory in `core.py` prevents catalog entries from diverging into unstructured inline dictionaries.
-
-The exception is a standalone class, not a domain object:
-
-```python
-# *** classes
-
-# ** class: tiferet_error
-class TiferetError(Exception):
-    '''
-    The base exception for all Tiferet-related errors.
-    '''
-
-    # * attribute: error_code
-    error_code: str
-
-    # * init
-    def __init__(self, error_code: str, message: str = None, **kwargs):
-        '''
-        Initialize the TiferetError with an error code, message, and arguments.
-        '''
-
-        # Set the error code and additional arguments.
-        self.error_code = error_code
-        self.kwargs = kwargs
-
-        # Initialize the base exception with serialized error data.
-        super().__init__(
-            json.dumps({'error_code': error_code, 'message': message, **kwargs})
-        )
-```
-
-`error_code` and `kwargs` are what an event’s `raise_error` and a context’s error handler both understand. The class does not format a localized user message — that is `Error.format_message` on the domain noun, after the hub has loaded the catalogued `Error`. Assets name the failure. They do not present it.
-
-Exports live only in `__init__.py`. Consumers write `from .. import assets as a` and then `a.error.ERROR_NOT_FOUND_ID`, `a.app.CORE_DEFAULT_SERVICES`, `a.feat`, `a.cli`, `a.logging`. New public symbols must be surfaced there. New concerns that need a domain, a service, or an event do not belong in this package.
-
-## A dialect gets its own crown
-
-The position is not reserved to the framework. `examples/basic_calculator/app/assets/` holds `core.py`, `di.py`, `error.py`, and `feature.py`, declaring `CALC_DEFAULT_ERRORS`, `CALC_DEFAULT_SERVICES`, and `CALC_DEFAULT_FEATURES` in the same five artifact kinds, with the same absence of inbound edges.
-
-The example demonstrates the position's claim: **a consumer's bootstrap catalogs describe its bounded context before behavior exists.** Before an `execute` method is written, the calculator declares its errors, resolvable operators, and exposed features. The dialect's catalogs feed its composition in the same structural role as the framework's.
-
-## The mirror at the bottom
-
-Keter and Malkuth are one relation seen from both ends, and the cardinality is exact.
-
-This position emits to exactly three — `blueprints`, `contexts`, `events`. The tenth absorbs from exactly three — `interfaces`, `mappers`, `utils`. Neither end reaches the other seven, and neither end reaches the other: `assets` never sees `repos`, and `repos` may never import `assets`.
-
-The architecture does not reproduce every relation attributed to the traditional model. This chapter documents the relationships present in code: the metaphor is evaluated against the architecture, not the reverse.
-
-## Package layout
-
-```
-tiferet/assets/
-├── __init__.py      — Public exports; namespaced module aliases
-├── core.py          — TiferetError, TiferetAPIError, shared factories and path constants
-├── error.py         — Error-code ids and default error catalogs
-├── app.py           — Default app sessions, services, and constants
-├── feature.py       — Default feature catalogs (exported as feat)
-├── cli.py           — Default CLI command catalogs
-├── di.py            — Default service-registration catalogs
-└── logging.py       — Default logging formatters, handlers, and loggers
-```
+Namespaced access keeps one package boundary and distinct catalogs. It is not an undifferentiated constants module. New public symbols are surfaced on that binding. New concerns that need a noun, a contract, or a unit of work do not belong in this package.
 
 ## In short
 
-- Assets emit primitives and have no inbound framework edges. That crown is Keter.
-- Acyclicity in both directions is the definition of the position, not a restriction placed on it. This tier can exist without any of the others; the last one cannot.
-- Five artifact kinds only: imports, constants, functions, standalone classes, exports.
-- Imported whole and referenced through differentiated members: `a.error`, `a.feat`, `a.app`, `a.cli`, `a.logging`.
-- Nothing here executes, and everything here is on every runtime path. That is why the tier is trustworthy — and why its contents cannot be renegotiated while the application runs.
-- Used by blueprints, contexts, and events via `a`. Not by domain, interfaces, mappers, di, utils, or repos.
-- Emits to exactly three; the tenth position absorbs from exactly three. The inversion is exact, and neither end reaches the other.
-- A dialect declares its own crown, and those catalogs describe its bounded context before any behavior exists.
+- Decision support. Composition begins from primitives that do not depend on the composition.
+- `assets` declares concepts that must exist before the app exists so the app may exist.
+- Acyclic: no inbound framework edges. Primary purpose is bootstrap — the Bounded Context's structure and prerequisites, declared before use.
+- Emits catalogs and constants. Does not become runtime.
+- Standard code-style components only. No unique component.
+- Emits to `blueprints`, `contexts`, and `events`. Other packages receive catalogued values as data through composition.
+- Imported whole as `a` from the framework root and referenced as `a.error`, `a.app`, `a.feat`, `a.cli`, `a.logging`.
+- Framework and dialect catalogs are the same pattern: they describe a Bounded Context before behavior exists.
 - If a concern needs a noun, a contract, or a unit of work, it is not an asset.
