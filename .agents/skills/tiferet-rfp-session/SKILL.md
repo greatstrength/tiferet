@@ -2,8 +2,8 @@
 name: tiferet-rfp-session
 description: >
   Implement a published RFP on the prototype branch: cut the worktree,
-  implement against the RFP AC, open a PR to proto, tag the alpha after merge.
-  Session notes and the Collaboration Report go on the RFP issue.
+  implement against the RFP AC, open a PR to proto, tag the alpha after merge,
+  and record the landing in an RFP issue session note.
 ---
 
 # Implement an RFP on prototype
@@ -22,7 +22,6 @@ description: >
 
 - `docs/collab/rfp.md`
 - `docs/collab/process.md`
-- `docs/collab/collab_report.md`
 - `docs/collab/binding.md`
 
 ## Inputs
@@ -39,13 +38,13 @@ RFP issue number. Binding (proto branch, prefix). Next alpha from `git tag --lis
 4. Commit. Stop before push if the human has not approved opening the PR.
 5. PR title: `vX.Y.0aN — <Plain Title> (RFP-00N)`. PR body: what changed + AC checkboxes. No session novel on the PR.
 6. After squash-merge: bump package version to that alpha, annotated tag, push the tag.
-7. On the **RFP issue**: session note (conversation link) and Collaboration Report kind `RFP alpha` (RFP id, alpha tag, beta milestone).
+7. On the **RFP issue**: session note with the conversation link, RFP id, alpha tag, and beta milestone.
 
 ## Outputs
 
 - PR targeting proto (review surface).
 - Alpha tag on proto.
-- Report + session note on the **issue**.
+- Session note on the **issue**.
 
 ## Guardrails
 

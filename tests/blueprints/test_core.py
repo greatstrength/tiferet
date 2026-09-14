@@ -2,10 +2,6 @@
 
 # *** imports
 
-# ** core
-import pathlib
-import textwrap
-
 # ** infra
 import pytest
 from unittest import mock
@@ -31,17 +27,16 @@ from tiferet.blueprints.core import (
     execute_feature_handler,
     raise_error_handler,
     response_handler,
-    build_app_session_context,
-    build_app,
+    compose_session_context,
 )
 from tiferet.contexts.app import (
     add_default_app_services,
     add_default_app_constants,
     add_default_app_sessions,
-    AppSessionContext,
     APP_SERVICE_CACHE_PREFIX,
 )
 from tiferet.contexts.cache import CacheContext
+from tiferet.contexts.core import BaseContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
 from tiferet.contexts.logging import (
@@ -52,70 +47,8 @@ from tiferet.contexts.logging import (
 from tiferet.contexts.request import RequestContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
 from tiferet.domain import AppSession, AppServiceDependency, Error, Feature, LoggingSettings, Formatter
+from tiferet.events.app import GetAppSession
 from tiferet.repos.app import AppConfigRepository
-from tiferet.utils.core import CacheMiddleware
-
-# *** fixtures
-
-# ** fixture: session_config_file
-@pytest.fixture
-def session_config_file(tmp_path) -> str:
-    '''
-    Write a real single-file session configuration and return its path.
-
-    The session declares constants repointing every configuration repository at
-    this same file, so the composed build_app path resolves the full default
-    service catalog against real configuration rather than mocks.
-
-    :param tmp_path: The pytest temporary directory fixture.
-    :type tmp_path: pathlib.Path
-    :return: The path to the written configuration file.
-    :rtype: str
-    '''
-
-    # Resolve the target configuration file path.
-    config_path = tmp_path / 'config.yml'
-
-    # Write a minimal but complete configuration declaring one session.
-    config_path.write_text(textwrap.dedent(f'''
-        sessions:
-          test_session:
-            name: Test Session
-            description: End-to-end composition test session
-            logger_id: default
-            constants:
-              app_config: {config_path}
-              cli_config: {config_path}
-              di_config: {config_path}
-              error_config: {config_path}
-              feature_config: {config_path}
-              logging_config: {config_path}
-        services: {{}}
-        features: {{}}
-        errors: {{}}
-        logging:
-          formatters:
-            default:
-              name: Default Formatter
-              format: '%(message)s'
-          handlers:
-            default:
-              name: Default Handler
-              module_path: logging
-              class_name: StreamHandler
-              level: CRITICAL
-              formatter: default
-              stream: 'ext://sys.stderr'
-          loggers:
-            default:
-              name: Default Logger
-              level: CRITICAL
-              handlers:
-                - default
-    '''))
-
-    # Return the configuration file path.
-    return str(config_path)
 
 # *** tests
 
@@ -480,7 +413,7 @@ def test_create_app_service_default():
 # ** test: get_app_session_from_cache
 def test_get_app_session_from_cache():
     '''
-    Test that get_app_session returns a cache-seeded session without calling AppSessionContext.load.
+    Test that get_app_session returns a cache-seeded session without invoking the GetAppSession event.
     '''
 
     # Seed the cache with a default app session.
@@ -488,25 +421,25 @@ def test_get_app_session_from_cache():
         'test.session': {'id': 'test.session', 'name': 'Test Session'},
     })(lambda: CacheContext())()
 
-    # Assert the cached session is returned without invoking AppSessionContext.load.
-    with mock.patch.object(AppSessionContext, 'load') as mock_load:
+    # Assert the cached session is returned without invoking DomainEvent.handle.
+    with mock.patch('tiferet.blueprints.core.DomainEvent.handle') as mock_handle:
         result = get_app_session('test.session', cache)
     assert isinstance(result, AppSession)
     assert result.id == 'test.session'
-    mock_load.assert_not_called()
+    mock_handle.assert_not_called()
 
 # ** test: get_app_session_from_config
 def test_get_app_session_from_config():
     '''
-    Test that get_app_session delegates to AppSessionContext.load on a cache miss.
+    Test that get_app_session resolves a cache miss via DomainEvent.handle(GetAppSession, ...).
     '''
 
     # Use an empty cache so the seeded-session lookup misses.
     cache = CacheContext()
     session = AppSession(id='test.session', name='Test Session')
 
-    # Patch AppSessionContext.load to avoid touching the filesystem.
-    with mock.patch.object(AppSessionContext, 'load', return_value=session) as mock_load:
+    # Patch DomainEvent.handle to avoid touching the filesystem.
+    with mock.patch('tiferet.blueprints.core.DomainEvent.handle', return_value=session) as mock_handle:
         result = get_app_session(
             'test.session',
             cache,
@@ -515,11 +448,12 @@ def test_get_app_session_from_config():
             **a.app.DEFAULT_APP_SERVICE_PARAMETERS,
         )
 
-    # Assert the session was loaded via the classmethod.
+    # Assert the session was resolved via the GetAppSession domain event.
     assert result is session
-    mock_load.assert_called_once()
-    assert mock_load.call_args.args[0] == 'test.session'
-    assert isinstance(mock_load.call_args.args[1], AppConfigRepository)
+    mock_handle.assert_called_once()
+    assert mock_handle.call_args.args[0] is GetAppSession
+    assert isinstance(mock_handle.call_args.kwargs['dependencies']['app_service'], AppConfigRepository)
+    assert mock_handle.call_args.kwargs['id'] == 'test.session'
 
 # ** test: create_request_context_sets_interface_id_header
 def test_create_request_context_sets_interface_id_header():
@@ -658,13 +592,35 @@ def test_raise_error_handler_wraps_bare_exception():
     get_error_handler.assert_called_once_with('APP_ERROR')
     assert exc_info.value.error_code == 'APP_ERROR'
 
-# ** test: build_app_session_context_wires_handlers
-def test_build_app_session_context_wires_handlers():
+# ** test: compose_session_context_wires_five_handlers
+def test_compose_session_context_wires_five_handlers():
     '''
-    Test that build_app_session_context returns an AppSessionContext with all five handlers wired.
+    Test that compose_session_context wires all five template-method handlers
+    onto the constructed context.
     '''
 
-    # Seed the cache with a minimal di_service default.
+    # Define a fake session context that captures every wired constructor kwarg.
+    class FakeSessionContext(BaseContext):
+        def __init__(self,
+                get_dependency=None,
+                cache=None,
+                build_logger_handler=None,
+                execute_feature_handler=None,
+                create_request_handler=None,
+                raise_error_handler=None,
+                response_handler=None,
+                **kwargs):
+            super().__init__()
+            self.get_dependency = get_dependency
+            self.cache = cache
+            self.build_logger_handler = build_logger_handler
+            self.execute_feature_handler = execute_feature_handler
+            self.create_request_handler = create_request_handler
+            self.raise_error_handler = raise_error_handler
+            self.response_handler = response_handler
+            self.extra_kwargs = kwargs
+
+    # Seed a minimal di_service default and build the app container/resolver.
     cache = add_default_app_services({
         'di_service': {
             'service_id': 'di_service',
@@ -673,115 +629,138 @@ def test_build_app_session_context_wires_handlers():
         },
     })(lambda: CacheContext())()
     app_session = AppSession(id='test.session', name='Test Session')
+    app_container = build_app_service_container(cache, app_session)
+    resolver = build_service_resolver(app_container)
 
     # Bypass the real logging pipeline; this test targets handler wiring only.
     fake_build_logger = mock.Mock(name='build_logger_handler')
+    fake_create_request = mock.Mock(name='create_request_handler')
     with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
-        context = build_app_session_context(app_session, cache)
+        context = compose_session_context(
+            FakeSessionContext,
+            app_session,
+            cache,
+            app_container,
+            resolver,
+            create_request_handler=fake_create_request,
+            response_handler=response_handler,
+        )
 
-    # Assert the context is fully wired with all five template-method handlers.
-    assert isinstance(context, AppSessionContext)
-    assert context._build_logger is fake_build_logger
-    assert context._execute_feature is not None
-    assert context._raise_error is not None
-    assert context._build_response is response_handler
-    assert context._create_request is create_session_request
+    # Assert the constructed context is bound to the app session with all five handlers wired.
+    assert isinstance(context, FakeSessionContext)
+    assert context.domain is app_session
+    assert context.get_dependency == resolver.get_dependency
+    assert context.cache is cache
+    assert context.build_logger_handler is fake_build_logger
+    assert context.execute_feature_handler is not None
+    assert context.raise_error_handler is not None
+    assert context.create_request_handler is fake_create_request
+    assert context.response_handler is response_handler
 
-# ** test: build_app_returns_app_session_context
-def test_build_app_returns_app_session_context():
+# ** test: compose_session_context_resolves_collaborators
+def test_compose_session_context_resolves_collaborators():
     '''
-    Test that build_app returns a fully wired AppSessionContext.
-    '''
-
-    # Isolate build_app from the cache/session/context composition chain.
-    with mock.patch('tiferet.blueprints.core.get_app_session') as mock_get_session, \
-         mock.patch('tiferet.blueprints.core.build_app_session_context') as mock_build_ctx:
-        mock_get_session.return_value = AppSession(id='test.session', name='Test Session')
-        mock_ctx = mock.Mock(spec=AppSessionContext)
-        mock_build_ctx.return_value = mock_ctx
-
-        # Invoke build_app.
-        result = build_app('test.session')
-
-    # Assert the wired context is returned unchanged.
-    assert result is mock_ctx
-
-# ** test: build_app_invalid_type
-def test_build_app_invalid_type():
-    '''
-    Test that build_app raises INVALID_APP_SESSION_TYPE_ID when the resolved context type is invalid.
+    Test that compose_session_context resolves a context class's remaining
+    injectable collaborators via resolve_collaborators.
     '''
 
-    # Isolate build_app and force an invalid context type.
-    with mock.patch('tiferet.blueprints.core.get_app_session') as mock_get_session, \
-         mock.patch('tiferet.blueprints.core.build_app_session_context') as mock_build_ctx:
-        mock_get_session.return_value = AppSession(id='test.session', name='Test Session')
-        mock_build_ctx.return_value = object()
+    # Define a fake session context declaring one extra injectable collaborator.
+    class FakeSessionContext(BaseContext):
+        def __init__(self,
+                get_dependency=None,
+                cache=None,
+                build_logger_handler=None,
+                execute_feature_handler=None,
+                create_request_handler=None,
+                raise_error_handler=None,
+                response_handler=None,
+                extra_service=None,
+                **kwargs):
+            super().__init__()
+            self.extra_service = extra_service
 
-        # Invoke build_app and expect the structured type error.
-        with pytest.raises(TiferetError) as exc_info:
-            build_app('test.session')
+    # Seed di_service plus the extra collaborator service on the app container.
+    cache = add_default_app_services({
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+        'extra_service': {
+            'service_id': 'extra_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+    })(lambda: CacheContext())()
+    app_session = AppSession(id='test.session', name='Test Session')
+    app_container = build_app_service_container(cache, app_session)
+    resolver = build_service_resolver(app_container)
 
-    # Assert the structured invalid-type error is raised.
-    assert exc_info.value.error_code == a.error.INVALID_APP_SESSION_TYPE_ID
+    # Bypass the real logging pipeline; this test targets collaborator resolution only.
+    fake_build_logger = mock.Mock(name='build_logger_handler')
+    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
+        context = compose_session_context(
+            FakeSessionContext,
+            app_session,
+            cache,
+            app_container,
+            resolver,
+            create_request_handler=create_session_request,
+            response_handler=response_handler,
+        )
 
-# ** test: build_app_end_to_end_wires_session_context
-def test_build_app_end_to_end_wires_session_context(session_config_file):
+    # Assert the extra collaborator was resolved from the app container.
+    assert isinstance(context.extra_service, CacheContext)
+
+# ** test: compose_session_context_forwards_extra_kwargs
+def test_compose_session_context_forwards_extra_kwargs():
     '''
-    Test that build_app composes a real AppSessionContext end to end, with no
-    step of the composition chain patched out.
-    '''
-
-    # Build the app against the real session configuration file.
-    context = build_app('test_session', app_config=session_config_file)
-
-    # Assert the composed context is bound to the configured session.
-    assert isinstance(context, AppSessionContext)
-    assert context.domain.id == 'test_session'
-    assert context.domain.name == 'Test Session'
-
-    # Assert all five template-method handlers were wired by the composition chain.
-    assert context._build_logger is not None
-    assert context._execute_feature is not None
-    assert context._raise_error is not None
-    assert context._create_request is create_session_request
-    assert context._build_response is response_handler
-
-    # Assert the shared cache was composed for real.
-    assert isinstance(context.cache, CacheContext)
-
-# ** test: build_app_end_to_end_resolves_default_services
-def test_build_app_end_to_end_resolves_default_services(session_config_file):
-    '''
-    Test that the composed context resolves the seeded default service catalog,
-    including every middleware utility registered in CORE_DEFAULT_SERVICES.
-    '''
-
-    # Build the app against the real session configuration file.
-    context = build_app('test_session', app_config=session_config_file)
-
-    # Assert every default app service id resolves through the composed resolver.
-    for service_id in a.app.CORE_DEFAULT_SERVICES:
-        assert context.get_dependency(service_id, 'app') is not None
-
-    # Assert the cache middleware resolves to the utility with its loader injected.
-    cache_middleware = context.get_dependency(a.app.CACHE_MIDDLEWARE_ID, 'app')
-    assert isinstance(cache_middleware, CacheMiddleware)
-    assert cache_middleware.load_cache is not None
-
-# ** test: build_app_end_to_end_defaults_app_service_parameters
-def test_build_app_end_to_end_defaults_app_service_parameters(session_config_file, monkeypatch):
-    '''
-    Test that build_app falls back to the framework default app service
-    parameters when no app_config is supplied by the caller.
+    Test that compose_session_context forwards extra_kwargs (e.g. a
+    parse_cli_args-style closure) through to the constructed context.
     '''
 
-    # Run from the config file's directory so the default 'config.yml' resolves.
-    monkeypatch.chdir(str(pathlib.Path(session_config_file).parent))
+    # Define a fake session context accepting a CLI-style extra kwarg.
+    class FakeSessionContext(BaseContext):
+        def __init__(self,
+                get_dependency=None,
+                cache=None,
+                build_logger_handler=None,
+                execute_feature_handler=None,
+                create_request_handler=None,
+                raise_error_handler=None,
+                response_handler=None,
+                parse_cli_args=None,
+                **kwargs):
+            super().__init__()
+            self.parse_cli_args = parse_cli_args
 
-    # Build the app without passing any app service parameters.
-    context = build_app('test_session')
+    # Seed a minimal di_service default and build the app container/resolver.
+    cache = add_default_app_services({
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+    })(lambda: CacheContext())()
+    app_session = AppSession(id='test.session', name='Test Session')
+    app_container = build_app_service_container(cache, app_session)
+    resolver = build_service_resolver(app_container)
+    fake_parse_cli_args = mock.Mock(name='parse_cli_args')
 
-    # Assert the zero-config entry point resolved the configured session.
-    assert isinstance(context, AppSessionContext)
-    assert context.domain.id == 'test_session'
+    # Bypass the real logging pipeline; this test targets extra_kwargs forwarding only.
+    fake_build_logger = mock.Mock(name='build_logger_handler')
+    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
+        context = compose_session_context(
+            FakeSessionContext,
+            app_session,
+            cache,
+            app_container,
+            resolver,
+            create_request_handler=create_session_request,
+            response_handler=response_handler,
+            parse_cli_args=fake_parse_cli_args,
+        )
+
+    # Assert the extra kwarg was forwarded to the constructed context.
+    assert context.parse_cli_args is fake_parse_cli_args
+

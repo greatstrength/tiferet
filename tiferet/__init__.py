@@ -3,6 +3,7 @@
 # *** exports
 
 __all__ = [
+    'a',
     'App',
     'CLI',
     'TiferetError',
@@ -12,6 +13,7 @@ __all__ = [
     'Service',
     'Aggregate',
     'TransferObject',
+    'use_tester',
 ]
 
 # ** app
@@ -20,9 +22,11 @@ __all__ = [
 # symbols are imported from their owning packages.
 # Use a try-except block to avoid import errors on build systems.
 try:
+    from . import assets as a
     from .assets import TiferetError, TiferetAPIError
     from .blueprints import build_app as App
     from .blueprints import build_cli as CLI
+    from .blueprints import use_tester
     from .domain import DomainObject
     from .events import DomainEvent
     from .interfaces import Service
@@ -39,4 +43,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '2.0.1'
+__version__ = '2.1.1'

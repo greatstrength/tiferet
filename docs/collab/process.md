@@ -96,7 +96,8 @@ If you want the docs or the skills changed, open a **Doc PR**. No issue unless t
 Pull requests are for reviewing code. Issues are for remembering the session.
 
 - **On the PR:** what changed, AC checkboxes, the `Closes` line, and review comments that point at a diff.
-- **On the issue** (the one issue, or the Super-TRD child issue): implementor session notes, conversation links, Collaboration Reports, and any reviewer or closer narrative that is not a line comment.
+- **On an RFP issue:** session notes, conversation links, and freeze notes.
+- **On a TRD issue** (the one issue, or the Super-TRD child issue): implementor session notes, conversation links, Collaboration Reports, and any reviewer or closer narrative that is not a line comment.
 
 Please do not leave the session diary as PR conversation comments. Future you will thank present you when the review thread is only about the diff.
 

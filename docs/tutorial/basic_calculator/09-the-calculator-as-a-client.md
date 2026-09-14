@@ -4,7 +4,7 @@ Every entry point so far has called the generic `App(...)` or `CLI(...)` and got
 
 ### 9.1 Why a custom context needs its own blueprint
 
-It's tempting to assume you can point a session at a custom context class in `config.yml` and have Tiferet swap it in. You can't, today: `App(...)`'s composition chain builds a literal `AppSessionContext` — there's no dynamic class resolution on that path. (`CLI(...)` *looks* like it works this way, but it's actually its own dedicated, hardcoded composition chain, entirely separate from `App(...)`.) A session declares no context class at all, which is why every `sessions:` entry in this tutorial carries only `name`, `description`, and where needed `services:`.
+It's tempting to assume that a session in `config.yml` declares a context type you can swap out. It doesn't: a session declares no context class at all, and `App(...)`'s composition chain builds a literal `AppSessionContext` — there's no dynamic class resolution on that path. (`CLI(...)` *looks* like it works this way, but it's actually its own dedicated, hardcoded composition chain, entirely separate from `App(...)`.)
 
 So a custom `AppSessionContext` subclass needs its own blueprint. That's most of what this chapter builds.
 
@@ -118,7 +118,7 @@ sessions:
         class_name: RecordCalculation
 ```
 
-Note that `module_path`/`class_name` *are* meaningful inside a `services:` entry — that is how a service registration names its implementation. They carry no meaning on the session itself; `CalculatorAppContext` is realized by `create_calculator_app`. Rename `basic_calc.py` to `calc_client.py` and swap its one line:
+`CalculatorAppContext` is wired explicitly by `create_calculator_app`, never resolved from config. Rename `basic_calc.py` to `calc_client.py` and swap its one line:
 
 ```python
 from app.blueprints.calc import create_calculator_app

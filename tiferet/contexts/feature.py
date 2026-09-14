@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Generator, List, Tuple
 from pydantic import ValidationError
 
 # ** app
-from .core import BaseContext
+from .core import BaseContext, add_default_cache_items
 from .cache import CacheContext
 from .request import RequestContext
 from ..assets.error import (
@@ -41,43 +41,14 @@ def add_default_features(features: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default feature domain objects.
 
-    Wraps a cache-builder callable so that, after the cache is constructed,
-    each entry in ``features`` is reconstituted into a ``Feature`` domain object
-    and stored in the cache under the ``FEATURE_CACHE_PREFIX`` namespace keyed
-    by feature id.
-
     :param features: A mapping of feature IDs to raw feature definition dicts.
     :type features: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
-
-        # Build the cache, then populate it with the default feature domain objects.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute each raw feature dict into a Feature domain object and
-            # cache it under the feature namespace keyed by feature id.
-            for feature_id, feature_data in features.items():
-                cache.set(
-                    feature_id,
-                    Feature.model_validate({**feature_data, 'id': feature_id}),
-                    *FEATURE_CACHE_PREFIX,
-                )
-
-            # Return the populated cache context.
-            return cache
-
-        # Return the cache-builder wrapper.
-        return wrapper
-
-    # Return the decorator.
-    return decorator
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(features, FEATURE_CACHE_PREFIX, model=Feature, id_field='id')
 
 # ** function: run_coroutine
 def run_coroutine(coro: Any) -> Any:
@@ -260,51 +231,6 @@ def compose_step_middleware(
 
     # Concatenate feature-level (outer) and step-level (inner) middleware.
     return (feature_middleware or []) + (step_middleware or [])
-
-# ** function: parse_request_parameter
-def parse_request_parameter(parameter: str, request: RequestContext = None) -> str:
-    '''
-    Parse a request-aware parameter value.
-
-    Delegates non-prefixed parameters to ``ParseParameter.execute``. For
-    ``$r.``-prefixed references, extracts the value keyed by the suffix from
-    ``request.data``, raising a structured error when the request is absent or
-    the key is missing.
-
-    :param parameter: The parameter value to parse.
-    :type parameter: str
-    :param request: The request context object containing data for parameter parsing.
-    :type request: RequestContext
-    :return: The parsed parameter value.
-    :rtype: str
-    '''
-
-    # Delegate non-$r. parameters to the injected parser (or identity if not overridden).
-    if not isinstance(parameter, str) or not parameter.startswith(REQUEST_REF_PREFIX):
-        # For backwards-compat in any direct calls, fall back to identity for non-$r.
-        return parameter
-
-    # Raise an error if the request is not provided for a request-backed parameter.
-    if not request:
-        TiferetError.raise_error(
-            REQUEST_NOT_FOUND_ID,
-            'Request data is not available for parameter parsing.',
-            parameter=parameter
-        )
-
-    # Extract the value from the request data using the key after the $r. prefix.
-    result = request.data.get(parameter[len(REQUEST_REF_PREFIX):], None)
-
-    # Raise an error if the parameter key is not found in the request data.
-    if result is None:
-        TiferetError.raise_error(
-            PARAMETER_NOT_FOUND_ID,
-            f'Parameter {parameter} not found in request data.',
-            parameter=parameter
-        )
-
-    # Return the parsed parameter value.
-    return result
 
 # ** function: evaluate_condition
 def evaluate_condition(condition: str, request: RequestContext) -> bool:
@@ -755,7 +681,7 @@ class FeatureContext(BaseContext):
 
             # Parse the step parameters.
             params = {
-                param: parse_request_parameter(value, request)
+                param: self.parse_request_parameter(value, request)
                 for param, value in step.parameters.items()
             }
 

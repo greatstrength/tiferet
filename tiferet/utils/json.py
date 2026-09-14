@@ -70,28 +70,15 @@ class JsonLoader(FileLoader):
         :type default_path: Optional[Path]
         '''
 
-        # Start with the loader's path.
-        path = loader.path
-
-        # Check if the path has a valid JSON extension; fall back or raise error.
-        if not path.suffix.lower() == '.json':
-            if default_path and default_path.suffix.lower() == '.json':
-                path = default_path
-            else:
-                ServiceError.raise_for(
-                    JsonLoader,
-                    INVALID_FILE_ID,
-                    message="File must have .json extension",
-                    path=str(loader.path),
-                )
-
-        # Verify the resolved path exists.
-        if not path.exists():
-            ServiceError.raise_for(
-                JsonLoader,
-                JSON_FILE_NOT_FOUND_ID,
-                path=str(path),
-            )
+        # Delegate to the shared file-extension verification helper.
+        FileLoader.verify_extension(
+            loader,
+            allowed_extensions={'.json'},
+            invalid_error_id=INVALID_FILE_ID,
+            invalid_message='File must have .json extension',
+            not_found_error_id=JSON_FILE_NOT_FOUND_ID,
+            default_path=default_path,
+        )
 
     # * method: load
     def load(self,

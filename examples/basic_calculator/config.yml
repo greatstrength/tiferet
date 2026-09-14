@@ -3,22 +3,22 @@ sessions:
     name: Calculator Client
     description: >-
       A plain, non-fluent client for the calculator's arithmetic bounded
-      context. CalculatorAppContext is realized by
-      app.blueprints.calc.create_calculator_app.
+      context. CalculatorAppContext is wired explicitly by
+      app.blueprints.calc.create_calculator_app, not resolved from this
+      config.
     services:
       record_run_event:
         module_path: app.events.history
         class_name: RecordCalculation
   calc_cli:
     name: Calculator CLI
-    description: >-
-      Perform basic calculator operations via CLI. CliSessionContext is
-      realized by the CLI entry point.
+    description: Perform basic calculator operations via CLI
   calc_fluent:
     name: Fluent Calculator
     description: >-
       A chainable, PEMDAS-aware calculator context. CalculatorFluentContext
-      is realized by app.blueprints.fluent.create_calculator_fluent.
+      is wired explicitly by app.blueprints.fluent.create_calculator_fluent,
+      not resolved from this config.
     services:
       record_run_event:
         module_path: app.events.history

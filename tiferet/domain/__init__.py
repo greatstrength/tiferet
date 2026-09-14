@@ -48,6 +48,10 @@ from .logging import (
     Logger,
     LoggingSettings,
 )
+from .tester import (
+    TesterObject,
+    Verification,
+)
 
 # *** exports
 
@@ -81,4 +85,6 @@ __all__ = [
     'Handler',
     'Logger',
     'LoggingSettings',
+    'TesterObject',
+    'Verification',
 ]

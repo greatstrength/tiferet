@@ -9,9 +9,9 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import ErrorConfigObject
+from tiferet import use_tester
+from tiferet.mappers import ErrorAggregate
 from tiferet.repos.error import ErrorConfigRepository
-
 
 # *** constants
 
@@ -75,131 +75,24 @@ def error_yaml_file(tmp_path) -> str:
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: error_config_repo
-@pytest.fixture
-def error_config_repo(error_yaml_file: str) -> ErrorConfigRepository:
-    '''
-    Fixture to create an instance of the Error Configuration Repository.
+# *** testers
 
-    :param error_yaml_file: The error YAML configuration file path.
-    :type error_yaml_file: str
-    :return: An instance of ErrorConfigRepository.
-    :rtype: ErrorConfigRepository
-    '''
-
-    # Create and return the ErrorConfigRepository instance.
-    return ErrorConfigRepository(error_yaml_file)
-
-# *** tests
-
-# ** test_int: error_config_repo_exists
-def test_int_error_config_repo_exists(
-        error_config_repo: ErrorConfigRepository,
-    ) -> None:
-    '''
-    Test the exists method of the ErrorConfigRepository.
-
-    :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorConfigRepository
-    '''
-
-    # Check if the errors exist.
-    assert error_config_repo.exists(TEST_ERROR_CODE)
-    assert error_config_repo.exists(TEST_FORMATTED_ERROR_CODE)
-    assert not error_config_repo.exists('MISSING_ERROR_CODE')
-
-# ** test_int: error_config_repo_get
-def test_int_error_config_repo_get(
-        error_config_repo: ErrorConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the ErrorConfigRepository.
-
-    :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorConfigRepository
-    '''
-
-    # Get errors by id.
-    error = error_config_repo.get(TEST_ERROR_CODE)
-    formatted_error = error_config_repo.get(TEST_FORMATTED_ERROR_CODE)
-
-    # Check the first error.
-    assert error
-    assert error.id == TEST_ERROR_CODE
-    assert error.name == 'Test Error'
-    assert len(error.message) == 2
-    assert error.message[0].lang == 'en'
-    assert error.message[0].text == 'A test error occurred'
-    assert error.message[1].lang == 'es'
-    assert error.message[1].text == 'Ocurrió un error de prueba'
-
-    # Check the second error.
-    assert formatted_error
-    assert formatted_error.id == TEST_FORMATTED_ERROR_CODE
-    assert formatted_error.name == 'Test Formatted Error'
-    assert len(formatted_error.message) == 2
-    assert formatted_error.message[0].lang == 'en'
-    assert formatted_error.message[0].text == 'Error for {item_name}'
-    assert formatted_error.message[1].lang == 'es'
-    assert formatted_error.message[1].text == 'Error para {item_name}'
-
-# ** test_int: error_config_repo_get_not_found
-def test_int_error_config_repo_get_not_found(
-        error_config_repo: ErrorConfigRepository,
-    ) -> None:
-    '''
-    Test the get method of the ErrorConfigRepository for a non-existent error.
-
-    :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorConfigRepository
-    '''
-
-    # Attempt to get a non-existent error.
-    error = error_config_repo.get('MISSING_ERROR_CODE')
-
-    # Check that the error is None.
-    assert not error
-
-# ** test_int: error_config_repo_list
-def test_int_error_config_repo_list(
-        error_config_repo: ErrorConfigRepository,
-    ) -> None:
-    '''
-    Test the list method of the ErrorConfigRepository for all errors.
-
-    :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorConfigRepository
-    '''
-
-    # List all errors.
-    errors = error_config_repo.list()
-
-    # Check the errors.
-    assert errors
-    assert len(errors) == 2
-    error_ids = [error.id for error in errors]
-    assert TEST_ERROR_CODE in error_ids
-    assert TEST_FORMATTED_ERROR_CODE in error_ids
-
-# ** test_int: error_config_repo_save
-def test_int_error_config_repo_save(
-        error_config_repo: ErrorConfigRepository,
-    ) -> None:
-    '''
-    Test the save method of the ErrorConfigRepository.
-
-    :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorConfigRepository
-    '''
-
-    # Create constant for new test error.
-    new_error_id = 'NEW_ERROR_CODE'
-
-    # Create new error config data and map to an aggregate.
-    error = ErrorConfigObject.model_validate(dict(
-        id=new_error_id,
-        name='New Error',
-        message=[
+# ** tester: test_error_config_repository
+@use_tester(
+    type='repo',
+    target_cls=ErrorConfigRepository,
+    config_parameter='error_config',
+    sample_data={
+    },
+    equality_fields=[
+        'id',
+        'name',
+    ],
+    aggregate_cls=ErrorAggregate,
+    aggregate_sample_data={
+        'id': 'NEW_ERROR_CODE',
+        'name': 'New Error',
+        'message': [
             {
                 'lang': 'en',
                 'text': 'A new error occurred',
@@ -209,43 +102,140 @@ def test_int_error_config_repo_save(
                 'text': 'Ocurrió un nuevo error',
             },
         ],
-    )).map()
-
-    # Save the new error.
-    error_config_repo.save(error)
-
-    # Reload the error to verify it was saved.
-    new_error = error_config_repo.get(new_error_id)
-
-    # Check the new error.
-    assert new_error
-    assert new_error.id == new_error_id
-    assert new_error.name == 'New Error'
-    assert len(new_error.message) == 2
-    assert new_error.message[0].lang == 'en'
-    assert new_error.message[0].text == 'A new error occurred'
-    assert new_error.message[1].lang == 'es'
-    assert new_error.message[1].text == 'Ocurrió un nuevo error'
-
-# ** test_int: error_config_repo_delete
-def test_int_error_config_repo_delete(
-        error_config_repo: ErrorConfigRepository,
-    ) -> None:
+    },
+    exists_cases=[
+        (TEST_ERROR_CODE, True),
+        (TEST_FORMATTED_ERROR_CODE, True),
+        ('MISSING_ERROR_CODE', False),
+    ],
+    get_cases=[
+        (TEST_ERROR_CODE, {
+            'id': TEST_ERROR_CODE,
+            'name': 'Test Error',
+        }),
+        (TEST_FORMATTED_ERROR_CODE, {
+            'id': TEST_FORMATTED_ERROR_CODE,
+            'name': 'Test Formatted Error',
+        }),
+        ('MISSING_ERROR_CODE', None),
+    ],
+    list_ids=[
+        TEST_ERROR_CODE,
+        TEST_FORMATTED_ERROR_CODE,
+    ],
+    delete_ids=[
+        TEST_FORMATTED_ERROR_CODE,
+    ],
+)
+class TestErrorConfigRepository:
     '''
-    Test the delete method of the ErrorConfigRepository.
-
-    :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorConfigRepository
+    Tests for ErrorConfigRepository using the repo tester.
     '''
 
-    # Delete an existing error.
-    error_config_repo.delete(TEST_FORMATTED_ERROR_CODE)
+    # * test: exists
+    def test_exists(self, test_ctx, error_yaml_file: str) -> None:
+        '''
+        Test the exists method of the ErrorConfigRepository.
 
-    # Attempt to get the deleted error.
-    deleted_error = error_config_repo.get(TEST_FORMATTED_ERROR_CODE)
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param error_yaml_file: The error YAML configuration file path.
+        :type error_yaml_file: str
+        '''
 
-    # Check that the error is None.
-    assert not deleted_error
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=error_yaml_file)
 
-    # Ensure that deleting a non-existent error is idempotent.
-    error_config_repo.delete('MISSING_ERROR_CODE')
+        # Assert exists cases against the seeded ids.
+        test_ctx.assert_exists(repo)
+
+    # * test: get
+    def test_get(self, test_ctx, error_yaml_file: str) -> None:
+        '''
+        Test the get method of the ErrorConfigRepository.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param error_yaml_file: The error YAML configuration file path.
+        :type error_yaml_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=error_yaml_file)
+
+        # Assert get cases against the seeded ids.
+        test_ctx.assert_get(repo)
+
+        # Check nested messages on the seeded errors.
+        error = repo.get(TEST_ERROR_CODE)
+        assert len(error.message) == 2
+        assert error.message[0].lang == 'en'
+        assert error.message[0].text == 'A test error occurred'
+        assert error.message[1].lang == 'es'
+        assert error.message[1].text == 'Ocurrió un error de prueba'
+
+        formatted_error = repo.get(TEST_FORMATTED_ERROR_CODE)
+        assert len(formatted_error.message) == 2
+        assert formatted_error.message[0].lang == 'en'
+        assert formatted_error.message[0].text == 'Error for {item_name}'
+        assert formatted_error.message[1].lang == 'es'
+        assert formatted_error.message[1].text == 'Error para {item_name}'
+
+    # * test: list
+    def test_list(self, test_ctx, error_yaml_file: str) -> None:
+        '''
+        Test the list method of the ErrorConfigRepository.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param error_yaml_file: The error YAML configuration file path.
+        :type error_yaml_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=error_yaml_file)
+
+        # Assert unfiltered list ids.
+        test_ctx.assert_list(repo)
+
+    # * test: save
+    def test_save(self, test_ctx, error_yaml_file: str) -> None:
+        '''
+        Test the save method of the ErrorConfigRepository.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param error_yaml_file: The error YAML configuration file path.
+        :type error_yaml_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=error_yaml_file)
+
+        # Assert save persists the aggregate sample.
+        test_ctx.assert_save(repo)
+
+        # Check nested messages on the saved error.
+        new_error = repo.get('NEW_ERROR_CODE')
+        assert len(new_error.message) == 2
+        assert new_error.message[0].lang == 'en'
+        assert new_error.message[0].text == 'A new error occurred'
+        assert new_error.message[1].lang == 'es'
+        assert new_error.message[1].text == 'Ocurrió un nuevo error'
+
+    # * test: delete
+    def test_delete(self, test_ctx, error_yaml_file: str) -> None:
+        '''
+        Test the delete method of the ErrorConfigRepository.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param error_yaml_file: The error YAML configuration file path.
+        :type error_yaml_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=error_yaml_file)
+
+        # Assert delete removes the id and is idempotent.
+        test_ctx.assert_delete(repo)

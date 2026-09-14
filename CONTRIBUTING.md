@@ -52,7 +52,7 @@ Keep functional changes out of the same commit as docs, config, or packaging. Ti
 
 ### Pull requests
 
-RFPs target proto. Trunk and Doc target `main`. The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Session notes, conversation links, and Collaboration Reports belong on the **issue**.
+RFPs target proto. Trunk and Doc target `main`. The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Session notes and conversation links belong on the **issue**. Collaboration Reports are a trunk TRD artifact and also belong on that issue.
 
 ### Review
 
@@ -60,7 +60,7 @@ Diff comments stay on the PR. Reconstruction review may look at proto only for a
 
 ### Collaboration Report
 
-Posted on the originating **issue**. A Super-TRD child gets an implementation log when the code is pushed, and a verification addendum after combined review. See [collab_report.md](docs/collab/collab_report.md).
+TRD-only, posted on the originating **issue**. A Super-TRD child gets an implementation log when the code is pushed, and a verification addendum after combined review. See [collab_report.md](docs/collab/collab_report.md).
 
 ## Working with AI agents
 

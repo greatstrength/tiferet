@@ -7,18 +7,17 @@ import os
 from typing import Any, Callable, Dict
 
 # ** app
-from .. import assets as a
+from .. import a
 from ..assets import TiferetAPIError, TiferetError
 from ..contexts.app import (
+    APP_CONSTANT_CACHE_PREFIX,
+    APP_SERVICE_CACHE_PREFIX,
+    APP_SESSION_CACHE_PREFIX,
     AppServiceDependency,
     AppSession,
-    AppSessionContext,
     add_default_app_constants,
     add_default_app_services,
     add_default_app_sessions,
-    get_default_app_constants,
-    get_default_app_services,
-    get_default_app_session,
 )
 from ..contexts.cache import CacheContext
 from ..contexts.core import BaseContext
@@ -32,6 +31,8 @@ from ..contexts.logging import (
     get_default_logging_settings,
 )
 from ..contexts.request import RequestContext
+from ..events import DomainEvent
+from ..events.app import GetAppSession
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver, injectable_parameter_names
 
@@ -80,6 +81,74 @@ def resolve_collaborators(context_cls: type, app_container: DIAppServiceContaine
         and not name.startswith('default_')
         and app_container.has_dependency(name)
     }
+
+# ** function: compose_session_context
+def compose_session_context(
+        context_cls: type,
+        app_session: AppSession,
+        cache: CacheContext,
+        app_container: DIAppServiceContainer,
+        resolver: ServiceResolver,
+        create_request_handler: Callable,
+        response_handler: Callable,
+        **extra_kwargs) -> Any:
+    '''
+    Compose a session context from a pre-built app container and resolver.
+
+    Wires the three resolver-derived handlers (build_logger_handler,
+    execute_feature_handler, raise_error_handler) plus the caller-supplied
+    request/response handler pair, resolves any remaining collaborators the
+    context class declares, and constructs the context via from_domain.
+    The caller supplies the pre-built app container and resolver so this
+    function stays agnostic to which resolver-composition strategy (core vs
+    admin) produced them, and to which context class (AppSessionContext vs
+    CliSessionContext) is being constructed.
+
+    :param context_cls: The context class to construct (AppSessionContext or
+        CliSessionContext).
+    :type context_cls: type
+    :param app_session: The loaded app session domain object.
+    :type app_session: AppSession
+    :param cache: The bootstrap cache.
+    :type cache: CacheContext
+    :param app_container: The built app service container, used to resolve
+        collaborators.
+    :type app_container: DIAppServiceContainer
+    :param resolver: The composed service resolver (core or admin).
+    :type resolver: ServiceResolver
+    :param create_request_handler: The request-construction handler to wire.
+    :type create_request_handler: Callable
+    :param response_handler: The response-building handler to wire.
+    :type response_handler: Callable
+    :param extra_kwargs: Additional keyword arguments forwarded to the
+        context constructor (e.g. parse_cli_args, or caller context_kwargs).
+    :type extra_kwargs: dict
+    :return: The fully wired session context.
+    :rtype: Any
+    '''
+
+    # Build the three resolver-derived template-method handlers, plus the
+    # caller-supplied request/response handler pair.
+    handlers = dict(
+        build_logger_handler=build_logger_handler(cache, resolver.get_dependency),
+        execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
+        raise_error_handler=raise_error_handler(get_error(cache, resolver.get_dependency)),
+        response_handler=response_handler,
+        create_request_handler=create_request_handler,
+    )
+
+    # Resolve any remaining injectable collaborators the context class declares.
+    collaborators = resolve_collaborators(context_cls, app_container)
+
+    # Construct and return the fully wired session context.
+    return context_cls.from_domain(
+        app_session,
+        get_dependency=resolver.get_dependency,
+        cache=cache,
+        **handlers,
+        **collaborators,
+        **extra_kwargs,
+    )
 
 # ** function: merge_logging_settings
 def merge_logging_settings(cache: CacheContext,
@@ -192,8 +261,8 @@ def build_app_service_container(cache,
     '''
 
     # Retrieve the cache-seeded default services and constants.
-    default_services = get_default_app_services(cache)
-    default_constants = get_default_app_constants(cache)
+    default_services = list(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values())
+    default_constants = cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX)
 
     # Retrieve the session's own service and constant overrides.
     session_services = app_instance.services if app_instance is not None else []
@@ -454,13 +523,17 @@ def get_app_session(interface_id: str,
 
     # Return a cache-seeded default session when present.
     if cache is not None:
-        cached_session = get_default_app_session(cache, interface_id)
+        cached_session = cache.get(interface_id, *APP_SESSION_CACHE_PREFIX)
         if cached_session is not None:
             return cached_session
 
-    # On a cache miss, compose the app service and load the session through it.
+    # On a cache miss, compose the app service and resolve the session through the event.
     app_service = create_app_service(module_path, class_name, parameters)
-    return AppSessionContext.load(interface_id, app_service)
+    return DomainEvent.handle(
+        GetAppSession,
+        dependencies=dict(app_service=app_service),
+        id=interface_id,
+    )
 
 # ** blueprint: create_request_context
 def create_request_context(interface_id: str,
@@ -614,86 +687,3 @@ def response_handler(request: RequestContext) -> Any:
     # Delegate directly to the request context.
     return request.handle_response()
 
-# ** blueprint: build_app_session_context
-def build_app_session_context(app_session: AppSession, cache: CacheContext, **context_kwargs) -> AppSessionContext:
-    '''
-    Compose a fully wired AppSessionContext from a loaded app session.
-
-    :param app_session: The loaded app session domain object.
-    :type app_session: AppSession
-    :param cache: The bootstrap cache.
-    :type cache: CacheContext
-    :param context_kwargs: Additional keyword arguments forwarded to the context constructor.
-    :type context_kwargs: dict
-    :return: The fully wired app session context.
-    :rtype: AppSessionContext
-    '''
-
-    # Build the app service container and compose the service resolver.
-    app_container = build_app_service_container(cache, app_session)
-    resolver = build_service_resolver(app_container)
-
-    # Build the five template-method handlers.
-    handlers = dict(
-        build_logger_handler=build_logger_handler(cache, resolver.get_dependency),
-        execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
-        raise_error_handler=raise_error_handler(get_error(cache, resolver.get_dependency)),
-        response_handler=response_handler,
-        create_request_handler=create_session_request,
-    )
-
-    # Resolve any remaining injectable collaborators the context class declares.
-    collaborators = resolve_collaborators(AppSessionContext, app_container)
-
-    # Construct and return the wired app session context.
-    return AppSessionContext.from_domain(
-        app_session,
-        get_dependency=resolver.get_dependency,
-        cache=cache,
-        **handlers,
-        **collaborators,
-        **context_kwargs,
-    )
-
-# ** blueprint: build_app
-def build_app(interface_id: str,
-        module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
-        class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
-        **parameters) -> AppSessionContext:
-    '''
-    Build a fully resolved application session context in a single call.
-
-    No apply_defaults call occurs on this path; all framework defaults come
-    from the cache seeded by build_cache. Raises APP_SESSION_NOT_FOUND when
-    the session is absent (via get_app_session), never resolve_default_interface.
-
-    :param interface_id: The interface identifier to load.
-    :type interface_id: str
-    :param module_path: The module path of the app service implementation.
-    :type module_path: str
-    :param class_name: The class name of the app service implementation.
-    :type class_name: str
-    :param parameters: Additional parameters to pass to the app service constructor.
-    :type parameters: dict
-    :return: The fully wired application session context.
-    :rtype: AppSessionContext
-    '''
-
-    # Build the bootstrap cache pre-seeded with all framework defaults.
-    cache = build_cache()
-
-    # Resolve the app session, preferring a cache-seeded default.
-    app_session = get_app_session(interface_id, cache, module_path=module_path, class_name=class_name, **parameters)
-
-    # Build the fully wired app session context.
-    context = build_app_session_context(app_session, cache)
-
-    # Verify the resolved context is a valid AppSessionContext.
-    if not isinstance(context, AppSessionContext):
-        TiferetError.raise_error(
-            a.error.INVALID_APP_SESSION_TYPE_ID,
-            interface_id=interface_id,
-        )
-
-    # Return the validated app session context.
-    return context

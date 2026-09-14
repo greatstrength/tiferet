@@ -3,13 +3,13 @@
 # *** imports
 
 # ** core
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar, Dict, Optional
 
 # ** infra
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 # ** app
-from ..domain import DomainObject, ModelError
+from ..domain import ATTRIBUTE_NOT_SETTABLE_ID, DomainObject, ModelError
 
 # *** classes
 
@@ -24,11 +24,19 @@ class Aggregate(DomainObject):
     Pydantic field validation.
     '''
 
+    # * attribute: _SETTABLE_ATTRIBUTES
+    _SETTABLE_ATTRIBUTES: ClassVar[Optional[set]] = None
+
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
         Update an attribute on the aggregate, converting any Pydantic validation
         failure (unknown attribute or invalid value) into a ModelError.
+
+        When the subclass declares ``_SETTABLE_ATTRIBUTES`` (not None), only
+        attributes in that set may be assigned; any other name raises a
+        ModelError with ATTRIBUTE_NOT_SETTABLE_ID. The default None enforces no
+        restriction beyond ordinary Pydantic field validation.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -37,6 +45,18 @@ class Aggregate(DomainObject):
         :return: None
         :rtype: None
         '''
+
+        # Enforce the declared allow-list, when the subclass declares one.
+        settable = type(self)._SETTABLE_ATTRIBUTES
+        if settable is not None and attribute not in settable:
+            supported_names = ', '.join(sorted(settable))
+            ModelError.raise_error(
+                ATTRIBUTE_NOT_SETTABLE_ID,
+                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+                model=self,
+                attribute=attribute,
+                supported=supported_names,
+            )
 
         # Apply the update; validate_assignment=True triggers field validation.
         try:

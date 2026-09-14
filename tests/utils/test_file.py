@@ -317,3 +317,110 @@ def test_file_loader_close_when_not_open(temp_text_file):
 
     # Verify file is still None.
     assert loader.file is None
+
+# ** test: file_loader_verify_extension_success
+def test_file_loader_verify_extension_success(tmp_path):
+    '''
+    Test that verify_extension succeeds for an allowed, existing extension.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a file with an allowed extension.
+    file_path = tmp_path / 'data.ext'
+    file_path.write_text('content', encoding='utf-8')
+
+    # Verify — should not raise.
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+    FileLoader.verify_extension(
+        loader,
+        allowed_extensions={'.ext'},
+        invalid_error_id='INVALID_TEST_FILE',
+        invalid_message='File must have .ext extension',
+        not_found_error_id='TEST_FILE_NOT_FOUND',
+    )
+
+# ** test: file_loader_verify_extension_invalid_extension
+def test_file_loader_verify_extension_invalid_extension(tmp_path):
+    '''
+    Test that verify_extension raises the passed invalid_error_id and
+    invalid_message when the extension is not allowed and no fallback resolves.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a file with a disallowed extension.
+    file_path = tmp_path / 'data.txt'
+    file_path.write_text('content', encoding='utf-8')
+
+    # Verify raises the passed invalid-extension error.
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+    with pytest.raises(ServiceError) as exc_info:
+        FileLoader.verify_extension(
+            loader,
+            allowed_extensions={'.ext'},
+            invalid_error_id='INVALID_TEST_FILE',
+            invalid_message='File must have .ext extension',
+            not_found_error_id='TEST_FILE_NOT_FOUND',
+        )
+
+    # Verify the error code and message.
+    assert exc_info.value.error_code == 'INVALID_TEST_FILE'
+    assert exc_info.value.message == 'File must have .ext extension'
+
+# ** test: file_loader_verify_extension_fallback
+def test_file_loader_verify_extension_fallback(tmp_path):
+    '''
+    Test that verify_extension falls back to default_path when the primary
+    path has an invalid extension but the fallback path is allowed.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create the fallback file with an allowed extension.
+    fallback_path = tmp_path / 'fallback.ext'
+    fallback_path.write_text('content', encoding='utf-8')
+
+    # Create a loader pointing to a disallowed extension.
+    loader = FileLoader(path=tmp_path / 'data.txt', mode='r', encoding='utf-8')
+
+    # Verify succeeds using the fallback path.
+    FileLoader.verify_extension(
+        loader,
+        allowed_extensions={'.ext'},
+        invalid_error_id='INVALID_TEST_FILE',
+        invalid_message='File must have .ext extension',
+        not_found_error_id='TEST_FILE_NOT_FOUND',
+        default_path=fallback_path,
+    )
+
+# ** test: file_loader_verify_extension_not_found
+def test_file_loader_verify_extension_not_found(tmp_path):
+    '''
+    Test that verify_extension raises the passed not_found_error_id with the
+    resolved path in kwargs when the file does not exist.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a loader pointing to a non-existent, allowed-extension file.
+    missing_path = tmp_path / 'missing.ext'
+    loader = FileLoader(path=missing_path, mode='r', encoding='utf-8')
+
+    # Verify raises the passed not-found error.
+    with pytest.raises(ServiceError) as exc_info:
+        FileLoader.verify_extension(
+            loader,
+            allowed_extensions={'.ext'},
+            invalid_error_id='INVALID_TEST_FILE',
+            invalid_message='File must have .ext extension',
+            not_found_error_id='TEST_FILE_NOT_FOUND',
+        )
+
+    # Verify the error code and kwargs.
+    assert exc_info.value.error_code == 'TEST_FILE_NOT_FOUND'
+    assert 'missing.ext' in exc_info.value.kwargs.get('path', '')

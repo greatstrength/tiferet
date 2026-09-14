@@ -177,13 +177,26 @@ What it does:
 
 Flat-map admin arguments use the CLI `'dict'` type (`key=value` pairs) rather than raw JSON. See [docs/guides/domain/cli.md](domain/cli.md) and the full six-domain catalog in [docs/guides/admin.md](admin.md).
 
+## Tester Blueprints (not a mini-App)
+
+Unit tests do not go through `build_app`. `tiferet/blueprints/tester.py` exports `@use_tester` (also from `tiferet` and `tiferet.blueprints`). It constructs one `TesterObject`, binds the matching `TesterContext` variant, and injects `test_ctx` / `session` by parameter name.
+
+Tester-scoped `build_cache` wraps `core.build_cache` with `@add_default_testers(CORE_DEFAULT_TESTERS)` and `@add_default_app_sessions(CORE_DEFAULT_TESTER_SESSIONS)`. Do **not** stack those decorators on `tiferet/blueprints/core.py`.
+
+`type` defaults to `'generic'`. `target_cls` fills `module_path` / `class_name`. `aggregate_cls` / `domain_cls` fill the matching import coordinates. Wrap-all is by parameter name; the wrapper strips `test_ctx` and `session` from the signature. The module does not import pytest.
+
+**Forbidden:** `test_case`, `Tester()`, `resolve_tester`, `tester_config`, a `testers:` YAML section.
+
+Cookbook (per-type algorithms, wrap-all, overlay): [docs/guides/blueprints/tester.md](blueprints/tester.md).
+
 ## When to Create a New Blueprint
 
 Create a new blueprint when you need a specialized entry point:
 
 - Web blueprint — for Flask/FastAPI integration
-- Test blueprint — for integration testing with mocked services
 - Domain-specific admin or tooling sessions — mirror `admin.py` / `admin_cli.py` (custom cache seeders + resolver + five-handler wiring)
+
+Do not add a second test entrypoint that composes `AppSessionContext`. Unit tests use `@use_tester`.
 
 If you find yourself repeating the same loading and wiring logic in multiple scripts, extract it into a dedicated blueprint.
 
@@ -231,6 +244,8 @@ Use `create_feature_context` → `feature_context.execute_feature(request, ...)`
 ## Related Documentation
 
 - [docs/core/blueprints.md](../core/blueprints.md) — detailed blueprint implementation reference
+- [docs/guides/blueprints/tester.md](blueprints/tester.md) — `@use_tester` cookbook and per-type algorithms
+- [docs/core/testing.md](../core/testing.md) — v2.1.0 unit-test model
 - [docs/guides/admin.md](admin.md) — admin catalog domains and worked examples
 - [docs/core/contexts.md](../core/contexts.md) — five-handler context contract
 - [docs/guides/contexts.md](contexts.md) — context strategies and patterns

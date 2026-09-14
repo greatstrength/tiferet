@@ -276,6 +276,53 @@ def create_default_app_session_data(
     # Return the assembled session definition.
     return session
 
+# ** function: create_default_tester_data
+def create_default_tester_data(
+        type: str,
+        module_path: str,
+        class_name: str,
+        sample_data: Dict[str, Any],
+        equality_fields: List[str],
+        **variant_kwargs: Any,
+    ) -> Dict[str, Any]:
+    '''
+    Build a default tester definition dictionary.
+
+    The identifier is intentionally not a parameter here: the returned dict
+    is always stored under its owning ``*_ID`` constant as a group-dict key,
+    so embedding the id a second time inside the value would restate it.
+
+    :param type: The specialized tester type.
+    :type type: str
+    :param module_path: The module path of the target class.
+    :type module_path: str
+    :param class_name: The target class name.
+    :type class_name: str
+    :param sample_data: The sample data for construction and comparison.
+    :type sample_data: Dict[str, Any]
+    :param equality_fields: The field names compared for equality.
+    :type equality_fields: List[str]
+    :param variant_kwargs: Type-specific tester fields forwarded as-is.
+    :type variant_kwargs: dict
+    :return: The default tester definition, without its id.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base tester definition.
+    tester = {
+        'type': type,
+        'module_path': module_path,
+        'class_name': class_name,
+        'sample_data': sample_data,
+        'equality_fields': equality_fields,
+    }
+
+    # Forward variant fields onto the definition.
+    tester.update(variant_kwargs)
+
+    # Return the assembled tester definition.
+    return tester
+
 # ** function: create_default_formatter
 def create_default_formatter(id: str,
         name: str,

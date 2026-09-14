@@ -177,14 +177,6 @@ APP_ADD_CLI_CMD_DATA: Dict[str, Any] = create_default_cli_command_data(
             description='The human-readable interface name.',
         ),
         create_default_cli_argument(
-            name_or_flags=['module_path'],
-            description='The Python module path of the context class.',
-        ),
-        create_default_cli_argument(
-            name_or_flags=['class_name'],
-            description='The context class name.',
-        ),
-        create_default_cli_argument(
             name_or_flags=['--description'],
             description='Optional interface description.',
         ),

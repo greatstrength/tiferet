@@ -54,9 +54,9 @@ Context-specific labels:
 - Not limited to the built-in trio (FeatureContext, ErrorContext, LoggingContext). Framework extensions introduce their own low-level contexts for domain-specific concerns; blueprints and handler injection are the mechanism for composing them alongside the built-in ones.
 
 **`domain_type` ClassVar:**
-- Declare on each context to register it in the `ContextMeta` registry.
-- `AppSessionContext` declares `domain_type = AppSession`.
-- `CliSessionContext` is selected by the CLI blueprint, not by `module_path`/`class_name` on the session.
+- Declare on each context to register it in the `ContextMeta` registry. Own-namespace only — subclasses that omit `domain_type` do not clobber the parent.
+- `AppSessionContext` declares `domain_type = AppSession`. `CliSessionContext` omits it so `AppSession` stays mapped to `AppSessionContext`.
+- `TesterContext` declares `domain_type = TesterObject`. Variants omit `domain_type`. `TestSessionContext` extends `RequestContext` and omits `domain_type` so `Request` stays mapped to `RequestContext`. Do not steal `Request` or `AppSession` registry entries. Overlay given-state onto `session.data`, never `sample_data`. Unit tests use `@use_tester`, not a mini-App.
 
 **Construction:** The blueprint hardcodes the context class for the entry point, then constructs via `BaseContext.from_domain(app_session, **handlers)`. Never instantiate contexts directly with `ContextClass(...)`.
 

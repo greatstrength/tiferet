@@ -23,7 +23,6 @@ from tiferet.interfaces import LoggingService
 from tiferet.mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
 from tiferet.testing import DomainEventTestBase
 
-
 # *** fixtures
 
 # ** fixture: sample_formatter
@@ -88,16 +87,15 @@ def sample_logger() -> Logger:
         propagate=True,
     )
 
+# *** testers
 
-# *** tests
-
-# ** class: TestLoggingEvent
+# ** tester: test_logging_event
 class TestLoggingEvent:
     '''
     Tests for the LoggingEvent base event shared by all logging events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that LoggingEvent extends DomainEvent.
@@ -106,7 +104,7 @@ class TestLoggingEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(LoggingEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete logging event extends LoggingEvent.
@@ -124,7 +122,7 @@ class TestLoggingEvent:
         ):
             assert issubclass(event_cls, LoggingEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing a logging event wires the shared service attribute.
@@ -138,7 +136,7 @@ class TestLoggingEvent:
         assert AddFormatter(logging_service=service).logging_service is service
 
 
-# ** test: TestListAllLoggingConfigs
+# ** tester: test_list_all_logging_configs
 class TestListAllLoggingConfigs(DomainEventTestBase):
     '''
     Tests for ListAllLoggingConfigs using the domain event test harness.
@@ -156,7 +154,7 @@ class TestListAllLoggingConfigs(DomainEventTestBase):
     # * attribute: required_params
     required_params = []
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies, sample_formatter, sample_handler, sample_logger):
         '''
         Test successful listing of all logging configurations.
@@ -187,7 +185,7 @@ class TestListAllLoggingConfigs(DomainEventTestBase):
         assert loggers == [sample_logger]
         mock_dependencies['logging_service'].list_all.assert_called_once_with()
 
-    # * method: test_empty
+    # * test: empty
     def test_empty(self, mock_dependencies):
         '''
         Test listing when no configurations exist.
@@ -209,7 +207,7 @@ class TestListAllLoggingConfigs(DomainEventTestBase):
         mock_dependencies['logging_service'].list_all.assert_called_once_with()
 
 
-# ** test: TestAddFormatter
+# ** tester: test_add_formatter
 class TestAddFormatter(DomainEventTestBase):
     '''
     Tests for AddFormatter using the domain event test harness.
@@ -233,7 +231,7 @@ class TestAddFormatter(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id', 'name', 'format']
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test successful addition of a formatter.
@@ -255,7 +253,7 @@ class TestAddFormatter(DomainEventTestBase):
         saved_formatter = mock_dependencies['logging_service'].save_formatter.call_args[0][0]
         assert saved_formatter.id == 'detailed'
 
-    # * method: test_minimal
+    # * test: minimal
     def test_minimal(self, mock_dependencies):
         '''
         Test adding a formatter with only required fields.
@@ -283,7 +281,7 @@ class TestAddFormatter(DomainEventTestBase):
         mock_dependencies['logging_service'].save_formatter.assert_called_once()
 
 
-# ** test: TestRemoveFormatter
+# ** tester: test_remove_formatter
 class TestRemoveFormatter(DomainEventTestBase):
     '''
     Tests for RemoveFormatter using the domain event test harness.
@@ -301,7 +299,7 @@ class TestRemoveFormatter(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id']
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test successful removal of a formatter.
@@ -318,7 +316,7 @@ class TestRemoveFormatter(DomainEventTestBase):
         mock_dependencies['logging_service'].delete_formatter.assert_called_once_with('old_formatter')
 
 
-# ** test: TestAddHandler
+# ** tester: test_add_handler
 class TestAddHandler(DomainEventTestBase):
     '''
     Tests for AddHandler using the domain event test harness.
@@ -345,7 +343,7 @@ class TestAddHandler(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id', 'name', 'module_path', 'class_name', 'level', 'formatter']
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test successful addition of a handler.
@@ -365,7 +363,7 @@ class TestAddHandler(DomainEventTestBase):
         assert result.filename == '/var/log/app.log'
         mock_dependencies['logging_service'].save_handler.assert_called_once()
 
-    # * method: test_with_stream
+    # * test: with_stream
     def test_with_stream(self, mock_dependencies):
         '''
         Test adding a stream handler.
@@ -394,7 +392,7 @@ class TestAddHandler(DomainEventTestBase):
         mock_dependencies['logging_service'].save_handler.assert_called_once()
 
 
-# ** test: TestRemoveHandler
+# ** tester: test_remove_handler
 class TestRemoveHandler(DomainEventTestBase):
     '''
     Tests for RemoveHandler using the domain event test harness.
@@ -412,7 +410,7 @@ class TestRemoveHandler(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id']
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test successful removal of a handler.
@@ -429,7 +427,7 @@ class TestRemoveHandler(DomainEventTestBase):
         mock_dependencies['logging_service'].delete_handler.assert_called_once_with('old_handler')
 
 
-# ** test: TestAddLogger
+# ** tester: test_add_logger
 class TestAddLogger(DomainEventTestBase):
     '''
     Tests for AddLogger using the domain event test harness.
@@ -454,7 +452,7 @@ class TestAddLogger(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id', 'name', 'level', 'handlers']
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test successful addition of a logger.
@@ -475,7 +473,7 @@ class TestAddLogger(DomainEventTestBase):
         assert result.propagate is False
         mock_dependencies['logging_service'].save_logger.assert_called_once()
 
-    # * method: test_minimal
+    # * test: minimal
     def test_minimal(self, mock_dependencies):
         '''
         Test adding a logger with only required fields.
@@ -502,7 +500,7 @@ class TestAddLogger(DomainEventTestBase):
         mock_dependencies['logging_service'].save_logger.assert_called_once()
 
 
-# ** test: TestRemoveLogger
+# ** tester: test_remove_logger
 class TestRemoveLogger(DomainEventTestBase):
     '''
     Tests for RemoveLogger using the domain event test harness.
@@ -520,7 +518,7 @@ class TestRemoveLogger(DomainEventTestBase):
     # * attribute: required_params
     required_params = ['id']
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test successful removal of a logger.

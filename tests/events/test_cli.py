@@ -42,15 +42,15 @@ def cli_command():
         arguments=[],
     )
 
-# *** tests
+# *** testers
 
-# ** class: TestCliEvent
+# ** tester: test_cli_event
 class TestCliEvent:
     '''
     Tests for the CliEvent base event shared by all CLI events.
     '''
 
-    # * method: test_base_extends_domain_event
+    # * test: base_extends_domain_event
     def test_base_extends_domain_event(self):
         '''
         Test that CliEvent extends DomainEvent.
@@ -59,7 +59,7 @@ class TestCliEvent:
         # Assert the base event extends DomainEvent.
         assert issubclass(CliEvent, DomainEvent)
 
-    # * method: test_concrete_events_extend_base
+    # * test: concrete_events_extend_base
     def test_concrete_events_extend_base(self):
         '''
         Test that every concrete CLI event extends CliEvent.
@@ -74,7 +74,7 @@ class TestCliEvent:
         ):
             assert issubclass(event_cls, CliEvent)
 
-    # * method: test_service_injection
+    # * test: service_injection
     def test_service_injection(self):
         '''
         Test that constructing a CLI event wires the shared service attribute.
@@ -88,7 +88,7 @@ class TestCliEvent:
         assert AddCliCommand(cli_service=service).cli_service is service
 
 
-# ** test: TestAddCliCommand
+# ** tester: test_add_cli_command
 class TestAddCliCommand(DomainEventTestBase):
     '''
     Tests for AddCliCommand using the domain event test harness.
@@ -123,7 +123,7 @@ class TestAddCliCommand(DomainEventTestBase):
         service.exists.return_value = False
         return {'cli_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test that AddCliCommand successfully creates a new CLI command.
@@ -144,7 +144,7 @@ class TestAddCliCommand(DomainEventTestBase):
         mock_dependencies['cli_service'].exists.assert_called_once_with('test.new_command')
         mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
-    # * method: test_with_arguments
+    # * test: with_arguments
     def test_with_arguments(self, mock_dependencies):
         '''
         Test that AddCliCommand can create a command with initial arguments.
@@ -175,7 +175,7 @@ class TestAddCliCommand(DomainEventTestBase):
         mock_dependencies['cli_service'].exists.assert_called_once_with('test.verbose_command')
         mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
-    # * method: test_duplicate_id
+    # * test: duplicate_id
     def test_duplicate_id(self, mock_dependencies):
         '''
         Test that AddCliCommand fails when the command id already exists.
@@ -191,7 +191,7 @@ class TestAddCliCommand(DomainEventTestBase):
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.CLI_COMMAND_ALREADY_EXISTS_ID
 
-    # * method: test_none_arguments_coerced
+    # * test: none_arguments_coerced
     def test_none_arguments_coerced(self, mock_dependencies):
         '''
         Test that None arguments are coerced to an empty list.
@@ -206,7 +206,7 @@ class TestAddCliCommand(DomainEventTestBase):
         mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
 
-# ** test: TestAddCliArgument
+# ** tester: test_add_cli_argument
 class TestAddCliArgument(ServiceEventTestBase):
     '''
     Tests for AddCliArgument using the domain event test harness.
@@ -253,7 +253,7 @@ class TestAddCliArgument(ServiceEventTestBase):
         service.get.return_value = cli_command
         return {'cli_service': service}
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies, cli_command):
         '''
         Test that AddCliArgument successfully adds an argument to a command.
@@ -270,7 +270,7 @@ class TestAddCliArgument(ServiceEventTestBase):
         mock_dependencies['cli_service'].get.assert_called_once_with('test.command')
         mock_dependencies['cli_service'].save.assert_called_once_with(cli_command)
 
-    # * method: test_with_kwargs
+    # * test: with_kwargs
     def test_with_kwargs(self, mock_dependencies, cli_command):
         '''
         Test that AddCliArgument handles additional kwargs for arguments.
@@ -294,7 +294,7 @@ class TestAddCliArgument(ServiceEventTestBase):
         mock_dependencies['cli_service'].get.assert_called_once_with('test.command')
         mock_dependencies['cli_service'].save.assert_called_once_with(cli_command)
 
-    # * method: test_multiple_arguments
+    # * test: multiple_arguments
     def test_multiple_arguments(self, mock_dependencies, cli_command):
         '''
         Test adding multiple arguments to the same command sequentially.
@@ -315,7 +315,7 @@ class TestAddCliArgument(ServiceEventTestBase):
         assert mock_dependencies['cli_service'].save.call_count == 2
 
 
-# ** test: TestListCliCommands
+# ** tester: test_list_cli_commands
 class TestListCliCommands(DomainEventTestBase):
     '''
     Tests for ListCliCommands using the domain event test harness.
@@ -330,7 +330,7 @@ class TestListCliCommands(DomainEventTestBase):
     # * attribute: sample_kwargs
     sample_kwargs = dict()
 
-    # * method: test_empty
+    # * test: empty
     def test_empty(self, mock_dependencies):
         '''
         Test that ListCliCommands returns an empty list when no commands exist.
@@ -346,7 +346,7 @@ class TestListCliCommands(DomainEventTestBase):
         assert result == []
         mock_dependencies['cli_service'].list.assert_called_once()
 
-    # * method: test_multiple
+    # * test: multiple
     def test_multiple(self, mock_dependencies, cli_command):
         '''
         Test that ListCliCommands returns multiple commands.
@@ -373,7 +373,7 @@ class TestListCliCommands(DomainEventTestBase):
         mock_dependencies['cli_service'].list.assert_called_once()
 
 
-# ** test: TestGetParentArguments
+# ** tester: test_get_parent_arguments
 class TestGetParentArguments(DomainEventTestBase):
     '''
     Tests for GetParentArguments using the domain event test harness.
@@ -388,7 +388,7 @@ class TestGetParentArguments(DomainEventTestBase):
     # * attribute: sample_kwargs
     sample_kwargs = dict()
 
-    # * method: test_success
+    # * test: success
     def test_success(self, mock_dependencies):
         '''
         Test that GetParentArguments returns parent arguments.
@@ -422,7 +422,7 @@ class TestGetParentArguments(DomainEventTestBase):
         assert '--debug' in result[1].name_or_flags
         mock_dependencies['cli_service'].get_parent_arguments.assert_called_once()
 
-    # * method: test_empty
+    # * test: empty
     def test_empty(self, mock_dependencies):
         '''
         Test that GetParentArguments handles empty parent argument lists.
