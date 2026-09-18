@@ -41,8 +41,11 @@ gh issue create --repo greatstrength/tiferet --title "<title>" --body "<body>"
 # Create a pull request
 gh pr create --repo greatstrength/tiferet --base main --head <branch> --title "<title>" --body "<body>"
 
-# Link a branch to an issue (development branch)
-# Use the GitHub UI or MCP tool — no direct gh CLI equivalent.
+# GitHub-link a PR to its authorizing issue (development relationship).
+# Title mention is not enough. Closing keywords auto-close on default branch
+# only; proto PRs must still be linked, then the issue closed by hand.
+gh api repos/greatstrength/tiferet/issues/<issue-number>/timeline
+# Prefer the GitHub UI "Development" / "Link a pull request" control, or MCP.
 
 # View PR status
 gh pr view <pr-number> --repo greatstrength/tiferet
@@ -129,6 +132,18 @@ gh project item-edit --project-id PVT_kwDOCKXjws4A7Y85 --id <item-id> \
 
 Field and option IDs are unique per GitHub Project. Record this repo's ids in [binding.md](binding.md). For any other Tiferet project, resolve them with `gh project field-list <number> --owner <org> --format json` and record them in that repo's `docs/collab/binding.md`.
 
+## Blocked-by (RFP and TRD graphs)
+
+**Tool availability:** **`gh` CLI** / REST. Mirror RFP `Depends on` / `Blocks` and TRD §7 on the issue.
+
+```bash
+# Mark ISSUE as blocked by BLOCKER (numeric issue numbers).
+gh api repos/greatstrength/tiferet/issues/<issue>/dependencies/blocked_by \
+  -f issue_id=<blocker-issue-number>
+```
+
+Do not put the PR on a milestone. Assign the **issue** to a milestone if a reviewer asked you to; otherwise leave milestone assignment to the reviewer.
+
 ## Release Publishing
 
 **Tool availability:** **`gh` CLI only**.
@@ -140,11 +155,12 @@ gh release create v2.1.0 \
   --title "Tiferet v2.1.0 – Release Title" \
   --notes-file release-notes.md
 
-# Prototype alpha is a git tag on proto, usually not a GitHub Release.
-# Trunk release (no bN going forward):
-gh release create v2.0.1 \
+# Individuals do not publish releases. Beta closeout is a pre-release;
+# trunk closeout is a full release. Shown for orientation only.
+gh release create v2.1.0b1 \
   --repo greatstrength/tiferet \
-  --title "Tiferet v2.0.1 – Title" \
+  --prerelease \
+  --title "Tiferet v2.1.0b1" \
   --notes-file release-notes.md
 
 # List recent releases
@@ -156,8 +172,9 @@ gh release list --repo greatstrength/tiferet --limit 5
 **Tool availability:** Git shell commands.
 
 ```bash
-# Alpha tag on proto after an RFP squash-merge (prototype strand only)
-git tag -a v2.0.0a17 -m "v2.0.0a17 — RFP-00N title"
+# Do not tag on an individual RFP or TRD merge. Tags belong to milestone closeout.
+# Alpha grouping closeout (orientation only):
+git tag -a v2.1.0a1 -m "v2.1.0a1"
 
 # Trunk release tag (vX.Y.Z — do not use bN on new trunk tags)
 git tag -a v2.0.1 -m "v2.0.1 – release notes"

@@ -9,7 +9,7 @@ The sections below are the contract: named artifacts, complete tables, binary ac
 
 ## When a TRD is required
 
-- **Reconstruction** — rebuild a **frozen** RFP cluster on trunk. Cite the freeze id in §7. If there is no freeze id, do not write the TRD. Point at `tiferet-freeze-catalog` instead.
+- **Reconstruction** — rebuild a **frozen** RFP cluster on trunk. Cite the freeze id in §7. If there is no freeze id, do not write the TRD. Do not mint a freeze id yourself.
 - **Hotfix** — a small mechanical defect already understood on trunk. No freeze. Prototype is not consulted. Mark the header `**Type:** Hotfix` so nobody goes looking for a cluster.
 
 Do not write a TRD that says "copy from proto." Do not put `Version: Request for Prototype` in the header. That version field was from a process we no longer run.
@@ -20,7 +20,7 @@ Do not write a TRD that says "copy from proto." Do not put `Version: Request for
 2. Size: [project_fields.md](project_fields.md).
 3. Path:
    - **Standalone** — XL or below, or XL with no seam. One issue, one branch, one PR. Session record on that issue.
-   - **Super-TRD** — XL+ *and* a seam. Parent + children. Workflow: [super_trd_workflow.md](super_trd_workflow.md) and [main.md](main.md).
+   - **Super-TRD** — XL+ *and* a seam. Parent + children. Genre below; individual implementation of one child is [main.md](main.md).
 
 ## General guidelines
 
@@ -74,11 +74,11 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 
 ## Specific rules
 
-- **Title:** exact story title with component group and en-dash (`Domain – Naming Parity: ServiceRegistration`).
+- **Title:** exact story title with Component/Assemblage and en-dash (`Domain – Naming Parity: ServiceRegistration`). Assemblage is the majority core package, or `Config`, `Tests`, or a domain assemblage.
 - **§3:** artifact action per module, not a vague "Changes" blurb.
 - **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`).
 - **§5:** target artifacts exist *and* retired ones are gone.
-- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies.
+- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included).
 - **§7 hotfix:** no freeze row. Name the defect and why proto was not consulted.
 - **§8:** always `tiferet-code-style`; component skills as touched. Fallback: `docs/core/<component>.md`.
 
@@ -178,7 +178,7 @@ Exceeds M → split. Reference scoping: issues #935 and #939.
 
 ### Closing
 
-Children close after the verification addendum (or explicit Reviewer AC acceptance), not when the implementation log is posted. The parent closes when the PR squash-merges via `Closes #<parent>` (verify before closing manually). Rename the parent `.trd/` file to `.complete.md` after the parent Collaboration Report.
+A Super-TRD child does not get a Collaboration Report. Short status on the child issue is enough. The parent PR uses `Closes #<parent>` only. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
 
 ## Review checklist (author)
 
@@ -214,7 +214,7 @@ Fallback guides: `docs/core/code_style.md`, `domain.md`, `events.md`, `mappers.m
 
 Use `git mv` when the file is tracked; otherwise `mv` (`.trd/` is ignored).
 
-Milestone description payloads live in `.milestones/m<N>_<kebab-title>.md`. Create and patch milestones with the recipes in [commands.md](commands.md). Project field ids live in [binding.md](binding.md).
+Milestone description payloads live in `.milestones/m<N>_<kebab-title>.md` if you are given a milestone. Individuals do not open trunk milestones. Project field ids live in [binding.md](binding.md).
 
 ## Creating GitHub issues
 

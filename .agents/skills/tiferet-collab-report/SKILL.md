@@ -1,24 +1,21 @@
 ---
 name: tiferet-collab-report
 description: >
-  Write a Collaboration Report for trunk TRD work on the GitHub issue (never as
-  a PR comment). Kinds: standalone, Super-TRD implementation log, verification
-  addendum, and parent roll-up.
+  Write a Collaboration Report for a standalone trunk TRD on the GitHub
+  issue (never as a PR comment). Not for RFP issues or Super-TRD children.
 ---
 
-# Collaboration Report
+# Collaboration Report (standalone TRD)
 
 ## When to use
 
-- Standalone trunk TRD: human confirms complete.
-- Super-TRD child: code pushed → **implementation log** on the child issue (part of implementor completion). After combined review/merge → **verification addendum**.
-- Super-TRD parent: after merge → roll-up on the parent issue.
+- A standalone trunk TRD is done / merged and needs a closeout report on its issue.
 
 ## When not to use
 
-- As a PR conversation comment.
-- For RFP or documentation work.
-- Proactively on standalone TRD work the human has not confirmed.
+- RFP / proto work.
+- Super-TRD child issues.
+- PR review comments.
 
 ## Canonical source
 
@@ -27,20 +24,20 @@ description: >
 
 ## Inputs
 
-Kind. Issue number. Binding. Conversation links from **issue** threads (and PR reviews only for closer/reviewer narrative).
+Issue number. TRD path. PR url. Freeze id if reconstruction.
 
 ## Procedure
 
-1. Choose Kind from collab_report.md.
-2. Draft the required structure. Exact calendar date. Version = trunk milestone.
-3. Super-TRD closer: read child issue threads (logs + addenda) before the parent roll-up. Do not rewrite each child's log.
-4. Post on the **issue**. If the issue is locked, say so; do not silently dump it on the PR.
+1. Confirm this is a **standalone** TRD issue.
+2. Draft the report in the shape in collab_report.md (summary, components, deviations, git, chronological Human/Agent log with timestamps).
+3. Post it on the **issue**, not the PR.
+4. Set Status Done and End date if the human asked you to close the loop.
 
 ## Outputs
 
-Issue comment.
+Collaboration Report comment on the issue.
 
 ## Guardrails
 
-- Implementation log ≠ Done.
-- Never proto → trunk git language in the report.
+- Never post as a PR conversation comment.
+- Never commit or merge unless asked.

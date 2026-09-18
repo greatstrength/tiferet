@@ -32,9 +32,9 @@ Status tracks each issue through its lifecycle. Transitions are driven by branch
 1. **Ready** — issue created and ready to implement. Set **Priority**, **Size**, and **Estimate** at creation.
 2. **In progress** — work has started / the feature branch is cut. Set the **Start date**.
 3. **In review** — the PR is opened (trunk → `main`, proto → proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
-4. **Done** — for an RFP, the proto PR is merged and its alpha tag is pushed; for a standalone trunk TRD, the Collaboration Report is posted; for a Super-TRD child, the verification addendum is posted. Set the **End date** and close the issue.
+4. **Done** — for an RFP, the proto PR is merged and the issue is closed by hand (proto does not honor `Closes`); for a standalone trunk TRD, the Collaboration Report is posted. Set the **End date** and close the issue. Super-TRD children stay In Review until the parent reconstruction closes; they do not each get a Collaboration Report.
 
-In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged → **Done** + issue closed. **Backlog** is available but not used for new issues — blocked-by relationships communicate dependency ordering without reflecting it in Status.
+In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged → **Done** + issue closed (close RFP issues yourself after a proto squash). **Backlog** is available but not used for new issues — blocked-by relationships communicate dependency ordering without reflecting it in Status.
 
 ## Priority
 
@@ -90,9 +90,9 @@ Together these give per-issue and per-milestone cycle time; the automatic **Crea
 
 ## Milestones vs fields
 
-GitHub Milestone is the scope boundary. Two title shapes ([process.md](process.md)):
+GitHub Milestone is the scope boundary. Title shapes ([binding.md](binding.md)):
 
-- Prototype drafting round: `vX.Y.0bN`
+- Proto grouping: `vX.Y.0aN` or `vX.Y.0bN`
 - Trunk release: `vX.Y.Z`
 
 Priority, Size, and Estimate apply to issues on both strands. Reconstruction issues also cite a freeze id in the TRD; that is not a project field.
