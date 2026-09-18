@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-[process.md](process.md) is the index. A pull request is where we argue about the diff. An issue is where we remember the session. Mixing those two jobs makes both worse.
+[process.md](process.md) is the index. A pull request is where we argue about the diff. An issue is where we remember the work item. Mixing those two jobs makes both worse.
 
 ## Two kinds of review
 
@@ -11,13 +11,17 @@
 
 Read the RFP. Review the proposal, the acceptance criteria, and the distillation sections it cites. Do not review it against trunk. Do not ask the author to make proto look like `main`. That is the opposite of what this strand is for.
 
+Confirm the PR is GitHub-linked to the RFP issue and is not on the milestone.
+
 ### A trunk PR (reconstruction or hotfix)
 
-The first question is always the TRD's acceptance criteria — each child TRD, if this is a Super-TRD.
+The first question is always the TRD's acceptance criteria.
 
 For reconstruction you *may* open proto, but only for artifacts the freeze and the TRD actually named. You are measuring, not merging. "Make trunk match proto" is almost never the right comment. If trunk is ahead — a later name, a cleaner shape — keep trunk and say so once.
 
 A hotfix is reviewed against the hotfix TRD. Proto does not get a vote.
+
+Confirm the PR is GitHub-linked to the standalone TRD or the Super-TRD parent.
 
 A Doc or skills PR has no TRD and no RFP. Review the diff against the intent in the PR and the vocabulary in [process.md](process.md).
 
@@ -32,9 +36,9 @@ A Doc or skills PR has no TRD and no RFP. Review the diff against the intent in 
    - **Out of scope** — leave it alone.
 4. A comment about a line goes on that line, and the line has to be in the PR diff. A comment about a missing file or a whole package goes in the review body.
 5. Tell the human what you found and wait for a go-ahead before you post anything to GitHub.
-6. One consolidated review via the reviews API (`path` + `position`, not `line`). The review body gets the findings summary and `Co-Authored-By: Oz <oz-agent@warp.dev>`. On a Super-TRD, the conversation link belongs on the **parent issue**, not as extra PR chatter.
+6. Humans leave diff comments on the PR. Agents do not post a review-role comment storm. After opening a PR, and after addressing PR feedback, the author posts a **short status on the issue**.
 
-Do not put implementor session notes, conversation-only logs, or Collaboration Reports on the PR. That is what the issue is for.
+Do not put Collaboration Reports on the PR. That is what the issue is for.
 
 ## Guardrails
 

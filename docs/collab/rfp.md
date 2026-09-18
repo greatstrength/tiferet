@@ -3,11 +3,11 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-Start from [process.md](process.md) if you have not already. This page is only the prototype strand — how we test a domain theory before anyone is asked to rebuild it on trunk.
+Start from [process.md](process.md) if you have not already. This page is the **document genre** for a Request for Prototype — how to write one. Implementing it is [tiferet-rfp-session](../../.agents/skills/tiferet-rfp-session/SKILL.md) and [process.md](process.md).
 
 ## What an RFP is for
 
-An RFP (Request for Prototype) is a bet you are willing to run on the long-lived proto branch. You settle vocabulary against the distillation, you implement it, you land it as an **alpha**, and you leave a Suggested TRD slicing list behind for a later **catalog freeze**.
+An RFP is a bet you are willing to run on the long-lived proto branch. You settle vocabulary against the distillation, you implement it on proto, and you leave Suggested TRD slicing behind for a later catalog freeze.
 
 It is not a TRD you wrote in a hurry. It is not how trunk ships.
 
@@ -27,7 +27,7 @@ This repo's [binding.md](binding.md) tells you the proto branch name and the RFP
 <PREFIX><major>-RFP-<nnn>
 ```
 
-`TLY1-RFP-001` and `TIF2-RFP-001` are the shape. Prefix and major come from [binding.md](binding.md). Numbers count up for that prefix and do not reset when you open the next beta.
+`TLY1-RFP-001` and `TIF2-RFP-001` are the shape. Prefix and major come from [binding.md](binding.md). Numbers count up for that prefix and do not reset when you open the next grouping.
 
 The GitHub issue title is the short form people will actually say out loud: `RFP-00N — <Plain Title>`.
 
@@ -47,6 +47,8 @@ Keep a local copy at `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.md`. That fold
 **Blocks:** RFP-00N — one-line reason
 ```
 
+`Depends on` / `Blocks` are required. When you publish the issue, mirror them as GitHub blocked-by / blocking. A header that is not wired on GitHub is incomplete.
+
 ### Body, in this order
 
 1. **Amendment note** — only when Status is Amended. What changed, what survived, and why you kept the same issue instead of opening a new one.
@@ -59,40 +61,22 @@ Keep a local copy at `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.md`. That fold
 8. **Acceptance criteria** — binary assertions. A proto implementor and a reviewer should be able to check them without taste.
 9. **Suggested TRD slicing** — reconstruction debt, not a gate. Re-read this list at freeze time. The first draft is almost never the backlog you actually want.
 
-When the design is wrong, amend **in place** on the same issue. The alpha that already shipped stays in the tag history. You are not rewriting the past; you are saying what the next alpha replaces.
-
-## Versioning on this strand
-
-A drafting round for a major.minor **creates** GitHub milestone `vX.Y.0bN` when the RFPs exist — not when the last one has shipped. The milestone is the plan container, not a trophy for finishing.
-
-The next time the same line needs another draft (a bug, a refactor, a feature you missed), that is `b2`, then `b3`, and so on. Multiple betas are normal. Tiferet's own history is the proof.
-
-Each landed RFP — or each amended re-implementation — is the next **alpha** on proto: `vX.Y.0aN`. Alphas do not reset between betas of the same major.minor.
-
-`bN` is prototype-only from here forward. Trunk releases are `vX.Y.Z`.
-
-To find the next alpha: `git tag --list 'vX.Y.0a*' --sort=-version:refname`. The next beta milestone is the next unused `bN` on that major.minor. Ignore historical trunk tags that happened to use the same shape.
+When the design is wrong, amend **in place** on the same issue. You are not rewriting the past; you are saying what the next implementation replaces.
 
 ## Implementing on proto
 
-1. Publish the RFP as a GitHub issue and put it on the open beta milestone.
-2. Cut `vX.Y.0bN-<kebab-context>` from the proto branch in [binding.md](binding.md). The PR targets proto, not `main`.
+1. Publish the RFP as a GitHub issue. Wire blocked-by. A reviewer assigns the milestone; you do not invent one.
+2. Cut a branch from the proto branch in [binding.md](binding.md). The PR targets proto, not `main`.
 3. Implement against the proposal, the acceptance criteria, and the distillation sections you cited. Review is against those. Nobody should be asking whether this matches trunk.
-4. Title the PR `vX.Y.0aN — <Plain Title> (RFP-00N)`.
-5. After the squash-merge: bump the package version to that alpha, tag it, and post a session note on the **RFP issue** recording the RFP id, alpha tag, and beta milestone. The PR is just the review surface.
+4. Title the PR `RFP-00N — <Plain Title> (#issue)`. GitHub-link the PR to the RFP issue. Do not add the PR to a milestone. The body links `#issue` and does **not** use `Closes` (proto will not honor it).
+5. After squash-merge: close the RFP issue yourself. Do not tag. Do not bump the package version.
 
-Suggested TRD slicing does not block the alpha. Reconstruction waits for a [catalog freeze](process.md#catalog-freeze).
-
-## Freeze and thaw
-
-The freeze itself is described in [process.md](process.md). On this issue it looks like a freeze note: Status becomes `Frozen for reconstruction`, and the note records a freeze id plus the refreshed slicing.
-
-If you later amend the *shape* of a frozen RFP, that freeze is thawed. Say so. Do not let a trunk TRD keep reconstructing the old catalog as if nothing happened.
+Suggested TRD slicing does not block the merge.
 
 ## What this strand will not do
 
 It will not merge, rebase, or cherry-pick proto onto trunk.
 
-It will not spawn Super-TRD child issues. Implement the RFP. If a single RFP is itself XL and has a seam, that is a hint to write more RFPs, not to invent a proto Super-TRD.
-
 It will not invent "internal RFPs" that never become issues. If it is an RFP, it has an issue.
+
+It will not cut a version tag. Versioning is a milestone closeout, not an issue-pull.
