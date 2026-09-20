@@ -5,13 +5,19 @@
 
 ## The problem
 
-Declarative design fails in two related ways. A declaration language that cannot name the required domain behavior cannot generate a running program. Code generation that merges generated output with handwritten code makes regeneration destructive.
+The aim of declarative design is a running program from a declaration of model properties. It fails in two ways.
 
-Both failures are failures of *vocabulary*. A declaration needs a closed set of responsibilities it can address. Too small a set cannot express the domain. An unconstrained set cannot predict the shape of its neighbors.
+The **transcendent** failure is unknown meaning. The declaration language is not expressive enough for the needed domain behavior, and the framework is hard to extend beyond the automated portion. That meaning sits above the current vocabulary and cannot be approached from inside it.
 
-Without that closed set, a program is not a composition of structural patterns. It is a variety of objects and functions in modules. Every module is a room; nothing in the language says which rooms may call which, or what job each room is for.
+The **immanent** failure is the loss of a present, regenerable form. Generated code is merged with handwriting, so regeneration is destructive. The declared structure can no longer be regenerated and taken at face value.
 
-The open question is not whether to declare. It is **what** a declaration may address: which closed set of responsibilities lets an application run and still compose as its domain evolves.
+Agentic generation does not close either gap. Without immanent named patterns, generated code is handwriting at speed: it has no plan to be an instance of. Both failures get worse.
+
+A pattern language is the usual technical answer: not “everything is an object” or “everything is a room,” but named patterns that pack structure into a short declaration, block silly mistakes, and leave energy for what is new. That answer is incomplete. It arrives late. Domain design is not mature enough for a catalog as specific as rooms, and ordinary frameworks still fall into both pits.
+
+The need is therefore more than a framework. The system must cover the whole creative process: immanent named structure that generated (and agent-written) code can instantiate, and a path toward the transcendent ontology of the domain — what the current language cannot yet say.
+
+A third failure is rigid architecture. Guiding rules are not the problem; rigidity and the source of the rules are. Developers dumb the application down to fit, or subvert the structure and return to a free-for-all. Large-scale structure must be allowed to evolve. Do not saddle the project with a design conceived before the domain was understood.
 
 ## The thesis
 
