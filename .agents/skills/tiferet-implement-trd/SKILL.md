@@ -1,10 +1,7 @@
 ---
 name: tiferet-implement-trd
 description: >
-  Implement one published trunk TRD, the first Super-TRD child (opens the
-  parent PR), or a later Super-TRD child already in flight. PR to main,
-  GitHub-linked to the standalone TRD or the Super-TRD parent. Not for RFPs,
-  freeze minting, or running a Super-TRD fan-out.
+  Implement one published trunk TRD, the first Super-TRD child (opens the parent PR), or a later Super-TRD child already in flight. PR to main, GitHub-linked to the standalone TRD or the Super-TRD parent. Not for RFPs, freeze minting, or running a Super-TRD fan-out.
 ---
 
 # Implement a trunk TRD
