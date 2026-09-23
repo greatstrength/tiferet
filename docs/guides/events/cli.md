@@ -157,12 +157,12 @@ parent_args = DomainEvent.handle(
 ## Boundaries
 
 **Inside this domain:** the CRUD operations for `CliCommand` configurations, including parent-argument retrieval.
-**Outside this domain:** the declared `CliCommand`/`CliArgument` shape and argparse-kwarg translation ([docs/guides/domain/cli.md](../domain/cli.md)); actually building the argparse parser and dispatching a parsed request (`CliContext` — [docs/guides/contexts.md](../contexts.md)).
+**Outside this domain:** the declared `CliCommand`/`CliArgument` shape and argparse-kwarg translation ([docs/guides/domain/cli.md](../domain/cli.md)); actually building the argparse parser and dispatching a parsed request (`CliSessionContext` — [docs/guides/contexts.md](../contexts.md)).
 
 ## Related Documentation
 
 - [docs/guides/domain/cli.md](../domain/cli.md) — CLI domain objects
-- [docs/guides/contexts.md](../contexts.md) — `CliContext`, which builds the argparse parser and dispatches
+- [docs/guides/contexts.md](../contexts.md) — `CliSessionContext`, which builds the argparse parser and dispatches
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
 - [docs/guides/events/app.md](app.md) — App event guide

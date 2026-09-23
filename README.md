@@ -15,8 +15,7 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.1.1**
-Unit tests use `@use_tester` — see [Testing Harness](docs/core/testing.md).
+Current status: **2.0.0b3** (pre-release – actively evolving toward stable v2)
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -100,16 +99,18 @@ You should see:
 ## Documentation & Guides
 
 **Core architecture**  
+- [Architecture (import law)](docs/core/architecture.md)  
 - [Code Style & Artifact Comments](docs/core/code_style.md)  
 - [Blueprints (build_app)](docs/core/blueprints.md)  
-- [Testing Harness](docs/core/testing.md)  
+- [Contexts](docs/core/contexts.md)  
 - [Domain Objects](docs/core/domain.md)  
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
 - [Service Interfaces](docs/core/interfaces.md)  
-- [Dependency Injection (ServiceProvider)](docs/core/di.md)  
+- [Dependency Injection](docs/core/di.md)  
 - [Repositories](docs/core/repos.md)  
-- [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)
+- [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)  
+- [Assets](docs/core/assets.md)
 
 ### Practical Guides 
 **Domain Guides**  
@@ -118,8 +119,7 @@ You should see:
 - [Feature Workflows](docs/guides/domain/feature.md)  
 - [Error Handling](docs/guides/domain/error.md)  
 - [CLI Integration](docs/guides/domain/cli.md)  
-- [Logging](docs/guides/domain/logging.md)  
-- [Tester](docs/guides/domain/tester.md)
+- [Logging](docs/guides/domain/logging.md)
 
 **Event Guides**  
 - [Application Events](docs/guides/events/app.md)  
@@ -140,8 +140,7 @@ You should see:
 **Other Component Guides**  
 - [Interfaces](docs/guides/interfaces.md)  
 - [Mappers (Aggregates & Transfer Objects)](docs/guides/mappers.md)  
-- [Repositories](docs/guides/repos.md)  
-- [Tester Blueprints](docs/guides/blueprints/tester.md)
+- [Repositories](docs/guides/repos.md)
 
 **Tutorial**  
 → [Build a complete Calculator (events + CLI + configs)](docs/tutorial/basic_calculator/index.md)
