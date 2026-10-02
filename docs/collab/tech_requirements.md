@@ -9,7 +9,7 @@ The sections below are the contract: named artifacts, complete tables, binary ac
 
 ## When a TRD is required
 
-- **Reconstruction** — rebuild a **frozen** RFP cluster on trunk. Cite the freeze id in §7. If there is no freeze id, do not write the TRD. Point at `tiferet-freeze-catalog` instead.
+- **Reconstruction** — rebuild a **frozen** RFP cluster on trunk. Cite the freeze id in §7. If there is no freeze id, do not write the TRD. Do not mint a freeze id yourself.
 - **Hotfix** — a small mechanical defect already understood on trunk. No freeze. Prototype is not consulted. Mark the header `**Type:** Hotfix` so nobody goes looking for a cluster.
 
 Do not write a TRD that says "copy from proto." Do not put `Version: Request for Prototype` in the header. That version field was from a process we no longer run.
@@ -20,7 +20,7 @@ Do not write a TRD that says "copy from proto." Do not put `Version: Request for
 2. Size: [project_fields.md](project_fields.md).
 3. Path:
    - **Standalone** — XL or below, or XL with no seam. One issue, one branch, one PR. Session record on that issue.
-   - **Super-TRD** — XL+ *and* a seam. Parent + children. Workflow: [super_trd_workflow.md](super_trd_workflow.md) and [main.md](main.md).
+   - **Super-TRD** — XL+ *and* a seam. Parent + children. Genre below; individual implementation of one child is [main.md](main.md).
 
 ## General guidelines
 
@@ -64,6 +64,7 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 | Dependency | Status |
 |------------|--------|
 | Freeze `TIF2-FREEZE-001` (reconstruction only) | Frozen |
+| Reference prototype (reconstruction only) | `v2.0.0a17`–`v2.0.0a19` tags from the freeze, or `None` |
 | ... | ... |
 
 ## 8. Related Code Style Documentation
@@ -74,19 +75,22 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 
 ## Specific rules
 
-- **Title:** exact story title with component group and en-dash (`Domain – Naming Parity: ServiceRegistration`).
+- **Title:** exact story title with Component/Assemblage and en-dash (`Domain – Naming Parity: ServiceRegistration`). Assemblage is the majority core package, or `Config`, `Tests`, or a domain assemblage.
 - **§3:** artifact action per module, not a vague "Changes" blurb.
 - **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`).
 - **§5:** target artifacts exist *and* retired ones are gone.
-- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies.
-- **§7 hotfix:** no freeze row. Name the defect and why proto was not consulted.
+- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included).
+- **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the Release reviewer measures against, or `None` when no prototype exists. The implementor does not read it; it is the reviewer's fidelity source.
+- **§7 hotfix:** no freeze row and no reference prototype row. Name the defect and why proto was not consulted.
 - **§8:** always `tiferet-code-style`; component skills as touched. Fallback: `docs/core/<component>.md`.
 
 ## Artifact-based requirements
 
 TRDs specify **artifacts to add, update, or remove** — never prose narratives or "copy from X." An artifact is any unit named by the structured code style: module, class, attribute, `# * method:`, `# ** <component>:`, `# *** <section>` (see [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
-An implementor satisfies the TRD by acting on named artifacts. A reviewer verifies each one independently. The implementor must not be sent to the proto branch.
+An implementor satisfies the TRD by acting on named artifacts. The Release reviewer verifies each one independently, not only the ones the AC names, against the reference prototype when one is recorded in §7 and against the TRD alone when it is not ([code_review.md](code_review.md)). The implementor must not be sent to the proto branch.
+
+Because the TRD is the whole fidelity source when no prototype exists, name every artifact completely: exact labels, names, section and sub-group placement, parameters, and test catalog rows.
 
 ## Operation-level artifact notation in §4
 
@@ -141,7 +145,7 @@ The TRD is written in the **target ubiquitous language** extracted from the free
 
 - Do not tell the implementor to read, diff, or copy proto.
 - Name classes, methods, parameters, mappers, roles, error codes.
-- Proto comparison, if any, is optional review measurement of AC-named artifacts ([code_review.md](code_review.md)) — not authoring or implementation.
+- Proto comparison is the Release reviewer's required measurement of every artifact §3 and §4 name, when a reference prototype is recorded in §7 ([code_review.md](code_review.md)). It is review measurement, never authoring or implementation.
 
 ## Super-TRD format
 
@@ -178,7 +182,7 @@ Exceeds M → split. Reference scoping: issues #935 and #939.
 
 ### Closing
 
-Children close after the verification addendum (or explicit Reviewer AC acceptance), not when the implementation log is posted. The parent closes when the PR squash-merges via `Closes #<parent>` (verify before closing manually). Rename the parent `.trd/` file to `.complete.md` after the parent Collaboration Report.
+A Super-TRD child does not get a Collaboration Report. Short status on the child issue is enough. The parent PR uses `Closes #<parent>` only. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
 
 ## Review checklist (author)
 
@@ -186,7 +190,7 @@ Children close after the verification addendum (or explicit Reviewer AC acceptan
 - [ ] Acceptance criteria are binary and name artifacts.
 - [ ] No placeholders.
 - [ ] Requirements are Add / Update / Remove, not "copy from X."
-- [ ] Reconstruction cites a freeze id in §7; hotfix does not.
+- [ ] Reconstruction cites a freeze id and a reference prototype (or `None`) in §7; hotfix cites neither.
 - [ ] Path chosen: standalone vs Super-TRD.
 
 ## Related code style documentation (§8)
@@ -214,7 +218,7 @@ Fallback guides: `docs/core/code_style.md`, `domain.md`, `events.md`, `mappers.m
 
 Use `git mv` when the file is tracked; otherwise `mv` (`.trd/` is ignored).
 
-Milestone description payloads live in `.milestones/m<N>_<kebab-title>.md`. Create and patch milestones with the recipes in [commands.md](commands.md). Project field ids live in [binding.md](binding.md).
+Milestone description payloads live in `.milestones/m<N>_<kebab-title>.md` if you are given a milestone. Individuals do not open trunk milestones. Project field ids live in [binding.md](binding.md).
 
 ## Creating GitHub issues
 

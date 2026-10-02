@@ -7,7 +7,7 @@
 
 ## What belongs here
 
-Standalone documentation and agent-skill changes — collaboration guides, style docs, the README, tutorials, the committed skills in `.agents/skills/`. Not a reconstruction. Not a hotfix.
+Standalone documentation and agent-skill changes — collaboration guides, style docs, the README, tutorials, the committed skills in `.agents/skills/`. Not a reconstruction. Not a hotfix. Process-skill rewrites are Doc PRs.
 
 **You do not need a TRD.** You do not need a milestone or a release. The pull request *is* the authorizing document. Write the title and body in the language of this process — trunk, prototype, catalog, freeze, RFP, TRD, issue versus PR — so someone six months from now can tell what you did without a specification sitting next to it.
 

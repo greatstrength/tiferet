@@ -24,6 +24,8 @@ Trunk and prototype are two independent histories of the same version family. Wh
 | Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
 | Change docs or agent skills | a **Doc PR** — no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
+As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child)**. You do not plan a release, mint a freeze, or tag a version. The reviewer assigns the issue to a milestone.
+
 Commands used across all of that: [docs/collab/commands.md](docs/collab/commands.md). Facts that belong only to this repo: [docs/collab/binding.md](docs/collab/binding.md).
 
 ## Common practices
@@ -31,6 +33,8 @@ Commands used across all of that: [docs/collab/commands.md](docs/collab/commands
 ### Issues
 
 An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A Doc/skills PR may skip the issue if there is nothing to discuss first.
+
+Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when you publish the issue.
 
 ### Specifications
 
@@ -50,17 +54,21 @@ An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A
 
 Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, add `Co-Authored-By: <name> <email>`. Never commit or merge unless someone asked you to.
 
+When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local and remote branch, and every temp file. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
+
 ### Pull requests
 
-RFPs target proto. Trunk and Doc target `main`. The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Session notes and conversation links belong on the **issue**. Collaboration Reports are a trunk TRD artifact and also belong on that issue.
+RFPs target proto. Trunk and Doc target `main`. GitHub-link the PR to the authorizing issue (RFP, standalone TRD, or Super-TRD parent). Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
+
+The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
 
 ### Review
 
-Diff comments stay on the PR. Reconstruction review may look at proto only for artifacts the freeze and the TRD named — never "make trunk match proto." Prototype review is against the RFP and the distillation sections it cites. More in [code_review.md](docs/collab/code_review.md).
+Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD, or against the TRD alone when there is none. The reviewer approves and reports; a human squash-merges (unless the human explicitly delegates the merge for that PR). More in [code_review.md](docs/collab/code_review.md).
 
 ### Collaboration Report
 
-TRD-only, posted on the originating **issue**. A Super-TRD child gets an implementation log when the code is pushed, and a verification addendum after combined review. See [collab_report.md](docs/collab/collab_report.md).
+Standalone TRD only, posted on the originating **issue** when the work is done. See [collab_report.md](docs/collab/collab_report.md).
 
 ## Working with AI agents
 
@@ -68,17 +76,12 @@ Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in t
 
 **Process**
 
-- `tiferet-annotation-artifacts` — scan `# ++ todo:` / `# -- obsolete:` at the start of every implementation session.
-- `tiferet-author-rfp` — draft or amend an RFP.
-- `tiferet-rfp-session` — implement an RFP on proto.
-- `tiferet-freeze-catalog` — record a catalog freeze after a human names the cluster.
-- `tiferet-author-trd` — trunk TRD (reconstruction needs a freeze id; a hotfix does not).
-- `tiferet-create-milestone` — proto beta milestone or trunk `vX.Y.Z`.
-- `tiferet-milestone-session` — proto-alpha loop, or trunk standalone / Super-TRD.
-- `tiferet-collab-report` — the report on the issue (log, addendum, or roll-up).
-- `tiferet-pr-code-review` — diff comments on the PR; measurement, not proto promotion.
-
-**Super-TRD:** start with `tiferet-super-trd`, then the implementor, reviewer, or closer skill. The long form is [super_trd_workflow.md](docs/collab/super_trd_workflow.md).
+- `tiferet-author-rfp` — draft or amend one RFP; publish the issue; wire blocked-by.
+- `tiferet-rfp-session` — implement one published RFP on proto; link the PR to that issue; close the issue after squash.
+- `tiferet-author-trd` — one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
+- `tiferet-implement-trd` — implement one published TRD or one Super-TRD child; link the PR to the standalone issue or the parent.
+- `tiferet-pr-code-review` — review one PR as the Prototype or Release reviewer; one consolidated review and a verdict.
+- `tiferet-collab-report` — standalone TRD closeout on the issue.
 
 **Docs:** `tiferet-guide-docs`.
 

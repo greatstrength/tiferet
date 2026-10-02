@@ -14,7 +14,7 @@ This file is the local phone book, not the process. Skills should read `docs/col
 | Prototype strand active | yes |
 | RFP id prefix | `TIF2` |
 | RFP major | `2` |
-| Next freeze id pattern | `TIF2-FREEZE-<nnn>` |
+| Next freeze id pattern | `TIF2-FREEZE-<nnn>` (per milestone, not per version) |
 
 ## GitHub
 
@@ -37,5 +37,7 @@ Field and option ids are unique per GitHub Project. Resolve them on another proj
 
 ## Milestone title shapes
 
-- Prototype drafting round: `vX.Y.0bN`
+- Proto grouping: `vX.Y.0aN` (git tag when that milestone closes) or `vX.Y.0bN` (GitHub Release marked pre-release when that milestone closes)
 - Trunk release: `vX.Y.Z`
+
+Individuals do not close milestones or cut tags. A reviewer may assign your issue to a milestone.

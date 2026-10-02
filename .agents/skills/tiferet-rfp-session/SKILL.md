@@ -1,9 +1,9 @@
 ---
 name: tiferet-rfp-session
 description: >
-  Implement a published RFP on the prototype branch: cut the worktree,
-  implement against the RFP AC, open a PR to proto, tag the alpha after merge,
-  and record the landing in an RFP issue session note.
+  Implement a published RFP on the prototype branch: cut the branch,
+  implement against the RFP AC, open a PR to proto linked to that issue,
+  and close the issue after squash. No tag. No version bump.
 ---
 
 # Implement an RFP on prototype
@@ -14,40 +14,44 @@ description: >
 
 ## When not to use
 
-- Trunk work — `tiferet-milestone-session` / Super-TRD skills.
+- Trunk work — `tiferet-implement-trd`.
 - Drafting the RFP — `tiferet-author-rfp`.
 - Docs/skills.
+- Closing a milestone or cutting a release.
 
 ## Canonical source
 
 - `docs/collab/rfp.md`
 - `docs/collab/process.md`
 - `docs/collab/binding.md`
+- `docs/collab/commands.md`
 
 ## Inputs
 
-RFP issue number. Binding (proto branch, prefix). Next alpha from `git tag --list 'vX.Y.0a*'`.
+RFP issue number. Binding (proto branch, prefix).
 
 ## Procedure
 
-**Prototype**
-
 1. Read the RFP issue (current amended body). Review is against that proposal, AC, and cited distillation sections — not trunk.
-2. Cut `vX.Y.0bN-<kebab-context>` from the proto branch in binding.md. PR will target proto.
+2. Cut a branch from the proto branch in binding.md. PR will target proto.
 3. Implement and test. Read `tiferet-code-style` and the component skills you touch.
-4. Commit. Stop before push if the human has not approved opening the PR.
-5. PR title: `vX.Y.0aN — <Plain Title> (RFP-00N)`. PR body: what changed + AC checkboxes. No session novel on the PR.
-6. After squash-merge: bump package version to that alpha, annotated tag, push the tag.
-7. On the **RFP issue**: session note with the conversation link, RFP id, alpha tag, and beta milestone.
+4. Self-check against the shared review standards in `docs/collab/code_review.md` before asking for review: code style first (exactly one empty line between artifacts, artifact order preserved with an order-preserving mechanic if a dependency seems to force an exception), then the RFP's content, then alignment with the vision statement and the cited distillation sections, then relevant and accurate tests and nothing superfluous.
+5. Commit. Stop before push if the human has not approved opening the PR.
+6. PR title: `RFP-00N — <Plain Title> (#issue)`. **GitHub-link** the PR to the RFP issue. Do not add the PR to a milestone. Body links `#issue` and does **not** use `Closes`.
+7. After the PR opens, post a short status on the **RFP issue**. A Prototype reviewer (`tiferet-pr-code-review`) reviews and a human squash-merges. After addressing PR feedback, post another status.
+8. After squash-merge: close the RFP issue by hand. Rename the local `.rfp/` working copy to `.complete.md`. Run the closeout cleanup in `docs/collab/process.md` (worktree and its registration, local and remote branch, temp files). Do not tag. Do not bump the package version.
 
 ## Outputs
 
-- PR targeting proto (review surface).
-- Alpha tag on proto.
-- Session note on the **issue**.
+- PR targeting proto, linked to the RFP issue.
+- Short status on the issue.
+- Issue closed after squash.
 
 ## Guardrails
 
 - No TRD.
 - Never proto → trunk git.
 - Never merge unless asked.
+- Never tag or bump version on this PR.
+- Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch, and every temp file (`docs/collab/process.md`).
+- Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
