@@ -70,6 +70,6 @@ Super-TRD children stay **In Review** until the parent PR is squash-merged. Clos
 - Never send yourself to proto to copy code.
 - Never merge unless asked.
 - Never tag or bump version on this PR.
-- Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch, and every temp file (`docs/collab/process.md`). `.trd/` is not temp.
+- Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch, and every temp file (`docs/collab/process.md`). `.trd/` and `.rfp/` working copies are not temp.
 - Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
 - Never close a Super-TRD child issue. Children stay In Review until parent-PR closeout.

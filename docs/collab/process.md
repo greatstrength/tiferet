@@ -90,7 +90,7 @@ When a PR is squash-merged (and again when a milestone closes), remove everythin
 - Anything that points at them: symlinks, config entries, editor or index references.
 - Temp files: scratch scripts, virtual environments, snapshots, downloaded artifacts, and PR or comment body drafts.
 
-The working copies this process defines are not temp: `.rfp/` and `.trd/` stay, and a TRD is renamed `.complete.md` when done. Do not remove another contributor's branch or worktree, or your own uncommitted work, without asking.
+The working copies this process defines are not temp: `.rfp/` and `.trd/` stay. Each is renamed `.complete.md` when its work is done: an RFP after its proto PR is squash-merged and the issue is closed, a TRD after its PR is squash-merged and the issue is Done. Do not remove another contributor's branch or worktree, or your own uncommitted work, without asking.
 
 **Temporary information never goes to external or cloud storage** (gists, pastebins, uploaded images or screenshots, hosted drives, third-party services) unless the human explicitly authorizes it. What the process defines goes where it says: RFP and TRD bodies, status notes, review comments, and Collaboration Reports live on GitHub issues and PRs. Temporary images and scratch output do not.
 

@@ -69,7 +69,7 @@ When the design is wrong, amend **in place** on the same issue. You are not rewr
 2. Cut a branch from the proto branch in [binding.md](binding.md). The PR targets proto, not `main`.
 3. Implement against the proposal, the acceptance criteria, and the distillation sections you cited. Review is against those. Nobody should be asking whether this matches trunk.
 4. Title the PR `RFP-00N — <Plain Title> (#issue)`. GitHub-link the PR to the RFP issue. Do not add the PR to a milestone. The body links `#issue` and does **not** use `Closes` (proto will not honor it).
-5. After squash-merge: close the RFP issue yourself. Do not tag. Do not bump the package version.
+5. After squash-merge: close the RFP issue yourself. Rename your local `.rfp/` working copy to `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.complete.md`. Do not tag. Do not bump the package version.
 
 Before the squash-merge, a **Prototype reviewer** reviews the PR ([code_review.md](code_review.md)). Code style comes first and is never waived. Then the RFP's content: that the proposal and acceptance criteria hold, and that the result aligns with the vision statement and the distillation sections you cited. Concept outranks artifact cataloging on this strand. The reviewer approves and a human squash-merges (unless the human explicitly delegates the merge for that PR).
 
