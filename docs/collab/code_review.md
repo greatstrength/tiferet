@@ -86,10 +86,12 @@ The review ends with one verdict: **Approve** or **Changes requested**. Approve 
 - the PR body's AC checkboxes are checked;
 - no tag or version bump rides on the PR.
 
-The reviewer approves and reports. The **human squash-merges**. The reviewer never merges.
+The reviewer approves and reports. The **human squash-merges**. The reviewer never merges by default.
+
+The one exception is a human-delegated merge. When the human explicitly relinquishes the squash-merge for a specific PR, the reviewer may squash-merge that PR, and only after its own Approve verdict. This is situational, most often for a correction follow-up, and never universal: absent that instruction for that PR, the reviewer does not merge.
 
 What follows the merge is unchanged. A proto PR does not honor `Closes`, so the implementing agent closes the RFP issue by hand. A trunk PR closes its TRD (or Super-TRD parent) through `Closes`, and the standalone TRD gets its Collaboration Report.
 
 ## Guardrails
 
-A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto → trunk git. Release reviewers never tell an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit or merge as part of a review.
+A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto → trunk git. Release reviewers never tell an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit as part of a review. Never merge unless the human has explicitly relinquished the squash-merge for that specific PR.

@@ -5,7 +5,7 @@ description: >
   Release reviewer (trunk PR to main). Code style is held above everything
   else. Prototype review weighs RFP content, vision, and distillation; release
   review weighs artifact fidelity against the reference prototype or the TRD.
-  One consolidated review with a verdict. The reviewer never merges.
+  One consolidated review with a verdict. The reviewer never merges by default, only when the human delegates the squash-merge for a specific PR.
 ---
 
 # Review a pull request (diff surface)
@@ -20,7 +20,7 @@ description: >
 
 - Session notes, status, or Collaboration Reports — those go on the **issue**.
 - Implementing or fixing the PR — the author does that.
-- Merging. The human squash-merges.
+- Merging, unless the human has explicitly relinquished the squash-merge for this specific PR. Otherwise the human squash-merges.
 - Promoting proto onto trunk.
 
 ## Canonical source
@@ -45,6 +45,7 @@ PR number. Mode (Prototype | Release). Prototype: the RFP issue and its cited di
 7. Show the findings and a proposed verdict to the human. Wait for the go-ahead.
 8. Post **one** consolidated review through the reviews API (`path` + `position`). Body: findings summary, verdict (Approve or Changes requested), `Co-Authored-By: Warp <agent@warp.dev>`. Line comments only on lines in the PR diff; whole-file or whole-package comments go in the body.
 9. Post a short status on the authorizing issue (the Super-TRD parent for a Super-TRD). For a Super-TRD, note a child's AC failure on that child issue too.
+10. Only if the human explicitly relinquished the squash-merge for this PR: after your own Approve verdict, squash-merge it (`gh pr merge <n> --squash`) and say so in the issue status. Otherwise stop at the verdict; the human merges.
 
 ## Outputs
 
@@ -53,7 +54,7 @@ PR number. Mode (Prototype | Release). Prototype: the RFP issue and its cited di
 
 ## Guardrails
 
-- Never merge. Approve and report; a human squash-merges.
+- Never merge by default. Approve and report; a human squash-merges. The only exception is a PR whose squash-merge the human explicitly relinquished to you (situational, most often a correction follow-up), and only after your own Approve verdict.
 - Never lower a style or ordering finding to keep a review moving.
 - Never proto → trunk git. In release mode, only the reviewer reads proto; never tell an implementor to read it.
 - Never review a prototype PR against trunk.
