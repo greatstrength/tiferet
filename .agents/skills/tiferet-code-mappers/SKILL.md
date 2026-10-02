@@ -96,7 +96,6 @@ class FeatureAggregate(Feature, Aggregate):
         # Assign the new name; validate_assignment=True re-validates.
         self.name = name
 
-
 # ** mapper: feature_config_object
 class FeatureConfigObject(Feature, TransferObject):
     '''

@@ -55,7 +55,8 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
 ## Key conventions
 
-- **Spacing:** One empty line between artifact section and first artifact; one empty line between artifacts; one empty line between artifact members (`# *`); one empty line after docstrings; one empty line between code snippets within a method.
+- **Spacing:** One empty line between artifact section and first artifact; one empty line between artifacts; one empty line between artifact members (`# *`); one empty line after docstrings; one empty line between code snippets within a method. Exactly one — never two, including in code examples in docs and skills.
+- **Ordering:** Artifact order is fixed (preamble `imports` → `constants` → `functions` → `classes`, then construct groups). Never reorder or merge artifacts to satisfy a declaration dependency. Preserve the order with a mechanic instead: place by section, quote the reference (`-> 'Aggregate'`), or defer resolution via an injected callable or an id lookup. If none fits, design a new mechanic and describe it in the PR body. Ordering and spacing violations are always blocking in review.
 - **Docstrings:** RST format — include `:param`/`:type`/`:return`/`:rtype` on public methods. Class-level docstrings additionally open with a 1–2 sentence vision-tier value statement (why the concept exists, not just its fields) — see `tiferet-guide-docs` for the docstring↔guide-doc convention.
 - **Parameter indentation:** For methods with >3 parameters, align subsequent params to the opening parenthesis.
 - **Code snippets:** Each logical step is a separate snippet preceded by a 1–2 line comment describing intent.

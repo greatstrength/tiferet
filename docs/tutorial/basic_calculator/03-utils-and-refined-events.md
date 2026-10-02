@@ -72,7 +72,6 @@ class AddNumber(DomainEvent):
         b_val = CalcUtil.verify_number(b)
         return a_val + b_val
 
-
 class SubtractNumber(DomainEvent):
     """Subtracts b from a."""
     def execute(self, a, b, **kwargs) -> float:
@@ -80,14 +79,12 @@ class SubtractNumber(DomainEvent):
         b_val = CalcUtil.verify_number(b)
         return a_val - b_val
 
-
 class MultiplyNumber(DomainEvent):
     """Multiplies two numbers."""
     def execute(self, a, b, **kwargs) -> float:
         a_val = CalcUtil.verify_number(a)
         b_val = CalcUtil.verify_number(b)
         return a_val * b_val
-
 
 class DivideNumber(DomainEvent):
     """Divides a by b."""
@@ -99,7 +96,6 @@ class DivideNumber(DomainEvent):
                 'DIVISION_BY_ZERO',
             )
         return a_val / b_val
-
 
 class Exponentiate(DomainEvent):
     """Raises a to the power of b (a^b)."""

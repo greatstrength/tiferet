@@ -298,7 +298,6 @@ from ..core import TransferObject
 from ..<domain> import SomeAggregate, SomeConfigObject
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
-
 # *** constants
 
 # ** constant: aggregate_sample_data
@@ -316,7 +315,6 @@ def ITEM_TUPLE(item):
 FIELD_NORMALIZERS = {
     'items': lambda items: tuple(sorted(ITEM_TUPLE(i) for i in (items or []))),
 }
-
 
 # *** classes
 
@@ -348,7 +346,6 @@ class TestSomeAggregate(AggregateTestBase):
         '''Test domain-specific mutation.'''
         aggregate.rename('New Name')
         assert aggregate.name == 'New Name'
-
 
 # ** class: TestSomeConfigObject
 class TestSomeConfigObject(TransferObjectTestBase):

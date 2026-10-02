@@ -32,6 +32,8 @@ They do not become each other.
 
 Nothing from prototype lands on trunk as git. Not a merge, not a rebase, not "just this one cherry-pick." What crosses the gap is a **catalog**: settled language, later written as TRDs an implementor can execute without opening the proto branch.
 
+A Release reviewer may read proto-at-freeze to measure a trunk PR's named artifacts against it ([code_review.md](code_review.md)). That is measurement, not a git flow, and the implementor never reads proto.
+
 Git *may* flow the other way — trunk → prototype — when proto has not yet absorbed a mechanical fix that already shipped on trunk. That is allowed. It is not a habit. Skills do not cherry-pick unless a human asks. Treat a port as a translation, not as `git cherry-pick` and a shrug.
 
 ## What you submit
@@ -74,6 +76,10 @@ Facts for *this* repo: [binding.md](binding.md). Commands an individual needs (l
 - **On a Super-TRD child:** short status only. Do not post a Collaboration Report on the child; that artifact belongs on a standalone TRD issue.
 
 Please do not leave the session diary as PR conversation comments.
+
+## Review and merge
+
+Every implementation PR gets one reviewer, and the merge step is the same for both strands. The **Prototype reviewer** holds code style first, then the RFP's content against the vision and distillation. The **Release reviewer** holds code style first, then artifact fidelity against the reference prototype, or the TRD when there is none. The reviewer posts one consolidated review that ends in a verdict, Approve or Changes requested. The reviewer approves and reports; a **human squash-merges**. The reviewer never merges. The standards are in [code_review.md](code_review.md).
 
 ## Binding, and where the skills live
 

@@ -212,6 +212,19 @@ def load_feature(self, feature_id: str) -> Feature:
   - Code snippets within a method.
   - Methods/attributes within a class.
   - Classes within a component group.
+- The gap is **exactly one** empty line. Never two, in source, tests, or code examples in documentation. Reviewers check this on every artifact boundary.
+
+### Ordering and Declaration Constraints
+
+The artifact order is fixed and is not negotiable. Preamble groups run `imports` → `constants` → `functions` → `classes`, then the construct group(s); artifacts and members appear in the order their component guide prescribes. A declaration or initialization dependency is never a reason to reorder artifacts, drop an artifact comment, or merge sections to keep things easy.
+
+When a dependency appears to force an out-of-order artifact, introduce a mechanic that preserves the order. Prefer, in this order:
+
+1. **Place by section.** Move the dependency to the preamble group where it belongs (a side-effect-free helper to `# *** functions`, a literal to `# *** constants`, a base class to `# *** classes`) so it is declared before it is used.
+2. **Quote the reference.** Use a string annotation (`-> 'Aggregate'`) when a type is needed in a signature before it is defined.
+3. **Defer resolution.** Take the dependency as an injected callable or resolve it by id at call time, instead of binding it at import time.
+
+When none of these fits, design a new mechanic that keeps the structure intact and describe it in the PR body so the reviewer can judge it. Do not fall back to reordering. A reviewer treats any ordering or spacing violation as blocking, and neither the acceptance criteria nor a reference prototype waives it.
 
 ### Constant declaration style
 
@@ -556,7 +569,8 @@ Harness test classes follow the same spacing conventions as production code:
 - Deprecate obsolete methods with clear notes.
 - Write clear RST docstrings.
 - Break methods into commented snippets.
-- Maintain consistent spacing.
+- Maintain consistent spacing: exactly one empty line between artifacts, never two.
+- Preserve artifact ordering. When a declaration dependency seems to force an exception, add an order-preserving mechanic (see [Ordering and Declaration Constraints](#ordering-and-declaration-constraints)) instead of breaking the order.
 - Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
 - Prefer `@use_tester` and the three test-module kinds (`fixtures` / `tests` / `testers`) for new unit tests. Leave leftover `tiferet.testing` subclasses in place until RFP-015 / #1121.
 

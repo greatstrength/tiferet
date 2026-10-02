@@ -29,24 +29,20 @@ class AddNumber(DomainEvent):
     def execute(self, a: float, b: float, **kwargs) -> float:
         return a + b
 
-
 class SubtractNumber(DomainEvent):
     """Subtracts b from a."""
     def execute(self, a: float, b: float, **kwargs) -> float:
         return a - b
-
 
 class MultiplyNumber(DomainEvent):
     """Multiplies two numbers."""
     def execute(self, a: float, b: float, **kwargs) -> float:
         return a * b
 
-
 class DivideNumber(DomainEvent):
     """Divides a by b."""
     def execute(self, a: float, b: float, **kwargs) -> float:
         return a / b
-
 
 class Exponentiate(DomainEvent):
     """Raises a to the power of b (a^b)."""
