@@ -42,7 +42,6 @@ class AddNumber(BasicCalcEvent):
         # Return the result.
         return result
 
-
 # ** event: subtract_number
 class SubtractNumber(BasicCalcEvent):
     '''
@@ -74,7 +73,6 @@ class SubtractNumber(BasicCalcEvent):
         # Return the result.
         return result
 
-
 # ** event: multiply_number
 class MultiplyNumber(BasicCalcEvent):
     '''
@@ -105,7 +103,6 @@ class MultiplyNumber(BasicCalcEvent):
 
         # Return the result.
         return result
-
 
 # ** event: divide_number
 class DivideNumber(BasicCalcEvent):
@@ -140,7 +137,6 @@ class DivideNumber(BasicCalcEvent):
 
         # Return the result.
         return result
-
 
 # ** event: exponentiate_number
 class ExponentiateNumber(BasicCalcEvent):
