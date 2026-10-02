@@ -69,8 +69,8 @@ Running the parent fan-out (first child opens the PR, remaining children push, p
 
 ## Reviewing trunk
 
-For reconstruction, you may look at proto, but only at artifacts the freeze and the TRD actually named. You are measuring, not merging. "Make trunk match proto" is the wrong advice in almost every case. If trunk is *ahead* of proto — a later, better name, a cleaner shape — keep trunk.
+A trunk PR gets a **Release reviewer**. Code style comes first and is never waived. Then artifact fidelity: every artifact the TRD names in §3 and §4 is measured against the reference prototype recorded in §7, or against the TRD alone when there is none. A deviation on a named artifact is a finding even when trunk looks cleaner. A real improvement goes through a TRD amendment before merge. Only the reviewer reads proto; the implementor works from the TRD. Reading proto is measurement, never merging.
 
 A hotfix is reviewed against the hotfix TRD. Proto has nothing to say about it.
 
-Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) and [process.md](process.md) are the longer versions of that sentence.
+The reviewer approves and reports; a human squash-merges. Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) and [process.md](process.md) are the longer versions of that sentence.

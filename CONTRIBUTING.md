@@ -62,7 +62,7 @@ The PR is a **review surface**: what changed, AC checkboxes, comments that point
 
 ### Review
 
-Diff comments stay on the PR. Reconstruction review may look at proto only for artifacts the freeze and the TRD named — never "make trunk match proto." Prototype review is against the RFP and the distillation sections it cites. More in [code_review.md](docs/collab/code_review.md).
+Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD, or against the TRD alone when there is none. The reviewer approves and reports; a human squash-merges. More in [code_review.md](docs/collab/code_review.md).
 
 ### Collaboration Report
 
@@ -78,6 +78,7 @@ Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in t
 - `tiferet-rfp-session` — implement one published RFP on proto; link the PR to that issue; close the issue after squash.
 - `tiferet-author-trd` — one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
 - `tiferet-implement-trd` — implement one published TRD or one Super-TRD child; link the PR to the standalone issue or the parent.
+- `tiferet-pr-code-review` — review one PR as the Prototype or Release reviewer; one consolidated review and a verdict.
 - `tiferet-collab-report` — standalone TRD closeout on the issue.
 
 **Docs:** `tiferet-guide-docs`.

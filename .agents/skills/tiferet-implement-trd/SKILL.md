@@ -39,7 +39,8 @@ TRD issue number. For a Super-TRD child: parent issue number. For a later child:
 2. Cut `<issue>-<slug>` from `main`. Status In Progress. Start date.
 3. Implement (`tiferet-code-style` + component skills). PR targeting `main`, title `<Component/Assemblage> - <Plain Title> (#issue)`, **GitHub-linked** to that TRD. `Closes #<issue>` is allowed. Do not add the PR to a milestone.
 4. Short status on the **issue** after the PR opens, and again after addressing PR feedback.
-5. After squash-merge: `tiferet-collab-report` on the issue. Status Done. End date. `.trd/` → `.complete.md`. Trunk→proto git only if the human asks.
+5. Before asking for review, self-check against the shared review standards in `docs/collab/code_review.md`: code style first (exactly one empty line between artifacts, artifact order preserved with an order-preserving mechanic if a dependency seems to force an exception), then every AC, then fidelity to every artifact TRD §3 and §4 name, then relevant and accurate tests and nothing superfluous. Work from the TRD only; do not read proto. A Release reviewer (`tiferet-pr-code-review`) reviews and a human squash-merges.
+6. After squash-merge: `tiferet-collab-report` on the issue. Status Done. End date. `.trd/` → `.complete.md`. Trunk→proto git only if the human asks.
 
 **Super-TRD first child** (no parent PR yet)
 
@@ -51,7 +52,7 @@ TRD issue number. For a Super-TRD child: parent issue number. For a later child:
 **Super-TRD later child already in flight**
 
 1. Work on the existing parent branch. Do not open a second PR.
-2. Implement this child only. Check off this child's AC on the parent PR if present.
+2. Implement this child only. Self-check against the shared review standards (see Standalone step 5). Check off this child's AC on the parent PR if present.
 3. The PR stays GitHub-linked to the **parent**. Never `Closes #<child>`.
 4. Set this child issue Status to **In Review**. Short status on the **child issue**. No Collaboration Report on the child. Do not close the child.
 
