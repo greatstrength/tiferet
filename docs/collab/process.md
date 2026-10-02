@@ -79,7 +79,7 @@ Please do not leave the session diary as PR conversation comments.
 
 ## Review and merge
 
-Every implementation PR gets one reviewer, and the merge step is the same for both strands. The **Prototype reviewer** holds code style first, then the RFP's content against the vision and distillation. The **Release reviewer** holds code style first, then artifact fidelity against the reference prototype, or the TRD when there is none. The reviewer posts one consolidated review that ends in a verdict, Approve or Changes requested. The reviewer approves and reports; a **human squash-merges**. The reviewer never merges. The standards are in [code_review.md](code_review.md).
+Every implementation PR gets one reviewer, and the merge step is the same for both strands. The **Prototype reviewer** holds code style first, then the RFP's content against the vision and distillation. The **Release reviewer** holds code style first, then artifact fidelity against the reference prototype, or the TRD when there is none. The reviewer posts one consolidated review that ends in a verdict, Approve or Changes requested. The reviewer approves and reports; a **human squash-merges**. The reviewer never merges by default; the only exception is a PR whose squash-merge the human has explicitly relinquished to the reviewer (situational, most often a correction follow-up). The standards are in [code_review.md](code_review.md).
 
 ## Binding, and where the skills live
 

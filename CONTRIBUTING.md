@@ -62,7 +62,7 @@ The PR is a **review surface**: what changed, AC checkboxes, comments that point
 
 ### Review
 
-Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD, or against the TRD alone when there is none. The reviewer approves and reports; a human squash-merges. More in [code_review.md](docs/collab/code_review.md).
+Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD, or against the TRD alone when there is none. The reviewer approves and reports; a human squash-merges (unless the human explicitly delegates the merge for that PR). More in [code_review.md](docs/collab/code_review.md).
 
 ### Collaboration Report
 

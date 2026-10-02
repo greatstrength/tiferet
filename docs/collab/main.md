@@ -73,4 +73,4 @@ A trunk PR gets a **Release reviewer**. Code style comes first and is never waiv
 
 A hotfix is reviewed against the hotfix TRD. Proto has nothing to say about it.
 
-The reviewer approves and reports; a human squash-merges. Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) and [process.md](process.md) are the longer versions of that sentence.
+The reviewer approves and reports; a human squash-merges (unless the human explicitly delegates the merge for that PR). Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) and [process.md](process.md) are the longer versions of that sentence.
