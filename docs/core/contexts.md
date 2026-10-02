@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-Understanding is the client-runtime graph: the session once it exists, able to run without knowing how it was assembled. A context binds a domain object (`from_domain`) and exposes operational behavior. That position is **Binah**. It may be a flat presentation container or a fluent API. What it must not do is invent the work. The work is an event. See [architecture.md](architecture.md).
+A context is the client-runtime graph: the session once it exists, able to run without knowing how it was assembled. It binds a domain object (`from_domain`) and exposes operational behavior. It may be a flat presentation container or a fluent API. What it must not do is invent the work. The work is an event. See [architecture.md](architecture.md).
 
 Legal `# ** app` imports: `assets` (one way); `domain`; sibling contexts; `events` as the client surface. Illegal: `blueprints` (construction flows down, never back); `interfaces`; `di`; `mappers`; `utils`; `repos`. Blueprints are the factory. Contexts are the client. Prefer handler injection over constructing sibling contexts.
 
@@ -30,13 +30,13 @@ def run(self, feature_id, headers=None, data=None, **kwargs):
     return self.build_response(request)
 ```
 
-What the reader just saw: five template methods, each backed by a required handler slot. An unwired slot raises `APP_ERROR` on first use. There is no inline fallback. `handle_error` re-raises an incoming `TiferetAPIError` so an already-formatted response is never wrapped twice. Logger construction is a first-class slot (`build_logger_handler`), not a separately loaded `LoggingContext` hanging off the hub.
+What the reader just saw: template methods, each backed by a required runtime-handler slot. An unwired slot raises `APP_ERROR` on first use. There is no inline fallback. `handle_error` re-raises an incoming `TiferetAPIError` so an already-formatted response is never wrapped twice. Logger construction is a first-class slot (`build_logger_handler`), not a separately loaded `LoggingContext` hanging off the hub.
 
-That is why Binah must not import `interfaces` or `di`. The hub asks `get_dependency`. It does not know `AppService`. The remaining violation — `AppSessionContext.load` typing `app_service: AppService` and calling `GetAppSession` — is factory work living on the client. It belongs on `blueprints/core.py`. Until that code fork lands, treat the method as in the wrong package.
+That is why a context must not import `interfaces` or `di`. The hub asks `get_dependency`. It does not know `AppService`. The remaining violation — `AppSessionContext.load` typing `app_service: AppService` and calling `GetAppSession` — is factory work living on the client. It belongs on `blueprints/core.py`. Until that code fork lands, treat the method as in the wrong package.
 
 `FeatureContext` is bound to a `Feature` via `from_domain`. Its `execute_feature(request)` takes no feature argument; the noun is `self.domain`. For each step it resolves the event through `get_dependency` and calls `DomainEvent.handle`. Async dispatch is owned here via `Feature.is_async`. There is no separate `AsyncFeatureContext`.
 
-Sibling imports are legal and usually unwise. Constructing `FeatureContext` inside `AppSessionContext` is how circular imports are born. Let Chochmah inject the slot.
+Sibling imports are legal and usually unwise. Constructing `FeatureContext` inside `AppSessionContext` is how circular imports are born. Let the blueprint inject the slot.
 
 ## Reciprocity at runtime, direction at construction
 
@@ -57,7 +57,7 @@ That is why the hub can own timing, sequence, and lifecycle while owning none of
 
 One distinction follows and explains a class of confusing bugs. **The capacity to hold is a type-level fact declared by the class. The joining is a separate event in time.** A context can be fully and correctly constructed and still be empty, because declaring a slot and filling it are different acts performed by different positions. Reading the class tells you what it is capable of holding; only reading the blueprint tells you what it actually holds.
 
-## The handler slots
+## The runtime handlers
 
 | Template method | Handler slot | Role |
 | --- | --- | --- |
@@ -69,7 +69,7 @@ One distinction follows and explains a class of confusing bugs. **The capacity t
 
 CLI adds `parse_cli_args`. `RESERVED_CONTEXT_PARAMETERS` in the blueprint keeps generic collaborator resolution from trying to DI-resolve these names.
 
-**The slot set is per context class, not framework-fixed.** Five is Tiferet's own arity as a dialect of itself; it is not a coordinate, and a chapter that called it the whole contract would be wrong against the examples directory. `CalculatorAppContext` (`examples/basic_calculator/app/contexts/calc.py`) declares a sixth slot, `record_run_handler`, stores it privately, guards it with the framework's own `raise_unwired_handler_error`, and overrides `execute_feature` to fire it after a successful run — while `build_calculator_app_context` builds that closure alongside the other five. Context and blueprint extend in lockstep, always. What generalizes is the pattern, and the arity is determined by the domain a context serves.
+**The slot set is per context class, not framework-fixed.** The core app's count is the framework's own arity as a dialect of itself; it is not a coordinate, and a chapter that called it the whole contract would be wrong against the examples directory. `CalculatorAppContext` (`examples/basic_calculator/app/contexts/calc.py`) declares an additional slot, `record_run_handler`, stores it privately, guards it with the framework's own `raise_unwired_handler_error`, and overrides `execute_feature` to fire it after a successful run — while `build_calculator_app_context` builds that closure alongside the others. Context and blueprint extend in lockstep, always. What generalizes is the pattern, and the arity is determined by the domain a context serves.
 
 That same dialect file is worth reading for a second reason: it obeys the import law in its own comments. It keeps `resolver: Any` deliberately untyped, noting that contexts never import `di` directly, and it intentionally omits `domain_type` so the `ContextMeta` registry keeps mapping `AppSession` to `AppSessionContext`. A consumer explaining the law back to itself is the best available evidence that the law is teachable rather than merely enforced.
 
@@ -79,13 +79,13 @@ Use `# *** contexts`, `# ** context: <name>`, `# * attribute`, `# * init`, `# * 
 
 ## In short
 
-- Contexts are the runtime graph. The hub runs without knowing how it was wired. That client is Binah.
+- Contexts are the runtime graph. The hub runs without knowing how it was wired.
 - Direction at construction, reciprocity at runtime. The composer knows the holder; the holder never learns the composer; neither works alone.
 - The handler slot is the backward shape that buys that reciprocity without a cycle. It is the mechanism, not an exemption.
 - Two failure modes, and they differ: a capability nothing holds is silent dead code; an unwired slot fails loudly on first use.
 - The position preserves and orders. It produces no semantics of its own, which is why it owns timing and not meaning.
 - Capacity to hold is declared by the class; the joining happens later. A context can be fully constructed and still empty.
 - Legal imports: `assets`, `domain`, sibling contexts, `events`. Never `blueprints`, `interfaces`, `di`, `mappers`, `utils`, `repos`.
-- Prefer handler injection over constructing siblings. Wire every slot the class declares — five is Tiferet's arity, not the contract; the calculator declares six.
+- Prefer handler injection over constructing siblings. Wire every slot the class declares — the core app's count is the framework's arity, not the contract; the calculator declares one more.
 - Call events as a client (`DomainEvent.handle`). Do not bootstrap the session here.
 - `CliSessionContext` owns CLI parsing. The blueprint does not.

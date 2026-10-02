@@ -3,40 +3,38 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
+> Generating a running program from a declaration of model properties is a kind of Holy Grail of MODEL-DRIVEN DESIGN, but it does have its pitfalls in practice. For example, I have encountered the following problems more than once:
+>
+> - A declaration language not expressive enough to do everything needed, yet a framework that makes it very difficult to extend the software beyond the automated portion.
+> - Code generation techniques that cripple the iterative cycle by merging generated code into handwritten code in a way that makes regeneration very destructive.
+>
+> — Eric Evans, *Domain-Driven Design*, Chapter 10, Declarative Design
+
 ## The problem
 
 The aim of declarative design is a running program from a declaration of model properties. It fails in two ways.
 
 The **transcendent** failure is unknown meaning. The declaration language is not expressive enough for the needed domain behavior, and the framework is hard to extend beyond the automated portion. That meaning sits above the current vocabulary and cannot be approached from inside it.
 
-The **immanent** failure is the loss of a present, regenerable form. Generated code is merged with handwriting, so regeneration is destructive. The declared structure can no longer be regenerated and taken at face value.
+The **immanent** crisis is that there is no structural pattern language isomorphic to a whole, unified system. A program is then not a composition of defined structural patterns but a variety of objects and functions in modules — everything is an object, everything is a room. Such a language would be the intrinsic rule for where a concept belongs: a named pattern, with an obligation, that a novel concept can occupy and still do its job without interfering with the others, mechanically or conceptually. What exists instead are patterns that pack some structure into a short declaration and then stop. They do not map the system being modeled, so a variety the running system actually produces can be left unnamed. Patterns stay generally defined and locally undefined, which is undefined when the thing has to run. The team pretends an existing pattern covers the leftover, invents a local trick, or fills the hole in handwriting. Ordinary frameworks pick a few mature parts — container, repository, handler, transfer object — and treat the rest as "your objects." That is still one letter wearing a coat of many.
 
-Agentic generation does not close either gap. Without immanent named patterns, generated code is handwriting at speed: it has no plan to be an instance of. Both failures get worse.
-
-A pattern language is the usual technical answer: not “everything is an object” or “everything is a room,” but named patterns that pack structure into a short declaration, block silly mistakes, and leave energy for what is new. That answer is incomplete. It arrives late. Domain design is not mature enough for a catalog as specific as rooms, and ordinary frameworks still fall into both pits.
-
-The need is therefore more than a framework. The system must cover the whole creative process: immanent named structure that generated (and agent-written) code can instantiate, and a path toward the transcendent ontology of the domain — what the current language cannot yet say.
+Without that isomorphism, the declared structure cannot be taken at face value. Generated code has no structural place that corresponds to the whole, so it is merged with handwriting and regeneration is destructive. Agentic generation does not close the gap. Without a pattern language the generated code can be an instance of, it is handwriting at speed, and both failures get worse.
 
 A third failure is rigid architecture. Guiding rules are not the problem; rigidity and the source of the rules are. Developers dumb the application down to fit, or subvert the structure and return to a free-for-all. Large-scale structure must be allowed to evolve. Do not saddle the project with a design conceived before the domain was understood.
 
 ## The thesis
 
-Tiferet answers with Evans' **Responsibility Layers** as structural patterns.
+Tiferet answers with a structural pattern language isomorphic to the whole system: a finite alphabet of ten pattern cores, held in Evans' **Responsibility Layers**, on which a dialect writes its own words.
 
-Four layers hold ten pattern cores — the packages. An application extends those cores as its domain dialect. It does not add a layer, and it does not add a package.
+An application does not add a letter. It writes its ontology onto the letters already there. New meaning arrives as a new word, or as a word occupying a face it did not occupy before — never as an unnamed leftover between "the model" and "the framework," and never as an eleventh package.
 
-The layers are:
-
-- **Decision support** — `assets`, `blueprints`, `contexts`. Catalogs, composition, and the live session graph.
-- **Policy** — `domain`, `di`, `events`. The noun, their units of work, and how they resolve.
-- **Potentials** — `mappers`, `interfaces`, `utils`. Mutation and representation, contracts, and substrate capability.
-- **Operations** — `repos`. Persistence that implements a contract and is never imported.
-
-Import law, placement, and the live session graph follow from those layers and from the job of each pattern inside them.
+That writing is the application.
 
 ## Why a framework
 
 A framework exists so a new or extended application does not rebuild the same machinery. Feature dispatch, session composition, resolution, error shaping, and configuration persistence are the same jobs in every dialect. The pattern set is the shared machinery; the dialect supplies domain meaning.
+
+The standard set is what makes the machinery transferable across dialects. A dialect that needed its own composition model, its own resolution rules, and its own persistence shape would be starting over, which is the cost the framework exists to remove.
 
 Tiferet is mechanism to a dialect. Internally it still has its own core domain (the `Feature` family) and its own operations (`repos`) and potentials (`utils`). Core-versus-mechanism is relative to the reader, not a kind of code.
 
@@ -44,7 +42,12 @@ Tiferet is mechanism to a dialect. Internally it still has its own core domain (
 
 A layer is a structural pattern: a band of responsibility broad enough that an artifact fits inside one of them, found by reading conceptual dependencies and rates of change.
 
-The ten packages are the pattern cores inside those bands. They are not coordinates on another diagram. Naming a package is naming a job.
+Four layers hold the ten pattern cores:
+
+- **Decision support** — `assets`, `blueprints`, `contexts`. Catalogs, composition, and the live session graph. These decide what runs and in what order; they do not do the work.
+- **Policy** — `domain`, `di`, `events`. The noun, the rules of its resolution, and the unit of work. Policy names what the work is and does not implement a store.
+- **Potentials** — `mappers`, `interfaces`, `utils`. Mutation and representation, the enduring contract, and substrate capability. Potentials are what the work can become; they do not declare what the work is.
+- **Operations** — `repos`. Persistence that implements a contract and is never imported. Operations is what is actually done to a substrate.
 
 Two consequences are mechanical:
 
@@ -53,7 +56,28 @@ Two consequences are mechanical:
 
 Infrastructure verifies **shape** — names, flags, file structure, constructor signatures. Policy is answerable for **meaning**. The layers bound what a word can mean. They do not check that a dialect's conceptual contours are coherent.
 
-## The ten patterns
+## The ten pattern cores
+
+The cores are the permutable components a domain concept can occupy. They were not derived from examples. A permutation space defined from "the patterns we have seen" leaves the next variety off the page, which is how a pattern language stays generally defined and locally undefined. The cores are ten abstract jobs that can be realized or left empty. None of them is a domain word. The words decline around them.
+
+The mapping only becomes possible by defining those permutations around the ten sefirot of the Tree of Life. The sefirot are ten states of conscious existence — jobs, not rooms and not modules — and they are the functional mechanism by which an application is represented as a network of terms linked across ten given states, each open or closed according to what the application requires. A state with no term occupying it is not missing. It is closed.
+
+| # | State | Package | Job |
+|---|---|---|---|
+| 1 | Keter | `assets` | emit catalogs; do not become runtime |
+| 2 | Chochmah | `blueprints` | compose, and stay resident as closures |
+| 3 | Binah | `contexts` | the live session graph; sequence, do not invent work |
+| 4 | Chesed | `di` | receive a declaration; emanate an instance; do not use it |
+| 5 | Gevurah | `domain` | the noun that will not mutate itself |
+| 6 | Tiferet | `events` | the unit of work; hold both sides; return narrowly |
+| 7 | Netzach | `interfaces` | the enduring contract |
+| 8 | Hod | `mappers` | mutation and representation |
+| 9 | Yesod | `utils` | substrate capability |
+| 10 | Malkuth | `repos` | persistence; never imported, never exported |
+
+The sixth core is why the framework is named as it is. It is the middle that may know the session and the store without becoming either. Without a middle, contour and mechanism only stack. A middle that swallows both is a god object. The join has to stay a permutation of its own.
+
+A core used as a nickname for leftover code is the old failure returning. The jobs below are stated in structural terms; the table is the reference that fixes their count and their order.
 
 Each entry states the job, the imports that follow from it, and the constraint the pattern exists to enforce. The package chapters are the full write-ups:
 
@@ -104,7 +128,7 @@ The session context is a **runtime handler hub**. It sequences injected callable
 
 ### Policy
 
-Policy names the noun, their units of work, and how they resolve.
+Policy names the noun, the rules of its resolution, and the unit of work.
 
 #### `domain`
 
@@ -210,6 +234,33 @@ Other contact that is not an import edge uses the same idea through a legal neig
 
 A declared dependency without an import edge is an intended consequence of the law, not an exception to it.
 
+## The domain map
+
+A state is a cell. A domain concept is a word. The word declines across the ten cores: present or absent, under the obligation that cell already owns. That occupancy is the concept's vector.
+
+The token carries the ontology; the suffix names the obligation. `Feature` / `FeatureEvent` / `FeatureContext` / `FeatureAggregate` / `FeatureService` / `FeatureConfigRepository` are one concept seen across six cells, not six artifacts that happen to share a prefix. A shared token does not imply shared behavior, and two concepts with the same vector are the same concept wearing two labels — or the map is lying.
+
+The domain map is the matrix of every concept in the bounded context against the ten cores. It is immanent: capturable from catalogs, class names, suffixes, service ids, and the repositories that implement a `Service`, and regenerable from them. Transcendent knowledge lands as a new row, a newly filled cell, or a newly emptied cell. It does not land as an eleventh package, and it does not land as a `set_*` on the noun. Reception is inflection.
+
+A full mapping is not a fully populated grid. Empty is allowed. Empty is information: a mapped refusal. `Sqlite` occupying `utils` and refusing `domain` and `contexts` is a mapped refusal, and it is why the industry-standard name is the correct one. What is not allowed is a permutation the running system actually produces that has no cell, no obligation, and no name.
+
+Contour and mechanism are the two faces of the same word, and both have to be mapped or the word is only generally defined.
+
+- **Conceptual contour** lives first at `domain` and inflects only where the word is still that noun: what the word may mean, where it stops, what it refuses. A contour mapped without a mechanism leaves the mechanism generally undefined.
+- **Cohesive mechanism** lives first at `events` and is sequenced at `contexts`, resolved at `di`, contracted at `interfaces`, and stored at `repos`: how a declared fact, rule, or problem is completed without becoming a second model. Evans' distinction holds — the model formulates, the mechanism completes. A mechanism written against a shadow of the objects it governs leaves the contours anemic to match it.
+
+A dialect grows by declension, not by fork. New meaning arrives as a new row or a newly occupied cell of an existing core. It does not arrive as a framework fork, and it does not arrive by lowering the domain until it fits the generator. The first cannot say what it does not already have words for. The second cannot regenerate what it has already mixed.
+
+## What the mapping refuses
+
+The mapping stays safe while it grows because three refusals hold, and each is the import law of one core stated as an obligation:
+
+- **The noun will not change itself.** Mutation on a domain object is a contour that has taken on an act. It belongs to the aggregate.
+- **The resolver will not use what it holds.** A resolver that invoked the instance it resolved would have joined the domain it serves, and could no longer resolve every dialect alike.
+- **The store will not claim to be the thing stored.** A repository that imported the domain type would be asserting identity with what it persists, and the round trip would have nowhere to be lossy.
+
+The refusals are immanent — they are readable off the import table and enforceable by it. What they protect is transcendent: the meaning a dialect has not yet found words for, which can only arrive if the cells it would occupy are still empty and still named.
+
 ## Extending the patterns
 
 A domain application does not add a pattern. It extends the abstraction already occupying one.
@@ -227,15 +278,11 @@ A domain application does not add a pattern. It extends the abstraction already 
 | Application composition | a build function | `blueprints` |
 | Bootstrap invariants and catalogs | constants and factories | `assets` |
 
-A domain word inflects across patterns. The token carries the ontology; the suffix names the pattern's obligations. `Feature` / `FeatureAggregate` / `FeatureConfigObject` / `FeatureService` / `FeatureConfigRepository` / `FeatureEvent` / `FeatureContext` are one concept, not interchangeable artifacts. A shared token does not imply shared behavior.
-
-Not every word inflects. `Sqlite` has no aggregate and no context; a generic subdomain holds nothing for the patterns to transform. A noun that refuses to decline is announcing that it is generic, and the industry-standard name is then the correct one.
-
 Growth adds an inflection where the concept must appear. It never populates a template.
 
 When a domain concept cannot be expressed through the ten, the framework is missing a primitive, or the concept belongs to another bounded context.
 
-This chapter states the layers and the pattern cores. It does not show how to build a dialect: worked construction belongs to the tutorial, and per-application distillation to `docs/guides/`.
+This chapter states the layers, the pattern cores, and the map. It does not show how to build a dialect: worked construction belongs to the tutorial, and per-application distillation to `docs/guides/`.
 
 ## Runtime
 

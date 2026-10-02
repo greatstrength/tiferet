@@ -98,8 +98,9 @@ You should see:
 
 ## Documentation & Guides
 
+- [Architecture (import law)](docs/core/architecture.md)
+
 **Core architecture**  
-- [Architecture (import law)](docs/core/architecture.md)  
 - [Code Style & Artifact Comments](docs/core/code_style.md)  
 - [Blueprints (build_app)](docs/core/blueprints.md)  
 - [Contexts](docs/core/contexts.md)  

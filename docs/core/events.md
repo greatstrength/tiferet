@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-An event is the heart of the running system: the only unit of work that must know the session and the store, that commands, executes, and returns a noun. That position is **Tiferet** — the name for a middle that holds both sides without becoming either. High is the request, the feature, the human intent. Low is the aggregate, the util, the service, the store. Nothing else in the framework is allowed to stand in both places at once.
+An event is the heart of the running system: the only unit of work that must know the session and the store, that commands, executes, and returns a noun. It is the middle that holds both sides without becoming either. High is the request, the feature, the human intent. Low is the aggregate, the util, the service, the store. Nothing else in the framework is allowed to stand in both places at once.
 
 Without events there is no feature to wire and nothing for a user to mean. Configs are the camp; events are the productions the camp is organized to serve. The basic calculator begins its story here for that reason. The first thing a consumer writes after configuration is an `execute`. See [architecture.md](architecture.md) for the map this chapter sits in the center of.
 
@@ -25,11 +25,11 @@ There are no service-less utility events left, and their disappearance is instru
 
 The position holds a paradox worth naming early: the most important artifact in the system is completely inert until something else resolves it. A `DomainEvent` *declares* a rule. It does not run one. Declaration and firing are separated by design, which is how one artifact manages to be load-bearing and idle at the same time.
 
-That separation is not a local invention. Evans divides the labor the same way when he describes a Cohesive Mechanism (422–423): the model "formulates a fact, rule, or problem," while the mechanism "resolves the rule or completes the computation as specified by the model." That is this position and Binah exactly — the operator formulates, `FeatureContext` resolves. So the paradox is not a quirk of this codebase; it is the internal structure of a named pattern, which is a considerably stronger thing to stand on.
+That separation is not a local invention. Evans divides the labor the same way when he describes a Cohesive Mechanism (422–423): the model "formulates a fact, rule, or problem," while the mechanism "resolves the rule or completes the computation as specified by the model." That is this position and the contexts exactly — the operator formulates, `FeatureContext` resolves. So the paradox is not a quirk of this codebase; it is the internal structure of a named pattern, which is a considerably stronger thing to stand on.
 
 One level has to be stated explicitly or the whole scheme collapses into two tiers. **Core-versus-mechanism is a relative position, not a kind of code.** Tiferet is pure mechanism to a consumer dialect — the thing that resolves what the dialect declares. Internally it has its own core domain (the `Feature` family) and its own mechanisms (`utils`, `repos`). Which side of that line an artifact sits on depends on where you are standing, never on what the artifact is made of.
 
-Evans' **Policy** layer is the sharpest lens on this position, and it is a lens rather than an identity. He characterizes it as: "What are the rules and goals? Rules and goals are mostly passive, but constrain the behavior in other layers." Mostly passive, and constraining anyway — that is the paradox above, arriving from outside. Read [architecture.md](architecture.md) for why the layer names are demoted to readings: `events` is not a Policy layer, it reads usefully through Policy. Worth recording separately, since it is a fair question rather than a finding: Policy is arguably a better name than `events` for what this package holds, and it is a live v3 rename candidate. No structural claim rests on it either way.
+Evans' **Policy** layer is the sharpest lens on this position, and it is a lens rather than an identity. He characterizes it as: "What are the rules and goals? Rules and goals are mostly passive, but constrain the behavior in other layers." Mostly passive, and constraining anyway — that is the paradox above, arriving from outside. Read [architecture.md](architecture.md) for how the responsibility layers are assigned: `events` sits in the policy layer, which is why the most important artifact in the system is inert until something resolves it.
 
 ## The DomainEvent base
 
@@ -172,7 +172,7 @@ class AddError(ErrorEvent):
         return new_error
 ```
 
-Read the block as a production. The decorator is the LHS guard: `id`, `name`, and `message` must be present and non-blank. `0`, `False`, and `[]` would pass; `None` and `""` would not. All violations raise one aggregated `TiferetError` with `a.error.COMMAND_PARAMETER_REQUIRED_ID`. `verify` is the domain predicate: the error must not already exist. `ErrorAggregate` is Hod doing the form-giving; the event does not put a `rename` on `Error`. `error_service.save` is Netzach, implemented somewhere in Malkuth the event is not allowed to import. The return is Gevurah — the noun, preferred.
+Read the block as a production. The decorator is the LHS guard: `id`, `name`, and `message` must be present and non-blank. `0`, `False`, and `[]` would pass; `None` and `""` would not. All violations raise one aggregated `TiferetError` with `a.error.COMMAND_PARAMETER_REQUIRED_ID`. `verify` is the domain predicate: the error must not already exist. `ErrorAggregate` is the mapper doing the form-giving; the event does not put a `rename` on `Error`. `error_service.save` is the contract, implemented somewhere in a repository the event is not allowed to import. The return is the noun, preferred.
 
 The calculator tells the same story at a smaller scale. `AddNumber` verifies two operands and returns a number — a legal inferior, because there is no richer noun to give back. `DivideNumber` adds a predicate (`b != 0`). `SaveFormula` in the same example returns a `FormulaAggregate` when the noun *does* exist. Prefer the domain model; otherwise return what you can legally reach.
 
@@ -224,13 +224,11 @@ The reach of this position is unique, and so is the discipline that makes the re
 
 **The contact topology is checkable.** Outbound, an event may reach `assets`, `domain`, `mappers`, `utils`, and `interfaces`. Four of those are exercised in the framework today; `utils` is legal and currently unused — worth stating rather than implying, since a legal edge nobody has needed yet is a different fact from a legal edge in daily use. Inbound, it is reached by `blueprints` (bootstrap) and `contexts` (client). `di` looks absent from both lists and is not: the container constructs operators from a declared `module_path` and `class_name`, so contact happens by dynamic resolution rather than by a static edge. Influence without an import edge is the mechanism, not a loophole.
 
-Which leaves exactly one position an event never touches directly: `repos`. Events do receive repositories constantly — always as a Netzach contract, never knowing what implements it. `error_service.save` in the production above is precisely that: a promise the event depends on and an implementation it is forbidden to name.
+Which leaves exactly one position an event never touches directly: `repos`. Events do receive repositories constantly — always as a service contract, never knowing what implements it. `error_service.save` in the production above is precisely that: a promise the event depends on and an implementation it is forbidden to name.
 
-**The veil, stated accurately.** The ten divide six above — declaration, composition, orchestration — from four below — contract, representation, capability, persistence — and nothing above the boundary imports `repos`. Crossing happens by resolution rather than by reference. Do not read this as events being the sole bridge, which is the tempting overstatement: `di` also reaches below the veil, to `interfaces`. Multiple crossings are faithful to the structure.
+**The boundary, stated accurately.** Nothing above the operations layer imports `repos`. Crossing happens by resolution rather than by reference. Do not read this as events being the sole bridge, which is the tempting overstatement: `di` also reaches below, to `interfaces`. Multiple crossings are faithful to the structure.
 
-There is a convergence here worth naming, and it is the largest structural one these chapters record. All four positions below the veil are *means* rather than acts. Contracts are potentials — Evans notes that "contracts with vendors also define potentials." Mappers are representational means, utils are capability, repositories are organized persistence. None of them is what is being *done*. The doing is here, at `events`, sequenced by `contexts`. So the line the tradition draws at Paroketh and the line Evans draws between what enables work and what is work fall in the same place, reached from two unrelated directions.
-
-Two caveats keep that honest. Evans has five layers rather than two, so this is one boundary coinciding, not a whole-set mapping. And `interfaces` also reads well through his Commitment layer, which is permitted under the demoted reading of the layer names — Evans himself leaves the tension unsettled, filing contracts under Potential while giving Commitment a layer of its own.
+There is a convergence here worth naming. The potentials and operations layers are *means* rather than acts. Contracts are potentials — Evans notes that "contracts with vendors also define potentials." Mappers are representational means, utils are capability, repositories are organized persistence. None of them is what is being *done*. The doing is here, at `events`, sequenced by `contexts`. So the line between what enables work and what is work falls here, and Evans draws the same line.
 
 ## Structured code design
 
@@ -245,7 +243,7 @@ Events follow the standard artifact comment structure. Use `# *** events` (or `#
 
 ## In short
 
-- An event is the unit of work. It commands, executes, and prefers to return a noun. That middle is Tiferet.
+- An event is the unit of work. It commands, executes, and prefers to return a noun. It is the middle that holds both sides without becoming either.
 - The artifact declares; something else fires it. That is why the most important thing in the system is inert on its own, and it is the internal structure of Evans' Cohesive Mechanism rather than a quirk here.
 - Core-versus-mechanism is a relative position, not a kind of code. Tiferet is pure mechanism to a dialect and holds its own core domain internally.
 - Enter it through `DomainEvent.handle` (bootstrap from a blueprint, client from a context, always from a test). Do not hand-construct.

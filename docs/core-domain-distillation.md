@@ -126,7 +126,7 @@ providing a metaclass registry from domain object type to context class
 
 **AppSessionContext (the hub)** — the declaratively constructed runtime
 object bound to one loaded `AppSession`, driving every request through the
-same four-step `run` pipeline via five injected handler callables
+same four-step `run` pipeline via injected runtime-handler callables
 (`tiferet/contexts/app.py:354`, `run` at `tiferet/contexts/app.py:637`).
 
 **FeatureContext** — the context bound to one loaded `Feature`, resolving and
@@ -327,12 +327,10 @@ flowchart LR
 
 ## 7. Relationships / cross-boundary rules
 
-Package import law and the System Metaphor live in
-[`docs/core/architecture.md`](core/architecture.md): a published design of
-balance (factory versus client, emit versus absorb, noun versus aggregate,
-contract versus resolution) with Hebrew names and package names in one
-ubiquitous language. Each `docs/core/<layer>.md` is a chapter of that map.
-Skills and this distillation use package names only.
+Package import law lives in
+[`docs/core/architecture.md`](core/architecture.md). Each
+`docs/core/<layer>.md` is a chapter of that law. Skills and this
+distillation use package names only.
 
 Concretely: `domain` has no framework imports. `assets` emits to `blueprints`,
 `contexts`, and `events` only. `events` is the unit of work: inbound from
@@ -398,8 +396,8 @@ with, so any object satisfying that one-method contract is a legal resolver.
   analogy from a service registration to a session declaration is a natural
   mistake that currently produces no diagnostic.
 - **`docs/guides/` still describes an earlier design.** Core layer pages and
-  `docs/core/architecture.md` now state the current import law and five-handler
-  hub. The strategy guides (`docs/guides/contexts.md`, `docs/guides/mappers.md`,
+  `docs/core/architecture.md` now state the current import law and the
+  runtime-handler hub. The strategy guides (`docs/guides/contexts.md`, `docs/guides/mappers.md`,
   and related) still use retired names (`AppInterfaceContext`, `DIContext`,
   `ServiceConfiguration`, `*YamlObject`) and are a later remediation.
 

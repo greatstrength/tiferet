@@ -3,25 +3,25 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-Endurance is the promise that outlasts any one store. Interfaces are `Service` ABCs: vertical contracts for persistence, files, middleware, and DI. That position is **Netzach**. A service does not run a feature and does not open a file. It names what any implementor — a repo, a util, a test double — must be able to do. See [architecture.md](architecture.md).
+Endurance is the promise that outlasts any one store. Interfaces are `Service` ABCs: vertical contracts for persistence, files, middleware, and DI. A service does not run a feature and does not open a file. It names what any implementor — a repo, a util, a test double — must be able to do. See [architecture.md](architecture.md).
 
 Legal `# ** app` imports: `mappers` (aggregates) to type domain-related outputs, especially when the implementor will be a repository. Prefer the aggregate over the domain model when an aggregate exists. Sibling interface modules are legal. `contexts` and `blueprints` do not import this package. Service instances reach a blueprint only through `di`.
 
 ## Life in the system
 
-`Service` (`tiferet/interfaces/core.py`) is a minimal ABC. Everything vertical converges on it: error catalogs, feature workflows, files, SQLite, configuration, cache, middleware, DI registrations. Commands and domain events depend on the contract (`error_service.save(error)`). They never name `ErrorConfigRepository`. Chesed expands the registration into an instance. Malkuth or Yesod satisfies it.
+`Service` (`tiferet/interfaces/core.py`) is a minimal ABC. Everything vertical converges on it: error catalogs, feature workflows, files, SQLite, configuration, cache, middleware, DI registrations. Commands and domain events depend on the contract (`error_service.save(error)`). They never name `ErrorConfigRepository`. `di` expands the registration into an instance. A repository or a util satisfies it.
 
 That is why interfaces may import aggregates. `ErrorService.get` returns `ErrorAggregate` because the implementor is a repo that maps a transfer object into mutable form. Typing the method as `Error` would lie about what the caller can do next, or force the event to re-wrap the noun before it can mutate. Six interface modules already import `*Aggregate`. That is correct. The old skill line “never mappers” was inverted on purpose.
 
-Binah does not import Netzach. The hub asks `get_dependency`. Chochmah does not import Netzach. The factory asks Chesed. If a context grows an `AppService` parameter, the contract has leaked into the client — the `AppSessionContext.load` violation, in other words.
+A context does not import interfaces. The hub asks `get_dependency`. A blueprint does not import interfaces. The factory asks `di`. If a context grows an `AppService` parameter, the contract has leaked into the client — the `AppSessionContext.load` violation, in other words.
 
 `MiddlewareService` is the same endurance applied to the event chain. It is callable: `__call__(self, event, kwargs, next_fn)`. Async middleware awaits `next_fn()`. The event does not know it is wrapped. The contract endures around the heart without becoming the heart.
 
 ## What a promise is, and which way it binds
 
-Evans' **Commitment** layer is the sharpest lens available on this position, and — as everywhere in these chapters — it is a lens rather than an identity. He characterizes it as having "the nature of Policy, in that it states goals that direct future operations," while having "the nature of Operations in that commitments emerge and can change as part of ongoing business activity." That dual nature maps onto a contract tier immediately. See [architecture.md](architecture.md) for why the layer names are readings and never placement claims.
+Evans' **Commitment** layer is the sharpest lens available on this position, and — as everywhere in these chapters — it is a lens rather than an identity. He characterizes it as having "the nature of Policy, in that it states goals that direct future operations," while having "the nature of Operations in that commitments emerge and can change as part of ongoing business activity." That dual nature maps onto a contract tier immediately. See [architecture.md](architecture.md) for how the responsibility layers are assigned.
 
-What makes the lens *sharp* here rather than merely apt is the **direction of obligation**: the contract binds its implementors and is shaped by none of them. Protect that distinction, because it is the whole difference between this position and Hod, where a comparable-looking promise to an external format binds nobody at all. See [mappers.md](mappers.md).
+What makes the lens *sharp* here rather than merely apt is the **direction of obligation**: the contract binds its implementors and is shaped by none of them. Protect that distinction, because it is the whole difference between this position and the mappers, where a comparable-looking promise to an external format binds nobody at all. See [mappers.md](mappers.md).
 
 **Endurance is relative, not absolute.** The contract outlasts any one implementation; the contract *set* evolves with the domain like anything else. Claim stability against implementors, never against time.
 
@@ -65,13 +65,13 @@ The neighbor comparison is the clean illustration, and there is no inconsistency
 
 Keep the test explicit or the pattern becomes an excuse — the same hazard as declaring something an anticorruption layer to license any foreign name. An artifact is generic when it fails all three of declining across positions, carrying domain invariants, and containing project-specific insight. Three noes, generic. Anything else answers to Evans' rule in full. See [architecture.md](architecture.md) for the membership test.
 
-### First below the veil
+### First of the potentials
 
 Evans prescribes exposing a partitioned Cohesive Mechanism through an Intention-Revealing Interface (422–423), which makes the contract the first — and the only — part of a mechanism that is ever revealed. So assembling one begins here.
 
-Against the ten positions that is checkable rather than decorative. This position is seventh, and therefore the first of the four below the veil; the ordering beneath runs contract, representation, capability, persistence; and `di`, which crosses the boundary to hand instances upward, may import exactly one position below it — this one. `repos`, at the far end, is never named above the veil at all. The first revelation is also the only one the resolver gets.
+The ordering within the potentials runs contract, representation, capability, and persistence follows in operations. `di`, which crosses the boundary to hand instances upward, may import exactly one position below it — this one. `repos`, at the far end, is never named above the boundary at all. The first revelation is also the only one the resolver gets.
 
-**Two faiths, paired with Chesed.** The resolution tier trusts the declaration; the caller trusts the contract. Between them, that is why a call can succeed with no party verifying anything. See [di.md](di.md).
+**Two faiths, paired with `di`.** The resolution tier trusts the declaration; the caller trusts the contract. Between them, that is why a call can succeed with no party verifying anything. See [di.md](di.md).
 
 ## A vertical contract
 
@@ -111,9 +111,9 @@ class ErrorService(Service):
         raise NotImplementedError()
 ```
 
-What the reader just saw: every method is abstract. The return type is the aggregate, not the noun. `save` accepts the aggregate because mutation already happened in Hod. The repo will turn that into a transfer object. The event never sees the file.
+What the reader just saw: every method is abstract. The return type is the aggregate, not the noun. `save` accepts the aggregate because mutation already happened in the mapper. The repo will turn that into a transfer object. The event never sees the file.
 
-`FileService` is the shape the loaders implement, and `SqliteService` extends it. `DIService` is the contract Chesed reads when it builds a container. `ServiceError` is the miss that Chesed raises — an interface error, not an asset catalog entry — so `di` can fail without importing `TiferetError`.
+`FileService` is the shape the loaders implement, and `SqliteService` extends it. `DIService` is the contract `di` reads when it builds a container. `ServiceError` is the miss that `di` raises — an interface error, not an asset catalog entry — so `di` can fail without importing `TiferetError`.
 
 ## Structured code design
 
@@ -121,15 +121,15 @@ Use `# *** interfaces` / `# ** interface:` / `# * method` with `@abstractmethod`
 
 ## In short
 
-- Interfaces are enduring Service ABCs. That contract is Netzach.
-- The contract binds its implementors and is shaped by none of them. That direction of obligation is what separates this position from Hod.
+- Interfaces are enduring Service ABCs.
+- The contract binds its implementors and is shaped by none of them. That direction of obligation is what separates this position from the mappers.
 - Endurance is relative: stable against implementations, never against time.
 - The want is authored from the calling side; the obligation is carried by the implementor. Same asymmetry at signature, position, and team scale.
 - Vocabulary travels *up* from the caller. "Authored from above" never means the upper tier invents the language.
 - Perceived, not invented. A contract with no second implementor and no domain capability behind it is a false abstraction.
 - The signature is the entire artifact. A contract that names its means has already leaked.
 - Except where there is no domain intention left to reveal: `SqliteService` is correctly named, because "speak SQLite" *is* the intention. Contrast `LoggingService`, intention-named because logging is substrate-independent.
-- First below the veil, and the only part of a mechanism the resolver ever sees.
+- First of the potentials, and the only part of a mechanism the resolver ever sees.
 - Import aggregates from `mappers` to type outputs. Do not type a domain model when an aggregate exists.
 - Used by events, di, utils (when injectable), and repos. Not imported by contexts or blueprints.
 - Depend on the contract in events. Never name the concrete repository.

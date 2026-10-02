@@ -9,7 +9,7 @@
 - **Python:** ≥ 3.10
 - **Version:** `2.0.0`
 
-## Architecture
+## General architecture and import law
 
 Import law lives in [`docs/core/architecture.md`](docs/core/architecture.md). Skills and this file use **package names only**. Read `tiferet-code-architecture` before any multi-component change.
 
@@ -44,7 +44,7 @@ A working calculator application is provided in `examples/basic_calculator/`.
 - `utils` — `interfaces`, `mappers`, siblings
 - `repos` — `interfaces`, `mappers`, `utils`
 
-Only three reverse shapes: injected `get_dependency`, blueprint handler slots, and a mapper method typed `Callable`.
+Reverse shapes are the general mechanism that lets components collaborate when the import law forbids a direct edge. Two operating examples: injected `get_dependency`, and runtime-handler slots supplied by a blueprint.
 
 ### Key Concepts
 
@@ -56,14 +56,14 @@ Only three reverse shapes: injected `get_dependency`, blueprint handler slots, a
 - **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
 - **Aggregate** (`mappers/core.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
 - **TransferObject** (`mappers/core.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
-- **BaseContext** (`contexts/core.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The base holds no cache; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) wire it themselves. The `AppSessionContext` hub binds the loaded `AppSession` and runs through five injected handlers.
+- **BaseContext** (`contexts/core.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The base holds no cache; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) wire it themselves. The `AppSessionContext` hub binds the loaded `AppSession` and is a runtime-handler hub: it sequences injected handlers whose arity is the context type's, not a fixed count.
 
 ### Runtime Flow
 
 1. `App(interface_id)` (alias for `core.build_app`) resolves the app session and returns an `AppSessionContext`.
 2. `core.build_app` builds the shared cache (`build_cache`), composes the app service and resolves the session via the `GetAppSession` event (`get_app_session`), then constructs the context via `build_app_session_context`: it builds the app service container by merging cache defaults with the session's own constants/services (`build_app_service_container`), composes a `ServiceResolver` (`build_service_resolver`), resolves the hub's event collaborators from the app container, and constructs the `AppSessionContext` via `BaseContext.from_domain(app_session, get_dependency=resolver.get_dependency, ...)` — the context graph itself is not DI-resolved. No `apply_defaults` is called on the core path.
 3. `AppSessionContext.run(feature_id, data={})` builds a logger, builds the request, executes the feature through injected handlers, and returns the response.
-4. The hub does not construct sibling contexts. Blueprints inject `build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, and `response_handler`. `FeatureContext.execute_feature(request)` resolves each step via the injected `get_dependency` handler and executes it sequentially. Async dispatch is owned by `FeatureContext` via `Feature.is_async`.
+4. The hub does not construct sibling contexts. Blueprints inject its runtime handlers (`build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler` for the core app; a context type may declare more). `FeatureContext.execute_feature(request)` resolves each step via the injected `get_dependency` handler and executes it sequentially. Async dispatch is owned by `FeatureContext` via `Feature.is_async`.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
 6. Results flow back through `RequestContext` and `handle_response()`.
 
@@ -81,7 +81,7 @@ Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate a
 - `get_app_session(interface_id, cache, ...)` — resolves the app session via the `GetAppSession` event (raises `APP_SESSION_NOT_FOUND` when absent; no core fallback). The `cache` parameter is a build-ordering seam (`# ++ todo:` — default sessions are not yet cache-seeded).
 - `build_app_service_container(cache, app_instance)` — builds the singleton app service container by merging cache defaults with the session's own constants/services **before** building (session wins), so overrides reach default services the session does not redeclare.
 - `build_service_resolver(app_container)` — composes the feature-level `ServiceResolver`, caching the app container under the `app` flag.
-- `build_app_session_context(app_session, cache)` — wires the five required handlers and constructs `AppSessionContext` via `from_domain`.
+- `build_app_session_context(app_session, cache)` — wires the runtime handlers the context type declares and constructs `AppSessionContext` via `from_domain`.
 - `build_app(interface_id, ...)` — the single-call entry point chaining the above.
 
 **CLI blueprint function in `cli.py`:**
@@ -384,7 +384,7 @@ Everything else is imported from its owning package, for example:
 - `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`; builds `CliSessionContext` then `run`)
 - `tiferet/blueprints/admin.py` / `admin_cli.py` — `AdminApp` / `AdminCLI`
 - `tiferet/contexts/core.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
-- `tiferet/contexts/app.py` — `AppSessionContext` (minimal hub bound to the loaded `AppSession`; five injected handlers)
+- `tiferet/contexts/app.py` — `AppSessionContext` (minimal runtime-handler hub bound to the loaded `AppSession`)
 - `tiferet/contexts/cli.py` — `CliSessionContext` (CLI hub; injected `parse_cli_args`; `run(argv)`)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution; async via `Feature.is_async`)
 - `tiferet/assets/core.py` — `TiferetError`, `TiferetAPIError`, shared factories

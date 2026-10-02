@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-This position is defined by the direction of its traffic, not by its contents. It **receives** declarations sent down to it and emanates instances below. It originates nothing. Loving-kindness as expansion means exactly that: a declared service id plus flags becomes a live instance, and the giving is downstream of a receiving. That position is **Chesed**. See [architecture.md](architecture.md).
+This position is defined by the direction of its traffic, not by its contents. It **receives** declarations sent down to it and emanates instances below. It originates nothing. Expansion means exactly that: a declared service id plus flags becomes a live instance, and the giving is downstream of a receiving. See [architecture.md](architecture.md).
 
 Starting there rather than at the import list matters, because every rule this package obeys is a consequence of the direction. `di` does not decide what the work is; it expands a contract into something the middle can hold. A missing provider raises `ServiceError`. The layer stays event-free and asset-free until a concrete resolution problem exists that `ServiceError` plus an injected callable cannot solve.
 
@@ -11,7 +11,7 @@ Legal `# ** app` imports: `domain`; `interfaces` (including `ServiceError`). Ill
 
 ## Life in the system
 
-Chesed is the generic subdomain that turns a registration into an object. It does not raise `TiferetError`. It does not call `DomainEvent.handle`. Parameter parsing (`$env.` references and the like) arrives as an injected `parse_parameter` callable — a module-level function in `blueprints/core.py`, not an event — so this package never imports a parser at all. That is reverse shape (1): the factory and the client resolve without importing `di` classes, and `di` parses without importing what does the parsing.
+`di` is the generic subdomain that turns a registration into an object. It does not raise `TiferetError`. It does not call `DomainEvent.handle`. Parameter parsing (`$env.` references and the like) arrives as an injected `parse_parameter` callable — a module-level function in `blueprints/core.py`, not an event — so this package never imports a parser at all. That is a reverse shape: the factory and the client resolve without importing `di` classes, and `di` parses without importing what does the parsing.
 
 Two modules keep the boundary honest.
 
@@ -40,7 +40,7 @@ class ServiceResolver(ABC):
         return container.get_dependency(service_id)
 ```
 
-What the reader just saw: expansion is mechanical. Flags select a container. The container yields an instance. The flagged-override → default → `None` rule lives once, on `ServiceRegistration.resolve_service` in the domain. `get_service_type` delegates to it. Chesed does not invent precedence; it applies Gevurah’s.
+What the reader just saw: expansion is mechanical. Flags select a container. The container yields an instance. The flagged-override → default → `None` rule lives once, on `ServiceRegistration.resolve_service` in the domain. `get_service_type` delegates to it. `di` does not invent precedence; it applies the domain's.
 
 A miss raises `ServiceError.raise_for(...)`. A registered provider that fails during construction still surfaces the underlying exception. The layer does not wrap those failures in an event or an asset constant. That is the event-free, asset-free constraint in operational form.
 
@@ -58,7 +58,7 @@ return context_cls.from_domain(
 )
 ```
 
-Cache defaults merge with the session’s own services and constants *before* the container is built, session winning. An interface constant override therefore reaches default services the session does not redeclare. That merge is Chochmah using Chesed. It is not Chesed importing blueprints.
+Cache defaults merge with the session’s own services and constants *before* the container is built, session winning. An interface constant override therefore reaches default services the session does not redeclare. That merge is the blueprint using `di`. It is not `di` importing blueprints.
 
 ## Three declaration streams, one protocol
 
@@ -86,7 +86,7 @@ That is the argument behind the event-free rule, and it is worth having as an ar
 
 Namespacing follows from the same purpose rather than from convenience: distinct containers exist because they are meant for distinct things, which is how a dialect's flag becomes a bounded context's resolution namespace.
 
-This is the expansion pole of a pair. The judgment this position declines to make is real work, and someone has to do it — it lives at Gevurah, one position down the other side, where a noun refuses what it cannot vouch for. See [domain.md](domain.md). Chesed does not apologize for having no opinions; it points at where the opinions belong.
+This is the expansion pole of a pair. The judgment this position declines to make is real work, and someone has to do it — it lives in `domain`, where a noun refuses what it cannot vouch for. See [domain.md](domain.md). `di` does not apologize for having no opinions; it points at where the opinions belong.
 
 ## Structured code design
 
@@ -94,7 +94,7 @@ Use `# *** functions` for `injectable_parameter_names` / `normalize_flags` and `
 
 ## In short
 
-- The position is defined by direction: it receives declarations and emanates instances. It originates nothing. That expansion is Chesed.
+- The position is defined by direction: it receives declarations and emanates instances. It originates nothing.
 - Three declaration streams — bootstrap catalog, session-scoped, feature registry — and the call site cannot tell them apart. A repository and a domain event compose identically.
 - Declarations arrive as data, not as import edges. That is how the tier stays asset-free while depending on the catalogs.
 - Custody without use: it assembles, holds, and hands over, and never executes what it holds. A resolver that invoked anything would have joined the domain it serves.
@@ -102,4 +102,4 @@ Use `# *** functions` for `injectable_parameter_names` / `normalize_flags` and `
 - Legal imports: `domain`, `interfaces`. Never `assets`, `events`, `repos`, or the rest of the framework.
 - App container is Singleton. Feature resolver is Factory, cached per flag set.
 - Contexts consume an injected `get_dependency` callable. They do not import this package.
-- The judgment this position declines to make lives at Gevurah. Point there rather than apologizing for its absence.
+- The judgment this position declines to make lives in `domain`. Point there rather than apologizing for its absence.
