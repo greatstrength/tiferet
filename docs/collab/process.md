@@ -81,6 +81,19 @@ Please do not leave the session diary as PR conversation comments.
 
 Every implementation PR gets one reviewer, and the merge step is the same for both strands. The **Prototype reviewer** holds code style first, then the RFP's content against the vision and distillation. The **Release reviewer** holds code style first, then artifact fidelity against the reference prototype, or the TRD when there is none. The reviewer posts one consolidated review that ends in a verdict, Approve or Changes requested. The reviewer approves and reports; a **human squash-merges**. The reviewer never merges by default; the only exception is a PR whose squash-merge the human has explicitly relinquished to the reviewer (situational, most often a correction follow-up). The standards are in [code_review.md](code_review.md).
 
+## Closeout leaves nothing behind
+
+When a PR is squash-merged (and again when a milestone closes), remove everything the work created locally. Nothing is left to be found, resumed, or mistaken for current.
+
+- The worktree and its registration: `git worktree remove`, then `git worktree prune`.
+- The local branch, and the remote branch if GitHub did not delete it.
+- Anything that points at them: symlinks, config entries, editor or index references.
+- Temp files: scratch scripts, virtual environments, snapshots, downloaded artifacts, and PR or comment body drafts.
+
+The working copies this process defines are not temp: `.rfp/` and `.trd/` stay, and a TRD is renamed `.complete.md` when done. Do not remove another contributor's branch or worktree, or your own uncommitted work, without asking.
+
+**Temporary information never goes to external or cloud storage** (gists, pastebins, uploaded images or screenshots, hosted drives, third-party services) unless the human explicitly authorizes it. What the process defines goes where it says: RFP and TRD bodies, status notes, review comments, and Collaboration Reports live on GitHub issues and PRs. Temporary images and scratch output do not.
+
 ## Binding, and where the skills live
 
 Facts that belong to *this* repo — proto branch name, RFP prefix, GitHub project ids — live in [binding.md](binding.md). Skills should read the current repo's `docs/collab/binding.md` if it exists, and fall back to this repository's file if it does not.

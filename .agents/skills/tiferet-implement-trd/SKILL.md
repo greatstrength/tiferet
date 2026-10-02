@@ -40,7 +40,7 @@ TRD issue number. For a Super-TRD child: parent issue number. For a later child:
 3. Implement (`tiferet-code-style` + component skills). PR targeting `main`, title `<Component/Assemblage> - <Plain Title> (#issue)`, **GitHub-linked** to that TRD. `Closes #<issue>` is allowed. Do not add the PR to a milestone.
 4. Short status on the **issue** after the PR opens, and again after addressing PR feedback.
 5. Before asking for review, self-check against the shared review standards in `docs/collab/code_review.md`: code style first (exactly one empty line between artifacts, artifact order preserved with an order-preserving mechanic if a dependency seems to force an exception), then every AC, then fidelity to every artifact TRD §3 and §4 name, then relevant and accurate tests and nothing superfluous. Work from the TRD only; do not read proto. A Release reviewer (`tiferet-pr-code-review`) reviews and a human squash-merges.
-6. After squash-merge: `tiferet-collab-report` on the issue. Status Done. End date. `.trd/` → `.complete.md`. Trunk→proto git only if the human asks.
+6. After squash-merge: `tiferet-collab-report` on the issue. Status Done. End date. `.trd/` → `.complete.md`. Run the closeout cleanup in `docs/collab/process.md`. Trunk→proto git only if the human asks.
 
 **Super-TRD first child** (no parent PR yet)
 
@@ -70,4 +70,6 @@ Super-TRD children stay **In Review** until the parent PR is squash-merged. Clos
 - Never send yourself to proto to copy code.
 - Never merge unless asked.
 - Never tag or bump version on this PR.
+- Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch, and every temp file (`docs/collab/process.md`). `.trd/` is not temp.
+- Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
 - Never close a Super-TRD child issue. Children stay In Review until parent-PR closeout.

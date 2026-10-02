@@ -39,7 +39,7 @@ RFP issue number. Binding (proto branch, prefix).
 5. Commit. Stop before push if the human has not approved opening the PR.
 6. PR title: `RFP-00N — <Plain Title> (#issue)`. **GitHub-link** the PR to the RFP issue. Do not add the PR to a milestone. Body links `#issue` and does **not** use `Closes`.
 7. After the PR opens, post a short status on the **RFP issue**. A Prototype reviewer (`tiferet-pr-code-review`) reviews and a human squash-merges. After addressing PR feedback, post another status.
-8. After squash-merge: close the RFP issue by hand. Delete the local branch / worktree. Do not tag. Do not bump the package version.
+8. After squash-merge: close the RFP issue by hand. Run the closeout cleanup in `docs/collab/process.md` (worktree and its registration, local and remote branch, temp files). Do not tag. Do not bump the package version.
 
 ## Outputs
 
@@ -53,3 +53,5 @@ RFP issue number. Binding (proto branch, prefix).
 - Never proto → trunk git.
 - Never merge unless asked.
 - Never tag or bump version on this PR.
+- Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch, and every temp file (`docs/collab/process.md`).
+- Never put temporary information on external or cloud storage unless the human explicitly authorizes it.

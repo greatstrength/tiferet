@@ -23,7 +23,7 @@ Navigation:
 - Trunk: tiferet-author-trd (freeze id must already exist for reconstruction), tiferet-implement-trd, tiferet-collab-report (standalone TRD closeout on the issue).
 - Review: tiferet-pr-code-review (Prototype or Release reviewer; style first, then RFP content or artifact fidelity; one consolidated review with a verdict; the reviewer never merges unless the human delegates the squash-merge for that PR; otherwise a human squash-merges). Short status on the issue. GitHub-link each PR to its RFP, standalone TRD, or Super-TRD parent. Wire blocked-by from RFP Depends on/Blocks and TRD §7.
 
-Always: read binding.md for owner/repo and proto branch; keep functional vs docs commits separate; Co-Authored-By when an AI collaborates; never commit or merge unless asked. Drop stale ~/.agents/skills/tiferet-* copies so they do not shadow the repo's .agents/skills/.
+Always: read binding.md for owner/repo and proto branch; keep functional vs docs commits separate; Co-Authored-By when an AI collaborates; never commit or merge unless asked. At closeout remove everything the work created (worktree and registration, branches, pointers, temp files); never put temporary information on external or cloud storage unless the human explicitly authorizes it. Drop stale ~/.agents/skills/tiferet-* copies so they do not shadow the repo's .agents/skills/.
 ```
 
 ## Companion skills

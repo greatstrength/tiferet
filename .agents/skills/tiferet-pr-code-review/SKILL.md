@@ -60,4 +60,5 @@ PR number. Mode (Prototype | Release). Prototype: the RFP issue and its cited di
 - Never review a prototype PR against trunk.
 - Check the code before claiming a behavior.
 - Never commit as part of a review.
+- Leave nothing behind: remove temp files, fetched artifacts, and any worktree you created (`docs/collab/process.md`). Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
 - Read `docs/collab/binding.md` in this repo for owner/repo and proto branch.

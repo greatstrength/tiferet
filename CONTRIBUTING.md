@@ -54,6 +54,8 @@ Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when y
 
 Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, add `Co-Authored-By: <name> <email>`. Never commit or merge unless someone asked you to.
 
+When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local and remote branch, and every temp file. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
+
 ### Pull requests
 
 RFPs target proto. Trunk and Doc target `main`. GitHub-link the PR to the authorizing issue (RFP, standalone TRD, or Super-TRD parent). Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
