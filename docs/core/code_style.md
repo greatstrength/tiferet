@@ -2,7 +2,7 @@
 
 The Tiferet framework enforces a structured code style to ensure consistency, readability, extensibility, and AI-parsability across all components. This style relies on **artifact comments** for hierarchical organization and strict formatting conventions for docstrings, parameters, snippets, and spacing.
 
-The comment hierarchy is also the placement grammar. Because every artifact declares its kind and its place (`# ***` section, `# **` artifact, `# *` member), an artifact that has drifted out of its pattern is visible without reading the body. That is what makes regeneration checkable: a regenerated form can be compared against the declared placement, and a destructive merge shows up as a declaration that no longer matches its neighbors. The architecture those placements name lives in [architecture.md](architecture.md); this document is the grammar.
+The comment hierarchy is also the placement grammar. Because every artifact declares its kind and its place (`# ***` section, `# **` artifact, `# *` member), an artifact that has drifted out of its pattern is visible without reading the body. That is what makes regeneration checkable: a regenerated form can be compared against the declared placement, and a destructive merge shows up as a declaration that no longer matches its neighbors. The grammar is the tight side of that balance, not a closed generator. It names where an artifact belongs. A use case the architecture cannot yet express, or that a custom extension would express better, is settled in [architecture.md](architecture.md), not by breaking the placement. This document is the grammar.
 
 This document defines the required code style for all modules in the `tiferet` package and serves as a guide for application-level code.
 

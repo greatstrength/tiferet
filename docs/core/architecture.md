@@ -18,15 +18,13 @@ The **transcendent** failure is unknown meaning. The declaration language is not
 
 The **immanent** crisis is that there is no structural pattern language isomorphic to a whole, unified system. A program is then not a composition of defined structural patterns but a variety of objects and functions in modules — everything is an object, everything is a room. Such a language would be the intrinsic rule for where a concept belongs: a named pattern, with an obligation, that a novel concept can occupy and still do its job without interfering with the others, mechanically or conceptually. What exists instead are patterns that pack some structure into a short declaration and then stop. They do not map the system being modeled, so a variety the running system actually produces can be left unnamed. Patterns stay generally defined and locally undefined, which is undefined when the thing has to run. The team pretends an existing pattern covers the leftover, invents a local trick, or fills the hole in handwriting. Ordinary frameworks pick a few mature parts — container, repository, handler, transfer object — and treat the rest as "your objects." That is still one letter wearing a coat of many.
 
-Without that isomorphism, the declared structure cannot be taken at face value. Generated code has no structural place that corresponds to the whole, so it is merged with handwriting and regeneration is destructive. Agentic generation does not close the gap. Without a pattern language the generated code can be an instance of, it is handwriting at speed, and both failures get worse.
-
-A third failure is rigid architecture. Guiding rules are not the problem; rigidity and the source of the rules are. Developers dumb the application down to fit, or subvert the structure and return to a free-for-all. Large-scale structure must be allowed to evolve. Do not saddle the project with a design conceived before the domain was understood.
+The declared structure cannot be taken at face value if the architecture is too loose or too rigid. The source of the problem is an unbalanced system. If the architecture is too loose, code generation becomes chaotic. Without that isomorphism, generated code has no structural place that corresponds to the whole, so it is merged with handwriting and regeneration is destructive. Agentic generation does not close the gap. Without a pattern language the generated code can be an instance of, it is handwriting at speed, and both failures get worse. If the architecture is too rigid, the use cases it cannot handle — or that a custom extension would handle better — become the new chaos, without ever solving the original problem.
 
 ## The thesis
 
-Tiferet answers with a structural pattern language isomorphic to the whole system: a finite alphabet of ten pattern cores, held in Evans' **Responsibility Layers**, on which a dialect writes its own words.
+Tiferet answers with a structural pattern language isomorphic to the whole system: a finite alphabet of ten pattern cores, held in Evans' **Responsibility Layers**, on which a dialect writes its own words. The alphabet is the balance. It is tight enough that generated form has a named place, and open enough that a use case arrives as an inflection of a core already there — or as a cell left closed — rather than as a second chaos beside the architecture.
 
-An application does not add a letter. It writes its ontology onto the letters already there. New meaning arrives as a new word, or as a word occupying a face it did not occupy before — never as an unnamed leftover between "the model" and "the framework," and never as an eleventh package.
+An application does not add a letter. It writes its ontology onto the letters already there. New meaning arrives as a new word, or as a word occupying a face it did not occupy before — never as an unnamed leftover between "the model" and "the framework," and never as an eleventh package. A custom extension that would handle a use case better still occupies one of the ten. Refusing that occupancy, or inventing a side path for it, does not solve the original problem. It relocates the chaos.
 
 That writing is the application.
 
@@ -34,7 +32,7 @@ That writing is the application.
 
 A framework exists so a new or extended application does not rebuild the same machinery. Feature dispatch, session composition, resolution, error shaping, and configuration persistence are the same jobs in every dialect. The pattern set is the shared machinery; the dialect supplies domain meaning.
 
-The standard set is what makes the machinery transferable across dialects. A dialect that needed its own composition model, its own resolution rules, and its own persistence shape would be starting over, which is the cost the framework exists to remove.
+The standard set is what makes the machinery transferable across dialects. A dialect that needed its own composition model, its own resolution rules, and its own persistence shape would be starting over, which is the cost the framework exists to remove. The same set keeps an extension from becoming a side architecture: a use case a dialect handles better still declines onto a core the framework already names.
 
 Tiferet is mechanism to a dialect. Internally it still has its own core domain (the `Feature` family) and its own operations (`repos`) and potentials (`utils`). Core-versus-mechanism is relative to the reader, not a kind of code.
 
@@ -52,13 +50,13 @@ Four layers hold the ten pattern cores:
 Two consequences are mechanical:
 
 - An artifact occupies exactly one pattern. A composite design (an anticorruption layer, a config-backed store, a CLI session) decomposes across patterns; it does not invent an eleventh package.
-- A pattern is realized on demand. An unrealized pattern is the normal case, not a gap.
+- A pattern is realized on demand. An unrealized pattern is the normal case, not a gap. Forcing it full is the rigid side. Leaving a produced permutation with no cell is the loose side.
 
 Infrastructure verifies **shape** — names, flags, file structure, constructor signatures. Policy is answerable for **meaning**. The layers bound what a word can mean. They do not check that a dialect's conceptual contours are coherent.
 
 ## The ten pattern cores
 
-The cores are the permutable components a domain concept can occupy. They were not derived from examples. A permutation space defined from "the patterns we have seen" leaves the next variety off the page, which is how a pattern language stays generally defined and locally undefined. The cores are ten abstract jobs that can be realized or left empty. None of them is a domain word. The words decline around them.
+The cores are the permutable components a domain concept can occupy. They were not derived from examples. A permutation space defined from "the patterns we have seen" leaves the next variety off the page, which is how a pattern language stays generally defined and locally undefined. The cores are ten abstract jobs that can be realized or left empty. None of them is a domain word. The words decline around them. The count is fixed so generation has a place. It is not a closed list of use cases.
 
 The mapping only becomes possible by defining those permutations around the ten sefirot of the Tree of Life. The sefirot are ten states of conscious existence — jobs, not rooms and not modules — and they are the functional mechanism by which an application is represented as a network of terms linked across ten given states, each open or closed according to what the application requires. A state with no term occupying it is not missing. It is closed.
 
@@ -249,7 +247,7 @@ Contour and mechanism are the two faces of the same word, and both have to be ma
 - **Conceptual contour** lives first at `domain` and inflects only where the word is still that noun: what the word may mean, where it stops, what it refuses. A contour mapped without a mechanism leaves the mechanism generally undefined.
 - **Cohesive mechanism** lives first at `events` and is sequenced at `contexts`, resolved at `di`, contracted at `interfaces`, and stored at `repos`: how a declared fact, rule, or problem is completed without becoming a second model. Evans' distinction holds — the model formulates, the mechanism completes. A mechanism written against a shadow of the objects it governs leaves the contours anemic to match it.
 
-A dialect grows by declension, not by fork. New meaning arrives as a new row or a newly occupied cell of an existing core. It does not arrive as a framework fork, and it does not arrive by lowering the domain until it fits the generator. The first cannot say what it does not already have words for. The second cannot regenerate what it has already mixed.
+A dialect grows by declension, not by fork. New meaning arrives as a new row or a newly occupied cell of an existing core. It does not arrive as a framework fork, and it does not arrive by lowering the domain until it fits the generator. The first cannot say what it does not already have words for. The second cannot regenerate what it has already mixed. A use case the current writing cannot handle, or that a custom extension would handle better, still lands as an inflection of a core already there. Left outside, it is the new chaos, and the original problem is unsolved.
 
 ## What the mapping refuses
 
@@ -259,11 +257,11 @@ The mapping stays safe while it grows because three refusals hold, and each is t
 - **The resolver will not use what it holds.** A resolver that invoked the instance it resolved would have joined the domain it serves, and could no longer resolve every dialect alike.
 - **The store will not claim to be the thing stored.** A repository that imported the domain type would be asserting identity with what it persists, and the round trip would have nowhere to be lossy.
 
-The refusals are immanent — they are readable off the import table and enforceable by it. What they protect is transcendent: the meaning a dialect has not yet found words for, which can only arrive if the cells it would occupy are still empty and still named.
+The refusals are immanent — they are readable off the import table and enforceable by it. What they protect is transcendent: the meaning a dialect has not yet found words for, which can only arrive if the cells it would occupy are still empty and still named. Forcing a cell full is the rigid failure. Leaving a produced permutation unnamed is the loose one.
 
 ## Extending the patterns
 
-A domain application does not add a pattern. It extends the abstraction already occupying one.
+A domain application does not add a pattern. It extends the abstraction already occupying one. That is how a use case the current dialect cannot yet handle stays inside the balance: the extension is an inflection, not a local exception and not a fork of the generator.
 
 | The thing being added | Extends | Lands in |
 |---|---|---|
@@ -280,7 +278,7 @@ A domain application does not add a pattern. It extends the abstraction already 
 
 Growth adds an inflection where the concept must appear. It never populates a template.
 
-When a domain concept cannot be expressed through the ten, the framework is missing a primitive, or the concept belongs to another bounded context.
+When a domain concept cannot be expressed through the ten, the framework is missing a primitive, or the concept belongs to another bounded context. A rigid refusal, or a custom extension that sits outside the cores, does not solve that. It becomes the new chaos.
 
 This chapter states the layers, the pattern cores, and the map. It does not show how to build a dialect: worked construction belongs to the tutorial, and per-application distillation to `docs/guides/`.
 
