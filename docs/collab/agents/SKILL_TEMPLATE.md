@@ -35,6 +35,8 @@ What is produced, and **which GitHub surface** it is posted on (PR vs issue vs t
 
 ## Guardrails
 - Never commit or merge unless asked.
+- At closeout remove everything the work created (worktree and its registration, branches, pointers to them, temp files) per `docs/collab/process.md` § Closeout leaves nothing behind.
+- Never put temporary information on external or cloud storage (gists, pastebins, uploaded images, hosted drives) unless the human explicitly authorizes it.
 - Never proto → trunk git.
 - Never implement trunk reconstruction from a live proto branch.
 - Never author a reconstruction TRD without a freeze id.
