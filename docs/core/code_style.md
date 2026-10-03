@@ -137,6 +137,8 @@ Defines subcomponents within a class:
 - `# * method: <name>` — instance methods.
 - `# * method: <name> (static)` — **static methods** (e.g., `ParseParameter.execute`).
 
+These labels are an order, not a menu. See [Ordering and Declaration Constraints](#ordering-and-declaration-constraints).
+
 **Spacing**: One empty line between low-level comments and code blocks.
 
 **Enhancement**: The `(static)` suffix explicitly distinguishes static utilities from instance methods, improving clarity for readers and AI tools.
@@ -216,7 +218,11 @@ def load_feature(self, feature_id: str) -> Feature:
 
 ### Ordering and Declaration Constraints
 
-The artifact order is fixed and is not negotiable. Preamble groups run `imports` → `constants` → `functions` → `classes`, then the construct group(s); artifacts and members appear in the order their component guide prescribes. A declaration or initialization dependency is never a reason to reorder artifacts, drop an artifact comment, or merge sections to keep things easy.
+The artifact order is fixed and is not negotiable. Preamble groups run `imports` → `constants` → `functions` → `classes`, then the construct group(s). A plain section of a kind comes before its sub-groups. Test modules, after the preamble, are `# *** fixtures`, `# *** tests`, `# *** testers`. Omit an empty section. Do not alphabetize. A declaration or initialization dependency is never a reason to reorder artifacts, drop an artifact comment, or merge sections to keep things easy.
+
+Within a class, members appear in three bands, and a later band never precedes an earlier one. `# * attribute` comes first. `# * init` comes next, when the class has one. `# * method` comes last. A parenthetical qualifier on a method, including `(static)` and `(validator)`, does not open a new band and does not move that method ahead of `init`. A property is not a fourth band: its band is the comment label it carries. Within a band, the component guide's order stands. Do not alphabetize. A missing band is not a violation.
+
+A tester class does not use these bands. Its members are `# * fixture` then `# * test`, fixtures first. See [Test-Module Artifact Grammar](#test-module-artifact-grammar). A leftover harness class is not this three-band rule. It keeps the order that section already lists: `# * attribute`, then `# * fixture`, then `# * method`.
 
 When a dependency appears to force an out-of-order artifact, introduce a mechanic that preserves the order. Prefer, in this order:
 
@@ -435,7 +441,7 @@ After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` /
 
 Omit any empty group. Function-only modules omit `# *** testers`. Fixture-and-function modules omit `# *** testers`. Keep all three kinds; do not collapse fixtures or tests into testers.
 
-Under a tester class, members are:
+Under a tester class, members are, fixtures first:
 
 - `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name.
 - `# * test: <name>` — a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
@@ -474,7 +480,7 @@ Domain event tests that still use the leftover class-based harness follow these 
 
 ### Artifact Comments
 
-Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-level comment. Within each class:
+Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-level comment. Within each class, in this order:
 
 - `# * attribute: <name>` — class-level configuration attributes.
 - `# * fixture: <name>` — fixture overrides.
@@ -570,7 +576,7 @@ Harness test classes follow the same spacing conventions as production code:
 - Write clear RST docstrings.
 - Break methods into commented snippets.
 - Maintain consistent spacing: exactly one empty line between artifacts, never two.
-- Preserve artifact ordering. When a declaration dependency seems to force an exception, add an order-preserving mechanic (see [Ordering and Declaration Constraints](#ordering-and-declaration-constraints)) instead of breaking the order.
+- Preserve artifact ordering, including class member bands (attribute, then init, then method). When a declaration dependency seems to force an exception, add an order-preserving mechanic (see [Ordering and Declaration Constraints](#ordering-and-declaration-constraints)) instead of breaking the order.
 - Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
 - Prefer `@use_tester` and the three test-module kinds (`fixtures` / `tests` / `testers`) for new unit tests. Leave leftover `tiferet.testing` subclasses in place until RFP-015 / #1121.
 
