@@ -28,7 +28,9 @@ Mapper-specific labels:
 # *** mappers                       ← artifact section
 # ** mapper: <snake_case_name>      ← artifact (Aggregate or TransferObject)
 # * attribute: <name>               ← artifact member: Pydantic Field or ClassVar
-# * method: <name>                  ← artifact member: mutation methods (Aggregate) or map/from_model (TransferObject)
+# * init                            ← constructor, when the class has one
+# * method: <name> (property)       ← descriptive @property, after init, before other methods. Getter only.
+# * method: <name>                  ← mutation methods (Aggregate) or map/from_model (TransferObject)
 ```
 
 Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base classes themselves.

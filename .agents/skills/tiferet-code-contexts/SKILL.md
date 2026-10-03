@@ -29,6 +29,7 @@ Context-specific labels:
 # * attribute: <name>                   ← artifact member: instance attributes (type hints)
 # * attribute: domain_type              ← artifact member: ClassVar mapping this context to its domain type
 # * init                                ← artifact member: constructor
+# * method: <name> (property)           ← descriptive @property, after init, before other methods. Getter only.
 # * method: <name>                      ← artifact member: runtime behavior methods
 ```
 

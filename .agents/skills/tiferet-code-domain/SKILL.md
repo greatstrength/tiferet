@@ -45,6 +45,7 @@ Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app
 - Instantiate via the Pydantic constructor: `Feature(id='calc.add', name='Add')`.
 - Use `model_validate(data_dict)` for external/untrusted data.
 - Domain objects are **read-only** at the domain layer — place all mutation in Aggregates.
+- Place every `(property)` method after attributes and `init`, and before every other method. A property is descriptive, so it is read first.
 - Expose a domain object's **methods of description** without changing its state:
   - Use a getter-only `@property` when the description is deterministic from `self` and takes no caller input. Do not define a setter. Examples: `display_label`, `is_complete`, or a derived identifier.
   - Use an instance method when the caller supplies an input that changes the description, such as formatting precision, language, or a lookup key. Examples: `format_result(precision)` and `get_service(service_id)`.
