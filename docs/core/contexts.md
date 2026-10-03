@@ -28,7 +28,8 @@ Contexts are organized under the `# *** contexts` top-level comment, with indivi
 
 - `# * attribute: <name>` — instance attributes (with type hints).
 - `# * init` — constructor.
-- `# * method: <name>` — methods.
+- `# * method: <name> (property)` — a descriptive `@property`, after `init` and before other methods. Getter only. No setter.
+- `# * method: <name>` — other methods.
 
 **Spacing**:
 - One empty line between `# *** contexts` and first `# ** context`.
@@ -161,7 +162,7 @@ The seeders own reconstitution and prefix namespacing; there are no `get_default
 ### Creating a New Context
 1. Place under `# *** contexts` in appropriate module.
 2. Extend `AppSessionContext` for high-level contexts or base class for low-level.
-3. Use `# * attribute`, `# * init`, `# * method` comments.
+3. Use `# * attribute`, `# * init`, `# * method (property)`, then `# * method` comments.
 4. Follow spacing and docstring conventions.
 
 **Example** – High-level `FlaskApiContext`:
