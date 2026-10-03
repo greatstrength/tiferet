@@ -136,7 +136,7 @@ class GenerateDailyReport(DomainEvent):
     def execute(self, report_id: str, output_path: str, **kwargs) -> str:
         report = self.report_service.get_report(report_id)
         self.verify(report is not None,
-                    a.const.REPORT_NOT_FOUND_ID,
+                    a.error.REPORT_NOT_FOUND_ID,
                     report_id=report_id)
 
         with File(output_path, 'w', encoding='utf-8') as f:

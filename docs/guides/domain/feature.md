@@ -148,12 +148,14 @@ These events depend on the `FeatureService` interface for persistence operations
 **`FeatureService`** (`tiferet/interfaces/feature.py`) defines the abstract contract for Feature domain persistence:
 
 - `exists(id: str) -> bool`
-- `get(id: str) -> Feature`
-- `list() -> List[Feature]`
-- `save(feature) -> None`
+- `get(id: str) -> FeatureAggregate`
+- `list(group_id: Optional[str] = None) -> List[FeatureAggregate]`
+- `save(feature: FeatureAggregate) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
+Two things to note. The contract is typed with `FeatureAggregate` rather than the bare `Feature`, because a caller retrieving a feature is generally about to mutate and re-save it. And `list` is the only standard CRUD method carrying a parameter: `group_id` filters by feature group, which the hierarchical `group_id.feature_key` identifier makes worth having.
+
+Concrete implementations (e.g., `FeatureConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
