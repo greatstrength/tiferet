@@ -47,18 +47,19 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 **Mid-level labels by construct:** `# ** model: <name>`, `# ** event: <name>`, `# ** context: <name>`, `# ** mapper: <name>`, `# ** interface: <name>`, `# ** repo: <name>`, `# ** util: <name>`, `# ** blueprint: <name>`, `# ** function: <name>`, `# ** constant: <name>`, `# ** class: <name>`
 
 **Artifact member labels within a class, in this order:**
-- `# * attribute: <name>` — instance attributes. A property keeps whatever label it carries; the label is the band.
+- `# * attribute: <name>` — instance attributes
 - `# * init` — constructor, after every attribute, when the class has one
-- `# * method: <name>` — instance methods, after `init`
-- `# * method: <name> (static)` — static methods. Still the method band.
-- `# * method: <name> (validator)` — `@model_validator` methods on domain objects. Still the method band.
+- `# * method: <name> (property)` — descriptive `@property`, after `init` and before every other method. Legal on domain models, aggregates, transfer objects, and contexts. Getter only. No setter.
+- `# * method: <name>` — other instance methods
+- `# * method: <name> (static)` — static methods. After property methods.
+- `# * method: <name> (validator)` — `@model_validator` methods on domain objects. After property methods.
 
-A tester class is the exception: `# * fixture` then `# * test`, not these three bands.
+A tester class is the exception: `# * fixture` then `# * test`, not these bands.
 
 ## Key conventions
 
 - **Spacing:** One empty line between artifact section and first artifact; one empty line between artifacts; one empty line between artifact members (`# *`); one empty line after docstrings; one empty line between code snippets within a method. Exactly one — never two, including in code examples in docs and skills.
-- **Ordering:** Artifact order is fixed (preamble `imports` → `constants` → `functions` → `classes`, then construct groups; a plain section before its sub-groups). Within a class the bands are `# * attribute`, then `# * init`, then `# * method`. A qualifier such as `(static)` or `(validator)` stays in the method band. A missing band is fine. Do not alphabetize. Never reorder or merge artifacts to satisfy a declaration dependency. Preserve the order with a mechanic instead: place by section, quote the reference (`-> 'Aggregate'`), or defer resolution via an injected callable or an id lookup. If none fits, design a new mechanic and describe it in the PR body. Ordering and spacing violations are always blocking in review.
+- **Ordering:** Artifact order is fixed (preamble `imports` → `constants` → `functions` → `classes`, then construct groups; a plain section before its sub-groups). Within a class the bands are `# * attribute`, then `# * init`, then `# * method (property)`, then other `# * method` members. A property is descriptive, so it is read first among methods. `(static)` and `(validator)` stay with the other methods. A missing band is fine. Do not alphabetize. Never reorder or merge artifacts to satisfy a declaration dependency. Preserve the order with a mechanic instead: place by section, quote the reference (`-> 'Aggregate'`), or defer resolution via an injected callable or an id lookup. If none fits, design a new mechanic and describe it in the PR body. Ordering and spacing violations are always blocking in review.
 - **Docstrings:** RST format — include `:param`/`:type`/`:return`/`:rtype` on public methods. Class-level docstrings additionally open with a 1–2 sentence vision-tier value statement (why the concept exists, not just its fields) — see `tiferet-guide-docs` for the docstring↔guide-doc convention.
 - **Parameter indentation:** For methods with >3 parameters, align subsequent params to the opening parenthesis.
 - **Code snippets:** Each logical step is a separate snippet preceded by a 1–2 line comment describing intent.

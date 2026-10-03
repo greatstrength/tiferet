@@ -82,7 +82,9 @@ Domain objects follow a strict artifact comment structure for consistency and AI
 - `# *** models` – top-level section for domain object modules.
 - `# ** model: <name>` – individual domain object (snake_case).
 - `# * attribute: <name>` – instance attributes (Pydantic `Field(...)` annotations).
-- `# * method: <name>` – domain methods.
+- `# * init` – constructor, when the class has one.
+- `# * method: <name> (property)` – a descriptive `@property`, after attributes and `init`, before every other method. Getter only. No setter. A write is an ordinary method.
+- `# * method: <name>` – other domain methods.
 - `# * method: _derive_* (validator)` – optional `@model_validator` for derivation logic.
 
 **Spacing rules:**

@@ -108,7 +108,9 @@ Mapper classes follow the standard Tiferet artifact comment structure:
 - `# *** mappers` — top-level section for mapper modules.
 - `# ** mapper: <name>` — individual mapper (snake_case).
 - `# * attribute: <name>` — instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
-- `# * method: <name>` — instance or class methods.
+- `# * init` — constructor, when the class has one.
+- `# * method: <name> (property)` — a descriptive `@property`, after `init` and before mutation or mapping methods. Getter only. No setter.
+- `# * method: <name>` — mutation methods on an aggregate, or `map` / `from_model` on a transfer object.
 
 Use `# *** classes` in `core.py` for the base classes themselves.
 
