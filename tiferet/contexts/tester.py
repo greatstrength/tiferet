@@ -11,7 +11,6 @@ from unittest.mock import Mock
 # ** app
 from .. import a
 from ..assets import TiferetError
-from ..assets.core import assert_model_matches
 from ..domain import (
     ModelError,
     TesterObject,
@@ -136,6 +135,53 @@ class TesterContext(BaseContext):
         # Construct through the existing non-mutating factory.
         return self.make_target(data=data)
 
+    # * method: assert_model_matches
+    def assert_model_matches(
+            self,
+            model: Any,
+            sample: Dict[str, Any],
+            equality_fields: List[str],
+            field_normalizers: Dict[str, Callable[[Any], Any]] = None,
+        ) -> None:
+        '''
+        Assert that selected model attributes match expected sample values.
+
+        :param model: The model instance to compare.
+        :type model: Any
+        :param sample: The expected values dictionary.
+        :type sample: Dict[str, Any]
+        :param equality_fields: The fields to compare.
+        :type equality_fields: List[str]
+        :param field_normalizers: Optional per-field normalizers.
+        :type field_normalizers: Dict[str, Callable[[Any], Any]]
+        :return: None.
+        :rtype: None
+        '''
+
+        # Default absent normalizers to an empty mapping.
+        field_normalizers = field_normalizers or {}
+
+        # Compare every requested field present in the expected data.
+        for field in equality_fields:
+            if field not in sample:
+                continue
+
+            expected = sample[field]
+            actual = getattr(model, field, None)
+            normalizer = field_normalizers.get(field)
+
+            # Normalize matching fields before comparing them.
+            if normalizer:
+                expected = normalizer(expected)
+                actual = normalizer(actual)
+
+            # Assert the normalized or raw field values agree.
+            assert actual == expected, (
+                f"Mismatch on field '{field}':\n"
+                f'  expected: {expected!r}\n'
+                f'  actual:   {actual!r}'
+            )
+
     # * method: assert_new
     def assert_new(self, target: Any = None) -> None:
         '''
@@ -151,11 +197,11 @@ class TesterContext(BaseContext):
 
         # Verify type and field equality against the bound tester.
         assert isinstance(target, self.domain.get_target_type())
-        assert_model_matches(
+        self.assert_model_matches(
             target,
             self.domain.expected_data,
             self.domain.equality_fields,
-            self.domain.field_normalizers,
+            field_normalizers=self.domain.field_normalizers,
         )
 
 # ** context: domain_tester_context
@@ -244,11 +290,11 @@ class TransferObjectTesterContext(TesterContext):
 
         # Verify type and field equality against the bound tester.
         assert isinstance(aggregate, self.domain.get_aggregate_type())
-        assert_model_matches(
+        self.assert_model_matches(
             aggregate,
             self.domain.aggregate_sample_data,
             self.domain.equality_fields,
-            self.domain.field_normalizers,
+            field_normalizers=self.domain.field_normalizers,
         )
 
     # * method: assert_from_model
@@ -286,11 +332,11 @@ class TransferObjectTesterContext(TesterContext):
         transfer = self.domain.get_target_type().from_model(target)
         round_tripped = transfer.map(**self.domain.map_kwargs)
         assert isinstance(round_tripped, self.domain.get_aggregate_type())
-        assert_model_matches(
+        self.assert_model_matches(
             round_tripped,
             self.domain.aggregate_sample_data,
             self.domain.equality_fields,
-            self.domain.field_normalizers,
+            field_normalizers=self.domain.field_normalizers,
         )
 
 # ** context: test_session_context
@@ -773,11 +819,11 @@ class RepoTesterContext(TesterContext):
                 continue
 
             # Compare returned aggregates against declared expected data.
-            assert_model_matches(
+            self.assert_model_matches(
                 actual,
                 expected,
                 self.domain.equality_fields,
-                self.domain.field_normalizers,
+                field_normalizers=self.domain.field_normalizers,
             )
 
     # * method: assert_list
@@ -820,11 +866,11 @@ class RepoTesterContext(TesterContext):
         # Persist then reload the aggregate through the repository contract.
         repo.save(entity)
         loaded = repo.get(entity.id)
-        assert_model_matches(
+        self.assert_model_matches(
             loaded,
             self.domain.aggregate_sample_data,
             self.domain.equality_fields,
-            self.domain.field_normalizers,
+            field_normalizers=self.domain.field_normalizers,
         )
 
     # * method: assert_delete
