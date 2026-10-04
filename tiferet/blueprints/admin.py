@@ -144,14 +144,13 @@ def build_admin_app_session_context(
     # Build the feature-level resolver using the admin resolver (adds admin container).
     resolver = build_admin_service_resolver(app_container, cache)
 
-    # Delegate handler wiring, collaborator resolution, and construction.
+    # Delegate handler wiring and construction. Extra slots arrive as context_kwargs.
     return core.compose_session_context(
         AppSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
-        create_request_handler=core.create_session_request,
+        create_request_handler=core.create_request_context,
         response_handler=core.response_handler,
         **context_kwargs,
     )

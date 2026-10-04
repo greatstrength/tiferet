@@ -14,10 +14,8 @@ from tiferet.blueprints.admin_cli import (
     build_cache,
     main,
 )
-from tiferet.blueprints.cli import (
-    create_cli_request_context,
-    cli_response_handler,
-)
+from tiferet.blueprints.cli import create_cli_request_context
+from tiferet.blueprints.core import response_handler
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.cli import (
     CLI_COMMAND_CACHE_PREFIX,
@@ -83,13 +81,49 @@ def test_build_admin_cli_session_context_uses_admin_resolver():
     # Assert the CLI session context is fully wired with CLI handlers.
     assert isinstance(context, CliSessionContext)
     assert context._create_request is create_cli_request_context
-    assert context._build_response is cli_response_handler
+    assert context._build_response is response_handler
     assert context._parse_cli_args is not None
+    assert callable(context._list_commands)
+    assert callable(context._get_parent_args)
     assert context._build_logger is fake_build_logger
 
     # Assert the built resolver carries the admin container under both keys.
     resolver = captured['resolver']
     assert resolver.get_container('admin') is resolver.get_container()
+
+# ** test: build_admin_cli_session_context_passes_handlers_not_raw_events
+def test_build_admin_cli_session_context_passes_handlers_not_raw_events():
+    '''
+    Test that build_admin_cli_session_context still builds the container and
+    admin resolver, and does not resolve the CLI events by service id.
+    '''
+
+    # Isolate composition from container and resolver construction.
+    app_session = AppSession(id=a.app.TIFERET_ADMIN_CLI_ID, name='Admin CLI')
+    cache = CacheContext()
+    app_container = mock.Mock()
+    resolver = mock.Mock()
+    composed = mock.Mock()
+    with mock.patch(
+        'tiferet.blueprints.admin_cli.core.build_app_service_container',
+        return_value=app_container,
+    ), mock.patch(
+        'tiferet.blueprints.admin_cli.admin.build_admin_service_resolver',
+        return_value=resolver,
+    ), mock.patch(
+        'tiferet.blueprints.admin_cli.core.compose_session_context',
+        return_value=composed,
+    ) as compose:
+        result = build_admin_cli_session_context(app_session, cache)
+
+    # Assert the container is not queried for the CLI event ids.
+    app_container.get_dependency.assert_not_called()
+    resolver.get_dependency.assert_not_called()
+    assert app_container not in compose.call_args.args
+    assert compose.call_args.kwargs['response_handler'] is response_handler
+    assert callable(compose.call_args.kwargs['list_commands_handler'])
+    assert callable(compose.call_args.kwargs['get_parent_args_handler'])
+    assert result is composed
 
 # ** test: build_admin_cli_reseeds_app_config
 def test_build_admin_cli_reseeds_app_config():

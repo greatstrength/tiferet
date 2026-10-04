@@ -56,16 +56,14 @@ def build_app_session_context(
 
     Chains the core building blocks to replace the legacy
     ``load_app_instance`` path: builds the app service container from defaults
-    and interface overrides, composes the feature-level resolver, resolves any
-    remaining event collaborators from the app container, wires the five
-    template-method handlers, and constructs the context via the
-    ``BaseContext.from_domain`` factory (inherited by any context subclass).
+    and interface overrides, composes the feature-level resolver, wires the
+    five template-method handlers, and constructs the context via
+    ``compose_session_context``. A new context slot is an explicit handler or
+    ``context_kwargs`` entry, not a constructor name matched to a service id.
 
     ``logging_list_all_evt`` remains in ``CORE_DEFAULT_SERVICES`` but is not
     injected directly into the hub constructor; it is consumed lazily, on the
-    first ``run()``, inside the ``build_logger_handler`` closure. Custom
-    contexts (e.g. ``CliContext``) gain their additional collaborators via the
-    same generic resolution loop.
+    first ``run()``, inside the ``build_logger_handler`` closure.
 
     :param app_session: The resolved app session definition with defaults applied.
     :type app_session: AppSession
@@ -84,14 +82,13 @@ def build_app_session_context(
     # Build the feature-level resolver from the app container.
     resolver = core.build_service_resolver(app_container)
 
-    # Delegate handler wiring, collaborator resolution, and construction.
+    # Delegate handler wiring and construction. Extra slots arrive as context_kwargs.
     return core.compose_session_context(
         AppSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
-        create_request_handler=core.create_session_request,
+        create_request_handler=core.create_request_context,
         response_handler=core.response_handler,
         **context_kwargs,
     )

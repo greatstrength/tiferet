@@ -18,7 +18,6 @@ from ..contexts.cli import (
     get_default_cli_commands,
 )
 from ..contexts.cache import CacheContext
-from ..contexts.request import RequestContext
 
 # *** functions
 
@@ -150,41 +149,106 @@ def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
     # Delegate to the app cache builder; the decorator stacks CLI commands on top.
     return app.build_cache(cache)
 
-# ** blueprint: parse_cli_args_handler
-def parse_cli_args_handler(
-        list_commands_evt,
-        get_parent_args_evt,
-        default_commands_list: List[CliCommand] = None,
+# ** blueprint: list_commands_handler
+def list_commands_handler(
+        cache: CacheContext,
+        get_dependency: Callable,
     ) -> Callable:
     '''
-    Build a CLI arg-parser closure from the resolved event collaborators and
-    the bootstrap default command list.
+    Build a command-listing handler with the shared cache and service
+    resolver wired in.
+
+    Returns a zero-argument callable that resolves ``list_commands_evt``
+    from the app-scoped service container and executes it. When the event
+    returns none, the handler falls back to the cache-seeded default CLI
+    commands.
+
+    :param cache: The shared cache context seeded with default CLI commands.
+    :type cache: CacheContext
+    :param get_dependency: The service-resolution handler from the
+        ServiceResolver.
+    :type get_dependency: Callable
+    :return: A zero-argument command-listing callable.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure with cache and resolver wired in.
+    def handler() -> List[CliCommand]:
+
+        # Resolve a ListCliCommands event from the app-scoped container.
+        list_commands_evt = get_dependency('list_commands_evt', 'app')
+
+        # Fall back to cache-seeded defaults when the event returns none.
+        commands = list_commands_evt.execute()
+        if commands is None:
+            return get_default_cli_commands(cache)
+
+        # Return the listed commands.
+        return commands
+
+    return handler
+
+# ** blueprint: get_parent_args_handler
+def get_parent_args_handler(
+        get_dependency: Callable,
+    ) -> Callable:
+    '''
+    Build a parent-argument handler with the service resolver wired in.
+
+    Returns a zero-argument callable that resolves ``get_parent_args_evt``
+    from the app-scoped service container and executes it.
+
+    :param get_dependency: The service-resolution handler from the
+        ServiceResolver.
+    :type get_dependency: Callable
+    :return: A zero-argument parent-argument callable.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure with the resolver wired in.
+    def handler() -> List[CliArgument]:
+
+        # Resolve a GetParentArguments event from the app-scoped container.
+        get_parent_args_evt = get_dependency('get_parent_args_evt', 'app')
+
+        # Execute the event and return the parent arguments.
+        return get_parent_args_evt.execute()
+
+    return handler
+
+# ** blueprint: parse_cli_args_handler
+def parse_cli_args_handler(
+        list_commands: Callable,
+        get_parent_args: Callable,
+    ) -> Callable:
+    '''
+    Build a CLI arg-parser closure from the injected command and
+    parent-argument handlers.
 
     Returns a callable ``handler(argv=None) -> (feature_id, headers, data)``
-    that retrieves commands from ``list_commands_evt`` (falling back to
-    ``default_commands_list``), builds the argparse parser, parses ``argv``,
-    and derives the feature request tuple.
+    that lists commands and parent arguments through the injected handlers,
+    builds the argparse parser, parses ``argv``, and derives the feature
+    request tuple.
 
-    :param list_commands_evt: The event used to list CLI commands.
-    :param get_parent_args_evt: The event used to retrieve parent-level CLI arguments.
-    :param default_commands_list: Bootstrap default commands used when the
-        repository returns no results.
-    :type default_commands_list: List[CliCommand] | None
+    :param list_commands: Zero-arg callable returning the CLI commands.
+    :type list_commands: Callable
+    :param get_parent_args: Zero-arg callable returning parent-level arguments.
+    :type get_parent_args: Callable
     :return: A closure that parses argv and returns (feature_id, headers, data).
     :rtype: Callable
     '''
 
-    # Return the handler closure with events and defaults captured.
+    # Return the handler closure with the injected handlers captured.
     def handler(argv=None) -> Tuple[str, Dict[str, str], Dict[str, Any]]:
 
-        # Retrieve commands from the event, falling back to bootstrap defaults.
-        cli_commands = list_commands_evt.execute() or default_commands_list or []
+        # Retrieve commands from the injected handler.
+        cli_commands = list_commands() or []
 
         # Group the commands by their group key.
         commands = group_commands_by_key(cli_commands)
 
-        # Retrieve the parent-level arguments.
-        parent_arguments = get_parent_args_evt.execute() or []
+        # Retrieve the parent-level arguments from the injected handler.
+        parent_arguments = get_parent_args() or []
 
         # Build the argument parser from the grouped commands and parent arguments.
         parser = build_argument_parser(commands, parent_arguments)
@@ -233,7 +297,7 @@ def create_cli_request_context(
     '''
     Compose a CLI request context for a feature execution.
 
-    Mirrors :func:`core.create_session_request` but constructs a
+    Mirrors :func:`core.create_request_context` but constructs a
     :class:`CliRequestContext` so ``handle_response`` converts results into
     typed CLI output models.
 
@@ -256,25 +320,6 @@ def create_cli_request_context(
         feature_id=feature_id,
     )
 
-# ** blueprint: cli_response_handler
-def cli_response_handler(request: RequestContext) -> Any:
-    '''
-    Extract the handled response from a completed CLI request context.
-
-    Delegates to ``request.handle_response()``. For a
-    :class:`CliRequestContext` this converts the raw result into a typed CLI
-    output model; :class:`CliSessionContext.build_response` then formats and
-    prints it.
-
-    :param request: The completed request context.
-    :type request: RequestContext
-    :return: The handled feature response.
-    :rtype: Any
-    '''
-
-    # Delegate to the request context's response handler.
-    return request.handle_response()
-
 # ** blueprint: build_cli_session_context
 def build_cli_session_context(
     app_session,
@@ -283,12 +328,12 @@ def build_cli_session_context(
     '''
     Build a fully wired CLI session context from a resolved app session.
 
-    Parallel to :func:`core.build_app_session_context` but dedicated to the
-    CLI path: uses :class:`CliSessionContext` directly (blueprint-level context
-    class selection), resolves the CLI event collaborators to build the
-    injected ``_parse_cli_args`` closure, and overrides the
-    ``create_request_handler`` and ``response_handler`` slots with
-    CLI-specific implementations.
+    Parallel to :func:`app.build_app_session_context` but dedicated to the
+    CLI path: uses :class:`CliSessionContext` directly, builds the command
+    and parent-argument handlers plus the ``parse_cli_args`` closure, and
+    passes them through :func:`core.compose_session_context`. The request
+    handler is CLI-specific; the response handler is
+    :func:`core.response_handler`.
 
     :param app_session: The resolved app session definition.
     :type app_session: AppSession
@@ -305,27 +350,28 @@ def build_cli_session_context(
     # Build the feature-level resolver from the app container.
     resolver = core.build_service_resolver(app_container)
 
-    # Resolve the CLI event collaborators from the app container.
-    list_commands_evt = app_container.get_dependency('list_commands_evt')
-    get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
+    # Build the command and parent-argument handlers. This builder does not
+    # resolve those events by service id.
+    commands_handler = list_commands_handler(cache, resolver.get_dependency)
+    parent_args_handler = get_parent_args_handler(resolver.get_dependency)
 
-    # Build the _parse_cli_args closure from the resolved events and defaults.
+    # Build the parse closure from the handlers, not the raw events.
     parse_cli_args = parse_cli_args_handler(
-        list_commands_evt,
-        get_parent_args_evt,
-        get_default_cli_commands(cache),
+        list_commands=commands_handler,
+        get_parent_args=parent_args_handler,
     )
 
-    # Delegate handler wiring, collaborator resolution, and construction.
+    # Delegate handler wiring and construction.
     return core.compose_session_context(
         CliSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
         create_request_handler=create_cli_request_context,
-        response_handler=cli_response_handler,
+        response_handler=core.response_handler,
         parse_cli_args=parse_cli_args,
+        list_commands_handler=commands_handler,
+        get_parent_args_handler=parent_args_handler,
     )
 
 # ** blueprint: build_app

@@ -23,7 +23,7 @@ The standard application entrypoint lives in `tiferet/blueprints/app.py`:
  feature-level resolver, then calls `core.compose_session_context()`.
 4. The resulting `AppSessionContext` is type-checked before `App` returns it.
 
-`build_app_session_context()` binds the loaded session through `AppSessionContext.from_domain()` and supplies the standard request and response handlers. `compose_session_context()` supplies the remaining runtime handlers: logger construction, feature execution, error handling, and any declared collaborators that the app container can resolve.
+`build_app_session_context()` binds the loaded session through `AppSessionContext.from_domain()` and supplies the standard request and response handlers. `compose_session_context()` supplies the remaining runtime handlers: logger construction, feature execution, and error handling. A new context slot is an explicit handler or extra_kwargs in the paired build, not a constructor name matched to a service id.
 
 ## Shared Core Composition
 

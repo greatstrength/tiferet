@@ -512,6 +512,86 @@ def test_cli_session_context_run_new_path(
     mock_run.assert_called_once_with('calc.add', headers={'h': '1'}, data={'a': 1})
     assert result == 'parsed-result'
 
+# ** test: cli_session_context_list_commands_calls_handler
+def test_cli_session_context_list_commands_calls_handler(app_interface):
+    '''
+    Test that list_commands delegates to the injected handler.
+
+    :param app_interface: The bound app interface fixture.
+    :type app_interface: AppSessionAggregate
+    '''
+
+    # Build a context with a command handler that returns a known list.
+    commands = [CliCommand(name='Add', key='add', group_key='calc')]
+    handler = mock.Mock(return_value=commands)
+    context = CliSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+        list_commands_handler=handler,
+    )
+
+    # Assert the handler is called and its result returned.
+    assert context.list_commands() is commands
+    handler.assert_called_once_with()
+
+# ** test: cli_session_context_list_commands_unwired_raises
+def test_cli_session_context_list_commands_unwired_raises(
+        cli_session_context: CliSessionContext,
+):
+    '''
+    Test that list_commands raises when its handler slot is unwired.
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    '''
+
+    # Assert the unwired slot surfaces as a structured API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        cli_session_context.list_commands()
+
+    # Assert the message names the missing handler.
+    assert 'list_commands_handler' in exc_info.value.message
+
+# ** test: cli_session_context_get_parent_args_calls_handler
+def test_cli_session_context_get_parent_args_calls_handler(app_interface):
+    '''
+    Test that get_parent_args delegates to the injected handler.
+
+    :param app_interface: The bound app interface fixture.
+    :type app_interface: AppSessionAggregate
+    '''
+
+    # Build a context with a parent-argument handler that returns a known list.
+    arguments = [CliArgument(name_or_flags=['--verbose'])]
+    handler = mock.Mock(return_value=arguments)
+    context = CliSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+        get_parent_args_handler=handler,
+    )
+
+    # Assert the handler is called and its result returned.
+    assert context.get_parent_args() is arguments
+    handler.assert_called_once_with()
+
+# ** test: cli_session_context_get_parent_args_unwired_raises
+def test_cli_session_context_get_parent_args_unwired_raises(
+        cli_session_context: CliSessionContext,
+):
+    '''
+    Test that get_parent_args raises when its handler slot is unwired.
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    '''
+
+    # Assert the unwired slot surfaces as a structured API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        cli_session_context.get_parent_args()
+
+    # Assert the message names the missing handler.
+    assert 'get_parent_args_handler' in exc_info.value.message
+
 # *** tests (add_default_cli_commands)
 
 # ** test: add_default_cli_commands_seeds_cache
