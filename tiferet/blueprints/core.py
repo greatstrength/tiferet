@@ -23,7 +23,7 @@ from ..contexts.logging import (
     LOGGER_CACHE_PREFIX,
 )
 from ..contexts.request import RequestContext
-from ..contexts.core import BaseContext, add_default_cache_items
+from ..contexts.core import BaseContext
 from ..contexts.app import (
     AppSession,
     AppServiceDependency,
@@ -156,9 +156,13 @@ def add_default_catalog(
     '''
     Decorator factory that pre-seeds a cache with one default catalog.
 
-    Delegates to ``contexts.core.add_default_cache_items`` with the caller's
-    items, prefix, and optional model. The former per-catalog wrappers are
-    this one call with a fixed prefix and model.
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    each entry in ``items`` is optionally reinjected with its group-dict key
+    under ``id_field`` and validated into ``model``, then stored in the cache
+    under ``prefix`` keyed by the item's dict key. When ``model`` is omitted
+    the raw value is cached unchanged (for scalar constant catalogs); when
+    ``id_field`` is omitted no key reinjection occurs (for catalogs whose
+    records already embed their own id).
 
     :param items: A mapping of item id to raw item definition or scalar value.
     :type items: Dict[str, Any]
@@ -172,13 +176,39 @@ def add_default_catalog(
     :rtype: Callable
     '''
 
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(
-        items,
-        prefix,
-        model=model,
-        id_field=id_field,
-    )
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default items.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute (and optionally validate) each item, then cache it
+            # under the given namespace keyed by its group-dict key.
+            for key, data in items.items():
+
+                # Validate through the model when one is given.
+                if model is not None:
+                    payload = {**data, id_field: key} if id_field else data
+                    value = model.model_validate(payload)
+
+                # Otherwise cache the raw value unchanged (scalar constants).
+                else:
+                    value = data
+
+                # Store the value under the namespace keyed by its dict key.
+                cache.set(key, value, *prefix)
+
+            # Return the populated cache context.
+            return cache
+
+        # Return the cache-builder wrapper.
+        return wrapper
+
+    # Return the decorator.
+    return decorator
 
 # *** blueprints
 
