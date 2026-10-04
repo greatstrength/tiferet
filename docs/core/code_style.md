@@ -151,6 +151,14 @@ Specifies categories or individual components:
 - For functions: `# ** function: <snake_case_name>`.
 - For components: `# ** model: <snake_case_name>`, `# ** command: <snake_case_name>`, etc.
 
+Import groups are part of the style floor, not a separate standard.
+
+- `# ** core` is the Python standard library only. `abc`, `typing`, `re`, and `uuid` belong here.
+- `# ** infra` is third-party packages only. Examples: boto3 or other AWS libraries, Flask, FastAPI, Pydantic, pytest. Not the standard library. Not this application.
+- `# ** app` is this application's own imports only, including relative imports. Not the standard library. Not a third-party package.
+
+Order stays core, then infra, then app. Omit an empty group. A misplaced import is a blocking style finding. An acceptance criterion does not waive it.
+
 **Spacing**: One empty line between mid-level comments.
 
 ### Low-Level (`# *`)
@@ -381,9 +389,11 @@ class GetFeature(DomainEvent):
 ```python
 # *** imports
 
+# ** core
+from unittest import mock
+
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from tiferet.events.core import DomainEvent

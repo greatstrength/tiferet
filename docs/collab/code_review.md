@@ -82,6 +82,16 @@ Do **not** comment on:
 - Pure formatting that already matches the project's [code style](../core/code_style.md).
 - Cases where the branch is correct and the difference is the source of truth being stale — except to note, once, that the source of truth should be reconciled.
 
+## Shared review standards
+
+Import groups are part of the style floor, not a separate standard.
+
+- `# ** core` is the Python standard library only. `abc`, `typing`, `re`, and `uuid` belong here.
+- `# ** infra` is third-party packages only. Examples: boto3 or other AWS libraries, Flask, FastAPI, Pydantic, pytest. Not the standard library. Not this application.
+- `# ** app` is this application's own imports only, including relative imports. Not the standard library. Not a third-party package.
+
+Order stays core, then infra, then app. Omit an empty group. A misplaced import is a blocking style finding. An acceptance criterion does not waive it.
+
 ## Guardrails
 
 - **Actionable only.** A noisy review is worse than a short one. Exclude acknowledged, out-of-scope differences.
