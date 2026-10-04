@@ -133,52 +133,6 @@ def create_default_tester_data(
     # Return the assembled tester definition.
     return tester
 
-# ** function: assert_model_matches
-def assert_model_matches(
-        model: Any,
-        sample: Dict[str, Any],
-        equality_fields: List[str],
-        field_normalizers: Dict[str, Callable[[Any], Any]] = None,
-    ) -> None:
-    '''
-    Assert that selected model attributes match expected sample values.
-
-    :param model: The model instance to compare.
-    :type model: Any
-    :param sample: The expected values dictionary.
-    :type sample: Dict[str, Any]
-    :param equality_fields: The fields to compare.
-    :type equality_fields: List[str]
-    :param field_normalizers: Optional per-field normalizers.
-    :type field_normalizers: Dict[str, Callable[[Any], Any]]
-    :return: None.
-    :rtype: None
-    '''
-
-    # Default absent normalizers to an empty mapping.
-    field_normalizers = field_normalizers or {}
-
-    # Compare every requested field present in the expected data.
-    for field in equality_fields:
-        if field not in sample:
-            continue
-
-        expected = sample[field]
-        actual = getattr(model, field, None)
-        normalizer = field_normalizers.get(field)
-
-        # Normalize matching fields before comparing them.
-        if normalizer:
-            expected = normalizer(expected)
-            actual = normalizer(actual)
-
-        # Assert the normalized or raw field values agree.
-        assert actual == expected, (
-            f"Mismatch on field '{field}':\n"
-            f'  expected: {expected!r}\n'
-            f'  actual:   {actual!r}'
-        )
-
 # ** function: create_service_module_path
 def create_service_module_path(app_base_path: str, base_path: str, domain_path: str) -> str:
     '''
