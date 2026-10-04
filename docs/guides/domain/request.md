@@ -30,7 +30,7 @@ A request value object carrying the session, feature, headers, and data for a si
 | <a id="request-headers"></a>`headers` | `Dict[str, str]` | No | `{}` | The request headers. |
 | <a id="request-data"></a>`data` | `Dict[str, Any]` | No | `{}` | The request data payload. |
 
-No methods — `Request` is a pure data container. Runtime reads are attributes of the bound `Request`; a whole-value write uses the matching `RequestContext` method.
+No methods — `Request` is a pure data container. Pre-flight reads are attributes of the bound `Request`. The working copy lives on `RequestContext`.
 
 #### Derivation
 
@@ -48,16 +48,17 @@ req = Request(feature_id='calc.add', data={'a': 1, 'b': 2})
 
 `Request` and `RequestContext` intentionally split declared input from runtime state:
 
-- `RequestContext.__init__` builds and binds a `Request` from the supplied constructor arguments (`headers`, `data`, `session_id`, `feature_id`), then separately initializes `self.result = None`.
-- Each of `session_id`, `feature_id`, `headers`, and `data` stays an attribute of the bound `Request` and is read as `self.domain.<field>`. A whole-value write uses `set_session_id`, `set_feature_id`, `set_headers`, or `set_data`. There is no duplicated state on the context.
-- `RequestContext.set_result(result, data_key=None)` writes either into `self.result` directly or into `self.domain.data[data_key]`, depending on whether the executing step declared a `data_key`.
+- `RequestContext.__init__` builds and binds a `Request` from the supplied constructor arguments (`headers`, `data`, `session_id`, `feature_id`), copies those values onto in-flight attributes, then initializes `self.result = None`.
+- Pre-flight is `ctx.domain.session_id` (and the other bound `Request` fields). The working copy is `ctx.session_id`, `ctx.feature_id`, `ctx.headers`, and `ctx.data`. `set_session_id`, `set_feature_id`, `set_headers`, and `set_data` write that copy and do not assign the domain fields.
+- `RequestContext.set_result(result, data_key=None)` writes either into `self.result` directly or into the in-flight data, not `self.domain.data`, depending on whether the executing step declared a `data_key`.
 - `RequestContext.handle_response()` returns `self.result` by default; subclasses (e.g. a Flask-specific context) can override it to shape the final response differently.
 
 ```python
 from tiferet.contexts.request import RequestContext
 
 ctx = RequestContext(feature_id='calc.add', data={'a': 1, 'b': 2})
-ctx.domain.session_id
+ctx.domain.session_id  # pre-flight
+ctx.session_id         # working copy
 ctx.set_result(3)    # ctx.result == 3 (no data_key)
 ctx.handle_response() # 3
 ```
