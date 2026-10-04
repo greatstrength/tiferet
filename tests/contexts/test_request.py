@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from pydantic import Field
+from pydantic import Field, ValidationError
 from tiferet.domain import DomainObject, Request
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.request import *
@@ -195,9 +195,12 @@ def test_request_context_set_result_with_data_key(request_context):
     data_key = 'specific_key'
     request_context.set_result(new_result, data_key=data_key)
 
-    # Check that the result has been updated correctly in the data dictionary.
+    # Check that the result landed on the in-flight data, not the domain or result.
     assert request_context.result == None
     assert request_context.data[data_key] == new_result
+    assert request_context.data['key'] == 'value'
+    assert data_key not in request_context.domain.data
+    assert request_context.domain.data['key'] == 'value'
 
 # ** test: request_context_binds_request_domain
 def test_request_context_binds_request_domain(request_context):
@@ -206,33 +209,82 @@ def test_request_context_binds_request_domain(request_context):
     # Assert the bound domain is a Request.
     assert isinstance(request_context.domain, Request)
 
-# ** test: request_context_proxies_read_through
-def test_request_context_proxies_read_through(request_context):
-    """Test that proxy properties read through to the bound Request."""
+# ** test: request_context_construction_fills_domain
+def test_request_context_construction_fills_domain(request_context):
+    """Test that construction fills the domain and copies in-flight attributes."""
 
-    # Assert each proxy property reflects the bound request.
-    assert request_context.data == request_context.domain.data
-    assert request_context.headers == request_context.domain.headers
-    assert request_context.feature_id == request_context.domain.feature_id
+    # Supplied fields land on the bound request, including a generated session id.
+    assert request_context.domain.session_id
+    assert request_context.domain.feature_id == 'test_group.test_feature'
+    assert request_context.domain.headers == dict(interface_id='test_interface')
+    assert request_context.domain.data == dict(
+        key='value',
+        another_key='another_value',
+    )
+
+    # The in-flight attributes start equal, and the mappings are not aliased.
     assert request_context.session_id == request_context.domain.session_id
+    assert request_context.feature_id == request_context.domain.feature_id
+    assert request_context.headers == request_context.domain.headers
+    assert request_context.data == request_context.domain.data
+    assert request_context.headers is not request_context.domain.headers
+    assert request_context.data is not request_context.domain.data
 
-# ** test: request_context_proxies_write_through
-def test_request_context_proxies_write_through(request_context):
-    """Test that proxy property assignment writes through to the bound Request."""
+# ** test: request_context_set_methods_write_inflight
+def test_request_context_set_methods_write_inflight(request_context):
+    """Test that the four write methods assign only the in-flight attributes."""
 
-    # Reassigning data writes through to the bound request.
-    request_context.data = {'new': 'data'}
-    assert request_context.domain.data == {'new': 'data'}
+    # Capture pre-flight values the writes must leave alone.
+    domain_session_id = request_context.domain.session_id
+    domain_feature_id = request_context.domain.feature_id
+    domain_headers = request_context.domain.headers
+    domain_data = request_context.domain.data
 
-    # In-place mutation persists on the bound request.
-    request_context.data['more'] = 'value'
-    assert request_context.domain.data['more'] == 'value'
+    # Session id changes only the in-flight attribute.
+    request_context.set_session_id('sess-1')
+    assert request_context.session_id == 'sess-1'
+    assert request_context.feature_id == domain_feature_id
+    assert request_context.domain.session_id == domain_session_id
 
-    # Headers and feature_id also write through.
-    request_context.headers = {'x': 'y'}
-    assert request_context.domain.headers == {'x': 'y'}
-    request_context.feature_id = 'g.f2'
-    assert request_context.domain.feature_id == 'g.f2'
+    # Feature id, including None, lands on the attribute and not the domain.
+    request_context.set_feature_id('g.f2')
+    assert request_context.feature_id == 'g.f2'
+    assert request_context.session_id == 'sess-1'
+    request_context.set_feature_id(None)
+    assert request_context.feature_id is None
+    assert request_context.domain.feature_id == domain_feature_id
+
+    # Mapping writes store a shallow copy and leave the domain mappings.
+    incoming_headers = {'x': 'y'}
+    request_context.set_headers(incoming_headers)
+    assert request_context.headers == {'x': 'y'}
+    assert request_context.headers is not incoming_headers
+    assert request_context.domain.headers == domain_headers
+    assert request_context.domain.headers is domain_headers
+
+    incoming_data = {'new': 'data'}
+    request_context.set_data(incoming_data)
+    assert request_context.data == {'new': 'data'}
+    assert request_context.data is not incoming_data
+    assert request_context.domain.data == domain_data
+    assert request_context.domain.data is domain_data
+
+# ** test: request_context_domain_field_assignment_raises
+def test_request_context_domain_field_assignment_raises(request_context):
+    """Test that assigning a field on the bound Request raises."""
+
+    # Each pre-flight field refuses assignment.
+    with pytest.raises(ValidationError):
+        request_context.domain.session_id = 'other'
+
+    with pytest.raises(ValidationError):
+        request_context.domain.feature_id = 'other'
+
+    with pytest.raises(ValidationError):
+        request_context.domain.headers = {'x': 'y'}
+
+    with pytest.raises(ValidationError):
+        request_context.domain.data = {'new': 'data'}
 
 # ** test: request_context_registered_for_request_domain
 def test_request_context_registered_for_request_domain():
@@ -248,5 +300,6 @@ def test_request_context_session_id_auto_generated():
     # Create a request context without a session id.
     rc = RequestContext(data={})
 
-    # Assert a session id was generated.
-    assert rc.session_id
+    # Assert a session id was generated and copied to the in-flight attribute.
+    assert rc.domain.session_id
+    assert rc.session_id == rc.domain.session_id

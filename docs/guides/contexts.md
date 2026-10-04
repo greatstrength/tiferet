@@ -121,7 +121,7 @@ Feature-step services are resolved through the injected `get_dependency(registra
 ## RequestContext
 
 <a id="requestcontext"></a>
-`RequestContext` (`tiferet/contexts/request.py`) binds a `Request` domain value object as `self.domain` and exposes `session_id`, `feature_id`, `headers`, and `data` as read/write proxy properties delegating straight to it, while `result` is runtime-only context state with no `Request` counterpart. `set_result(result, data_key=None)` stores into `self.domain.data[data_key]` when a step declares a `data_key`, or into `self.result` directly otherwise; `handle_response()` returns `self.result` by default. See [docs/guides/domain/request.md](domain/request.md) for the full `Request`/`RequestContext` split.
+`RequestContext` (`tiferet/contexts/request.py`) binds a `Request` as `self.domain`, the immutable pre-flight request. `session_id`, `feature_id`, `headers`, and `data` on the context are the in-flight copy. `set_session_id`, `set_feature_id`, `set_headers`, and `set_data` write that copy. `set_result(result, data_key=None)` stores into the in-flight data when a step declares a `data_key`, or into `self.result` otherwise; `handle_response()` returns `self.result`. See [docs/guides/domain/request.md](domain/request.md) for the full `Request`/`RequestContext` split.
 
 ## ErrorContext and LoggingContext
 
