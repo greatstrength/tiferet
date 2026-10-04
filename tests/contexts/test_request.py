@@ -197,7 +197,8 @@ def test_request_context_set_result_with_data_key(request_context):
 
     # Check that the result has been updated correctly in the data dictionary.
     assert request_context.result == None
-    assert request_context.data[data_key] == new_result
+    assert request_context.domain.data[data_key] == new_result
+    assert request_context.domain.data['key'] == 'value'
 
 # ** test: request_context_binds_request_domain
 def test_request_context_binds_request_domain(request_context):
@@ -206,33 +207,55 @@ def test_request_context_binds_request_domain(request_context):
     # Assert the bound domain is a Request.
     assert isinstance(request_context.domain, Request)
 
-# ** test: request_context_proxies_read_through
-def test_request_context_proxies_read_through(request_context):
-    """Test that proxy properties read through to the bound Request."""
+# ** test: request_context_construction_fills_domain
+def test_request_context_construction_fills_domain(request_context):
+    """Test that construction fills the bound Request fields."""
 
-    # Assert each proxy property reflects the bound request.
-    assert request_context.data == request_context.domain.data
-    assert request_context.headers == request_context.domain.headers
-    assert request_context.feature_id == request_context.domain.feature_id
-    assert request_context.session_id == request_context.domain.session_id
+    # Supplied fields land on the bound request, including a generated session id.
+    assert request_context.domain.session_id
+    assert request_context.domain.feature_id == 'test_group.test_feature'
+    assert request_context.domain.headers == dict(interface_id='test_interface')
+    assert request_context.domain.data == dict(
+        key='value',
+        another_key='another_value',
+    )
 
-# ** test: request_context_proxies_write_through
-def test_request_context_proxies_write_through(request_context):
-    """Test that proxy property assignment writes through to the bound Request."""
+# ** test: request_context_stored_field_reads_raise
+def test_request_context_stored_field_reads_raise(request_context):
+    """Test that the four stored fields are not readable on the context."""
 
-    # Reassigning data writes through to the bound request.
-    request_context.data = {'new': 'data'}
-    assert request_context.domain.data == {'new': 'data'}
+    # Reading each stored field on the context raises AttributeError.
+    with pytest.raises(AttributeError):
+        request_context.session_id
 
-    # In-place mutation persists on the bound request.
-    request_context.data['more'] = 'value'
-    assert request_context.domain.data['more'] == 'value'
+    with pytest.raises(AttributeError):
+        request_context.feature_id
 
-    # Headers and feature_id also write through.
-    request_context.headers = {'x': 'y'}
-    assert request_context.domain.headers == {'x': 'y'}
-    request_context.feature_id = 'g.f2'
+    with pytest.raises(AttributeError):
+        request_context.headers
+
+    with pytest.raises(AttributeError):
+        request_context.data
+
+# ** test: request_context_set_methods_write_domain
+def test_request_context_set_methods_write_domain(request_context):
+    """Test that the four write methods assign the bound Request fields."""
+
+    # Each write method lands on the bound request.
+    request_context.set_session_id('sess-1')
+    assert request_context.domain.session_id == 'sess-1'
+
+    request_context.set_feature_id('g.f2')
     assert request_context.domain.feature_id == 'g.f2'
+
+    request_context.set_feature_id(None)
+    assert request_context.domain.feature_id is None
+
+    request_context.set_headers({'x': 'y'})
+    assert request_context.domain.headers == {'x': 'y'}
+
+    request_context.set_data({'new': 'data'})
+    assert request_context.domain.data == {'new': 'data'}
 
 # ** test: request_context_registered_for_request_domain
 def test_request_context_registered_for_request_domain():
@@ -249,4 +272,4 @@ def test_request_context_session_id_auto_generated():
     rc = RequestContext(data={})
 
     # Assert a session id was generated.
-    assert rc.session_id
+    assert rc.domain.session_id

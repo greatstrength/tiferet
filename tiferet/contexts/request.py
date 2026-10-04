@@ -17,8 +17,9 @@ class RequestContext(BaseContext):
     '''
     The request context carries the session, feature, headers, data, and result
     for a single feature execution. It binds a :class:`Request` domain value
-    object as ``domain`` and exposes the request fields as read/write proxy
-    properties, while ``result`` remains runtime-only context state.
+    object as ``domain``, and the session, feature, headers, and data values
+    stay attributes of the bound Request, while ``result`` remains runtime-only
+    context state.
     '''
 
     # * attribute: domain_type
@@ -64,60 +65,60 @@ class RequestContext(BaseContext):
         # Initialize the runtime result to None.
         self.result = None
 
-    # * attribute: session_id
-    @property
-    def session_id(self) -> str:
-        '''The request session identifier, proxied to the bound Request.'''
+    # * method: set_session_id
+    def set_session_id(self, value: str) -> None:
+        '''
+        Assign the session identifier on the bound Request.
 
-        # Return the bound request's session id.
-        return self.domain.session_id
+        :param value: The session identifier.
+        :type value: str
+        :return: None
+        :rtype: None
+        '''
 
-    @session_id.setter
-    def session_id(self, value: str) -> None:
-
-        # Write the session id through to the bound request.
+        # Assign the session id on the bound request.
         self.domain.session_id = value
 
-    # * attribute: feature_id
-    @property
-    def feature_id(self) -> str | None:
-        '''The executing feature identifier, proxied to the bound Request.'''
+    # * method: set_feature_id
+    def set_feature_id(self, value: str | None) -> None:
+        '''
+        Assign the feature identifier on the bound Request.
 
-        # Return the bound request's feature id.
-        return self.domain.feature_id
+        :param value: The feature identifier, or None.
+        :type value: str | None
+        :return: None
+        :rtype: None
+        '''
 
-    @feature_id.setter
-    def feature_id(self, value: str | None) -> None:
-
-        # Write the feature id through to the bound request.
+        # Assign the feature id on the bound request.
         self.domain.feature_id = value
 
-    # * attribute: headers
-    @property
-    def headers(self) -> Dict[str, str]:
-        '''The request headers, proxied to the bound Request.'''
+    # * method: set_headers
+    def set_headers(self, value: Dict[str, str]) -> None:
+        '''
+        Assign the headers mapping on the bound Request.
 
-        # Return the bound request's headers.
-        return self.domain.headers
+        :param value: The headers mapping.
+        :type value: Dict[str, str]
+        :return: None
+        :rtype: None
+        '''
 
-    @headers.setter
-    def headers(self, value: Dict[str, str]) -> None:
-
-        # Write the headers through to the bound request.
+        # Assign the headers on the bound request.
         self.domain.headers = value
 
-    # * attribute: data
-    @property
-    def data(self) -> Dict[str, Any]:
-        '''The request data payload, proxied to the bound Request.'''
+    # * method: set_data
+    def set_data(self, value: Dict[str, Any]) -> None:
+        '''
+        Assign the data mapping on the bound Request.
 
-        # Return the bound request's data payload.
-        return self.domain.data
+        :param value: The data mapping.
+        :type value: Dict[str, Any]
+        :return: None
+        :rtype: None
+        '''
 
-    @data.setter
-    def data(self, value: Dict[str, Any]) -> None:
-
-        # Write the data payload through to the bound request.
+        # Assign the data on the bound request.
         self.domain.data = value
 
     # * method: handle_response
@@ -145,7 +146,7 @@ class RequestContext(BaseContext):
 
         # If a data key is provided, store the result in the request data.
         if data_key:
-            self.data[data_key] = result
+            self.domain.data[data_key] = result
 
         # Otherwise set the result.
         else:
