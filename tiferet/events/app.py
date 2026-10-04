@@ -185,6 +185,54 @@ class UpdateAppSession(AppEvent):
         # Return the session ID.
         return id
 
+# ** event: list_app_sessions
+# >> see: @guides/events/app.md#listappsessions
+class ListAppSessions(AppEvent):
+    '''
+    A domain event to list all configured app sessions.
+    '''
+
+    # * method: execute
+    def execute(self, **kwargs) -> List[AppSession]:
+        '''
+        List all app sessions.
+
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: List of AppSession models.
+        :rtype: List[AppSession]
+        '''
+
+        # Delegate to the app service to retrieve all sessions.
+        return self.app_service.list()
+
+# ** event: remove_app_session
+# >> see: @guides/events/app.md#removeappsession
+class RemoveAppSession(AppEvent):
+    '''
+    A domain event to remove an entire app session configuration by ID (idempotent).
+    '''
+
+    # * method: execute
+    @DomainEvent.parameters_required(['id'])
+    def execute(self, id: str, **kwargs) -> str:
+        '''
+        Remove an app session by ID.
+
+        :param id: The session ID.
+        :type id: str
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The removed session ID.
+        :rtype: str
+        '''
+
+        # Delegate deletion to the app service (idempotent operation).
+        self.app_service.delete(id)
+
+        # Return the session ID.
+        return id
+
 # ** event: set_app_constants
 # >> see: @guides/events/app.md#setappconstants
 class SetAppConstants(AppEvent):
@@ -232,27 +280,6 @@ class SetAppConstants(AppEvent):
 
         # Return the session ID.
         return id
-
-# ** event: list_app_sessions
-# >> see: @guides/events/app.md#listappsessions
-class ListAppSessions(AppEvent):
-    '''
-    A domain event to list all configured app sessions.
-    '''
-
-    # * method: execute
-    def execute(self, **kwargs) -> List[AppSession]:
-        '''
-        List all app sessions.
-
-        :param kwargs: Additional keyword arguments (unused).
-        :type kwargs: dict
-        :return: List of AppSession models.
-        :rtype: List[AppSession]
-        '''
-
-        # Delegate to the app service to retrieve all sessions.
-        return self.app_service.list()
 
 # ** event: set_service_dependency
 # >> see: @guides/events/app.md#setservicedependency
@@ -355,33 +382,6 @@ class RemoveServiceDependency(AppEvent):
 
         # Persist the updated session.
         self.app_service.save(interface)
-
-        # Return the session ID.
-        return id
-
-# ** event: remove_app_session
-# >> see: @guides/events/app.md#removeappsession
-class RemoveAppSession(AppEvent):
-    '''
-    A domain event to remove an entire app session configuration by ID (idempotent).
-    '''
-
-    # * method: execute
-    @DomainEvent.parameters_required(['id'])
-    def execute(self, id: str, **kwargs) -> str:
-        '''
-        Remove an app session by ID.
-
-        :param id: The session ID.
-        :type id: str
-        :param kwargs: Additional keyword arguments (unused).
-        :type kwargs: dict
-        :return: The removed session ID.
-        :rtype: str
-        '''
-
-        # Delegate deletion to the app service (idempotent operation).
-        self.app_service.delete(id)
 
         # Return the session ID.
         return id

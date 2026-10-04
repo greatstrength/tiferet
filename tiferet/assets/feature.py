@@ -42,23 +42,23 @@ APP_REMOVE_SERVICE_ID = 'app.remove_service'
 # ** constant: app_remove_id
 APP_REMOVE_ID = 'app.remove'
 
-# ** constant: cli_add_command_id
-CLI_ADD_COMMAND_ID = 'cli.add_command'
-
 # ** constant: cli_list_commands_id
 CLI_LIST_COMMANDS_ID = 'cli.list_commands'
 
+# ** constant: cli_add_command_id
+CLI_ADD_COMMAND_ID = 'cli.add_command'
+
 # ** constant: cli_add_argument_id
 CLI_ADD_ARGUMENT_ID = 'cli.add_argument'
+
+# ** constant: error_list_id
+ERROR_LIST_ID = 'error.list'
 
 # ** constant: error_add_id
 ERROR_ADD_ID = 'error.add'
 
 # ** constant: error_get_id
 ERROR_GET_ID = 'error.get'
-
-# ** constant: error_list_id
-ERROR_LIST_ID = 'error.list'
 
 # ** constant: error_rename_id
 ERROR_RENAME_ID = 'error.rename'
@@ -72,17 +72,14 @@ ERROR_REMOVE_MESSAGE_ID = 'error.remove_message'
 # ** constant: error_remove_id
 ERROR_REMOVE_ID = 'error.remove'
 
+# ** constant: feature_list_id
+FEATURE_LIST_ID = 'feature.list'
+
 # ** constant: feature_add_id
 FEATURE_ADD_ID = 'feature.add'
 
 # ** constant: feature_get_id
 FEATURE_GET_ID = 'feature.get'
-
-# ** constant: feature_list_id
-FEATURE_LIST_ID = 'feature.list'
-
-# ** constant: feature_remove_id
-FEATURE_REMOVE_ID = 'feature.remove'
 
 # ** constant: feature_update_id
 FEATURE_UPDATE_ID = 'feature.update'
@@ -99,11 +96,14 @@ FEATURE_REMOVE_STEP_ID = 'feature.remove_step'
 # ** constant: feature_reorder_step_id
 FEATURE_REORDER_STEP_ID = 'feature.reorder_step'
 
-# ** constant: service_add_id
-SERVICE_ADD_ID = 'service.add'
+# ** constant: feature_remove_id
+FEATURE_REMOVE_ID = 'feature.remove'
 
 # ** constant: service_list_id
 SERVICE_LIST_ID = 'service.list'
+
+# ** constant: service_add_id
+SERVICE_ADD_ID = 'service.add'
 
 # ** constant: service_set_default_id
 SERVICE_SET_DEFAULT_ID = 'service.set_default'
@@ -114,11 +114,11 @@ SERVICE_SET_DEPENDENCY_ID = 'service.set_dependency'
 # ** constant: service_remove_dependency_id
 SERVICE_REMOVE_DEPENDENCY_ID = 'service.remove_dependency'
 
-# ** constant: service_remove_id
-SERVICE_REMOVE_ID = 'service.remove'
-
 # ** constant: service_set_constants_id
 SERVICE_SET_CONSTANTS_ID = 'service.set_constants'
+
+# ** constant: service_remove_id
+SERVICE_REMOVE_ID = 'service.remove'
 
 # ** constant: logging_add_formatter_id
 LOGGING_ADD_FORMATTER_ID = 'logging.add_formatter'
@@ -239,6 +239,15 @@ APP_REMOVE_DATA = create_default_feature_data(
     params_schema=create_params_schema(id='str'),
 )
 
+# ** constant: cli_list_commands_data
+CLI_LIST_COMMANDS_DATA = create_default_feature_data(
+    'List CLI Commands',
+    'cli',
+    'list_commands',
+    [{'service_id': 'list_commands_evt', 'name': 'List CLI commands'}],
+    description='List all CLI command definitions.',
+)
+
 # ** constant: cli_add_command_data
 CLI_ADD_COMMAND_DATA = create_default_feature_data(
     'Add CLI Command',
@@ -256,15 +265,6 @@ CLI_ADD_COMMAND_DATA = create_default_feature_data(
     ),
 )
 
-# ** constant: cli_list_commands_data
-CLI_LIST_COMMANDS_DATA = create_default_feature_data(
-    'List CLI Commands',
-    'cli',
-    'list_commands',
-    [{'service_id': 'list_commands_evt', 'name': 'List CLI commands'}],
-    description='List all CLI command definitions.',
-)
-
 # ** constant: cli_add_argument_data
 CLI_ADD_ARGUMENT_DATA = create_default_feature_data(
     'Add CLI Argument',
@@ -276,6 +276,15 @@ CLI_ADD_ARGUMENT_DATA = create_default_feature_data(
         command_id='str',
         description={'type': 'str', 'required': False},
     ),
+)
+
+# ** constant: error_list_data
+ERROR_LIST_DATA = create_default_feature_data(
+    'List Errors',
+    'error',
+    'list',
+    [{'service_id': 'list_errors_evt', 'name': 'List errors'}],
+    description='List all error definitions.',
 )
 
 # ** constant: error_add_data
@@ -302,15 +311,6 @@ ERROR_GET_DATA = create_default_feature_data(
     [{'service_id': 'get_error_evt', 'name': 'Get error'}],
     description='Retrieve an error by ID.',
     params_schema=create_params_schema(id='str'),
-)
-
-# ** constant: error_list_data
-ERROR_LIST_DATA = create_default_feature_data(
-    'List Errors',
-    'error',
-    'list',
-    [{'service_id': 'list_errors_evt', 'name': 'List errors'}],
-    description='List all error definitions.',
 )
 
 # ** constant: error_rename_data
@@ -360,6 +360,16 @@ ERROR_REMOVE_DATA = create_default_feature_data(
     params_schema=create_params_schema(id='str'),
 )
 
+# ** constant: feature_list_data
+FEATURE_LIST_DATA = create_default_feature_data(
+    'List Features',
+    'feature',
+    'list',
+    [{'service_id': 'list_features_evt', 'name': 'List features'}],
+    description='List all features, optionally filtered by group.',
+    params_schema=create_params_schema(group_id={'type': 'str', 'required': False}),
+)
+
 # ** constant: feature_add_data
 FEATURE_ADD_DATA = create_default_feature_data(
     'Add Feature',
@@ -385,26 +395,6 @@ FEATURE_GET_DATA = create_default_feature_data(
     'get',
     [{'service_id': 'get_feature_evt', 'name': 'Get feature'}],
     description='Retrieve a feature by ID.',
-    params_schema=create_params_schema(id='str'),
-)
-
-# ** constant: feature_list_data
-FEATURE_LIST_DATA = create_default_feature_data(
-    'List Features',
-    'feature',
-    'list',
-    [{'service_id': 'list_features_evt', 'name': 'List features'}],
-    description='List all features, optionally filtered by group.',
-    params_schema=create_params_schema(group_id={'type': 'str', 'required': False}),
-)
-
-# ** constant: feature_remove_data
-FEATURE_REMOVE_DATA = create_default_feature_data(
-    'Remove Feature',
-    'feature',
-    'remove',
-    [{'service_id': 'remove_feature_evt', 'name': 'Remove feature'}],
-    description='Remove a feature configuration by ID.',
     params_schema=create_params_schema(id='str'),
 )
 
@@ -466,6 +456,25 @@ FEATURE_REORDER_STEP_DATA = create_default_feature_data(
     params_schema=create_params_schema(id='str', start_position='int', end_position='int'),
 )
 
+# ** constant: feature_remove_data
+FEATURE_REMOVE_DATA = create_default_feature_data(
+    'Remove Feature',
+    'feature',
+    'remove',
+    [{'service_id': 'remove_feature_evt', 'name': 'Remove feature'}],
+    description='Remove a feature configuration by ID.',
+    params_schema=create_params_schema(id='str'),
+)
+
+# ** constant: service_list_data
+SERVICE_LIST_DATA = create_default_feature_data(
+    'List All Settings',
+    'service',
+    'list',
+    [{'service_id': 'di_list_all_configs_evt', 'name': 'List all settings'}],
+    description='List all service configurations and constants.',
+)
+
 # ** constant: service_add_data
 SERVICE_ADD_DATA = create_default_feature_data(
     'Add Service Configuration',
@@ -480,15 +489,6 @@ SERVICE_ADD_DATA = create_default_feature_data(
         parameters={'type': 'dict', 'required': False, 'default': {}},
         flagged_dependencies={'type': 'list', 'required': False, 'default': []},
     ),
-)
-
-# ** constant: service_list_data
-SERVICE_LIST_DATA = create_default_feature_data(
-    'List All Settings',
-    'service',
-    'list',
-    [{'service_id': 'di_list_all_configs_evt', 'name': 'List all settings'}],
-    description='List all service configurations and constants.',
 )
 
 # ** constant: service_set_default_data
@@ -532,16 +532,6 @@ SERVICE_REMOVE_DEPENDENCY_DATA = create_default_feature_data(
     params_schema=create_params_schema(id='str', flag='str'),
 )
 
-# ** constant: service_remove_data
-SERVICE_REMOVE_DATA = create_default_feature_data(
-    'Remove Service Configuration',
-    'service',
-    'remove',
-    [{'service_id': 'remove_service_registration_evt', 'name': 'Remove service configuration'}],
-    description='Remove a service configuration by ID.',
-    params_schema=create_params_schema(id='str'),
-)
-
 # ** constant: service_set_constants_data
 SERVICE_SET_CONSTANTS_DATA = create_default_feature_data(
     'Set Service Constants',
@@ -550,6 +540,16 @@ SERVICE_SET_CONSTANTS_DATA = create_default_feature_data(
     [{'service_id': 'set_service_constants_evt', 'name': 'Set service constants'}],
     description='Set or clear service-level constants.',
     params_schema=create_params_schema(constants={'type': 'dict', 'required': False, 'default': {}}),
+)
+
+# ** constant: service_remove_data
+SERVICE_REMOVE_DATA = create_default_feature_data(
+    'Remove Service Configuration',
+    'service',
+    'remove',
+    [{'service_id': 'remove_service_registration_evt', 'name': 'Remove service configuration'}],
+    description='Remove a service configuration by ID.',
+    params_schema=create_params_schema(id='str'),
 )
 
 # ** constant: logging_add_formatter_data

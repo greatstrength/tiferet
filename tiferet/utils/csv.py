@@ -12,7 +12,7 @@ import csv
 from .file import FileLoader
 from ..interfaces.core import ServiceError
 
-# *** constants (ids)
+# *** constants
 
 # ** constant: csv_fieldnames_required_id
 CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
@@ -22,17 +22,6 @@ CSV_INVALID_READ_MODE_ID = 'CSV_INVALID_READ_MODE'
 
 # ** constant: csv_invalid_write_mode_id
 CSV_INVALID_WRITE_MODE_ID = 'CSV_INVALID_WRITE_MODE'
-
-# *** constants (messages)
-
-# ** constant: csv_fieldnames_required_message
-CSV_FIELDNAMES_REQUIRED_MESSAGE = 'Fieldnames must be provided when writing dict-based CSV rows.'
-
-# ** constant: csv_invalid_read_mode_message
-CSV_INVALID_READ_MODE_MESSAGE = 'File not opened in readable mode for CSV reading.'
-
-# ** constant: csv_invalid_write_mode_message
-CSV_INVALID_WRITE_MODE_MESSAGE = 'File not opened in writable mode for CSV writing.'
 
 # *** utils
 
@@ -133,7 +122,7 @@ class CsvLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 CSV_INVALID_READ_MODE_ID,
-                CSV_INVALID_READ_MODE_MESSAGE,
+                'File not opened in readable mode for CSV reading.',
                 mode=self.mode,
             )
 
@@ -157,7 +146,7 @@ class CsvLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 CSV_INVALID_WRITE_MODE_ID,
-                CSV_INVALID_WRITE_MODE_MESSAGE,
+                'File not opened in writable mode for CSV writing.',
                 mode=self.mode,
             )
 
@@ -313,7 +302,7 @@ class CsvLoader(FileLoader):
                 ServiceError.raise_for(
                     CsvLoader,
                     CSV_FIELDNAMES_REQUIRED_ID,
-                    CSV_FIELDNAMES_REQUIRED_MESSAGE,
+                    'Fieldnames must be provided when writing dict-based CSV rows.',
                     path=str(csv_file),
                 )
 
@@ -408,7 +397,7 @@ class CsvDictLoader(CsvLoader):
             ServiceError.raise_for(
                 self,
                 CSV_INVALID_READ_MODE_ID,
-                CSV_INVALID_READ_MODE_MESSAGE,
+                'File not opened in readable mode for CSV reading.',
                 mode=self.mode,
             )
 
@@ -432,7 +421,7 @@ class CsvDictLoader(CsvLoader):
             ServiceError.raise_for(
                 self,
                 CSV_INVALID_WRITE_MODE_ID,
-                CSV_INVALID_WRITE_MODE_MESSAGE,
+                'File not opened in writable mode for CSV writing.',
                 mode=self.mode,
             )
 
@@ -441,7 +430,7 @@ class CsvDictLoader(CsvLoader):
             ServiceError.raise_for(
                 self,
                 CSV_FIELDNAMES_REQUIRED_ID,
-                CSV_FIELDNAMES_REQUIRED_MESSAGE,
+                'Fieldnames must be provided when writing dict-based CSV rows.',
                 path=str(self.path),
             )
 
@@ -611,7 +600,7 @@ class CsvDictLoader(CsvLoader):
             ServiceError.raise_for(
                 CsvDictLoader,
                 CSV_FIELDNAMES_REQUIRED_ID,
-                CSV_FIELDNAMES_REQUIRED_MESSAGE,
+                'Fieldnames must be provided when writing dict-based CSV rows.',
                 path=str(csv_file),
             )
 

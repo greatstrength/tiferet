@@ -14,6 +14,31 @@ from .core import DomainObject, ServiceDependency
 
 # *** models
 
+# ** model: verification
+class Verification(DomainObject):
+    '''
+    Captures one deferred test expectation so fluent test chains can evaluate
+    all declared outcomes after dispatch has completed.
+    '''
+
+    # * attribute: predicate
+    predicate: Callable[[Any], bool] = Field(
+        ...,
+        description='The outcome predicate evaluated by the verification.',
+    )
+
+    # * attribute: message
+    message: str | None = Field(
+        default=None,
+        description='The optional failure message for the verification.',
+    )
+
+    # * attribute: source
+    source: Any = Field(
+        ...,
+        description='The original predicate or literal expectation.',
+    )
+
 # ** model: tester_object
 class TesterObject(DomainObject):
     '''
@@ -308,28 +333,3 @@ class TesterObject(DomainObject):
             import_module(self.domain_module_path),
             self.domain_class_name,
         )
-
-# ** model: verification
-class Verification(DomainObject):
-    '''
-    Captures one deferred test expectation so fluent test chains can evaluate
-    all declared outcomes after dispatch has completed.
-    '''
-
-    # * attribute: predicate
-    predicate: Callable[[Any], bool] = Field(
-        ...,
-        description='The outcome predicate evaluated by the verification.',
-    )
-
-    # * attribute: message
-    message: str | None = Field(
-        default=None,
-        description='The optional failure message for the verification.',
-    )
-
-    # * attribute: source
-    source: Any = Field(
-        ...,
-        description='The original predicate or literal expectation.',
-    )

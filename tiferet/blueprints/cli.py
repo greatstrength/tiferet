@@ -128,94 +128,6 @@ def derive_feature_request(parsed: Dict[str, Any]) -> Tuple[str, Dict[str, str]]
 
 # *** blueprints
 
-# ** blueprint: build_cli_cache
-@add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)
-def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
-    '''
-    Build a cache context seeded with the framework defaults plus the
-    built-in Tiferet CLI command catalog.
-
-    Extends :func:`app.build_cache` by stacking
-    :func:`add_default_cli_commands` on top so the CLI command defaults are
-    available alongside the standard error, service, and constant defaults.
-
-    :param cache: An optional dict used to pre-seed the cache.
-    :type cache: Dict[str, Any]
-    :return: The initialized cache context seeded with all framework defaults
-        and the built-in CLI commands.
-    :rtype: CacheContext
-    '''
-
-    # Delegate to the app cache builder; the decorator stacks CLI commands on top.
-    return app.build_cache(cache)
-
-# ** blueprint: list_commands_handler
-def list_commands_handler(
-        cache: CacheContext,
-        get_dependency: Callable,
-    ) -> Callable:
-    '''
-    Build a command-listing handler with the shared cache and service
-    resolver wired in.
-
-    Returns a zero-argument callable that resolves ``list_commands_evt``
-    from the app-scoped service container and executes it. When the event
-    returns none, the handler falls back to the cache-seeded default CLI
-    commands.
-
-    :param cache: The shared cache context seeded with default CLI commands.
-    :type cache: CacheContext
-    :param get_dependency: The service-resolution handler from the
-        ServiceResolver.
-    :type get_dependency: Callable
-    :return: A zero-argument command-listing callable.
-    :rtype: Callable
-    '''
-
-    # Return the handler closure with cache and resolver wired in.
-    def handler() -> List[CliCommand]:
-
-        # Resolve a ListCliCommands event from the app-scoped container.
-        list_commands_evt = get_dependency('list_commands_evt', 'app')
-
-        # Fall back to cache-seeded defaults when the event returns none.
-        commands = list_commands_evt.execute()
-        if commands is None:
-            return get_default_cli_commands(cache)
-
-        # Return the listed commands.
-        return commands
-
-    return handler
-
-# ** blueprint: get_parent_args_handler
-def get_parent_args_handler(
-        get_dependency: Callable,
-    ) -> Callable:
-    '''
-    Build a parent-argument handler with the service resolver wired in.
-
-    Returns a zero-argument callable that resolves ``get_parent_args_evt``
-    from the app-scoped service container and executes it.
-
-    :param get_dependency: The service-resolution handler from the
-        ServiceResolver.
-    :type get_dependency: Callable
-    :return: A zero-argument parent-argument callable.
-    :rtype: Callable
-    '''
-
-    # Return the handler closure with the resolver wired in.
-    def handler() -> List[CliArgument]:
-
-        # Resolve a GetParentArguments event from the app-scoped container.
-        get_parent_args_evt = get_dependency('get_parent_args_evt', 'app')
-
-        # Execute the event and return the parent arguments.
-        return get_parent_args_evt.execute()
-
-    return handler
-
 # ** blueprint: parse_cli_args_handler
 def parse_cli_args_handler(
         list_commands: Callable,
@@ -319,6 +231,94 @@ def create_cli_request_context(
         data=data,
         feature_id=feature_id,
     )
+
+# ** blueprint: build_cli_cache
+@add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)
+def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
+    '''
+    Build a cache context seeded with the framework defaults plus the
+    built-in Tiferet CLI command catalog.
+
+    Extends :func:`app.build_cache` by stacking
+    :func:`add_default_cli_commands` on top so the CLI command defaults are
+    available alongside the standard error, service, and constant defaults.
+
+    :param cache: An optional dict used to pre-seed the cache.
+    :type cache: Dict[str, Any]
+    :return: The initialized cache context seeded with all framework defaults
+        and the built-in CLI commands.
+    :rtype: CacheContext
+    '''
+
+    # Delegate to the app cache builder; the decorator stacks CLI commands on top.
+    return app.build_cache(cache)
+
+# ** blueprint: list_commands_handler
+def list_commands_handler(
+        cache: CacheContext,
+        get_dependency: Callable,
+    ) -> Callable:
+    '''
+    Build a command-listing handler with the shared cache and service
+    resolver wired in.
+
+    Returns a zero-argument callable that resolves ``list_commands_evt``
+    from the app-scoped service container and executes it. When the event
+    returns none, the handler falls back to the cache-seeded default CLI
+    commands.
+
+    :param cache: The shared cache context seeded with default CLI commands.
+    :type cache: CacheContext
+    :param get_dependency: The service-resolution handler from the
+        ServiceResolver.
+    :type get_dependency: Callable
+    :return: A zero-argument command-listing callable.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure with cache and resolver wired in.
+    def handler() -> List[CliCommand]:
+
+        # Resolve a ListCliCommands event from the app-scoped container.
+        list_commands_evt = get_dependency('list_commands_evt', 'app')
+
+        # Fall back to cache-seeded defaults when the event returns none.
+        commands = list_commands_evt.execute()
+        if commands is None:
+            return get_default_cli_commands(cache)
+
+        # Return the listed commands.
+        return commands
+
+    return handler
+
+# ** blueprint: get_parent_args_handler
+def get_parent_args_handler(
+        get_dependency: Callable,
+    ) -> Callable:
+    '''
+    Build a parent-argument handler with the service resolver wired in.
+
+    Returns a zero-argument callable that resolves ``get_parent_args_evt``
+    from the app-scoped service container and executes it.
+
+    :param get_dependency: The service-resolution handler from the
+        ServiceResolver.
+    :type get_dependency: Callable
+    :return: A zero-argument parent-argument callable.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure with the resolver wired in.
+    def handler() -> List[CliArgument]:
+
+        # Resolve a GetParentArguments event from the app-scoped container.
+        get_parent_args_evt = get_dependency('get_parent_args_evt', 'app')
+
+        # Execute the event and return the parent arguments.
+        return get_parent_args_evt.execute()
+
+    return handler
 
 # ** blueprint: build_cli_session_context
 def build_cli_session_context(

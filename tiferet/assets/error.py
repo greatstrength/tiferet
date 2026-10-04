@@ -113,7 +113,7 @@ SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 # ** constant: service_registration_not_found_id
 SERVICE_REGISTRATION_NOT_FOUND_ID = 'SERVICE_REGISTRATION_NOT_FOUND'
 
-# *** constants (data)
+# *** constants (models)
 
 # ** constant: app_error_data
 APP_ERROR_DATA = create_default_error_data(
@@ -211,7 +211,7 @@ TEST_PRESET_NOT_FOUND_DATA = create_default_error_data(
     [(EN_US, 'Test preset not found: {preset_id}.')],
 )
 
-# *** constants (data_admin)
+# *** constants (models_admin)
 
 # ** constant: cli_command_already_exists_data
 CLI_COMMAND_ALREADY_EXISTS_DATA = create_default_error_data(

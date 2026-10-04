@@ -13,7 +13,7 @@ from .file import FileLoader
 from ..interfaces.core import ServiceError
 from ..interfaces.sqlite import SqliteService
 
-# *** constants (ids)
+# *** constants
 
 # ** constant: sqlite_conn_failed_id
 SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
@@ -38,13 +38,6 @@ SQLITE_QUERY_FAILED_ID = 'SQLITE_QUERY_FAILED'
 
 # ** constant: sqlite_transaction_failed_id
 SQLITE_TRANSACTION_FAILED_ID = 'SQLITE_TRANSACTION_FAILED'
-
-# *** constants (messages)
-
-# ** constant: sqlite_conn_not_initialized_message
-SQLITE_CONN_NOT_INITIALIZED_MESSAGE = (
-    'SQLite connection not initialized. Must be used within a "with" block.'
-)
 
 # ** constant: valid_sqlite_modes
 VALID_SQLITE_MODES = (
@@ -215,7 +208,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
-                SQLITE_CONN_NOT_INITIALIZED_MESSAGE,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Execute the SQL statement and return the cursor.
@@ -254,7 +247,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
-                SQLITE_CONN_NOT_INITIALIZED_MESSAGE,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Execute the SQL with multiple parameter sets and return the cursor.
@@ -291,7 +284,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
-                SQLITE_CONN_NOT_INITIALIZED_MESSAGE,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Execute the SQL script and return the cursor.
@@ -391,7 +384,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
-                SQLITE_CONN_NOT_INITIALIZED_MESSAGE,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Commit the transaction.
@@ -422,7 +415,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
-                SQLITE_CONN_NOT_INITIALIZED_MESSAGE,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Roll back the transaction.
@@ -464,7 +457,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
-                SQLITE_CONN_NOT_INITIALIZED_MESSAGE,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Open a target connection for the backup.

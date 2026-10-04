@@ -36,79 +36,7 @@ from ..contexts.tester import (
 )
 from . import core
 
-# *** blueprints
-
-# ** blueprint: build_cache
-@add_default_app_sessions(CORE_DEFAULT_TESTER_SESSIONS)
-@add_default_testers(CORE_DEFAULT_TESTERS)
-@add_default_app_constants(
-    {
-        a.app.DI_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
-        a.app.FEATURE_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
-    },
-)
-@add_default_app_services(
-    {
-        a.app.DI_SERVICE_ID: a.app.DI_SERVICE_DATA,
-        a.app.FEATURE_SERVICE_ID: a.app.FEATURE_SERVICE_DATA,
-        a.app.GET_FEATURE_EVT_ID: a.app.GET_FEATURE_EVT_DATA,
-    },
-)
-def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
-    '''Build the tester-dialect cache without standard app catalogs.
-
-    :param cache: Optional root namespace seed values.
-    :type cache: Dict[str, Any] | None
-    :return: The tester-scoped cache.
-    :rtype: CacheContext
-    '''
-
-    # Extend the bare core cache with only tester dialect catalogs.
-    return core.build_cache(cache)
-
-# ** blueprint: build_tester_context
-def build_tester_context(tester: TesterObject) -> TesterContext:
-    '''Select the variant tester context class from the tester type.
-
-    :param tester: The bound tester domain object.
-    :type tester: TesterObject
-    :return: The variant tester context.
-    :rtype: TesterContext
-    '''
-
-    # Map the discriminator to the omitting-domain_type context subclass.
-    context_cls = {
-        'domain': DomainTesterContext,
-        'aggregate': AggregateTesterContext,
-        'transfer_object': TransferObjectTesterContext,
-        'domain_event': DomainEventTesterContext,
-        'service_event': ServiceEventTesterContext,
-        'generic': GenericTesterContext,
-        'repo': RepoTesterContext,
-        'context': ContextTesterContext,
-    }[tester.type]
-
-    # Bind the selected subclass to the tester domain object.
-    return context_cls.from_domain(tester)
-
-# ** blueprint: build_test_session
-def build_test_session(
-        tester_ctx: TesterContext,
-        **request_fields: Any,
-    ) -> TestSessionContext:
-    '''
-    Construct a test session bound to a tester context.
-
-    :param tester_ctx: The bound variant tester context.
-    :type tester_ctx: TesterContext
-    :param request_fields: Optional RequestContext initialization fields.
-    :type request_fields: dict
-    :return: A new test session for one test request.
-    :rtype: TestSessionContext
-    '''
-
-    # Construct the session directly; the tester context is a collaborator.
-    return TestSessionContext(tester_ctx, **request_fields)
+# *** functions
 
 # ** function: inject_test_session
 def _inject_test_session(fn: Callable, test_ctx: TesterContext) -> Callable:
@@ -195,6 +123,80 @@ def _wrap_member(member: Any, test_ctx: TesterContext) -> Any:
     if getattr(member, '_fixture_function', None) is inner:
         member._fixture_function = wrapped
     return member
+
+# *** blueprints
+
+# ** blueprint: build_cache
+@add_default_app_sessions(CORE_DEFAULT_TESTER_SESSIONS)
+@add_default_testers(CORE_DEFAULT_TESTERS)
+@add_default_app_constants(
+    {
+        a.app.DI_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+        a.app.FEATURE_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+    },
+)
+@add_default_app_services(
+    {
+        a.app.DI_SERVICE_ID: a.app.DI_SERVICE_DATA,
+        a.app.FEATURE_SERVICE_ID: a.app.FEATURE_SERVICE_DATA,
+        a.app.GET_FEATURE_EVT_ID: a.app.GET_FEATURE_EVT_DATA,
+    },
+)
+def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
+    '''Build the tester-dialect cache without standard app catalogs.
+
+    :param cache: Optional root namespace seed values.
+    :type cache: Dict[str, Any] | None
+    :return: The tester-scoped cache.
+    :rtype: CacheContext
+    '''
+
+    # Extend the bare core cache with only tester dialect catalogs.
+    return core.build_cache(cache)
+
+# ** blueprint: build_tester_context
+def build_tester_context(tester: TesterObject) -> TesterContext:
+    '''Select the variant tester context class from the tester type.
+
+    :param tester: The bound tester domain object.
+    :type tester: TesterObject
+    :return: The variant tester context.
+    :rtype: TesterContext
+    '''
+
+    # Map the discriminator to the omitting-domain_type context subclass.
+    context_cls = {
+        'domain': DomainTesterContext,
+        'aggregate': AggregateTesterContext,
+        'transfer_object': TransferObjectTesterContext,
+        'domain_event': DomainEventTesterContext,
+        'service_event': ServiceEventTesterContext,
+        'generic': GenericTesterContext,
+        'repo': RepoTesterContext,
+        'context': ContextTesterContext,
+    }[tester.type]
+
+    # Bind the selected subclass to the tester domain object.
+    return context_cls.from_domain(tester)
+
+# ** blueprint: build_test_session
+def build_test_session(
+        tester_ctx: TesterContext,
+        **request_fields: Any,
+    ) -> TestSessionContext:
+    '''
+    Construct a test session bound to a tester context.
+
+    :param tester_ctx: The bound variant tester context.
+    :type tester_ctx: TesterContext
+    :param request_fields: Optional RequestContext initialization fields.
+    :type request_fields: dict
+    :return: A new test session for one test request.
+    :rtype: TestSessionContext
+    '''
+
+    # Construct the session directly; the tester context is a collaborator.
+    return TestSessionContext(tester_ctx, **request_fields)
 
 # ** blueprint: use_tester
 def use_tester(
