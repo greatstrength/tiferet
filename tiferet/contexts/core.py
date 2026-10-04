@@ -9,7 +9,6 @@ from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type
 from ..domain import DomainObject
 from .. import a
 from ..assets import TiferetError
-from .cache import CacheContext
 
 # *** functions
 
