@@ -28,6 +28,7 @@ https://github.com/greatstrength/tiferet/blob/main/docs/collab/code_review.md
 Comment on naming inconsistencies from incomplete renames, docstring/description drift, test assertions or structure that change what's verified, duplicated/missing/shadowed tests, and changes to the importable surface. **Do not** comment on acknowledged out-of-scope differences, formatting that already matches the code style, or cases where the branch is correct and the reference is stale (note that once, in the body).
 
 ## Guardrails
+- Import groups are part of the style floor in `docs/collab/code_review.md`. `# ** core` is the Python standard library only (`abc`, `typing`, `re`, `uuid`). `# ** infra` is third-party packages only (boto3 or other AWS libraries, Flask, FastAPI, Pydantic, pytest) — not the standard library, not this application. `# ** app` is this application's own imports only, including relative imports. Order stays core, then infra, then app. Omit an empty group. A misplaced import is a blocking style finding. An acceptance criterion does not waive it.
 - **Super-TRD PRs:** Read `tiferet-super-trd-reviewer` before starting any review of a Super-TRD combined PR. That skill defines the AC-first framework; the mechanics here serve it. Prototype-branch diffs are restricted to AC-referenced artifacts only.
 - Actionable only — a noisy review is worse than a short one.
 - Never recommend reverting a branch that is more correct than the source of truth.
