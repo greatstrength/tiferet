@@ -15,15 +15,26 @@ from ..domain import Request
 # >> see: @guides/contexts.md#requestcontext
 class RequestContext(BaseContext):
     '''
-    The request context carries the session, feature, headers, data, and result
-    for a single feature execution. It binds a :class:`Request` domain value
-    object as ``domain``, and the session, feature, headers, and data values
-    stay attributes of the bound Request, while ``result`` remains runtime-only
-    context state.
+    The request context splits one feature execution into pre-flight, in-flight,
+    and post-flight state. Pre-flight is the bound :class:`Request` at
+    ``self.domain``. In-flight is the working copy of session, feature, headers,
+    and data on this context. Post-flight is ``result``.
     '''
 
     # * attribute: domain_type
     domain_type = Request
+
+    # * attribute: session_id
+    session_id: str
+
+    # * attribute: feature_id
+    feature_id: str | None
+
+    # * attribute: headers
+    headers: Dict[str, str]
+
+    # * attribute: data
+    data: Dict[str, Any]
 
     # * attribute: result
     result: Any
@@ -37,7 +48,8 @@ class RequestContext(BaseContext):
             services: Any = None):
         '''
         Initialize the request context, building and binding a Request domain
-        value object from the supplied request fields.
+        value object from the supplied request fields, then copying those values
+        onto the in-flight attributes.
 
         :param headers: The request headers.
         :type headers: dict
@@ -54,7 +66,7 @@ class RequestContext(BaseContext):
         # Initialize shared services via the base context.
         super().__init__(services=services)
 
-        # Build and bind the request domain value object.
+        # Build and bind the pre-flight request.
         self.domain = Request(
             session_id=session_id,
             feature_id=feature_id,
@@ -62,13 +74,19 @@ class RequestContext(BaseContext):
             data=data if data is not None else {},
         )
 
-        # Initialize the runtime result to None.
+        # Copy pre-flight values onto the in-flight attributes.
+        self.session_id = self.domain.session_id
+        self.feature_id = self.domain.feature_id
+        self.headers = dict(self.domain.headers)
+        self.data = dict(self.domain.data)
+
+        # Initialize the post-flight result to None.
         self.result = None
 
     # * method: set_session_id
     def set_session_id(self, value: str) -> None:
         '''
-        Assign the session identifier on the bound Request.
+        Assign the in-flight session identifier.
 
         :param value: The session identifier.
         :type value: str
@@ -76,13 +94,13 @@ class RequestContext(BaseContext):
         :rtype: None
         '''
 
-        # Assign the session id on the bound request.
-        self.domain.session_id = value
+        # Assign the in-flight session id.
+        self.session_id = value
 
     # * method: set_feature_id
     def set_feature_id(self, value: str | None) -> None:
         '''
-        Assign the feature identifier on the bound Request.
+        Assign the in-flight feature identifier.
 
         :param value: The feature identifier, or None.
         :type value: str | None
@@ -90,13 +108,13 @@ class RequestContext(BaseContext):
         :rtype: None
         '''
 
-        # Assign the feature id on the bound request.
-        self.domain.feature_id = value
+        # Assign the in-flight feature id.
+        self.feature_id = value
 
     # * method: set_headers
     def set_headers(self, value: Dict[str, str]) -> None:
         '''
-        Assign the headers mapping on the bound Request.
+        Replace the in-flight headers with a shallow copy of the given mapping.
 
         :param value: The headers mapping.
         :type value: Dict[str, str]
@@ -104,13 +122,13 @@ class RequestContext(BaseContext):
         :rtype: None
         '''
 
-        # Assign the headers on the bound request.
-        self.domain.headers = value
+        # Store a shallow copy on the in-flight headers.
+        self.headers = dict(value)
 
     # * method: set_data
     def set_data(self, value: Dict[str, Any]) -> None:
         '''
-        Assign the data mapping on the bound Request.
+        Replace the in-flight data with a shallow copy of the given mapping.
 
         :param value: The data mapping.
         :type value: Dict[str, Any]
@@ -118,8 +136,8 @@ class RequestContext(BaseContext):
         :rtype: None
         '''
 
-        # Assign the data on the bound request.
-        self.domain.data = value
+        # Store a shallow copy on the in-flight data.
+        self.data = dict(value)
 
     # * method: handle_response
     def handle_response(self) -> Any:
@@ -144,9 +162,9 @@ class RequestContext(BaseContext):
         :type data_key: str
         '''
 
-        # If a data key is provided, store the result in the request data.
+        # If a data key is provided, store the result in the in-flight data.
         if data_key:
-            self.domain.data[data_key] = result
+            self.data[data_key] = result
 
         # Otherwise set the result.
         else:
