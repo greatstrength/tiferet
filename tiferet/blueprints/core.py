@@ -5,7 +5,7 @@
 # ** core
 import logging
 import os
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple
 
 # ** app
 from ..assets import TiferetError, TiferetAPIError
@@ -27,9 +27,6 @@ from ..contexts.core import BaseContext
 from ..contexts.app import (
     AppSession,
     AppServiceDependency,
-    APP_CONSTANT_CACHE_PREFIX,
-    APP_SERVICE_CACHE_PREFIX,
-    APP_SESSION_CACHE_PREFIX,
 )
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer
 from ..di.core import ServiceResolver
@@ -149,6 +146,70 @@ def merge_logging_settings(
         loggers=list(merged_loggers.values()),
     )
 
+# ** function: add_default_catalog
+def add_default_catalog(
+        items: Dict[str, Any],
+        prefix: Tuple[str, ...],
+        model: type = None,
+        id_field: str = None,
+    ) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache with one default catalog.
+
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    each entry in ``items`` is optionally reinjected with its group-dict key
+    under ``id_field`` and validated into ``model``, then stored in the cache
+    under ``prefix`` keyed by the item's dict key. When ``model`` is omitted
+    the raw value is cached unchanged (for scalar constant catalogs); when
+    ``id_field`` is omitted no key reinjection occurs (for catalogs whose
+    records already embed their own id).
+
+    :param items: A mapping of item id to raw item definition or scalar value.
+    :type items: Dict[str, Any]
+    :param prefix: The cache namespace prefix to store each item under.
+    :type prefix: Tuple[str, ...]
+    :param model: Optional domain object type to validate each item into.
+    :type model: type | None
+    :param id_field: Optional field name to reinject the group-dict key under.
+    :type id_field: str | None
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default items.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute (and optionally validate) each item, then cache it
+            # under the given namespace keyed by its group-dict key.
+            for key, data in items.items():
+
+                # Validate through the model when one is given.
+                if model is not None:
+                    payload = {**data, id_field: key} if id_field else data
+                    value = model.model_validate(payload)
+
+                # Otherwise cache the raw value unchanged (scalar constants).
+                else:
+                    value = data
+
+                # Store the value under the namespace keyed by its dict key.
+                cache.set(key, value, *prefix)
+
+            # Return the populated cache context.
+            return cache
+
+        # Return the cache-builder wrapper.
+        return wrapper
+
+    # Return the decorator.
+    return decorator
+
 # *** blueprints
 
 # ** blueprint: build_cache
@@ -254,7 +315,7 @@ def get_app_session(
 
     # Check the cache for a seeded default session (e.g. built-in admin sessions).
     if cache is not None:
-        cached_session = cache.get(interface_id, *APP_SESSION_CACHE_PREFIX)
+        cached_session = cache.get(interface_id, *a.app.APP_SESSION_CACHE_PREFIX)
         if cached_session is not None:
             return cached_session
 
@@ -479,7 +540,7 @@ def build_app_service_container(
     # the general-purpose cache loader so build_singleton can wire it into
     # CacheMiddleware by constructor inspection.
     constants = {
-        **cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX),
+        **cache.get_by_prefix(*a.app.APP_CONSTANT_CACHE_PREFIX),
         'load_cache': load_cache(cache),
     }
     if app_instance is not None:
@@ -489,7 +550,7 @@ def build_app_service_container(
     # service id.
     services = {
         dep.service_id: dep
-        for dep in cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values()
+        for dep in cache.get_by_prefix(*a.app.APP_SERVICE_CACHE_PREFIX).values()
     }
     if app_instance is not None:
         for service in (app_instance.services or []):

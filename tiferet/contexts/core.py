@@ -9,11 +9,11 @@ from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type
 from ..domain import DomainObject
 from .. import a
 from ..assets import TiferetError
-from .cache import CacheContext
 
 # *** functions
 
 # ** function: add_default_cache_items
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
 def add_default_cache_items(
         items: Dict[str, Any],
         prefix: Tuple[str, ...],
@@ -45,39 +45,16 @@ def add_default_cache_items(
     :rtype: Callable
     '''
 
-    # Return the decorator that wraps the cache-builder.
-    def decorator(build_fn: Callable) -> Callable:
+    # Import locally so this module does not cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
 
-        # Build the cache, then populate it with the default items.
-        def wrapper(*args, **kwargs) -> CacheContext:
-
-            # Delegate to the wrapped cache-builder.
-            cache = build_fn(*args, **kwargs)
-
-            # Reconstitute (and optionally validate) each item, then cache it
-            # under the given namespace keyed by its group-dict key.
-            for key, data in items.items():
-
-                # Validate through the model when one is given.
-                if model is not None:
-                    payload = {**data, id_field: key} if id_field else data
-                    value = model.model_validate(payload)
-
-                # Otherwise cache the raw value unchanged (scalar constants).
-                else:
-                    value = data
-
-                # Store the value under the namespace keyed by its dict key.
-                cache.set(key, value, *prefix)
-
-            # Return the populated cache context.
-            return cache
-
-        # Return the cache-builder wrapper.
-        return wrapper
-
-    # Return the decorator.
-    return decorator
+    # Delegate to the blueprint catalog seeder.
+    return add_default_catalog(
+        items,
+        prefix,
+        model=model,
+        id_field=id_field,
+    )
 
 # *** classes
 
