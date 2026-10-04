@@ -8,36 +8,43 @@ import time
 from typing import Any, Callable, Dict, Tuple
 
 # ** app
+from .. import a
 from ..assets import (
     TiferetError,
     TiferetAPIError,
 )
 from ..assets.error import APP_ERROR_ID
 from ..domain import AppSession, AppServiceDependency
-from .core import BaseContext, add_default_cache_items
+from .core import BaseContext
 from .cache import CacheContext
 from .request import RequestContext
 
 # *** constants
 
 # ** constant: app_service_cache_prefix
-APP_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('app', 'services')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+APP_SERVICE_CACHE_PREFIX: Tuple[str, ...] = a.app.APP_SERVICE_CACHE_PREFIX
 
 # ** constant: app_constant_cache_prefix
-APP_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('app', 'constants')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+APP_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = a.app.APP_CONSTANT_CACHE_PREFIX
 
 # ** constant: admin_service_cache_prefix
-ADMIN_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'services')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+ADMIN_SERVICE_CACHE_PREFIX: Tuple[str, ...] = a.app.ADMIN_SERVICE_CACHE_PREFIX
 
 # ** constant: admin_constant_cache_prefix
-ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'constants')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = a.app.ADMIN_CONSTANT_CACHE_PREFIX
 
 # ** constant: app_session_cache_prefix
-APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = ('app', 'sessions')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = a.app.APP_SESSION_CACHE_PREFIX
 
 # *** functions
 
 # ** function: add_default_app_services
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
 def add_default_app_services(services: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default app service
@@ -50,15 +57,19 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(
+    # Import locally so this module does not cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to the blueprint catalog seeder under the asset prefix.
+    return add_default_catalog(
         services,
-        APP_SERVICE_CACHE_PREFIX,
+        a.app.APP_SERVICE_CACHE_PREFIX,
         model=AppServiceDependency,
         id_field='service_id',
     )
 
 # ** function: add_default_app_constants
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
 def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default bootstrap
@@ -70,10 +81,14 @@ def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(constants, APP_CONSTANT_CACHE_PREFIX)
+    # Import locally so this module does not cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to the blueprint catalog seeder under the asset prefix.
+    return add_default_catalog(constants, a.app.APP_CONSTANT_CACHE_PREFIX)
 
 # ** function: add_default_admin_services
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
 def add_default_admin_services(services: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default admin service
@@ -90,15 +105,19 @@ def add_default_admin_services(services: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(
+    # Import locally so this module does not cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to the blueprint catalog seeder under the asset prefix.
+    return add_default_catalog(
         services,
-        ADMIN_SERVICE_CACHE_PREFIX,
+        a.app.ADMIN_SERVICE_CACHE_PREFIX,
         model=AppServiceDependency,
         id_field='service_id',
     )
 
 # ** function: add_default_admin_constants
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
 def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default admin
@@ -113,10 +132,14 @@ def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(constants, ADMIN_CONSTANT_CACHE_PREFIX)
+    # Import locally so this module does not cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to the blueprint catalog seeder under the asset prefix.
+    return add_default_catalog(constants, a.app.ADMIN_CONSTANT_CACHE_PREFIX)
 
 # ** function: add_default_app_sessions
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
 def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
     '''
     Decorator factory that pre-seeds a cache context with default app session
@@ -129,15 +152,19 @@ def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
     :rtype: Callable
     '''
 
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(
+    # Import locally so this module does not cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to the blueprint catalog seeder under the asset prefix.
+    return add_default_catalog(
         sessions,
-        APP_SESSION_CACHE_PREFIX,
+        a.app.APP_SESSION_CACHE_PREFIX,
         model=AppSession,
         id_field='id',
     )
 
 # ** function: raise_unwired_handler_error
+# -- obsolete: delegates to assets.core.raise_unwired_handler_error; removal is a later slice
 def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
     '''
     Raise the structured API error for an unwired template-method handler.
@@ -157,17 +184,11 @@ def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) ->
     :type kwargs: dict
     '''
 
-    # Compose the message naming the missing handler and the session it belongs to.
-    message = (
-        f'No {handler_name} is wired on the app session context for session '
-        f'{session_id}; the blueprint must supply {handler_name}.'
-    )
-
-    # Raise the formatted API error naming the missing handler.
-    raise TiferetAPIError(
+    # Delegate to the asset helper, passing the app error code this context owns.
+    a.core.raise_unwired_handler_error(
+        handler_name,
+        session_id,
         error_code=APP_ERROR_ID,
-        name='App Error',
-        message=message,
         **kwargs,
     )
 

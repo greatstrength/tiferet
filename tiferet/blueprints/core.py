@@ -5,7 +5,7 @@
 # ** core
 import logging
 import os
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple
 
 # ** app
 from ..assets import TiferetError, TiferetAPIError
@@ -23,13 +23,10 @@ from ..contexts.logging import (
     LOGGER_CACHE_PREFIX,
 )
 from ..contexts.request import RequestContext
-from ..contexts.core import BaseContext
+from ..contexts.core import BaseContext, add_default_cache_items
 from ..contexts.app import (
     AppSession,
     AppServiceDependency,
-    APP_CONSTANT_CACHE_PREFIX,
-    APP_SERVICE_CACHE_PREFIX,
-    APP_SESSION_CACHE_PREFIX,
 )
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer
 from ..di.core import ServiceResolver
@@ -149,6 +146,40 @@ def merge_logging_settings(
         loggers=list(merged_loggers.values()),
     )
 
+# ** function: add_default_catalog
+def add_default_catalog(
+        items: Dict[str, Any],
+        prefix: Tuple[str, ...],
+        model: type = None,
+        id_field: str = None,
+    ) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache with one default catalog.
+
+    Delegates to ``contexts.core.add_default_cache_items`` with the caller's
+    items, prefix, and optional model. The former per-catalog wrappers are
+    this one call with a fixed prefix and model.
+
+    :param items: A mapping of item id to raw item definition or scalar value.
+    :type items: Dict[str, Any]
+    :param prefix: The cache namespace prefix to store each item under.
+    :type prefix: Tuple[str, ...]
+    :param model: Optional domain object type to validate each item into.
+    :type model: type | None
+    :param id_field: Optional field name to reinject the group-dict key under.
+    :type id_field: str | None
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Delegate to the shared cache-seeding factory.
+    return add_default_cache_items(
+        items,
+        prefix,
+        model=model,
+        id_field=id_field,
+    )
+
 # *** blueprints
 
 # ** blueprint: build_cache
@@ -254,7 +285,7 @@ def get_app_session(
 
     # Check the cache for a seeded default session (e.g. built-in admin sessions).
     if cache is not None:
-        cached_session = cache.get(interface_id, *APP_SESSION_CACHE_PREFIX)
+        cached_session = cache.get(interface_id, *a.app.APP_SESSION_CACHE_PREFIX)
         if cached_session is not None:
             return cached_session
 
@@ -479,7 +510,7 @@ def build_app_service_container(
     # the general-purpose cache loader so build_singleton can wire it into
     # CacheMiddleware by constructor inspection.
     constants = {
-        **cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX),
+        **cache.get_by_prefix(*a.app.APP_CONSTANT_CACHE_PREFIX),
         'load_cache': load_cache(cache),
     }
     if app_instance is not None:
@@ -489,7 +520,7 @@ def build_app_service_container(
     # service id.
     services = {
         dep.service_id: dep
-        for dep in cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values()
+        for dep in cache.get_by_prefix(*a.app.APP_SERVICE_CACHE_PREFIX).values()
     }
     if app_instance is not None:
         for service in (app_instance.services or []):

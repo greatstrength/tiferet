@@ -5,15 +5,14 @@
 # ** app
 from ..assets import TiferetError
 from . import core
+from .core import add_default_catalog
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
 from ..contexts.logging import add_default_logging_settings
 from ..contexts.app import (
     AppSession,
     AppSessionContext,
-    add_default_app_services,
-    add_default_app_constants,
-    add_default_app_sessions,
+    AppServiceDependency,
 )
 from .. import a
 
@@ -21,9 +20,22 @@ from .. import a
 
 # ** blueprint: build_cache
 @add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
-@add_default_app_sessions(a.app.CORE_DEFAULT_APP_SESSIONS)
-@add_default_app_constants(a.app.CORE_DEFAULT_CONSTANTS)
-@add_default_app_services(a.app.CORE_DEFAULT_SERVICES)
+@add_default_catalog(
+    a.app.CORE_DEFAULT_APP_SESSIONS,
+    a.app.APP_SESSION_CACHE_PREFIX,
+    model=AppSession,
+    id_field='id',
+)
+@add_default_catalog(
+    a.app.CORE_DEFAULT_CONSTANTS,
+    a.app.APP_CONSTANT_CACHE_PREFIX,
+)
+@add_default_catalog(
+    a.app.CORE_DEFAULT_SERVICES,
+    a.app.APP_SERVICE_CACHE_PREFIX,
+    model=AppServiceDependency,
+    id_field='service_id',
+)
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def build_cache(
     cache: dict = None,

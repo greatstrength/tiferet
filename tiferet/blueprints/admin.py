@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List
 # ** app
 from ..assets import TiferetError
 from . import app, core
+from .core import add_default_catalog
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
 from ..contexts.feature import add_default_features
@@ -15,10 +16,6 @@ from ..contexts.app import (
     AppSession,
     AppSessionContext,
     AppServiceDependency,
-    add_default_admin_services,
-    add_default_admin_constants,
-    ADMIN_CONSTANT_CACHE_PREFIX,
-    ADMIN_SERVICE_CACHE_PREFIX,
 )
 from ..di.dependency_injector import DIAppServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
@@ -27,8 +24,16 @@ from .. import a
 # *** blueprints
 
 # ** blueprint: build_cache
-@add_default_admin_services(a.app.ADMIN_DEFAULT_SERVICES)
-@add_default_admin_constants(a.app.ADMIN_DEFAULT_CONSTANTS)
+@add_default_catalog(
+    a.app.ADMIN_DEFAULT_SERVICES,
+    a.app.ADMIN_SERVICE_CACHE_PREFIX,
+    model=AppServiceDependency,
+    id_field='service_id',
+)
+@add_default_catalog(
+    a.app.ADMIN_DEFAULT_CONSTANTS,
+    a.app.ADMIN_CONSTANT_CACHE_PREFIX,
+)
 @add_default_features(a.feat.ADMIN_DEFAULT_FEATURES)
 @add_default_errors(a.error.ADMIN_DEFAULT_ERRORS)
 def build_cache(
@@ -86,11 +91,11 @@ def build_admin_service_resolver(
 
     # Build the admin container from cache-seeded admin services and constants.
     admin_constants = {
-        **cache.get_by_prefix(*ADMIN_CONSTANT_CACHE_PREFIX),
+        **cache.get_by_prefix(*a.app.ADMIN_CONSTANT_CACHE_PREFIX),
         'load_cache': core.load_cache(cache),
     }
     admin_container = DIAppServiceContainer.from_dependencies(
-        services=list(cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX).values()),
+        services=list(cache.get_by_prefix(*a.app.ADMIN_SERVICE_CACHE_PREFIX).values()),
         constants=admin_constants,
     )
 
