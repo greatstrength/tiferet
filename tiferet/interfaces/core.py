@@ -3,10 +3,12 @@
 # *** imports
 
 # ** core
-from abc import ABC
 from typing import Any, Dict, NoReturn, Optional
 import inspect
 import json
+
+# ** infra
+from abc import ABC
 
 # *** classes
 

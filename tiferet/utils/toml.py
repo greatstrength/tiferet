@@ -17,14 +17,14 @@ from ..interfaces.core import ServiceError
 
 # *** constants
 
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
+
 # ** constant: toml_file_not_found_id
 TOML_FILE_NOT_FOUND_ID = 'TOML_FILE_NOT_FOUND'
 
 # ** constant: toml_file_load_error_id
 TOML_FILE_LOAD_ERROR_ID = 'TOML_FILE_LOAD_ERROR'
-
-# ** constant: invalid_toml_file_id
-INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 
 # *** utils
 

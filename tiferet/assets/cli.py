@@ -18,20 +18,17 @@ from .core import create_default_cli_argument, create_default_cli_command_data
 
 # *** constants (ids)
 
-# ** constant: app_add_cli_cmd_id
-APP_ADD_CLI_CMD_ID = 'app.add'
+# ** constant: app_list_cli_cmd_id
+APP_LIST_CLI_CMD_ID = 'app.list'
 
 # ** constant: app_get_cli_cmd_id
 APP_GET_CLI_CMD_ID = 'app.get'
 
-# ** constant: app_list_cli_cmd_id
-APP_LIST_CLI_CMD_ID = 'app.list'
+# ** constant: app_add_cli_cmd_id
+APP_ADD_CLI_CMD_ID = 'app.add'
 
 # ** constant: app_update_cli_cmd_id
 APP_UPDATE_CLI_CMD_ID = 'app.update'
-
-# ** constant: app_set_constants_cli_cmd_id
-APP_SET_CONSTANTS_CLI_CMD_ID = 'app.set_constants'
 
 # ** constant: app_set_service_cli_cmd_id
 APP_SET_SERVICE_CLI_CMD_ID = 'app.set_service'
@@ -39,26 +36,29 @@ APP_SET_SERVICE_CLI_CMD_ID = 'app.set_service'
 # ** constant: app_remove_service_cli_cmd_id
 APP_REMOVE_SERVICE_CLI_CMD_ID = 'app.remove_service'
 
+# ** constant: app_set_constants_cli_cmd_id
+APP_SET_CONSTANTS_CLI_CMD_ID = 'app.set_constants'
+
 # ** constant: app_remove_cli_cmd_id
 APP_REMOVE_CLI_CMD_ID = 'app.remove'
-
-# ** constant: cli_add_command_cli_cmd_id
-CLI_ADD_COMMAND_CLI_CMD_ID = 'cli.add_command'
 
 # ** constant: cli_list_commands_cli_cmd_id
 CLI_LIST_COMMANDS_CLI_CMD_ID = 'cli.list_commands'
 
+# ** constant: cli_add_command_cli_cmd_id
+CLI_ADD_COMMAND_CLI_CMD_ID = 'cli.add_command'
+
 # ** constant: cli_add_argument_cli_cmd_id
 CLI_ADD_ARGUMENT_CLI_CMD_ID = 'cli.add_argument'
 
-# ** constant: error_add_cli_cmd_id
-ERROR_ADD_CLI_CMD_ID = 'error.add'
+# ** constant: error_list_cli_cmd_id
+ERROR_LIST_CLI_CMD_ID = 'error.list'
 
 # ** constant: error_get_cli_cmd_id
 ERROR_GET_CLI_CMD_ID = 'error.get'
 
-# ** constant: error_list_cli_cmd_id
-ERROR_LIST_CLI_CMD_ID = 'error.list'
+# ** constant: error_add_cli_cmd_id
+ERROR_ADD_CLI_CMD_ID = 'error.add'
 
 # ** constant: error_rename_cli_cmd_id
 ERROR_RENAME_CLI_CMD_ID = 'error.rename'
@@ -72,17 +72,14 @@ ERROR_REMOVE_MESSAGE_CLI_CMD_ID = 'error.remove_message'
 # ** constant: error_remove_cli_cmd_id
 ERROR_REMOVE_CLI_CMD_ID = 'error.remove'
 
-# ** constant: feature_add_cli_cmd_id
-FEATURE_ADD_CLI_CMD_ID = 'feature.add'
+# ** constant: feature_list_cli_cmd_id
+FEATURE_LIST_CLI_CMD_ID = 'feature.list'
 
 # ** constant: feature_get_cli_cmd_id
 FEATURE_GET_CLI_CMD_ID = 'feature.get'
 
-# ** constant: feature_list_cli_cmd_id
-FEATURE_LIST_CLI_CMD_ID = 'feature.list'
-
-# ** constant: feature_remove_cli_cmd_id
-FEATURE_REMOVE_CLI_CMD_ID = 'feature.remove'
+# ** constant: feature_add_cli_cmd_id
+FEATURE_ADD_CLI_CMD_ID = 'feature.add'
 
 # ** constant: feature_update_cli_cmd_id
 FEATURE_UPDATE_CLI_CMD_ID = 'feature.update'
@@ -99,11 +96,14 @@ FEATURE_REMOVE_STEP_CLI_CMD_ID = 'feature.remove_step'
 # ** constant: feature_reorder_step_cli_cmd_id
 FEATURE_REORDER_STEP_CLI_CMD_ID = 'feature.reorder_step'
 
-# ** constant: service_add_cli_cmd_id
-SERVICE_ADD_CLI_CMD_ID = 'service.add'
+# ** constant: feature_remove_cli_cmd_id
+FEATURE_REMOVE_CLI_CMD_ID = 'feature.remove'
 
 # ** constant: service_list_cli_cmd_id
 SERVICE_LIST_CLI_CMD_ID = 'service.list'
+
+# ** constant: service_add_cli_cmd_id
+SERVICE_ADD_CLI_CMD_ID = 'service.add'
 
 # ** constant: service_set_default_cli_cmd_id
 SERVICE_SET_DEFAULT_CLI_CMD_ID = 'service.set_default'
@@ -114,11 +114,11 @@ SERVICE_SET_DEPENDENCY_CLI_CMD_ID = 'service.set_dependency'
 # ** constant: service_remove_dependency_cli_cmd_id
 SERVICE_REMOVE_DEPENDENCY_CLI_CMD_ID = 'service.remove_dependency'
 
-# ** constant: service_remove_cli_cmd_id
-SERVICE_REMOVE_CLI_CMD_ID = 'service.remove'
-
 # ** constant: service_set_constants_cli_cmd_id
 SERVICE_SET_CONSTANTS_CLI_CMD_ID = 'service.set_constants'
+
+# ** constant: service_remove_cli_cmd_id
+SERVICE_REMOVE_CLI_CMD_ID = 'service.remove'
 
 # ** constant: logging_add_formatter_cli_cmd_id
 LOGGING_ADD_FORMATTER_CLI_CMD_ID = 'logging.add_formatter'
@@ -143,6 +143,25 @@ LOGGING_LIST_CLI_CMD_ID = 'logging.list'
 
 # *** constants (commands)
 
+# ** constant: app_list_cli_cmd_data
+APP_LIST_CLI_CMD_DATA = create_default_cli_command_data(
+    'list',
+    'app',
+    'List App Interfaces',
+    description='List all configured app interfaces.',
+)
+
+# ** constant: app_get_cli_cmd_data
+APP_GET_CLI_CMD_DATA = create_default_cli_command_data(
+    'get',
+    'app',
+    'Get App Interface',
+    description='Retrieve an app interface by ID.',
+    arguments=[
+        create_default_cli_argument(['interface_id'], 'The interface identifier.'),
+    ],
+)
+
 # ** constant: app_add_cli_cmd_data
 APP_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     'add',
@@ -158,25 +177,6 @@ APP_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     ],
 )
 
-# ** constant: app_get_cli_cmd_data
-APP_GET_CLI_CMD_DATA = create_default_cli_command_data(
-    'get',
-    'app',
-    'Get App Interface',
-    description='Retrieve an app interface by ID.',
-    arguments=[
-        create_default_cli_argument(['interface_id'], 'The interface identifier.'),
-    ],
-)
-
-# ** constant: app_list_cli_cmd_data
-APP_LIST_CLI_CMD_DATA = create_default_cli_command_data(
-    'list',
-    'app',
-    'List App Interfaces',
-    description='List all configured app interfaces.',
-)
-
 # ** constant: app_update_cli_cmd_data
 APP_UPDATE_CLI_CMD_DATA = create_default_cli_command_data(
     'update',
@@ -187,18 +187,6 @@ APP_UPDATE_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['id'], 'The interface identifier.'),
         create_default_cli_argument(['attribute'], 'The attribute to update.'),
         create_default_cli_argument(['value'], 'The new value.'),
-    ],
-)
-
-# ** constant: app_set_constants_cli_cmd_data
-APP_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
-    'set-constants',
-    'app',
-    'Set App Constants',
-    description='Set or clear constants on an app interface.',
-    arguments=[
-        create_default_cli_argument(['id'], 'The interface identifier.'),
-        create_default_cli_argument(['--constants'], 'Constants as key=value pairs. Omit to clear all.', type='dict'),
     ],
 )
 
@@ -229,6 +217,18 @@ APP_REMOVE_SERVICE_CLI_CMD_DATA = create_default_cli_command_data(
     ],
 )
 
+# ** constant: app_set_constants_cli_cmd_data
+APP_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
+    'set-constants',
+    'app',
+    'Set App Constants',
+    description='Set or clear constants on an app interface.',
+    arguments=[
+        create_default_cli_argument(['id'], 'The interface identifier.'),
+        create_default_cli_argument(['--constants'], 'Constants as key=value pairs. Omit to clear all.', type='dict'),
+    ],
+)
+
 # ** constant: app_remove_cli_cmd_data
 APP_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
     'remove',
@@ -238,6 +238,14 @@ APP_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
     arguments=[
         create_default_cli_argument(['id'], 'The interface identifier to remove.'),
     ],
+)
+
+# ** constant: cli_list_commands_cli_cmd_data
+CLI_LIST_COMMANDS_CLI_CMD_DATA = create_default_cli_command_data(
+    'list-commands',
+    'cli',
+    'List CLI Commands',
+    description='List all CLI command definitions.',
 )
 
 # ** constant: cli_add_command_cli_cmd_data
@@ -255,14 +263,6 @@ CLI_ADD_COMMAND_CLI_CMD_DATA = create_default_cli_command_data(
     ],
 )
 
-# ** constant: cli_list_commands_cli_cmd_data
-CLI_LIST_COMMANDS_CLI_CMD_DATA = create_default_cli_command_data(
-    'list-commands',
-    'cli',
-    'List CLI Commands',
-    description='List all CLI command definitions.',
-)
-
 # ** constant: cli_add_argument_cli_cmd_data
 CLI_ADD_ARGUMENT_CLI_CMD_DATA = create_default_cli_command_data(
     'add-argument',
@@ -276,6 +276,25 @@ CLI_ADD_ARGUMENT_CLI_CMD_DATA = create_default_cli_command_data(
             'Argument name or flags (comma-separated for multiple flags).',
         ),
         create_default_cli_argument(['--description'], 'Optional argument description.'),
+    ],
+)
+
+# ** constant: error_list_cli_cmd_data
+ERROR_LIST_CLI_CMD_DATA = create_default_cli_command_data(
+    'list',
+    'error',
+    'List Errors',
+    description='List all error definitions.',
+)
+
+# ** constant: error_get_cli_cmd_data
+ERROR_GET_CLI_CMD_DATA = create_default_cli_command_data(
+    'get',
+    'error',
+    'Get Error',
+    description='Retrieve an error by ID.',
+    arguments=[
+        create_default_cli_argument(['id'], 'The error identifier.'),
     ],
 )
 
@@ -296,25 +315,6 @@ ERROR_ADD_CLI_CMD_DATA = create_default_cli_command_data(
             type='dict',
         ),
     ],
-)
-
-# ** constant: error_get_cli_cmd_data
-ERROR_GET_CLI_CMD_DATA = create_default_cli_command_data(
-    'get',
-    'error',
-    'Get Error',
-    description='Retrieve an error by ID.',
-    arguments=[
-        create_default_cli_argument(['id'], 'The error identifier.'),
-    ],
-)
-
-# ** constant: error_list_cli_cmd_data
-ERROR_LIST_CLI_CMD_DATA = create_default_cli_command_data(
-    'list',
-    'error',
-    'List Errors',
-    description='List all error definitions.',
 )
 
 # ** constant: error_rename_cli_cmd_data
@@ -365,17 +365,14 @@ ERROR_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
     ],
 )
 
-# ** constant: feature_add_cli_cmd_data
-FEATURE_ADD_CLI_CMD_DATA = create_default_cli_command_data(
-    'add',
+# ** constant: feature_list_cli_cmd_data
+FEATURE_LIST_CLI_CMD_DATA = create_default_cli_command_data(
+    'list',
     'feature',
-    'Add Feature',
-    description='Add a new feature configuration.',
+    'List Features',
+    description='List all features, optionally filtered by group.',
     arguments=[
-        create_default_cli_argument(['name'], 'The feature name.'),
-        create_default_cli_argument(['group_id'], 'The group identifier.'),
-        create_default_cli_argument(['--feature-key'], 'Optional explicit feature key.'),
-        create_default_cli_argument(['--description'], 'Optional feature description.'),
+        create_default_cli_argument(['--group-id'], 'Optional group ID to filter results.'),
     ],
 )
 
@@ -390,25 +387,17 @@ FEATURE_GET_CLI_CMD_DATA = create_default_cli_command_data(
     ],
 )
 
-# ** constant: feature_list_cli_cmd_data
-FEATURE_LIST_CLI_CMD_DATA = create_default_cli_command_data(
-    'list',
+# ** constant: feature_add_cli_cmd_data
+FEATURE_ADD_CLI_CMD_DATA = create_default_cli_command_data(
+    'add',
     'feature',
-    'List Features',
-    description='List all features, optionally filtered by group.',
+    'Add Feature',
+    description='Add a new feature configuration.',
     arguments=[
-        create_default_cli_argument(['--group-id'], 'Optional group ID to filter results.'),
-    ],
-)
-
-# ** constant: feature_remove_cli_cmd_data
-FEATURE_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
-    'remove',
-    'feature',
-    'Remove Feature',
-    description='Remove a feature configuration by ID.',
-    arguments=[
-        create_default_cli_argument(['id'], 'The feature identifier to remove.'),
+        create_default_cli_argument(['name'], 'The feature name.'),
+        create_default_cli_argument(['group_id'], 'The group identifier.'),
+        create_default_cli_argument(['--feature-key'], 'Optional explicit feature key.'),
+        create_default_cli_argument(['--description'], 'Optional feature description.'),
     ],
 )
 
@@ -484,6 +473,25 @@ FEATURE_REORDER_STEP_CLI_CMD_DATA = create_default_cli_command_data(
     ],
 )
 
+# ** constant: feature_remove_cli_cmd_data
+FEATURE_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
+    'remove',
+    'feature',
+    'Remove Feature',
+    description='Remove a feature configuration by ID.',
+    arguments=[
+        create_default_cli_argument(['id'], 'The feature identifier to remove.'),
+    ],
+)
+
+# ** constant: service_list_cli_cmd_data
+SERVICE_LIST_CLI_CMD_DATA = create_default_cli_command_data(
+    'list',
+    'service',
+    'List All Settings',
+    description='List all service configurations and constants.',
+)
+
 # ** constant: service_add_cli_cmd_data
 SERVICE_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     'add',
@@ -496,14 +504,6 @@ SERVICE_ADD_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['--class-name'], 'Default class name.'),
         create_default_cli_argument(['--parameters'], 'Configuration parameters as key=value pairs.', type='dict'),
     ],
-)
-
-# ** constant: service_list_cli_cmd_data
-SERVICE_LIST_CLI_CMD_DATA = create_default_cli_command_data(
-    'list',
-    'service',
-    'List All Settings',
-    description='List all service configurations and constants.',
 )
 
 # ** constant: service_set_default_cli_cmd_data
@@ -547,17 +547,6 @@ SERVICE_REMOVE_DEPENDENCY_CLI_CMD_DATA = create_default_cli_command_data(
     ],
 )
 
-# ** constant: service_remove_cli_cmd_data
-SERVICE_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
-    'remove',
-    'service',
-    'Remove Service Configuration',
-    description='Remove a service configuration by ID.',
-    arguments=[
-        create_default_cli_argument(['id'], 'The service configuration identifier to remove.'),
-    ],
-)
-
 # ** constant: service_set_constants_cli_cmd_data
 SERVICE_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
     'set-constants',
@@ -566,6 +555,17 @@ SERVICE_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
     description='Set or clear service-level constants.',
     arguments=[
         create_default_cli_argument(['--constants'], 'Constants as key=value pairs. Omit to clear all.', type='dict'),
+    ],
+)
+
+# ** constant: service_remove_cli_cmd_data
+SERVICE_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
+    'remove',
+    'service',
+    'Remove Service Configuration',
+    description='Remove a service configuration by ID.',
+    arguments=[
+        create_default_cli_argument(['id'], 'The service configuration identifier to remove.'),
     ],
 )
 
