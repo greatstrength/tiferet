@@ -17,6 +17,14 @@ Every reviewer checks the following, in this order of precedence. A higher item 
 4. **The tests are relevant and accurate.** Every test exercises the unit its label names, with the right tester type and fixtures, and the catalog rows say what the test does. A test that asserts nothing, duplicates another, or targets the wrong unit is a finding.
 5. **Nothing is superfluous.** No unnecessary statements, declarations, imports, parameters, constants, or comments.
 
+Import groups are part of the style floor, not a separate standard.
+
+- `# ** core` is the Python standard library only. `abc`, `typing`, `re`, and `uuid` belong here.
+- `# ** infra` is third-party packages only. Examples: boto3 or other AWS libraries, Flask, FastAPI, Pydantic, pytest. Not the standard library. Not this application.
+- `# ** app` is this application's own imports only, including relative imports. Not the standard library. Not a third-party package.
+
+Order stays core, then infra, then app. Omit an empty group. A misplaced import is a blocking style finding. An acceptance criterion does not waive it.
+
 After that floor, each reviewer type applies its own priorities.
 
 ## Prototype reviewer
