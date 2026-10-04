@@ -16,7 +16,7 @@ from ..domain import (
     CliOutputRecord,
     CliRecordList,
 )
-from .app import AppSessionContext
+from .app import AppSessionContext, raise_unwired_handler_error
 from .cache import CacheContext
 from .core import add_default_cache_items
 from .request import RequestContext
@@ -157,12 +157,12 @@ class CliSessionContext(AppSessionContext):
     The CLI session context extends the application session hub with
     command-line concerns.
 
-    Receives an injected ``_parse_cli_args`` closure (built by the CLI
-    blueprint) that encapsulates argparse command discovery, parser
-    construction, and request derivation.  ``run(argv=None)`` invokes this
-    closure, delegates execution to the inherited hub, and handles exit codes.
-    ``build_response`` formats and prints the response when the request
-    context is a :class:`CliRequestContext`.
+    Receives injected handlers for argument parsing, command listing, and
+    parent-argument lookup. ``run(argv=None)`` invokes the parse closure,
+    delegates execution to the inherited hub, and handles exit codes.
+    ``list_commands`` and ``get_parent_args`` call their injected handlers
+    and raise when a slot is unwired. ``build_response`` formats and prints
+    the response when the request context is a :class:`CliRequestContext`.
 
     It intentionally omits ``domain_type`` so the ``ContextMeta`` registry
     keeps mapping ``AppSession`` to :class:`AppSessionContext`.
@@ -171,10 +171,18 @@ class CliSessionContext(AppSessionContext):
     # * attribute: _parse_cli_args
     _parse_cli_args: Callable
 
+    # * attribute: _list_commands
+    _list_commands: Callable
+
+    # * attribute: _get_parent_args
+    _get_parent_args: Callable
+
     # * init
     def __init__(self,
             get_dependency: Callable,
             parse_cli_args: Callable = None,
+            list_commands_handler: Callable = None,
+            get_parent_args_handler: Callable = None,
             cache: CacheContext = None,
             build_logger_handler: Callable = None,
             execute_feature_handler: Callable = None,
@@ -192,6 +200,13 @@ class CliSessionContext(AppSessionContext):
             ``(feature_id, headers, data)``. Built by the CLI blueprint via
             ``parse_cli_args_handler``.
         :type parse_cli_args: Callable
+        :param list_commands_handler: Injected zero-arg callable that lists CLI
+            commands. Built by the CLI blueprint via ``list_commands_handler``.
+        :type list_commands_handler: Callable
+        :param get_parent_args_handler: Injected zero-arg callable that returns
+            parent-level CLI arguments. Built by the CLI blueprint via
+            ``get_parent_args_handler``.
+        :type get_parent_args_handler: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
         :param build_logger_handler: The logger-construction callable; one of the
@@ -224,6 +239,54 @@ class CliSessionContext(AppSessionContext):
 
         # Store the injected CLI arg-parser callable.
         self._parse_cli_args = parse_cli_args
+
+        # Store the injected command and parent-argument handlers.
+        self._list_commands = list_commands_handler
+        self._get_parent_args = get_parent_args_handler
+
+    # * method: list_commands
+    def list_commands(self) -> List[CliCommand]:
+        '''
+        List the CLI commands for this session.
+
+        Delegates to the injected ``list_commands_handler``. An unwired
+        handler raises ``APP_ERROR`` naming the missing slot.
+
+        :return: The CLI commands.
+        :rtype: List[CliCommand]
+        '''
+
+        # Fail loudly when the blueprint-supplied command handler is absent.
+        if self._list_commands is None:
+            raise_unwired_handler_error(
+                'list_commands_handler',
+                self.domain.id,
+            )
+
+        # Delegate to the injected handler.
+        return self._list_commands()
+
+    # * method: get_parent_args
+    def get_parent_args(self) -> List[CliArgument]:
+        '''
+        Return the parent-level CLI arguments for this session.
+
+        Delegates to the injected ``get_parent_args_handler``. An unwired
+        handler raises ``APP_ERROR`` naming the missing slot.
+
+        :return: The parent-level CLI arguments.
+        :rtype: List[CliArgument]
+        '''
+
+        # Fail loudly when the blueprint-supplied parent-argument handler is absent.
+        if self._get_parent_args is None:
+            raise_unwired_handler_error(
+                'get_parent_args_handler',
+                self.domain.id,
+            )
+
+        # Delegate to the injected handler.
+        return self._get_parent_args()
 
     # * method: build_response
     def build_response(self, request: RequestContext) -> Any:

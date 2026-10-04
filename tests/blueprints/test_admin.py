@@ -111,7 +111,7 @@ def test_build_admin_app_session_context_wires_handlers():
     assert context._execute_feature is not None
     assert context._raise_error is not None
     assert context._build_response is core.response_handler
-    assert context._create_request is core.create_session_request
+    assert context._create_request is core.create_request_context
 
 # ** test: build_admin_app_returns_app_session_context
 def test_build_admin_app_returns_app_session_context():
@@ -131,7 +131,7 @@ def test_build_admin_app_returns_app_session_context():
     assert context._build_logger is not None
     assert context._execute_feature is not None
     assert context._raise_error is not None
-    assert context._create_request is core.create_session_request
+    assert context._create_request is core.create_request_context
     assert context._build_response is core.response_handler
 
 # ** test: build_admin_app_alias

@@ -12,7 +12,8 @@ from . import admin
 from .cli import (
     parse_cli_args_handler,
     create_cli_request_context,
-    cli_response_handler,
+    list_commands_handler,
+    get_parent_args_handler,
 )
 from ..contexts.app import (
     AppSession,
@@ -22,7 +23,6 @@ from ..contexts.cache import CacheContext
 from ..contexts.cli import (
     CliSessionContext,
     add_default_cli_commands,
-    get_default_cli_commands,
 )
 
 # *** blueprints
@@ -63,10 +63,9 @@ def build_admin_cli_session_context(
     Parallel to :func:`cli.build_cli_session_context` but uses
     :func:`admin.build_admin_service_resolver` in place of
     :func:`core.build_service_resolver`, so the feature-level resolver carries
-    the admin service catalog alongside the standard app container.  The
-    ``_parse_cli_args`` closure is built via
-    :func:`_admin_parse_cli_args_handler`, which extends the standard handler
-    with JSON decoding of complex admin CLI arguments.
+    the admin service catalog alongside the standard app container. The
+    command and parent-argument handlers are built here and passed in; this
+    builder does not resolve those events by service id.
 
     :param app_session: The resolved app session definition.
     :type app_session: AppSession
@@ -83,27 +82,28 @@ def build_admin_cli_session_context(
     # Build the feature-level resolver using the admin resolver (adds admin container).
     resolver = admin.build_admin_service_resolver(app_container, cache)
 
-    # Resolve the CLI event collaborators from the app container.
-    list_commands_evt = app_container.get_dependency('list_commands_evt')
-    get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
+    # Build the command and parent-argument handlers. This builder does not
+    # resolve those events by service id.
+    commands_handler = list_commands_handler(cache, resolver.get_dependency)
+    parent_args_handler = get_parent_args_handler(resolver.get_dependency)
 
-    # Build the _parse_cli_args closure via the standard type-aware handler.
+    # Build the parse closure from the handlers, not the raw events.
     parse_cli_args = parse_cli_args_handler(
-        list_commands_evt,
-        get_parent_args_evt,
-        get_default_cli_commands(cache),
+        list_commands=commands_handler,
+        get_parent_args=parent_args_handler,
     )
 
-    # Delegate handler wiring, collaborator resolution, and construction.
+    # Delegate handler wiring and construction.
     return core.compose_session_context(
         CliSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
         create_request_handler=create_cli_request_context,
-        response_handler=cli_response_handler,
+        response_handler=core.response_handler,
         parse_cli_args=parse_cli_args,
+        list_commands_handler=commands_handler,
+        get_parent_args_handler=parent_args_handler,
     )
 
 

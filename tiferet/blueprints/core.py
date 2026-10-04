@@ -31,81 +31,35 @@ from ..contexts.app import (
     APP_SERVICE_CACHE_PREFIX,
     APP_SESSION_CACHE_PREFIX,
 )
-from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
+from ..di import DIAppServiceContainer, DIDynamicServiceContainer
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
 from ..events import DomainEvent
 from ..events.app import GetAppSession
 from .. import a
 
-# *** constants
-
-# ** constant: reserved_context_parameters
-# Constructor parameters supplied explicitly by the session context builders,
-# and therefore excluded from generic collaborator resolution.
-RESERVED_CONTEXT_PARAMETERS = (
-    'get_dependency',
-    'cache',
-    'build_logger_handler',
-    'parse_cli_args',
-    'execute_feature_handler',
-    'create_request_handler',
-    'raise_error_handler',
-    'response_handler',
-)
-
 # *** functions
-
-# ** function: resolve_collaborators
-def resolve_collaborators(context_cls: type, app_container: DIAppServiceContainer) -> Dict[str, Any]:
-    '''
-    Resolve a context class's remaining injectable collaborators from the app container.
-
-    Inspects the realized context class's constructor and resolves every
-    injectable parameter that is registered on the app container, skipping the
-    parameters the session context builders supply explicitly
-    (``RESERVED_CONTEXT_PARAMETERS``) and the bootstrap ``default_*``
-    parameters. This is the seam that lets a context subclass declare extra
-    collaborators and have them wired declaratively.
-
-    :param context_cls: The realized context class to inspect.
-    :type context_cls: type
-    :param app_container: The built app service container to resolve against.
-    :type app_container: DIAppServiceContainer
-    :return: A mapping of collaborator name to resolved instance.
-    :rtype: Dict[str, Any]
-    '''
-
-    # Resolve each injectable parameter that is neither reserved nor a bootstrap default.
-    return {
-        name: app_container.get_dependency(name)
-        for name in injectable_parameter_names(context_cls)
-        if name not in RESERVED_CONTEXT_PARAMETERS
-        and not name.startswith('default_')
-        and app_container.has_dependency(name)
-    }
 
 # ** function: compose_session_context
 def compose_session_context(
         context_cls: type,
         app_session: AppSession,
         cache: CacheContext,
-        app_container: DIAppServiceContainer,
         resolver: ServiceResolver,
         create_request_handler: Callable,
         response_handler: Callable,
         **extra_kwargs) -> Any:
     '''
-    Compose a session context from a pre-built app container and resolver.
+    Compose a session context from a pre-built resolver.
 
     Wires the three resolver-derived handlers (build_logger_handler,
     execute_feature_handler, raise_error_handler) plus the caller-supplied
-    request/response handler pair, resolves any remaining collaborators the
-    context class declares, and constructs the context via from_domain.
-    The caller supplies the pre-built app container and resolver so this
-    function stays agnostic to which resolver-composition strategy (core vs
-    admin) produced them, and to which context class (AppSessionContext vs
-    CliSessionContext) is being constructed.
+    request/response handler pair, and constructs the context via from_domain.
+    The caller supplies the pre-built resolver so this function stays agnostic
+    to which resolver-composition strategy (core vs admin) produced it, and to
+    which context class (AppSessionContext vs CliSessionContext) is being
+    constructed. A new context slot is an explicit handler or extra_kwargs,
+    not a constructor name matched to a service id.
 
     :param context_cls: The context class to construct (AppSessionContext or
         CliSessionContext).
@@ -114,9 +68,6 @@ def compose_session_context(
     :type app_session: AppSession
     :param cache: The bootstrap cache.
     :type cache: CacheContext
-    :param app_container: The built app service container, used to resolve
-        collaborators.
-    :type app_container: DIAppServiceContainer
     :param resolver: The composed service resolver (core or admin).
     :type resolver: ServiceResolver
     :param create_request_handler: The request-construction handler to wire.
@@ -140,16 +91,12 @@ def compose_session_context(
         create_request_handler=create_request_handler,
     )
 
-    # Resolve any remaining injectable collaborators the context class declares.
-    collaborators = resolve_collaborators(context_cls, app_container)
-
     # Construct and return the wired session context.
     return context_cls.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
         **handlers,
-        **collaborators,
         **extra_kwargs,
     )
 
@@ -737,34 +684,6 @@ def create_feature_context(
         cache=cache,
         parse_parameter=parse_parameter,
     )
-
-# ** blueprint: create_session_request
-def create_session_request(
-    interface_id: str,
-    feature_id: str,
-    headers: Dict[str, str] = None,
-    data: Dict[str, Any] = None,
-) -> RequestContext:
-    '''
-    Compose a session request context for the hub's ``run`` method.
-
-    Backward-compatible alias for :func:`create_request_context`, retained as
-    the name the hub's ``create_request_handler`` slot is wired to.
-
-    :param interface_id: The interface id to inject into the request headers.
-    :type interface_id: str
-    :param feature_id: The feature id to seed on the request context.
-    :type feature_id: str
-    :param headers: Optional request headers to merge with the interface id.
-    :type headers: Dict[str, str] | None
-    :param data: Optional request data payload.
-    :type data: Dict[str, Any] | None
-    :return: The composed request context.
-    :rtype: RequestContext
-    '''
-
-    # Delegate to the canonical request context factory.
-    return create_request_context(interface_id, feature_id, headers, data)
 
 # ** blueprint: execute_feature_handler
 def execute_feature_handler(

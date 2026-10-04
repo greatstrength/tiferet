@@ -21,7 +21,6 @@ from tiferet.blueprints.core import (
     load_cache,
     create_request_context,
     create_feature_context,
-    create_session_request,
     execute_feature_handler,
     raise_error_handler,
     response_handler,
@@ -559,32 +558,6 @@ def test_create_request_context_stamps_interface_id():
     assert request.headers.get('h') == 'v'
     assert request.data == {'a': 1}
 
-# ** test: create_session_request_delegates_to_create_request_context
-def test_create_session_request_delegates_to_create_request_context():
-    '''
-    Test that create_session_request is a backward-compatible alias producing
-    a request context identical to create_request_context's.
-    '''
-
-    # Compose the same request through both entry points.
-    canonical = create_request_context(
-        'iface',
-        'g.f',
-        headers={'h': 'v'},
-        data={'a': 1},
-    )
-    aliased = create_session_request(
-        'iface',
-        'g.f',
-        headers={'h': 'v'},
-        data={'a': 1},
-    )
-
-    # Assert both produce equivalent request state.
-    assert aliased.headers == canonical.headers
-    assert aliased.data == canonical.data
-    assert aliased.feature_id == canonical.feature_id
-
 # ** test: create_feature_context_with_preloaded_feature
 def test_create_feature_context_with_preloaded_feature():
     '''
@@ -641,37 +614,15 @@ def test_create_feature_context_loads_by_feature_id():
     get_dependency.assert_called_once_with('get_feature_evt', 'app')
     get_feature_evt.execute.assert_called_once_with(id='group.feat')
 
-# ** test: create_session_request_builds_request_context
-def test_create_session_request_builds_request_context():
+# ** test: create_request_context_empty_headers_and_data
+def test_create_request_context_empty_headers_and_data():
     '''
-    Test that create_session_request builds a RequestContext with interface_id
-    injected into headers, feature_id set, and data wired.
-    '''
-
-    # Build the session request.
-    request = create_session_request(
-        interface_id='test_interface',
-        feature_id='group.feat',
-        headers={'h': 'v'},
-        data={'a': 1},
-    )
-
-    # Assert the request is shaped correctly.
-    assert isinstance(request, RequestContext)
-    assert request.feature_id == 'group.feat'
-    assert request.headers.get('interface_id') == 'test_interface'
-    assert request.headers.get('h') == 'v'
-    assert request.data == {'a': 1}
-
-# ** test: create_session_request_empty_headers_and_data
-def test_create_session_request_empty_headers_and_data():
-    '''
-    Test that create_session_request handles None headers and data,
+    Test that create_request_context handles None headers and data,
     producing a request with only interface_id in headers.
     '''
 
-    # Build the session request with no headers or data.
-    request = create_session_request(
+    # Build the request with no headers or data.
+    request = create_request_context(
         interface_id='iface',
         feature_id='g.f',
     )
@@ -1125,11 +1076,6 @@ def test_compose_session_context_wires_five_handlers():
     callables onto the resulting context.
     '''
 
-    # Arrange an app container with no additional collaborators.
-    app_container = mock.Mock()
-    app_container.has_dependency.return_value = False
-    app_container.get_dependency.return_value = mock.Mock()
-
     # Arrange a resolver stub.
     resolver = mock.Mock()
 
@@ -1142,9 +1088,8 @@ def test_compose_session_context_wires_five_handlers():
         AppSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
-        create_request_handler=create_session_request,
+        create_request_handler=create_request_context,
         response_handler=response_handler,
     )
 
@@ -1159,42 +1104,35 @@ def test_compose_session_context_wires_five_handlers():
     assert callable(result._raise_error)
     assert callable(result._build_response)
 
-# ** test: compose_session_context_resolves_collaborators
-def test_compose_session_context_resolves_collaborators():
+# ** test: compose_session_context_does_not_inject_unpassed_slots
+def test_compose_session_context_does_not_inject_unpassed_slots():
     '''
-    Test that compose_session_context resolves the context class's remaining
-    injectable collaborators from the app container via resolve_collaborators.
+    Test that compose_session_context does not inject a constructor parameter
+    because its name matches a service id.
     '''
 
-    # Define a synthetic context subclass declaring one extra collaborator.
+    # Define a context subclass declaring a slot the build does not pass.
     class _ProbeContext(AppSessionContext):
         def __init__(self, get_dependency, probe_evt=None, **kwargs):
             super().__init__(get_dependency=get_dependency, **kwargs)
             self.probe_evt = probe_evt
 
-    # Arrange an app container that resolves the extra collaborator by name.
-    probe = mock.Mock()
-    app_container = mock.Mock()
-    app_container.has_dependency.side_effect = lambda name: name == 'probe_evt'
-    app_container.get_dependency.side_effect = lambda name: probe if name == 'probe_evt' else mock.Mock()
-
     resolver = mock.Mock()
     app_session = AppSession(id='test_probe', name='Test Probe')
     cache = CacheContext()
 
-    # Compose the session context.
+    # Compose without passing probe_evt.
     result = compose_session_context(
         _ProbeContext,
         app_session,
         cache,
-        app_container,
         resolver,
-        create_request_handler=create_session_request,
+        create_request_handler=create_request_context,
         response_handler=response_handler,
     )
 
-    # Assert the extra collaborator was resolved and wired onto the context.
-    assert result.probe_evt is probe
+    # Assert the unpassed slot stays unwired.
+    assert result.probe_evt is None
 
 # ** test: compose_session_context_forwards_extra_kwargs
 def test_compose_session_context_forwards_extra_kwargs():
@@ -1202,11 +1140,6 @@ def test_compose_session_context_forwards_extra_kwargs():
     Test that compose_session_context forwards additional keyword arguments
     (e.g. a parse_cli_args-style kwarg) to the context constructor.
     '''
-
-    # Arrange an app container with no additional collaborators.
-    app_container = mock.Mock()
-    app_container.has_dependency.return_value = False
-    app_container.get_dependency.return_value = mock.Mock()
 
     resolver = mock.Mock()
     app_session = AppSession(id='test_cli', name='Test CLI')
@@ -1219,9 +1152,8 @@ def test_compose_session_context_forwards_extra_kwargs():
         CliSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
-        create_request_handler=create_session_request,
+        create_request_handler=create_request_context,
         response_handler=response_handler,
         parse_cli_args=parse_cli_args,
     )
@@ -1229,3 +1161,20 @@ def test_compose_session_context_forwards_extra_kwargs():
     # Assert the extra kwarg was forwarded and stored.
     assert isinstance(result, CliSessionContext)
     assert result._parse_cli_args is parse_cli_args
+    assert result._list_commands is None
+    assert result._get_parent_args is None
+
+# ** test: retired_collaborator_scanner_and_aliases_are_absent
+def test_retired_collaborator_scanner_and_aliases_are_absent():
+    '''
+    Test that the collaborator scanner, its allow-list, and the session-request
+    alias are absent from the core blueprint module.
+    '''
+
+    # Import the module under test.
+    import tiferet.blueprints.core as core_blueprint
+
+    # Assert the retired scanner and alias are gone.
+    assert not hasattr(core_blueprint, 'resolve_collaborators')
+    assert not hasattr(core_blueprint, 'RESERVED_CONTEXT_PARAMETERS')
+    assert not hasattr(core_blueprint, 'create_session_request')

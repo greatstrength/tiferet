@@ -9,6 +9,8 @@ from unittest import mock
 # ** app
 import tiferet.blueprints.cli as cli_blueprint
 from tiferet.blueprints.cli import build_app
+from tiferet.contexts.cache import CacheContext
+from tiferet.contexts.cli import CliSessionContext
 from tiferet.domain import CliArgument, CliCommand
 
 # *** tests
@@ -77,8 +79,11 @@ def test_blueprint_exposes_parsing_helpers():
 
     # Assert the blueprint owns the new composition helpers.
     for name in ('build_cli_cache', 'parse_cli_args_handler', 'create_cli_request_context',
-                 'cli_response_handler', 'build_cli_session_context'):
+                 'list_commands_handler', 'get_parent_args_handler', 'build_cli_session_context'):
         assert hasattr(cli_blueprint, name), f'{name} not found on cli blueprint'
+
+    # Assert the retired CLI response alias is absent.
+    assert not hasattr(cli_blueprint, 'cli_response_handler')
 
     # Assert legacy names that never belonged here are absent.
     for name in ('get_commands', 'get_parent_arguments', 'build_argument_kwargs', 'parse_argv'):
@@ -149,3 +154,132 @@ def test_derive_feature_request_normalizes_hyphens():
     # Assert the feature id is normalized and headers keep raw values.
     assert feature_id == 'my_calc.sub_tract'
     assert headers == {'command_group': 'my-calc', 'command_key': 'sub-tract'}
+
+# ** test: list_commands_handler_returns_event_result
+def test_list_commands_handler_returns_event_result():
+    '''
+    Test that list_commands_handler resolves list_commands_evt through the
+    app flag and returns the event result.
+    '''
+
+    # Arrange an app-scoped event that returns commands.
+    commands = [CliCommand(name='Add', key='add', group_key='calc')]
+    event = mock.Mock()
+    event.execute.return_value = commands
+    get_dependency = mock.Mock(return_value=event)
+
+    # Build and invoke the handler.
+    handler = cli_blueprint.list_commands_handler(CacheContext(), get_dependency)
+    result = handler()
+
+    # Assert the event was resolved on the app flag and its result returned.
+    get_dependency.assert_called_once_with('list_commands_evt', 'app')
+    event.execute.assert_called_once_with()
+    assert result is commands
+
+# ** test: list_commands_handler_falls_back_when_event_returns_none
+def test_list_commands_handler_falls_back_when_event_returns_none():
+    '''
+    Test that list_commands_handler falls back to cache-seeded defaults when
+    the event returns none.
+    '''
+
+    # Arrange an event that returns none and a cache with no seeded commands.
+    event = mock.Mock()
+    event.execute.return_value = None
+    get_dependency = mock.Mock(return_value=event)
+    cache = CacheContext()
+
+    # Build and invoke the handler.
+    handler = cli_blueprint.list_commands_handler(cache, get_dependency)
+    result = handler()
+
+    # Assert the app-scoped event was consulted and the cache fallback used.
+    get_dependency.assert_called_once_with('list_commands_evt', 'app')
+    assert result == []
+
+# ** test: get_parent_args_handler_resolves_app_scoped_event
+def test_get_parent_args_handler_resolves_app_scoped_event():
+    '''
+    Test that get_parent_args_handler resolves get_parent_args_evt through
+    the app flag and returns the event result.
+    '''
+
+    # Arrange an app-scoped event that returns parent arguments.
+    arguments = [CliArgument(name_or_flags=['--verbose'])]
+    event = mock.Mock()
+    event.execute.return_value = arguments
+    get_dependency = mock.Mock(return_value=event)
+
+    # Build and invoke the handler.
+    handler = cli_blueprint.get_parent_args_handler(get_dependency)
+    result = handler()
+
+    # Assert the event was resolved on the app flag and its result returned.
+    get_dependency.assert_called_once_with('get_parent_args_evt', 'app')
+    event.execute.assert_called_once_with()
+    assert result is arguments
+
+# ** test: parse_cli_args_handler_returns_feature_request_tuple
+def test_parse_cli_args_handler_returns_feature_request_tuple():
+    '''
+    Test that parse_cli_args_handler takes the injected callables and returns
+    (feature_id, headers, data).
+    '''
+
+    # Arrange handlers that return one command and no parent arguments.
+    command = CliCommand(name='Add', key='add', group_key='calc')
+    handler = cli_blueprint.parse_cli_args_handler(
+        list_commands=lambda: [command],
+        get_parent_args=lambda: [],
+    )
+
+    # Parse a minimal argv.
+    feature_id, headers, data = handler(['calc', 'add'])
+
+    # Assert the feature request tuple.
+    assert feature_id == 'calc.add'
+    assert headers == {'command_group': 'calc', 'command_key': 'add'}
+    assert data['group'] == 'calc'
+    assert data['command'] == 'add'
+
+# ** test: build_cli_session_context_passes_handlers_not_raw_events
+def test_build_cli_session_context_passes_handlers_not_raw_events():
+    '''
+    Test that build_cli_session_context still builds the container and resolver,
+    does not resolve the CLI events by service id, and passes the handlers
+    through compose_session_context.
+    '''
+
+    # Isolate composition from container and resolver construction.
+    app_session = mock.Mock()
+    cache = CacheContext()
+    app_container = mock.Mock()
+    resolver = mock.Mock()
+    composed = mock.Mock()
+    with mock.patch.object(
+        cli_blueprint.core, 'build_app_service_container', return_value=app_container,
+    ) as build_container, mock.patch.object(
+        cli_blueprint.core, 'build_service_resolver', return_value=resolver,
+    ) as build_resolver, mock.patch.object(
+        cli_blueprint.core, 'compose_session_context', return_value=composed,
+    ) as compose:
+        result = cli_blueprint.build_cli_session_context(app_session, cache)
+
+    # Assert the container and resolver are still constructed.
+    build_container.assert_called_once_with(cache, app_session)
+    build_resolver.assert_called_once_with(app_container)
+    app_container.get_dependency.assert_not_called()
+    resolver.get_dependency.assert_not_called()
+
+    # Assert the handlers are passed and the container is not.
+    assert compose.call_args.args[:4] == (
+        CliSessionContext, app_session, cache, resolver,
+    )
+    assert app_container not in compose.call_args.args
+    assert compose.call_args.kwargs['response_handler'] is cli_blueprint.core.response_handler
+    assert compose.call_args.kwargs['create_request_handler'] is cli_blueprint.create_cli_request_context
+    assert callable(compose.call_args.kwargs['list_commands_handler'])
+    assert callable(compose.call_args.kwargs['get_parent_args_handler'])
+    assert callable(compose.call_args.kwargs['parse_cli_args'])
+    assert result is composed

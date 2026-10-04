@@ -241,7 +241,7 @@ class AppSessionContext(BaseContext):
             the ``execute_feature_handler`` blueprint.
         :type execute_feature_handler: Callable
         :param create_request_handler: The request-creation callable produced by
-            the ``create_session_request`` blueprint.
+            the ``create_request_context`` blueprint.
         :type create_request_handler: Callable
         :param raise_error_handler: The error-raising callable produced by the
             ``raise_error_handler`` blueprint.
@@ -306,7 +306,7 @@ class AppSessionContext(BaseContext):
 
         Template method override point. Delegates to the injected
         ``_create_request`` callable, which the blueprint layer wires from
-        ``create_session_request``. An unwired handler raises ``APP_ERROR``
+        ``create_request_context``. An unwired handler raises ``APP_ERROR``
         naming the missing ``create_request_handler``.
 
         :param feature_id: The feature identifier.
