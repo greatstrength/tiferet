@@ -16,6 +16,7 @@ from .core import BaseContext, add_default_cache_items
 from .cache import CacheContext
 from .request import RequestContext
 from ..assets import TiferetError
+from ..assets.core import REQUEST_REF_PREFIX
 from ..assets.error import (
     FEATURE_STEP_LOADING_FAILED_ID,
     MIDDLEWARE_LOADING_FAILED_ID,
@@ -451,9 +452,10 @@ class FeatureContext(BaseContext):
         Parse a request-aware parameter value.
 
         Delegates non-prefixed parameters to the injected ``parse_parameter``
-        callable. For ``$r.``-prefixed references, extracts the value keyed by
-        the suffix from ``request.data``, raising a structured error when the
-        request is absent or the key is missing.
+        callable. For references prefixed with ``REQUEST_REF_PREFIX``,
+        extracts the value keyed by the suffix from ``request.data``,
+        raising a structured error when the request is absent or the key is
+        missing.
 
         :param parameter: The parameter value to parse.
         :type parameter: str
@@ -464,7 +466,7 @@ class FeatureContext(BaseContext):
         '''
 
         # Delegate non-prefixed parameters to the injected parameter parser.
-        if not parameter.startswith('$r.'):
+        if not parameter.startswith(REQUEST_REF_PREFIX):
             return self.parse_parameter(parameter)
 
         # Raise an error if the request is not provided for a request-backed parameter.
@@ -475,8 +477,8 @@ class FeatureContext(BaseContext):
                 parameter=parameter
             )
 
-        # Extract the value from the request data using the key after the $r. prefix.
-        result = request.data.get(parameter[3:], None)
+        # Extract the value from the request data using the key after the prefix.
+        result = request.data.get(parameter[len(REQUEST_REF_PREFIX):], None)
 
         # Raise an error if the parameter key is not found in the request data.
         if result is None:
