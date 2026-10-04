@@ -44,6 +44,12 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
 **Mid-level labels by import group:** `# ** core`, `# ** infra`, `# ** app`
 
+- `# ** core` is the Python standard library only. `abc`, `typing`, `re`, and `uuid` belong here.
+- `# ** infra` is third-party packages only. Examples: boto3 or other AWS libraries, Flask, FastAPI, Pydantic, pytest. Not the standard library. Not this application.
+- `# ** app` is this application's own imports only, including relative imports. Not the standard library. Not a third-party package.
+
+Order stays core, then infra, then app. Omit an empty group. A misplaced import is a blocking style finding. An acceptance criterion does not waive it.
+
 **Mid-level labels by construct:** `# ** model: <name>`, `# ** event: <name>`, `# ** context: <name>`, `# ** mapper: <name>`, `# ** interface: <name>`, `# ** repo: <name>`, `# ** util: <name>`, `# ** blueprint: <name>`, `# ** function: <name>`, `# ** constant: <name>`, `# ** class: <name>`
 
 **Artifact member labels within a class, in this order:**
