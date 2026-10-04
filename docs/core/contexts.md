@@ -108,7 +108,7 @@ The hub's five template methods — `build_logger`, `build_request`, `execute_fe
 
 The `CacheContext` (`tiferet/contexts/cache.py`) exposes `get`, `set`, `delete`, `clear`, and `get_by_prefix(prefix)` — the last returns all entries whose keys start with the given prefix as a `Dict[str, Any]`. This backs enumeration of the framework catalogs that `build_cache` seeds under namespaced key prefixes.
 
-The app-context module (`tiferet/contexts/app.py`) provides paired seeders and getters for the bootstrap catalogs, each namespaced under its own `*prefix` tuple (e.g. `APP_SERVICE_CACHE_PREFIX = ('app', 'services')`):
+The bootstrap cache prefixes (e.g. `APP_SERVICE_CACHE_PREFIX = ('app', 'services')`) are defined in `tiferet/assets/app.py` beside their catalogs, with obsolete aliases on `tiferet/contexts/app.py`. That module still provides the paired seeders — obsolete delegates of `add_default_catalog` — and getters:
 
 - `add_default_app_services` / `add_default_app_constants` seed the cache under the `('app', 'services')` and `('app', 'constants')` namespaces (stacked as decorators on `build_cache`).
 - `get_default_app_services(cache)` returns the seeded `AppServiceDependency` domain objects from the `('app', 'services')` namespace.

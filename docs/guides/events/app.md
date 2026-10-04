@@ -264,7 +264,7 @@ Both `RemoveServiceDependency` and `RemoveAppSession` are idempotent — they su
 
 ### Bootstrap Session Seeding
 
-Unlike error/feature/CLI-command catalogs, built-in app sessions (e.g. `tiferet_cli`) are seeded directly into the shared cache by `add_default_app_sessions` (`tiferet/contexts/app.py`) rather than resolved through a fallback event parameter. `core.get_app_session` checks that cache first and only calls `GetAppSession` on a miss — this event never sees or merges bootstrap defaults itself.
+Unlike error/feature/CLI-command catalogs, built-in app sessions (e.g. `tiferet_cli`) are seeded directly into the shared cache by `add_default_catalog` (`tiferet/blueprints/core.py`; the obsolete `add_default_app_sessions` shim remains on `tiferet/contexts/app.py`) rather than resolved through a fallback event parameter. `core.get_app_session` checks that cache first and only calls `GetAppSession` on a miss — this event never sees or merges bootstrap defaults itself.
 
 ## Boundaries
 
