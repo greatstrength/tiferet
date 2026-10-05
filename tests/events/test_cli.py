@@ -87,7 +87,6 @@ class TestCliEvent:
         assert CliEvent(cli_service=service).cli_service is service
         assert AddCliCommand(cli_service=service).cli_service is service
 
-
 # ** tester: test_add_cli_command
 @use_tester(
     type='domain_event',
@@ -98,12 +97,12 @@ class TestCliEvent:
             'class_name': 'CliService',
         },
     },
-    sample_kwargs={
-        'id': 'test.new_command',
-        'name': 'New Command',
-        'key': 'new_command',
-        'group_key': 'test',
-    },
+    sample_kwargs=dict(
+        id='test.new_command',
+        name='New Command',
+        key='new_command',
+        group_key='test',
+    ),
     required_params=['id'],
 )
 class TestAddCliCommand:
@@ -237,7 +236,6 @@ class TestAddCliCommand:
         # Assert each required parameter raises the command-parameter error.
         test_ctx.assert_missing_required_params()
 
-
 # ** tester: test_add_cli_argument
 @use_tester(
     type='service_event',
@@ -248,19 +246,19 @@ class TestAddCliCommand:
             'class_name': 'CliService',
         },
     },
-    sample_kwargs={
-        'command_id': 'test.command',
-        'name_or_flags': ['-v', '--verbose'],
-        'description': 'Enable verbose output',
-    },
+    sample_kwargs=dict(
+        command_id='test.command',
+        name_or_flags=['-v', '--verbose'],
+        description='Enable verbose output',
+    ),
     required_params=['command_id'],
     service_attr='cli_service',
     not_found_error_code=a.error.CLI_COMMAND_NOT_FOUND_ID,
-    not_found_kwargs={
-        'command_id': 'test.missing',
-        'name_or_flags': ['-v'],
-        'description': 'Verbose',
-    },
+    not_found_kwargs=dict(
+        command_id='test.missing',
+        name_or_flags=['-v'],
+        description='Verbose',
+    ),
 )
 class TestAddCliArgument:
     '''
@@ -385,7 +383,6 @@ class TestAddCliArgument:
         # Assert the primary service miss raises the configured not-found error.
         test_ctx.assert_not_found()
 
-
 # ** tester: test_list_cli_commands
 @use_tester(
     type='domain_event',
@@ -396,7 +393,7 @@ class TestAddCliArgument:
             'class_name': 'CliService',
         },
     },
-    sample_kwargs={},
+    sample_kwargs=dict(),
 )
 class TestListCliCommands:
     '''
@@ -459,7 +456,6 @@ class TestListCliCommands:
         assert result[1].id == 'test.another'
         mock_dependencies['cli_service'].list.assert_called_once()
 
-
 # ** tester: test_get_parent_arguments
 @use_tester(
     type='domain_event',
@@ -470,7 +466,7 @@ class TestListCliCommands:
             'class_name': 'CliService',
         },
     },
-    sample_kwargs={},
+    sample_kwargs=dict(),
 )
 class TestGetParentArguments:
     '''
