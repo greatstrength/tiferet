@@ -6,13 +6,13 @@
 import pytest
 
 # ** app
-from tiferet.blueprints.tester import use_tester
 from tiferet.domain import ATTRIBUTE_NOT_SETTABLE_ID, AppServiceDependency
 from tiferet.mappers.app import (
     AppSessionAggregate,
     AppSessionConfigObject,
     AppServiceDependencyConfigObject,
 )
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -214,7 +214,7 @@ class TestAppSessionAggregate:
     # * test: set_constants_clear_when_none
     def test_set_constants_clear_when_none(self, aggr_factory):
         '''
-        Test that set_constants clears constants when called with None.
+        Test that set_constants clears all constants when called with None.
 
         :param aggr_factory: Factory for a seeded AppSessionAggregate.
         :type aggr_factory: callable
@@ -230,7 +230,7 @@ class TestAppSessionAggregate:
     # * test: set_constants_merge_and_override
     def test_set_constants_merge_and_override(self, aggr_factory):
         '''
-        Test that set_constants merges new keys and overrides existing ones.
+        Test that set_constants merges new constants and overrides existing keys.
 
         :param aggr_factory: Factory for a seeded AppSessionAggregate.
         :type aggr_factory: callable
@@ -250,7 +250,7 @@ class TestAppSessionAggregate:
     # * test: set_constants_remove_none_values
     def test_set_constants_remove_none_values(self, aggr_factory):
         '''
-        Test that set_constants removes keys whose merged value is None.
+        Test that set_constants removes keys whose new value is None.
 
         :param aggr_factory: Factory for a seeded AppSessionAggregate.
         :type aggr_factory: callable
@@ -286,7 +286,7 @@ class TestAppSessionAggregate:
             expected_remaining,
         ):
         '''
-        Test remove_service at each list position and when the id is missing.
+        Test that remove_service removes and returns a matching service, or None if missing.
 
         :param aggr_factory: Factory for a seeded AppSessionAggregate.
         :type aggr_factory: callable
@@ -327,7 +327,7 @@ class TestAppSessionAggregate:
     # * test: add_service_appends_with_service_id_first
     def test_add_service_appends_with_service_id_first(self, test_ctx):
         '''
-        Test that add_service appends a service when service_id is positional.
+        Test that add_service appends a dependency, taking service_id first so its positional order matches set_service.
 
         :param test_ctx: The bound aggregate tester context.
         :type test_ctx: AggregateTesterContext
@@ -354,7 +354,7 @@ class TestAppSessionAggregate:
     # * test: add_service_defaults_parameters_to_empty
     def test_add_service_defaults_parameters_to_empty(self, test_ctx):
         '''
-        Test that add_service defaults omitted parameters to an empty dict.
+        Test that add_service defaults parameters to an empty dict when omitted.
 
         :param test_ctx: The bound aggregate tester context.
         :type test_ctx: AggregateTesterContext
@@ -374,7 +374,7 @@ class TestAppSessionAggregate:
     # * test: set_service_update_existing_merge_params
     def test_set_service_update_existing_merge_params(self, test_ctx):
         '''
-        Test that set_service merges parameters and drops None values.
+        Test that set_service updates an existing service and merges parameters.
 
         :param test_ctx: The bound aggregate tester context.
         :type test_ctx: AggregateTesterContext
@@ -407,6 +407,9 @@ class TestAppSessionAggregate:
     def test_set_service_create_new(self, test_ctx):
         '''
         Test that set_service creates a new service when none exists.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
         # Verify the service does not exist.
@@ -426,7 +429,6 @@ class TestAppSessionAggregate:
         assert created.module_path == 'pkg.sub.module'
         assert created.class_name == 'FreshService'
         assert created.parameters == {'p1': 'v1', 'p2': '42'}
-
 
 # ** tester: test_app_session_config_object
 @use_tester(
@@ -508,27 +510,6 @@ class TestAppSessionConfigObject:
         },
     }
 
-    # * test: app_service_dependency_yaml_round_trip_via_parent
-    def test_app_service_dependency_yaml_round_trip_via_parent(self, test_ctx):
-        '''
-        Test that parent round-trip preserves each service field.
-
-        :param test_ctx: The bound transfer-object tester context.
-        :type test_ctx: TransferObjectTesterContext
-        '''
-
-        # Round-trip the aggregate through the parent config object.
-        aggregate = test_ctx.make_target()
-        round_tripped = AppSessionConfigObject.from_model(aggregate).map()
-
-        # Lengths match, and each zipped pair keeps its service fields.
-        assert len(round_tripped.services) == len(aggregate.services)
-        for original, mapped in zip(aggregate.services, round_tripped.services):
-            assert mapped.service_id == original.service_id
-            assert mapped.module_path == original.module_path
-            assert mapped.class_name == original.class_name
-            assert mapped.parameters == original.parameters
-
     # * test: app_service_dependency_yaml_map_basic
     def test_app_service_dependency_yaml_map_basic(self):
         '''
@@ -585,3 +566,24 @@ class TestAppSessionConfigObject:
         assert 'service_id' not in primitive
         assert primitive['module_path'] == 'ex.test.mod'
         assert primitive['class_name'] == 'ExcludeTest'
+
+    # * test: app_service_dependency_yaml_round_trip_via_parent
+    def test_app_service_dependency_yaml_round_trip_via_parent(self, test_ctx):
+        '''
+        Test that services are preserved through the parent AppSessionConfigObject round-trip.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
+        '''
+
+        # Round-trip the aggregate through the parent config object.
+        aggregate = test_ctx.make_target()
+        round_tripped = AppSessionConfigObject.from_model(aggregate).map()
+
+        # Lengths match, and each zipped pair keeps its service fields.
+        assert len(round_tripped.services) == len(aggregate.services)
+        for original, mapped in zip(aggregate.services, round_tripped.services):
+            assert mapped.service_id == original.service_id
+            assert mapped.module_path == original.module_path
+            assert mapped.class_name == original.class_name
+            assert mapped.parameters == original.parameters
