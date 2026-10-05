@@ -2,10 +2,13 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
-from tiferet.domain import ATTRIBUTE_NOT_SETTABLE_ID, CliArgument, CliCommand, DomainObject
+from tiferet.blueprints.tester import use_tester
+from tiferet.domain import ATTRIBUTE_NOT_SETTABLE_ID, CliArgument, CliCommand, DomainObject, ModelError
 from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandConfigObject
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 # *** constants
 
@@ -81,13 +84,72 @@ COMMAND_FIELD_NORMALIZERS = {
     'arguments': lambda args: tuple(sorted(ARG_TUPLE(arg) for arg in (args or []))),
 }
 
+# ** constant: test_cli_command_config_object_sample_data
+TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA = {
+    'id': 'calc.add',
+    'name': 'Add Number Command',
+    'description': 'Adds two numbers.',
+    'key': 'add',
+    'group_key': 'calc',
+    'args': [
+        {
+            'name_or_flags': ['a'],
+            'description': 'The first number to add.',
+            'type': 'str',
+        },
+        {
+            'name_or_flags': ['b'],
+            'description': 'The second number to add.',
+            'type': 'str',
+        },
+    ],
+}
+
 # *** testers
 
 # ** tester: test_cli_argument_aggregate
-class TestCliArgumentAggregate(AggregateTestBase):
+@use_tester(
+    type='aggregate',
+    target_cls=CliArgumentAggregate,
+    sample_data=ARGUMENT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=ARGUMENT_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('description', 'Updated description.', None),
+        ('type', 'int', None),
+        ('required', True, None),
+        ('default', 'new_default', None),
+        ('name_or_flags', ['b'], ATTRIBUTE_NOT_SETTABLE_ID),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
+    ],
+)
+class TestCliArgumentAggregate:
     '''
     Tests for CliArgumentAggregate construction and set_attribute.
     '''
+
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: object
+        '''
+
+        # Assert construction against declared expected data.
+        test_ctx.assert_new()
+
+    # * test: set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''
+        Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: object
+        '''
+
+        # Assert declared set_attribute cases.
+        test_ctx.assert_set_attribute()
 
     aggregate_cls = CliArgumentAggregate
 
@@ -106,12 +168,49 @@ class TestCliArgumentAggregate(AggregateTestBase):
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
-
 # ** tester: test_cli_command_aggregate
-class TestCliCommandAggregate(AggregateTestBase):
+@use_tester(
+    type='aggregate',
+    target_cls=CliCommandAggregate,
+    sample_data=COMMAND_AGGREGATE_SAMPLE_DATA,
+    equality_fields=COMMAND_EQUALITY_FIELDS,
+    field_normalizers=COMMAND_FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Command Name', None),
+        ('description', 'New description text.', None),
+        ('key', 'subtract', None),
+        ('group_key', 'math', None),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
+    ],
+)
+class TestCliCommandAggregate:
     '''
     Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
     '''
+
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: object
+        '''
+
+        # Assert construction against declared expected data.
+        test_ctx.assert_new()
+
+    # * test: set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''
+        Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: object
+        '''
+
+        # Assert declared set_attribute cases.
+        test_ctx.assert_set_attribute()
 
     aggregate_cls = CliCommandAggregate
 
@@ -131,11 +230,37 @@ class TestCliCommandAggregate(AggregateTestBase):
         ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
+    # * test: set_attribute_not_settable_describes_model
+    def test_set_attribute_not_settable_describes_model(self, test_ctx):
+        '''
+        Test that the mutation-policy guard describes the command that refused the mutation, alongside the attribute and supported set.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: object
+        '''
+
+        # Build the command aggregate from declared sample data.
+        aggregate = test_ctx.make_target()
+
+        # Mutating the identity field must name the refusing command.
+        with pytest.raises(ModelError) as exc_info:
+            aggregate.set_attribute('id', 'calc.subtract')
+
+        # Assert the four mutation-policy outcomes.
+        error = exc_info.value
+        assert error.error_code == ATTRIBUTE_NOT_SETTABLE_ID
+        assert error.model['type'] == 'CliCommandAggregate'
+        assert error.model['id'] == 'calc.add'
+        assert error.kwargs.get('attribute') == 'id'
+
     # * test: add_argument_appends
-    def test_add_argument_appends(self, aggregate):
+    def test_add_argument_appends(self, test_ctx):
         '''
         Test that add_argument correctly appends a CliArgument to the aggregate.
         '''
+
+        # Build the command aggregate from declared sample data.
+        aggregate = test_ctx.make_target()
 
         # Add an argument to the command.
         aggregate.add_argument(
@@ -153,10 +278,13 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert added.type == 'int'
 
     # * test: add_argument_multiple
-    def test_add_argument_multiple(self, aggregate):
+    def test_add_argument_multiple(self, test_ctx):
         '''
         Test that multiple add_argument calls accumulate correctly.
         '''
+
+        # Build the command aggregate from declared sample data.
+        aggregate = test_ctx.make_target()
 
         # Add two arguments sequentially.
         aggregate.add_argument(
@@ -204,37 +332,62 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert aggregate.arguments[0].description == 'The numerator.'
         assert aggregate.arguments[0].type == 'int'
 
-
 # ** tester: test_cli_command_config_object
-class TestCliCommandConfigObject(TransferObjectTestBase):
+@use_tester(
+    type='transfer_object',
+    target_cls=CliCommandConfigObject,
+    aggregate_cls=CliCommandAggregate,
+    sample_data=TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=COMMAND_AGGREGATE_SAMPLE_DATA,
+    equality_fields=COMMAND_EQUALITY_FIELDS,
+    field_normalizers=COMMAND_FIELD_NORMALIZERS,
+)
+class TestCliCommandConfigObject:
     '''
     Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''
+
+    # * test: map
+    def test_map(self, test_ctx):
+        '''
+        Verify transfer construction and mapping to the declared aggregate.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: object
+        '''
+
+        # Assert transfer construction and mapping.
+        test_ctx.assert_map()
+
+    # * test: from_model
+    def test_from_model(self, test_ctx):
+        '''
+        Verify aggregate conversion to the declared transfer-object type.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: object
+        '''
+
+        # Assert aggregate conversion to the transfer object.
+        test_ctx.assert_from_model()
+
+    # * test: round_trip
+    def test_round_trip(self, test_ctx):
+        '''
+        Verify aggregate conversion through the transfer object and back.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: object
+        '''
+
+        # Assert the aggregate round-trip.
+        test_ctx.assert_round_trip()
 
     transfer_cls = CliCommandConfigObject
 
     aggregate_cls = CliCommandAggregate
 
-    # YAML-format sample data (uses 'args' alias).
-    sample_data = {
-        'id': 'calc.add',
-        'name': 'Add Number Command',
-        'description': 'Adds two numbers.',
-        'key': 'add',
-        'group_key': 'calc',
-        'args': [
-            {
-                'name_or_flags': ['a'],
-                'description': 'The first number to add.',
-                'type': 'str',
-            },
-            {
-                'name_or_flags': ['b'],
-                'description': 'The second number to add.',
-                'type': 'str',
-            },
-        ],
-    }
+    sample_data = TEST_CLI_COMMAND_CONFIG_OBJECT_SAMPLE_DATA
 
     aggregate_sample_data = COMMAND_AGGREGATE_SAMPLE_DATA
 
@@ -334,11 +487,14 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
         assert yaml_obj.arguments[0].name_or_flags == ['a']
 
     # * test: round_trip_preserves_arguments
-    def test_round_trip_preserves_arguments(self, aggregate):
+    def test_round_trip_preserves_arguments(self, test_ctx):
         '''
         Test that arguments are preserved through from_model -> map() round-trip.
         Uses direct ordered iteration because name_or_flags is a list (unhashable as dict key).
         '''
+
+        # Build the command aggregate from declared sample data.
+        aggregate = test_ctx.make_target()
 
         # Convert aggregate to YAML object and back.
         yaml_obj = CliCommandConfigObject.from_model(aggregate)
