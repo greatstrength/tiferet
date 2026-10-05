@@ -11,6 +11,7 @@ import pytest
 from unittest import mock
 
 # ** app
+from tiferet import assets as a
 from tiferet.assets import TiferetError, TiferetAPIError
 from tiferet.assets.error import APP_ERROR_ID
 from tiferet.contexts.app import (
@@ -62,11 +63,34 @@ def sample_services() -> dict:
 
     # Return a small sample service catalog.
     return {
-        'svc1': {
-            'service_id': 'svc1',
-            'module_path': 'tiferet.repos.app',
-            'class_name': 'AppConfigRepository',
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.repos.di',
+            'class_name': 'DIConfigRepository',
+            'parameters': {},
         },
+        'get_error_evt': {
+            'service_id': 'get_error_evt',
+            'module_path': 'tiferet.events.error',
+            'class_name': 'GetError',
+            'parameters': {},
+        },
+    }
+
+# ** fixture: sample_constants
+@pytest.fixture
+def sample_constants() -> dict:
+    '''
+    Fixture providing a small sample of raw app constant definitions.
+
+    :return: A mapping of constant id to scalar value.
+    :rtype: dict
+    '''
+
+    # Return a small sample constant catalog.
+    return {
+        'cli_config': 'config.yml',
+        'di_config': 'config.yml',
     }
 
 # ** fixture: app_session
@@ -546,87 +570,238 @@ def test_app_session_context_run_error(
     logger = build_logger_handler.return_value
     logger.error.assert_called_once()
 
-# ** test: add_default_app_services_seeds_cache
-def test_add_default_app_services_seeds_cache(sample_services: dict, base_cache_builder: Callable):
+# ** test: app_service_cache_prefix_value
+def test_app_service_cache_prefix_value():
     '''
-    Test that add_default_app_services seeds AppServiceDependency objects under the correct prefix.
+    Verify the context app service prefix equals and is the asset tuple.
+    '''
+
+    # Assert equality and identity with the asset prefix.
+    assert APP_SERVICE_CACHE_PREFIX == ('app', 'services')
+    assert APP_SERVICE_CACHE_PREFIX is a.app.APP_SERVICE_CACHE_PREFIX
+
+# ** test: app_constant_cache_prefix_value
+def test_app_constant_cache_prefix_value():
+    '''
+    Verify the context app constant prefix equals and is the asset tuple.
+    '''
+
+    # Assert equality and identity with the asset prefix.
+    assert APP_CONSTANT_CACHE_PREFIX == ('app', 'constants')
+    assert APP_CONSTANT_CACHE_PREFIX is a.app.APP_CONSTANT_CACHE_PREFIX
+
+# ** test: add_default_app_services_returns_callable
+def test_add_default_app_services_returns_callable(sample_services: dict, base_cache_builder: Callable):
+    '''
+    Verify add_default_app_services returns a callable cache builder.
+    '''
+
+    # Assert the wrapped builder is callable.
+    assert callable(add_default_app_services(sample_services)(base_cache_builder))
+
+# ** test: add_default_app_services_seeds_cache_with_domain_objects
+def test_add_default_app_services_seeds_cache_with_domain_objects(sample_services: dict, base_cache_builder: Callable):
+    '''
+    Verify each seeded app service is an AppServiceDependency keyed by service id.
     '''
 
     # Wrap the builder and invoke it.
     wrapped = add_default_app_services(sample_services)(base_cache_builder)
     cache = wrapped()
 
-    # Assert the service is cached as an AppServiceDependency under the correct prefix.
-    cached = cache.get('svc1', *APP_SERVICE_CACHE_PREFIX)
-    assert isinstance(cached, AppServiceDependency)
-    assert cached.service_id == 'svc1'
-    assert APP_SERVICE_CACHE_PREFIX == ('app', 'services')
+    # Assert each service is cached as an AppServiceDependency under the prefix.
+    for key in sample_services:
+        cached = cache.get(key, *APP_SERVICE_CACHE_PREFIX)
+        assert isinstance(cached, AppServiceDependency)
+        assert cached.service_id == key
 
-# ** test: add_default_app_constants_seeds_cache
-def test_add_default_app_constants_seeds_cache(base_cache_builder: Callable):
+# ** test: add_default_app_services_preserves_initial_cache_values
+def test_add_default_app_services_preserves_initial_cache_values(sample_services: dict, base_cache_builder: Callable):
     '''
-    Test that add_default_app_constants seeds scalars under the correct prefix.
+    Verify an initial root cache key survives app service seeding.
+    '''
+
+    # Wrap the builder and invoke it with an initial root entry.
+    wrapped = add_default_app_services(sample_services)(base_cache_builder)
+    cache = wrapped(cache={'existing_key': 'existing_value'})
+
+    # Assert the root entry remains and each service is seeded under the prefix.
+    assert cache.get('existing_key') == 'existing_value'
+    for key in sample_services:
+        cached = cache.get(key, *APP_SERVICE_CACHE_PREFIX)
+        assert isinstance(cached, AppServiceDependency)
+
+# ** test: add_default_app_services_empty_dict_leaves_cache_clean
+def test_add_default_app_services_empty_dict_leaves_cache_clean(base_cache_builder: Callable):
+    '''
+    Verify an empty app service catalog writes no prefix namespace.
+    '''
+
+    # Wrap the builder with an empty catalog and invoke it.
+    wrapped = add_default_app_services({})(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the prefix namespace is absent.
+    assert cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX) == {}
+    assert ('app', 'services') not in cache._cache
+
+# ** test: add_default_app_constants_returns_callable
+def test_add_default_app_constants_returns_callable(sample_constants: dict, base_cache_builder: Callable):
+    '''
+    Verify add_default_app_constants returns a callable cache builder.
+    '''
+
+    # Assert the wrapped builder is callable.
+    assert callable(add_default_app_constants(sample_constants)(base_cache_builder))
+
+# ** test: add_default_app_constants_seeds_cache_with_scalars
+def test_add_default_app_constants_seeds_cache_with_scalars(sample_constants: dict, base_cache_builder: Callable):
+    '''
+    Verify each seeded app constant reads back as the fixture scalar.
     '''
 
     # Wrap the builder and invoke it.
-    wrapped = add_default_app_constants({'FOO': 'bar'})(base_cache_builder)
+    wrapped = add_default_app_constants(sample_constants)(base_cache_builder)
     cache = wrapped()
 
-    # Assert the constant is cached under the correct prefix.
-    assert cache.get('FOO', *APP_CONSTANT_CACHE_PREFIX) == 'bar'
-    assert APP_CONSTANT_CACHE_PREFIX == ('app', 'constants')
+    # Assert each constant reads back under the prefix.
+    for name, value in sample_constants.items():
+        assert cache.get(name, *APP_CONSTANT_CACHE_PREFIX) == value
+
+# ** test: add_default_app_constants_preserves_initial_cache_values
+def test_add_default_app_constants_preserves_initial_cache_values(sample_constants: dict, base_cache_builder: Callable):
+    '''
+    Verify an initial root cache key survives app constant seeding.
+    '''
+
+    # Wrap the builder and invoke it with an initial root entry.
+    wrapped = add_default_app_constants(sample_constants)(base_cache_builder)
+    cache = wrapped(cache={'existing_key': 'existing_value'})
+
+    # Assert the root entry remains and each constant reads back under the prefix.
+    assert cache.get('existing_key') == 'existing_value'
+    for name, value in sample_constants.items():
+        assert cache.get(name, *APP_CONSTANT_CACHE_PREFIX) == value
+
+# ** test: add_default_app_constants_empty_dict_leaves_cache_clean
+def test_add_default_app_constants_empty_dict_leaves_cache_clean(base_cache_builder: Callable):
+    '''
+    Verify an empty app constant catalog writes no prefix namespace.
+    '''
+
+    # Wrap the builder with an empty catalog and invoke it.
+    wrapped = add_default_app_constants({})(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the prefix namespace is absent.
+    assert cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX) == {}
+    assert ('app', 'constants') not in cache._cache
+
+# ** test: app_session_cache_prefix_value
+def test_app_session_cache_prefix_value():
+    '''
+    Verify the context app session prefix equals and is the asset tuple.
+    '''
+
+    # Assert equality and identity with the asset prefix.
+    assert APP_SESSION_CACHE_PREFIX == ('app', 'sessions')
+    assert APP_SESSION_CACHE_PREFIX is a.app.APP_SESSION_CACHE_PREFIX
+
+# ** test: add_default_app_sessions_seeds_cache_with_domain_objects
+def test_add_default_app_sessions_seeds_cache_with_domain_objects(base_cache_builder: Callable):
+    '''
+    Verify each seeded app session is an AppSession keyed by id.
+    '''
+
+    # Wrap the builder with the inline session catalog and invoke it.
+    sessions = {
+        'tiferet_app': {'id': 'tiferet_app', 'name': 'Admin App'},
+        'tiferet_cli': {'id': 'tiferet_cli', 'name': 'Admin CLI'},
+    }
+    wrapped = add_default_app_sessions(sessions)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert each session is cached as an AppSession under the prefix.
+    for key in sessions:
+        cached = cache.get(key, *APP_SESSION_CACHE_PREFIX)
+        assert isinstance(cached, AppSession)
+        assert cached.id == key
+
+# ** test: add_default_app_sessions_absent_key_returns_none
+def test_add_default_app_sessions_absent_key_returns_none(base_cache_builder: Callable):
+    '''
+    Verify a missing session id reads back as None after seeding.
+    '''
+
+    # Wrap the builder with one session and invoke it.
+    sessions = {'tiferet_app': {'id': 'tiferet_app', 'name': 'Admin App'}}
+    wrapped = add_default_app_sessions(sessions)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the seeded session exists and the missing id reads back as None.
+    cached = cache.get('tiferet_app', *APP_SESSION_CACHE_PREFIX)
+    assert isinstance(cached, AppSession)
+    assert cached.id == 'tiferet_app'
+    assert cache.get('missing.session', *APP_SESSION_CACHE_PREFIX) is None
+
+# ** test: add_default_app_services_readable_via_cache_by_prefix
+def test_add_default_app_services_readable_via_cache_by_prefix(sample_services: dict, base_cache_builder: Callable):
+    '''
+    Verify get_by_prefix returns every seeded AppServiceDependency.
+    '''
+
+    # Wrap the builder and invoke it.
+    wrapped = add_default_app_services(sample_services)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the prefix namespace holds every seeded service.
+    values = list(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values())
+    assert len(values) == len(sample_services)
+    assert all(isinstance(value, AppServiceDependency) for value in values)
+    assert {value.service_id for value in values} == set(sample_services)
+
+# ** test: add_default_app_constants_readable_via_cache_by_prefix
+def test_add_default_app_constants_readable_via_cache_by_prefix(sample_constants: dict, base_cache_builder: Callable):
+    '''
+    Verify get_by_prefix returns the seeded constant mapping.
+    '''
+
+    # Wrap the builder and invoke it.
+    wrapped = add_default_app_constants(sample_constants)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the prefix namespace equals the fixture mapping.
+    assert cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX) == sample_constants
 
 # ** test: add_default_admin_services_seeds_cache
 def test_add_default_admin_services_seeds_cache(sample_services: dict, base_cache_builder: Callable):
     '''
-    Test that add_default_admin_services seeds AppServiceDependency objects under the correct prefix.
+    Verify each seeded admin service is an AppServiceDependency under the admin prefix.
     '''
 
     # Wrap the builder and invoke it.
     wrapped = add_default_admin_services(sample_services)(base_cache_builder)
     cache = wrapped()
 
-    # Assert the service is cached under the admin prefix.
-    cached = cache.get('svc1', *ADMIN_SERVICE_CACHE_PREFIX)
-    assert isinstance(cached, AppServiceDependency)
+    # Assert each service is cached under the admin prefix and the prefix is the asset tuple.
+    for key in sample_services:
+        cached = cache.get(key, *ADMIN_SERVICE_CACHE_PREFIX)
+        assert isinstance(cached, AppServiceDependency)
+        assert cached.service_id == key
     assert ADMIN_SERVICE_CACHE_PREFIX == ('admin', 'services')
+    assert ADMIN_SERVICE_CACHE_PREFIX is a.app.ADMIN_SERVICE_CACHE_PREFIX
 
 # ** test: add_default_admin_constants_seeds_cache
 def test_add_default_admin_constants_seeds_cache(base_cache_builder: Callable):
     '''
-    Test that add_default_admin_constants seeds scalars under the correct prefix.
+    Verify add_default_admin_constants stores the scalar under the admin prefix.
     '''
 
     # Wrap the builder and invoke it.
     wrapped = add_default_admin_constants({'FOO': 'bar'})(base_cache_builder)
     cache = wrapped()
 
-    # Assert the constant is cached under the admin prefix.
+    # Assert the scalar and the asset prefix identity.
     assert cache.get('FOO', *ADMIN_CONSTANT_CACHE_PREFIX) == 'bar'
     assert ADMIN_CONSTANT_CACHE_PREFIX == ('admin', 'constants')
-
-# ** test: add_default_app_sessions_seeds_cache
-def test_add_default_app_sessions_seeds_cache(base_cache_builder: Callable):
-    '''
-    Test that add_default_app_sessions seeds AppSession objects under the correct prefix.
-    '''
-
-    # Wrap the builder and invoke it.
-    sessions = {'test.session': {'id': 'test.session', 'name': 'Test Session'}}
-    wrapped = add_default_app_sessions(sessions)(base_cache_builder)
-    cache = wrapped()
-
-    # Assert the session is cached as an AppSession under the correct prefix.
-    cached = cache.get('test.session', *APP_SESSION_CACHE_PREFIX)
-    assert isinstance(cached, AppSession)
-    assert cached.id == 'test.session'
-    assert APP_SESSION_CACHE_PREFIX == ('app', 'sessions')
-
-# ** test: app_session_cache_returns_none_when_absent
-def test_app_session_cache_returns_none_when_absent():
-    '''
-    Test that an unseeded app session cache key returns None.
-    '''
-
-    # Assert an empty cache yields no session for a missing key.
-    assert CacheContext().get('missing.session', *APP_SESSION_CACHE_PREFIX) is None
+    assert ADMIN_CONSTANT_CACHE_PREFIX is a.app.ADMIN_CONSTANT_CACHE_PREFIX
