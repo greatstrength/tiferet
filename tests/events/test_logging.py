@@ -43,7 +43,6 @@ def sample_formatter() -> Formatter:
         description='A simple formatter.',
     )
 
-
 # ** fixture: sample_handler
 @pytest.fixture
 def sample_handler() -> Handler:
@@ -65,7 +64,6 @@ def sample_handler() -> Handler:
         stream='ext://sys.stdout',
         description='A console handler.',
     )
-
 
 # ** fixture: sample_logger
 @pytest.fixture
@@ -134,7 +132,6 @@ class TestLoggingEvent:
         # Assert the base and a concrete event both expose the injected service.
         assert LoggingEvent(logging_service=service).logging_service is service
         assert AddFormatter(logging_service=service).logging_service is service
-
 
 # ** tester: test_list_all_logging_configs
 @use_tester(
@@ -212,7 +209,6 @@ class TestListAllLoggingConfigs:
         assert loggers == []
         mock_dependencies['logging_service'].list_all.assert_called_once_with()
 
-
 # ** tester: test_add_formatter
 @use_tester(
     type='domain_event',
@@ -223,13 +219,13 @@ class TestListAllLoggingConfigs:
             'class_name': 'LoggingService',
         },
     },
-    sample_kwargs={
-        'id': 'detailed',
-        'name': 'Detailed Formatter',
-        'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        'description': 'A detailed formatter with timestamps.',
-        'datefmt': '%Y-%m-%d %H:%M:%S',
-    },
+    sample_kwargs=dict(
+        id='detailed',
+        name='Detailed Formatter',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        description='A detailed formatter with timestamps.',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    ),
     required_params=['id', 'name', 'format'],
 )
 class TestAddFormatter:
@@ -304,7 +300,6 @@ class TestAddFormatter:
         # Assert each required parameter is rejected when passed as None.
         test_ctx.assert_missing_required_params()
 
-
 # ** tester: test_remove_formatter
 @use_tester(
     type='domain_event',
@@ -315,7 +310,7 @@ class TestAddFormatter:
             'class_name': 'LoggingService',
         },
     },
-    sample_kwargs={'id': 'old_formatter'},
+    sample_kwargs=dict(id='old_formatter'),
     required_params=['id'],
 )
 class TestRemoveFormatter:
@@ -354,7 +349,6 @@ class TestRemoveFormatter:
         # Assert each required parameter is rejected when passed as None.
         test_ctx.assert_missing_required_params()
 
-
 # ** tester: test_add_handler
 @use_tester(
     type='domain_event',
@@ -365,16 +359,16 @@ class TestRemoveFormatter:
             'class_name': 'LoggingService',
         },
     },
-    sample_kwargs={
-        'id': 'file_handler',
-        'name': 'File Handler',
-        'module_path': 'logging.handlers',
-        'class_name': 'RotatingFileHandler',
-        'level': 'DEBUG',
-        'formatter': 'detailed',
-        'description': 'A rotating file handler.',
-        'filename': '/var/log/app.log',
-    },
+    sample_kwargs=dict(
+        id='file_handler',
+        name='File Handler',
+        module_path='logging.handlers',
+        class_name='RotatingFileHandler',
+        level='DEBUG',
+        formatter='detailed',
+        description='A rotating file handler.',
+        filename='/var/log/app.log',
+    ),
     required_params=['id', 'name', 'module_path', 'class_name', 'level', 'formatter'],
 )
 class TestAddHandler:
@@ -448,7 +442,6 @@ class TestAddHandler:
         # Assert each required parameter is rejected when passed as None.
         test_ctx.assert_missing_required_params()
 
-
 # ** tester: test_remove_handler
 @use_tester(
     type='domain_event',
@@ -459,7 +452,7 @@ class TestAddHandler:
             'class_name': 'LoggingService',
         },
     },
-    sample_kwargs={'id': 'old_handler'},
+    sample_kwargs=dict(id='old_handler'),
     required_params=['id'],
 )
 class TestRemoveHandler:
@@ -498,7 +491,6 @@ class TestRemoveHandler:
         # Assert each required parameter is rejected when passed as None.
         test_ctx.assert_missing_required_params()
 
-
 # ** tester: test_add_logger
 @use_tester(
     type='domain_event',
@@ -509,14 +501,14 @@ class TestRemoveHandler:
             'class_name': 'LoggingService',
         },
     },
-    sample_kwargs={
-        'id': 'app.database',
-        'name': 'Database Logger',
-        'level': 'WARNING',
-        'handlers': ['console', 'file_handler'],
-        'description': 'Logger for database operations.',
-        'propagate': False,
-    },
+    sample_kwargs=dict(
+        id='app.database',
+        name='Database Logger',
+        level='WARNING',
+        handlers=['console', 'file_handler'],
+        description='Logger for database operations.',
+        propagate=False,
+    ),
     required_params=['id', 'name', 'level', 'handlers'],
 )
 class TestAddLogger:
@@ -589,7 +581,6 @@ class TestAddLogger:
         # Assert each required parameter is rejected when passed as None.
         test_ctx.assert_missing_required_params()
 
-
 # ** tester: test_remove_logger
 @use_tester(
     type='domain_event',
@@ -600,7 +591,7 @@ class TestAddLogger:
             'class_name': 'LoggingService',
         },
     },
-    sample_kwargs={'id': 'old_logger'},
+    sample_kwargs=dict(id='old_logger'),
     required_params=['id'],
 )
 class TestRemoveLogger:
