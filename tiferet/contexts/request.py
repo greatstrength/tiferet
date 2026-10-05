@@ -68,8 +68,8 @@ class RequestContext(BaseContext):
         self.domain = Request(
             session_id=session_id,
             feature_id=feature_id,
-            headers=headers or {},
-            data=data or {},
+            headers=headers if headers is not None else {},
+            data=data if data is not None else {},
         )
 
         # Copy pre-flight values onto the in-flight attributes.
@@ -92,7 +92,7 @@ class RequestContext(BaseContext):
         :rtype: None
         '''
 
-        # Assign the in-flight session identifier.
+        # Assign the in-flight session id.
         self.session_id = value
 
     # * method: set_feature_id
@@ -106,13 +106,13 @@ class RequestContext(BaseContext):
         :rtype: None
         '''
 
-        # Assign the in-flight feature identifier.
+        # Assign the in-flight feature id.
         self.feature_id = value
 
     # * method: set_headers
     def set_headers(self, value: Dict[str, str]) -> None:
         '''
-        Replace the in-flight headers with a shallow copy.
+        Replace the in-flight headers with a shallow copy of the given mapping.
 
         :param value: The headers mapping.
         :type value: Dict[str, str]
@@ -126,7 +126,7 @@ class RequestContext(BaseContext):
     # * method: set_data
     def set_data(self, value: Dict[str, Any]) -> None:
         '''
-        Replace the in-flight data with a shallow copy.
+        Replace the in-flight data with a shallow copy of the given mapping.
 
         :param value: The data mapping.
         :type value: Dict[str, Any]
