@@ -22,6 +22,7 @@ DI_DEPENDENCY_NOT_REGISTERED_ID = 'DI_DEPENDENCY_NOT_REGISTERED'
 # *** classes
 
 # ** class: di_dynamic_service_container
+# >> see: @guides/di/dependency_injector.md#didynamicservicecontainer
 class DIDynamicServiceContainer(ServiceContainer):
     '''
     A dependency-injector-backed DI container satisfying the core
@@ -143,8 +144,8 @@ class DIDynamicServiceContainer(ServiceContainer):
         :type dependency_id: str
         '''
 
-        # Remove the provider if it exists; no-op for nonexistent IDs.
-        if self.has_dependency(dependency_id):
+        # Delete a present provider after a registry-membership check.
+        if dependency_id in self.container.providers:
             delattr(self.container, dependency_id)
 
     # * method: load_container
@@ -273,6 +274,7 @@ class DIAppServiceContainer(DIDynamicServiceContainer):
         return cls(services=services_by_id, constants=constants)
 
 # ** class: di_dynamic_service_resolver
+# >> see: @guides/di/dependency_injector.md#didynamicserviceresolver
 class DIDynamicServiceResolver(ServiceResolver):
     '''
     A dependency-injector-backed service resolver satisfying the core
@@ -310,7 +312,7 @@ class DIDynamicServiceResolver(ServiceResolver):
         self.parse_parameter = parse_parameter if parse_parameter else lambda value: value
 
     # * method: build_container
-    def build_container(self, flags: List[str] = None) -> DIDynamicServiceContainer:
+    def build_container(self, flags: List[str] = None) -> ServiceContainer:
         '''
         Build a new dynamic service container for the given normalized flag list.
 

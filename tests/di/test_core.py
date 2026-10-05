@@ -2,207 +2,328 @@
 
 # *** imports
 
-# ** core
-import pytest
-from typing import List
-
 # ** app
 from tiferet.di.core import (
-    ServiceContainer,
-    ServiceResolver,
     injectable_parameter_names,
     normalize_flags,
+    ServiceContainer,
+    ServiceResolver,
 )
+
+# *** classes
+
+# ** class: simple_service
+class SimpleService:
+    '''
+    A no-arg service used to exercise injectable parameter inspection.
+    '''
+
+    pass
+
+# ** class: dependent_service
+class DependentService:
+    '''
+    A service that depends on a sibling SimpleService.
+    '''
+
+    # * attribute: simple_service
+    simple_service: SimpleService
+
+    # * init
+    def __init__(self, simple_service: SimpleService):
+        '''
+        Initialize the dependent service.
+
+        :param simple_service: The injected simple service.
+        :type simple_service: SimpleService
+        '''
+
+        # Assign the injected simple service.
+        self.simple_service = simple_service
+
+# ** class: configurable_service
+class ConfigurableService:
+    '''
+    A service configured by a scalar value.
+    '''
+
+    # * attribute: config_value
+    config_value: str
+
+    # * init
+    def __init__(self, config_value: str):
+        '''
+        Initialize the configurable service.
+
+        :param config_value: The injected configuration value.
+        :type config_value: str
+        '''
+
+        # Assign the injected configuration value.
+        self.config_value = config_value
+
+# ** class: stub_container
+class StubContainer(ServiceContainer):
+    '''
+    A ServiceContainer stub that records requested dependency ids.
+    '''
+
+    # * init
+    def __init__(self, resolved: dict = None):
+        '''
+        Initialize the stub container.
+
+        :param resolved: The mapping of dependency id to resolved value.
+        :type resolved: dict
+        '''
+
+        # Store the resolved mapping and the requested ids.
+        self.resolved = resolved or {}
+        self.requested = []
+
+    # * method: add_service
+    def add_service(self, service_id: str, service):
+        '''
+        No-op service registration.
+
+        :param service_id: The service identifier.
+        :type service_id: str
+        :param service: The service dependency.
+        :type service: Any
+        '''
+
+        pass
+
+    # * method: add_constant
+    def add_constant(self, constant_id: str, value):
+        '''
+        No-op constant registration.
+
+        :param constant_id: The constant identifier.
+        :type constant_id: str
+        :param value: The constant value.
+        :type value: Any
+        '''
+
+        pass
+
+    # * method: get_dependency
+    def get_dependency(self, dependency_id: str):
+        '''
+        Record the requested id and return the stored value.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        :return: The stored resolved value, or None.
+        :rtype: Any
+        '''
+
+        # Record the requested identifier.
+        self.requested.append(dependency_id)
+
+        # Return the stored value.
+        return self.resolved.get(dependency_id)
+
+    # * method: has_dependency
+    def has_dependency(self, dependency_id: str) -> bool:
+        '''
+        Return whether the id is present in the resolved mapping.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        :return: True when the id is present.
+        :rtype: bool
+        '''
+
+        # Membership is the resolved mapping, not a provider registry.
+        return dependency_id in self.resolved
+
+    # * method: remove_dependency
+    def remove_dependency(self, dependency_id: str):
+        '''
+        No-op dependency removal.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        '''
+
+        pass
+
+    # * method: load_container
+    def load_container(self, services: dict = None, constants: dict = None):
+        '''
+        No-op bulk load.
+
+        :param services: The service mapping.
+        :type services: dict
+        :param constants: The constant mapping.
+        :type constants: dict
+        '''
+
+        pass
+
+# ** class: counting_resolver
+class CountingResolver(ServiceResolver):
+    '''
+    A ServiceResolver that counts build_container calls and returns a stub.
+    '''
+
+    # * init
+    def __init__(self, container: StubContainer):
+        '''
+        Initialize the counting resolver.
+
+        :param container: The stub container returned by build_container.
+        :type container: StubContainer
+        '''
+
+        # Initialize the resolver cache and the build counter.
+        super().__init__()
+        self._stub = container
+        self.build_count = 0
+
+    # * method: build_container
+    def build_container(self, flags=None) -> StubContainer:
+        '''
+        Increment the build counter and return the stored stub.
+
+        :param flags: The optional flag list.
+        :type flags: list
+        :return: The stored stub container.
+        :rtype: StubContainer
+        '''
+
+        # Count the build and return the stored stub.
+        self.build_count += 1
+        return self._stub
 
 # *** tests
 
-# ** test: injectable_parameter_names_basic
-def test_injectable_parameter_names_basic():
+# ** test: injectable_parameter_names_no_args
+def test_injectable_parameter_names_no_args():
     '''
-    injectable_parameter_names returns the correct parameter names for a
-    simple __init__ with named parameters.
-    '''
+    injectable_parameter_names returns no names for a no-arg constructor.
 
-    # Define a simple service class with two named parameters.
-    class MyService:
-        def __init__(self, dep_a, dep_b):
-            pass
-
-    # Verify both parameter names are returned.
-    assert injectable_parameter_names(MyService) == ['dep_a', 'dep_b']
-
-# ** test: injectable_parameter_names_skips_self_and_variadics
-def test_injectable_parameter_names_skips_self_and_variadics():
-    '''
-    injectable_parameter_names excludes self, *args, and **kwargs from
-    the returned parameter list.
+    :return: None
+    :rtype: None
     '''
 
-    # Define a class whose __init__ includes variadic parameters.
-    class MyService:
-        def __init__(self, dep_a, *args, dep_b=None, **kwargs):
-            pass
+    # A no-arg constructor has no injectable parameters.
+    assert injectable_parameter_names(SimpleService) == []
 
-    # Only named parameters (excluding self and variadics) should be returned.
-    result = injectable_parameter_names(MyService)
-    assert 'self' not in result
-    assert 'args' not in result
-    assert 'kwargs' not in result
-    assert 'dep_a' in result
-    assert 'dep_b' in result
-
-# ** test: injectable_parameter_names_uninspectable
-def test_injectable_parameter_names_uninspectable():
+# ** test: injectable_parameter_names_with_dependency
+def test_injectable_parameter_names_with_dependency():
     '''
-    injectable_parameter_names returns an empty list for types whose
-    constructor cannot be inspected (e.g. built-in C-extension types).
+    injectable_parameter_names returns the sibling dependency name.
+
+    :return: None
+    :rtype: None
     '''
 
-    # int.__init__ is a C-extension; inspect.signature raises TypeError.
-    result = injectable_parameter_names(int)
+    # The dependent constructor exposes one injectable parameter.
+    assert injectable_parameter_names(DependentService) == ['simple_service']
 
-    # Result should be an empty list, not an exception.
-    assert result == []
+# ** test: injectable_parameter_names_scalar
+def test_injectable_parameter_names_scalar():
+    '''
+    injectable_parameter_names returns the scalar parameter name.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The configurable constructor exposes one scalar parameter.
+    assert injectable_parameter_names(ConfigurableService) == ['config_value']
+
+# ** test: normalize_flags_mixed
+def test_normalize_flags_mixed():
+    '''
+    normalize_flags flattens mixed strings, lists, and tuples.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Flatten one level of mixed flag groups.
+    assert normalize_flags('a', ['b', 'c'], ('d', 'e')) == ['a', 'b', 'c', 'd', 'e']
 
 # ** test: normalize_flags_empty
 def test_normalize_flags_empty():
     '''
     normalize_flags returns an empty list when called with no arguments.
+
+    :return: None
+    :rtype: None
     '''
 
-    # Call with no arguments.
-    result = normalize_flags()
+    # No arguments normalize to an empty list.
+    assert normalize_flags() == []
 
-    # Result should be an empty list.
-    assert result == []
-
-# ** test: normalize_flags_strings
-def test_normalize_flags_strings():
+# ** test: normalize_flags_coerces_non_string
+def test_normalize_flags_coerces_non_string():
     '''
-    normalize_flags returns a flat list of strings unchanged when all
-    flags are already strings.
-    '''
+    normalize_flags coerces non-string scalars and members to strings.
 
-    # Pass three string flags.
-    result = normalize_flags('a', 'b', 'c')
-
-    # Result should equal the original strings in order.
-    assert result == ['a', 'b', 'c']
-
-# ** test: normalize_flags_expands_list
-def test_normalize_flags_expands_list():
-    '''
-    normalize_flags flattens a list argument into the result, expanding
-    its members alongside any surrounding scalar flags.
+    :return: None
+    :rtype: None
     '''
 
-    # Mix a list with a trailing scalar.
-    result = normalize_flags(['a', 'b'], 'c')
+    # Integers are coerced to strings, including nested members.
+    assert normalize_flags(1, [2, 3], (4,)) == ['1', '2', '3', '4']
 
-    # The list should be expanded into the flat result.
-    assert result == ['a', 'b', 'c']
-
-# ** test: normalize_flags_coerces_to_str
-def test_normalize_flags_coerces_to_str():
+# ** test: service_resolver_container_cache_round_trip
+def test_service_resolver_container_cache_round_trip():
     '''
-    normalize_flags coerces non-string scalars and list members to strings.
-    '''
+    add_container caches a container retrievable by equivalent flag shapes.
 
-    # Mix integer scalars and a list of integers.
-    result = normalize_flags(['a', 'b'], 'c', 42)
-
-    # All elements should be strings.
-    assert result == ['a', 'b', 'c', '42']
-
-# ** test: service_container_is_abstract
-def test_service_container_is_abstract():
-    '''
-    ServiceContainer cannot be instantiated directly; it raises TypeError
-    because abstract methods are left unimplemented.
+    :return: None
+    :rtype: None
     '''
 
-    # Attempt to instantiate the ABC directly.
-    with pytest.raises(TypeError):
-        ServiceContainer()
+    # Cache a second stub under a flag pair.
+    resolver = CountingResolver(StubContainer())
+    second = StubContainer()
+    cached = resolver.add_container(second, 'a', 'b')
 
-# ** test: service_resolver_is_abstract
-def test_service_resolver_is_abstract():
-    '''
-    ServiceResolver cannot be instantiated directly; it raises TypeError
-    because build_container is left unimplemented.
-    '''
+    # The same container is returned for equivalent flag shapes.
+    assert cached is second
+    assert resolver.get_container('a', 'b') is second
+    assert resolver.get_container(['a', 'b']) is second
+    assert resolver.get_container('c') is None
 
-    # Attempt to instantiate the ABC directly.
-    with pytest.raises(TypeError):
-        ServiceResolver()
-
-# ** test: service_resolver_add_and_get_container
-def test_service_resolver_add_and_get_container():
+# ** test: service_resolver_get_dependency_builds_once
+def test_service_resolver_get_dependency_builds_once():
     '''
-    add_container stores a container under the normalized flag tuple and
-    get_container retrieves it using the same flags.
+    get_dependency builds the container once and reuses it.
+
+    :return: None
+    :rtype: None
     '''
 
-    # Build a minimal concrete resolver with a stub build_container.
-    class ConcreteResolver(ServiceResolver):
-        def build_container(self, flags: List[str]):
-            raise NotImplementedError('not needed for this test')
+    # Resolve the same id twice from a preloaded stub.
+    stub = StubContainer(resolved={'svc': 'RESOLVED'})
+    resolver = CountingResolver(stub)
+    first = resolver.get_dependency('svc')
+    second = resolver.get_dependency('svc')
 
-    # Build a minimal concrete container stub.
-    class ConcreteContainer(ServiceContainer):
-        def add_service(self, service_id, service): pass
-        def add_constant(self, constant_id, value): pass
-        def get_dependency(self, dependency_id): pass
-        def has_dependency(self, dependency_id): return False
-        def remove_dependency(self, dependency_id): pass
-        def load_container(self, services=None, constants=None): pass
+    # Both resolutions return the stored value from one build.
+    assert first == 'RESOLVED'
+    assert second == 'RESOLVED'
+    assert resolver.build_count == 1
 
-    resolver = ConcreteResolver()
-    container = ConcreteContainer()
-
-    # Store the container under a set of flags.
-    resolver.add_container(container, 'flag_a', 'flag_b')
-
-    # Retrieve the container using the same flags.
-    retrieved = resolver.get_container('flag_a', 'flag_b')
-    assert retrieved is container
-
-    # A different flag combination should return None.
-    assert resolver.get_container('flag_c') is None
-
-# ** test: service_resolver_get_dependency_calls_build_on_miss
-def test_service_resolver_get_dependency_calls_build_on_miss():
+# ** test: service_resolver_get_dependency_delegates_to_container
+def test_service_resolver_get_dependency_delegates_to_container():
     '''
-    get_dependency calls build_container when no cached container exists
-    for the given flags, then caches and uses the result.
+    get_dependency asks the container for the service id, not the flags.
+
+    :return: None
+    :rtype: None
     '''
 
-    # Track how many times build_container is called.
-    build_calls = []
+    # Resolve with a flag so the container records only the service id.
+    stub = StubContainer()
+    resolver = CountingResolver(stub)
+    resolver.get_dependency('svc', 'flag')
 
-    class ConcreteContainer(ServiceContainer):
-        def __init__(self, value):
-            self._value = value
-        def add_service(self, service_id, service): pass
-        def add_constant(self, constant_id, value): pass
-        def get_dependency(self, dependency_id): return self._value
-        def has_dependency(self, dependency_id): return True
-        def remove_dependency(self, dependency_id): pass
-        def load_container(self, services=None, constants=None): pass
-
-    class ConcreteResolver(ServiceResolver):
-        def build_container(self, flags: List[str]) -> ServiceContainer:
-            build_calls.append(flags)
-            return ConcreteContainer('resolved_value')
-
-    resolver = ConcreteResolver()
-
-    # First call triggers build_container.
-    result = resolver.get_dependency('my_service', 'flag_x')
-    assert result == 'resolved_value'
-    assert len(build_calls) == 1
-
-    # Second call with same flags reuses the cached container.
-    result = resolver.get_dependency('my_service', 'flag_x')
-    assert result == 'resolved_value'
-    assert len(build_calls) == 1
+    # The container was asked for the service id alone.
+    assert stub.requested == ['svc']

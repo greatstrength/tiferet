@@ -43,10 +43,10 @@ class ServiceError(Exception):
     # * init
     def __init__(self,
             error_code: str,
-            message: Optional[str] = None,
-            module_path: Optional[str] = None,
-            class_name: Optional[str] = None,
-            target_method: Optional[str] = None,
+            message: str = None,
+            module_path: str = None,
+            class_name: str = None,
+            target_method: str = None,
             **kwargs,
         ):
         '''
@@ -89,8 +89,8 @@ class ServiceError(Exception):
     def raise_for(cls,
             service: Any,
             error_code: str,
-            message: Optional[str] = None,
-            cause: Optional[Exception] = None,
+            message: str = None,
+            cause: BaseException = None,
             **kwargs,
         ) -> NoReturn:
         '''
