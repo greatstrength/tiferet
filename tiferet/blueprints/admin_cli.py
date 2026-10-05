@@ -3,7 +3,6 @@
 # *** imports
 
 # ** core
-import argparse
 from typing import Any, Dict, List, Optional
 
 # ** app
@@ -12,14 +11,14 @@ from . import admin, core
 from .cli import (
     parse_cli_args_handler,
     create_cli_request_context,
-    cli_response_handler,
+    list_commands_handler,
+    get_parent_args_handler,
 )
 from ..contexts.app import AppSession
 from ..contexts.cache import CacheContext
 from ..contexts.cli import (
     CliSessionContext,
     add_default_cli_commands,
-    get_default_cli_commands,
 )
 
 # *** blueprints
@@ -30,8 +29,8 @@ def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
     '''
     Build the admin CLI bootstrap cache.
 
-    Layers the admin CLI command catalog on top of the full admin catalog
-    already seeded by ``admin.build_cache`` (errors, admin services, admin
+    Extends ``admin.build_cache`` by stacking the admin CLI command catalog
+    on the admin catalogs already seeded there (errors, admin services, admin
     constants, and admin features).
 
     :param cache: An optional initial cache dictionary for the root namespace.
@@ -51,7 +50,9 @@ def build_admin_cli_session_context(app_session: AppSession,
 
     Parallel to ``cli.build_cli_session_context`` but uses
     ``admin.build_admin_service_resolver`` so feature steps resolve from the
-    admin container by default.
+    admin container by default. This builder does not resolve the CLI events
+    by service id. It passes the injected command handlers and
+    ``core.response_handler``.
 
     :param app_session: The loaded app session domain object.
     :type app_session: AppSession
@@ -65,29 +66,29 @@ def build_admin_cli_session_context(app_session: AppSession,
     app_container = core.build_app_service_container(cache, app_session)
     resolver = admin.build_admin_service_resolver(app_container, cache)
 
-    # Resolve the CLI event collaborators from the app container.
-    list_commands_evt = app_container.get_dependency('list_commands_evt')
-    get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
-
-    # Build the standard arg-parsing closure from events and cache defaults.
+    # Build the CLI handlers without resolving events during construction.
+    commands_handler = list_commands_handler(cache, resolver.get_dependency)
+    parent_args_handler = get_parent_args_handler(resolver.get_dependency)
     parse_cli_args = parse_cli_args_handler(
-        list_commands_evt,
-        get_parent_args_evt,
-        get_default_cli_commands(cache),
+        list_commands=commands_handler,
+        get_parent_args=parent_args_handler,
     )
 
-    # Delegate handler wiring, collaborator resolution, and construction.
+    # Delegate handler wiring and construction.
     return core.compose_session_context(
         CliSessionContext,
         app_session,
         cache,
         resolver,
         create_request_handler=create_cli_request_context,
-        response_handler=cli_response_handler,
+        response_handler=core.response_handler,
         parse_cli_args=parse_cli_args,
+        list_commands_handler=commands_handler,
+        get_parent_args_handler=parent_args_handler,
     )
 
 # ** blueprint: build_admin_cli
+# >> see: @guides/blueprints.md#build-admin-cli
 def build_admin_cli(app_config: str, argv: Optional[List[str]] = None) -> Any:
     '''
     Build the admin CLI session context and dispatch argv through it.
@@ -142,6 +143,9 @@ def main() -> None:
     and so ``--help``/``-h`` is handled by the full parser inside
     ``build_admin_cli``.
     '''
+
+    # Import argparse locally so --config can be pre-parsed.
+    import argparse
 
     # Pre-parse --config without consuming remaining argv or help flags.
     pre_parser = argparse.ArgumentParser(add_help=False)
