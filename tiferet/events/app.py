@@ -100,6 +100,7 @@ class AddAppSession(AppEvent):
         return app_session
 
 # ** event: get_app_session
+# >> see: @guides/events/app.md#getappsession
 class GetAppSession(AppEvent):
     '''
     A domain event to retrieve an app session using the ``AppService`` abstraction.
@@ -121,48 +122,47 @@ class GetAppSession(AppEvent):
         '''
 
         # Retrieve the app session via the app service.
-        app_session = self.app_service.get(id)
+        session = self.app_service.get(id)
 
-        # Verify the session exists; raise error if not found.
-        self.verify(
-            expression=app_session is not None,
-            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
-            id=id,
-        )
+        # Raise a structured error when the session is missing.
+        if not session:
+            self.raise_error(
+                a.error.APP_SESSION_NOT_FOUND_ID,
+                message=f'App session with ID {id} not found.',
+                id=id,
+            )
 
-        # Return the loaded application session.
-        return app_session
+        # Return the loaded application session unchanged.
+        return session
 
 # ** event: update_app_session
+# >> see: @guides/events/app.md#updateappsession
 class UpdateAppSession(AppEvent):
     '''
     A domain event to update scalar attributes of an existing app session.
     '''
 
     # * method: execute
-    @DomainEvent.parameters_required(['id'])
+    @DomainEvent.parameters_required(['id', 'attribute'])
     def execute(self,
             id: str,
-            name: str | None = None,
-            description: str | None = None,
-            logger_id: str | None = None,
+            attribute: str,
+            value: Any,
             **kwargs,
-        ) -> AppSession:
+        ) -> str:
         '''
-        Update scalar attributes of an existing app session.
+        Update a scalar attribute on an existing app session.
 
         :param id: The unique identifier for the app session to update.
         :type id: str
-        :param name: The new name value, or None to leave unchanged.
-        :type name: str | None
-        :param description: The new description value, or None to leave unchanged.
-        :type description: str | None
-        :param logger_id: The new logger id value, or None to leave unchanged.
-        :type logger_id: str | None
+        :param attribute: The attribute name to update.
+        :type attribute: str
+        :param value: The new value for the attribute.
+        :type value: Any
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The updated AppSession.
-        :rtype: AppSession
+        :return: The ID of the updated app session.
+        :rtype: str
         '''
 
         # Retrieve the app session via the app service.
@@ -176,20 +176,14 @@ class UpdateAppSession(AppEvent):
             id=id,
         )
 
-        # Update each provided scalar attribute via the aggregate method.
-        for attribute, value in (
-            ('name', name),
-            ('description', description),
-            ('logger_id', logger_id),
-        ):
-            if value is not None:
-                app_session.set_attribute(attribute, value)
+        # Assign the requested attribute, including an explicit None.
+        app_session.set_attribute(attribute, value)
 
         # Persist the updated session.
         self.app_service.save(app_session)
 
-        # Return the updated app session.
-        return app_session
+        # Return the updated session id.
+        return id
 
 # ** event: list_app_sessions
 class ListAppSessions(AppEvent):
@@ -212,6 +206,7 @@ class ListAppSessions(AppEvent):
         return self.app_service.list()
 
 # ** event: remove_app_session
+# >> see: @guides/events/app.md#removeappsession
 class RemoveAppSession(AppEvent):
     '''
     A domain event to remove an app session configuration by ID (idempotent).
@@ -219,7 +214,7 @@ class RemoveAppSession(AppEvent):
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
-    def execute(self, id: str, **kwargs) -> None:
+    def execute(self, id: str, **kwargs) -> str:
         '''
         Remove an app session by ID (idempotent).
 
@@ -227,12 +222,15 @@ class RemoveAppSession(AppEvent):
         :type id: str
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: None
-        :rtype: None
+        :return: The removed session ID.
+        :rtype: str
         '''
 
         # Delegate deletion to the app service (idempotent operation).
         self.app_service.delete(id)
+
+        # Return the removed session id.
+        return id
 
 # ** event: set_app_constants
 class SetAppConstants(AppEvent):
