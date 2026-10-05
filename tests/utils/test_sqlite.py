@@ -592,6 +592,8 @@ def test_sqlite_client_query_and_transaction_failures(memory_client: SqliteClien
 
     # Open the connection.
     memory_client.open_file()
+
+    # Name the query the failing fetches execute.
     query = 'SELECT 1'
 
     try:
