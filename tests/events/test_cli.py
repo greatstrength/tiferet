@@ -18,7 +18,7 @@ from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import CliCommand, CliArgument
 from tiferet.interfaces import CliService
 from tiferet.mappers import CliCommandAggregate
-from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.blueprints.tester import use_tester
 
 # *** fixtures
 
@@ -87,29 +87,28 @@ class TestCliEvent:
         assert CliEvent(cli_service=service).cli_service is service
         assert AddCliCommand(cli_service=service).cli_service is service
 
-
 # ** tester: test_add_cli_command
-class TestAddCliCommand(DomainEventTestBase):
-    '''
-    Tests for AddCliCommand using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddCliCommand
-
-    # * attribute: dependencies
-    dependencies = {'cli_service': CliService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='domain_event',
+    target_cls=AddCliCommand,
+    dependencies={
+        'cli_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'CliService',
+        },
+    },
+    sample_kwargs=dict(
         id='test.new_command',
         name='New Command',
         key='new_command',
         group_key='test',
-    )
-
-    # * attribute: required_params
-    required_params = ['id']
+    ),
+    required_params=['id'],
+)
+class TestAddCliCommand:
+    '''
+    Tests for AddCliCommand using the domain event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -124,13 +123,18 @@ class TestAddCliCommand(DomainEventTestBase):
         return {'cli_service': service}
 
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx, mock_dependencies):
         '''
         Test that AddCliCommand successfully creates a new CLI command.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :param mock_dependencies: The pre-configured CLI service mocks.
+        :type mock_dependencies: dict
         '''
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the result is a CliCommand instance with expected fields.
         assert isinstance(result, CliCommand)
@@ -145,13 +149,18 @@ class TestAddCliCommand(DomainEventTestBase):
         mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
     # * test: with_arguments
-    def test_with_arguments(self, mock_dependencies):
+    def test_with_arguments(self, test_ctx, mock_dependencies):
         '''
         Test that AddCliCommand can create a command with initial arguments.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :param mock_dependencies: The pre-configured CLI service mocks.
+        :type mock_dependencies: dict
         '''
 
         # Execute via the harness handle helper with arguments.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             id='test.verbose_command',
             name='Verbose Command',
@@ -176,9 +185,14 @@ class TestAddCliCommand(DomainEventTestBase):
         mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
     # * test: duplicate_id
-    def test_duplicate_id(self, mock_dependencies):
+    def test_duplicate_id(self, test_ctx, mock_dependencies):
         '''
         Test that AddCliCommand fails when the command id already exists.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :param mock_dependencies: The pre-configured CLI service mocks.
+        :type mock_dependencies: dict
         '''
 
         # Configure the service to report the id exists.
@@ -186,60 +200,70 @@ class TestAddCliCommand(DomainEventTestBase):
 
         # Execute and expect a CLI_COMMAND_ALREADY_EXISTS error.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies)
+            test_ctx.handle(mock_dependencies)
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.CLI_COMMAND_ALREADY_EXISTS_ID
 
     # * test: none_arguments_coerced
-    def test_none_arguments_coerced(self, mock_dependencies):
+    def test_none_arguments_coerced(self, test_ctx, mock_dependencies):
         '''
         Test that None arguments are coerced to an empty list.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :param mock_dependencies: The pre-configured CLI service mocks.
+        :type mock_dependencies: dict
         '''
 
         # Execute with arguments explicitly set to None (as argparse may pass).
-        result = self.handle(mock_dependencies, arguments=None)
+        result = test_ctx.handle(mock_dependencies, arguments=None)
 
         # Assert the command was created with an empty argument list.
         assert isinstance(result, CliCommand)
         assert result.arguments == []
         mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that a missing required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        '''
+
+        # Assert each required parameter raises the command-parameter error.
+        test_ctx.assert_missing_required_params()
 
 # ** tester: test_add_cli_argument
-class TestAddCliArgument(ServiceEventTestBase):
-    '''
-    Tests for AddCliArgument using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddCliArgument
-
-    # * attribute: dependencies
-    dependencies = {'cli_service': CliService}
-
-    # * attribute: service_attr
-    service_attr = 'cli_service'
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=AddCliArgument,
+    dependencies={
+        'cli_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'CliService',
+        },
+    },
+    sample_kwargs=dict(
         command_id='test.command',
         name_or_flags=['-v', '--verbose'],
         description='Enable verbose output',
-    )
-
-    # * attribute: required_params
-    required_params = ['command_id']
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.CLI_COMMAND_NOT_FOUND_ID
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
+    ),
+    required_params=['command_id'],
+    service_attr='cli_service',
+    not_found_error_code=a.error.CLI_COMMAND_NOT_FOUND_ID,
+    not_found_kwargs=dict(
         command_id='test.missing',
         name_or_flags=['-v'],
         description='Verbose',
-    )
+    ),
+)
+class TestAddCliArgument:
+    '''
+    Tests for AddCliArgument using the domain event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -254,13 +278,20 @@ class TestAddCliArgument(ServiceEventTestBase):
         return {'cli_service': service}
 
     # * test: success
-    def test_success(self, mock_dependencies, cli_command):
+    def test_success(self, test_ctx, mock_dependencies, cli_command):
         '''
         Test that AddCliArgument successfully adds an argument to a command.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :param mock_dependencies: The pre-configured CLI service mocks.
+        :type mock_dependencies: dict
+        :param cli_command: The command the argument is added to.
+        :type cli_command: CliCommandAggregate
         '''
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the result is the command id and argument was added.
         assert result == 'test.command'
@@ -271,13 +302,20 @@ class TestAddCliArgument(ServiceEventTestBase):
         mock_dependencies['cli_service'].save.assert_called_once_with(cli_command)
 
     # * test: with_kwargs
-    def test_with_kwargs(self, mock_dependencies, cli_command):
+    def test_with_kwargs(self, test_ctx, mock_dependencies, cli_command):
         '''
         Test that AddCliArgument handles additional kwargs for arguments.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :param mock_dependencies: The pre-configured CLI service mocks.
+        :type mock_dependencies: dict
+        :param cli_command: The command the argument is added to.
+        :type cli_command: CliCommandAggregate
         '''
 
         # Execute via the harness handle helper with additional kwargs.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             name_or_flags=['--count'],
             description='Number of items',
@@ -295,16 +333,23 @@ class TestAddCliArgument(ServiceEventTestBase):
         mock_dependencies['cli_service'].save.assert_called_once_with(cli_command)
 
     # * test: multiple_arguments
-    def test_multiple_arguments(self, mock_dependencies, cli_command):
+    def test_multiple_arguments(self, test_ctx, mock_dependencies, cli_command):
         '''
         Test adding multiple arguments to the same command sequentially.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :param mock_dependencies: The pre-configured CLI service mocks.
+        :type mock_dependencies: dict
+        :param cli_command: The command the arguments are added to.
+        :type cli_command: CliCommandAggregate
         '''
 
         # Add first argument.
-        self.handle(mock_dependencies)
+        test_ctx.handle(mock_dependencies)
 
         # Add second argument.
-        self.handle(
+        test_ctx.handle(
             mock_dependencies,
             name_or_flags=['-q', '--quiet'],
             description='Quiet mode',
@@ -314,43 +359,82 @@ class TestAddCliArgument(ServiceEventTestBase):
         assert len(cli_command.arguments) == 2
         assert mock_dependencies['cli_service'].save.call_count == 2
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that a missing required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        '''
+
+        # Assert each required parameter raises the command-parameter error.
+        test_ctx.assert_missing_required_params()
+
+    # * test: not_found
+    def test_not_found(self, test_ctx):
+        '''
+        Test that a missing command raises CLI_COMMAND_NOT_FOUND.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        '''
+
+        # Assert the primary service miss raises the configured not-found error.
+        test_ctx.assert_not_found()
 
 # ** tester: test_list_cli_commands
-class TestListCliCommands(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=ListCliCommands,
+    dependencies={
+        'cli_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'CliService',
+        },
+    },
+    sample_kwargs=dict(),
+)
+class TestListCliCommands:
     '''
     Tests for ListCliCommands using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = ListCliCommands
-
-    # * attribute: dependencies
-    dependencies = {'cli_service': CliService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict()
-
     # * test: empty
-    def test_empty(self, mock_dependencies):
+    def test_empty(self, test_ctx):
         '''
         Test that ListCliCommands returns an empty list when no commands exist.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
+
+        # Build mocked CLI service dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Configure the service to return an empty list.
         mock_dependencies['cli_service'].list.return_value = []
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert an empty list is returned.
         assert result == []
         mock_dependencies['cli_service'].list.assert_called_once()
 
     # * test: multiple
-    def test_multiple(self, mock_dependencies, cli_command):
+    def test_multiple(self, test_ctx, cli_command):
         '''
         Test that ListCliCommands returns multiple commands.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :param cli_command: A command included in the listed results.
+        :type cli_command: CliCommandAggregate
         '''
+
+        # Build mocked CLI service dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Create another command for the list.
         another = CliCommandAggregate(
@@ -364,7 +448,7 @@ class TestListCliCommands(DomainEventTestBase):
         mock_dependencies['cli_service'].list.return_value = [cli_command, another]
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert both commands are returned.
         assert len(result) == 2
@@ -372,27 +456,34 @@ class TestListCliCommands(DomainEventTestBase):
         assert result[1].id == 'test.another'
         mock_dependencies['cli_service'].list.assert_called_once()
 
-
 # ** tester: test_get_parent_arguments
-class TestGetParentArguments(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=GetParentArguments,
+    dependencies={
+        'cli_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'CliService',
+        },
+    },
+    sample_kwargs=dict(),
+)
+class TestGetParentArguments:
     '''
     Tests for GetParentArguments using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = GetParentArguments
-
-    # * attribute: dependencies
-    dependencies = {'cli_service': CliService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict()
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test that GetParentArguments returns parent arguments.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
+
+        # Build mocked CLI service dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Create sample parent arguments.
         parent_args = [
@@ -414,7 +505,7 @@ class TestGetParentArguments(DomainEventTestBase):
         mock_dependencies['cli_service'].get_parent_arguments.return_value = parent_args
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the results.
         assert len(result) == 2
@@ -423,16 +514,22 @@ class TestGetParentArguments(DomainEventTestBase):
         mock_dependencies['cli_service'].get_parent_arguments.assert_called_once()
 
     # * test: empty
-    def test_empty(self, mock_dependencies):
+    def test_empty(self, test_ctx):
         '''
         Test that GetParentArguments handles empty parent argument lists.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
+
+        # Build mocked CLI service dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Configure the service to return an empty list.
         mock_dependencies['cli_service'].get_parent_arguments.return_value = []
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert an empty list is returned.
         assert result == []

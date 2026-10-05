@@ -28,26 +28,13 @@ TESTER_CACHE_PREFIX: Tuple[str, ...] = (
     'testers',
 )
 
+# ** constant: test_preset_cache_prefix
+TEST_PRESET_CACHE_PREFIX: Tuple[str, ...] = (
+    'test',
+    'presets',
+)
+
 # *** functions
-
-# ** function: add_default_testers
-def add_default_testers(items: Dict[str, Any]) -> Callable:
-    '''
-    Decorator factory that pre-seeds a cache context with default testers.
-
-    :param items: A mapping of tester id to raw tester definition dicts.
-    :type items: Dict[str, Any]
-    :return: A decorator that wraps a cache-builder callable.
-    :rtype: Callable
-    '''
-
-    # Seed TesterObject instances under the tester cache prefix.
-    return add_default_cache_items(
-        items,
-        TESTER_CACHE_PREFIX,
-        model=TesterObject,
-        id_field='id',
-    )
 
 # ** function: create_verification
 def _create_verification(
@@ -77,6 +64,42 @@ def _create_verification(
         predicate=normalized,
         message=message,
         source=predicate,
+    )
+
+# ** function: add_default_testers
+def add_default_testers(items: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default testers.
+
+    :param items: A mapping of tester id to raw tester definition dicts.
+    :type items: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Seed TesterObject instances under the tester cache prefix.
+    return add_default_cache_items(
+        items,
+        TESTER_CACHE_PREFIX,
+        model=TesterObject,
+        id_field='id',
+    )
+
+# ** function: add_default_test_presets
+def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
+    '''
+    Decorator factory that seeds named given-state presets.
+
+    :param presets: Plain given-state mappings keyed by preset identifier.
+    :type presets: Dict[str, Dict]
+    :return: A cache-builder decorator.
+    :rtype: Callable
+    '''
+
+    # Store each preset raw under the preset cache prefix.
+    return add_default_cache_items(
+        presets,
+        TEST_PRESET_CACHE_PREFIX,
     )
 
 # *** contexts
@@ -125,10 +148,10 @@ class TesterContext(BaseContext):
     # * method: assert_model_matches
     def assert_model_matches(
             self,
-            model,
-            sample: dict,
-            equality_fields: List[str] = None,
-            field_normalizers: dict = None,
+            model: Any,
+            sample: Dict[str, Any],
+            equality_fields: List[str],
+            field_normalizers: Dict[str, Callable[[Any], Any]] = None,
         ) -> None:
         '''
         Compare selected fields on a model against a sample mapping.
@@ -145,27 +168,29 @@ class TesterContext(BaseContext):
         :rtype: None
         '''
 
-        # Default comparison fields and normalizers from the bound tester.
-        equality_fields = equality_fields or self.domain.equality_fields
-        field_normalizers = field_normalizers or self.domain.field_normalizers
+        # An omitted or falsy normalizer map is an empty mapping.
+        if not field_normalizers:
+            field_normalizers = {}
 
         # Compare each listed field that is also present in the sample.
         for field in equality_fields:
             if field not in sample:
                 continue
 
-            # Read both sides and apply a normalizer when one is configured.
-            actual = getattr(model, field)
+            # Read both sides and apply a truthy normalizer when configured.
+            actual = getattr(model, field, None)
             expected = sample[field]
             normalizer = field_normalizers.get(field)
-            if normalizer is not None:
+            if normalizer:
                 actual = normalizer(actual)
                 expected = normalizer(expected)
 
-            # Fail with the field name when the values differ.
+            # Fail on the first mismatch with a three-line field message.
             if actual != expected:
                 raise AssertionError(
-                    f'Field {field} did not match: {actual!r} != {expected!r}'
+                    f"Mismatch on field '{field}':\n"
+                    f'  expected: {expected!r}\n'
+                    f'  actual:   {actual!r}'
                 )
 
     # * method: assert_new
@@ -186,10 +211,12 @@ class TesterContext(BaseContext):
         # Assert the target is an instance of the bound target type.
         assert isinstance(target, self.domain.get_target_type())
 
-        # Compare against expected data, falling back to sample data.
+        # Compare expected data and equality fields explicitly.
         self.assert_model_matches(
             target,
-            self.domain.expected_data or self.domain.sample_data,
+            self.domain.expected_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
         )
 
 # ** context: domain_tester_context
@@ -248,7 +275,7 @@ class AggregateTesterContext(TesterContext):
                     assert error.error_code == expect_error_code
                 else:
                     raise AssertionError(
-                        f'Expected ModelError {expect_error_code} setting {attr}'
+                        f'Expected ModelError {expect_error_code} for {attr}.'
                     )
                 continue
 
@@ -294,7 +321,12 @@ class TransferObjectTesterContext(TesterContext):
 
         # Assert the mapped value is the aggregate type and matches sample data.
         assert isinstance(aggregate, self.domain.get_aggregate_type())
-        self.assert_model_matches(aggregate, self.domain.aggregate_sample_data)
+        self.assert_model_matches(
+            aggregate,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
+        )
 
     # * method: assert_from_model
     def assert_from_model(self, target: Any = None) -> None:
@@ -318,22 +350,232 @@ class TransferObjectTesterContext(TesterContext):
         assert isinstance(transfer, self.domain.get_target_type())
 
     # * method: assert_round_trip
-    def assert_round_trip(self) -> None:
+    def assert_round_trip(self, target: Any = None) -> None:
         '''
         Assert from_model then map round-trips the aggregate sample data.
 
+        :param target: An optional pre-constructed aggregate.
+        :type target: Any
         :return: None
         :rtype: None
         '''
 
+        # Construct the aggregate when the caller did not supply one.
+        if target is None:
+            target = self.make_target()
+
         # Round-trip the aggregate through the transfer object.
-        target = self.make_target()
         transfer = self.domain.get_target_type().from_model(target)
         round_tripped = transfer.map(**self.domain.map_kwargs)
 
         # Assert the round-tripped value matches the aggregate sample.
         assert isinstance(round_tripped, self.domain.get_aggregate_type())
-        self.assert_model_matches(round_tripped, self.domain.aggregate_sample_data)
+        self.assert_model_matches(
+            round_tripped,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
+        )
+
+# ** context: test_session_context
+class TestSessionContext(RequestContext):
+    '''
+    The test session is the request: a RequestContext that queues given /
+    invoke / verify against a bound TesterContext collaborator.
+    '''
+
+    # * attribute: tester_ctx
+    tester_ctx: TesterContext
+
+    # * attribute: verifications
+    verifications: List[Verification]
+
+    # * attribute: outcome
+    outcome: Any
+
+    # * init
+    def __init__(self, tester_ctx: TesterContext, **kwargs: Any) -> None:
+        '''
+        Initialize the test session with a bound tester collaborator.
+
+        :param tester_ctx: The bound tester context.
+        :type tester_ctx: TesterContext
+        :param kwargs: RequestContext fields such as headers and data.
+        :type kwargs: dict
+        '''
+
+        # Initialize the request context and bind a Request as domain.
+        super().__init__(**kwargs)
+
+        # Bind the tester collaborator and an empty verification queue.
+        self.tester_ctx = tester_ctx
+        self.verifications = []
+        self.outcome = None
+
+    # * method: given
+    def given(self, **state: Any) -> 'TestSessionContext':
+        '''
+        Overlay given-state onto the request data.
+
+        :param state: Field values merged last-write-wins onto request data.
+        :type state: dict
+        :return: This session.
+        :rtype: TestSessionContext
+        '''
+
+        # Merge onto the request; do not copy into tester sample data.
+        self.data.update(state)
+
+        # Return self for fluent chaining.
+        return self
+
+    # * method: invoke
+    def invoke(self, **params: Any) -> 'TestSessionContext':
+        '''
+        Overlay invoke parameters onto the request data.
+
+        :param params: Field values merged last-write-wins onto request data.
+        :type params: dict
+        :return: This session.
+        :rtype: TestSessionContext
+        '''
+
+        # Merge onto the request so run() exercises the bound tester.
+        self.data.update(params)
+
+        # Return self for fluent chaining.
+        return self
+
+    # * method: verify
+    def verify(
+            self,
+            assertion: Callable[[Any], bool] | Any,
+            message: str | None = None,
+        ) -> 'TestSessionContext':
+        '''
+        Queue a verification against the eventual session outcome.
+
+        :param assertion: A callable predicate or literal compared to the outcome.
+        :type assertion: Any
+        :param message: An optional failure label.
+        :type message: str | None
+        :return: This session.
+        :rtype: TestSessionContext
+        '''
+
+        # Append the normalized verification to the queue.
+        self.verifications.append(
+            _create_verification(predicate=assertion, message=message)
+        )
+
+        # Return self for fluent chaining.
+        return self
+
+    # * method: capture_outcome
+    def capture_outcome(self, outcome: Any) -> None:
+        '''
+        Store the exercised outcome for verification.
+
+        :param outcome: The value produced by the bound tester.
+        :type outcome: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Store the outcome separately from the request result.
+        self.outcome = outcome
+
+    # * method: evaluate_verifications
+    def evaluate_verifications(self) -> None:
+        '''
+        Evaluate the queued verifications against the captured outcome.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Walk the queue from index 1 and keep going after a failure.
+        failures = []
+        for index, verification in enumerate(self.verifications, start=1):
+            detail = None
+            try:
+                passed = verification.predicate(self.outcome)
+            except Exception as error:
+                passed = False
+                detail = str(error)
+
+            # A falsy predicate fails; do not replace the queue item.
+            if not passed:
+                message = verification.message or (
+                    f'Expected {verification.source!r} '
+                    f'for outcome {self.outcome!r}.'
+                )
+                text = f'Verification {index} failed: {message}'
+                if detail:
+                    text = f'{text} ({detail})'
+                failures.append(text)
+
+        # Empty the same list before returning or raising.
+        self.verifications.clear()
+
+        # Raise one assertion listing every failure.
+        if failures:
+            raise AssertionError('\n'.join(failures))
+
+    # * method: run
+    def run(self, target: Any = None, **kwargs) -> Any:
+        '''
+        Exercise the bound tester with request overlay and evaluate verifications.
+
+        :param target: An optional live object. Valid only when the tester type is generic.
+        :type target: Any
+        :param kwargs: Unused extra keyword arguments.
+        :type kwargs: dict
+        :return: The captured outcome.
+        :rtype: Any
+        '''
+
+        # Ignore extra keywords. Reject a live target on specialized types first.
+        tester = self.tester_ctx.domain
+        if tester.type != 'generic' and target is not None:
+            raise ValueError(
+                'run(target=...) is only valid when tester type is generic.'
+            )
+
+        # Resolve a generic live object without the specialized exercise path.
+        if tester.type == 'generic':
+            resolved = target if target is not None else tester.get_target()
+
+            # Lock the ABC contract on the resolved object.
+            self.tester_ctx.assert_contract(target=resolved)
+
+            # Invoke non-class callables with request given-state as kwargs.
+            if callable(resolved) and not isinstance(resolved, type):
+                outcome = resolved(**self.data)
+            else:
+                outcome = resolved
+
+            # Capture, evaluate, and return the generic outcome.
+            self.capture_outcome(outcome)
+            self.evaluate_verifications()
+            return self.outcome
+
+        # Choose sample kwargs for events, otherwise sample data.
+        if tester.type in ('domain_event', 'service_event'):
+            sample = tester.sample_kwargs
+        else:
+            sample = tester.sample_data
+
+        # Overlay request data without mutating the sample dict.
+        payload = {**sample, **self.data}
+
+        # Dispatch through the bound tester hook.
+        outcome = self.tester_ctx._exercise_target(data=payload)
+
+        # Capture, evaluate, and return the outcome.
+        self.capture_outcome(outcome)
+        self.evaluate_verifications()
+        return self.outcome
 
 # ** context: domain_event_tester_context
 class DomainEventTesterContext(TesterContext):
@@ -374,7 +616,7 @@ class DomainEventTesterContext(TesterContext):
 
         # Merge caller kwargs over the tester sample kwargs.
         merged = {
-            **(self.domain.sample_kwargs or {}),
+            **self.domain.sample_kwargs,
             **kwargs,
         }
 
@@ -417,7 +659,7 @@ class DomainEventTesterContext(TesterContext):
                 assert name in str(error)
             else:
                 raise AssertionError(
-                    f'Expected COMMAND_PARAMETER_REQUIRED for {name}'
+                    f'Expected COMMAND_PARAMETER_REQUIRED for {name}.'
                 )
 
 # ** context: service_event_tester_context
@@ -427,7 +669,7 @@ class ServiceEventTesterContext(DomainEventTesterContext):
     '''
 
     # * method: get_service_mock
-    def get_service_mock(self, dependencies: Dict[str, Any] = None) -> Any:
+    def get_service_mock(self, dependencies: Dict[str, Any] = None) -> Mock:
         '''
         Return the primary service mock from a dependency mapping.
 
@@ -469,7 +711,7 @@ class ServiceEventTesterContext(DomainEventTesterContext):
             assert error.error_code == self.domain.not_found_error_code
         else:
             raise AssertionError(
-                f'Expected TiferetError {self.domain.not_found_error_code}'
+                f'Expected {self.domain.not_found_error_code} when service get returns None.'
             )
 
 # ** context: generic_tester_context
@@ -479,35 +721,8 @@ class GenericTesterContext(TesterContext):
     it, and optionally locks an ABC without a per-package type key.
     '''
 
-    # * method: assert_contract
-    def assert_contract(self, target=None) -> None:
-        '''
-        Assert each abstract method name exists on the inspected type.
-
-        :param target: The live object or type to inspect. None is a no-op.
-        :type target: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Missing targets are a no-op.
-        if target is None:
-            return
-
-        # Inspect the type, not an instance.
-        inspected = target if isinstance(target, type) else type(target)
-        abstracts = getattr(inspected, '__abstractmethods__', None)
-
-        # Missing or empty abstract-method sets are a no-op.
-        if not abstracts:
-            return
-
-        # Lock each abstract method name onto the inspected type.
-        for name in abstracts:
-            assert hasattr(inspected, name)
-
     # * method: make_target
-    def make_target(self, data: dict | None = None) -> Any:
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
         '''
         Resolve the live generic target without mutating sample_data.
 
@@ -521,24 +736,35 @@ class GenericTesterContext(TesterContext):
         if data is None:
             return self.domain.get_target()
 
-        # Import the named attribute once.
-        obj = self.domain.get_target_type()
+        # Construct the target type from the supplied payload.
+        return self.domain.get_target_type()(**data)
 
-        # Return functions and other non-class callables as-is.
-        if callable(obj) and not isinstance(obj, type):
-            return obj
+    # * method: assert_contract
+    def assert_contract(self, target: Any = None) -> None:
+        '''
+        Assert each abstract method name exists on the inspected type.
 
-        # Return ABC classes without instantiating them.
-        if isinstance(obj, type):
-            abstracts = getattr(obj, '__abstractmethods__', None)
-            if abstracts:
-                return obj
+        :param target: The live object or type to inspect. None is a no-op.
+        :type target: Any
+        :return: None
+        :rtype: None
+        '''
 
-            # Construct a concrete class from a copy of the overlay data.
-            return obj(**dict(data))
+        # Resolve a missing target through make_target.
+        if target is None:
+            target = self.make_target()
 
-        # Return constants and other attributes as-is.
-        return obj
+        # Inspect the type, not an instance.
+        inspected = target if isinstance(target, type) else type(target)
+        abstracts = getattr(inspected, '__abstractmethods__', None)
+
+        # Missing or empty abstract-method sets are a no-op.
+        if not abstracts:
+            return
+
+        # Lock each abstract method name onto the inspected type.
+        for name in abstracts:
+            assert hasattr(inspected, name)
 
 # ** context: repo_tester_context
 class RepoTesterContext(TesterContext):
@@ -546,6 +772,25 @@ class RepoTesterContext(TesterContext):
     A repository tester context that constructs against a temporary config
     file and asserts exists / get / list / save / delete plus format dispatch.
     '''
+
+    # * method: resolve_config_parameter
+    def _resolve_config_parameter(self) -> str:
+        '''
+        Return the constructor keyword that receives the config file path.
+
+        :return: That name.
+        :rtype: str
+        '''
+
+        # Prefer the tester's declared constructor keyword.
+        if self.domain.config_parameter:
+            return self.domain.config_parameter
+
+        # Otherwise take the first non-self, non-encoding parameter.
+        signature = inspect.signature(self.domain.get_target_type().__init__)
+        for name in signature.parameters:
+            if name not in ('self', 'encoding'):
+                return name
 
     # * method: make_target
     def make_target(self, config_file: str, encoding: str = 'utf-8') -> Any:
@@ -560,23 +805,9 @@ class RepoTesterContext(TesterContext):
         :rtype: Any
         '''
 
-        # Use the declared constructor keyword when the tester sets it.
-        parameter = self.domain.config_parameter
-        if not parameter:
-            signature = inspect.signature(self.domain.get_target_type().__init__)
-            candidates = [
-                name for name, param in signature.parameters.items()
-                if name not in ('self', 'encoding')
-                and param.kind not in (
-                    inspect.Parameter.VAR_POSITIONAL,
-                    inspect.Parameter.VAR_KEYWORD,
-                )
-            ]
-            parameter = candidates[0]
-
-        # Construct without mutating the bound tester or sample_data.
+        # Bind the config path and encoding as keywords.
         return self.domain.get_target_type()(**{
-            parameter: config_file,
+            self._resolve_config_parameter(): config_file,
             'encoding': encoding,
         })
 
@@ -592,7 +823,7 @@ class RepoTesterContext(TesterContext):
         '''
 
         # Construct the repository against the required path.
-        target = self.make_target(config_file)
+        target = self.make_target(config_file=config_file)
 
         # Assert the instance type and default serialization role.
         assert isinstance(target, self.domain.get_target_type())
@@ -600,7 +831,7 @@ class RepoTesterContext(TesterContext):
             assert target.default_role == 'to_data'
 
     # * method: assert_exists
-    def assert_exists(self, repo) -> None:
+    def assert_exists(self, repo: Any) -> None:
         '''
         Assert each exists case against the constructed repository.
 
@@ -615,7 +846,7 @@ class RepoTesterContext(TesterContext):
             assert repo.exists(id) is expected
 
     # * method: assert_get
-    def assert_get(self, repo) -> None:
+    def assert_get(self, repo: Any) -> None:
         '''
         Assert each get case against the constructed repository.
 
@@ -626,18 +857,26 @@ class RepoTesterContext(TesterContext):
         '''
 
         # Empty case lists are no-ops.
-        for id, expected in self.domain.get_cases:
+        for identifier, expected in self.domain.get_cases:
+
+            # Retrieve once per case.
+            loaded = repo.get(identifier)
 
             # Missing ids return None.
             if expected is None:
-                assert repo.get(id) is None
+                assert loaded is None
                 continue
 
             # Compare selected fields on the retrieved aggregate.
-            self.assert_model_matches(repo.get(id), expected)
+            self.assert_model_matches(
+                loaded,
+                expected,
+                self.domain.equality_fields,
+                field_normalizers=self.domain.field_normalizers,
+            )
 
     # * method: assert_list
-    def assert_list(self, repo) -> None:
+    def assert_list(self, repo: Any) -> None:
         '''
         Assert list() ids match the tester's list_ids set.
 
@@ -655,7 +894,7 @@ class RepoTesterContext(TesterContext):
         assert {item.id for item in repo.list()} == set(self.domain.list_ids)
 
     # * method: assert_save
-    def assert_save(self, repo, entity=None) -> None:
+    def assert_save(self, repo: Any, entity: Any = None) -> None:
         '''
         Assert save persists the aggregate and get returns matching fields.
 
@@ -675,18 +914,18 @@ class RepoTesterContext(TesterContext):
                 **self.domain.aggregate_sample_data
             )
 
-        # Persist the entity and compare the stored copy.
+        # Persist the entity and compare the stored copy to sample data.
         repo.save(entity)
+        loaded = repo.get(entity.id)
         self.assert_model_matches(
-            repo.get(entity.id),
-            {
-                field: getattr(entity, field)
-                for field in self.domain.equality_fields
-            },
+            loaded,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
         )
 
     # * method: assert_delete
-    def assert_delete(self, repo) -> None:
+    def assert_delete(self, repo: Any) -> None:
         '''
         Assert each delete id is removed and a second delete does not raise.
 
@@ -731,8 +970,8 @@ class RepoTesterContext(TesterContext):
             }
 
         # Round-trip the payload on each format path.
-        for path in (yaml_file, json_file):
-            repo = self.make_target(path)
+        for config_file in (yaml_file, json_file):
+            repo = self.make_target(config_file=config_file)
             repo._save(payload)
             assert repo._load() == payload
 
@@ -743,6 +982,24 @@ class ContextTesterContext(TesterContext):
     domain_type versus omission, and BaseContext.for_domain mapping.
     '''
 
+    # * method: make_target
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
+        '''
+        Bind the target context via from_domain using sample_data.
+
+        :param data: Unused. Context construction does not overlay request data.
+        :type data: Dict[str, Any]
+        :return: The bound target context.
+        :rtype: Any
+        '''
+
+        # Use caller data when supplied, otherwise sample data.
+        payload = data if data is not None else (self.domain.sample_data or {})
+
+        # Construct the domain object, then bind via the target class.
+        domain_obj = self.domain.get_domain_type()(**payload)
+        return self.domain.get_target_type().from_domain(domain_obj)
+
     # * method: assert_from_domain
     def assert_from_domain(self) -> None:
         '''
@@ -752,7 +1009,11 @@ class ContextTesterContext(TesterContext):
         :rtype: None
         '''
 
-        # Empty case lists are no-ops.
+        # Empty case lists return without constructing.
+        if not self.domain.from_domain_cases:
+            return None
+
+        # Bind each case through the target class.
         for case in self.domain.from_domain_cases:
 
             # Construct the domain object from the case payload.
@@ -777,7 +1038,11 @@ class ContextTesterContext(TesterContext):
         :rtype: None
         '''
 
-        # Empty case lists are no-ops.
+        # Empty case lists return before resolving the target type.
+        if not self.domain.domain_type_cases:
+            return None
+
+        # Assert each case against the target context class.
         target_cls = self.domain.get_target_type()
         for case in self.domain.domain_type_cases:
 
@@ -799,7 +1064,11 @@ class ContextTesterContext(TesterContext):
         :rtype: None
         '''
 
-        # Empty case lists are no-ops.
+        # Empty case lists return without importing.
+        if not self.domain.for_domain_cases:
+            return None
+
+        # Assert each registry mapping named by the case.
         for case in self.domain.for_domain_cases:
 
             # Import the domain and context classes named by the case.
@@ -815,219 +1084,3 @@ class ContextTesterContext(TesterContext):
             # Assert the registry mapping; CONTEXT_NOT_FOUND propagates.
             assert BaseContext.for_domain(domain_cls) is context_cls
 
-    # * method: make_target
-    def make_target(self, data: Dict[str, Any] = None) -> Any:
-        '''
-        Bind the target context via from_domain using sample_data.
-
-        :param data: Unused. Context construction does not overlay request data.
-        :type data: Dict[str, Any]
-        :return: The bound target context.
-        :rtype: Any
-        '''
-
-        # Construct the domain object from declaration-time sample data.
-        domain_obj = self.domain.get_domain_type()(**(self.domain.sample_data or {}))
-
-        # Bind via the target class from_domain, not __init__.
-        return self.domain.get_target_type().from_domain(domain_obj)
-
-# ** context: test_session_context
-class TestSessionContext(RequestContext):
-    '''
-    The test session is the request: a RequestContext that queues given /
-    invoke / verify against a bound TesterContext collaborator.
-    '''
-
-    # * attribute: tester_ctx
-    tester_ctx: TesterContext
-
-    # * attribute: verifications
-    verifications: List[Verification]
-
-    # * attribute: outcome
-    outcome: Any
-
-    # * init
-    def __init__(self, tester_ctx: TesterContext, **kwargs) -> None:
-        '''
-        Initialize the test session with a bound tester collaborator.
-
-        :param tester_ctx: The bound tester context.
-        :type tester_ctx: TesterContext
-        :param kwargs: RequestContext fields such as headers and data.
-        :type kwargs: dict
-        '''
-
-        # Initialize the request context and bind a Request as domain.
-        super().__init__(**kwargs)
-
-        # Bind the tester collaborator and an empty verification queue.
-        self.tester_ctx = tester_ctx
-        self.verifications = []
-        self.outcome = None
-
-    # * method: given
-    def given(self, **state) -> 'TestSessionContext':
-        '''
-        Overlay given-state onto the request data.
-
-        :param state: Field values merged last-write-wins onto request data.
-        :type state: dict
-        :return: This session.
-        :rtype: TestSessionContext
-        '''
-
-        # Merge onto the request; do not copy into tester sample data.
-        self.data.update(state)
-
-        # Return self for fluent chaining.
-        return self
-
-    # * method: invoke
-    def invoke(self, **params) -> 'TestSessionContext':
-        '''
-        Overlay invoke parameters onto the request data.
-
-        :param params: Field values merged last-write-wins onto request data.
-        :type params: dict
-        :return: This session.
-        :rtype: TestSessionContext
-        '''
-
-        # Merge onto the request so run() exercises the bound tester.
-        self.data.update(params)
-
-        # Return self for fluent chaining.
-        return self
-
-    # * method: verify
-    def verify(self, assertion: Any, message: str | None = None) -> 'TestSessionContext':
-        '''
-        Queue a verification against the eventual session outcome.
-
-        :param assertion: A callable predicate or literal compared to the outcome.
-        :type assertion: Any
-        :param message: An optional failure label.
-        :type message: str | None
-        :return: This session.
-        :rtype: TestSessionContext
-        '''
-
-        # Append the normalized verification to the queue.
-        self.verifications.append(
-            _create_verification(predicate=assertion, message=message)
-        )
-
-        # Return self for fluent chaining.
-        return self
-
-    # * method: capture_outcome
-    def capture_outcome(self, outcome: Any) -> None:
-        '''
-        Store the exercised outcome for verification.
-
-        :param outcome: The value produced by the bound tester.
-        :type outcome: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Store the outcome separately from the request result.
-        self.outcome = outcome
-
-    # * method: evaluate_verifications
-    def evaluate_verifications(self) -> None:
-        '''
-        Evaluate the queued verifications against the captured outcome.
-
-        :return: None
-        :rtype: None
-        '''
-
-        # Collect every failure, then always clear the queue.
-        failures = []
-        try:
-            for verification in self.verifications:
-                try:
-                    passed = bool(verification.predicate(self.outcome))
-                except Exception as error:
-                    failures.append(
-                        verification.message
-                        or (
-                            f'{verification.source!r} raised {error!r} '
-                            f'for outcome {self.outcome!r}'
-                        )
-                    )
-                    continue
-
-                # Record falsy predicates as failures.
-                if not passed:
-                    failures.append(
-                        verification.message
-                        or (
-                            f'{verification.source!r} failed '
-                            f'for outcome {self.outcome!r}'
-                        )
-                    )
-        finally:
-            self.verifications = []
-
-        # Raise one assertion listing every failure.
-        if failures:
-            raise AssertionError('\n'.join(failures))
-
-    # * method: run
-    def run(self, target: Any = None, **kwargs) -> Any:
-        '''
-        Exercise the bound tester with request overlay and evaluate verifications.
-
-        :param target: An optional live object. Valid only when the tester type is generic.
-        :type target: Any
-        :param kwargs: Unused extra keyword arguments.
-        :type kwargs: dict
-        :return: The captured outcome.
-        :rtype: Any
-        '''
-
-        # Resolve a generic live object without the specialized exercise path.
-        tester = self.tester_ctx.domain
-        if tester.type == 'generic':
-            resolved = tester.get_target() if target is None else target
-
-            # Lock the ABC contract on the resolved object.
-            self.tester_ctx.assert_contract(resolved)
-
-            # Invoke non-class callables with request given-state as kwargs.
-            if callable(resolved) and not isinstance(resolved, type):
-                outcome = resolved(**self.data)
-            else:
-                outcome = resolved
-
-            # Capture, evaluate, and return the generic outcome.
-            self.capture_outcome(outcome)
-            self.evaluate_verifications()
-            return self.outcome
-
-        # Reject a live target on specialized tester types.
-        if target is not None:
-            raise ValueError(
-                'run(target=...) is only valid when tester type is generic.'
-            )
-
-        # Choose sample kwargs for events, otherwise sample data.
-        if tester.type in ('domain_event', 'service_event'):
-            sample = tester.sample_kwargs
-        else:
-            sample = tester.sample_data
-
-        # Overlay request data without mutating the sample dict.
-        payload = {**sample, **self.data}
-
-        # Dispatch through the bound tester hook.
-        outcome = self.tester_ctx._exercise_target(data=payload)
-
-        # Capture, evaluate, and return the outcome.
-        self.capture_outcome(outcome)
-        self.evaluate_verifications()
-        return self.outcome
