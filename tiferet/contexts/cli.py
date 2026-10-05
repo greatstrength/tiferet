@@ -16,7 +16,7 @@ from ..domain import (
     CliOutputRecord,
     CliRecordList,
 )
-from .app import AppSessionContext
+from .app import AppSessionContext, raise_unwired_handler_error
 from .cache import CacheContext
 from .core import add_default_cache_items
 from .request import RequestContext
@@ -141,29 +141,38 @@ class CliRequestContext(RequestContext):
             return result
 
 # ** context: cli_session_context
+# >> see: @guides/contexts.md#clisessioncontext
 class CliSessionContext(AppSessionContext):
     '''
     The CLI session context extends the application session hub with
     command-line concerns.
 
-    Receives an injected ``_parse_cli_args`` closure (built by the CLI
-    blueprint) that encapsulates argparse command discovery, parser
-    construction, and request derivation. ``run(argv=None)`` invokes this
-    closure, delegates execution to the inherited hub, and handles exit codes.
-    ``build_response`` formats and prints the response when the request context
-    is a ``CliRequestContext``.
+    Receives injected handlers for argument parsing, command listing, and
+    parent-argument lookup. ``run(argv=None)`` invokes the parse closure,
+    delegates execution to the inherited hub, and handles exit codes.
+    ``list_commands`` and ``get_parent_args`` call their injected handlers
+    and raise when a slot is unwired. ``build_response`` formats and prints
+    the response when the request context is a :class:`CliRequestContext`.
 
-    It intentionally omits ``domain_type`` so the ``ContextMeta`` registry keeps
-    mapping ``AppSession`` to ``AppSessionContext``.
+    It intentionally omits ``domain_type`` so the ``ContextMeta`` registry
+    keeps mapping ``AppSession`` to :class:`AppSessionContext`.
     '''
 
-    # * attribute: parse_cli_args (private)
+    # * attribute: _parse_cli_args
     _parse_cli_args: Callable
+
+    # * attribute: _list_commands
+    _list_commands: Callable
+
+    # * attribute: _get_parent_args
+    _get_parent_args: Callable
 
     # * init
     def __init__(self,
             get_dependency: Callable,
             parse_cli_args: Callable = None,
+            list_commands_handler: Callable = None,
+            get_parent_args_handler: Callable = None,
             cache: CacheContext = None,
             build_logger_handler: Callable = None,
             execute_feature_handler: Callable = None,
@@ -178,6 +187,12 @@ class CliSessionContext(AppSessionContext):
         :param parse_cli_args: The injected callable that parses argv and returns
             a (feature_id, headers, data) tuple.
         :type parse_cli_args: Callable
+        :param list_commands_handler: The injected zero-arg callable built by the
+            CLI blueprint function of the same name.
+        :type list_commands_handler: Callable
+        :param get_parent_args_handler: The injected zero-arg callable built by the
+            CLI blueprint function of the same name.
+        :type get_parent_args_handler: Callable
         :param cache: The shared bootstrap cache.
         :type cache: CacheContext
         :param build_logger_handler: The logger-construction handler.
@@ -205,6 +220,46 @@ class CliSessionContext(AppSessionContext):
 
         # Store the injected CLI arg-parsing callable.
         self._parse_cli_args = parse_cli_args
+
+        # Store the injected command-listing and parent-argument handlers.
+        self._list_commands = list_commands_handler
+        self._get_parent_args = get_parent_args_handler
+
+    # * method: list_commands
+    def list_commands(self) -> List[CliCommand]:
+        '''
+        Return the CLI commands from the injected listing handler.
+
+        An unwired handler raises ``APP_ERROR`` naming ``list_commands_handler``.
+
+        :return: The CLI commands returned by the injected handler.
+        :rtype: List[CliCommand]
+        '''
+
+        # Fail loudly when the listing handler was not wired.
+        if self._list_commands is None:
+            raise_unwired_handler_error('list_commands_handler', self.domain.id)
+
+        # Return the injected handler's result.
+        return self._list_commands()
+
+    # * method: get_parent_args
+    def get_parent_args(self) -> List[CliArgument]:
+        '''
+        Return the parent arguments from the injected lookup handler.
+
+        An unwired handler raises ``APP_ERROR`` naming ``get_parent_args_handler``.
+
+        :return: The parent arguments returned by the injected handler.
+        :rtype: List[CliArgument]
+        '''
+
+        # Fail loudly when the parent-argument handler was not wired.
+        if self._get_parent_args is None:
+            raise_unwired_handler_error('get_parent_args_handler', self.domain.id)
+
+        # Return the injected handler's result.
+        return self._get_parent_args()
 
     # * method: build_response
     def build_response(self, request: RequestContext) -> Any:

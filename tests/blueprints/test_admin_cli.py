@@ -7,6 +7,7 @@ from unittest import mock
 
 # ** app
 from tiferet import assets as a
+from tiferet.blueprints import core
 from tiferet.blueprints.admin_cli import (
     AdminCLI,
     build_admin_cli,
@@ -16,7 +17,6 @@ from tiferet.blueprints.admin_cli import (
 )
 from tiferet.blueprints.cli import (
     create_cli_request_context,
-    cli_response_handler,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.cli import (
@@ -80,16 +80,61 @@ def test_build_admin_cli_session_context_uses_admin_resolver():
     ):
         context = build_admin_cli_session_context(app_session, cache)
 
-    # Assert the CLI session context is fully wired with CLI handlers.
+    # Assert the CLI session context is fully wired with injected handlers.
     assert isinstance(context, CliSessionContext)
     assert context._create_request is create_cli_request_context
-    assert context._build_response is cli_response_handler
-    assert context._parse_cli_args is not None
+    assert context._build_response is core.response_handler
+    assert callable(context._parse_cli_args)
+    assert callable(context._list_commands)
+    assert callable(context._get_parent_args)
     assert context._build_logger is fake_build_logger
 
     # Assert the built resolver carries the admin container under both keys.
     resolver = captured['resolver']
     assert resolver.get_container('admin') is resolver.get_container()
+
+# ** test: build_admin_cli_session_context_passes_handlers_not_raw_events
+def test_build_admin_cli_session_context_passes_handlers_not_raw_events():
+    '''
+    Test that build_admin_cli_session_context passes injected handlers and does
+    not resolve CLI events during construction.
+    '''
+
+    # Isolate container and resolver construction.
+    app_session = AppSession(id=a.app.TIFERET_ADMIN_CLI_ID, name='Admin CLI')
+    cache = CacheContext()
+    app_container = mock.Mock(name='app_container')
+    resolver = mock.Mock(name='resolver')
+    composed = object()
+    with mock.patch(
+        'tiferet.blueprints.admin_cli.core.build_app_service_container',
+        return_value=app_container,
+    ) as mock_container, mock.patch(
+        'tiferet.blueprints.admin_cli.admin.build_admin_service_resolver',
+        return_value=resolver,
+    ) as mock_resolver, mock.patch(
+        'tiferet.blueprints.admin_cli.core.compose_session_context',
+        return_value=composed,
+    ) as mock_compose:
+        result = build_admin_cli_session_context(app_session, cache)
+
+    # Assert the container and resolver were built once and not queried.
+    mock_container.assert_called_once_with(cache, app_session)
+    mock_resolver.assert_called_once_with(app_container, cache)
+    app_container.get_dependency.assert_not_called()
+    resolver.get_dependency.assert_not_called()
+
+    # Assert composition receives the resolver, not the container, plus the CLI callables.
+    positional = mock_compose.call_args.args
+    assert positional[:4] == (CliSessionContext, app_session, cache, resolver)
+    assert app_container not in positional
+    keywords = mock_compose.call_args.kwargs
+    assert keywords['response_handler'] is core.response_handler
+    assert keywords['create_request_handler'] is create_cli_request_context
+    assert callable(keywords['list_commands_handler'])
+    assert callable(keywords['get_parent_args_handler'])
+    assert callable(keywords['parse_cli_args'])
+    assert result is composed
 
 # ** test: build_admin_cli_reseeds_app_config
 def test_build_admin_cli_reseeds_app_config():
