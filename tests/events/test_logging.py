@@ -21,7 +21,7 @@ from tiferet.events.core import DomainEvent, a
 from tiferet.domain import Formatter, Handler, Logger
 from tiferet.interfaces import LoggingService
 from tiferet.mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
-from tiferet.testing import DomainEventTestBase
+from tiferet.blueprints.tester import use_tester
 
 # *** fixtures
 
@@ -137,30 +137,30 @@ class TestLoggingEvent:
 
 
 # ** tester: test_list_all_logging_configs
-class TestListAllLoggingConfigs(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=ListAllLoggingConfigs,
+    dependencies={
+        'logging_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'LoggingService',
+        },
+    },
+    sample_kwargs={},
+    required_params=[],
+)
+class TestListAllLoggingConfigs:
     '''
     Tests for ListAllLoggingConfigs using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = ListAllLoggingConfigs
-
-    # * attribute: dependencies
-    dependencies = {'logging_service': LoggingService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = {}
-
-    # * attribute: required_params
-    required_params = []
-
     # * test: success
-    def test_success(self, mock_dependencies, sample_formatter, sample_handler, sample_logger):
+    def test_success(self, test_ctx, sample_formatter, sample_handler, sample_logger):
         '''
         Test successful listing of all logging configurations.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         :param sample_formatter: The sample formatter instance.
         :type sample_formatter: Formatter
         :param sample_handler: The sample handler instance.
@@ -168,6 +168,9 @@ class TestListAllLoggingConfigs(DomainEventTestBase):
         :param sample_logger: The sample logger instance.
         :type sample_logger: Logger
         '''
+
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Arrange the logging service to return sample configs.
         mock_dependencies['logging_service'].list_all.return_value = (
@@ -177,7 +180,7 @@ class TestListAllLoggingConfigs(DomainEventTestBase):
         )
 
         # Execute via the harness.
-        formatters, handlers, loggers = self.handle(mock_dependencies)
+        formatters, handlers, loggers = test_ctx.handle(mock_dependencies)
 
         # Assert that the configs are returned and the service was called.
         assert formatters == [sample_formatter]
@@ -186,19 +189,22 @@ class TestListAllLoggingConfigs(DomainEventTestBase):
         mock_dependencies['logging_service'].list_all.assert_called_once_with()
 
     # * test: empty
-    def test_empty(self, mock_dependencies):
+    def test_empty(self, test_ctx):
         '''
         Test listing when no configurations exist.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
+
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Arrange the logging service to return empty lists.
         mock_dependencies['logging_service'].list_all.return_value = ([], [], [])
 
         # Execute via the harness.
-        formatters, handlers, loggers = self.handle(mock_dependencies)
+        formatters, handlers, loggers = test_ctx.handle(mock_dependencies)
 
         # Assert that empty lists are returned.
         assert formatters == []
@@ -208,40 +214,43 @@ class TestListAllLoggingConfigs(DomainEventTestBase):
 
 
 # ** tester: test_add_formatter
-class TestAddFormatter(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=AddFormatter,
+    dependencies={
+        'logging_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'LoggingService',
+        },
+    },
+    sample_kwargs={
+        'id': 'detailed',
+        'name': 'Detailed Formatter',
+        'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        'description': 'A detailed formatter with timestamps.',
+        'datefmt': '%Y-%m-%d %H:%M:%S',
+    },
+    required_params=['id', 'name', 'format'],
+)
+class TestAddFormatter:
     '''
     Tests for AddFormatter using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = AddFormatter
-
-    # * attribute: dependencies
-    dependencies = {'logging_service': LoggingService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        id='detailed',
-        name='Detailed Formatter',
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        description='A detailed formatter with timestamps.',
-        datefmt='%Y-%m-%d %H:%M:%S',
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'name', 'format']
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test successful addition of a formatter.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the formatter was created and saved.
         assert isinstance(result, Formatter)
@@ -254,16 +263,19 @@ class TestAddFormatter(DomainEventTestBase):
         assert saved_formatter.id == 'detailed'
 
     # * test: minimal
-    def test_minimal(self, mock_dependencies):
+    def test_minimal(self, test_ctx):
         '''
         Test adding a formatter with only required fields.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute with only required fields.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             id='minimal',
             name='Minimal Formatter',
@@ -280,80 +292,110 @@ class TestAddFormatter(DomainEventTestBase):
         assert result.datefmt is None
         mock_dependencies['logging_service'].save_formatter.assert_called_once()
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
+        '''
+
+        # Assert each required parameter is rejected when passed as None.
+        test_ctx.assert_missing_required_params()
+
 
 # ** tester: test_remove_formatter
-class TestRemoveFormatter(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=RemoveFormatter,
+    dependencies={
+        'logging_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'LoggingService',
+        },
+    },
+    sample_kwargs={'id': 'old_formatter'},
+    required_params=['id'],
+)
+class TestRemoveFormatter:
     '''
     Tests for RemoveFormatter using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = RemoveFormatter
-
-    # * attribute: dependencies
-    dependencies = {'logging_service': LoggingService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='old_formatter')
-
-    # * attribute: required_params
-    required_params = ['id']
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test successful removal of a formatter.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the formatter ID is returned and deletion was called.
         assert result == 'old_formatter'
         mock_dependencies['logging_service'].delete_formatter.assert_called_once_with('old_formatter')
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
+        '''
+
+        # Assert each required parameter is rejected when passed as None.
+        test_ctx.assert_missing_required_params()
+
 
 # ** tester: test_add_handler
-class TestAddHandler(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=AddHandler,
+    dependencies={
+        'logging_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'LoggingService',
+        },
+    },
+    sample_kwargs={
+        'id': 'file_handler',
+        'name': 'File Handler',
+        'module_path': 'logging.handlers',
+        'class_name': 'RotatingFileHandler',
+        'level': 'DEBUG',
+        'formatter': 'detailed',
+        'description': 'A rotating file handler.',
+        'filename': '/var/log/app.log',
+    },
+    required_params=['id', 'name', 'module_path', 'class_name', 'level', 'formatter'],
+)
+class TestAddHandler:
     '''
     Tests for AddHandler using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = AddHandler
-
-    # * attribute: dependencies
-    dependencies = {'logging_service': LoggingService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        id='file_handler',
-        name='File Handler',
-        module_path='logging.handlers',
-        class_name='RotatingFileHandler',
-        level='DEBUG',
-        formatter='detailed',
-        description='A rotating file handler.',
-        filename='/var/log/app.log',
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'name', 'module_path', 'class_name', 'level', 'formatter']
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test successful addition of a handler.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the handler was created and saved.
         assert isinstance(result, Handler)
@@ -364,16 +406,19 @@ class TestAddHandler(DomainEventTestBase):
         mock_dependencies['logging_service'].save_handler.assert_called_once()
 
     # * test: with_stream
-    def test_with_stream(self, mock_dependencies):
+    def test_with_stream(self, test_ctx):
         '''
         Test adding a stream handler.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute with stream parameter.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             id='stderr_handler',
             name='Stderr Handler',
@@ -391,78 +436,108 @@ class TestAddHandler(DomainEventTestBase):
         assert result.filename is None
         mock_dependencies['logging_service'].save_handler.assert_called_once()
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
+        '''
+
+        # Assert each required parameter is rejected when passed as None.
+        test_ctx.assert_missing_required_params()
+
 
 # ** tester: test_remove_handler
-class TestRemoveHandler(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=RemoveHandler,
+    dependencies={
+        'logging_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'LoggingService',
+        },
+    },
+    sample_kwargs={'id': 'old_handler'},
+    required_params=['id'],
+)
+class TestRemoveHandler:
     '''
     Tests for RemoveHandler using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = RemoveHandler
-
-    # * attribute: dependencies
-    dependencies = {'logging_service': LoggingService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='old_handler')
-
-    # * attribute: required_params
-    required_params = ['id']
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test successful removal of a handler.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the handler ID is returned and deletion was called.
         assert result == 'old_handler'
         mock_dependencies['logging_service'].delete_handler.assert_called_once_with('old_handler')
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
+        '''
+
+        # Assert each required parameter is rejected when passed as None.
+        test_ctx.assert_missing_required_params()
+
 
 # ** tester: test_add_logger
-class TestAddLogger(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=AddLogger,
+    dependencies={
+        'logging_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'LoggingService',
+        },
+    },
+    sample_kwargs={
+        'id': 'app.database',
+        'name': 'Database Logger',
+        'level': 'WARNING',
+        'handlers': ['console', 'file_handler'],
+        'description': 'Logger for database operations.',
+        'propagate': False,
+    },
+    required_params=['id', 'name', 'level', 'handlers'],
+)
+class TestAddLogger:
     '''
     Tests for AddLogger using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = AddLogger
-
-    # * attribute: dependencies
-    dependencies = {'logging_service': LoggingService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        id='app.database',
-        name='Database Logger',
-        level='WARNING',
-        handlers=['console', 'file_handler'],
-        description='Logger for database operations.',
-        propagate=False,
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'name', 'level', 'handlers']
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test successful addition of a logger.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the logger was created and saved.
         assert isinstance(result, Logger)
@@ -474,16 +549,19 @@ class TestAddLogger(DomainEventTestBase):
         mock_dependencies['logging_service'].save_logger.assert_called_once()
 
     # * test: minimal
-    def test_minimal(self, mock_dependencies):
+    def test_minimal(self, test_ctx):
         '''
         Test adding a logger with only required fields.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute with only required fields.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             id='simple_logger',
             name='Simple Logger',
@@ -499,37 +577,64 @@ class TestAddLogger(DomainEventTestBase):
         assert result.description is None
         mock_dependencies['logging_service'].save_logger.assert_called_once()
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
+        '''
+
+        # Assert each required parameter is rejected when passed as None.
+        test_ctx.assert_missing_required_params()
+
 
 # ** tester: test_remove_logger
-class TestRemoveLogger(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=RemoveLogger,
+    dependencies={
+        'logging_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'LoggingService',
+        },
+    },
+    sample_kwargs={'id': 'old_logger'},
+    required_params=['id'],
+)
+class TestRemoveLogger:
     '''
     Tests for RemoveLogger using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = RemoveLogger
-
-    # * attribute: dependencies
-    dependencies = {'logging_service': LoggingService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='old_logger')
-
-    # * attribute: required_params
-    required_params = ['id']
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test successful removal of a logger.
 
-        :param mock_dependencies: The mocked dependencies dict.
-        :type mock_dependencies: dict
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
         '''
 
+        # Build mocked constructor dependencies.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the logger ID is returned and deletion was called.
         assert result == 'old_logger'
         mock_dependencies['logging_service'].delete_logger.assert_called_once_with('old_logger')
+
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Test that each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
+        '''
+
+        # Assert each required parameter is rejected when passed as None.
+        test_ctx.assert_missing_required_params()
