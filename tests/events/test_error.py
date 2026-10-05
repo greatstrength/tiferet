@@ -230,9 +230,9 @@ class TestGetError:
 
     # * test: found_in_repo
     def test_found_in_repo(self,
-                           test_ctx,
-                           mock_dependencies,
-                           error):
+                          test_ctx,
+                          mock_dependencies,
+                          error):
         '''
         Test retrieving an error found in the repository.
         '''
