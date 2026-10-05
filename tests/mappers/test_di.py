@@ -214,7 +214,6 @@ class TestFlaggedDependencyAggregate:
             'add': 'added',
         }
 
-
 # ** tester: test_service_registration_aggregate
 @use_tester(
     type='aggregate',
@@ -406,7 +405,6 @@ class TestServiceRegistrationAggregate:
         # The list should be unchanged.
         assert len(aggregate.dependencies) == initial_count
 
-
 # ** tester: test_service_registration_config_object
 @use_tester(
     type='transfer_object',
@@ -450,6 +448,7 @@ class TestServiceRegistrationConfigObject:
         test_ctx.assert_round_trip()
 
     transfer_cls = ServiceRegistrationConfigObject
+
     aggregate_cls = ServiceRegistrationAggregate
 
     sample_data = TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA
