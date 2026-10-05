@@ -128,13 +128,13 @@ class TestDIEvent:
             'class_name': 'DIService',
         },
     },
-    sample_kwargs={
-        'id': 'svc_new',
-        'module_path': 'tiferet.repos.example',
-        'class_name': 'ExampleRepository',
-        'parameters': {'param': 'value'},
-        'flagged_dependencies': [],
-    },
+    sample_kwargs=dict(
+        id='svc_new',
+        module_path='tiferet.repos.example',
+        class_name='ExampleRepository',
+        parameters={'param': 'value'},
+        flagged_dependencies=[],
+    ),
     required_params=['id'],
 )
 class TestAddServiceRegistration:
@@ -288,19 +288,19 @@ class TestAddServiceRegistration:
             'class_name': 'DIService',
         },
     },
-    sample_kwargs={
-        'id': 'svc_test',
-        'module_path': 'new.module',
-        'class_name': 'NewClass',
-        'parameters': {'param': 'value'},
-    },
+    sample_kwargs=dict(
+        id='svc_test',
+        module_path='new.module',
+        class_name='NewClass',
+        parameters={'param': 'value'},
+    ),
     service_attr='di_service',
     not_found_error_code=a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'missing',
-        'module_path': 'mod',
-        'class_name': 'Cls',
-    },
+    not_found_kwargs=dict(
+        id='missing',
+        module_path='mod',
+        class_name='Cls',
+    ),
 )
 class TestSetDefaultServiceRegistration:
     '''
@@ -320,7 +320,12 @@ class TestSetDefaultServiceRegistration:
         return {'di_service': service}
 
     # * test: full_update
-    def test_full_update(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    def test_full_update(
+            self,
+            test_ctx,
+            mock_dependencies,
+            service_registration_aggregate,
+        ):
         '''
         Test updating both default type and parameters.
         '''
@@ -338,7 +343,12 @@ class TestSetDefaultServiceRegistration:
         mock_dependencies['di_service'].save_registration.assert_called_once_with(result)
 
     # * test: parameters_only
-    def test_parameters_only(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    def test_parameters_only(
+            self,
+            test_ctx,
+            mock_dependencies,
+            service_registration_aggregate,
+        ):
         '''
         Test updating only parameters when module_path and class_name are not provided.
         '''
@@ -358,7 +368,12 @@ class TestSetDefaultServiceRegistration:
         assert result.parameters == {'param_1': 'updated'}
 
     # * test: clear_parameters
-    def test_clear_parameters(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    def test_clear_parameters(
+            self,
+            test_ctx,
+            mock_dependencies,
+            service_registration_aggregate,
+        ):
         '''
         Test clearing parameters when parameters is None.
         '''
@@ -418,22 +433,22 @@ class TestSetDefaultServiceRegistration:
             'class_name': 'DIService',
         },
     },
-    sample_kwargs={
-        'id': 'svc_test',
-        'flag': 'alpha',
-        'module_path': 'tiferet.repos.example',
-        'class_name': 'ExampleAlpha',
-        'parameters': {'param': 'value'},
-    },
+    sample_kwargs=dict(
+        id='svc_test',
+        flag='alpha',
+        module_path='tiferet.repos.example',
+        class_name='ExampleAlpha',
+        parameters={'param': 'value'},
+    ),
     required_params=['flag'],
     service_attr='di_service',
     not_found_error_code=a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'missing',
-        'flag': 'alpha',
-        'module_path': 'tiferet.repos.example',
-        'class_name': 'ExampleAlpha',
-    },
+    not_found_kwargs=dict(
+        id='missing',
+        flag='alpha',
+        module_path='tiferet.repos.example',
+        class_name='ExampleAlpha',
+    ),
 )
 class TestSetServiceDependency:
     '''
@@ -453,7 +468,12 @@ class TestSetServiceDependency:
         return {'di_service': service}
 
     # * test: add_new
-    def test_add_new(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    def test_add_new(
+            self,
+            test_ctx,
+            mock_dependencies,
+            service_registration_aggregate,
+        ):
         '''
         Test adding a new flagged dependency when the flag does not yet exist.
         '''
@@ -476,7 +496,12 @@ class TestSetServiceDependency:
         mock_dependencies['di_service'].save_registration.assert_called_once()
 
     # * test: update_existing
-    def test_update_existing(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    def test_update_existing(
+            self,
+            test_ctx,
+            mock_dependencies,
+            service_registration_aggregate,
+        ):
         '''
         Test updating an existing flagged dependency.
         '''
@@ -556,17 +581,17 @@ class TestSetServiceDependency:
             'class_name': 'DIService',
         },
     },
-    sample_kwargs={
-        'id': 'svc_test',
-        'flag': 'test_alpha',
-    },
+    sample_kwargs=dict(
+        id='svc_test',
+        flag='test_alpha',
+    ),
     required_params=['flag'],
     service_attr='di_service',
     not_found_error_code=a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'missing_attr',
-        'flag': 'alpha',
-    },
+    not_found_kwargs=dict(
+        id='missing_attr',
+        flag='alpha',
+    ),
 )
 class TestRemoveServiceDependency:
     '''
@@ -586,7 +611,12 @@ class TestRemoveServiceDependency:
         return {'di_service': service}
 
     # * test: success_with_remaining_default
-    def test_success_with_remaining_default(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    def test_success_with_remaining_default(
+            self,
+            test_ctx,
+            mock_dependencies,
+            service_registration_aggregate,
+        ):
         '''
         Test removing a dependency while a default type remains configured.
         '''
@@ -604,7 +634,12 @@ class TestRemoveServiceDependency:
         mock_dependencies['di_service'].save_registration.assert_called_once()
 
     # * test: nonexistent_flag
-    def test_nonexistent_flag(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    def test_nonexistent_flag(
+            self,
+            test_ctx,
+            mock_dependencies,
+            service_registration_aggregate,
+        ):
         '''
         Test removing a non-existent flag is idempotent when type sources remain.
         '''
@@ -618,7 +653,12 @@ class TestRemoveServiceDependency:
         assert service_registration_aggregate.module_path == 'tiferet.repos.example'
 
     # * test: invalid_after_removal
-    def test_invalid_after_removal(self, test_ctx, mock_dependencies, flagged_dependency_for_di):
+    def test_invalid_after_removal(
+            self,
+            test_ctx,
+            mock_dependencies,
+            flagged_dependency_for_di,
+        ):
         '''
         Test that removing the last type source raises INVALID_SERVICE_REGISTRATION.
         '''
@@ -675,9 +715,7 @@ class TestRemoveServiceDependency:
             'class_name': 'DIService',
         },
     },
-    sample_kwargs={
-        'id': 'svc_to_delete',
-    },
+    sample_kwargs=dict(id='svc_to_delete'),
     required_params=['id'],
 )
 class TestRemoveServiceRegistration:
@@ -739,9 +777,7 @@ class TestRemoveServiceRegistration:
             'class_name': 'DIService',
         },
     },
-    sample_kwargs={
-        'constants': {'key': 'value'},
-    },
+    sample_kwargs=dict(constants={'key': 'value'}),
 )
 class TestSetServiceConstants:
     '''
@@ -888,7 +924,7 @@ class TestSetServiceConstants:
             'class_name': 'DIService',
         },
     },
-    sample_kwargs={},
+    sample_kwargs=dict(),
 )
 class TestListAllSettings:
     '''
