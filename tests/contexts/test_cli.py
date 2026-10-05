@@ -22,6 +22,7 @@ from tiferet.contexts.core import ContextMeta
 from tiferet.contexts.request import RequestContext
 from tiferet.domain import (
     AppSession,
+    CliArgument,
     CliCommand,
     CliRecord,
     CliOutputRecord,
@@ -330,6 +331,84 @@ def test_cli_session_context_not_registered():
 
     # Verify AppSession still resolves to the base application session hub.
     assert ContextMeta.registry[AppSession] is AppSessionContext
+
+# ** test: cli_session_context_list_commands_calls_handler
+def test_cli_session_context_list_commands_calls_handler(app_session: AppSession):
+    '''
+    Verify list_commands returns the injected handler result and calls it once
+    with no arguments.
+
+    :param app_session: The bound app session fixture.
+    :type app_session: AppSession
+    '''
+
+    # Build a handler that returns one command list.
+    commands = [CliCommand(name='Add', key='add', group_key='calc')]
+    list_commands_handler = mock.Mock(return_value=commands)
+
+    # Construct a context with the listing handler wired.
+    context = CliSessionContext.from_domain(
+        app_session,
+        get_dependency=mock.Mock(),
+        list_commands_handler=list_commands_handler,
+    )
+
+    # Assert the same list is returned and the handler was called once.
+    assert context.list_commands() is commands
+    list_commands_handler.assert_called_once_with()
+
+# ** test: cli_session_context_list_commands_unwired_raises
+def test_cli_session_context_list_commands_unwired_raises(cli_session_context: CliSessionContext):
+    '''
+    Verify an unwired list_commands slot raises a TiferetAPIError naming the handler.
+
+    :param cli_session_context: The CLI session context fixture.
+    :type cli_session_context: CliSessionContext
+    '''
+
+    # Assert the unwired slot names the missing handler.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        cli_session_context.list_commands()
+    assert 'list_commands_handler' in exc_info.value.message
+
+# ** test: cli_session_context_get_parent_args_calls_handler
+def test_cli_session_context_get_parent_args_calls_handler(app_session: AppSession):
+    '''
+    Verify get_parent_args returns the injected handler result and calls it once
+    with no arguments.
+
+    :param app_session: The bound app session fixture.
+    :type app_session: AppSession
+    '''
+
+    # Build a handler that returns one parent-argument list.
+    arguments = [CliArgument(name_or_flags=['--verbose'], description='Verbose.')]
+    get_parent_args_handler = mock.Mock(return_value=arguments)
+
+    # Construct a context with the parent-argument handler wired.
+    context = CliSessionContext.from_domain(
+        app_session,
+        get_dependency=mock.Mock(),
+        get_parent_args_handler=get_parent_args_handler,
+    )
+
+    # Assert the same list is returned and the handler was called once.
+    assert context.get_parent_args() is arguments
+    get_parent_args_handler.assert_called_once_with()
+
+# ** test: cli_session_context_get_parent_args_unwired_raises
+def test_cli_session_context_get_parent_args_unwired_raises(cli_session_context: CliSessionContext):
+    '''
+    Verify an unwired get_parent_args slot raises a TiferetAPIError naming the handler.
+
+    :param cli_session_context: The CLI session context fixture.
+    :type cli_session_context: CliSessionContext
+    '''
+
+    # Assert the unwired slot names the missing handler.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        cli_session_context.get_parent_args()
+    assert 'get_parent_args_handler' in exc_info.value.message
 
 # ** test: cli_session_context_build_response_formats
 def test_cli_session_context_build_response_formats(
