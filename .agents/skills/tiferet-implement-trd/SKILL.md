@@ -1,10 +1,6 @@
 ---
 name: tiferet-implement-trd
-description: >
-  Implement one published trunk TRD or one Super-TRD child. A child cuts
-  from the already-pushed Super-TRD branch and opens a PR targeting that
-  branch, never main. Not for RFPs, freeze minting, cutting the Super-TRD
-  branch, or running a Super-TRD fan-out.
+description: Implement one published trunk TRD or one Super-TRD child. A child cuts from the already-pushed Super-TRD branch and opens a PR targeting that branch, never main. Not for RFPs, freeze minting, cutting the Super-TRD branch, or running a Super-TRD fan-out.
 ---
 
 # Implement a trunk TRD

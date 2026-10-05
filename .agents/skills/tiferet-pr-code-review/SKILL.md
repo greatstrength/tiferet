@@ -1,15 +1,6 @@
 ---
 name: tiferet-pr-code-review
-description: >
-  Review one pull request as the Prototype reviewer (RFP PR to proto) or the
-  Release reviewer (trunk PR to main, or a sub-TRD PR to its Super-TRD
-  branch). Code style is held above everything else. Prototype review weighs
-  RFP content, vision, and distillation; release review weighs artifact
-  fidelity against the reference prototype and, read-only, the prototype
-  branch. One consolidated review. The first line is the verdict. The
-  reviewer never merges to main unless the human delegates that PR. A
-  Release reviewer may squash-merge a sub-TRD PR into the Super-TRD branch
-  when the base, verdict line, and AC checkboxes all hold.
+description: Review one pull request as the Prototype reviewer (RFP PR to proto) or the Release reviewer (trunk PR to main, or a sub-TRD PR to its Super-TRD branch). Code style is held above everything else. Prototype review weighs RFP content, vision, and distillation; release review weighs artifact fidelity against the reference prototype and, read-only, the prototype branch. One consolidated review. The first line is the verdict. The reviewer never merges to main unless the human delegates that PR. A Release reviewer may squash-merge a sub-TRD PR into the Super-TRD branch when the base, verdict line, and AC checkboxes all hold.
 ---
 
 # Review a pull request (diff surface)
