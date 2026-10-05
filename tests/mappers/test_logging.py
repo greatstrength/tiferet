@@ -111,7 +111,6 @@ def test_logging_settings_from_data_success():
     assert logger.id == 'app'
     assert logger.name == 'App Logger'
 
-
 # ** test: logging_settings_from_data_empty
 def test_logging_settings_from_data_empty():
     '''
@@ -153,6 +152,9 @@ class TestFormatterAggregate:
     def test_new(self, test_ctx):
         '''
         Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
         # Assert construction against the declared sample.
@@ -162,6 +164,9 @@ class TestFormatterAggregate:
     def test_set_attribute(self, test_ctx):
         '''
         Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
         # Assert each declared set_attribute case.
@@ -221,6 +226,9 @@ class TestHandlerAggregate:
     def test_new(self, test_ctx):
         '''
         Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
         # Assert construction against the declared sample.
@@ -230,6 +238,9 @@ class TestHandlerAggregate:
     def test_set_attribute(self, test_ctx):
         '''
         Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
         # Assert each declared set_attribute case.
@@ -316,6 +327,9 @@ class TestLoggerAggregate:
     def test_new(self, test_ctx):
         '''
         Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
         # Assert construction against the declared sample.
@@ -325,6 +339,9 @@ class TestLoggerAggregate:
     def test_set_attribute(self, test_ctx):
         '''
         Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
         # Assert each declared set_attribute case.
@@ -402,6 +419,9 @@ class TestFormatterConfigObject:
     def test_map(self, test_ctx):
         '''
         Verify transfer construction and mapping to the declared aggregate.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert map against the declared aggregate.
@@ -411,6 +431,9 @@ class TestFormatterConfigObject:
     def test_from_model(self, test_ctx):
         '''
         Verify aggregate conversion to the declared transfer-object type.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert from_model against the declared aggregate.
@@ -420,12 +443,16 @@ class TestFormatterConfigObject:
     def test_round_trip(self, test_ctx):
         '''
         Verify aggregate conversion through the transfer object and back.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert the aggregate round-trips through the transfer object.
         test_ctx.assert_round_trip()
 
     transfer_cls = FormatterConfigObject
+
     aggregate_cls = FormatterAggregate
 
     sample_data = FORMATTER_AGGREGATE_SAMPLE_DATA
@@ -452,6 +479,9 @@ class TestHandlerConfigObject:
     def test_map(self, test_ctx):
         '''
         Verify transfer construction and mapping to the declared aggregate.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert map against the declared aggregate.
@@ -461,6 +491,9 @@ class TestHandlerConfigObject:
     def test_from_model(self, test_ctx):
         '''
         Verify aggregate conversion to the declared transfer-object type.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert from_model against the declared aggregate.
@@ -470,12 +503,16 @@ class TestHandlerConfigObject:
     def test_round_trip(self, test_ctx):
         '''
         Verify aggregate conversion through the transfer object and back.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert the aggregate round-trips through the transfer object.
         test_ctx.assert_round_trip()
 
     transfer_cls = HandlerConfigObject
+
     aggregate_cls = HandlerAggregate
 
     sample_data = HANDLER_AGGREGATE_SAMPLE_DATA
@@ -502,6 +539,9 @@ class TestLoggerConfigObject:
     def test_map(self, test_ctx):
         '''
         Verify transfer construction and mapping to the declared aggregate.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert map against the declared aggregate.
@@ -511,6 +551,9 @@ class TestLoggerConfigObject:
     def test_from_model(self, test_ctx):
         '''
         Verify aggregate conversion to the declared transfer-object type.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert from_model against the declared aggregate.
@@ -520,12 +563,16 @@ class TestLoggerConfigObject:
     def test_round_trip(self, test_ctx):
         '''
         Verify aggregate conversion through the transfer object and back.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
         # Assert the aggregate round-trips through the transfer object.
         test_ctx.assert_round_trip()
 
     transfer_cls = LoggerConfigObject
+
     aggregate_cls = LoggerAggregate
 
     sample_data = LOGGER_AGGREGATE_SAMPLE_DATA
