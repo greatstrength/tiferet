@@ -13,6 +13,30 @@ from tiferet.domain.di import (
     ServiceRegistration,
 )
 
+# *** constants
+
+# ** constant: flagged_dependency_sample_data
+FLAGGED_DEPENDENCY_SAMPLE_DATA = {
+    'flag': 'test_alpha',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependencyAlpha',
+    'parameters': {'test_param': 'test_value', 'param': 'value1'},
+}
+
+# ** constant: service_registration_sample_data
+SERVICE_REGISTRATION_SAMPLE_DATA = {
+    'id': 'test_service',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependency',
+    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
+}
+
+# ** constant: service_registration_no_default_sample_data
+SERVICE_REGISTRATION_NO_DEFAULT_SAMPLE_DATA = {
+    'id': 'test_service_no_default',
+    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
+}
+
 # *** classes
 
 # ** class: dummy_dependency
@@ -38,30 +62,6 @@ class DummyDependencyBeta(DummyDependency):
     '''
 
     pass
-
-# *** constants
-
-# ** constant: flagged_dependency_sample_data
-FLAGGED_DEPENDENCY_SAMPLE_DATA = {
-    'flag': 'test_alpha',
-    'module_path': 'tests.domain.test_di',
-    'class_name': 'DummyDependencyAlpha',
-    'parameters': {'test_param': 'test_value', 'param': 'value1'},
-}
-
-# ** constant: service_registration_sample_data
-SERVICE_REGISTRATION_SAMPLE_DATA = {
-    'id': 'test_service',
-    'module_path': 'tests.domain.test_di',
-    'class_name': 'DummyDependency',
-    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
-}
-
-# ** constant: service_registration_no_default_sample_data
-SERVICE_REGISTRATION_NO_DEFAULT_SAMPLE_DATA = {
-    'id': 'test_service_no_default',
-    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
-}
 
 # *** fixtures
 

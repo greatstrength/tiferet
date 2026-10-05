@@ -110,7 +110,7 @@ class GetAppSession(AppEvent):
     @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> AppSession:
         '''
-        Execute the event to load the application session.
+        Retrieve an application session by ID from the app service.
 
         :param id: The ID of the application session to load.
         :type id: str
@@ -145,11 +145,10 @@ class UpdateAppSession(AppEvent):
     # * method: execute
     @DomainEvent.parameters_required(['id', 'attribute'])
     def execute(self,
-            id: str,
-            attribute: str,
-            value: Any,
-            **kwargs,
-        ) -> str:
+                id: str,
+                attribute: str,
+                value: Any,
+                **kwargs) -> str:
         '''
         Update a scalar attribute on an existing app session.
 
