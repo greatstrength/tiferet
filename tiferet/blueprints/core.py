@@ -143,7 +143,6 @@ def merge_logging_settings(cache: CacheContext,
 # ** function: add_default_catalog
 def add_default_catalog(items: Dict[str, Any],
         prefix: Tuple[str, ...],
-        *,
         model: type = None,
         id_field: str = None) -> Callable:
     '''
@@ -664,13 +663,13 @@ def raise_error_handler(get_error_handler: Callable) -> Callable:
     '''
 
     # Return the handler closure bound to the error resolver.
-    def handler(error: Exception, **kwargs) -> Any:
+    def handler(error: Exception, **kwargs) -> None:
 
         # Wrap bare exceptions in a TiferetError before processing.
         if not isinstance(error, TiferetError):
             error = TiferetError(
                 a.error.APP_ERROR_ID,
-                f'An error occurred in the app: {str(error)}',
+                f'An error occurred: {str(error)}',
                 error_message=str(error),
             )
 

@@ -467,6 +467,7 @@ def test_build_logger_handler_falls_back_when_execute_raises_service_error():
     assert isinstance(logger, logging.Logger)
     list_all.execute.assert_called_once_with()
     assert cache.get('fallback', *LOGGER_CACHE_PREFIX) is logger
+
 # ** test: build_logger_handler_caches_by_logger_id
 def test_build_logger_handler_caches_by_logger_id():
     '''
