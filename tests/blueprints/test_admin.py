@@ -17,11 +17,7 @@ from tiferet.blueprints.admin import (
     build_cache,
 )
 from tiferet.blueprints import core
-from tiferet.contexts.app import (
-    ADMIN_CONSTANT_CACHE_PREFIX,
-    ADMIN_SERVICE_CACHE_PREFIX,
-    AppSessionContext,
-)
+from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.cache import CacheContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
 from tiferet.domain import AppServiceDependency, AppSession
@@ -36,7 +32,7 @@ def test_build_cache_seeds_admin_services():
 
     # Build the admin cache and resolve a known admin service entry.
     cache = build_cache()
-    cached = cache.get('di_service', *ADMIN_SERVICE_CACHE_PREFIX)
+    cached = cache.get('di_service', *a.app.ADMIN_SERVICE_CACHE_PREFIX)
 
     # Assert the admin service catalog is seeded under the admin prefix.
     assert isinstance(cached, AppServiceDependency)
@@ -73,7 +69,7 @@ def test_build_admin_service_resolver_routes_by_flag():
         class_name='CacheContext',
     )
     cache = CacheContext()
-    cache.set('flag_probe', admin_probe, *ADMIN_SERVICE_CACHE_PREFIX)
+    cache.set('flag_probe', admin_probe, *a.app.ADMIN_SERVICE_CACHE_PREFIX)
 
     # Build the resolver against the app container and probe-seeded cache.
     resolver = build_admin_service_resolver(app_container, cache)
