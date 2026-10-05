@@ -10,7 +10,7 @@ from tiferet.mappers.di import (
     ServiceRegistrationAggregate,
     ServiceRegistrationConfigObject,
 )
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -80,21 +80,87 @@ SVC_CONFIG_FIELD_NORMALIZERS = {
     'dependencies': lambda deps: tuple(sorted(DEP_TUPLE(d) for d in (deps or []))),
 }
 
-# ** constant: flagged_dep_sample_data
-flagged_dep_sample_data = {
+# ** constant: test_service_registration_config_object_sample_data
+TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA = {
+    'id': 'test_repo',
     'module_path': 'tests.repos.test',
-    'class_name': 'TestRepoProxy',
-    'flag': 'test',
-    'params': {'test_param': 'test_value'},
+    'class_name': 'DefaultTestRepoProxy',
+    'deps': {
+        'test': {
+            'module_path': 'tests.repos.test',
+            'class_name': 'TestRepoProxy',
+            'params': {'test_param': 'test_value'},
+        },
+        'test2': {
+            'module_path': 'tests.repos.test',
+            'class_name': 'TestRepoProxy2',
+            'params': {'param2': 'value2'},
+        },
+    },
+    'params': {
+        'test_param': 'test_value',
+        'param0': 'value0',
+    },
+}
+
+# ** constant: test_service_registration_config_object_aggregate_sample_data
+TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
+    'id': 'test_repo',
+    'module_path': 'tests.repos.test',
+    'class_name': 'DefaultTestRepoProxy',
+    'parameters': {'test_param': 'test_value', 'param0': 'value0'},
+    'dependencies': [
+        {
+            'module_path': 'tests.repos.test',
+            'class_name': 'TestRepoProxy',
+            'flag': 'test',
+            'parameters': {'test_param': 'test_value'},
+        },
+        {
+            'module_path': 'tests.repos.test',
+            'class_name': 'TestRepoProxy2',
+            'flag': 'test2',
+            'parameters': {'param2': 'value2'},
+        },
+    ],
 }
 
 # *** testers
 
 # ** tester: test_flagged_dependency_aggregate
-class TestFlaggedDependencyAggregate(AggregateTestBase):
+@use_tester(
+    type='aggregate',
+    target_cls=FlaggedDependencyAggregate,
+    sample_data=FLAGGED_DEP_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FLAGGED_DEP_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('module_path', 'new.module.path', None),
+        ('class_name', 'NewClassName', None),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
+class TestFlaggedDependencyAggregate:
     '''
     Tests for FlaggedDependencyAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify aggregate construction against declared expected data.
+        '''
+
+        # Assert construction against the declared sample.
+        test_ctx.assert_new()
+
+    # * test: set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''
+        Verify declared set_attribute cases.
+        '''
+
+        # Assert each declared set_attribute case.
+        test_ctx.assert_set_attribute()
 
     aggregate_cls = FlaggedDependencyAggregate
 
@@ -110,22 +176,14 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> FlaggedDependencyAggregate:
-        '''
-        Construct a FlaggedDependencyAggregate via the Pydantic constructor.
-        '''
-
-        # Build the aggregate from the resolved sample data.
-        return FlaggedDependencyAggregate(
-            **(data if data is not None else self.sample_data).copy()
-        )
-
     # * test: set_parameters_clears_when_none
-    def test_set_parameters_clears_when_none(self, aggregate):
+    def test_set_parameters_clears_when_none(self, test_ctx):
         '''
         Test that set_parameters clears all parameters when called with None.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Call set_parameters with None to clear all parameters.
         aggregate.set_parameters(None)
@@ -134,10 +192,13 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
         assert aggregate.parameters == {}
 
     # * test: set_parameters_merges_and_prunes_none_values
-    def test_set_parameters_merges_and_prunes_none_values(self, aggregate):
+    def test_set_parameters_merges_and_prunes_none_values(self, test_ctx):
         '''
         Test that set_parameters merges new values and removes keys whose value is None.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Merge: override existing, add new, remove by setting to None.
         aggregate.set_parameters({
@@ -155,10 +216,41 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
 
 
 # ** tester: test_service_registration_aggregate
-class TestServiceRegistrationAggregate(AggregateTestBase):
+@use_tester(
+    type='aggregate',
+    target_cls=ServiceRegistrationAggregate,
+    sample_data=SVC_CONFIG_AGGREGATE_SAMPLE_DATA,
+    equality_fields=SVC_CONFIG_EQUALITY_FIELDS,
+    field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Service', None),
+        ('module_path', 'updated.module', None),
+        ('class_name', 'UpdatedClass', None),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
+class TestServiceRegistrationAggregate:
     '''
     Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify aggregate construction against declared expected data.
+        '''
+
+        # Assert construction against the declared sample.
+        test_ctx.assert_new()
+
+    # * test: set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''
+        Verify declared set_attribute cases.
+        '''
+
+        # Assert each declared set_attribute case.
+        test_ctx.assert_set_attribute()
 
     aggregate_cls = ServiceRegistrationAggregate
 
@@ -177,22 +269,14 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> ServiceRegistrationAggregate:
-        '''
-        Construct a ServiceRegistrationAggregate via the Pydantic constructor.
-        '''
-
-        # Build the aggregate from the resolved sample data.
-        return ServiceRegistrationAggregate(
-            **(data if data is not None else self.sample_data).copy()
-        )
-
     # * test: set_default_type_updates
-    def test_set_default_type_updates(self, aggregate):
+    def test_set_default_type_updates(self, test_ctx):
         '''
         Test that set_default_type updates module_path, class_name, and parameters.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Update the default type with new values.
         aggregate.set_default_type(
@@ -207,11 +291,14 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         assert aggregate.parameters == {'new_param': 'new_value'}
 
     # * test: set_default_type_clears_when_both_none
-    def test_set_default_type_clears_when_both_none(self, aggregate):
+    def test_set_default_type_clears_when_both_none(self, test_ctx):
         '''
         Test that set_default_type clears module_path, class_name, and parameters
         when both type fields are None.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Call with both type fields as None to clear the default type.
         aggregate.set_default_type(
@@ -225,10 +312,13 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         assert aggregate.parameters == {}
 
     # * test: set_dependency_creates_new
-    def test_set_dependency_creates_new(self, aggregate):
+    def test_set_dependency_creates_new(self, test_ctx):
         '''
         Test that set_dependency appends a new FlaggedDependency when the flag is not found.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Confirm the flag does not already exist.
         assert aggregate.get_dependency('new_flag') is None
@@ -251,11 +341,14 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         assert len(aggregate.dependencies) == 2
 
     # * test: set_dependency_updates_existing
-    def test_set_dependency_updates_existing(self, aggregate):
+    def test_set_dependency_updates_existing(self, test_ctx):
         '''
         Test that set_dependency updates an existing dependency in place, merging
         parameters and pruning None-valued keys.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Update the existing 'existing' dependency.
         aggregate.set_dependency(
@@ -277,10 +370,13 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         assert len(aggregate.dependencies) == 1
 
     # * test: remove_dependency
-    def test_remove_dependency(self, aggregate):
+    def test_remove_dependency(self, test_ctx):
         '''
         Test that remove_dependency filters out the dependency matching the given flag.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Confirm the dependency exists before removal.
         assert aggregate.get_dependency('existing') is not None
@@ -293,10 +389,13 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         assert aggregate.dependencies == []
 
     # * test: remove_dependency_missing_flag_is_noop
-    def test_remove_dependency_missing_flag_is_noop(self, aggregate):
+    def test_remove_dependency_missing_flag_is_noop(self, test_ctx):
         '''
         Test that remove_dependency with an unmatched flag leaves the list unchanged.
         '''
+
+        # Build a fresh aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Record the initial count.
         initial_count = len(aggregate.dependencies)
@@ -309,73 +408,65 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
 
 
 # ** tester: test_service_registration_config_object
-class TestServiceRegistrationConfigObject(TransferObjectTestBase):
+@use_tester(
+    type='transfer_object',
+    target_cls=ServiceRegistrationConfigObject,
+    aggregate_cls=ServiceRegistrationAggregate,
+    sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=SVC_CONFIG_EQUALITY_FIELDS,
+    field_normalizers=SVC_CONFIG_FIELD_NORMALIZERS,
+)
+class TestServiceRegistrationConfigObject:
     '''
     Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''
 
+    # * test: map
+    def test_map(self, test_ctx):
+        '''
+        Verify transfer construction and mapping to the declared aggregate.
+        '''
+
+        # Assert map against the declared samples.
+        test_ctx.assert_map()
+
+    # * test: from_model
+    def test_from_model(self, test_ctx):
+        '''
+        Verify aggregate conversion to the declared transfer-object type.
+        '''
+
+        # Assert from_model against the declared aggregate sample.
+        test_ctx.assert_from_model()
+
+    # * test: round_trip
+    def test_round_trip(self, test_ctx):
+        '''
+        Verify aggregate conversion through the transfer object and back.
+        '''
+
+        # Assert the aggregate round-trip.
+        test_ctx.assert_round_trip()
+
     transfer_cls = ServiceRegistrationConfigObject
     aggregate_cls = ServiceRegistrationAggregate
 
-    # YAML-format sample data (dependencies as dict keyed by flag).
-    sample_data = {
-        'id': 'test_repo',
-        'module_path': 'tests.repos.test',
-        'class_name': 'DefaultTestRepoProxy',
-        'deps': {
-            'test': {
-                'module_path': 'tests.repos.test',
-                'class_name': 'TestRepoProxy',
-                'params': {'test_param': 'test_value'},
-            },
-            'test2': {
-                'module_path': 'tests.repos.test',
-                'class_name': 'TestRepoProxy2',
-                'params': {'param2': 'value2'},
-            },
-        },
-        'params': {
-            'test_param': 'test_value',
-            'param0': 'value0',
-        },
-    }
+    sample_data = TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_SAMPLE_DATA
 
-    # Aggregate-format expected data (dependencies as list, defaults filled in).
-    aggregate_sample_data = {
-        'id': 'test_repo',
-        'module_path': 'tests.repos.test',
-        'class_name': 'DefaultTestRepoProxy',
-        'parameters': {'test_param': 'test_value', 'param0': 'value0'},
-        'dependencies': [
-            {
-                'module_path': 'tests.repos.test',
-                'class_name': 'TestRepoProxy',
-                'flag': 'test',
-                'parameters': {'test_param': 'test_value'},
-            },
-            {
-                'module_path': 'tests.repos.test',
-                'class_name': 'TestRepoProxy2',
-                'flag': 'test2',
-                'parameters': {'param2': 'value2'},
-            },
-        ],
-    }
+    aggregate_sample_data = TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA
 
     equality_fields = SVC_CONFIG_EQUALITY_FIELDS
 
     field_normalizers = SVC_CONFIG_FIELD_NORMALIZERS
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> ServiceRegistrationAggregate:
-        '''
-        Construct a ServiceRegistrationAggregate via the Pydantic constructor.
-        '''
-
-        # Build the aggregate from the resolved aggregate sample data.
-        return ServiceRegistrationAggregate(
-            **(data if data is not None else self.aggregate_sample_data).copy()
-        )
+    # * attribute: flagged_dep_sample_data
+    flagged_dep_sample_data = {
+        'module_path': 'tests.repos.test',
+        'class_name': 'TestRepoProxy',
+        'flag': 'test',
+        'params': {'test_param': 'test_value'},
+    }
 
     # * test: to_primitive_to_data
     def test_to_primitive_to_data(self):
@@ -466,13 +557,13 @@ class TestServiceRegistrationConfigObject(TransferObjectTestBase):
         assert 'flag1' in primitive['deps']
 
     # * test: from_model_with_added_dependency
-    def test_from_model_with_added_dependency(self):
+    def test_from_model_with_added_dependency(self, test_ctx):
         '''
         Test that from_model correctly converts an aggregate with added dependencies.
         '''
 
         # Create an aggregate and add a third dependency.
-        aggregate = self.make_aggregate()
+        aggregate = test_ctx.make_target()
         aggregate.set_dependency(
             flag='test3',
             module_path='tests.repos.test',
@@ -499,7 +590,7 @@ class TestServiceRegistrationConfigObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = FlaggedDependencyConfigObject.model_validate(flagged_dep_sample_data)
+        yaml_obj = FlaggedDependencyConfigObject.model_validate(self.flagged_dep_sample_data)
         dep = yaml_obj.map()
 
         # Verify the mapped entity.
@@ -557,7 +648,7 @@ class TestServiceRegistrationConfigObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object.
-        yaml_obj = FlaggedDependencyConfigObject.model_validate(flagged_dep_sample_data)
+        yaml_obj = FlaggedDependencyConfigObject.model_validate(self.flagged_dep_sample_data)
 
         # Serialize with to_data role.
         primitive = yaml_obj.to_primitive('to_data')
@@ -568,19 +659,22 @@ class TestServiceRegistrationConfigObject(TransferObjectTestBase):
         assert primitive['class_name'] == 'TestRepoProxy'
 
     # * test: flagged_dependency_yaml_round_trip_via_parent
-    def test_flagged_dependency_yaml_round_trip_via_parent(self, aggregate):
+    def test_flagged_dependency_yaml_round_trip_via_parent(self, test_ctx):
         '''
         Test that dependencies are preserved through the parent ServiceRegistrationConfigObject round-trip.
         '''
+
+        # Build the aggregate from the declared aggregate sample.
+        aggregate = test_ctx.make_target()
 
         # Convert aggregate to YAML object and back.
         yaml_top = ServiceRegistrationConfigObject.from_model(aggregate)
         round_tripped = yaml_top.map()
 
-        # Verify dependencies list preserved using nested helper.
-        self.assert_nested_list_matches(
-            round_tripped.dependencies,
-            aggregate.dependencies,
-            key_field='flag',
-            compare_fields=['module_path', 'class_name', 'parameters'],
-        )
+        # Compare each dependency field in list order.
+        assert len(round_tripped.dependencies) == len(aggregate.dependencies)
+        for left, right in zip(round_tripped.dependencies, aggregate.dependencies):
+            assert left.flag == right.flag
+            assert left.module_path == right.module_path
+            assert left.class_name == right.class_name
+            assert left.parameters == right.parameters
