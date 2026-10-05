@@ -28,6 +28,19 @@ git push origin --delete <branch-name>
 
 # Pull latest from a branch
 git pull origin main
+
+# Super-TRD branch. Policy: docs/collab/process.md.
+# The orchestrator or the human cuts this from main before any child starts.
+# A child agent does not.
+git checkout -b <parent-issue>-<slug> main
+git push -u origin <parent-issue>-<slug>
+
+# Child branch, cut from the Super-TRD branch tip. PR base is that branch, never main.
+git checkout -b <child-issue>-<slug> <parent-issue>-<slug>
+gh pr create --repo greatstrength/tiferet --base <parent-issue>-<slug> --head <child-issue>-<slug> --title "<title>" --body "<body>"
+
+# After open, and again immediately before any merge, confirm the base.
+gh pr view <pr-number> --repo greatstrength/tiferet --json baseRefName
 ```
 
 ## Issue and PR Management
@@ -141,6 +154,17 @@ Field and option IDs are unique per GitHub Project. Record this repo's ids in [b
 gh api repos/greatstrength/tiferet/issues/<issue>/dependencies/blocked_by \
   -f issue_id=<blocker-issue-number>
 ```
+
+Do not publish a blocked-by cycle: two or more issues each naming the other's output as a prerequisite. Stop and report. See [process.md](process.md).
+
+External blockers of a Super-TRD child (a standalone TRD, or any work outside the parent branch) are wired on the child and on the parent issue. After every such blocker is squash-merged to `main`, the orchestrator or the human — not the child — updates the Super-TRD branch with a merge commit, not a rebase:
+
+```bash
+git checkout <parent-issue>-<slug>
+git merge --no-ff main -m "Merge main into <parent-issue>-<slug>"
+```
+
+Only then is the blocked child's branch cut from that tip. See [process.md](process.md#cross-boundary-blockers).
 
 Do not put the PR on a milestone. Assign the **issue** to a milestone if a reviewer asked you to; otherwise leave milestone assignment to the reviewer.
 
