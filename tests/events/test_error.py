@@ -230,10 +230,9 @@ class TestGetError:
 
     # * test: found_in_repo
     def test_found_in_repo(self,
-            test_ctx,
-            mock_dependencies,
-            error,
-        ):
+                           test_ctx,
+                           mock_dependencies,
+                           error):
         '''
         Test retrieving an error found in the repository.
         '''
@@ -351,10 +350,9 @@ class TestRenameError:
 
     # * test: success
     def test_success(self,
-            test_ctx,
-            mock_dependencies,
-            error,
-        ):
+                    test_ctx,
+                    mock_dependencies,
+                    error):
         '''
         Test renaming an existing error successfully.
         '''
@@ -430,10 +428,9 @@ class TestSetErrorMessage:
 
     # * test: success
     def test_success(self,
-            test_ctx,
-            mock_dependencies,
-            error,
-        ):
+                    test_ctx,
+                    mock_dependencies,
+                    error):
         '''
         Test setting a message for an existing error successfully.
         '''
@@ -511,10 +508,9 @@ class TestRemoveErrorMessage:
 
     # * test: success
     def test_success(self,
-            test_ctx,
-            mock_dependencies,
-            error,
-        ):
+                    test_ctx,
+                    mock_dependencies,
+                    error):
         '''
         Test removing a message from an existing error successfully.
         '''
@@ -530,10 +526,9 @@ class TestRemoveErrorMessage:
 
     # * test: no_messages_left
     def test_no_messages_left(self,
-            test_ctx,
-            mock_dependencies,
-            error,
-        ):
+                             test_ctx,
+                             mock_dependencies,
+                             error):
         '''
         Test that removing the last message raises NO_ERROR_MESSAGES.
         '''
