@@ -20,7 +20,7 @@ from tiferet.mappers.error import (
 
 # *** tests
 
-# ** test: test_tester_object_derives_expected_data_and_target_type
+# ** test: tester_object_derives_expected_data_and_target_type
 def test_tester_object_derives_expected_data_and_target_type() -> None:
     '''
     Test that expected_data is derived from sample_data and the target type imports.
@@ -45,7 +45,7 @@ def test_tester_object_derives_expected_data_and_target_type() -> None:
     assert tester.expected_data == tester.sample_data
     assert tester.get_target_type() is ErrorMessage
 
-# ** test: test_tester_object_optional_fields_and_aggregate_target
+# ** test: tester_object_optional_fields_and_aggregate_target
 def test_tester_object_optional_fields_and_aggregate_target() -> None:
     '''
     Test optional domain defaults and aggregate / transfer-object target imports.
@@ -83,7 +83,7 @@ def test_tester_object_optional_fields_and_aggregate_target() -> None:
     assert transfer_tester.get_target_type() is ErrorConfigObject
     assert transfer_tester.get_aggregate_type() is ErrorAggregate
 
-# ** test: test_tester_object_accepts_event_types_and_optional_fields
+# ** test: tester_object_accepts_event_types_and_optional_fields
 def test_tester_object_accepts_event_types_and_optional_fields() -> None:
     '''
     Test domain-event defaults and service-event dependency coercion.
@@ -131,7 +131,7 @@ def test_tester_object_accepts_event_types_and_optional_fields() -> None:
     assert dependency.class_name == 'ErrorService'
     assert service_event.get_target_type().__name__ == 'GetError'
 
-# ** test: test_verification_constructs_with_optional_message_default
+# ** test: verification_constructs_with_optional_message_default
 def test_verification_constructs_with_optional_message_default() -> None:
     '''
     Test that Verification stores the predicate and source and defaults message.
@@ -152,7 +152,7 @@ def test_verification_constructs_with_optional_message_default() -> None:
     assert verification.source == 3
     assert verification.message is None
 
-# ** test: test_tester_object_accepts_generic_type
+# ** test: tester_object_accepts_generic_type
 def test_tester_object_accepts_generic_type() -> None:
     '''
     Test that omitting type defaults to generic and keeps the import helpers.
@@ -173,7 +173,7 @@ def test_tester_object_accepts_generic_type() -> None:
     assert hasattr(tester, 'get_target_type')
     assert hasattr(tester, 'get_target')
 
-# ** test: test_tester_object_accepts_repo_type_and_optional_fields
+# ** test: tester_object_accepts_repo_type_and_optional_fields
 def test_tester_object_accepts_repo_type_and_optional_fields() -> None:
     '''
     Test that a repo tester stores config coordinates and optional case defaults.
@@ -205,7 +205,7 @@ def test_tester_object_accepts_repo_type_and_optional_fields() -> None:
     assert tester.get_target_type().__name__ == 'ErrorConfigRepository'
     assert tester.get_aggregate_type().__name__ == 'ErrorAggregate'
 
-# ** test: test_tester_object_rejects_non_generic_package_types
+# ** test: tester_object_rejects_non_generic_package_types
 @pytest.mark.parametrize('invalid_type', [
     'util',
     'assets',
@@ -237,7 +237,7 @@ def test_tester_object_rejects_non_generic_package_types(invalid_type: str) -> N
             class_name='ErrorMessage',
         )
 
-# ** test: test_tester_object_get_target_returns_function_and_instance
+# ** test: tester_object_get_target_returns_function_and_instance
 def test_tester_object_get_target_returns_function_and_instance() -> None:
     '''
     Test that get_target returns a function as-is and constructs a concrete class.
