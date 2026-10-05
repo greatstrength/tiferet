@@ -26,7 +26,47 @@ from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import Feature
 from tiferet.interfaces import FeatureService
 from tiferet.mappers import FeatureAggregate
-from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.blueprints.tester import use_tester
+
+# *** functions
+
+# ** function: populate_three_steps
+def _populate_three_steps(sample_feature):
+    '''
+    Pre-populate a feature with three ordered steps.
+
+    :param sample_feature: The feature aggregate to populate.
+    :type sample_feature: FeatureAggregate
+    :return: The three created steps, in order.
+    :rtype: tuple
+    '''
+
+    # Add the first ordered step.
+    first = sample_feature.add_step(
+        name='first',
+        service_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+
+    # Add the second ordered step.
+    second = sample_feature.add_step(
+        name='second',
+        service_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+
+    # Add the third ordered step.
+    third = sample_feature.add_step(
+        name='third',
+        service_id='container.third',
+        parameters={'index': 2},
+        data_key='third_key',
+    )
+
+    # Return the three steps in order.
+    return first, second, third
 
 # *** fixtures
 
@@ -99,27 +139,26 @@ class TestFeatureEvent:
         assert FeatureEvent(feature_service=service).feature_service is service
         assert AddFeature(feature_service=service).feature_service is service
 
-
 # ** tester: test_add_feature
-class TestAddFeature(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=AddFeature,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(
+        name='New Feature',
+        group_id='group',
+    ),
+    required_params=['name', 'group_id'],
+)
+class TestAddFeature:
     '''
     Tests for AddFeature using the domain event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = AddFeature
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        name='New Feature',
-        group_id='group',
-    )
-
-    # * attribute: required_params
-    required_params = ['name', 'group_id']
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -134,13 +173,13 @@ class TestAddFeature(DomainEventTestBase):
         return {'feature_service': service}
 
     # * test: minimal_success
-    def test_minimal_success(self, mock_dependencies):
+    def test_minimal_success(self, test_ctx, mock_dependencies):
         '''
         Test successful creation of a feature with minimal required parameters.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the feature was created with derived values.
         assert isinstance(result, Feature)
@@ -155,13 +194,13 @@ class TestAddFeature(DomainEventTestBase):
         mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
     # * test: full_parameters
-    def test_full_parameters(self, mock_dependencies):
+    def test_full_parameters(self, test_ctx, mock_dependencies):
         '''
         Test creation of a feature when all optional parameters are provided.
         '''
 
         # Execute with all parameters.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             name='Explicit Feature',
             group_id='group',
@@ -186,7 +225,7 @@ class TestAddFeature(DomainEventTestBase):
         mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
     # * test: duplicate_id
-    def test_duplicate_id(self, mock_dependencies):
+    def test_duplicate_id(self, test_ctx, mock_dependencies):
         '''
         Test that adding a feature with an existing ID raises FEATURE_ALREADY_EXISTS.
         '''
@@ -196,7 +235,7 @@ class TestAddFeature(DomainEventTestBase):
 
         # Execute and expect a FEATURE_ALREADY_EXISTS error.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies)
+            test_ctx.handle(mock_dependencies)
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.FEATURE_ALREADY_EXISTS_ID
@@ -206,7 +245,7 @@ class TestAddFeature(DomainEventTestBase):
         mock_dependencies['feature_service'].save.assert_not_called()
 
     # * test: contextual_kwargs_not_forwarded
-    def test_contextual_kwargs_not_forwarded(self, mock_dependencies):
+    def test_contextual_kwargs_not_forwarded(self, test_ctx, mock_dependencies):
         '''
         Test that contextual pipeline kwargs are not forwarded into FeatureAggregate.
 
@@ -215,7 +254,7 @@ class TestAddFeature(DomainEventTestBase):
         '''
 
         # Execute with extra contextual kwargs that are not Feature fields.
-        result = self.handle(mock_dependencies, request=object(), logger=object())
+        result = test_ctx.handle(mock_dependencies, request=object(), logger=object())
 
         # Assert the feature was created without error and ignored the extra kwargs.
         assert isinstance(result, Feature)
@@ -223,30 +262,39 @@ class TestAddFeature(DomainEventTestBase):
         assert not hasattr(result, 'request')
         mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
 
 # ** tester: test_get_feature
-class TestGetFeature(ServiceEventTestBase):
+@use_tester(
+    type='service_event',
+    target_cls=GetFeature,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(id='group.sample_feature'),
+    required_params=['id'],
+    service_attr='feature_service',
+    not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
+)
+class TestGetFeature:
     '''
     Tests for GetFeature using the service event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = GetFeature
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: service_attr
-    service_attr = 'feature_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='group.sample_feature')
-
-    # * attribute: required_params
-    required_params = ['id']
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -261,20 +309,20 @@ class TestGetFeature(ServiceEventTestBase):
         return {'feature_service': service}
 
     # * test: success
-    def test_success(self, mock_dependencies, sample_feature):
+    def test_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successful retrieval of a feature.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the feature is returned.
         assert result is sample_feature
         mock_dependencies['feature_service'].get.assert_called_once_with('group.sample_feature')
 
     # * test: fallback_to_default_index
-    def test_fallback_to_default_index(self, mock_dependencies, sample_feature):
+    def test_fallback_to_default_index(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that a repository miss falls back to a matching default_feature_index entry.
         '''
@@ -283,7 +331,7 @@ class TestGetFeature(ServiceEventTestBase):
         mock_dependencies['feature_service'].get.return_value = None
 
         # Execute with a default index containing the requested feature.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             default_feature_index={'group.sample_feature': sample_feature},
         )
@@ -293,7 +341,7 @@ class TestGetFeature(ServiceEventTestBase):
         mock_dependencies['feature_service'].get.assert_called_once_with('group.sample_feature')
 
     # * test: miss_with_nonmatching_index
-    def test_miss_with_nonmatching_index(self, mock_dependencies):
+    def test_miss_with_nonmatching_index(self, test_ctx, mock_dependencies):
         '''
         Test that a repository miss with no matching default raises FEATURE_NOT_FOUND.
         '''
@@ -303,7 +351,7 @@ class TestGetFeature(ServiceEventTestBase):
 
         # Execute with a default index that does not contain the requested feature.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(
+            test_ctx.handle(
                 mock_dependencies,
                 default_feature_index={'other.feature': mock.Mock()},
             )
@@ -311,155 +359,203 @@ class TestGetFeature(ServiceEventTestBase):
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.FEATURE_NOT_FOUND_ID
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
+
+    # * test: not_found
+    def test_not_found(self, test_ctx):
+        '''
+        Assert a missing primary service lookup raises the configured not-found error.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert the primary service get returning None raises the not-found error.
+        test_ctx.assert_not_found()
 
 # ** tester: test_list_features
-class TestListFeatures(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=ListFeatures,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(group_id=None),
+    required_params=[],
+)
+class TestListFeatures:
     '''
     Tests for ListFeatures using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = ListFeatures
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(group_id=None)
-
-    # * attribute: required_params
-    required_params = []
-
     # * test: all
-    def test_all(self, mock_dependencies, sample_feature):
+    def test_all(self, test_ctx, sample_feature):
         '''
         Test listing all features.
         '''
+
+        # Build mocked dependencies from the tester context.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Configure the service to return features.
         mock_dependencies['feature_service'].list.return_value = [sample_feature]
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert.
         assert result == [sample_feature]
         mock_dependencies['feature_service'].list.assert_called_once_with(group_id=None)
 
     # * test: by_group_id
-    def test_by_group_id(self, mock_dependencies, sample_feature):
+    def test_by_group_id(self, test_ctx, sample_feature):
         '''
         Test listing features filtered by group_id.
         '''
+
+        # Build mocked dependencies from the tester context.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Configure the service to return features.
         mock_dependencies['feature_service'].list.return_value = [sample_feature]
 
         # Execute with group_id override.
-        result = self.handle(mock_dependencies, group_id='group')
+        result = test_ctx.handle(mock_dependencies, group_id='group')
 
         # Assert.
         assert result == [sample_feature]
         mock_dependencies['feature_service'].list.assert_called_once_with(group_id='group')
 
     # * test: empty_result
-    def test_empty_result(self, mock_dependencies):
+    def test_empty_result(self, test_ctx):
         '''
         Test listing features when the service returns an empty list.
         '''
+
+        # Build mocked dependencies from the tester context.
+        mock_dependencies = test_ctx.mock_dependencies()
 
         # Configure the service to return an empty list.
         mock_dependencies['feature_service'].list.return_value = []
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert.
         assert result == []
         mock_dependencies['feature_service'].list.assert_called_once_with(group_id=None)
 
-
 # ** tester: test_remove_feature
-class TestRemoveFeature(DomainEventTestBase):
+@use_tester(
+    type='domain_event',
+    target_cls=RemoveFeature,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(id='group.sample_feature'),
+    required_params=['id'],
+)
+class TestRemoveFeature:
     '''
     Tests for RemoveFeature using the domain event test harness.
     '''
 
-    # * attribute: event_cls
-    event_cls = RemoveFeature
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(id='group.sample_feature')
-
-    # * attribute: required_params
-    required_params = ['id']
-
     # * test: success
-    def test_success(self, mock_dependencies):
+    def test_success(self, test_ctx):
         '''
         Test successful deletion of a feature.
         '''
 
+        # Build mocked dependencies from the tester context.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the feature ID is returned.
         assert result == 'group.sample_feature'
         mock_dependencies['feature_service'].delete.assert_called_once_with('group.sample_feature')
 
     # * test: idempotent_multiple_calls
-    def test_idempotent_multiple_calls(self, mock_dependencies):
+    def test_idempotent_multiple_calls(self, test_ctx):
         '''
         Test idempotent deletion with multiple calls.
         '''
 
+        # Build mocked dependencies from the tester context.
+        mock_dependencies = test_ctx.mock_dependencies()
+
         # Call twice.
-        result_first = self.handle(mock_dependencies)
-        result_second = self.handle(mock_dependencies)
+        result_first = test_ctx.handle(mock_dependencies)
+        result_second = test_ctx.handle(mock_dependencies)
 
         # Both should succeed.
         assert result_first == 'group.sample_feature'
         assert result_second == 'group.sample_feature'
         assert mock_dependencies['feature_service'].delete.call_count == 2
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
 
 # ** tester: test_update_feature
-class TestUpdateFeature(ServiceEventTestBase):
-    '''
-    Tests for UpdateFeature using the service event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = UpdateFeature
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: service_attr
-    service_attr = 'feature_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=UpdateFeature,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(
         id='group.sample_feature',
         attribute='name',
         value='Updated Feature Name',
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'attribute']
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
+    ),
+    required_params=['id', 'attribute'],
+    service_attr='feature_service',
+    not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
+    not_found_kwargs=dict(
         id='missing.feature',
         attribute='name',
         value='Updated Feature Name',
-    )
+    ),
+)
+class TestUpdateFeature:
+    '''
+    Tests for UpdateFeature using the service event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -474,13 +570,13 @@ class TestUpdateFeature(ServiceEventTestBase):
         return {'feature_service': service}
 
     # * test: name_success
-    def test_name_success(self, mock_dependencies, sample_feature):
+    def test_name_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully updating a feature name.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the name was updated.
         assert result is sample_feature
@@ -488,13 +584,13 @@ class TestUpdateFeature(ServiceEventTestBase):
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
     # * test: description_success
-    def test_description_success(self, mock_dependencies, sample_feature):
+    def test_description_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully updating a feature description.
         '''
 
         # Execute with description override.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             attribute='description',
             value='Updated description.',
@@ -506,13 +602,13 @@ class TestUpdateFeature(ServiceEventTestBase):
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
     # * test: clear_description
-    def test_clear_description(self, mock_dependencies, sample_feature):
+    def test_clear_description(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test clearing a feature description.
         '''
 
         # Execute with None value.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             attribute='description',
             value=None,
@@ -523,71 +619,92 @@ class TestUpdateFeature(ServiceEventTestBase):
         assert result.description is None
 
     # * test: invalid_attribute
-    def test_invalid_attribute(self, mock_dependencies):
+    def test_invalid_attribute(self, test_ctx, mock_dependencies):
         '''
         Test that an unsupported attribute raises INVALID_FEATURE_ATTRIBUTE.
         '''
 
         # Execute with invalid attribute.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, attribute='invalid', value='ignored')
+            test_ctx.handle(mock_dependencies, attribute='invalid', value='ignored')
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.INVALID_FEATURE_ATTRIBUTE_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
     # * test: missing_name_value
-    def test_missing_name_value(self, mock_dependencies):
+    def test_missing_name_value(self, test_ctx, mock_dependencies):
         '''
         Test that updating name with empty value raises FEATURE_NAME_REQUIRED.
         '''
 
         # Execute with empty name value.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, attribute='name', value=' ')
+            test_ctx.handle(mock_dependencies, attribute='name', value=' ')
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.FEATURE_NAME_REQUIRED_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
+
+    # * test: not_found
+    def test_not_found(self, test_ctx):
+        '''
+        Assert a missing primary service lookup raises the configured not-found error.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert the primary service get returning None raises the not-found error.
+        test_ctx.assert_not_found()
 
 # ** tester: test_add_feature_step
-class TestAddFeatureStep(ServiceEventTestBase):
-    '''
-    Tests for AddFeatureStep using the service event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddFeatureStep
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: service_attr
-    service_attr = 'feature_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=AddFeatureStep,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(
         id='group.sample_feature',
         name='do_something',
         service_id='container.attribute',
         parameters={'foo': 'bar'},
         data_key='result_key',
         pass_on_error=True,
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'name', 'service_id']
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
+    ),
+    required_params=['id', 'name', 'service_id'],
+    service_attr='feature_service',
+    not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
+    not_found_kwargs=dict(
         id='missing.feature',
         name='do_something',
         service_id='container.attribute',
-    )
+    ),
+)
+class TestAddFeatureStep:
+    '''
+    Tests for AddFeatureStep using the service event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -602,13 +719,13 @@ class TestAddFeatureStep(ServiceEventTestBase):
         return {'feature_service': service}
 
     # * test: append_success
-    def test_append_success(self, mock_dependencies, sample_feature):
+    def test_append_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully appending a new step to a feature.
         '''
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the feature ID is returned.
         assert result == sample_feature.id
@@ -627,7 +744,7 @@ class TestAddFeatureStep(ServiceEventTestBase):
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
     # * test: insert_success
-    def test_insert_success(self, mock_dependencies, sample_feature):
+    def test_insert_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test inserting a step at a specific position.
         '''
@@ -648,7 +765,7 @@ class TestAddFeatureStep(ServiceEventTestBase):
         )
 
         # Execute inserting at position 1.
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             name='inserted',
             service_id='container.inserted',
@@ -668,43 +785,64 @@ class TestAddFeatureStep(ServiceEventTestBase):
         inserted = sample_feature.steps[1]
         assert inserted.service_id == 'container.inserted'
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
+
+    # * test: not_found
+    def test_not_found(self, test_ctx):
+        '''
+        Assert a missing primary service lookup raises the configured not-found error.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert the primary service get returning None raises the not-found error.
+        test_ctx.assert_not_found()
 
 # ** tester: test_update_feature_step
-class TestUpdateFeatureStep(ServiceEventTestBase):
-    '''
-    Tests for UpdateFeatureStep using the service event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = UpdateFeatureStep
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: service_attr
-    service_attr = 'feature_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=UpdateFeatureStep,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(
         id='group.sample_feature',
         position=0,
         attribute='name',
         value='updated_name',
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'position', 'attribute']
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
+    ),
+    required_params=['id', 'position', 'attribute'],
+    service_attr='feature_service',
+    not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
+    not_found_kwargs=dict(
         id='missing.feature',
         position=0,
         attribute='name',
         value='Updated Name',
-    )
+    ),
+)
+class TestUpdateFeatureStep:
+    '''
+    Tests for UpdateFeatureStep using the service event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -738,6 +876,7 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
     )
     def test_update_string_attributes_success(
             self,
+            test_ctx,
             mock_dependencies,
             sample_feature,
             attribute,
@@ -750,7 +889,7 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
 
         # Execute via the harness.
         step = sample_feature.steps[0]
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             attribute=attribute,
             value=new_value,
@@ -762,14 +901,14 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
     # * test: update_parameters_success
-    def test_update_parameters_success(self, mock_dependencies, sample_feature):
+    def test_update_parameters_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test updating the parameters attribute on a feature step.
         '''
 
         # Execute via the harness with parameters update.
         step = sample_feature.steps[0]
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             attribute='parameters',
             value={'baz': 'qux', 'foo': None},
@@ -780,14 +919,14 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
         assert step.parameters == {'baz': 'qux'}
 
     # * test: update_pass_on_error_success
-    def test_update_pass_on_error_success(self, mock_dependencies, sample_feature):
+    def test_update_pass_on_error_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test updating the pass_on_error flag.
         '''
 
         # Execute via the harness.
         step = sample_feature.steps[0]
-        result = self.handle(
+        result = test_ctx.handle(
             mock_dependencies,
             attribute='pass_on_error',
             value=True,
@@ -798,14 +937,14 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
         assert step.pass_on_error is True
 
     # * test: invalid_attribute
-    def test_invalid_attribute(self, mock_dependencies):
+    def test_invalid_attribute(self, test_ctx, mock_dependencies):
         '''
         Test that an unsupported attribute raises INVALID_FEATURE_COMMAND_ATTRIBUTE.
         '''
 
         # Execute with invalid attribute.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, attribute='invalid')
+            test_ctx.handle(mock_dependencies, attribute='invalid')
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
@@ -813,65 +952,86 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
 
     # * test: missing_name_or_service_id_value
     @pytest.mark.parametrize('attribute', ['name', 'service_id'])
-    def test_missing_name_or_service_id_value(self, mock_dependencies, attribute):
+    def test_missing_name_or_service_id_value(self, test_ctx, mock_dependencies, attribute):
         '''
         Test that updating name or service_id with empty value raises COMMAND_PARAMETER_REQUIRED.
         '''
 
         # Execute with empty value.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, attribute=attribute, value=' ')
+            test_ctx.handle(mock_dependencies, attribute=attribute, value=' ')
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
     # * test: step_not_found
-    def test_step_not_found(self, mock_dependencies, sample_feature):
+    def test_step_not_found(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that updating a step at an invalid position raises FEATURE_COMMAND_NOT_FOUND.
         '''
 
         # Execute with an out-of-range position.
         with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, position=5)
+            test_ctx.handle(mock_dependencies, position=5)
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.FEATURE_COMMAND_NOT_FOUND_ID
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
+
+    # * test: not_found
+    def test_not_found(self, test_ctx):
+        '''
+        Assert a missing primary service lookup raises the configured not-found error.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert the primary service get returning None raises the not-found error.
+        test_ctx.assert_not_found()
 
 # ** tester: test_remove_feature_step
-class TestRemoveFeatureStep(ServiceEventTestBase):
+@use_tester(
+    type='service_event',
+    target_cls=RemoveFeatureStep,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(
+        id='group.sample_feature',
+        position=0,
+    ),
+    required_params=['id', 'position'],
+    service_attr='feature_service',
+    not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
+    not_found_kwargs=dict(
+        id='missing.feature',
+        position=0,
+    ),
+)
+class TestRemoveFeatureStep:
     '''
     Tests for RemoveFeatureStep using the service event test harness.
     '''
-
-    # * attribute: event_cls
-    event_cls = RemoveFeatureStep
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: service_attr
-    service_attr = 'feature_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        id='group.sample_feature',
-        position=0,
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'position']
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
-        id='missing.feature',
-        position=0,
-    )
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -886,7 +1046,7 @@ class TestRemoveFeatureStep(ServiceEventTestBase):
         return {'feature_service': service}
 
     # * test: success
-    def test_success(self, mock_dependencies, sample_feature):
+    def test_success(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test successfully removing a step at a valid position.
         '''
@@ -906,7 +1066,7 @@ class TestRemoveFeatureStep(ServiceEventTestBase):
         )
 
         # Execute via the harness.
-        result = self.handle(mock_dependencies)
+        result = test_ctx.handle(mock_dependencies)
 
         # Assert the first step was removed.
         assert result == sample_feature.id
@@ -914,7 +1074,7 @@ class TestRemoveFeatureStep(ServiceEventTestBase):
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
     # * test: invalid_position_idempotent
-    def test_invalid_position_idempotent(self, mock_dependencies, sample_feature):
+    def test_invalid_position_idempotent(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test idempotent behavior when an invalid position is provided.
         '''
@@ -928,48 +1088,69 @@ class TestRemoveFeatureStep(ServiceEventTestBase):
         )
 
         # Execute with out-of-range position.
-        result = self.handle(mock_dependencies, position=5)
+        result = test_ctx.handle(mock_dependencies, position=5)
 
         # Assert the steps list is unchanged.
         assert result == sample_feature.id
         assert sample_feature.steps == [original]
         mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
+
+    # * test: not_found
+    def test_not_found(self, test_ctx):
+        '''
+        Assert a missing primary service lookup raises the configured not-found error.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert the primary service get returning None raises the not-found error.
+        test_ctx.assert_not_found()
 
 # ** tester: test_reorder_feature_step
-class TestReorderFeatureStep(ServiceEventTestBase):
-    '''
-    Tests for ReorderFeatureStep using the service event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = ReorderFeatureStep
-
-    # * attribute: dependencies
-    dependencies = {'feature_service': FeatureService}
-
-    # * attribute: service_attr
-    service_attr = 'feature_service'
-
-    # * attribute: not_found_error_code
-    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
+@use_tester(
+    type='service_event',
+    target_cls=ReorderFeatureStep,
+    dependencies={
+        'feature_service': {
+            'module_path': 'tiferet.interfaces',
+            'class_name': 'FeatureService',
+        },
+    },
+    sample_kwargs=dict(
         id='group.sample_feature',
         start_position=0,
         end_position=2,
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'start_position', 'end_position']
-
-    # * attribute: not_found_kwargs
-    not_found_kwargs = dict(
+    ),
+    required_params=['id', 'start_position', 'end_position'],
+    service_attr='feature_service',
+    not_found_error_code=a.error.FEATURE_NOT_FOUND_ID,
+    not_found_kwargs=dict(
         id='missing.feature',
         start_position=0,
         end_position=1,
-    )
+    ),
+)
+class TestReorderFeatureStep:
+    '''
+    Tests for ReorderFeatureStep using the service event test harness.
+    '''
 
     # * fixture: mock_dependencies
     @pytest.fixture
@@ -983,98 +1164,72 @@ class TestReorderFeatureStep(ServiceEventTestBase):
         service.get.return_value = sample_feature
         return {'feature_service': service}
 
-    # * method: _populate_three_steps
-    def _populate_three_steps(self, sample_feature):
-        '''
-        Helper to pre-populate the feature with three steps.
-        '''
-
-        first = sample_feature.add_step(
-            name='first',
-            service_id='container.first',
-            parameters={'index': 0},
-            data_key='first_key',
-        )
-        second = sample_feature.add_step(
-            name='second',
-            service_id='container.second',
-            parameters={'index': 1},
-            data_key='second_key',
-        )
-        third = sample_feature.add_step(
-            name='third',
-            service_id='container.third',
-            parameters={'index': 2},
-            data_key='third_key',
-        )
-        return first, second, third
-
     # * test: forward
-    def test_forward(self, mock_dependencies, sample_feature):
+    def test_forward(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test moving a feature step forward in the workflow.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute: move first to end.
-        result = self.handle(mock_dependencies, start_position=0, end_position=2)
+        result = test_ctx.handle(mock_dependencies, start_position=0, end_position=2)
 
         # Assert ordering.
         assert result == sample_feature.id
         assert sample_feature.steps == [second, third, first]
 
     # * test: backward
-    def test_backward(self, mock_dependencies, sample_feature):
+    def test_backward(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test moving a feature step backward in the workflow.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute: move last to front.
-        result = self.handle(mock_dependencies, start_position=2, end_position=0)
+        result = test_ctx.handle(mock_dependencies, start_position=2, end_position=0)
 
         # Assert ordering.
         assert result == sample_feature.id
         assert sample_feature.steps == [third, first, second]
 
     # * test: clamp_low
-    def test_clamp_low(self, mock_dependencies, sample_feature):
+    def test_clamp_low(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that end_position is clamped to the start of the list when below 0.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute with negative end_position.
-        result = self.handle(mock_dependencies, start_position=2, end_position=-5)
+        result = test_ctx.handle(mock_dependencies, start_position=2, end_position=-5)
 
         # Assert clamped to front.
         assert result == sample_feature.id
         assert sample_feature.steps == [third, first, second]
 
     # * test: clamp_high
-    def test_clamp_high(self, mock_dependencies, sample_feature):
+    def test_clamp_high(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test that end_position is clamped to the end of the list when above max.
         '''
 
         # Populate.
-        first, second, third = self._populate_three_steps(sample_feature)
+        first, second, third = _populate_three_steps(sample_feature)
 
         # Execute with large end_position.
-        result = self.handle(mock_dependencies, start_position=0, end_position=10)
+        result = test_ctx.handle(mock_dependencies, start_position=0, end_position=10)
 
         # Assert clamped to end.
         assert result == sample_feature.id
         assert sample_feature.steps == [second, third, first]
 
     # * test: invalid_start_position_idempotent
-    def test_invalid_start_position_idempotent(self, mock_dependencies, sample_feature):
+    def test_invalid_start_position_idempotent(self, test_ctx, mock_dependencies, sample_feature):
         '''
         Test idempotent behavior when start_position is out of range.
         '''
@@ -1095,8 +1250,37 @@ class TestReorderFeatureStep(ServiceEventTestBase):
         original_steps = list(sample_feature.steps)
 
         # Execute with out-of-range start.
-        result = self.handle(mock_dependencies, start_position=5, end_position=0)
+        result = test_ctx.handle(mock_dependencies, start_position=5, end_position=0)
 
         # Assert unchanged.
         assert result == sample_feature.id
         assert sample_feature.steps == original_steps
+
+    # * test: missing_required_params
+    def test_missing_required_params(self, test_ctx):
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :param test_ctx: The bound domain event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert each required parameter, passed as None, raises the required-parameter error.
+        test_ctx.assert_missing_required_params()
+
+    # * test: not_found
+    def test_not_found(self, test_ctx):
+        '''
+        Assert a missing primary service lookup raises the configured not-found error.
+
+        :param test_ctx: The bound service event tester context.
+        :type test_ctx: ServiceEventTesterContext
+        :return: None
+        :rtype: None
+        '''
+
+        # Assert the primary service get returning None raises the not-found error.
+        test_ctx.assert_not_found()
+
