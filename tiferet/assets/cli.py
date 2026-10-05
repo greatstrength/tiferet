@@ -144,7 +144,7 @@ APP_LIST_CLI_CMD_DATA = create_default_cli_command_data(
     'list',
     'app',
     'List App Interfaces',
-    'List all configured app interfaces.',
+    description='List all configured app interfaces.',
 )
 
 # ** constant: app_get_cli_cmd_data
@@ -152,8 +152,8 @@ APP_GET_CLI_CMD_DATA = create_default_cli_command_data(
     'get',
     'app',
     'Get App Interface',
-    'Retrieve an app interface by ID.',
-    [
+    description='Retrieve an app interface by ID.',
+    arguments=[
         create_default_cli_argument(
             ['interface_id'],
             description='The interface identifier.',
@@ -166,8 +166,8 @@ APP_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     'add',
     'app',
     'Add App Interface',
-    'Add a new application interface configuration.',
-    [
+    description='Add a new application interface configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique interface identifier.',
@@ -185,11 +185,6 @@ APP_ADD_CLI_CMD_DATA = create_default_cli_command_data(
             description='Optional logger identifier. Defaults to "default".',
         ),
         create_default_cli_argument(
-            ['--flags'],
-            description='Optional JSON-encoded list of flags.',
-            type='json',
-        ),
-        create_default_cli_argument(
             ['--constants'],
             description='Optional constants as key=value pairs.',
             type='dict',
@@ -202,8 +197,8 @@ APP_UPDATE_CLI_CMD_DATA = create_default_cli_command_data(
     'update',
     'app',
     'Update App Interface',
-    'Update a scalar attribute on an app interface.',
-    [
+    description='Update a scalar attribute on an app interface.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The interface identifier.',
@@ -224,8 +219,8 @@ APP_SET_SERVICE_CLI_CMD_DATA = create_default_cli_command_data(
     'set-service',
     'app',
     'Set App Service Dependency',
-    'Set or update a service dependency on an app interface.',
-    [
+    description='Set or update a service dependency on an app interface.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The interface identifier.',
@@ -255,8 +250,8 @@ APP_REMOVE_SERVICE_CLI_CMD_DATA = create_default_cli_command_data(
     'remove-service',
     'app',
     'Remove App Service Dependency',
-    'Remove a service dependency from an app interface.',
-    [
+    description='Remove a service dependency from an app interface.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The interface identifier.',
@@ -273,8 +268,8 @@ APP_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
     'set-constants',
     'app',
     'Set App Constants',
-    'Set or clear constants on an app interface.',
-    [
+    description='Set or clear constants on an app interface.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The interface identifier.',
@@ -292,8 +287,8 @@ APP_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
     'remove',
     'app',
     'Remove App Interface',
-    'Remove an app interface by ID.',
-    [
+    description='Remove an app interface by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The interface identifier to remove.',
@@ -306,7 +301,7 @@ CLI_LIST_COMMANDS_CLI_CMD_DATA = create_default_cli_command_data(
     'list-commands',
     'cli',
     'List CLI Commands',
-    'List all CLI command definitions.',
+    description='List all CLI command definitions.',
 )
 
 # ** constant: cli_add_command_cli_cmd_data
@@ -314,8 +309,8 @@ CLI_ADD_COMMAND_CLI_CMD_DATA = create_default_cli_command_data(
     'add-command',
     'cli',
     'Add CLI Command',
-    'Add a new CLI command definition.',
-    [
+    description='Add a new CLI command definition.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique command identifier.',
@@ -344,17 +339,15 @@ CLI_ADD_ARGUMENT_CLI_CMD_DATA = create_default_cli_command_data(
     'add-argument',
     'cli',
     'Add CLI Argument',
-    'Add an argument to an existing CLI command.',
-    [
+    description='Add an argument to an existing CLI command.',
+    arguments=[
         create_default_cli_argument(
             ['command_id'],
             description='The CLI command identifier.',
         ),
         create_default_cli_argument(
-            ['--name-or-flags'],
+            ['name_or_flags'],
             description='JSON-encoded list of argument names or flags.',
-            type='json',
-            required=True,
         ),
         create_default_cli_argument(
             ['--description'],
@@ -368,7 +361,7 @@ ERROR_LIST_CLI_CMD_DATA = create_default_cli_command_data(
     'list',
     'error',
     'List Errors',
-    'List all error definitions.',
+    description='List all error definitions.',
 )
 
 # ** constant: error_get_cli_cmd_data
@@ -376,8 +369,8 @@ ERROR_GET_CLI_CMD_DATA = create_default_cli_command_data(
     'get',
     'error',
     'Get Error',
-    'Retrieve an error by ID.',
-    [
+    description='Retrieve an error by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The error identifier.',
@@ -390,8 +383,8 @@ ERROR_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     'add',
     'error',
     'Add Error',
-    'Add a new error definition.',
-    [
+    description='Add a new error definition.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique error identifier.',
@@ -407,6 +400,7 @@ ERROR_ADD_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(
             ['--lang'],
             description='Language code for the message. Defaults to "en_US".',
+            default='en_US',
         ),
         create_default_cli_argument(
             ['--additional-messages'],
@@ -421,8 +415,8 @@ ERROR_RENAME_CLI_CMD_DATA = create_default_cli_command_data(
     'rename',
     'error',
     'Rename Error',
-    'Rename an existing error.',
-    [
+    description='Rename an existing error.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique error identifier.',
@@ -439,8 +433,8 @@ ERROR_SET_MESSAGE_CLI_CMD_DATA = create_default_cli_command_data(
     'set-message',
     'error',
     'Set Error Message',
-    'Set or update an error message for a language.',
-    [
+    description='Set or update an error message for a language.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique error identifier.',
@@ -452,6 +446,7 @@ ERROR_SET_MESSAGE_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(
             ['--lang'],
             description='Language code for the message. Defaults to "en_US".',
+            default='en_US',
         ),
     ],
 )
@@ -461,8 +456,8 @@ ERROR_REMOVE_MESSAGE_CLI_CMD_DATA = create_default_cli_command_data(
     'remove-message',
     'error',
     'Remove Error Message',
-    'Remove an error message by language.',
-    [
+    description='Remove an error message by language.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique error identifier.',
@@ -470,6 +465,7 @@ ERROR_REMOVE_MESSAGE_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(
             ['--lang'],
             description='Language code of the message to remove. Defaults to "en_US".',
+            default='en_US',
         ),
     ],
 )
@@ -479,8 +475,8 @@ ERROR_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
     'remove',
     'error',
     'Remove Error',
-    'Remove an error definition by ID.',
-    [
+    description='Remove an error definition by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique error identifier to remove.',
@@ -493,8 +489,8 @@ FEATURE_LIST_CLI_CMD_DATA = create_default_cli_command_data(
     'list',
     'feature',
     'List Features',
-    'List all features, optionally filtered by group.',
-    [
+    description='List all features, optionally filtered by group.',
+    arguments=[
         create_default_cli_argument(
             ['--group-id'],
             description='Optional group identifier to filter results.',
@@ -507,8 +503,8 @@ FEATURE_GET_CLI_CMD_DATA = create_default_cli_command_data(
     'get',
     'feature',
     'Get Feature',
-    'Retrieve a feature by ID.',
-    [
+    description='Retrieve a feature by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The feature identifier (e.g. calc.add).',
@@ -521,8 +517,8 @@ FEATURE_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     'add',
     'feature',
     'Add Feature',
-    'Add a new feature configuration.',
-    [
+    description='Add a new feature configuration.',
+    arguments=[
         create_default_cli_argument(
             ['name'],
             description='The feature name.',
@@ -547,8 +543,8 @@ FEATURE_UPDATE_CLI_CMD_DATA = create_default_cli_command_data(
     'update',
     'feature',
     'Update Feature',
-    'Update a feature attribute (name or description).',
-    [
+    description='Update a feature attribute (name or description).',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The feature identifier.',
@@ -556,6 +552,7 @@ FEATURE_UPDATE_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(
             ['attribute'],
             description='The attribute to update (name or description).',
+            choices=['name', 'description'],
         ),
         create_default_cli_argument(
             ['value'],
@@ -569,8 +566,8 @@ FEATURE_ADD_STEP_CLI_CMD_DATA = create_default_cli_command_data(
     'add-step',
     'feature',
     'Add Feature Step',
-    'Add a step to an existing feature workflow.',
-    [
+    description='Add a step to an existing feature workflow.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The feature identifier.',
@@ -593,11 +590,6 @@ FEATURE_ADD_STEP_CLI_CMD_DATA = create_default_cli_command_data(
             description='Optional result data key.',
         ),
         create_default_cli_argument(
-            ['--pass-on-error'],
-            description='Continue execution if this step raises an error.',
-            type='bool',
-        ),
-        create_default_cli_argument(
             ['--position'],
             description='Optional insertion index. Defaults to append.',
             type='int',
@@ -610,8 +602,8 @@ FEATURE_UPDATE_STEP_CLI_CMD_DATA = create_default_cli_command_data(
     'update-step',
     'feature',
     'Update Feature Step',
-    'Update an attribute on a feature step.',
-    [
+    description='Update an attribute on a feature step.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The feature identifier.',
@@ -624,9 +616,10 @@ FEATURE_UPDATE_STEP_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(
             ['attribute'],
             description='The step attribute to update.',
+            choices=['name', 'service_id', 'data_key', 'pass_on_error', 'parameters'],
         ),
         create_default_cli_argument(
-            ['--value'],
+            ['value'],
             description='The new value for the attribute.',
         ),
     ],
@@ -637,8 +630,8 @@ FEATURE_REMOVE_STEP_CLI_CMD_DATA = create_default_cli_command_data(
     'remove-step',
     'feature',
     'Remove Feature Step',
-    'Remove a step from a feature by position.',
-    [
+    description='Remove a step from a feature by position.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The feature identifier.',
@@ -656,8 +649,8 @@ FEATURE_REORDER_STEP_CLI_CMD_DATA = create_default_cli_command_data(
     'reorder-step',
     'feature',
     'Reorder Feature Step',
-    'Move a feature step from one position to another.',
-    [
+    description='Move a feature step from one position to another.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The feature identifier.',
@@ -680,8 +673,8 @@ FEATURE_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
     'remove',
     'feature',
     'Remove Feature',
-    'Remove a feature configuration by ID.',
-    [
+    description='Remove a feature configuration by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The feature identifier to remove.',
@@ -694,7 +687,7 @@ SERVICE_LIST_CLI_CMD_DATA = create_default_cli_command_data(
     'list',
     'service',
     'List All Settings',
-    'List all service configurations and constants.',
+    description='List all service configurations and constants.',
 )
 
 # ** constant: service_add_cli_cmd_data
@@ -702,8 +695,8 @@ SERVICE_ADD_CLI_CMD_DATA = create_default_cli_command_data(
     'add',
     'service',
     'Add Service Configuration',
-    'Add a new service configuration.',
-    [
+    description='Add a new service configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The unique service registration identifier.',
@@ -729,8 +722,8 @@ SERVICE_SET_DEFAULT_CLI_CMD_DATA = create_default_cli_command_data(
     'set-default',
     'service',
     'Set Default Service Configuration',
-    'Set or update the default type for a service configuration.',
-    [
+    description='Set or update the default type for a service configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The service registration identifier.',
@@ -756,8 +749,8 @@ SERVICE_SET_DEPENDENCY_CLI_CMD_DATA = create_default_cli_command_data(
     'set-dependency',
     'service',
     'Set Service Dependency',
-    'Set or update a flagged dependency on a service configuration.',
-    [
+    description='Set or update a flagged dependency on a service configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The service registration identifier.',
@@ -787,8 +780,8 @@ SERVICE_REMOVE_DEPENDENCY_CLI_CMD_DATA = create_default_cli_command_data(
     'remove-dependency',
     'service',
     'Remove Service Dependency',
-    'Remove a flagged dependency from a service configuration.',
-    [
+    description='Remove a flagged dependency from a service configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The service registration identifier.',
@@ -805,8 +798,8 @@ SERVICE_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
     'set-constants',
     'service',
     'Set Service Constants',
-    'Set or clear service-level constants.',
-    [
+    description='Set or clear service-level constants.',
+    arguments=[
         create_default_cli_argument(
             ['--constants'],
             description='Optional constants as key=value pairs. Omit to clear all.',
@@ -820,8 +813,8 @@ SERVICE_REMOVE_CLI_CMD_DATA = create_default_cli_command_data(
     'remove',
     'service',
     'Remove Service Configuration',
-    'Remove a service configuration by ID.',
-    [
+    description='Remove a service configuration by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The service registration identifier to remove.',
@@ -834,8 +827,8 @@ LOGGING_ADD_FORMATTER_CLI_CMD_DATA = create_default_cli_command_data(
     'add-formatter',
     'logging',
     'Add Formatter',
-    'Add a new logging formatter configuration.',
-    [
+    description='Add a new logging formatter configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='Unique formatter identifier.',
@@ -864,8 +857,8 @@ LOGGING_REMOVE_FORMATTER_CLI_CMD_DATA = create_default_cli_command_data(
     'remove-formatter',
     'logging',
     'Remove Formatter',
-    'Remove a logging formatter by ID.',
-    [
+    description='Remove a logging formatter by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The formatter identifier to remove.',
@@ -878,8 +871,8 @@ LOGGING_ADD_HANDLER_CLI_CMD_DATA = create_default_cli_command_data(
     'add-handler',
     'logging',
     'Add Handler',
-    'Add a new logging handler configuration.',
-    [
+    description='Add a new logging handler configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='Unique handler identifier.',
@@ -925,8 +918,8 @@ LOGGING_REMOVE_HANDLER_CLI_CMD_DATA = create_default_cli_command_data(
     'remove-handler',
     'logging',
     'Remove Handler',
-    'Remove a logging handler by ID.',
-    [
+    description='Remove a logging handler by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The handler identifier to remove.',
@@ -939,8 +932,8 @@ LOGGING_ADD_LOGGER_CLI_CMD_DATA = create_default_cli_command_data(
     'add-logger',
     'logging',
     'Add Logger',
-    'Add a new logger configuration.',
-    [
+    description='Add a new logger configuration.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='Unique logger identifier.',
@@ -975,8 +968,8 @@ LOGGING_REMOVE_LOGGER_CLI_CMD_DATA = create_default_cli_command_data(
     'remove-logger',
     'logging',
     'Remove Logger',
-    'Remove a logger by ID.',
-    [
+    description='Remove a logger by ID.',
+    arguments=[
         create_default_cli_argument(
             ['id'],
             description='The logger identifier to remove.',
@@ -989,7 +982,7 @@ LOGGING_LIST_CLI_CMD_DATA = create_default_cli_command_data(
     'list',
     'logging',
     'List Logging Configs',
-    'List all logging configurations (formatters, handlers, loggers).',
+    description='List all logging configurations (formatters, handlers, loggers).',
 )
 
 # *** constants (groups)

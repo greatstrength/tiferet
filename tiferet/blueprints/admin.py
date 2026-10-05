@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict
 
 # ** app
 from .. import a
