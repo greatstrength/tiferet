@@ -6,13 +6,13 @@
 import pytest
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain import ATTRIBUTE_NOT_SETTABLE_ID, AppServiceDependency
 from tiferet.mappers.app import (
     AppSessionAggregate,
     AppSessionConfigObject,
     AppServiceDependencyConfigObject,
 )
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 # *** constants
 
@@ -36,29 +36,42 @@ def SVC_TUPLE(s):
         tuple(sorted((s.parameters or {}).items())),
     )
 
-# ** constant: session_aggregate_sample_data
-SESSION_AGGREGATE_SAMPLE_DATA = {
-    'id': 'test.session',
-    'name': 'Test Session',
-    'description': 'The test app session.',
-    'flags': ['test_feature', 'test_data'],
+# ** constant: aggregate_sample_data
+AGGREGATE_SAMPLE_DATA = {
+    'id': 'test.interface',
+    'name': 'Test Interface',
+    'description': 'The test app interface.',
+    'flags': [
+        'test_feature',
+        'test_data',
+    ],
     'logger_id': 'default',
     'services': [
         {
-            'service_id': 'test_service',
+            'service_id': 'test_attribute',
             'module_path': 'test.module.path',
-            'class_name': 'TestServiceClass',
-            'parameters': {'test_param': 'test_value'},
+            'class_name': 'TestClassName',
+            'parameters': {
+                'test_param': 'test_value',
+                'debug': '1',
+            },
+        },
+        {
+            'service_id': 'logging',
+            'module_path': 'tiferet.utils.logging',
+            'class_name': 'LoggingService',
+            'parameters': {},
         },
     ],
     'constants': {
-        'SESSION_KEY': 'session_value',
+        'APP_NAME': 'Tiferet Test',
+        'VERSION': '2.0.0a1',
         'DEBUG': '1',
     },
 }
 
-# ** constant: session_equality_fields
-SESSION_EQUALITY_FIELDS = [
+# ** constant: equality_fields
+EQUALITY_FIELDS = [
     'id',
     'name',
     'description',
@@ -68,49 +81,110 @@ SESSION_EQUALITY_FIELDS = [
     'services',
 ]
 
-# ** constant: session_field_normalizers
-SESSION_FIELD_NORMALIZERS = {
+# ** constant: field_normalizers
+FIELD_NORMALIZERS = {
     'flags': lambda v: sorted(v or []),
     'constants': lambda v: dict(sorted((k, v) for k, v in (v or {}).items())),
     'services': lambda svcs: tuple(sorted(SVC_TUPLE(s) for s in (svcs or []))),
 }
 
-# ** constant: dependency_sample_data
-dependency_sample_data = {
-    'module_path': 'example.service.module',
-    'class_name': 'ExampleServiceImpl',
-    'parameters': {'timeout': '30', 'retries': '3', 'ssl': '1'},
+# ** constant: test_app_session_config_object_sample_data
+TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
+    'id': 'test.interface',
+    'name': 'Test Interface',
+    'description': 'The test app interface.',
+    'flags': [
+        'test_feature',
+        'test_data',
+    ],
+    'logger_id': 'default',
+    'services': {
+        'test_attribute': {
+            'module_path': 'test.module.path',
+            'class_name': 'TestClassName',
+            'parameters': {
+                'test_param': 'test_value',
+                'debug': '1',
+            },
+        },
+        'logging': {
+            'module_path': 'tiferet.utils.logging',
+            'class_name': 'LoggingService',
+            'parameters': {},
+        },
+    },
+    'constants': {
+        'APP_NAME': 'Tiferet Test',
+        'VERSION': '2.0.0a1',
+        'DEBUG': '1',
+    },
 }
 
 # *** testers
 
 # ** tester: test_app_session_aggregate
-class TestAppSessionAggregate(AggregateTestBase):
+@use_tester(
+    type='aggregate',
+    target_cls=AppSessionAggregate,
+    sample_data=AGGREGATE_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+    field_normalizers=FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Interface', None),
+        ('description', 'New description text', None),
+        ('logger_id', 'custom.logger.id', None),
+        ('flags', ['flag1', 'flag2'], None),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
+    ],
+)
+class TestAppSessionAggregate:
     '''
     Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
+
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        # Assert construction against the declared sample.
+        test_ctx.assert_new()
+
+    # * test: set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''
+        Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        # Assert each declared set_attribute case.
+        test_ctx.assert_set_attribute()
 
     # * attribute: aggregate_cls
     aggregate_cls = AppSessionAggregate
 
     # * attribute: sample_data
-    sample_data = SESSION_AGGREGATE_SAMPLE_DATA
+    sample_data = AGGREGATE_SAMPLE_DATA
 
     # * attribute: equality_fields
-    equality_fields = SESSION_EQUALITY_FIELDS
+    equality_fields = EQUALITY_FIELDS
 
     # * attribute: field_normalizers
-    field_normalizers = SESSION_FIELD_NORMALIZERS
+    field_normalizers = FIELD_NORMALIZERS
 
     # * attribute: set_attribute_params
     set_attribute_params = [
-        # valid scalars
-        ('name',         'Updated Session',    None),
-        ('description',  'New description',    None),
-        ('logger_id',    'custom.logger',      None),
-        ('flags',        ['flag1', 'flag2'],   None),
-        # invalid
-        ('invalid_attr', 'value',              ATTRIBUTE_NOT_SETTABLE_ID),
+        ('name', 'Updated Interface', None),
+        ('description', 'New description text', None),
+        ('logger_id', 'custom.logger.id', None),
+        ('flags', ['flag1', 'flag2'], None),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
     # * fixture: aggr_factory
@@ -137,144 +211,273 @@ class TestAppSessionAggregate(AggregateTestBase):
 
         return factory
 
-    # * test: add_service
-    def test_add_service(self, aggregate):
+    # * test: set_constants_clear_when_none
+    def test_set_constants_clear_when_none(self, aggr_factory):
         '''
-        Test that add_service appends a new service dependency.
+        Test that set_constants clears constants when called with None.
+
+        :param aggr_factory: Factory for a seeded AppSessionAggregate.
+        :type aggr_factory: callable
         '''
 
-        # Verify the service does not exist yet.
-        assert aggregate.get_service('new_svc') is None
-        initial_count = len(aggregate.services)
+        # Seed constants, then clear them.
+        aggregate = aggr_factory(constants={'a': '1', 'b': '2'})
+        aggregate.set_constants(None)
 
-        # Add a new service.
+        # Verify the constants were cleared.
+        assert aggregate.constants == {}
+
+    # * test: set_constants_merge_and_override
+    def test_set_constants_merge_and_override(self, aggr_factory):
+        '''
+        Test that set_constants merges new keys and overrides existing ones.
+
+        :param aggr_factory: Factory for a seeded AppSessionAggregate.
+        :type aggr_factory: callable
+        '''
+
+        # Seed constants, then merge an override and a new key.
+        aggregate = aggr_factory(constants={'keep': 'orig', 'old': 'v1'})
+        aggregate.set_constants({'old': 'v2', 'new': '42'})
+
+        # Verify the merge kept, overrode, and added keys.
+        assert aggregate.constants == {
+            'keep': 'orig',
+            'old': 'v2',
+            'new': '42',
+        }
+
+    # * test: set_constants_remove_none_values
+    def test_set_constants_remove_none_values(self, aggr_factory):
+        '''
+        Test that set_constants removes keys whose merged value is None.
+
+        :param aggr_factory: Factory for a seeded AppSessionAggregate.
+        :type aggr_factory: callable
+        '''
+
+        # Seed constants, then drop one key and add another.
+        aggregate = aggr_factory(constants={'keep': '1', 'drop': 'x'})
+        aggregate.set_constants({'drop': None, 'add': 'yes'})
+
+        # Verify the None value was removed and the new key was added.
+        assert aggregate.constants == {
+            'keep': '1',
+            'add': 'yes',
+        }
+
+    # * test: remove_service_various_positions_and_missing
+    @pytest.mark.parametrize(
+        'initial_ids, remove_id, expected_removed, expected_remaining',
+        [
+            (['first', 'middle', 'last'], 'middle', 'middle', ['first', 'last']),
+            (['first', 'middle', 'last'], 'first', 'first', ['middle', 'last']),
+            (['first', 'middle', 'last'], 'last', 'last', ['first', 'middle']),
+            (['a', 'b'], 'c', None, ['a', 'b']),
+            ([], 'x', None, []),
+        ],
+    )
+    def test_remove_service_various_positions_and_missing(
+            self,
+            aggr_factory,
+            initial_ids,
+            remove_id,
+            expected_removed,
+            expected_remaining,
+        ):
+        '''
+        Test remove_service at each list position and when the id is missing.
+
+        :param aggr_factory: Factory for a seeded AppSessionAggregate.
+        :type aggr_factory: callable
+        :param initial_ids: Service ids to seed, in order.
+        :type initial_ids: list
+        :param remove_id: The service id to remove.
+        :type remove_id: str
+        :param expected_removed: The removed service id, or None.
+        :type expected_removed: str | None
+        :param expected_remaining: Remaining service ids, in order.
+        :type expected_remaining: list
+        '''
+
+        # Build each seeded service with keyword arguments.
+        services = [
+            AppServiceDependency(
+                service_id=aid,
+                module_path=f'mod.{aid}',
+                class_name=f'{aid.capitalize()}Class',
+                parameters={'p': aid},
+            )
+            for aid in initial_ids
+        ]
+        aggregate = aggr_factory(services=services)
+
+        # Remove the named service.
+        removed = aggregate.remove_service(remove_id)
+
+        # A missing id returns None; a hit returns that service id.
+        if expected_removed is None:
+            assert removed is None
+        else:
+            assert removed.service_id == expected_removed
+
+        # Remaining service ids stay in order.
+        assert [service.service_id for service in aggregate.services] == expected_remaining
+
+    # * test: add_service_appends_with_service_id_first
+    def test_add_service_appends_with_service_id_first(self, test_ctx):
+        '''
+        Test that add_service appends a service when service_id is positional.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        # The added service is absent on a fresh aggregate.
+        aggregate = test_ctx.make_target()
+        assert aggregate.get_service('added_svc') is None
+
+        # Append with the first three arguments positional.
         aggregate.add_service(
-            service_id='new_svc',
-            module_path='new.mod.path',
-            class_name='NewClass',
-            parameters={'p': '1'},
+            'added_svc',
+            'pkg.added.module',
+            'AddedService',
+            parameters={'p1': 'v1'},
         )
 
-        # Verify the service was added with the correct values.
-        svc = aggregate.get_service('new_svc')
-        assert svc is not None
-        assert svc.module_path == 'new.mod.path'
-        assert svc.class_name == 'NewClass'
-        assert svc.parameters == {'p': '1'}
-        assert len(aggregate.services) == initial_count + 1
+        # Verify the appended service fields.
+        added = aggregate.get_service('added_svc')
+        assert added.module_path == 'pkg.added.module'
+        assert added.class_name == 'AddedService'
+        assert added.parameters == {'p1': 'v1'}
 
-    # * test: remove_service
-    def test_remove_service(self, aggregate):
+    # * test: add_service_defaults_parameters_to_empty
+    def test_add_service_defaults_parameters_to_empty(self, test_ctx):
         '''
-        Test that remove_service removes an existing service and returns it.
-        '''
+        Test that add_service defaults omitted parameters to an empty dict.
 
-        # Precondition: service exists.
-        assert aggregate.get_service('test_service') is not None
-        initial_count = len(aggregate.services)
-
-        # Remove the service.
-        removed = aggregate.remove_service('test_service')
-
-        # Verify it was removed and returned.
-        assert removed is not None
-        assert removed.service_id == 'test_service'
-        assert aggregate.get_service('test_service') is None
-        assert len(aggregate.services) == initial_count - 1
-
-    # * test: remove_service_missing_is_idempotent
-    def test_remove_service_missing_is_idempotent(self, aggregate):
-        '''
-        Test that remove_service returns None and leaves the list unchanged for a missing service.
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
-        # Precondition: service does not exist.
-        initial_count = len(aggregate.services)
+        # Add a service without a parameters argument.
+        aggregate = test_ctx.make_target()
+        aggregate.add_service(
+            service_id='no_params_svc',
+            module_path='pkg.noparams',
+            class_name='NoParamsService',
+        )
 
-        # Remove a non-existent service.
-        removed = aggregate.remove_service('nonexistent')
+        # Verify parameters default to empty.
+        assert aggregate.get_service('no_params_svc').parameters == {}
 
-        # Verify nothing changed.
-        assert removed is None
-        assert len(aggregate.services) == initial_count
-
-    # * test: set_service_update_existing
-    def test_set_service_update_existing(self, aggregate):
+    # * test: set_service_update_existing_merge_params
+    def test_set_service_update_existing_merge_params(self, test_ctx):
         '''
-        Test that set_service updates an existing service and merges parameters.
+        Test that set_service merges parameters and drops None values.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
-        # Update the existing test_service.
+        # Update the seeded test_attribute service.
+        aggregate = test_ctx.make_target()
         aggregate.set_service(
-            service_id='test_service',
-            module_path='updated.mod',
-            class_name='UpdatedClass',
-            parameters={'test_param': None, 'new_param': 'new_val'},
+            service_id='test_attribute',
+            module_path='new.mod.path',
+            class_name='NewImplementation',
+            parameters={
+                'old': None,
+                'keep': 'yes',
+                'extra': '123',
+                'debug': '0',
+            },
         )
 
-        # Verify the service was updated.
-        svc = aggregate.get_service('test_service')
-        assert svc.module_path == 'updated.mod'
-        assert svc.class_name == 'UpdatedClass'
-        # test_param set to None should be removed; new_param added.
-        assert svc.parameters == {'new_param': 'new_val'}
+        # Verify the merge kept, dropped, overrode, and added keys.
+        updated = aggregate.get_service('test_attribute')
+        assert updated.parameters == {
+            'test_param': 'test_value',
+            'keep': 'yes',
+            'extra': '123',
+            'debug': '0',
+        }
 
     # * test: set_service_create_new
-    def test_set_service_create_new(self, aggregate):
+    def test_set_service_create_new(self, test_ctx):
         '''
         Test that set_service creates a new service when none exists.
         '''
 
         # Verify the service does not exist.
+        aggregate = test_ctx.make_target()
         assert aggregate.get_service('brand_new') is None
 
         # Create via set_service.
         aggregate.set_service(
             service_id='brand_new',
-            module_path='brand.new.mod',
-            class_name='BrandNewClass',
-            parameters={'x': '42'},
+            module_path='pkg.sub.module',
+            class_name='FreshService',
+            parameters={'p1': 'v1', 'p2': '42'},
         )
 
         # Verify the new service.
-        svc = aggregate.get_service('brand_new')
-        assert svc is not None
-        assert svc.module_path == 'brand.new.mod'
-        assert svc.class_name == 'BrandNewClass'
-        assert svc.parameters == {'x': '42'}
-
-    # * test: set_constants_clear
-    def test_set_constants_clear(self, aggregate):
-        '''
-        Test that set_constants clears all constants when called with None.
-        '''
-
-        # Clear constants.
-        aggregate.set_constants(None)
-
-        # Verify they are cleared.
-        assert aggregate.constants == {}
-
-    # * test: set_constants_merge
-    def test_set_constants_merge(self, aggregate):
-        '''
-        Test that set_constants merges and removes None-valued keys.
-        '''
-
-        # Merge constants.
-        aggregate.set_constants({'DEBUG': None, 'NEW_KEY': 'new_val'})
-
-        # DEBUG was set to None (removed); NEW_KEY added; SESSION_KEY preserved.
-        assert 'DEBUG' not in aggregate.constants
-        assert aggregate.constants['NEW_KEY'] == 'new_val'
-        assert aggregate.constants['SESSION_KEY'] == 'session_value'
+        created = aggregate.get_service('brand_new')
+        assert created.module_path == 'pkg.sub.module'
+        assert created.class_name == 'FreshService'
+        assert created.parameters == {'p1': 'v1', 'p2': '42'}
 
 
 # ** tester: test_app_session_config_object
-class TestAppSessionConfigObject(TransferObjectTestBase):
+@use_tester(
+    type='transfer_object',
+    target_cls=AppSessionConfigObject,
+    aggregate_cls=AppSessionAggregate,
+    sample_data=TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=AGGREGATE_SAMPLE_DATA,
+    equality_fields=EQUALITY_FIELDS,
+    field_normalizers=FIELD_NORMALIZERS,
+)
+class TestAppSessionConfigObject:
     '''
     Tests for AppSessionConfigObject mapping, round-trip, and child mapper.
     '''
+
+    # * test: map
+    def test_map(self, test_ctx):
+        '''
+        Verify transfer construction and mapping to the declared aggregate.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
+        '''
+
+        # Assert mapping against the declared aggregate sample.
+        test_ctx.assert_map()
+
+    # * test: from_model
+    def test_from_model(self, test_ctx):
+        '''
+        Verify aggregate conversion to the declared transfer-object type.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
+        '''
+
+        # Assert from_model yields the transfer-object type.
+        test_ctx.assert_from_model()
+
+    # * test: round_trip
+    def test_round_trip(self, test_ctx):
+        '''
+        Verify aggregate conversion through the transfer object and back.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
+        '''
+
+        # Assert the round-trip matches the aggregate sample.
+        test_ctx.assert_round_trip()
 
     # * attribute: transfer_cls
     transfer_cls = AppSessionConfigObject
@@ -283,72 +486,48 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
     aggregate_cls = AppSessionAggregate
 
     # * attribute: sample_data
-    sample_data = {
-        'id': 'test.session',
-        'name': 'Test Session',
-        'description': 'The test app session.',
-        'flags': ['test_feature', 'test_data'],
-        'logger_id': 'default',
-        'services': {
-            'test_service': {
-                'module_path': 'test.module.path',
-                'class_name': 'TestServiceClass',
-                'parameters': {'test_param': 'test_value'},
-            },
-        },
-        'constants': {
-            'SESSION_KEY': 'session_value',
-            'DEBUG': '1',
+    sample_data = TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA
+
+    # * attribute: aggregate_sample_data
+    aggregate_sample_data = AGGREGATE_SAMPLE_DATA
+
+    # * attribute: equality_fields
+    equality_fields = EQUALITY_FIELDS
+
+    # * attribute: field_normalizers
+    field_normalizers = FIELD_NORMALIZERS
+
+    # * attribute: dependency_sample_data
+    dependency_sample_data = {
+        'module_path': 'example.service.module',
+        'class_name': 'ExampleServiceImpl',
+        'parameters': {
+            'timeout': '30',
+            'retries': '3',
+            'ssl': '1',
         },
     }
 
-    # * attribute: aggregate_sample_data
-    aggregate_sample_data = SESSION_AGGREGATE_SAMPLE_DATA
-
-    # * attribute: equality_fields
-    equality_fields = SESSION_EQUALITY_FIELDS
-
-    # * attribute: field_normalizers
-    field_normalizers = SESSION_FIELD_NORMALIZERS
-
-    # * test: child_mapper_map_with_service_id
-    def test_child_mapper_map_with_service_id(self):
+    # * test: app_service_dependency_yaml_round_trip_via_parent
+    def test_app_service_dependency_yaml_round_trip_via_parent(self, test_ctx):
         '''
-        Test AppServiceDependencyConfigObject.map(service_id=...) injects service_id.
+        Test that parent round-trip preserves each service field.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
         '''
 
-        # Create a child config object and map it with an injected service_id.
-        config_obj = AppServiceDependencyConfigObject.model_validate({
-            'module_path': 'child.module',
-            'class_name': 'ChildClass',
-            'parameters': {'key': 'val'},
-        })
-        dep = config_obj.map(service_id='injected_id')
+        # Round-trip the aggregate through the parent config object.
+        aggregate = test_ctx.make_target()
+        round_tripped = AppSessionConfigObject.from_model(aggregate).map()
 
-        # Verify the injected service_id and other fields.
-        assert isinstance(dep, AppServiceDependency)
-        assert dep.service_id == 'injected_id'
-        assert dep.module_path == 'child.module'
-        assert dep.class_name == 'ChildClass'
-        assert dep.parameters == {'key': 'val'}
-
-    # * test: round_trip_preserves_services
-    def test_round_trip_preserves_services(self, aggregate):
-        '''
-        Test that services are preserved through the AppSessionConfigObject round-trip.
-        '''
-
-        # Convert aggregate to config object and back.
-        config_top = AppSessionConfigObject.from_model(aggregate)
-        round_tripped = config_top.map()
-
-        # Verify services are preserved.
-        self.assert_nested_list_matches(
-            round_tripped.services,
-            aggregate.services,
-            key_field='service_id',
-            compare_fields=['module_path', 'class_name', 'parameters'],
-        )
+        # Lengths match, and each zipped pair keeps its service fields.
+        assert len(round_tripped.services) == len(aggregate.services)
+        for original, mapped in zip(aggregate.services, round_tripped.services):
+            assert mapped.service_id == original.service_id
+            assert mapped.module_path == original.module_path
+            assert mapped.class_name == original.class_name
+            assert mapped.parameters == original.parameters
 
     # * test: app_service_dependency_yaml_map_basic
     def test_app_service_dependency_yaml_map_basic(self):
@@ -358,7 +537,7 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
 
         # Create a YAML object and map it.
         yaml_obj = AppServiceDependencyConfigObject.model_validate(
-            dependency_sample_data,
+            self.dependency_sample_data,
         )
         dep = yaml_obj.map(service_id='injected_svc')
 
