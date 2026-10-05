@@ -27,6 +27,19 @@ INVALID_FILE_MODE_ID = 'INVALID_FILE_MODE'
 # ** constant: invalid_encoding_id
 INVALID_ENCODING_ID = 'INVALID_ENCODING'
 
+# ** constant: valid_file_modes
+VALID_FILE_MODES = (
+    'r', 'rb', 'w', 'wb', 'a', 'ab', 'x', 'xb',
+    'r+', 'rb+', 'w+', 'wb+', 'a+', 'ab+',
+)
+
+# ** constant: valid_encodings
+VALID_ENCODINGS = (
+    'utf-8',
+    'ascii',
+    'latin-1',
+)
+
 # *** utils
 
 # ** util: file_loader
@@ -110,6 +123,7 @@ class FileLoader(FileService):
                 ServiceError.raise_for(
                     FileLoader,
                     FILE_NOT_FOUND_ID,
+                    f'File not found: {path}.',
                     path=str(path),
                 )
 
@@ -119,12 +133,14 @@ class FileLoader(FileService):
                 ServiceError.raise_for(
                     FileLoader,
                     FILE_NOT_FOUND_ID,
+                    f'File not found: {path}.',
                     path=str(path),
                 )
 
     # * method: verify_extension (static)
     @staticmethod
     def verify_extension(loader: 'FileLoader',
+            format_name: str,
             allowed_extensions: set,
             invalid_error_id: str,
             invalid_message: str,
@@ -136,6 +152,8 @@ class FileLoader(FileService):
 
         :param loader: The file loader instance to verify.
         :type loader: FileLoader
+        :param format_name: The file format name used in the not-found message.
+        :type format_name: str
         :param allowed_extensions: The set of lowercase extensions the file may have.
         :type allowed_extensions: set
         :param invalid_error_id: The error id raised when no candidate path has an allowed extension.
@@ -157,17 +175,18 @@ class FileLoader(FileService):
                 path = default_path
             else:
                 ServiceError.raise_for(
-                    type(loader),
+                    loader,
                     invalid_error_id,
-                    message=invalid_message,
+                    invalid_message,
                     path=str(loader.path),
                 )
 
         # Verify the resolved path exists.
         if not path.exists():
             ServiceError.raise_for(
-                type(loader),
+                loader,
                 not_found_error_id,
+                f'The specified {format_name} file could not be found at {path}.',
                 path=str(path),
             )
 
@@ -176,21 +195,16 @@ class FileLoader(FileService):
         '''
         Validate the file mode string.
 
-        :raises TiferetError: If the mode is not in the set of valid modes.
+        :raises ServiceError: If the mode is not in the set of valid modes.
         '''
 
-        # Define the set of valid file modes.
-        valid = {
-            'r', 'rb', 'w', 'wb', 'a', 'ab',
-            'x', 'xb', 'r+', 'rb+', 'w+', 'wb+', 'a+', 'ab+',
-        }
-
         # Raise an error if the mode is not valid.
-        if self.mode not in valid:
+        if self.mode not in VALID_FILE_MODES:
             ServiceError.raise_for(
                 self,
                 INVALID_FILE_MODE_ID,
-                mode=self.mode,
+                f'Invalid file mode: {self.mode}. Valid modes include {", ".join(VALID_FILE_MODES)}.',
+                modes=list(VALID_FILE_MODES),
             )
 
     # * method: verify_encoding
@@ -198,15 +212,16 @@ class FileLoader(FileService):
         '''
         Ensure encoding is provided when required for text modes.
 
-        :raises TiferetError: If encoding is None for a text (non-binary) mode.
+        :raises ServiceError: If encoding is missing or unsupported for a text mode.
         '''
 
-        # Raise an error if encoding is missing for a text mode.
-        if 'b' not in self.mode and self.encoding is None:
+        # Raise an error if encoding is missing or unsupported for a text mode.
+        if 'b' not in self.mode and self.encoding not in VALID_ENCODINGS:
             ServiceError.raise_for(
                 self,
                 INVALID_ENCODING_ID,
-                encoding=None,
+                f'Invalid encoding: {self.encoding}. Supported encodings are: {", ".join(VALID_ENCODINGS)}.',
+                encoding=self.encoding,
             )
 
     # * method: open_file
@@ -216,7 +231,7 @@ class FileLoader(FileService):
 
         :return: The opened file stream.
         :rtype: IO[Any]
-        :raises TiferetError: If the file is already open, the path is invalid,
+        :raises ServiceError: If the file is already open, the path is invalid,
             the mode is invalid, or encoding is missing for text modes.
         '''
 
@@ -225,6 +240,7 @@ class FileLoader(FileService):
             ServiceError.raise_for(
                 self,
                 FILE_ALREADY_OPEN_ID,
+                f'File is already open: {self.path}.',
                 path=str(self.path),
             )
 

@@ -73,9 +73,10 @@ class TomlLoader(FileLoader):
         # Delegate to the shared file-extension verification helper.
         FileLoader.verify_extension(
             loader,
+            format_name='TOML',
             allowed_extensions={'.toml'},
             invalid_error_id=INVALID_TOML_FILE_ID,
-            invalid_message='File must have .toml extension',
+            invalid_message='File must have .toml extension.',
             not_found_error_id=TOML_FILE_NOT_FOUND_ID,
             default_path=default_path,
         )
@@ -122,6 +123,7 @@ class TomlLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 TOML_FILE_LOAD_ERROR_ID,
+                f'Failed to parse TOML file: {e}. Path: {self.path}.',
                 error=str(e),
                 path=str(self.path),
                 cause=e,

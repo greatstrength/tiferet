@@ -12,6 +12,7 @@ from tiferet.utils.file import (
     FILE_NOT_FOUND_ID,
     INVALID_ENCODING_ID,
     INVALID_FILE_MODE_ID,
+    VALID_FILE_MODES,
 )
 from tiferet.interfaces.core import ServiceError
 
@@ -149,7 +150,11 @@ def test_file_loader_invalid_mode(temp_text_file):
 
     # Verify the error code and kwargs.
     assert exc_info.value.error_code == INVALID_FILE_MODE_ID
-    assert exc_info.value.kwargs.get('mode') == 'z'
+    assert exc_info.value.kwargs.get('modes') == list(VALID_FILE_MODES)
+    assert exc_info.value.message == (
+        'Invalid file mode: z. Valid modes include '
+        + ', '.join(VALID_FILE_MODES) + '.'
+    )
 
 # ** test: file_loader_missing_encoding_text_mode
 def test_file_loader_missing_encoding_text_mode(temp_text_file):
@@ -335,6 +340,7 @@ def test_file_loader_verify_extension_success(tmp_path):
     loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
     FileLoader.verify_extension(
         loader,
+        format_name='TEST',
         allowed_extensions={'.ext'},
         invalid_error_id='INVALID_TEST_FILE',
         invalid_message='File must have .ext extension',
@@ -360,6 +366,7 @@ def test_file_loader_verify_extension_invalid_extension(tmp_path):
     with pytest.raises(ServiceError) as exc_info:
         FileLoader.verify_extension(
             loader,
+            format_name='TEST',
             allowed_extensions={'.ext'},
             invalid_error_id='INVALID_TEST_FILE',
             invalid_message='File must have .ext extension',
@@ -390,6 +397,7 @@ def test_file_loader_verify_extension_fallback(tmp_path):
     # Verify succeeds using the fallback path.
     FileLoader.verify_extension(
         loader,
+        format_name='TEST',
         allowed_extensions={'.ext'},
         invalid_error_id='INVALID_TEST_FILE',
         invalid_message='File must have .ext extension',
@@ -415,6 +423,7 @@ def test_file_loader_verify_extension_not_found(tmp_path):
     with pytest.raises(ServiceError) as exc_info:
         FileLoader.verify_extension(
             loader,
+            format_name='TEST',
             allowed_extensions={'.ext'},
             invalid_error_id='INVALID_TEST_FILE',
             invalid_message='File must have .ext extension',
