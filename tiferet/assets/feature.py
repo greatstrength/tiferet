@@ -150,7 +150,7 @@ APP_ADD_DATA = create_default_feature_data(
     'app',
     'add',
     [{'service_id': 'add_app_session_evt', 'name': 'Add app session'}],
-    'Add a new application session configuration.',
+    description='Add a new application session configuration.',
     params_schema=create_params_schema(
         id='str',
         name='str',
@@ -168,7 +168,7 @@ APP_GET_DATA = create_default_feature_data(
     'app',
     'get',
     [{'service_id': 'get_app_session_evt', 'name': 'Get app session'}],
-    'Retrieve an app session by ID.',
+    description='Retrieve an app session by ID.',
     params_schema=create_params_schema(
         interface_id='str',
     ),
@@ -180,7 +180,7 @@ APP_LIST_DATA = create_default_feature_data(
     'app',
     'list',
     [{'service_id': 'list_app_sessions_evt', 'name': 'List app sessions'}],
-    'List all configured app sessions.',
+    description='List all configured app sessions.',
 )
 
 # ** constant: app_update_data
@@ -189,7 +189,7 @@ APP_UPDATE_DATA = create_default_feature_data(
     'app',
     'update',
     [{'service_id': 'update_app_session_evt', 'name': 'Update app session'}],
-    'Update a scalar attribute on an app session.',
+    description='Update a scalar attribute on an app session.',
     params_schema=create_params_schema(
         id='str',
         attribute='str',
@@ -202,7 +202,7 @@ APP_SET_CONSTANTS_DATA = create_default_feature_data(
     'app',
     'set_constants',
     [{'service_id': 'set_app_constants_evt', 'name': 'Set app constants'}],
-    'Set or clear constants on an app session.',
+    description='Set or clear constants on an app session.',
     params_schema=create_params_schema(
         id='str',
         constants={'type': 'dict', 'required': False},
@@ -215,7 +215,7 @@ APP_SET_SERVICE_DATA = create_default_feature_data(
     'app',
     'set_service',
     [{'service_id': 'set_app_service_dependency_evt', 'name': 'Set app service dependency'}],
-    'Set or update a service dependency on an app session.',
+    description='Set or update a service dependency on an app session.',
     params_schema=create_params_schema(
         id='str',
         service_id='str',
@@ -231,7 +231,7 @@ APP_REMOVE_SERVICE_DATA = create_default_feature_data(
     'app',
     'remove_service',
     [{'service_id': 'remove_app_service_dependency_evt', 'name': 'Remove app service dependency'}],
-    'Remove a service dependency from an app session.',
+    description='Remove a service dependency from an app session.',
     params_schema=create_params_schema(
         id='str',
         service_id='str',
@@ -244,7 +244,7 @@ APP_REMOVE_DATA = create_default_feature_data(
     'app',
     'remove',
     [{'service_id': 'remove_app_session_evt', 'name': 'Remove app session'}],
-    'Remove an app session by ID.',
+    description='Remove an app session by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -256,7 +256,7 @@ CLI_LIST_COMMANDS_DATA = create_default_feature_data(
     'cli',
     'list_commands',
     [{'service_id': 'list_commands_evt', 'name': 'List CLI commands'}],
-    'List all CLI command definitions.',
+    description='List all CLI command definitions.',
 )
 
 # ** constant: cli_add_command_data
@@ -265,7 +265,7 @@ CLI_ADD_COMMAND_DATA = create_default_feature_data(
     'cli',
     'add_command',
     [{'service_id': 'add_cli_command_evt', 'name': 'Add CLI command'}],
-    'Add a new CLI command definition.',
+    description='Add a new CLI command definition.',
     params_schema=create_params_schema(
         id='str',
         name='str',
@@ -282,7 +282,7 @@ CLI_ADD_ARGUMENT_DATA = create_default_feature_data(
     'cli',
     'add_argument',
     [{'service_id': 'add_cli_argument_evt', 'name': 'Add CLI argument'}],
-    'Add an argument to an existing CLI command.',
+    description='Add an argument to an existing CLI command.',
     params_schema=create_params_schema(
         command_id='str',
         description={'type': 'str', 'required': False},
@@ -295,7 +295,7 @@ ERROR_LIST_DATA = create_default_feature_data(
     'error',
     'list',
     [{'service_id': 'list_errors_evt', 'name': 'List errors'}],
-    'List all error definitions.',
+    description='List all error definitions.',
 )
 
 # ** constant: error_add_data
@@ -304,7 +304,7 @@ ERROR_ADD_DATA = create_default_feature_data(
     'error',
     'add',
     [{'service_id': 'add_error_evt', 'name': 'Add error'}],
-    'Add a new error definition.',
+    description='Add a new error definition.',
     params_schema=create_params_schema(
         id='str',
         name='str',
@@ -320,7 +320,7 @@ ERROR_GET_DATA = create_default_feature_data(
     'error',
     'get',
     [{'service_id': 'get_error_evt', 'name': 'Get error'}],
-    'Retrieve an error by ID.',
+    description='Retrieve an error by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -332,7 +332,7 @@ ERROR_RENAME_DATA = create_default_feature_data(
     'error',
     'rename',
     [{'service_id': 'rename_error_evt', 'name': 'Rename error'}],
-    'Rename an existing error.',
+    description='Rename an existing error.',
     params_schema=create_params_schema(
         id='str',
         new_name='str',
@@ -345,7 +345,7 @@ ERROR_SET_MESSAGE_DATA = create_default_feature_data(
     'error',
     'set_message',
     [{'service_id': 'set_error_message_evt', 'name': 'Set error message'}],
-    'Set or update an error message for a language.',
+    description='Set or update an error message for a language.',
     params_schema=create_params_schema(
         id='str',
         message='str',
@@ -359,7 +359,7 @@ ERROR_REMOVE_MESSAGE_DATA = create_default_feature_data(
     'error',
     'remove_message',
     [{'service_id': 'remove_error_message_evt', 'name': 'Remove error message'}],
-    'Remove an error message by language.',
+    description='Remove an error message by language.',
     params_schema=create_params_schema(
         id='str',
         lang={'type': 'str', 'required': False, 'default': 'en_US'},
@@ -372,7 +372,7 @@ ERROR_REMOVE_DATA = create_default_feature_data(
     'error',
     'remove',
     [{'service_id': 'remove_error_evt', 'name': 'Remove error'}],
-    'Remove an error definition by ID.',
+    description='Remove an error definition by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -384,7 +384,7 @@ FEATURE_LIST_DATA = create_default_feature_data(
     'feature',
     'list',
     [{'service_id': 'list_features_evt', 'name': 'List features'}],
-    'List all features, optionally filtered by group.',
+    description='List all features, optionally filtered by group.',
     params_schema=create_params_schema(
         group_id={'type': 'str', 'required': False},
     ),
@@ -396,7 +396,7 @@ FEATURE_ADD_DATA = create_default_feature_data(
     'feature',
     'add',
     [{'service_id': 'add_feature_evt', 'name': 'Add feature'}],
-    'Add a new feature configuration.',
+    description='Add a new feature configuration.',
     params_schema=create_params_schema(
         name='str',
         group_id='str',
@@ -414,7 +414,7 @@ FEATURE_GET_DATA = create_default_feature_data(
     'feature',
     'get',
     [{'service_id': 'get_feature_evt', 'name': 'Get feature'}],
-    'Retrieve a feature by ID.',
+    description='Retrieve a feature by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -426,7 +426,7 @@ FEATURE_UPDATE_DATA = create_default_feature_data(
     'feature',
     'update',
     [{'service_id': 'update_feature_evt', 'name': 'Update feature'}],
-    'Update a feature attribute (name or description).',
+    description='Update a feature attribute (name or description).',
     params_schema=create_params_schema(
         id='str',
         attribute='str',
@@ -439,7 +439,7 @@ FEATURE_ADD_STEP_DATA = create_default_feature_data(
     'feature',
     'add_step',
     [{'service_id': 'add_feature_step_evt', 'name': 'Add feature step'}],
-    'Add a step to an existing feature workflow.',
+    description='Add a step to an existing feature workflow.',
     params_schema=create_params_schema(
         id='str',
         name='str',
@@ -457,7 +457,7 @@ FEATURE_UPDATE_STEP_DATA = create_default_feature_data(
     'feature',
     'update_step',
     [{'service_id': 'update_feature_step_evt', 'name': 'Update feature step'}],
-    'Update an attribute on a feature step.',
+    description='Update an attribute on a feature step.',
     params_schema=create_params_schema(
         id='str',
         position='int',
@@ -471,7 +471,7 @@ FEATURE_REMOVE_STEP_DATA = create_default_feature_data(
     'feature',
     'remove_step',
     [{'service_id': 'remove_feature_step_evt', 'name': 'Remove feature step'}],
-    'Remove a step from a feature by position.',
+    description='Remove a step from a feature by position.',
     params_schema=create_params_schema(
         id='str',
         position='int',
@@ -484,7 +484,7 @@ FEATURE_REORDER_STEP_DATA = create_default_feature_data(
     'feature',
     'reorder_step',
     [{'service_id': 'reorder_feature_step_evt', 'name': 'Reorder feature step'}],
-    'Move a feature step from one position to another.',
+    description='Move a feature step from one position to another.',
     params_schema=create_params_schema(
         id='str',
         start_position='int',
@@ -498,7 +498,7 @@ FEATURE_REMOVE_DATA = create_default_feature_data(
     'feature',
     'remove',
     [{'service_id': 'remove_feature_evt', 'name': 'Remove feature'}],
-    'Remove a feature configuration by ID.',
+    description='Remove a feature configuration by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -510,7 +510,7 @@ SERVICE_LIST_DATA = create_default_feature_data(
     'service',
     'list',
     [{'service_id': 'di_list_all_configs_evt', 'name': 'List all settings'}],
-    'List all service configurations and constants.',
+    description='List all service configurations and constants.',
 )
 
 # ** constant: service_add_data
@@ -519,7 +519,7 @@ SERVICE_ADD_DATA = create_default_feature_data(
     'service',
     'add',
     [{'service_id': 'add_service_registration_evt', 'name': 'Add service configuration'}],
-    'Add a new service configuration.',
+    description='Add a new service configuration.',
     params_schema=create_params_schema(
         id='str',
         module_path={'type': 'str', 'required': False},
@@ -535,7 +535,7 @@ SERVICE_SET_DEFAULT_DATA = create_default_feature_data(
     'service',
     'set_default',
     [{'service_id': 'set_default_service_registration_evt', 'name': 'Set default service configuration'}],
-    'Set or update the default type for a service configuration.',
+    description='Set or update the default type for a service configuration.',
     params_schema=create_params_schema(
         id='str',
         module_path={'type': 'str', 'required': False},
@@ -550,7 +550,7 @@ SERVICE_SET_DEPENDENCY_DATA = create_default_feature_data(
     'service',
     'set_dependency',
     [{'service_id': 'set_di_service_dependency_evt', 'name': 'Set service dependency'}],
-    'Set or update a flagged dependency on a service configuration.',
+    description='Set or update a flagged dependency on a service configuration.',
     params_schema=create_params_schema(
         id='str',
         flag='str',
@@ -566,7 +566,7 @@ SERVICE_REMOVE_DEPENDENCY_DATA = create_default_feature_data(
     'service',
     'remove_dependency',
     [{'service_id': 'remove_di_service_dependency_evt', 'name': 'Remove service dependency'}],
-    'Remove a flagged dependency from a service configuration.',
+    description='Remove a flagged dependency from a service configuration.',
     params_schema=create_params_schema(
         id='str',
         flag='str',
@@ -579,7 +579,7 @@ SERVICE_SET_CONSTANTS_DATA = create_default_feature_data(
     'service',
     'set_constants',
     [{'service_id': 'set_service_constants_evt', 'name': 'Set service constants'}],
-    'Set or clear service-level constants.',
+    description='Set or clear service-level constants.',
     params_schema=create_params_schema(
         constants={'type': 'dict', 'required': False, 'default': {}},
     ),
@@ -591,7 +591,7 @@ SERVICE_REMOVE_DATA = create_default_feature_data(
     'service',
     'remove',
     [{'service_id': 'remove_service_registration_evt', 'name': 'Remove service configuration'}],
-    'Remove a service configuration by ID.',
+    description='Remove a service configuration by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -603,7 +603,7 @@ LOGGING_ADD_FORMATTER_DATA = create_default_feature_data(
     'logging',
     'add_formatter',
     [{'service_id': 'add_formatter_evt', 'name': 'Add formatter'}],
-    'Add a new logging formatter configuration.',
+    description='Add a new logging formatter configuration.',
     params_schema=create_params_schema(
         id='str',
         name='str',
@@ -619,7 +619,7 @@ LOGGING_REMOVE_FORMATTER_DATA = create_default_feature_data(
     'logging',
     'remove_formatter',
     [{'service_id': 'remove_formatter_evt', 'name': 'Remove formatter'}],
-    'Remove a logging formatter by ID.',
+    description='Remove a logging formatter by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -631,7 +631,7 @@ LOGGING_ADD_HANDLER_DATA = create_default_feature_data(
     'logging',
     'add_handler',
     [{'service_id': 'add_handler_evt', 'name': 'Add handler'}],
-    'Add a new logging handler configuration.',
+    description='Add a new logging handler configuration.',
     params_schema=create_params_schema(
         id='str',
         name='str',
@@ -651,7 +651,7 @@ LOGGING_REMOVE_HANDLER_DATA = create_default_feature_data(
     'logging',
     'remove_handler',
     [{'service_id': 'remove_handler_evt', 'name': 'Remove handler'}],
-    'Remove a logging handler by ID.',
+    description='Remove a logging handler by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -663,7 +663,7 @@ LOGGING_ADD_LOGGER_DATA = create_default_feature_data(
     'logging',
     'add_logger',
     [{'service_id': 'add_logger_evt', 'name': 'Add logger'}],
-    'Add a new logger configuration.',
+    description='Add a new logger configuration.',
     params_schema=create_params_schema(
         id='str',
         name='str',
@@ -679,7 +679,7 @@ LOGGING_REMOVE_LOGGER_DATA = create_default_feature_data(
     'logging',
     'remove_logger',
     [{'service_id': 'remove_logger_evt', 'name': 'Remove logger'}],
-    'Remove a logger by ID.',
+    description='Remove a logger by ID.',
     params_schema=create_params_schema(
         id='str',
     ),
@@ -691,7 +691,7 @@ LOGGING_LIST_DATA = create_default_feature_data(
     'logging',
     'list',
     [{'service_id': 'logging_list_all_evt', 'name': 'List all logging configs'}],
-    'List all logging configurations (formatters, handlers, loggers).',
+    description='List all logging configurations (formatters, handlers, loggers).',
 )
 
 # *** constants (groups)
