@@ -71,7 +71,7 @@ When the design is wrong, amend **in place** on the same issue. You are not rewr
 4. Title the PR `RFP-00N — <Plain Title> (#issue)`. GitHub-link the PR to the RFP issue. Do not add the PR to a milestone. The body links `#issue` and does **not** use `Closes` (proto will not honor it).
 5. After squash-merge: close the RFP issue yourself. Rename your local `.rfp/` working copy to `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.complete.md`. Do not tag. Do not bump the package version.
 
-Before the squash-merge, a **Prototype reviewer** reviews the PR ([code_review.md](code_review.md)). Code style comes first and is never waived. Then the RFP's content: that the proposal and acceptance criteria hold, and that the result aligns with the vision statement and the distillation sections you cited. Concept outranks artifact cataloging on this strand. The reviewer approves and a human squash-merges (unless the human explicitly delegates the merge for that PR).
+Before the squash-merge, a **Prototype reviewer** reviews the PR ([code_review.md](code_review.md)). Code style comes first and is never waived. Then the RFP's content: that the proposal and acceptance criteria hold, and that the result aligns with the vision statement and the distillation sections you cited. Concept outranks artifact cataloging on this strand. The first line of the review is `Verdict: Approve` or `Verdict: Changes requested`. A human squash-merges (unless the human explicitly delegates the merge for that PR). The sub-TRD exception does not apply on proto.
 
 Suggested TRD slicing does not block the merge.
 

@@ -31,10 +31,10 @@ Status tracks each issue through its lifecycle. Transitions are driven by branch
 
 1. **Ready** — issue created and ready to implement. Set **Priority**, **Size**, and **Estimate** at creation.
 2. **In progress** — work has started / the feature branch is cut. Set the **Start date**.
-3. **In review** — the PR is opened (trunk → `main`, proto → proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
-4. **Done** — for an RFP, the proto PR is merged and the issue is closed by hand (proto does not honor `Closes`); for a standalone trunk TRD, the Collaboration Report is posted. Set the **End date** and close the issue. Super-TRD children stay In Review until the parent reconstruction closes; they do not each get a Collaboration Report.
+3. **In review** — the PR is opened (standalone trunk → `main`, Super-TRD child → the Super-TRD branch, proto → the proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
+4. **Done** — for an RFP, the proto PR is merged and the issue is closed by hand (proto does not honor `Closes`); for a standalone trunk TRD, the Collaboration Report is posted. Set the **End date** and close the issue. Super-TRD children stay In Review until the Super-TRD PR to `main` is squash-merged; closing them is closeout. They are not Done when the sub-TRD PR merges, and they do not each get a Collaboration Report.
 
-In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged → **Done** + issue closed (close RFP issues yourself after a proto squash). **Backlog** is available but not used for new issues — blocked-by relationships communicate dependency ordering without reflecting it in Status.
+In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged to the branch that closes the issue → **Done** + issue closed (close RFP issues yourself after a proto squash). A Super-TRD child is not Done when its sub-TRD PR merges. **Backlog** is available but not used for new issues — blocked-by relationships communicate dependency ordering without reflecting it in Status.
 
 ## Priority
 

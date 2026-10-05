@@ -30,9 +30,9 @@ Prototype is where vocabulary is discovered and amended. Trunk is where a cooled
 
 They do not become each other.
 
-Nothing from prototype lands on trunk as git. Not a merge, not a rebase, not "just this one cherry-pick." What crosses the gap is a **catalog**: settled language, later written as TRDs an implementor can execute without opening the proto branch.
+Nothing from prototype lands on trunk as git. Not a merge, not a rebase, not a cherry-pick, not a checkout of proto into the trunk tree, and not a copy of proto files. What crosses the gap is a **catalog**: settled language, later written as TRDs an implementor can execute without opening the proto branch.
 
-A Release reviewer may read proto-at-freeze to measure a trunk PR's named artifacts against it ([code_review.md](code_review.md)). That is measurement, not a git flow, and the implementor never reads proto.
+A Release reviewer may read the reference prototype to measure a trunk PR's named artifacts against it ([code_review.md](code_review.md)): the freeze-point tags or pre-release, and the prototype branch in [binding.md](binding.md), through `git show` / `git diff` of a fetched ref. That is measurement, not a git flow. The implementor never reads proto.
 
 Git *may* flow the other way — trunk → prototype — when proto has not yet absorbed a mechanical fix that already shipped on trunk. That is allowed. It is not a habit. Skills do not cherry-pick unless a human asks. Treat a port as a translation, not as `git cherry-pick` and a shrug.
 
@@ -42,7 +42,7 @@ Git *may* flow the other way — trunk → prototype — when proto has not yet 
 
 **A small mechanical bug on trunk.** Write a hotfix TRD and implement it.
 
-**A reconstruction already specified.** If a TRD issue exists (standalone or a Super-TRD child), implement that issue. Link the PR to the standalone TRD or to the Super-TRD parent.
+**A reconstruction already specified.** If a TRD issue exists, implement that issue. A standalone PR targets `main` and links that TRD. A Super-TRD child targets the Super-TRD branch, not `main`, and links the child and the parent. See [Super-TRD branch](#super-trd-branch).
 
 **Docs or skills.** Open a Doc PR. No issue unless the discussion needs a home first.
 
@@ -51,10 +51,10 @@ Git *may* flow the other way — trunk → prototype — when proto has not yet 
 Pull requests are for reviewing code. Issues are for remembering the work item.
 
 - **The issue** may sit on a milestone. **The PR does not.** Do not add the PR to the milestone.
-- Every implementation PR is **GitHub-linked** to its authorizing issue (not a title mention alone): proto PR → the RFP issue; trunk PR → the standalone TRD or the Super-TRD **parent**.
+- Every implementation PR is **GitHub-linked** to its authorizing issue (not a title mention alone): proto PR → the RFP issue; standalone trunk PR → that TRD; Super-TRD PR (Super-TRD branch → `main`) → the parent; sub-TRD PR → the child and the parent.
 - Proto PRs do not honor `Closes`. Link `#issue` in the body. After squash-merge, **close the issue yourself**.
-- Trunk PRs may use `Closes #<issue>` for a standalone TRD, or `Closes #<parent>` for a Super-TRD. Never `Closes` a Super-TRD child from the parent PR.
-- RFP headers include `Depends on` / `Blocks`. When you publish the issue, wire the same edges as GitHub blocked-by. TRD §7 and Super-TRD child sequencing do the same.
+- A standalone trunk PR may use `Closes #<issue>`. The Super-TRD PR to `main` uses `Closes #<parent>` only. A sub-TRD PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves` — not in the body, and not in the squash commit. Never `Closes` a child from the Super-TRD PR.
+- RFP headers include `Depends on` / `Blocks`. When you publish the issue, wire the same edges as GitHub blocked-by. TRD §7 does the same. Before wiring a freeze's issue set, check for a blocked-by cycle. Do not publish one. See [Safeguards](#safeguards).
 
 ## Versioning (what an individual must not do)
 
@@ -68,18 +68,56 @@ If you need the shapes for orientation only:
 
 Facts for *this* repo: [binding.md](binding.md). Commands an individual needs (link a PR, set blocked-by): [commands.md](commands.md).
 
+## Super-TRD branch
+
+A Super-TRD is parent plus children. It is not one branch that children commit onto, and the first child does not open the parent PR. That shape breaks when children run in parallel.
+
+A **sub-TRD PR** is one child's pull request. It targets the Super-TRD branch. The **Super-TRD PR** is that branch to `main`, opened once, after the children have merged into it.
+
+The orchestrator (a Release round, or the human) cuts `<parent-issue>-<slug>` from `main` at the freeze base — trunk as it stands for this reconstruction, never proto — and pushes it **before any child starts**. A child does not cut that branch.
+
+Each child cuts `<child-issue>-<slug>` from the Super-TRD branch tip and opens a sub-TRD PR targeting that branch, never `main`. Title: `<Component/Assemblage> - <Plain Title> (#child)`. Body: `Refs #<child>`, `Refs #<parent>`, and that child's AC checkboxes. After `gh pr create`, the author runs `gh pr view <N> --json baseRefName` and stops if the base is not the Super-TRD branch.
+
+Children stay **In Review** from the moment that PR is open until the Super-TRD PR is squash-merged to `main`. Closing them is closeout, not the child's job.
+
+The Super-TRD PR title is `<Component/Assemblage> - <Plain Title> (#parent)`. Body: `Closes #<parent>` only. The orchestrator or the human opens it. A child does not.
+
+## Proposed: cross-boundary blockers
+
+**Not decided. Do not apply this until a human accepts it.**
+
+- A child blocked by a standalone TRD would wait until that standalone PR is merged to `main`. The orchestrator or the human would then merge `main` into the Super-TRD branch with a merge commit, and only then would the dependent child launch.
+- A blocker between children of the same Super-TRD would be satisfied when the blocking child's PR is merged into the Super-TRD branch. It would not wait for `main`.
+
+Until that decision, a child blocked by work that is not already on the branch it would cut from stops and reports. It does not merge `main` into the Super-TRD branch, and it does not invent a wait rule.
+
 ## Where the conversation lives
 
 - **On the PR:** what changed, AC checkboxes, the link to the issue, and review comments that point at a line.
 - **On an RFP issue:** the RFP body, blocked-by, a short status after the PR opens and after you address feedback.
 - **On a standalone TRD issue:** the TRD body, blocked-by, short status, and — when the work is done — a [Collaboration Report](collab_report.md).
-- **On a Super-TRD child:** short status only. Do not post a Collaboration Report on the child; that artifact belongs on a standalone TRD issue.
+- **On a Super-TRD child:** short status only. The child stays In Review until the Super-TRD PR to `main` is squash-merged. Do not post a Collaboration Report on the child; that artifact belongs on a standalone TRD issue, or on the parent at round closeout.
 
 Please do not leave the session diary as PR conversation comments.
 
 ## Review and merge
 
-Every implementation PR gets one reviewer, and the merge step is the same for both strands. The **Prototype reviewer** holds code style first, then the RFP's content against the vision and distillation. The **Release reviewer** holds code style first, then artifact fidelity against the reference prototype, or the TRD when there is none. The reviewer posts one consolidated review that ends in a verdict, Approve or Changes requested. The reviewer approves and reports; a **human squash-merges**. The reviewer never merges by default; the only exception is a PR whose squash-merge the human has explicitly relinquished to the reviewer (situational, most often a correction follow-up). The standards are in [code_review.md](code_review.md).
+Every implementation PR gets one reviewer. The **Prototype reviewer** holds code style first, then the RFP's content against the vision and distillation. The **Release reviewer** holds code style first, then artifact fidelity against the reference prototype recorded in the TRD and, read-only, against the prototype branch. A hotfix does not consult proto. The standards, including who is fresh, are in [code_review.md](code_review.md).
+
+The reviewer posts one consolidated review. The first line is `Verdict: Approve` or `Verdict: Changes requested`. When the reviewer and the author share a GitHub token, GitHub rejects `--approve` and `--request-changes`. The verdict line is the signal either way.
+
+A **human squash-merges** every PR that targets `main`. The reviewer never merges to `main` unless the human has explicitly relinquished that specific PR.
+
+A Release reviewer may squash-merge a sub-TRD PR into its Super-TRD branch without a further human approval when all of these hold, checked at merge time: `gh pr view <N> --json baseRefName` is the Super-TRD branch; the verdict line is `Verdict: Approve`; the review is clean (code style, every AC, artifact fidelity, tests) and no blocking finding is unresolved; the PR-body AC checkboxes required by [code_review.md](code_review.md) are checked. That permission does not extend to `main`. The final review of the Super-TRD PR is verdict only, aside from an explicit per-PR delegation to `main`.
+
+## Safeguards
+
+These checks keep a fan-out off the wrong base. State them as checks, not as a story about a round.
+
+- Before a fan-out, the orchestrator validates its dispatch branch and PR-base rules against `tiferet-implement-trd`. Every implementer prompt states the PR base explicitly.
+- After opening a PR, the implementer verifies `gh pr view <N> --json baseRefName` and stops if it is wrong.
+- A reviewer verifies that base immediately before any merge.
+- Freeze and TRD authoring (`takwin-code-freeze`, `tiferet-author-trd`) check the issue set for a blocked-by cycle before wiring edges. A cycle is two or more issues each naming the other's output as a prerequisite. Do not publish it. A child stuck on a cycle stops and reports.
 
 ## Closeout leaves nothing behind
 
@@ -90,7 +128,7 @@ When a PR is squash-merged (and again when a milestone closes), remove everythin
 - Anything that points at them: symlinks, config entries, editor or index references.
 - Temp files: scratch scripts, virtual environments, snapshots, downloaded artifacts, and PR or comment body drafts.
 
-The working copies this process defines are not temp: `.rfp/` and `.trd/` stay. Each is renamed `.complete.md` when its work is done: an RFP after its proto PR is squash-merged and the issue is closed, a TRD after its PR is squash-merged and the issue is Done. Do not remove another contributor's branch or worktree, or your own uncommitted work, without asking.
+The working copies this process defines are not temp: `.rfp/` and `.trd/` stay. Each is renamed `.complete.md` when its work is done: an RFP after its proto PR is squash-merged and the issue is closed, a standalone TRD after its PR is squash-merged and the issue is Done. A Super-TRD child is not Done when its sub-TRD PR merges into the Super-TRD branch; that working copy completes at parent closeout, after the Super-TRD PR reaches `main`. A sub-TRD merge does not remove the Super-TRD branch. Do not remove another contributor's branch or worktree, or your own uncommitted work, without asking.
 
 **Temporary information never goes to external or cloud storage** (gists, pastebins, uploaded images or screenshots, hosted drives, third-party services) unless the human explicitly authorizes it. What the process defines goes where it says: RFP and TRD bodies, status notes, review comments, and Collaboration Reports live on GitHub issues and PRs. Temporary images and scratch output do not.
 

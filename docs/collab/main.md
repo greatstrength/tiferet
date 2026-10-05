@@ -61,16 +61,20 @@ Use this when you are landing one hotfix or one standalone reconstruction.
 
 ## Super-TRD as a shape
 
-A Super-TRD is parent plus children, one combined PR, child size at most Medium. The TRD *genre* for that shape is in [tech_requirements.md](tech_requirements.md).
+A Super-TRD is parent plus children, child size at most Medium. The TRD *genre* is in [tech_requirements.md](tech_requirements.md). The branch rule is in [process.md](process.md).
 
-If you are asked to implement **one child** already in flight: implement that child on the existing parent branch; do not open a second PR; GitHub-link remains the **parent** issue; never `Closes #<child>`. Post short status on the child issue. Do not write a Collaboration Report on the child.
+The orchestrator or the human cuts `<parent-issue>-<slug>` from `main` and pushes it before any child starts. You do not cut that branch because you are the first child, and you do not commit onto it.
 
-Running the parent fan-out (first child opens the PR, remaining children push, parent closeout report) is not an individual contributor loop.
+If you are asked to implement **one child**: confirm the Super-TRD branch is already pushed. Cut `<child-issue>-<slug>` from its tip. Open a PR targeting that branch, never `main`. Body: `Refs #<child>` and `Refs #<parent>`. Never `Closes`, `Fixes`, or `Resolves`. Verify `gh pr view <N> --json baseRefName`. Set the child to In Review. Short status on the child issue. Do not write a Collaboration Report. Do not close the child. Do not open the Super-TRD PR to `main`.
+
+If the Super-TRD branch does not exist yet, stop and report. Do not open a PR to `main` in its place.
+
+Running the fan-out, merging sub-TRD PRs, opening the Super-TRD PR, and closing children are not an individual contributor loop.
 
 ## Reviewing trunk
 
-A trunk PR gets a **Release reviewer**. Code style comes first and is never waived. Then artifact fidelity: every artifact the TRD names in §3 and §4 is measured against the reference prototype recorded in §7, or against the TRD alone when there is none. A deviation on a named artifact is a finding even when trunk looks cleaner. A real improvement goes through a TRD amendment before merge. Only the reviewer reads proto; the implementor works from the TRD. Reading proto is measurement, never merging.
+A trunk PR gets a **Release reviewer**. Code style comes first and is never waived. Then artifact fidelity: every artifact the TRD names in §3 and §4 is measured against the reference prototype recorded in §7, and read-only against the prototype branch, or against the TRD alone when there is no prototype. A deviation on a named artifact is a finding even when trunk looks cleaner. A real improvement goes through a TRD amendment before merge. Only the reviewer reads proto; the implementor works from the TRD. Reading proto is `git show` / `git diff` of a fetched ref, never a checkout, copy, or merge.
 
 A hotfix is reviewed against the hotfix TRD. Proto has nothing to say about it.
 
-The reviewer approves and reports; a human squash-merges (unless the human explicitly delegates the merge for that PR). Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) and [process.md](process.md) are the longer versions of that sentence.
+The reviewer approves and reports. A human squash-merges a PR that targets `main`, unless the human explicitly delegates that PR. A sub-TRD PR may be squash-merged into the Super-TRD branch under the conditions in [code_review.md](code_review.md). That permission never extends to `main`. The first line of the review is `Verdict: Approve` or `Verdict: Changes requested`. Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) and [process.md](process.md) are the longer versions of that sentence.
