@@ -6,8 +6,6 @@
 import inspect
 import json
 from typing import Any, Dict, NoReturn, Optional
-
-# ** infra
 from abc import ABC
 
 # *** classes
