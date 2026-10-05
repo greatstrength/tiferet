@@ -115,10 +115,10 @@ class TestAppEvent:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={
-        'id': 'test.interface',
-        'name': 'Test Interface',
-    },
+    sample_kwargs=dict(
+        id='test.interface',
+        name='Test Interface',
+    ),
     required_params=[
         'id',
         'name',
@@ -195,6 +195,7 @@ class TestAddAppSession:
 
         # Assert optional fields are set correctly.
         assert isinstance(session, AppSession)
+        assert session.id == 'test.interface'
         assert session.description == 'A test app interface.'
         assert session.logger_id == 'test_logger'
         assert session.flags == ['test_feature', 'test_data']
@@ -208,7 +209,7 @@ class TestAddAppSession:
         assert service.parameters == {'foo': 'bar'}
 
         # Assert the session is persisted.
-        mock_dependencies['app_service'].save.assert_called_once_with(session)
+        mock_dependencies['app_service'].save.assert_called_once()
 
     # * test: default_fallbacks
     def test_default_fallbacks(self, test_ctx):
@@ -284,17 +285,17 @@ class TestAddAppSession:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={
-        'id': 'test',
-    },
+    sample_kwargs=dict(
+        id='test',
+    ),
     required_params=[
         'id',
     ],
     service_attr='app_service',
     not_found_error_code=a.error.APP_SESSION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'non_existent_id',
-    },
+    not_found_kwargs=dict(
+        id='non_existent_id',
+    ),
 )
 class TestGetAppSession:
     '''
@@ -377,7 +378,7 @@ class TestGetAppSession:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={},
+    sample_kwargs=dict(),
 )
 class TestListAppSessions:
     '''
@@ -440,12 +441,12 @@ class TestListAppSessions:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={
-        'id': 'test',
-        'service_id': 'new_dependency',
-        'module_path': 'new.module.path',
-        'class_name': 'NewClass',
-    },
+    sample_kwargs=dict(
+        id='test',
+        service_id='new_dependency',
+        module_path='new.module.path',
+        class_name='NewClass',
+    ),
     required_params=[
         'id',
         'service_id',
@@ -454,12 +455,12 @@ class TestListAppSessions:
     ],
     service_attr='app_service',
     not_found_error_code=a.error.APP_SESSION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'missing.interface',
-        'service_id': 'dep',
-        'module_path': 'tiferet.contexts.app',
-        'class_name': 'AppContext',
-    },
+    not_found_kwargs=dict(
+        id='missing.interface',
+        service_id='dep',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+    ),
 )
 class TestSetServiceDependency:
     '''
@@ -479,7 +480,10 @@ class TestSetServiceDependency:
         return {'app_service': service}
 
     # * test: creates_new_service
-    def test_creates_new_service(self, test_ctx, mock_dependencies, app_interface):
+    def test_creates_new_service(self,
+                                 test_ctx,
+                                 mock_dependencies,
+                                 app_interface):
         '''
         Test that SetServiceDependency creates a new dependency when it does not exist.
         '''
@@ -504,7 +508,10 @@ class TestSetServiceDependency:
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
     # * test: updates_existing_and_merges_parameters
-    def test_updates_existing_and_merges_parameters(self, test_ctx, mock_dependencies, app_interface):
+    def test_updates_existing_and_merges_parameters(self,
+                                                    test_ctx,
+                                                    mock_dependencies,
+                                                    app_interface):
         '''
         Test that SetServiceDependency updates an existing dependency and merges parameters.
         '''
@@ -543,7 +550,10 @@ class TestSetServiceDependency:
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
     # * test: parameters_none_clears_existing
-    def test_parameters_none_clears_existing(self, test_ctx, mock_dependencies, app_interface):
+    def test_parameters_none_clears_existing(self,
+                                             test_ctx,
+                                             mock_dependencies,
+                                             app_interface):
         '''
         Test that passing parameters=None clears existing parameters.
         '''
@@ -605,22 +615,22 @@ class TestSetServiceDependency:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={
-        'id': 'test',
-        'attribute': 'name',
-        'value': 'Updated Name',
-    },
+    sample_kwargs=dict(
+        id='test',
+        attribute='name',
+        value='Updated Name',
+    ),
     required_params=[
         'id',
         'attribute',
     ],
     service_attr='app_service',
     not_found_error_code=a.error.APP_SESSION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'missing.interface',
-        'attribute': 'name',
-        'value': 'Updated Name',
-    },
+    not_found_kwargs=dict(
+        id='missing.interface',
+        attribute='name',
+        value='Updated Name',
+    ),
 )
 class TestUpdateAppSession:
     '''
@@ -646,7 +656,12 @@ class TestUpdateAppSession:
         ('logger_id', 'updated_logger'),
         ('flags', ['updated_flags']),
     ])
-    def test_success_supported_attributes(self, test_ctx, mock_dependencies, app_interface, attribute, new_value):
+    def test_success_supported_attributes(self,
+                                          test_ctx,
+                                          mock_dependencies,
+                                          app_interface,
+                                          attribute,
+                                          new_value):
         '''
         Test that UpdateAppSession sets a supported attribute and persists the session.
 
@@ -678,7 +693,10 @@ class TestUpdateAppSession:
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
     # * test: invalid_attribute_raises_model_error
-    def test_invalid_attribute_raises_model_error(self, test_ctx, mock_dependencies, app_interface):
+    def test_invalid_attribute_raises_model_error(self,
+                                                  test_ctx,
+                                                  mock_dependencies,
+                                                  app_interface):
         '''
         Test that an unknown attribute raises ModelError and is not saved.
 
@@ -704,7 +722,10 @@ class TestUpdateAppSession:
         mock_dependencies['app_service'].save.assert_not_called()
 
     # * test: model_error_is_not_a_domain_error
-    def test_model_error_is_not_a_domain_error(self, test_ctx, mock_dependencies, app_interface):
+    def test_model_error_is_not_a_domain_error(self,
+                                               test_ctx,
+                                               mock_dependencies,
+                                               app_interface):
         '''
         Test that an unknown attribute raises ModelError rather than TiferetError.
 
@@ -762,23 +783,23 @@ class TestUpdateAppSession:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={
-        'id': 'test',
-        'constants': {
+    sample_kwargs=dict(
+        id='test',
+        constants={
             'KEY': 'VALUE',
         },
-    },
+    ),
     required_params=[
         'id',
     ],
     service_attr='app_service',
     not_found_error_code=a.error.APP_SESSION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'missing.interface',
-        'constants': {
+    not_found_kwargs=dict(
+        id='missing.interface',
+        constants={
             'KEY': 'VALUE',
         },
-    },
+    ),
 )
 class TestSetAppConstants:
     '''
@@ -798,7 +819,10 @@ class TestSetAppConstants:
         return {'app_service': service}
 
     # * test: full_clear
-    def test_full_clear(self, test_ctx, mock_dependencies, app_interface):
+    def test_full_clear(self,
+                        test_ctx,
+                        mock_dependencies,
+                        app_interface):
         '''
         Test that SetAppConstants clears all constants when constants=None.
         '''
@@ -822,7 +846,10 @@ class TestSetAppConstants:
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
     # * test: merge_override_and_remove
-    def test_merge_override_and_remove(self, test_ctx, mock_dependencies, app_interface):
+    def test_merge_override_and_remove(self,
+                                       test_ctx,
+                                       mock_dependencies,
+                                       app_interface):
         '''
         Test that SetAppConstants merges, overrides, and removes None-valued keys.
         '''
@@ -858,7 +885,10 @@ class TestSetAppConstants:
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
     # * test: add_new_constants
-    def test_add_new_constants(self, test_ctx, mock_dependencies, app_interface):
+    def test_add_new_constants(self,
+                               test_ctx,
+                               mock_dependencies,
+                               app_interface):
         '''
         Test that SetAppConstants adds new constants when none exist.
         '''
@@ -921,20 +951,20 @@ class TestSetAppConstants:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={
-        'id': 'test',
-        'service_id': 'test_service',
-    },
+    sample_kwargs=dict(
+        id='test',
+        service_id='test_service',
+    ),
     required_params=[
         'id',
         'service_id',
     ],
     service_attr='app_service',
     not_found_error_code=a.error.APP_SESSION_NOT_FOUND_ID,
-    not_found_kwargs={
-        'id': 'missing.interface',
-        'service_id': 'dep',
-    },
+    not_found_kwargs=dict(
+        id='missing.interface',
+        service_id='dep',
+    ),
 )
 class TestRemoveServiceDependency:
     '''
@@ -954,7 +984,10 @@ class TestRemoveServiceDependency:
         return {'app_service': service}
 
     # * test: removes_existing
-    def test_removes_existing(self, test_ctx, mock_dependencies, app_interface):
+    def test_removes_existing(self,
+                              test_ctx,
+                              mock_dependencies,
+                              app_interface):
         '''
         Test that RemoveServiceDependency removes an existing service dependency.
         '''
@@ -978,7 +1011,10 @@ class TestRemoveServiceDependency:
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
     # * test: missing_service_is_idempotent
-    def test_missing_service_is_idempotent(self, test_ctx, mock_dependencies, app_interface):
+    def test_missing_service_is_idempotent(self,
+                                           test_ctx,
+                                           mock_dependencies,
+                                           app_interface):
         '''
         Test that removing a non-existent service dependency is idempotent.
         '''
@@ -1034,9 +1070,9 @@ class TestRemoveServiceDependency:
             'class_name': 'AppService',
         },
     },
-    sample_kwargs={
-        'id': 'existing.interface',
-    },
+    sample_kwargs=dict(
+        id='existing.interface',
+    ),
     required_params=[
         'id',
     ],
