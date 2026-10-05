@@ -151,7 +151,7 @@ class TesterContext(BaseContext):
             model: Any,
             sample: Dict[str, Any],
             equality_fields: List[str],
-            field_normalizers: dict = None,
+            field_normalizers: Dict[str, Callable[[Any], Any]] = None,
         ) -> None:
         '''
         Compare selected fields on a model against a sample mapping.
@@ -413,7 +413,7 @@ class TestSessionContext(RequestContext):
         self.outcome = None
 
     # * method: given
-    def given(self, **state) -> 'TestSessionContext':
+    def given(self, **state: Any) -> 'TestSessionContext':
         '''
         Overlay given-state onto the request data.
 
@@ -430,7 +430,7 @@ class TestSessionContext(RequestContext):
         return self
 
     # * method: invoke
-    def invoke(self, **params) -> 'TestSessionContext':
+    def invoke(self, **params: Any) -> 'TestSessionContext':
         '''
         Overlay invoke parameters onto the request data.
 
@@ -447,7 +447,11 @@ class TestSessionContext(RequestContext):
         return self
 
     # * method: verify
-    def verify(self, assertion: Any, message: str | None = None) -> 'TestSessionContext':
+    def verify(
+            self,
+            assertion: Callable[[Any], bool] | Any,
+            message: str | None = None,
+        ) -> 'TestSessionContext':
         '''
         Queue a verification against the eventual session outcome.
 
