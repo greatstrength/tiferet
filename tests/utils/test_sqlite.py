@@ -13,10 +13,15 @@ import pytest
 # ** app
 from tiferet.utils.sqlite import (
     SqliteClient,
+    VALID_SQLITE_MODES,
     SQLITE_INVALID_MODE_ID,
     SQLITE_CONN_ALREADY_OPEN_ID,
     SQLITE_CONN_NOT_INITIALIZED_ID,
     SQLITE_CONN_FAILED_ID,
+    SQLITE_STATEMENT_FAILED_ID,
+    SQLITE_QUERY_FAILED_ID,
+    SQLITE_TRANSACTION_FAILED_ID,
+    SQLITE_BACKUP_FAILED_ID,
 )
 from tiferet.interfaces.core import ServiceError
 
@@ -120,8 +125,14 @@ def test_sqlite_client_invalid_mode():
     with pytest.raises(ServiceError) as exc_info:
         client.open_file()
 
-    # Verify the error code.
+    # Verify the error code and message.
     assert exc_info.value.error_code == SQLITE_INVALID_MODE_ID
+    assert exc_info.value.message == (
+        'Invalid SQLite mode: invalid. Supported: '
+        + ', '.join(VALID_SQLITE_MODES)
+        + ' (or None for default auto-create).'
+    )
+    assert VALID_SQLITE_MODES == ('ro', 'rw', 'rwc')
 
 # ** test: sqlite_client_already_open
 def test_sqlite_client_already_open(memory_client: SqliteClient):
@@ -141,8 +152,11 @@ def test_sqlite_client_already_open(memory_client: SqliteClient):
         with pytest.raises(ServiceError) as exc_info:
             memory_client.open_file()
 
-        # Verify the error code.
+        # Verify the error code and message.
         assert exc_info.value.error_code == SQLITE_CONN_ALREADY_OPEN_ID
+        assert exc_info.value.message == (
+            f'Connection already open for path: {memory_client.path}.'
+        )
 
     finally:
 
@@ -432,8 +446,11 @@ def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient, tmp_p
     with pytest.raises(ServiceError) as exc_info:
         memory_client.backup(str(backup_path))
 
-    # Verify the error code.
+    # Verify the error code and message.
     assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.message == (
+        'SQLite connection not initialized. Must be used within a "with" block.'
+    )
 
 # ** test: sqlite_client_execute_not_initialized
 def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
@@ -448,8 +465,11 @@ def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
     with pytest.raises(ServiceError) as exc_info:
         memory_client.execute('SELECT 1')
 
-    # Verify the error code.
+    # Verify the error code and message.
     assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.message == (
+        'SQLite connection not initialized. Must be used within a "with" block.'
+    )
 
 # ** test: sqlite_client_commit_not_initialized
 def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
@@ -464,8 +484,11 @@ def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
     with pytest.raises(ServiceError) as exc_info:
         memory_client.commit()
 
-    # Verify the error code.
+    # Verify the error code and message.
     assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.message == (
+        'SQLite connection not initialized. Must be used within a "with" block.'
+    )
 
 # ** test: sqlite_client_conn_failed
 def test_sqlite_client_conn_failed(tmp_path: Path):
@@ -483,8 +506,236 @@ def test_sqlite_client_conn_failed(tmp_path: Path):
     with pytest.raises(ServiceError) as exc_info:
         client.open_file()
 
-    # Verify the error code.
+    # Verify the error code, message, and chained cause.
     assert exc_info.value.error_code == SQLITE_CONN_FAILED_ID
+    assert exc_info.value.message == (
+        f'Failed to connect to SQLite database at {client.path}: {exc_info.value.__cause__}'
+    )
+    assert isinstance(exc_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_statement_failures
+def test_sqlite_client_statement_failures(memory_client: SqliteClient):
+    '''
+    Test that driver statement failures carry the named message and extras.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    # Open the connection.
+    memory_client.open_file()
+
+    try:
+
+        # Capture the driver error for the rejected statement.
+        bad_sql = 'NOT SQL'
+        try:
+            memory_client.cursor.execute(bad_sql)
+        except sqlite3.Error as e:
+            execute_error = str(e)
+
+        # Execute a statement the driver rejects.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.execute(bad_sql)
+
+        # Verify the statement failure message and extras.
+        assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+        assert exc_info.value.kwargs['original_error'] == execute_error
+        assert exc_info.value.message == f'Failed to execute SQL statement: {execute_error}'
+        assert exc_info.value.kwargs['sql'] == bad_sql
+
+        # Capture the driver error for executemany.
+        try:
+            memory_client.cursor.executemany(bad_sql, [()])
+        except sqlite3.Error as e:
+            executemany_error = str(e)
+
+        # Repeat for executemany.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.executemany(bad_sql, [()])
+
+        # Verify the executemany failure message and extras.
+        assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+        assert exc_info.value.kwargs['original_error'] == executemany_error
+        assert exc_info.value.message == f'Failed to execute SQL statement: {executemany_error}'
+        assert exc_info.value.kwargs['sql'] == bad_sql
+
+        # Capture the driver error for executescript.
+        try:
+            memory_client.cursor.executescript(bad_sql)
+        except sqlite3.Error as e:
+            executescript_error = str(e)
+
+        # Repeat for executescript.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.executescript(bad_sql)
+
+        # Verify the executescript failure message and extras.
+        assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+        assert exc_info.value.kwargs['original_error'] == executescript_error
+        assert exc_info.value.message == f'Failed to execute SQL script: {executescript_error}'
+        assert exc_info.value.kwargs['sql'] == bad_sql
+
+    finally:
+
+        # Clean up.
+        memory_client.close_file()
+
+# ** test: sqlite_client_query_and_transaction_failures
+def test_sqlite_client_query_and_transaction_failures(memory_client: SqliteClient):
+    '''
+    Test fetch, commit, and rollback driver failures.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    # Open the connection.
+    memory_client.open_file()
+
+    # Name the query the failing fetches execute.
+    query = 'SELECT 1'
+
+    try:
+
+        # Force fetch_one to fail after a successful execute.
+        class FailingFetchOne:
+            # Return self so execute succeeds.
+            def execute(self, sql, parameters=()):
+                return self
+
+            # Raise the driver error fetch_one wraps.
+            def fetchone(self):
+                raise sqlite3.Error('fetch one')
+
+        # Install the stand-in cursor.
+        memory_client.cursor = FailingFetchOne()
+
+        # Fetch one row from the failing cursor.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.fetch_one(query)
+
+        # Verify the fetch_one failure message and extras.
+        assert exc_info.value.error_code == SQLITE_QUERY_FAILED_ID
+        assert exc_info.value.message == 'Failed to fetch a row for the SQL query: fetch one'
+        assert exc_info.value.kwargs['original_error'] == 'fetch one'
+        assert exc_info.value.kwargs['sql'] == query
+
+        # Force fetch_all to fail after a successful execute.
+        class FailingFetchAll:
+            # Return self so execute succeeds.
+            def execute(self, sql, parameters=()):
+                return self
+
+            # Raise the driver error fetch_all wraps.
+            def fetchall(self):
+                raise sqlite3.Error('fetch all')
+
+        # Install the stand-in cursor.
+        memory_client.cursor = FailingFetchAll()
+
+        # Fetch all rows from the failing cursor.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.fetch_all(query)
+
+        # Verify the fetch_all failure message and extras.
+        assert exc_info.value.error_code == SQLITE_QUERY_FAILED_ID
+        assert exc_info.value.message == 'Failed to fetch rows for the SQL query: fetch all'
+        assert exc_info.value.kwargs['original_error'] == 'fetch all'
+        assert exc_info.value.kwargs['sql'] == query
+
+        # Force commit to fail.
+        class FailingCommit:
+            # Raise the driver error commit wraps.
+            def commit(self):
+                raise sqlite3.Error('commit')
+
+            # Allow close_file to reset state.
+            def close(self):
+                return None
+
+        # Install the stand-in connection.
+        memory_client.conn = FailingCommit()
+
+        # Commit against the failing connection.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.commit()
+
+        # Verify the commit failure message and extras.
+        assert exc_info.value.error_code == SQLITE_TRANSACTION_FAILED_ID
+        assert exc_info.value.message == 'Failed to commit the SQLite transaction: commit'
+        assert exc_info.value.kwargs['original_error'] == 'commit'
+
+        # Force rollback to fail.
+        class FailingRollback:
+            # Raise the driver error rollback wraps.
+            def rollback(self):
+                raise sqlite3.Error('rollback')
+
+            # Allow close_file to reset state.
+            def close(self):
+                return None
+
+        # Install the stand-in connection.
+        memory_client.conn = FailingRollback()
+
+        # Roll back against the failing connection.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.rollback()
+
+        # Verify the rollback failure message and extras.
+        assert exc_info.value.error_code == SQLITE_TRANSACTION_FAILED_ID
+        assert exc_info.value.message == 'Failed to roll back the SQLite transaction: rollback'
+        assert exc_info.value.kwargs['original_error'] == 'rollback'
+
+    finally:
+
+        # Clean up.
+        memory_client.close_file()
+
+# ** test: sqlite_client_backup_driver_failure
+def test_sqlite_client_backup_driver_failure(memory_client: SqliteClient, tmp_path: Path):
+    '''
+    Test that a driver backup failure chains cause and names the target.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Open the source and force backup to fail.
+    memory_client.open_file()
+    backup_path = tmp_path / 'backup_driver.db'
+
+    try:
+
+        # Define a connection whose backup the driver rejects.
+        class FailingBackup:
+            # Raise the driver error backup wraps.
+            def backup(self, target, **kwargs):
+                raise sqlite3.Error('backup')
+
+            # Allow close_file to reset state.
+            def close(self):
+                return None
+
+        # Install the stand-in connection.
+        memory_client.conn = FailingBackup()
+
+        # Attempt the backup.
+        with pytest.raises(ServiceError) as exc_info:
+            memory_client.backup(str(backup_path))
+
+        # Verify the message and chained cause.
+        assert exc_info.value.error_code == SQLITE_BACKUP_FAILED_ID
+        assert exc_info.value.message == f'Backup to {backup_path} failed: backup'
+        assert isinstance(exc_info.value.__cause__, sqlite3.Error)
+
+    finally:
+
+        # Clean up.
+        memory_client.close_file()
 
 # ** test: sqlite_client_isolation_level_propagation
 def test_sqlite_client_isolation_level_propagation():
