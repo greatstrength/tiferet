@@ -2,14 +2,48 @@
 
 # *** imports
 
+# ** core
+from typing import Any, Dict
+
 # ** app
 from .. import a
 from ..assets import TiferetError
-from ..contexts.app import AppSession, AppSessionContext
+from ..contexts.app import (
+    AppSession,
+    AppSessionContext,
+    add_default_app_constants,
+    add_default_app_services,
+    add_default_app_sessions,
+)
 from ..contexts.cache import CacheContext
+from ..contexts.error import add_default_errors
+from ..contexts.logging import add_default_logging_settings
 from . import core
 
 # *** blueprints
+
+# ** blueprint: build_cache
+@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
+@add_default_app_services(a.app.CORE_DEFAULT_SERVICES)
+@add_default_app_constants(a.app.CORE_DEFAULT_CONSTANTS)
+@add_default_app_sessions(a.app.CORE_DEFAULT_APP_SESSIONS)
+@add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
+def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
+    '''
+    Build a cache context seeded with the standard framework catalogs.
+
+    Extends ``core.build_cache`` with the standard error, app-service,
+    app-constant, app-session, and logging catalogs. Dialect builders extend
+    this function, not ``core.build_cache``.
+
+    :param cache: An optional dict used to pre-seed the cache.
+    :type cache: Dict[str, Any]
+    :return: The cache context seeded with the standard catalogs.
+    :rtype: CacheContext
+    '''
+
+    # Delegate to the bare cache builder; the decorators stack the catalogs.
+    return core.build_cache(cache)
 
 # ** blueprint: build_app_session_context
 def build_app_session_context(app_session: AppSession, cache: CacheContext, **context_kwargs) -> AppSessionContext:
@@ -66,7 +100,7 @@ def build_app(interface_id: str,
     '''
 
     # Build the bootstrap cache pre-seeded with all framework defaults.
-    cache = core.build_cache()
+    cache = build_cache()
 
     # Resolve the app session, preferring a cache-seeded default.
     app_session = core.get_app_session(interface_id, cache, module_path=module_path, class_name=class_name, **parameters)
