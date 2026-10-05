@@ -10,7 +10,7 @@ from tiferet.mappers.feature import (
     FeatureAggregate,
     FeatureConfigObject,
 )
-from tiferet.testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.blueprints.tester import use_tester
 
 # *** constants
 
@@ -22,7 +22,6 @@ FEATURE_EVENT_AGGREGATE_SAMPLE_DATA = {
     'data_key': 'result',
     'pass_on_error': True,
     'condition': '$r.x > 0',
-    'middleware': [],
 }
 
 # ** constant: feature_event_equality_fields
@@ -33,7 +32,6 @@ FEATURE_EVENT_EQUALITY_FIELDS = [
     'data_key',
     'pass_on_error',
     'condition',
-    'middleware',
 ]
 
 # ** constant: feature_aggregate_sample_data
@@ -43,8 +41,6 @@ FEATURE_AGGREGATE_SAMPLE_DATA = {
     'feature_key': 'add_number',
     'id': 'calc.add_number',
     'description': 'Add Number',
-    'middleware': [],
-    'is_async': False,
 }
 
 # ** constant: feature_equality_fields
@@ -55,8 +51,6 @@ FEATURE_EQUALITY_FIELDS = [
     'feature_key',
     'description',
     'steps',
-    'middleware',
-    'is_async',
 ]
 
 # ** constant: step_tuple
@@ -82,15 +76,32 @@ FEATURE_FIELD_NORMALIZERS = {
     'steps': lambda steps: tuple(sorted(STEP_TUPLE(s) for s in (steps or []))),
 }
 
-# ** constant: feature_event_sample_data
-feature_event_sample_data = {
-    'name': 'Test Event',
-    'service_id': 'test_event_handler',
-    'params': {'key': 'value'},
-    'data_key': 'result',
-    'pass_on_error': True,
-    'condition': '$r.x > 0',
-    'middleware': ['log'],
+# ** constant: test_feature_config_object_sample_data
+TEST_FEATURE_CONFIG_OBJECT_SAMPLE_DATA = {
+    'id': 'calc.add',
+    'name': 'Add Number',
+    'group_id': 'calc',
+    'feature_key': 'add',
+    'description': 'Adds one number to another',
+    'steps': [{
+        'name': 'Add a and b',
+        'service_id': 'add_number_event',
+        'params': {'precision': '2'},
+    }],
+}
+
+# ** constant: test_feature_config_object_aggregate_sample_data
+TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
+    'id': 'calc.add',
+    'name': 'Add Number',
+    'group_id': 'calc',
+    'feature_key': 'add',
+    'description': 'Adds one number to another',
+    'steps': [{
+        'name': 'Add a and b',
+        'service_id': 'add_number_event',
+        'parameters': {'precision': '2'},
+    }],
 }
 
 # *** tests
@@ -170,31 +181,76 @@ def test_feature_config_object_params_schema_round_trip():
 # *** testers
 
 # ** tester: test_event_feature_step_aggregate
-class TestEventFeatureStepAggregate(AggregateTestBase):
+@use_tester(
+    type='aggregate',
+    target_cls=EventFeatureStepAggregate,
+    sample_data=FEATURE_EVENT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FEATURE_EVENT_EQUALITY_FIELDS,
+    set_attribute_params=[
+        ('name', 'Updated Event', None),
+        ('service_id', 'updated_handler', None),
+        ('data_key', 'new_key', None),
+        ('condition', '$r.y != 0', None),
+    ],
+)
+class TestEventFeatureStepAggregate:
     '''
     Tests for EventFeatureStepAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        # Assert construction against the declared sample.
+        test_ctx.assert_new()
+
+    # * test: set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''
+        Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        # Assert the declared set_attribute cases.
+        test_ctx.assert_set_attribute()
+
+    # * attribute: aggregate_cls
     aggregate_cls = EventFeatureStepAggregate
 
+    # * attribute: sample_data
     sample_data = FEATURE_EVENT_AGGREGATE_SAMPLE_DATA
 
+    # * attribute: equality_fields
     equality_fields = FEATURE_EVENT_EQUALITY_FIELDS
 
+    # * attribute: set_attribute_params
     set_attribute_params = [
         # valid
         ('name', 'Updated Event', None),
         ('service_id', 'updated_handler', None),
         ('data_key', 'new_key', None),
         ('condition', '$r.y != 0', None),
-        ('middleware', ['log'], None),
     ]
 
     # * test: set_pass_on_error
-    def test_set_pass_on_error(self, aggregate):
+    def test_set_pass_on_error(self, test_ctx):
         '''
         Verifies string normalization ("false", "False", truthy).
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # String "false" should normalize to False.
         aggregate.set_pass_on_error('false')
@@ -213,10 +269,16 @@ class TestEventFeatureStepAggregate(AggregateTestBase):
         assert aggregate.pass_on_error is True
 
     # * test: set_parameters
-    def test_set_parameters(self, aggregate):
+    def test_set_parameters(self, test_ctx):
         '''
         Verifies merge, None-prune, and no-op on None.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Merge new parameters (new_key added, key updated).
         aggregate.set_parameters({'key': '10', 'new_key': '3'})
@@ -231,10 +293,16 @@ class TestEventFeatureStepAggregate(AggregateTestBase):
         assert aggregate.parameters == {'key': '10'}
 
     # * test: set_attribute_delegation
-    def test_set_attribute_delegation(self, aggregate):
+    def test_set_attribute_delegation(self, test_ctx):
         '''
         Verifies delegation to specialized helpers.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # set_attribute for parameters should delegate to set_parameters.
         aggregate.set_attribute('parameters', {'y': '2'})
@@ -248,45 +316,80 @@ class TestEventFeatureStepAggregate(AggregateTestBase):
         aggregate.set_attribute('name', 'Renamed Event')
         assert aggregate.name == 'Renamed Event'
 
-
 # ** tester: test_feature_aggregate
-class TestFeatureAggregate(AggregateTestBase):
+@use_tester(
+    type='aggregate',
+    target_cls=FeatureAggregate,
+    sample_data=FEATURE_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FEATURE_EQUALITY_FIELDS,
+    field_normalizers=FEATURE_FIELD_NORMALIZERS,
+    set_attribute_params=[
+        ('name', 'Updated Feature', None),
+        ('description', 'Updated description', None),
+        ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
+    ],
+)
+class TestFeatureAggregate:
     '''
     Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
+    # * test: new
+    def test_new(self, test_ctx):
+        '''
+        Verify aggregate construction against declared expected data.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        # Assert construction against the declared sample.
+        test_ctx.assert_new()
+
+    # * test: set_attribute
+    def test_set_attribute(self, test_ctx):
+        '''
+        Verify declared set_attribute cases.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
+        '''
+
+        # Assert the declared set_attribute cases.
+        test_ctx.assert_set_attribute()
+
+    # * attribute: aggregate_cls
     aggregate_cls = FeatureAggregate
 
+    # * attribute: sample_data
     sample_data = FEATURE_AGGREGATE_SAMPLE_DATA
 
+    # * attribute: equality_fields
     equality_fields = FEATURE_EQUALITY_FIELDS
 
+    # * attribute: field_normalizers
     field_normalizers = FEATURE_FIELD_NORMALIZERS
 
+    # * attribute: set_attribute_params
     set_attribute_params = [
         # valid
         ('name', 'Updated Feature', None),
         ('description', 'Updated description', None),
-        ('middleware', ['log'], None),
-        ('is_async', True, None),
         # invalid
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> FeatureAggregate:
-        '''
-        Override to use FeatureAggregate constructor with derivation.
-        '''
-
-        # Create an aggregate using the direct constructor.
-        return FeatureAggregate(**(data or self.sample_data))
-
     # * test: smart_derivation
-    def test_smart_derivation(self, aggregate):
+    def test_smart_derivation(self, test_ctx):
         '''
         Verifies smart derivation (name -> feature_key -> id).
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Assert smart derivation of feature_key and id.
         assert aggregate.feature_key == 'add_number'
@@ -294,49 +397,40 @@ class TestFeatureAggregate(AggregateTestBase):
         assert aggregate.description == 'Add Number'
 
     # * test: add_step
-    def test_add_step(self, aggregate):
+    def test_add_step(self, test_ctx):
         '''
-        Verifies step append and middleware passthrough.
+        Verifies step append.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
 
-        # Add a step with middleware.
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
+
+        # Append a step.
         step = aggregate.add_step(
             name='Step One',
             service_id='step_one_event',
-            middleware=['log'],
         )
 
-        # Assert the step was appended with correct middleware.
+        # Assert the step was appended.
         assert len(aggregate.steps) == 1
         assert aggregate.steps[0] is step
         assert step.name == 'Step One'
         assert step.service_id == 'step_one_event'
-        assert step.middleware == ['log']
-
-    # * test: add_step_async_flags
-    def test_add_step_async_flags(self, aggregate):
-        '''
-        Verifies is_async and flags passthrough.
-        '''
-
-        # Add a step with is_async and flags set to non-default values.
-        step = aggregate.add_step(
-            name='Step One',
-            service_id='step_one_event',
-            is_async=True,
-            flags=['beta'],
-        )
-
-        # Assert the values landed on the appended step.
-        assert aggregate.steps[0] is step
-        assert step.is_async is True
-        assert step.flags == ['beta']
 
     # * test: add_step_position
-    def test_add_step_position(self, aggregate):
+    def test_add_step_position(self, test_ctx):
         '''
         Verifies step insertion at position 0.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Add two steps, inserting the second at position 0.
         aggregate.add_step(name='Step One', service_id='step_one_event')
@@ -353,10 +447,16 @@ class TestFeatureAggregate(AggregateTestBase):
         assert aggregate.steps[1].name == 'Step One'
 
     # * test: remove_step
-    def test_remove_step(self, aggregate):
+    def test_remove_step(self, test_ctx):
         '''
         Verifies removal and invalid position handling.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Add two steps.
         aggregate.add_step(name='Step One', service_id='step_one_event')
@@ -373,10 +473,16 @@ class TestFeatureAggregate(AggregateTestBase):
         assert aggregate.remove_step(99) is None
 
     # * test: reorder_step
-    def test_reorder_step(self, aggregate):
+    def test_reorder_step(self, test_ctx):
         '''
         Verifies move with clamping.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Add three steps.
         aggregate.add_step(name='A', service_id='a_event')
@@ -392,10 +498,16 @@ class TestFeatureAggregate(AggregateTestBase):
         assert aggregate.steps[2].name == 'A'
 
     # * test: rename
-    def test_rename(self, aggregate):
+    def test_rename(self, test_ctx):
         '''
         Verifies name update without id change.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Record original id and rename the feature.
         original_id = aggregate.id
@@ -406,10 +518,16 @@ class TestFeatureAggregate(AggregateTestBase):
         assert aggregate.id == original_id
 
     # * test: set_description
-    def test_set_description(self, aggregate):
+    def test_set_description(self, test_ctx):
         '''
         Verifies set and clear.
+
+        :param test_ctx: The bound aggregate tester context.
+        :type test_ctx: AggregateTesterContext
         '''
+
+        # Construct the aggregate from the declared sample.
+        aggregate = test_ctx.make_target()
 
         # Set a description.
         aggregate.set_description('A custom description')
@@ -419,71 +537,84 @@ class TestFeatureAggregate(AggregateTestBase):
         aggregate.set_description(None)
         assert aggregate.description is None
 
-
 # ** tester: test_feature_config_object
-class TestFeatureConfigObject(TransferObjectTestBase):
+@use_tester(
+    type='transfer_object',
+    target_cls=FeatureConfigObject,
+    aggregate_cls=FeatureAggregate,
+    sample_data=TEST_FEATURE_CONFIG_OBJECT_SAMPLE_DATA,
+    aggregate_sample_data=TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA,
+    equality_fields=FEATURE_EQUALITY_FIELDS,
+    field_normalizers=FEATURE_FIELD_NORMALIZERS,
+)
+class TestFeatureConfigObject:
     '''
     Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
     '''
 
+    # * test: map
+    def test_map(self, test_ctx):
+        '''
+        Verify transfer construction and mapping to the declared aggregate.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
+        '''
+
+        # Assert mapping against the declared samples.
+        test_ctx.assert_map()
+
+    # * test: from_model
+    def test_from_model(self, test_ctx):
+        '''
+        Verify aggregate conversion to the declared transfer-object type.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
+        '''
+
+        # Assert from_model against the declared aggregate sample.
+        test_ctx.assert_from_model()
+
+    # * test: round_trip
+    def test_round_trip(self, test_ctx):
+        '''
+        Verify aggregate conversion through the transfer object and back.
+
+        :param test_ctx: The bound transfer-object tester context.
+        :type test_ctx: TransferObjectTesterContext
+        '''
+
+        # Assert the aggregate round-trips through the transfer object.
+        test_ctx.assert_round_trip()
+
+    # * attribute: transfer_cls
     transfer_cls = FeatureConfigObject
+
+    # * attribute: aggregate_cls
     aggregate_cls = FeatureAggregate
 
-    # YAML-format sample data (steps with params alias and service_id).
-    sample_data = {
-        'id': 'calc.add',
-        'name': 'Add Number',
-        'group_id': 'calc',
-        'feature_key': 'add',
-        'description': 'Adds one number to another',
-        'middleware': [],
-        'steps': [{
-            'name': 'Add a and b',
-            'service_id': 'add_number_event',
-            'params': {'precision': '2'},
-        }],
-    }
+    # * attribute: sample_data
+    sample_data = TEST_FEATURE_CONFIG_OBJECT_SAMPLE_DATA
 
-    # Aggregate-format expected data (defaults filled in).
-    aggregate_sample_data = {
-        'id': 'calc.add',
-        'name': 'Add Number',
-        'group_id': 'calc',
-        'feature_key': 'add',
-        'description': 'Adds one number to another',
-        'middleware': [],
-        'is_async': False,
-        'steps': [{
-            'name': 'Add a and b',
-            'service_id': 'add_number_event',
-            'parameters': {'precision': '2'},
-        }],
-    }
+    # * attribute: aggregate_sample_data
+    aggregate_sample_data = TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA
 
+    # * attribute: equality_fields
     equality_fields = FEATURE_EQUALITY_FIELDS
 
+    # * attribute: field_normalizers
     field_normalizers = FEATURE_FIELD_NORMALIZERS
 
-    # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> FeatureAggregate:
-        '''
-        Override to use direct constructors for aggregate and steps.
-        '''
-
-        # Create an aggregate using the direct constructor.
-        data = data or self.aggregate_sample_data
-
-        # Build steps as EventFeatureStepAggregate instances.
-        steps = [
-            EventFeatureStepAggregate(**step)
-            for step in data.get('steps', [])
-        ]
-
-        # Create the feature aggregate with mapped steps.
-        return FeatureAggregate(
-            **{k: v for k, v in data.items() if k != 'steps'},
-            steps=steps,
-        )
+    # * attribute: feature_event_sample_data
+    feature_event_sample_data = {
+        'name': 'Test Event',
+        'service_id': 'test_event_handler',
+        'params': {'key': 'value'},
+        'data_key': 'result',
+        'pass_on_error': True,
+        'condition': '$r.x > 0',
+    }
 
     # * test: feature_event_yaml_map_basic
     def test_feature_event_yaml_map_basic(self):
@@ -493,7 +624,7 @@ class TestFeatureConfigObject(TransferObjectTestBase):
 
         # Create a YAML object and map it.
         yaml_obj = EventFeatureStepConfigObject.model_validate(
-            feature_event_sample_data,
+            self.feature_event_sample_data,
         )
         event = yaml_obj.map()
 
@@ -504,7 +635,6 @@ class TestFeatureConfigObject(TransferObjectTestBase):
         assert event.parameters == {'key': 'value'}
         assert event.data_key == 'result'
         assert event.pass_on_error is True
-        assert event.middleware == ['log']
 
     # * test: feature_event_yaml_params_alias
     def test_feature_event_yaml_params_alias(self):
@@ -554,7 +684,6 @@ class TestFeatureConfigObject(TransferObjectTestBase):
             parameters={'key': 'value'},
             data_key='result',
             pass_on_error=True,
-            middleware=['log'],
         )
 
         # Create a YAML object from the model.
@@ -565,4 +694,69 @@ class TestFeatureConfigObject(TransferObjectTestBase):
         assert yaml_obj.name == model.name
         assert yaml_obj.service_id == model.service_id
         assert yaml_obj.parameters == model.parameters
-        assert yaml_obj.middleware == model.middleware
+
+    # * test: feature_event_yaml_middleware_round_trip
+    def test_feature_event_yaml_middleware_round_trip(self):
+        '''
+        Verify step middleware survives map and a from_model round-trip.
+        '''
+
+        # Validate a step config object carrying middleware.
+        yaml_obj = EventFeatureStepConfigObject.model_validate(dict(
+            name='Middleware Event',
+            service_id='mw_handler',
+            middleware=['timing_middleware', 'audit_middleware'],
+        ))
+
+        # Map preserves the middleware list.
+        event = yaml_obj.map()
+        assert event.middleware == ['timing_middleware', 'audit_middleware']
+
+        # from_model then map preserves the middleware list again.
+        round_tripped = EventFeatureStepConfigObject.from_model(event).map()
+        assert round_tripped.middleware == ['timing_middleware', 'audit_middleware']
+
+    # * test: feature_yaml_middleware_round_trip
+    def test_feature_yaml_middleware_round_trip(self):
+        '''
+        Verify feature middleware survives map and a from_model round-trip.
+        '''
+
+        # Validate a feature config object carrying middleware.
+        yaml_obj = FeatureConfigObject.model_validate(dict(
+            id='calc.add',
+            name='Add Number',
+            group_id='calc',
+            feature_key='add',
+            middleware=['timing_middleware'],
+            steps=[],
+        ))
+
+        # Map preserves the middleware list.
+        aggregate = yaml_obj.map()
+        assert aggregate.middleware == ['timing_middleware']
+
+        # from_model then map preserves the middleware list again.
+        round_tripped = FeatureConfigObject.from_model(aggregate).map()
+        assert round_tripped.middleware == ['timing_middleware']
+
+    # * test: feature_aggregate_add_step_with_middleware
+    def test_feature_aggregate_add_step_with_middleware(self):
+        '''
+        Verify add_step stores the supplied middleware list on the step.
+        '''
+
+        # Construct a feature and append a step with middleware.
+        aggregate = FeatureAggregate(
+            name='Add Number',
+            group_id='calc',
+        )
+        step = aggregate.add_step(
+            name='Step One',
+            service_id='step_one_event',
+            middleware=['timing_middleware'],
+        )
+
+        # Assert the middleware list landed on the step and the steps list.
+        assert step.middleware == ['timing_middleware']
+        assert aggregate.steps[0].middleware == ['timing_middleware']
