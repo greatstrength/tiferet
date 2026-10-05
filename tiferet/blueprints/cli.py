@@ -215,7 +215,7 @@ def create_cli_request_context(interface_id: str,
     '''
     Compose a CLI request context for a feature execution.
 
-    Mirrors ``core.create_session_request`` but constructs a
+    Mirrors ``core.create_request_context`` but constructs a
     ``CliRequestContext`` so ``handle_response`` converts the result into a
     typed CLI output model.
 
@@ -317,7 +317,6 @@ def build_cli_session_context(app_session: AppSession, cache: CacheContext) -> C
         CliSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
         create_request_handler=create_cli_request_context,
         response_handler=cli_response_handler,

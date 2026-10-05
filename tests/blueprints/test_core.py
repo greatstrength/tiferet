@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** core
+import logging
+
 # ** infra
 import pytest
 from unittest import mock
@@ -9,6 +12,7 @@ from unittest import mock
 # ** app
 from tiferet import assets as a
 from tiferet.assets import TiferetAPIError, TiferetError
+from tiferet.blueprints import core as core_blueprints
 from tiferet.blueprints.core import (
     parse_parameter,
     build_app_service_container,
@@ -22,32 +26,45 @@ from tiferet.blueprints.core import (
     create_app_service,
     get_app_session,
     create_request_context,
+    create_logging_context,
     create_feature_context,
-    create_session_request,
     execute_feature_handler,
     raise_error_handler,
     response_handler,
     compose_session_context,
 )
 from tiferet.contexts.app import (
+    AppSessionContext,
     add_default_app_services,
     add_default_app_constants,
     add_default_app_sessions,
     APP_SERVICE_CACHE_PREFIX,
+    APP_CONSTANT_CACHE_PREFIX,
+    APP_SESSION_CACHE_PREFIX,
 )
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.core import BaseContext
-from tiferet.contexts.error import ERROR_CACHE_PREFIX
+from tiferet.contexts.error import add_default_errors, ERROR_CACHE_PREFIX
 from tiferet.contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
 from tiferet.contexts.logging import (
     LOGGER_CACHE_PREFIX,
+    LOGGING_CACHE_PREFIX,
+    LoggingContext,
     add_default_logging_settings,
-    get_default_logging_settings,
 )
 from tiferet.contexts.request import RequestContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
-from tiferet.domain import AppSession, AppServiceDependency, Error, Feature, LoggingSettings, Formatter
+from tiferet.domain import (
+    AppSession,
+    AppServiceDependency,
+    Error,
+    Feature,
+    Formatter,
+    Handler,
+    Logger,
+    LoggingSettings,
+)
 from tiferet.events.app import GetAppSession
+from tiferet.interfaces import ServiceError
 from tiferet.repos.app import AppConfigRepository
 
 # *** tests
@@ -203,48 +220,37 @@ def test_build_service_resolver_registers_app_flag():
     assert resolver.get_container('app') is container
     assert resolver.get_container('app') is container
 
-# ** test: build_cache_returns_cache_context
-def test_build_cache_returns_cache_context():
+# ** test: build_cache_seeds_no_default_catalogs
+def test_build_cache_seeds_no_default_catalogs():
     '''
-    Test that build_cache returns a CacheContext instance.
-    '''
-
-    # Assert the built cache is a CacheContext.
-    assert isinstance(build_cache(), CacheContext)
-
-# ** test: build_cache_seeds_errors
-def test_build_cache_seeds_errors():
-    '''
-    Test that build_cache seeds default errors under ERROR_CACHE_PREFIX.
+    Test that build_cache returns a bare cache with empty default prefixes.
     '''
 
-    # Assert a well-known default error is accessible under the error prefix.
+    # Build a cache with no argument.
     cache = build_cache()
-    cached = cache.get(a.error.APP_SESSION_NOT_FOUND_ID, *ERROR_CACHE_PREFIX)
-    assert isinstance(cached, Error)
 
-# ** test: build_cache_seeds_app_services
-def test_build_cache_seeds_app_services():
-    '''
-    Test that build_cache seeds default app services under APP_SERVICE_CACHE_PREFIX.
-    '''
+    # Assert it is a CacheContext and seeds no default catalogs.
+    assert isinstance(cache, CacheContext)
+    assert cache.get_by_prefix(*ERROR_CACHE_PREFIX) == {}
+    assert cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX) == {}
+    assert cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX) == {}
+    assert cache.get_by_prefix(*APP_SESSION_CACHE_PREFIX) == {}
+    assert cache.get_by_prefix(*LOGGING_CACHE_PREFIX) == {}
 
-    # Assert the default di_service is accessible under the app service prefix.
-    cache = build_cache()
-    cached = cache.get('di_service', *APP_SERVICE_CACHE_PREFIX)
-    assert isinstance(cached, AppServiceDependency)
-
-# ** test: build_cache_seeds_logging_settings
-def test_build_cache_seeds_logging_settings():
+# ** test: create_logging_context_returns_logging_context
+def test_create_logging_context_returns_logging_context():
     '''
-    Test that build_cache seeds default logging settings.
+    Test that create_logging_context binds the supplied settings and logger id.
     '''
 
-    # Assert the default logging settings are seeded and retrievable.
-    cache = build_cache()
-    settings = get_default_logging_settings(cache)
-    assert isinstance(settings, LoggingSettings)
-    assert len(settings.formatters) > 0
+    # Build an empty settings object and the context.
+    settings = LoggingSettings(formatters=[], handlers=[], loggers=[])
+    result = create_logging_context(settings, logger_id='default')
+
+    # Assert the context is bound to those inputs.
+    assert isinstance(result, LoggingContext)
+    assert result.domain is settings
+    assert result.logger_id == 'default'
 
 # ** test: load_cache_returns_root_snapshot
 def test_load_cache_returns_root_snapshot():
@@ -295,7 +301,7 @@ def test_get_error_calls_event_on_miss():
     result = handler('TEST_ERROR')
     assert result is error
     get_dependency.assert_called_once_with('get_error_evt', 'app')
-    mock_event.execute.assert_called_once_with(id='TEST_ERROR')
+    mock_event.execute.assert_called_once_with('TEST_ERROR')
     assert cache.get('TEST_ERROR', *ERROR_CACHE_PREFIX) is error
 
 # ** test: get_feature_returns_cached
@@ -351,6 +357,116 @@ def test_merge_logging_settings_tolerates_empty_defaults():
 
     # Assert the repository entry is the sole formatter.
     assert [item.id for item in settings.formatters] == ['repo']
+
+    # A missing section is empty and does not raise.
+    empty = merge_logging_settings(CacheContext(), None, None, None)
+    assert empty.formatters == []
+    assert empty.handlers == []
+    assert empty.loggers == []
+
+# ** test: merge_logging_settings_merges_repo_data_over_defaults_by_id
+def test_merge_logging_settings_merges_repo_data_over_defaults_by_id():
+    '''
+    Test that repository logging sections replace defaults that share an id.
+    '''
+
+    # Seed the cache with the framework logging defaults.
+    cache = add_default_logging_settings(
+        a.logging.CORE_DEFAULT_LOGGING_SETTINGS,
+    )(lambda: CacheContext())()
+    repo_formatter = Formatter(id='repo', name='Repo', format='%(message)s')
+    repo_handler = Handler(
+        id='repo_h',
+        name='Repo Handler',
+        module_path='logging',
+        class_name='StreamHandler',
+        level='INFO',
+        formatter=a.logging.DEFAULT_FORMATTER_ID,
+    )
+    repo_logger = Logger(
+        id=a.logging.ROOT_LOGGER_ID,
+        name='Repo Root',
+        level='ERROR',
+        handlers=[a.logging.DEFAULT_ROOT_HANDLER_ID],
+        is_root=True,
+    )
+
+    # Merge repository sections over the seeded defaults.
+    settings = merge_logging_settings(
+        cache,
+        [repo_formatter],
+        [repo_handler],
+        [repo_logger],
+    )
+
+    # Assert ids and that the root logger object is the repository logger.
+    assert {item.id for item in settings.formatters} == {
+        a.logging.DEFAULT_FORMATTER_ID,
+        'repo',
+    }
+    assert {item.id for item in settings.handlers} == {
+        a.logging.DEFAULT_ROOT_HANDLER_ID,
+        a.logging.DEFAULT_HANDLER_ID,
+        a.logging.DEBUG_HANDLER_ID,
+        'repo_h',
+    }
+    assert {item.id for item in settings.loggers} == {
+        a.logging.ROOT_LOGGER_ID,
+        a.logging.DEFAULT_LOGGER_ID,
+        a.logging.DEBUG_LOGGER_ID,
+    }
+    root = next(item for item in settings.loggers if item.id == a.logging.ROOT_LOGGER_ID)
+    assert root is repo_logger
+
+# ** test: build_logger_handler_falls_back_when_list_all_unresolvable
+def test_build_logger_handler_falls_back_when_list_all_unresolvable():
+    '''
+    Test that an unresolvable list-all event still builds a cached logger.
+    '''
+
+    # Seed default logging settings and a resolver that cannot find the event.
+    cache = add_default_logging_settings(
+        a.logging.CORE_DEFAULT_LOGGING_SETTINGS,
+    )(lambda: CacheContext())()
+    get_dependency = mock.Mock(side_effect=ServiceError(
+        'DI_DEPENDENCY_NOT_REGISTERED',
+        'No dependency is registered under the id: logging_list_all_evt.',
+    ))
+
+    # Build the logger from the fallback path.
+    handler = build_logger_handler(cache, get_dependency)
+    logger = handler('default')
+
+    # Assert a logger was cached and the lookup ran once.
+    assert isinstance(logger, logging.Logger)
+    get_dependency.assert_called_once_with('logging_list_all_evt', 'app')
+    assert cache.get('default', *LOGGER_CACHE_PREFIX) is logger
+
+# ** test: build_logger_handler_falls_back_when_execute_raises_service_error
+def test_build_logger_handler_falls_back_when_execute_raises_service_error():
+    '''
+    Test that a ServiceError from list-all execute still builds a cached logger.
+    '''
+
+    # Seed default logging settings and an event whose execute raises ServiceError.
+    cache = add_default_logging_settings(
+        a.logging.CORE_DEFAULT_LOGGING_SETTINGS,
+    )(lambda: CacheContext())()
+    list_all = mock.Mock()
+    list_all.execute.side_effect = ServiceError(
+        'YAML_FILE_NOT_FOUND',
+        'YAML file not found.',
+    )
+    get_dependency = mock.Mock(return_value=list_all)
+
+    # Build the logger from the fallback path.
+    handler = build_logger_handler(cache, get_dependency)
+    logger = handler('fallback')
+
+    # Assert execute ran once and the logger is cached.
+    assert isinstance(logger, logging.Logger)
+    list_all.execute.assert_called_once_with()
+    assert cache.get('fallback', *LOGGER_CACHE_PREFIX) is logger
 
 # ** test: build_logger_handler_caches_by_logger_id
 def test_build_logger_handler_caches_by_logger_id():
@@ -481,22 +597,35 @@ def test_create_feature_context_resolves_and_binds():
     get_dependency = mock.Mock()
 
     # Resolve the bound feature context.
-    feature_context = create_feature_context(get_dependency, cache, 'test.feature')
+    feature_context = create_feature_context(
+        get_dependency,
+        cache,
+        feature_id='test.feature',
+    )
 
     # Assert a single FeatureContext is returned with the feature bound as domain.
     assert isinstance(feature_context, FeatureContext)
     assert feature_context.domain is feature
 
-# ** test: create_session_request_sets_interface_id_header
-def test_create_session_request_sets_interface_id_header():
+# ** test: create_feature_context_with_preloaded_feature
+def test_create_feature_context_with_preloaded_feature():
     '''
-    Test that create_session_request delegates to create_request_context.
+    Test that a preloaded feature skips dependency resolution.
     '''
 
-    # Build the request via the alias and assert the stamped interface id.
-    request = create_session_request('test.session', 'test.feature', headers={'X-Test': '1'}, data={'k': 'v'})
-    assert request.headers.get('interface_id') == 'test.session'
-    assert request.headers.get('X-Test') == '1'
+    # Pass an already-built feature and a resolver that must not be called.
+    feature = Feature(id='test.feature', name='Test Feature')
+    get_dependency = mock.Mock()
+    feature_context = create_feature_context(
+        get_dependency,
+        CacheContext(),
+        feature=feature,
+    )
+
+    # Assert the feature is bound and parse_parameter is the blueprint function.
+    get_dependency.assert_not_called()
+    assert feature_context.domain is feature
+    assert feature_context.parse_parameter is parse_parameter
 
 # ** test: execute_feature_handler_drives_feature_context
 def test_execute_feature_handler_drives_feature_context():
@@ -579,7 +708,7 @@ def test_raise_error_handler_wraps_bare_exception():
     error_domain = Error(
         id='APP_ERROR',
         name='App Error',
-        message=[{'lang': 'en_US', 'text': 'An error occurred in the app: {error}.'}],
+        message=[{'lang': 'en_US', 'text': 'An error occurred in the app: {error_message}.'}],
     )
     get_error_handler = mock.Mock(return_value=error_domain)
 
@@ -589,38 +718,54 @@ def test_raise_error_handler_wraps_bare_exception():
         handler(Exception('boom'))
 
     # Assert the bare exception was wrapped and resolved under the generic app error code.
-    get_error_handler.assert_called_once_with('APP_ERROR')
-    assert exc_info.value.error_code == 'APP_ERROR'
+    get_error_handler.assert_called_once_with(a.error.APP_ERROR_ID)
+    assert exc_info.value.error_code == a.error.APP_ERROR_ID
+
+# ** test: raise_error_handler_formats_wrapped_app_error_end_to_end
+def test_raise_error_handler_formats_wrapped_app_error_end_to_end():
+    '''
+    Test that a bare exception is formatted through the seeded app error.
+    '''
+
+    # Seed default errors and format a bare exception.
+    cache = add_default_errors(a.error.CORE_DEFAULT_ERRORS)(lambda: CacheContext())()
+    handler = raise_error_handler(get_error(cache, mock.Mock()))
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(Exception('something went wrong'))
+
+    # Assert the catalog sentence.
+    assert exc_info.value.error_code == a.error.APP_ERROR_ID
+    assert exc_info.value.name == 'App Error'
+    assert exc_info.value.message == 'An error occurred in the app: something went wrong.'
+
+# ** test: raise_error_handler_formats_event_raised_app_error
+def test_raise_error_handler_formats_event_raised_app_error():
+    '''
+    Test that an event-raised app error keeps its error_message.
+    '''
+
+    # Seed default errors and format an already-coded app error.
+    cache = add_default_errors(a.error.CORE_DEFAULT_ERRORS)(lambda: CacheContext())()
+    handler = raise_error_handler(get_error(cache, mock.Mock()))
+    error = TiferetError(
+        a.error.APP_ERROR_ID,
+        'SQLite execution failed: no such table: users',
+        error_message='no such table: users',
+    )
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(error)
+
+    # Assert the catalog sentence uses the carried error_message.
+    assert exc_info.value.message == 'An error occurred in the app: no such table: users.'
 
 # ** test: compose_session_context_wires_five_handlers
 def test_compose_session_context_wires_five_handlers():
     '''
     Test that compose_session_context wires all five template-method handlers
-    onto the constructed context.
+    onto an AppSessionContext.
     '''
 
-    # Define a fake session context that captures every wired constructor kwarg.
-    class FakeSessionContext(BaseContext):
-        def __init__(self,
-                get_dependency=None,
-                cache=None,
-                build_logger_handler=None,
-                execute_feature_handler=None,
-                create_request_handler=None,
-                raise_error_handler=None,
-                response_handler=None,
-                **kwargs):
-            super().__init__()
-            self.get_dependency = get_dependency
-            self.cache = cache
-            self.build_logger_handler = build_logger_handler
-            self.execute_feature_handler = execute_feature_handler
-            self.create_request_handler = create_request_handler
-            self.raise_error_handler = raise_error_handler
-            self.response_handler = response_handler
-            self.extra_kwargs = kwargs
-
-    # Seed a minimal di_service default and build the app container/resolver.
+    # Seed a minimal di_service default and build the resolver.
     cache = add_default_app_services({
         'di_service': {
             'service_id': 'di_service',
@@ -629,138 +774,93 @@ def test_compose_session_context_wires_five_handlers():
         },
     })(lambda: CacheContext())()
     app_session = AppSession(id='test.session', name='Test Session')
-    app_container = build_app_service_container(cache, app_session)
-    resolver = build_service_resolver(app_container)
+    resolver = build_service_resolver(build_app_service_container(cache, app_session))
+    get_dependency = resolver.get_dependency
 
-    # Bypass the real logging pipeline; this test targets handler wiring only.
-    fake_build_logger = mock.Mock(name='build_logger_handler')
-    fake_create_request = mock.Mock(name='create_request_handler')
-    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
-        context = compose_session_context(
-            FakeSessionContext,
-            app_session,
-            cache,
-            app_container,
-            resolver,
-            create_request_handler=fake_create_request,
-            response_handler=response_handler,
-        )
+    # Compose without an app container.
+    context = compose_session_context(
+        AppSessionContext,
+        app_session,
+        cache,
+        resolver,
+        create_request_handler=create_request_context,
+        response_handler=response_handler,
+    )
 
-    # Assert the constructed context is bound to the app session with all five handlers wired.
-    assert isinstance(context, FakeSessionContext)
+    # Assert the session, resolver, cache, and five handlers.
+    assert isinstance(context, AppSessionContext)
     assert context.domain is app_session
-    assert context.get_dependency == resolver.get_dependency
+    assert context.get_dependency.__func__ is resolver.get_dependency.__func__
+    assert context.get_dependency.__self__ is resolver
     assert context.cache is cache
-    assert context.build_logger_handler is fake_build_logger
-    assert context.execute_feature_handler is not None
-    assert context.raise_error_handler is not None
-    assert context.create_request_handler is fake_create_request
-    assert context.response_handler is response_handler
+    assert callable(context._build_logger)
+    assert callable(context._execute_feature)
+    assert callable(context._raise_error)
+    assert callable(context._create_request)
+    assert callable(context._build_response)
 
-# ** test: compose_session_context_resolves_collaborators
-def test_compose_session_context_resolves_collaborators():
+# ** test: compose_session_context_does_not_inject_unpassed_slots
+def test_compose_session_context_does_not_inject_unpassed_slots():
     '''
-    Test that compose_session_context resolves a context class's remaining
-    injectable collaborators via resolve_collaborators.
+    Test that a constructor slot is not filled from a matching service id.
     '''
 
-    # Define a fake session context declaring one extra injectable collaborator.
-    class FakeSessionContext(BaseContext):
-        def __init__(self,
-                get_dependency=None,
-                cache=None,
-                build_logger_handler=None,
-                execute_feature_handler=None,
-                create_request_handler=None,
-                raise_error_handler=None,
-                response_handler=None,
-                extra_service=None,
-                **kwargs):
-            super().__init__()
-            self.extra_service = extra_service
+    # Subclass that stores an extra slot the composer must not fill.
+    class ProbeSessionContext(AppSessionContext):
+        def __init__(self, *args, probe_evt=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.probe_evt = probe_evt
 
-    # Seed di_service plus the extra collaborator service on the app container.
-    cache = add_default_app_services({
-        'di_service': {
-            'service_id': 'di_service',
-            'module_path': 'tiferet.contexts.cache',
-            'class_name': 'CacheContext',
-        },
-        'extra_service': {
-            'service_id': 'extra_service',
-            'module_path': 'tiferet.contexts.cache',
-            'class_name': 'CacheContext',
-        },
-    })(lambda: CacheContext())()
+    # Compose without passing probe_evt.
     app_session = AppSession(id='test.session', name='Test Session')
-    app_container = build_app_service_container(cache, app_session)
-    resolver = build_service_resolver(app_container)
+    result = compose_session_context(
+        ProbeSessionContext,
+        app_session,
+        CacheContext(),
+        mock.Mock(),
+        create_request_handler=create_request_context,
+        response_handler=response_handler,
+    )
 
-    # Bypass the real logging pipeline; this test targets collaborator resolution only.
-    fake_build_logger = mock.Mock(name='build_logger_handler')
-    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
-        context = compose_session_context(
-            FakeSessionContext,
-            app_session,
-            cache,
-            app_container,
-            resolver,
-            create_request_handler=create_session_request,
-            response_handler=response_handler,
-        )
+    # Assert the unpassed slot stays empty.
+    assert result.probe_evt is None
 
-    # Assert the extra collaborator was resolved from the app container.
-    assert isinstance(context.extra_service, CacheContext)
+# ** test: retired_collaborator_scanner_and_aliases_are_absent
+def test_retired_collaborator_scanner_and_aliases_are_absent():
+    '''
+    Test that the collaborator scanner and request alias are gone.
+    '''
+
+    # Assert the retired names are not on the blueprint module.
+    assert not hasattr(core_blueprints, 'resolve_collaborators')
+    assert not hasattr(core_blueprints, 'RESERVED_CONTEXT_PARAMETERS')
+    assert not hasattr(core_blueprints, 'create_session_request')
 
 # ** test: compose_session_context_forwards_extra_kwargs
 def test_compose_session_context_forwards_extra_kwargs():
     '''
-    Test that compose_session_context forwards extra_kwargs (e.g. a
-    parse_cli_args-style closure) through to the constructed context.
+    Test that compose_session_context forwards parse_cli_args onto the context.
     '''
 
-    # Define a fake session context accepting a CLI-style extra kwarg.
-    class FakeSessionContext(BaseContext):
-        def __init__(self,
-                get_dependency=None,
-                cache=None,
-                build_logger_handler=None,
-                execute_feature_handler=None,
-                create_request_handler=None,
-                raise_error_handler=None,
-                response_handler=None,
-                parse_cli_args=None,
-                **kwargs):
-            super().__init__()
-            self.parse_cli_args = parse_cli_args
+    # Probe subclass stores the CLI parser the hub does not declare.
+    class ProbeSessionContext(AppSessionContext):
+        def __init__(self, *args, parse_cli_args=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._parse_cli_args = parse_cli_args
 
-    # Seed a minimal di_service default and build the app container/resolver.
-    cache = add_default_app_services({
-        'di_service': {
-            'service_id': 'di_service',
-            'module_path': 'tiferet.contexts.cache',
-            'class_name': 'CacheContext',
-        },
-    })(lambda: CacheContext())()
+    # Forward the extra slot without an app container.
     app_session = AppSession(id='test.session', name='Test Session')
-    app_container = build_app_service_container(cache, app_session)
-    resolver = build_service_resolver(app_container)
     fake_parse_cli_args = mock.Mock(name='parse_cli_args')
+    context = compose_session_context(
+        ProbeSessionContext,
+        app_session,
+        CacheContext(),
+        mock.Mock(),
+        create_request_handler=create_request_context,
+        response_handler=response_handler,
+        parse_cli_args=fake_parse_cli_args,
+    )
 
-    # Bypass the real logging pipeline; this test targets extra_kwargs forwarding only.
-    fake_build_logger = mock.Mock(name='build_logger_handler')
-    with mock.patch('tiferet.blueprints.core.build_logger_handler', return_value=fake_build_logger):
-        context = compose_session_context(
-            FakeSessionContext,
-            app_session,
-            cache,
-            app_container,
-            resolver,
-            create_request_handler=create_session_request,
-            response_handler=response_handler,
-            parse_cli_args=fake_parse_cli_args,
-        )
-
-    # Assert the extra kwarg was forwarded to the constructed context.
-    assert context.parse_cli_args is fake_parse_cli_args
+    # Assert the parser landed on the private slot.
+    assert context._parse_cli_args is fake_parse_cli_args
 

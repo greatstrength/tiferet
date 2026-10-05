@@ -8,6 +8,7 @@ import time
 from typing import Any, Callable, Dict, List, Tuple
 
 # ** app
+from .. import a
 from ..assets import TiferetError, TiferetAPIError
 from ..assets.error import APP_ERROR_ID
 from ..domain import AppSession, AppServiceDependency
@@ -33,35 +34,6 @@ ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'constants')
 APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = ('app', 'sessions')
 
 # *** functions
-
-# ** function: raise_unwired_handler_error
-def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
-    '''
-    Raise a structured API error when a required hub handler is unwired.
-
-    Always raises; never returns. Callers treat this as a terminal statement.
-
-    :param handler_name: The name of the missing handler slot.
-    :type handler_name: str
-    :param session_id: The app session id that expected the handler.
-    :type session_id: str
-    :param kwargs: Additional context forwarded onto the API error.
-    :type kwargs: dict
-    '''
-
-    # Compose a message naming the missing handler and the session that needed it.
-    message = (
-        f'No {handler_name} is wired on the app session context for session '
-        f'{session_id}; the blueprint must supply {handler_name}.'
-    )
-
-    # Raise a structured API error; this function never returns.
-    raise TiferetAPIError(
-        error_code=APP_ERROR_ID,
-        name='App Error',
-        message=message,
-        **kwargs,
-    )
 
 # ** function: add_default_app_services
 def add_default_app_services(services: Dict[str, Any]) -> Callable:
@@ -148,9 +120,34 @@ def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
         id_field='id',
     )
 
+# ** function: raise_unwired_handler_error
+# -- obsolete: delegates to assets.core.raise_unwired_handler_error; removal is a later slice
+def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
+    '''
+    Raise a structured API error when a required hub handler is unwired.
+
+    Always raises; never returns. Callers treat this as a terminal statement.
+
+    :param handler_name: The name of the missing handler slot.
+    :type handler_name: str
+    :param session_id: The app session id that expected the handler.
+    :type session_id: str
+    :param kwargs: Additional context forwarded onto the API error.
+    :type kwargs: dict
+    '''
+
+    # Delegate to the asset helper; this function does not catch the raise.
+    a.core.raise_unwired_handler_error(
+        handler_name,
+        session_id,
+        error_code=APP_ERROR_ID,
+        **kwargs,
+    )
+
 # *** contexts
 
 # ** context: app_session_context
+# >> see: @guides/contexts.md#appsessioncontext
 class AppSessionContext(BaseContext):
     '''
     The application session hub binds a loaded ``AppSession`` domain object
@@ -216,7 +213,7 @@ class AppSessionContext(BaseContext):
 
         # Store the DI resolution handler and shared bootstrap cache.
         self.get_dependency = get_dependency
-        self.cache = cache or CacheContext()
+        self.cache = cache if cache is not None else CacheContext()
 
         # Store the five template-method handlers (validated lazily on first use).
         self._build_logger = build_logger_handler

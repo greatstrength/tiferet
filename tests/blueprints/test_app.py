@@ -14,7 +14,7 @@ from unittest import mock
 from tiferet import assets as a
 from tiferet.assets import TiferetError
 from tiferet.blueprints.app import build_app_session_context, build_app
-from tiferet.blueprints.core import create_session_request, response_handler
+from tiferet.blueprints.core import create_request_context, response_handler
 from tiferet.contexts.app import add_default_app_services, AppSessionContext
 from tiferet.contexts.cache import CacheContext
 from tiferet.domain import AppSession
@@ -111,7 +111,7 @@ def test_build_app_session_context_wires_handlers():
     assert context._execute_feature is not None
     assert context._raise_error is not None
     assert context._build_response is response_handler
-    assert context._create_request is create_session_request
+    assert context._create_request is create_request_context
 
 # ** test: build_app_returns_app_session_context
 def test_build_app_returns_app_session_context():
@@ -170,7 +170,7 @@ def test_build_app_end_to_end_wires_session_context(session_config_file):
     assert context._build_logger is not None
     assert context._execute_feature is not None
     assert context._raise_error is not None
-    assert context._create_request is create_session_request
+    assert context._create_request is create_request_context
     assert context._build_response is response_handler
 
     # Assert the shared cache was composed for real.
