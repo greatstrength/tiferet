@@ -289,12 +289,12 @@ class TesterObject(DomainObject):
 
         # Return ABC classes without instantiating them.
         if isinstance(obj, type):
-            abstracts = getattr(obj, '__abstractmethods__', None)
-            if abstracts:
+            abstract_methods = getattr(obj, '__abstractmethods__', None)
+            if abstract_methods:
                 return obj
 
-            # Construct a concrete class from a copy of sample_data.
-            return obj(**dict(self.sample_data or {}))
+            # Construct a concrete class from declaration-time sample data.
+            return obj(**self.sample_data)
 
         # Return constants and other attributes as-is.
         return obj
