@@ -183,6 +183,7 @@ APP_ADD_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(
             ['--logger-id'],
             description='Optional logger identifier. Defaults to "default".',
+            default='default',
         ),
         create_default_cli_argument(
             ['--constants'],
@@ -347,7 +348,7 @@ CLI_ADD_ARGUMENT_CLI_CMD_DATA = create_default_cli_command_data(
         ),
         create_default_cli_argument(
             ['name_or_flags'],
-            description='JSON-encoded list of argument names or flags.',
+            description='Argument name or flags (comma-separated for multiple flags).',
         ),
         create_default_cli_argument(
             ['--description'],
