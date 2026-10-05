@@ -76,20 +76,23 @@ A **sub-TRD PR** is one child's pull request. It targets the Super-TRD branch. T
 
 The orchestrator (a Release round, or the human) cuts `<parent-issue>-<slug>` from `main` at the freeze base — trunk as it stands for this reconstruction, never proto — and pushes it **before any child starts**. A child does not cut that branch.
 
-Each child cuts `<child-issue>-<slug>` from the Super-TRD branch tip and opens a sub-TRD PR targeting that branch, never `main`. Title: `<Component/Assemblage> - <Plain Title> (#child)`. Body: `Refs #<child>`, `Refs #<parent>`, and that child's AC checkboxes. After `gh pr create`, the author runs `gh pr view <N> --json baseRefName` and stops if the base is not the Super-TRD branch.
+Each unblocked child cuts `<child-issue>-<slug>` from the Super-TRD branch tip and opens a sub-TRD PR targeting that branch, never `main`. Title: `<Component/Assemblage> - <Plain Title> (#child)`. Body: `Refs #<child>`, `Refs #<parent>`, and that child's AC checkboxes. After `gh pr create`, the author runs `gh pr view <N> --json baseRefName` and stops if the base is not the Super-TRD branch. A child with an external blocker is not cut yet. See [Cross-boundary blockers](#cross-boundary-blockers).
 
 Children stay **In Review** from the moment that PR is open until the Super-TRD PR is squash-merged to `main`. Closing them is closeout, not the child's job.
 
 The Super-TRD PR title is `<Component/Assemblage> - <Plain Title> (#parent)`. Body: `Closes #<parent>` only. The orchestrator or the human opens it. A child does not.
 
-## Proposed: cross-boundary blockers
+## Cross-boundary blockers
 
-**Not decided. Do not apply this until a human accepts it.**
+A Super-TRD child blocked by a standalone TRD, or by any work outside its parent branch, is not branched, assigned, or implemented until every such blocker is squash-merged to `main`. The process keeps that work from starting. It does not start speculatively and rebase later.
 
-- A child blocked by a standalone TRD would wait until that standalone PR is merged to `main`. The orchestrator or the human would then merge `main` into the Super-TRD branch with a merge commit, and only then would the dependent child launch.
-- A blocker between children of the same Super-TRD would be satisfied when the blocking child's PR is merged into the Super-TRD branch. It would not wait for `main`.
+Those external blocked-by edges are recorded on the child and on the **parent** issue, so they are visible at the parent. The orchestrator checks the parent's blocked-by before launching any child and does not launch a child whose blocker is unmerged.
 
-Until that decision, a child blocked by work that is not already on the branch it would cut from stops and reports. It does not merge `main` into the Super-TRD branch, and it does not invent a wait rule.
+Unblocked children of the same parent may still be cut from the Super-TRD branch at the freeze base and merged into it. Their progress does not lift a sibling's external block.
+
+Once those blockers are on `main`, the orchestrator or the human merges `main` into the Super-TRD branch with a merge commit. Not a rebase. Not the child. Only then is the blocked child's branch cut from that updated tip.
+
+A blocker between children of the same parent is satisfied when the blocking child's PR is squash-merged into the Super-TRD branch. It does not wait for `main`. The dependent child is cut from that tip, not from the sibling's branch.
 
 ## Where the conversation lives
 

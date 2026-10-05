@@ -65,7 +65,7 @@ A Super-TRD is parent plus children, child size at most Medium. The TRD *genre* 
 
 The orchestrator or the human cuts `<parent-issue>-<slug>` from `main` and pushes it before any child starts. You do not cut that branch because you are the first child, and you do not commit onto it.
 
-If you are asked to implement **one child**: confirm the Super-TRD branch is already pushed. Cut `<child-issue>-<slug>` from its tip. Open a PR targeting that branch, never `main`. Body: `Refs #<child>` and `Refs #<parent>`. Never `Closes`, `Fixes`, or `Resolves`. Verify `gh pr view <N> --json baseRefName`. Set the child to In Review. Short status on the child issue. Do not write a Collaboration Report. Do not close the child. Do not open the Super-TRD PR to `main`.
+If you are asked to implement **one child**: confirm the Super-TRD branch is already pushed, and that this child is not blocked by a standalone TRD or by work outside that branch. If it is, do not cut a branch and do not start. See [Cross-boundary blockers](process.md#cross-boundary-blockers). Otherwise cut `<child-issue>-<slug>` from the Super-TRD branch tip. Open a PR targeting that branch, never `main`. Body: `Refs #<child>` and `Refs #<parent>`. Never `Closes`, `Fixes`, or `Resolves`. Verify `gh pr view <N> --json baseRefName`. Set the child to In Review. Short status on the child issue. Do not write a Collaboration Report. Do not close the child. Do not open the Super-TRD PR to `main`. Do not merge `main` into the Super-TRD branch.
 
 If the Super-TRD branch does not exist yet, stop and report. Do not open a PR to `main` in its place.
 

@@ -53,7 +53,7 @@ The first child does not open the parent PR. Later children do not commit onto a
 
 1. Confirm the parent issue, this child, and that `<parent-issue>-<slug>` is already on the remote. If it is not, stop and report. Do not cut it, and do not open a PR to `main`.
 2. If this child is on a blocked-by cycle, stop and report. Do not pick an order.
-3. If this child is blocked by work that is not already on the Super-TRD branch, stop and report. Cross-boundary blockers are proposed, not decided (`docs/collab/process.md`). Do not merge `main` into the Super-TRD branch. Do not commit onto a sibling's branch.
+3. If this child is blocked by a standalone TRD or by any work outside the Super-TRD branch, do not branch, assign, or implement. Those blockers must already be squash-merged to `main`, and `main` must already be merge-committed into the Super-TRD branch, before this branch is cut from that tip. Do not start speculatively. Do not rebase. Do not merge `main` yourself. A sibling blocker is satisfied only when that sibling's PR is squash-merged into the Super-TRD branch; cut from that tip, not from the sibling's branch. Law: `docs/collab/process.md` § Cross-boundary blockers.
 4. Cut `<child-issue>-<slug>` from the Super-TRD branch tip, not from `main`. Status In Progress. Start date on this child.
 5. Implement this child only. Self-check as in Standalone step 6. Do not read proto.
 6. Open a PR targeting the Super-TRD branch, never `main`. Title `<Component/Assemblage> - <Plain Title> (#child)`. Body: `Refs #<child>` and `Refs #<parent>`, plus this child's AC checkboxes. Never `Closes`, `Fixes`, or `Resolves`. Do not add the PR to a milestone.
@@ -72,7 +72,7 @@ Children stay **In Review** until the Super-TRD PR is squash-merged to `main`. C
 ## Guardrails
 
 - Never proto → trunk git. Never read proto to copy code. Never check out proto into the trunk worktree.
-- Never merge unless asked. Sub-TRD squash-merge is the reviewer's step (`tiferet-pr-code-review`), not yours.
+- Never merge unless asked. Sub-TRD squash-merge is the reviewer's step (`tiferet-pr-code-review`), not yours. Never merge `main` into the Super-TRD branch. Never rebase that branch. Never start a child blocked outside it.
 - Never tag or bump version on this PR.
 - Never `Closes` / `Fixes` / `Resolves` on a Super-TRD child PR.
 - Never close a Super-TRD child issue. Children stay In Review until the parent PR to `main` is squash-merged.

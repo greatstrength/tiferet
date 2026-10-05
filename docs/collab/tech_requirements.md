@@ -79,7 +79,7 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 - **§3:** artifact action per module, not a vague "Changes" blurb.
 - **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`).
 - **§5:** target artifacts exist *and* retired ones are gone.
-- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included). Before wiring a set, check for a cycle — two or more issues each naming the other's output as a prerequisite — and do not publish one ([process.md](process.md)).
+- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included). External blockers of a Super-TRD child are wired on that child and on the parent issue ([process.md](process.md)). Before wiring a set, check for a cycle — two or more issues each naming the other's output as a prerequisite — and do not publish one ([process.md](process.md)).
 - **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the Release reviewer measures against, or `None` when no prototype exists. The reviewer also reads the prototype branch, read-only ([code_review.md](code_review.md)). The implementor does not read either.
 - **§7 hotfix:** no freeze row and no reference prototype row. Name the defect and why proto was not consulted.
 - **§8:** always `tiferet-code-style`; component skills as touched. Fallback: `docs/core/<component>.md`.

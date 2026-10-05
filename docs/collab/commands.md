@@ -157,6 +157,15 @@ gh api repos/greatstrength/tiferet/issues/<issue>/dependencies/blocked_by \
 
 Do not publish a blocked-by cycle: two or more issues each naming the other's output as a prerequisite. Stop and report. See [process.md](process.md).
 
+External blockers of a Super-TRD child (a standalone TRD, or any work outside the parent branch) are wired on the child and on the parent issue. After every such blocker is squash-merged to `main`, the orchestrator or the human — not the child — updates the Super-TRD branch with a merge commit, not a rebase:
+
+```bash
+git checkout <parent-issue>-<slug>
+git merge --no-ff main -m "Merge main into <parent-issue>-<slug>"
+```
+
+Only then is the blocked child's branch cut from that tip. See [process.md](process.md#cross-boundary-blockers).
+
 Do not put the PR on a milestone. Assign the **issue** to a milestone if a reviewer asked you to; otherwise leave milestone assignment to the reviewer.
 
 ## Release Publishing
