@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from tiferet.assets import TiferetError
-from tiferet.interfaces import Service, ServiceError
+from tiferet.interfaces.core import Service, ServiceError
 
 # *** constants
 
@@ -32,7 +32,7 @@ class SampleService(Service):
         ServiceError.raise_for(
             self,
             SAMPLE_ERROR_CODE,
-            'The sample service failed.',
+            message='The sample service failed.',
             detail='sample',
         )
 
@@ -49,7 +49,7 @@ class SampleService(Service):
             ServiceError.raise_for(
                 self,
                 SAMPLE_ERROR_CODE,
-                f'The sample driver failed: {e}',
+                message=f'The sample driver failed: {e}',
                 cause=e,
             )
 
@@ -64,7 +64,7 @@ class SampleService(Service):
         ServiceError.raise_for(
             SampleService,
             SAMPLE_ERROR_CODE,
-            'The sample service failed statically.',
+            message='The sample service failed statically.',
         )
 
 # *** tests

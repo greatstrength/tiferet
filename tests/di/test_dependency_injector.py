@@ -2,26 +2,29 @@
 
 # *** imports
 
+# ** core
+from unittest import mock
+
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from tiferet import assets as a
 from tiferet.assets import TiferetError
+from tiferet.interfaces.core import ServiceError
+from tiferet.domain import (
+    ServiceDependency,
+    AppServiceDependency,
+    FlaggedDependency,
+    ServiceRegistration,
+)
+from tiferet.interfaces.di import DIService
 from tiferet.di.dependency_injector import (
-    DIAppServiceContainer,
     DIDynamicServiceContainer,
+    DIAppServiceContainer,
     DIDynamicServiceResolver,
     DI_DEPENDENCY_NOT_REGISTERED_ID,
 )
-from tiferet.domain import (
-    AppServiceDependency,
-    FlaggedDependency,
-    ServiceDependency,
-    ServiceRegistration,
-)
-from tiferet.interfaces import DIService, ServiceError
 
 # *** constants
 
@@ -235,7 +238,7 @@ def test_init_empty():
     assert len(DIDynamicServiceContainer().container.providers) == 0
 
 # ** test: add_service_resolves
-def test_add_service_resolves(simple_dependency):
+def test_add_service_resolves(simple_dependency: ServiceDependency):
     '''
     add_service registers a service that resolves to SimpleService.
 
@@ -253,7 +256,7 @@ def test_add_service_resolves(simple_dependency):
     assert isinstance(container.get_dependency('simple_service'), SimpleService)
 
 # ** test: add_service_new_instance_per_call
-def test_add_service_new_instance_per_call(simple_dependency):
+def test_add_service_new_instance_per_call(simple_dependency: ServiceDependency):
     '''
     Factory scope returns a new SimpleService on each resolution.
 
@@ -291,7 +294,7 @@ def test_add_constant_resolves():
     assert container.get_dependency('config_value') == 'test_config'
 
 # ** test: add_constant_injected_into_service
-def test_add_constant_injected_into_service(configurable_dependency):
+def test_add_constant_injected_into_service(configurable_dependency: ServiceDependency):
     '''
     A constant registered before a service is injected into that service.
 
@@ -310,7 +313,7 @@ def test_add_constant_injected_into_service(configurable_dependency):
     assert container.get_dependency('configurable_service').config_value == 'test_config'
 
 # ** test: add_service_registers_parameters_as_constants
-def test_add_service_registers_parameters_as_constants(configurable_with_params_dependency):
+def test_add_service_registers_parameters_as_constants(configurable_with_params_dependency: ServiceDependency):
     '''
     add_service alone registers declared parameters as constants.
 
@@ -328,7 +331,7 @@ def test_add_service_registers_parameters_as_constants(configurable_with_params_
     assert container.get_dependency('configurable_service').config_value == 'param_value'
 
 # ** test: add_service_parameter_wins_over_constant
-def test_add_service_parameter_wins_over_constant(configurable_with_params_dependency):
+def test_add_service_parameter_wins_over_constant(configurable_with_params_dependency: ServiceDependency):
     '''
     A service parameter overrides a pre-registered constant of the same id.
 
@@ -347,7 +350,7 @@ def test_add_service_parameter_wins_over_constant(configurable_with_params_depen
     assert container.get_dependency('configurable_service').config_value == 'param_value'
 
 # ** test: load_container_constants_before_services
-def test_load_container_constants_before_services(configurable_dependency):
+def test_load_container_constants_before_services(configurable_dependency: ServiceDependency):
     '''
     Construction registers constants before services.
 
@@ -367,7 +370,7 @@ def test_load_container_constants_before_services(configurable_dependency):
     assert container.get_dependency('configurable_service').config_value == 'test_config'
 
 # ** test: constructor_delegates_to_load_container
-def test_constructor_delegates_to_load_container(simple_dependency):
+def test_constructor_delegates_to_load_container(simple_dependency: ServiceDependency):
     '''
     The constructor loads both the given service and constants.
 
@@ -388,7 +391,7 @@ def test_constructor_delegates_to_load_container(simple_dependency):
     assert container.get_dependency('config_value') == 'test_config'
 
 # ** test: has_dependency_present
-def test_has_dependency_present(simple_dependency):
+def test_has_dependency_present(simple_dependency: ServiceDependency):
     '''
     has_dependency is True after add_service.
 
@@ -418,7 +421,7 @@ def test_has_dependency_absent():
     assert DIDynamicServiceContainer().has_dependency('missing') is False
 
 # ** test: has_dependency_app_container
-def test_has_dependency_app_container(simple_dependency):
+def test_has_dependency_app_container(simple_dependency: ServiceDependency):
     '''
     An app container reports present and absent ids.
 
@@ -463,7 +466,7 @@ def test_get_dependency_missing_raises_service_error():
     assert not isinstance(error, TiferetError)
 
 # ** test: remove_dependency_removes
-def test_remove_dependency_removes(simple_dependency):
+def test_remove_dependency_removes(simple_dependency: ServiceDependency):
     '''
     remove_dependency deletes a present provider.
 
@@ -500,7 +503,7 @@ def test_remove_dependency_idempotent():
     assert len(container.container.providers) == 0
 
 # ** test: cascading_dependency_injection
-def test_cascading_dependency_injection(simple_dependency, dependent_dependency):
+def test_cascading_dependency_injection(simple_dependency: ServiceDependency, dependent_dependency: ServiceDependency):
     '''
     A dependent service receives the registered simple service.
 

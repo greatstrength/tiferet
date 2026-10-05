@@ -4,10 +4,10 @@
 
 # ** app
 from tiferet.di.core import (
-    ServiceContainer,
-    ServiceResolver,
     injectable_parameter_names,
     normalize_flags,
+    ServiceContainer,
+    ServiceResolver,
 )
 
 # *** classes
@@ -82,7 +82,7 @@ class StubContainer(ServiceContainer):
         self.requested = []
 
     # * method: add_service
-    def add_service(self, service_id, service):
+    def add_service(self, service_id: str, service):
         '''
         No-op service registration.
 
@@ -95,7 +95,7 @@ class StubContainer(ServiceContainer):
         pass
 
     # * method: add_constant
-    def add_constant(self, constant_id, value):
+    def add_constant(self, constant_id: str, value):
         '''
         No-op constant registration.
 
@@ -108,7 +108,7 @@ class StubContainer(ServiceContainer):
         pass
 
     # * method: get_dependency
-    def get_dependency(self, dependency_id):
+    def get_dependency(self, dependency_id: str):
         '''
         Record the requested id and return the stored value.
 
@@ -125,7 +125,7 @@ class StubContainer(ServiceContainer):
         return self.resolved.get(dependency_id)
 
     # * method: has_dependency
-    def has_dependency(self, dependency_id):
+    def has_dependency(self, dependency_id: str) -> bool:
         '''
         Return whether the id is present in the resolved mapping.
 
@@ -139,7 +139,7 @@ class StubContainer(ServiceContainer):
         return dependency_id in self.resolved
 
     # * method: remove_dependency
-    def remove_dependency(self, dependency_id):
+    def remove_dependency(self, dependency_id: str):
         '''
         No-op dependency removal.
 
