@@ -39,6 +39,9 @@ SQLITE_QUERY_FAILED_ID = 'SQLITE_QUERY_FAILED'
 # ** constant: sqlite_transaction_failed_id
 SQLITE_TRANSACTION_FAILED_ID = 'SQLITE_TRANSACTION_FAILED'
 
+# ** constant: valid_sqlite_modes
+VALID_SQLITE_MODES = ('ro', 'rw', 'rwc')
+
 # *** utils
 
 # ** util: sqlite_client
@@ -101,18 +104,15 @@ class SqliteClient(FileLoader, SqliteService):
         '''
         Validate the SQLite connection mode string.
 
-        :raises TiferetError: If the mode is not in the set of valid SQLite modes.
+        :raises ServiceError: If the mode is not in the set of valid SQLite modes.
         '''
 
-        # Define the set of valid SQLite modes.
-        valid_modes = {'ro', 'rw', 'rwc'}
-
         # Raise an error if the mode is not valid.
-        if self.mode not in valid_modes:
+        if self.mode not in VALID_SQLITE_MODES:
             ServiceError.raise_for(
                 self,
                 SQLITE_INVALID_MODE_ID,
-                mode=self.mode,
+                f'Invalid SQLite mode: {self.mode}. Supported: {", ".join(VALID_SQLITE_MODES)} (or None for default auto-create).',
             )
 
     # * method: open_file
@@ -120,7 +120,7 @@ class SqliteClient(FileLoader, SqliteService):
         '''
         Open the SQLite database connection and create a cursor.
 
-        :raises TiferetError: If the connection is already open, the mode is invalid,
+        :raises ServiceError: If the connection is already open, the mode is invalid,
             or the connection fails.
         '''
 
@@ -129,7 +129,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_ALREADY_OPEN_ID,
-                path=str(self.path),
+                f'Connection already open for path: {self.path}.',
             )
 
         # Validate the SQLite mode.
@@ -161,8 +161,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_FAILED_ID,
-                original_error=str(e),
-                path=str(self.path),
+                f'Failed to connect to SQLite database at {self.path}: {e}',
                 cause=e,
             )
 
@@ -196,6 +195,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Execute the SQL statement and return the cursor.
@@ -205,8 +205,9 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_STATEMENT_FAILED_ID,
+                f'Failed to execute SQL statement: {e}',
                 original_error=str(e),
-                cause=e,
+                sql=sql,
             )
 
     # * method: executemany
@@ -227,6 +228,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Execute the SQL with multiple parameter sets and return the cursor.
@@ -236,8 +238,9 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_STATEMENT_FAILED_ID,
+                f'Failed to execute SQL statement: {e}',
                 original_error=str(e),
-                cause=e,
+                sql=sql,
             )
 
     # * method: executescript
@@ -256,6 +259,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Execute the SQL script and return the cursor.
@@ -265,8 +269,9 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_STATEMENT_FAILED_ID,
+                f'Failed to execute SQL script: {e}',
                 original_error=str(e),
-                cause=e,
+                sql=sql_script,
             )
 
     # * method: fetch_one
@@ -292,8 +297,9 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_QUERY_FAILED_ID,
+                f'Failed to fetch a row for the SQL query: {e}',
                 original_error=str(e),
-                cause=e,
+                sql=query,
             )
 
     # * method: fetch_all
@@ -319,8 +325,9 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_QUERY_FAILED_ID,
+                f'Failed to fetch rows for the SQL query: {e}',
                 original_error=str(e),
-                cause=e,
+                sql=query,
             )
 
     # * method: commit
@@ -334,6 +341,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Commit the transaction.
@@ -343,8 +351,8 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_TRANSACTION_FAILED_ID,
+                f'Failed to commit the SQLite transaction: {e}',
                 original_error=str(e),
-                cause=e,
             )
 
     # * method: rollback
@@ -358,6 +366,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Roll back the transaction.
@@ -367,8 +376,8 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_TRANSACTION_FAILED_ID,
+                f'Failed to roll back the SQLite transaction: {e}',
                 original_error=str(e),
-                cause=e,
             )
 
     # * method: backup
@@ -393,6 +402,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_CONN_NOT_INITIALIZED_ID,
+                'SQLite connection not initialized. Must be used within a "with" block.',
             )
 
         # Open a target connection for the backup.
@@ -417,8 +427,7 @@ class SqliteClient(FileLoader, SqliteService):
             ServiceError.raise_for(
                 self,
                 SQLITE_BACKUP_FAILED_ID,
-                original_error=str(e),
-                target_path=str(target_path),
+                f'Backup to {target_path} failed: {e}',
                 cause=e,
             )
 
