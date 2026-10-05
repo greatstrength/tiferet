@@ -28,26 +28,13 @@ TESTER_CACHE_PREFIX: Tuple[str, ...] = (
     'testers',
 )
 
+# ** constant: test_preset_cache_prefix
+TEST_PRESET_CACHE_PREFIX: Tuple[str, ...] = (
+    'test',
+    'presets',
+)
+
 # *** functions
-
-# ** function: add_default_testers
-def add_default_testers(items: Dict[str, Any]) -> Callable:
-    '''
-    Decorator factory that pre-seeds a cache context with default testers.
-
-    :param items: A mapping of tester id to raw tester definition dicts.
-    :type items: Dict[str, Any]
-    :return: A decorator that wraps a cache-builder callable.
-    :rtype: Callable
-    '''
-
-    # Seed TesterObject instances under the tester cache prefix.
-    return add_default_cache_items(
-        items,
-        TESTER_CACHE_PREFIX,
-        model=TesterObject,
-        id_field='id',
-    )
 
 # ** function: create_verification
 def _create_verification(
@@ -77,6 +64,42 @@ def _create_verification(
         predicate=normalized,
         message=message,
         source=predicate,
+    )
+
+# ** function: add_default_testers
+def add_default_testers(items: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default testers.
+
+    :param items: A mapping of tester id to raw tester definition dicts.
+    :type items: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Seed TesterObject instances under the tester cache prefix.
+    return add_default_cache_items(
+        items,
+        TESTER_CACHE_PREFIX,
+        model=TesterObject,
+        id_field='id',
+    )
+
+# ** function: add_default_test_presets
+def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
+    '''
+    Decorator factory that seeds named given-state presets.
+
+    :param presets: Plain given-state mappings keyed by preset identifier.
+    :type presets: Dict[str, Dict]
+    :return: A cache-builder decorator.
+    :rtype: Callable
+    '''
+
+    # Store each preset raw under the preset cache prefix.
+    return add_default_cache_items(
+        presets,
+        TEST_PRESET_CACHE_PREFIX,
     )
 
 # *** contexts
@@ -125,9 +148,9 @@ class TesterContext(BaseContext):
     # * method: assert_model_matches
     def assert_model_matches(
             self,
-            model,
-            sample: dict,
-            equality_fields: List[str] = None,
+            model: Any,
+            sample: Dict[str, Any],
+            equality_fields: List[str],
             field_normalizers: dict = None,
         ) -> None:
         '''
@@ -145,27 +168,29 @@ class TesterContext(BaseContext):
         :rtype: None
         '''
 
-        # Default comparison fields and normalizers from the bound tester.
-        equality_fields = equality_fields or self.domain.equality_fields
-        field_normalizers = field_normalizers or self.domain.field_normalizers
+        # An omitted or falsy normalizer map is an empty mapping.
+        if not field_normalizers:
+            field_normalizers = {}
 
         # Compare each listed field that is also present in the sample.
         for field in equality_fields:
             if field not in sample:
                 continue
 
-            # Read both sides and apply a normalizer when one is configured.
-            actual = getattr(model, field)
+            # Read both sides and apply a truthy normalizer when configured.
+            actual = getattr(model, field, None)
             expected = sample[field]
             normalizer = field_normalizers.get(field)
-            if normalizer is not None:
+            if normalizer:
                 actual = normalizer(actual)
                 expected = normalizer(expected)
 
-            # Fail with the field name when the values differ.
+            # Fail on the first mismatch with a three-line field message.
             if actual != expected:
                 raise AssertionError(
-                    f'Field {field} did not match: {actual!r} != {expected!r}'
+                    f"Mismatch on field '{field}':\n"
+                    f'  expected: {expected!r}\n'
+                    f'  actual:   {actual!r}'
                 )
 
     # * method: assert_new
@@ -186,10 +211,12 @@ class TesterContext(BaseContext):
         # Assert the target is an instance of the bound target type.
         assert isinstance(target, self.domain.get_target_type())
 
-        # Compare against expected data, falling back to sample data.
+        # Compare expected data and equality fields explicitly.
         self.assert_model_matches(
             target,
-            self.domain.expected_data or self.domain.sample_data,
+            self.domain.expected_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
         )
 
 # ** context: domain_tester_context
@@ -248,7 +275,7 @@ class AggregateTesterContext(TesterContext):
                     assert error.error_code == expect_error_code
                 else:
                     raise AssertionError(
-                        f'Expected ModelError {expect_error_code} setting {attr}'
+                        f'Expected ModelError {expect_error_code} for {attr}.'
                     )
                 continue
 
@@ -294,7 +321,12 @@ class TransferObjectTesterContext(TesterContext):
 
         # Assert the mapped value is the aggregate type and matches sample data.
         assert isinstance(aggregate, self.domain.get_aggregate_type())
-        self.assert_model_matches(aggregate, self.domain.aggregate_sample_data)
+        self.assert_model_matches(
+            aggregate,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
+        )
 
     # * method: assert_from_model
     def assert_from_model(self, target: Any = None) -> None:
@@ -318,519 +350,32 @@ class TransferObjectTesterContext(TesterContext):
         assert isinstance(transfer, self.domain.get_target_type())
 
     # * method: assert_round_trip
-    def assert_round_trip(self) -> None:
+    def assert_round_trip(self, target: Any = None) -> None:
         '''
         Assert from_model then map round-trips the aggregate sample data.
 
-        :return: None
-        :rtype: None
-        '''
-
-        # Round-trip the aggregate through the transfer object.
-        target = self.make_target()
-        transfer = self.domain.get_target_type().from_model(target)
-        round_tripped = transfer.map(**self.domain.map_kwargs)
-
-        # Assert the round-tripped value matches the aggregate sample.
-        assert isinstance(round_tripped, self.domain.get_aggregate_type())
-        self.assert_model_matches(round_tripped, self.domain.aggregate_sample_data)
-
-# ** context: domain_event_tester_context
-class DomainEventTesterContext(TesterContext):
-    '''
-    A domain-event tester context that handles events through mocked dependencies.
-    '''
-
-    # * method: mock_dependencies
-    def mock_dependencies(self) -> Dict[str, Any]:
-        '''
-        Build mocks for each declared constructor dependency.
-
-        :return: A mapping of parameter name to mock service.
-        :rtype: Dict[str, Any]
-        '''
-
-        # Mock each declared service dependency by its imported type.
-        return {
-            name: Mock(spec=dep.get_service_type())
-            for name, dep in self.domain.dependencies.items()
-        }
-
-    # * method: handle
-    def handle(self, dependencies: Dict[str, Any] = None, **kwargs) -> Any:
-        '''
-        Handle the bound domain event with mocked or supplied dependencies.
-
-        :param dependencies: Optional prebuilt dependency mapping.
-        :type dependencies: Dict[str, Any]
-        :param kwargs: Keyword arguments merged over sample_kwargs.
-        :type kwargs: dict
-        :return: The event result.
-        :rtype: Any
-        '''
-
-        # Use supplied dependencies, otherwise build mocks.
-        deps = self.mock_dependencies() if dependencies is None else dependencies
-
-        # Merge caller kwargs over the tester sample kwargs.
-        merged = {
-            **(self.domain.sample_kwargs or {}),
-            **kwargs,
-        }
-
-        # Handle the bound event class.
-        return DomainEvent.handle(
-            self.domain.get_target_type(),
-            dependencies=deps,
-            **merged,
-        )
-
-    # * method: exercise_target
-    def _exercise_target(self, data: Dict[str, Any]) -> Any:
-        '''
-        Exercise the bound event by handling it with the overlay payload.
-
-        :param data: The handle keyword arguments.
-        :type data: Dict[str, Any]
-        :return: The event result.
-        :rtype: Any
-        '''
-
-        # Dispatch through handle rather than constructing the event class.
-        return self.handle(**data)
-
-    # * method: assert_missing_required_params
-    def assert_missing_required_params(self) -> None:
-        '''
-        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
-
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty required_params lists are no-ops.
-        for name in self.domain.required_params:
-            try:
-                self.handle(**{name: None})
-            except TiferetError as error:
-                assert error.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
-                assert name in str(error)
-            else:
-                raise AssertionError(
-                    f'Expected COMMAND_PARAMETER_REQUIRED for {name}'
-                )
-
-# ** context: service_event_tester_context
-class ServiceEventTesterContext(DomainEventTesterContext):
-    '''
-    A service-event tester context that asserts not-found service lookups.
-    '''
-
-    # * method: get_service_mock
-    def get_service_mock(self, dependencies: Dict[str, Any] = None) -> Any:
-        '''
-        Return the primary service mock from a dependency mapping.
-
-        :param dependencies: Optional prebuilt dependency mapping.
-        :type dependencies: Dict[str, Any]
-        :return: The mock bound to service_attr.
-        :rtype: Any
-        '''
-
-        # Use supplied dependencies, otherwise build mocks.
-        if dependencies is None:
-            dependencies = self.mock_dependencies()
-
-        # Return the primary service mock.
-        return dependencies[self.domain.service_attr]
-
-    # * method: assert_not_found
-    def assert_not_found(self) -> None:
-        '''
-        Assert the bound event raises when the primary service get returns None.
-
-        :return: None
-        :rtype: None
-        '''
-
-        # No-op when the not-found contract is unset.
-        if not self.domain.service_attr or not self.domain.not_found_error_code:
-            return
-
-        # Configure the primary service mock to miss.
-        deps = self.mock_dependencies()
-        self.get_service_mock(deps).get.return_value = None
-        kwargs = self.domain.not_found_kwargs or self.domain.sample_kwargs
-
-        # Handle the event and assert the configured not-found error.
-        try:
-            self.handle(deps, **kwargs)
-        except TiferetError as error:
-            assert error.error_code == self.domain.not_found_error_code
-        else:
-            raise AssertionError(
-                f'Expected TiferetError {self.domain.not_found_error_code}'
-            )
-
-# ** context: generic_tester_context
-class GenericTesterContext(TesterContext):
-    '''
-    A generic tester context that resolves a live object, optionally invokes
-    it, and optionally locks an ABC without a per-package type key.
-    '''
-
-    # * method: assert_contract
-    def assert_contract(self, target=None) -> None:
-        '''
-        Assert each abstract method name exists on the inspected type.
-
-        :param target: The live object or type to inspect. None is a no-op.
+        :param target: An optional pre-constructed aggregate.
         :type target: Any
         :return: None
         :rtype: None
         '''
 
-        # Missing targets are a no-op.
+        # Construct the aggregate when the caller did not supply one.
         if target is None:
-            return
+            target = self.make_target()
 
-        # Inspect the type, not an instance.
-        inspected = target if isinstance(target, type) else type(target)
-        abstracts = getattr(inspected, '__abstractmethods__', None)
+        # Round-trip the aggregate through the transfer object.
+        transfer = self.domain.get_target_type().from_model(target)
+        round_tripped = transfer.map(**self.domain.map_kwargs)
 
-        # Missing or empty abstract-method sets are a no-op.
-        if not abstracts:
-            return
-
-        # Lock each abstract method name onto the inspected type.
-        for name in abstracts:
-            assert hasattr(inspected, name)
-
-    # * method: make_target
-    def make_target(self, data: dict | None = None) -> Any:
-        '''
-        Resolve the live generic target without mutating sample_data.
-
-        :param data: Optional constructor payload for a concrete class.
-        :type data: dict | None
-        :return: The resolved callable, class, instance, or attribute.
-        :rtype: Any
-        '''
-
-        # Default construction uses the tester's get_target algorithm.
-        if data is None:
-            return self.domain.get_target()
-
-        # Import the named attribute once.
-        obj = self.domain.get_target_type()
-
-        # Return functions and other non-class callables as-is.
-        if callable(obj) and not isinstance(obj, type):
-            return obj
-
-        # Return ABC classes without instantiating them.
-        if isinstance(obj, type):
-            abstracts = getattr(obj, '__abstractmethods__', None)
-            if abstracts:
-                return obj
-
-            # Construct a concrete class from a copy of the overlay data.
-            return obj(**dict(data))
-
-        # Return constants and other attributes as-is.
-        return obj
-
-# ** context: repo_tester_context
-class RepoTesterContext(TesterContext):
-    '''
-    A repository tester context that constructs against a temporary config
-    file and asserts exists / get / list / save / delete plus format dispatch.
-    '''
-
-    # * method: make_target
-    def make_target(self, config_file: str, encoding: str = 'utf-8') -> Any:
-        '''
-        Construct the repository class against a required config file path.
-
-        :param config_file: The configuration file path.
-        :type config_file: str
-        :param encoding: The file encoding.
-        :type encoding: str
-        :return: The constructed repository instance.
-        :rtype: Any
-        '''
-
-        # Use the declared constructor keyword when the tester sets it.
-        parameter = self.domain.config_parameter
-        if not parameter:
-            signature = inspect.signature(self.domain.get_target_type().__init__)
-            candidates = [
-                name for name, param in signature.parameters.items()
-                if name not in ('self', 'encoding')
-                and param.kind not in (
-                    inspect.Parameter.VAR_POSITIONAL,
-                    inspect.Parameter.VAR_KEYWORD,
-                )
-            ]
-            parameter = candidates[0]
-
-        # Construct without mutating the bound tester or sample_data.
-        return self.domain.get_target_type()(**{
-            parameter: config_file,
-            'encoding': encoding,
-        })
-
-    # * method: assert_new
-    def assert_new(self, config_file: str) -> None:
-        '''
-        Assert make_target constructs the bound repository type.
-
-        :param config_file: The configuration file path.
-        :type config_file: str
-        :return: None
-        :rtype: None
-        '''
-
-        # Construct the repository against the required path.
-        target = self.make_target(config_file)
-
-        # Assert the instance type and default serialization role.
-        assert isinstance(target, self.domain.get_target_type())
-        if hasattr(target, 'default_role'):
-            assert target.default_role == 'to_data'
-
-    # * method: assert_exists
-    def assert_exists(self, repo) -> None:
-        '''
-        Assert each exists case against the constructed repository.
-
-        :param repo: The constructed repository.
-        :type repo: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty case lists are no-ops.
-        for id, expected in self.domain.exists_cases:
-            assert repo.exists(id) is expected
-
-    # * method: assert_get
-    def assert_get(self, repo) -> None:
-        '''
-        Assert each get case against the constructed repository.
-
-        :param repo: The constructed repository.
-        :type repo: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty case lists are no-ops.
-        for id, expected in self.domain.get_cases:
-
-            # Missing ids return None.
-            if expected is None:
-                assert repo.get(id) is None
-                continue
-
-            # Compare selected fields on the retrieved aggregate.
-            self.assert_model_matches(repo.get(id), expected)
-
-    # * method: assert_list
-    def assert_list(self, repo) -> None:
-        '''
-        Assert list() ids match the tester's list_ids set.
-
-        :param repo: The constructed repository.
-        :type repo: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty list_ids is a no-op.
-        if not self.domain.list_ids:
-            return
-
-        # Compare unfiltered list ids as a set.
-        assert {item.id for item in repo.list()} == set(self.domain.list_ids)
-
-    # * method: assert_save
-    def assert_save(self, repo, entity=None) -> None:
-        '''
-        Assert save persists the aggregate and get returns matching fields.
-
-        :param repo: The constructed repository.
-        :type repo: Any
-        :param entity: An optional aggregate to save.
-        :type entity: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # No-op when there is no entity and no aggregate class to construct.
-        if entity is None:
-            if not self.domain.aggregate_class_name:
-                return
-            entity = self.domain.get_aggregate_type()(
-                **self.domain.aggregate_sample_data
-            )
-
-        # Persist the entity and compare the stored copy.
-        repo.save(entity)
+        # Assert the round-tripped value matches the aggregate sample.
+        assert isinstance(round_tripped, self.domain.get_aggregate_type())
         self.assert_model_matches(
-            repo.get(entity.id),
-            {
-                field: getattr(entity, field)
-                for field in self.domain.equality_fields
-            },
+            round_tripped,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
         )
-
-    # * method: assert_delete
-    def assert_delete(self, repo) -> None:
-        '''
-        Assert each delete id is removed and a second delete does not raise.
-
-        :param repo: The constructed repository.
-        :type repo: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty delete_ids is a no-op.
-        for id in self.domain.delete_ids:
-            repo.delete(id)
-            assert repo.get(id) is None
-            repo.delete(id)
-
-    # * method: assert_format_dispatch
-    def assert_format_dispatch(
-            self,
-            yaml_file: str,
-            json_file: str,
-            payload: dict | None = None,
-        ) -> None:
-        '''
-        Assert YAML and JSON paths round-trip the same payload via _save / _load.
-
-        :param yaml_file: A YAML configuration file path.
-        :type yaml_file: str
-        :param json_file: A JSON configuration file path.
-        :type json_file: str
-        :param payload: Optional payload. Defaults to ``{'root': {'ok': True}}``.
-        :type payload: dict | None
-        :return: None
-        :rtype: None
-        '''
-
-        # Default the round-trip payload when the caller omitted it.
-        if payload is None:
-            payload = {
-                'root': {
-                    'ok': True,
-                },
-            }
-
-        # Round-trip the payload on each format path.
-        for path in (yaml_file, json_file):
-            repo = self.make_target(path)
-            repo._save(payload)
-            assert repo._load() == payload
-
-# ** context: context_tester_context
-class ContextTesterContext(TesterContext):
-    '''
-    A context tester context that proves from_domain binding, own-namespace
-    domain_type versus omission, and BaseContext.for_domain mapping.
-    '''
-
-    # * method: assert_from_domain
-    def assert_from_domain(self) -> None:
-        '''
-        Assert each from_domain case binds the target context to the domain object.
-
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty case lists are no-ops.
-        for case in self.domain.from_domain_cases:
-
-            # Construct the domain object from the case payload.
-            domain_obj = self.domain.get_domain_type()(**case['data'])
-
-            # Bind via the target class, not the registry.
-            ctx = self.domain.get_target_type().from_domain(
-                domain_obj,
-                **case.get('kwargs', {}),
-            )
-
-            # Assert the bound context is the target type and holds identity.
-            assert isinstance(ctx, self.domain.get_target_type())
-            assert ctx.domain is domain_obj
-
-    # * method: assert_domain_type
-    def assert_domain_type(self) -> None:
-        '''
-        Assert each domain_type case against the target context class.
-
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty case lists are no-ops.
-        target_cls = self.domain.get_target_type()
-        for case in self.domain.domain_type_cases:
-
-            # Declaring contexts own domain_type in their namespace.
-            if case['declares']:
-                assert 'domain_type' in target_cls.__dict__
-                assert target_cls.domain_type is self.domain.get_domain_type()
-                continue
-
-            # Omitting contexts leave domain_type out of their own namespace.
-            assert 'domain_type' not in target_cls.__dict__
-
-    # * method: assert_for_domain
-    def assert_for_domain(self) -> None:
-        '''
-        Assert each for_domain case against the ContextMeta registry.
-
-        :return: None
-        :rtype: None
-        '''
-
-        # Empty case lists are no-ops.
-        for case in self.domain.for_domain_cases:
-
-            # Import the domain and context classes named by the case.
-            domain_cls = getattr(
-                import_module(case['domain_module_path']),
-                case['domain_class_name'],
-            )
-            context_cls = getattr(
-                import_module(case['context_module_path']),
-                case['context_class_name'],
-            )
-
-            # Assert the registry mapping; CONTEXT_NOT_FOUND propagates.
-            assert BaseContext.for_domain(domain_cls) is context_cls
-
-    # * method: make_target
-    def make_target(self, data: Dict[str, Any] = None) -> Any:
-        '''
-        Bind the target context via from_domain using sample_data.
-
-        :param data: Unused. Context construction does not overlay request data.
-        :type data: Dict[str, Any]
-        :return: The bound target context.
-        :rtype: Any
-        '''
-
-        # Construct the domain object from declaration-time sample data.
-        domain_obj = self.domain.get_domain_type()(**(self.domain.sample_data or {}))
-
-        # Bind via the target class from_domain, not __init__.
-        return self.domain.get_target_type().from_domain(domain_obj)
 
 # ** context: test_session_context
 class TestSessionContext(RequestContext):
@@ -849,7 +394,7 @@ class TestSessionContext(RequestContext):
     outcome: Any
 
     # * init
-    def __init__(self, tester_ctx: TesterContext, **kwargs) -> None:
+    def __init__(self, tester_ctx: TesterContext, **kwargs: Any) -> None:
         '''
         Initialize the test session with a bound tester collaborator.
 
@@ -945,33 +490,29 @@ class TestSessionContext(RequestContext):
         :rtype: None
         '''
 
-        # Collect every failure, then always clear the queue.
+        # Walk the queue from index 1 and keep going after a failure.
         failures = []
-        try:
-            for verification in self.verifications:
-                try:
-                    passed = bool(verification.predicate(self.outcome))
-                except Exception as error:
-                    failures.append(
-                        verification.message
-                        or (
-                            f'{verification.source!r} raised {error!r} '
-                            f'for outcome {self.outcome!r}'
-                        )
-                    )
-                    continue
+        for index, verification in enumerate(self.verifications, start=1):
+            detail = None
+            try:
+                passed = verification.predicate(self.outcome)
+            except Exception as error:
+                passed = False
+                detail = str(error)
 
-                # Record falsy predicates as failures.
-                if not passed:
-                    failures.append(
-                        verification.message
-                        or (
-                            f'{verification.source!r} failed '
-                            f'for outcome {self.outcome!r}'
-                        )
-                    )
-        finally:
-            self.verifications = []
+            # A falsy predicate fails; do not replace the queue item.
+            if not passed:
+                message = verification.message or (
+                    f'Expected {verification.source!r} '
+                    f'for outcome {self.outcome!r}.'
+                )
+                text = f'Verification {index} failed: {message}'
+                if detail:
+                    text = f'{text} ({detail})'
+                failures.append(text)
+
+        # Empty the same list before returning or raising.
+        self.verifications.clear()
 
         # Raise one assertion listing every failure.
         if failures:
@@ -990,13 +531,19 @@ class TestSessionContext(RequestContext):
         :rtype: Any
         '''
 
-        # Resolve a generic live object without the specialized exercise path.
+        # Ignore extra keywords. Reject a live target on specialized types first.
         tester = self.tester_ctx.domain
+        if tester.type != 'generic' and target is not None:
+            raise ValueError(
+                'run(target=...) is only valid when tester type is generic.'
+            )
+
+        # Resolve a generic live object without the specialized exercise path.
         if tester.type == 'generic':
-            resolved = tester.get_target() if target is None else target
+            resolved = target if target is not None else tester.get_target()
 
             # Lock the ABC contract on the resolved object.
-            self.tester_ctx.assert_contract(resolved)
+            self.tester_ctx.assert_contract(target=resolved)
 
             # Invoke non-class callables with request given-state as kwargs.
             if callable(resolved) and not isinstance(resolved, type):
@@ -1008,12 +555,6 @@ class TestSessionContext(RequestContext):
             self.capture_outcome(outcome)
             self.evaluate_verifications()
             return self.outcome
-
-        # Reject a live target on specialized tester types.
-        if target is not None:
-            raise ValueError(
-                'run(target=...) is only valid when tester type is generic.'
-            )
 
         # Choose sample kwargs for events, otherwise sample data.
         if tester.type in ('domain_event', 'service_event'):
@@ -1031,3 +572,511 @@ class TestSessionContext(RequestContext):
         self.capture_outcome(outcome)
         self.evaluate_verifications()
         return self.outcome
+
+# ** context: domain_event_tester_context
+class DomainEventTesterContext(TesterContext):
+    '''
+    A domain-event tester context that handles events through mocked dependencies.
+    '''
+
+    # * method: mock_dependencies
+    def mock_dependencies(self) -> Dict[str, Any]:
+        '''
+        Build mocks for each declared constructor dependency.
+
+        :return: A mapping of parameter name to mock service.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Mock each declared service dependency by its imported type.
+        return {
+            name: Mock(spec=dep.get_service_type())
+            for name, dep in self.domain.dependencies.items()
+        }
+
+    # * method: handle
+    def handle(self, dependencies: Dict[str, Any] = None, **kwargs) -> Any:
+        '''
+        Handle the bound domain event with mocked or supplied dependencies.
+
+        :param dependencies: Optional prebuilt dependency mapping.
+        :type dependencies: Dict[str, Any]
+        :param kwargs: Keyword arguments merged over sample_kwargs.
+        :type kwargs: dict
+        :return: The event result.
+        :rtype: Any
+        '''
+
+        # Use supplied dependencies, otherwise build mocks.
+        deps = self.mock_dependencies() if dependencies is None else dependencies
+
+        # Merge caller kwargs over the tester sample kwargs.
+        merged = {
+            **self.domain.sample_kwargs,
+            **kwargs,
+        }
+
+        # Handle the bound event class.
+        return DomainEvent.handle(
+            self.domain.get_target_type(),
+            dependencies=deps,
+            **merged,
+        )
+
+    # * method: exercise_target
+    def _exercise_target(self, data: Dict[str, Any]) -> Any:
+        '''
+        Exercise the bound event by handling it with the overlay payload.
+
+        :param data: The handle keyword arguments.
+        :type data: Dict[str, Any]
+        :return: The event result.
+        :rtype: Any
+        '''
+
+        # Dispatch through handle rather than constructing the event class.
+        return self.handle(**data)
+
+    # * method: assert_missing_required_params
+    def assert_missing_required_params(self) -> None:
+        '''
+        Assert each required parameter raises COMMAND_PARAMETER_REQUIRED.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty required_params lists are no-ops.
+        for name in self.domain.required_params:
+            try:
+                self.handle(**{name: None})
+            except TiferetError as error:
+                assert error.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
+                assert name in str(error)
+            else:
+                raise AssertionError(
+                    f'Expected COMMAND_PARAMETER_REQUIRED for {name}.'
+                )
+
+# ** context: service_event_tester_context
+class ServiceEventTesterContext(DomainEventTesterContext):
+    '''
+    A service-event tester context that asserts not-found service lookups.
+    '''
+
+    # * method: get_service_mock
+    def get_service_mock(self, dependencies: Dict[str, Any] = None) -> Mock:
+        '''
+        Return the primary service mock from a dependency mapping.
+
+        :param dependencies: Optional prebuilt dependency mapping.
+        :type dependencies: Dict[str, Any]
+        :return: The mock bound to service_attr.
+        :rtype: Any
+        '''
+
+        # Use supplied dependencies, otherwise build mocks.
+        if dependencies is None:
+            dependencies = self.mock_dependencies()
+
+        # Return the primary service mock.
+        return dependencies[self.domain.service_attr]
+
+    # * method: assert_not_found
+    def assert_not_found(self) -> None:
+        '''
+        Assert the bound event raises when the primary service get returns None.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # No-op when the not-found contract is unset.
+        if not self.domain.service_attr or not self.domain.not_found_error_code:
+            return
+
+        # Configure the primary service mock to miss.
+        deps = self.mock_dependencies()
+        self.get_service_mock(deps).get.return_value = None
+        kwargs = self.domain.not_found_kwargs or self.domain.sample_kwargs
+
+        # Handle the event and assert the configured not-found error.
+        try:
+            self.handle(deps, **kwargs)
+        except TiferetError as error:
+            assert error.error_code == self.domain.not_found_error_code
+        else:
+            raise AssertionError(
+                f'Expected {self.domain.not_found_error_code} when service get returns None.'
+            )
+
+# ** context: generic_tester_context
+class GenericTesterContext(TesterContext):
+    '''
+    A generic tester context that resolves a live object, optionally invokes
+    it, and optionally locks an ABC without a per-package type key.
+    '''
+
+    # * method: make_target
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
+        '''
+        Resolve the live generic target without mutating sample_data.
+
+        :param data: Optional constructor payload for a concrete class.
+        :type data: dict | None
+        :return: The resolved callable, class, instance, or attribute.
+        :rtype: Any
+        '''
+
+        # Default construction uses the tester's get_target algorithm.
+        if data is None:
+            return self.domain.get_target()
+
+        # Construct the target type from the supplied payload.
+        return self.domain.get_target_type()(**data)
+
+    # * method: assert_contract
+    def assert_contract(self, target: Any = None) -> None:
+        '''
+        Assert each abstract method name exists on the inspected type.
+
+        :param target: The live object or type to inspect. None is a no-op.
+        :type target: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Resolve a missing target through make_target.
+        if target is None:
+            target = self.make_target()
+
+        # Inspect the type, not an instance.
+        inspected = target if isinstance(target, type) else type(target)
+        abstracts = getattr(inspected, '__abstractmethods__', None)
+
+        # Missing or empty abstract-method sets are a no-op.
+        if not abstracts:
+            return
+
+        # Lock each abstract method name onto the inspected type.
+        for name in abstracts:
+            assert hasattr(inspected, name)
+
+# ** context: repo_tester_context
+class RepoTesterContext(TesterContext):
+    '''
+    A repository tester context that constructs against a temporary config
+    file and asserts exists / get / list / save / delete plus format dispatch.
+    '''
+
+    # * method: resolve_config_parameter
+    def _resolve_config_parameter(self) -> str:
+        '''
+        Return the constructor keyword that receives the config file path.
+
+        :return: That name.
+        :rtype: str
+        '''
+
+        # Prefer the tester's declared constructor keyword.
+        if self.domain.config_parameter:
+            return self.domain.config_parameter
+
+        # Otherwise take the first non-self, non-encoding parameter.
+        signature = inspect.signature(self.domain.get_target_type().__init__)
+        for name in signature.parameters:
+            if name not in ('self', 'encoding'):
+                return name
+
+    # * method: make_target
+    def make_target(self, config_file: str, encoding: str = 'utf-8') -> Any:
+        '''
+        Construct the repository class against a required config file path.
+
+        :param config_file: The configuration file path.
+        :type config_file: str
+        :param encoding: The file encoding.
+        :type encoding: str
+        :return: The constructed repository instance.
+        :rtype: Any
+        '''
+
+        # Bind the config path and encoding as keywords.
+        return self.domain.get_target_type()(**{
+            self._resolve_config_parameter(): config_file,
+            'encoding': encoding,
+        })
+
+    # * method: assert_new
+    def assert_new(self, config_file: str) -> None:
+        '''
+        Assert make_target constructs the bound repository type.
+
+        :param config_file: The configuration file path.
+        :type config_file: str
+        :return: None
+        :rtype: None
+        '''
+
+        # Construct the repository against the required path.
+        target = self.make_target(config_file=config_file)
+
+        # Assert the instance type and default serialization role.
+        assert isinstance(target, self.domain.get_target_type())
+        if hasattr(target, 'default_role'):
+            assert target.default_role == 'to_data'
+
+    # * method: assert_exists
+    def assert_exists(self, repo: Any) -> None:
+        '''
+        Assert each exists case against the constructed repository.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists are no-ops.
+        for id, expected in self.domain.exists_cases:
+            assert repo.exists(id) is expected
+
+    # * method: assert_get
+    def assert_get(self, repo: Any) -> None:
+        '''
+        Assert each get case against the constructed repository.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists are no-ops.
+        for identifier, expected in self.domain.get_cases:
+
+            # Retrieve once per case.
+            loaded = repo.get(identifier)
+
+            # Missing ids return None.
+            if expected is None:
+                assert loaded is None
+                continue
+
+            # Compare selected fields on the retrieved aggregate.
+            self.assert_model_matches(
+                loaded,
+                expected,
+                self.domain.equality_fields,
+                field_normalizers=self.domain.field_normalizers,
+            )
+
+    # * method: assert_list
+    def assert_list(self, repo: Any) -> None:
+        '''
+        Assert list() ids match the tester's list_ids set.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty list_ids is a no-op.
+        if not self.domain.list_ids:
+            return
+
+        # Compare unfiltered list ids as a set.
+        assert {item.id for item in repo.list()} == set(self.domain.list_ids)
+
+    # * method: assert_save
+    def assert_save(self, repo: Any, entity: Any = None) -> None:
+        '''
+        Assert save persists the aggregate and get returns matching fields.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :param entity: An optional aggregate to save.
+        :type entity: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # No-op when there is no entity and no aggregate class to construct.
+        if entity is None:
+            if not self.domain.aggregate_class_name:
+                return
+            entity = self.domain.get_aggregate_type()(
+                **self.domain.aggregate_sample_data
+            )
+
+        # Persist the entity and compare the stored copy to sample data.
+        repo.save(entity)
+        loaded = repo.get(entity.id)
+        self.assert_model_matches(
+            loaded,
+            self.domain.aggregate_sample_data,
+            self.domain.equality_fields,
+            field_normalizers=self.domain.field_normalizers,
+        )
+
+    # * method: assert_delete
+    def assert_delete(self, repo: Any) -> None:
+        '''
+        Assert each delete id is removed and a second delete does not raise.
+
+        :param repo: The constructed repository.
+        :type repo: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty delete_ids is a no-op.
+        for id in self.domain.delete_ids:
+            repo.delete(id)
+            assert repo.get(id) is None
+            repo.delete(id)
+
+    # * method: assert_format_dispatch
+    def assert_format_dispatch(
+            self,
+            yaml_file: str,
+            json_file: str,
+            payload: dict | None = None,
+        ) -> None:
+        '''
+        Assert YAML and JSON paths round-trip the same payload via _save / _load.
+
+        :param yaml_file: A YAML configuration file path.
+        :type yaml_file: str
+        :param json_file: A JSON configuration file path.
+        :type json_file: str
+        :param payload: Optional payload. Defaults to ``{'root': {'ok': True}}``.
+        :type payload: dict | None
+        :return: None
+        :rtype: None
+        '''
+
+        # Default the round-trip payload when the caller omitted it.
+        if payload is None:
+            payload = {
+                'root': {
+                    'ok': True,
+                },
+            }
+
+        # Round-trip the payload on each format path.
+        for config_file in (yaml_file, json_file):
+            repo = self.make_target(config_file=config_file)
+            repo._save(payload)
+            assert repo._load() == payload
+
+# ** context: context_tester_context
+class ContextTesterContext(TesterContext):
+    '''
+    A context tester context that proves from_domain binding, own-namespace
+    domain_type versus omission, and BaseContext.for_domain mapping.
+    '''
+
+    # * method: make_target
+    def make_target(self, data: Dict[str, Any] = None) -> Any:
+        '''
+        Bind the target context via from_domain using sample_data.
+
+        :param data: Unused. Context construction does not overlay request data.
+        :type data: Dict[str, Any]
+        :return: The bound target context.
+        :rtype: Any
+        '''
+
+        # Use caller data when supplied, otherwise sample data.
+        payload = data if data is not None else (self.domain.sample_data or {})
+
+        # Construct the domain object, then bind via the target class.
+        domain_obj = self.domain.get_domain_type()(**payload)
+        return self.domain.get_target_type().from_domain(domain_obj)
+
+    # * method: assert_from_domain
+    def assert_from_domain(self) -> None:
+        '''
+        Assert each from_domain case binds the target context to the domain object.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists return without constructing.
+        if not self.domain.from_domain_cases:
+            return None
+
+        # Bind each case through the target class.
+        for case in self.domain.from_domain_cases:
+
+            # Construct the domain object from the case payload.
+            domain_obj = self.domain.get_domain_type()(**case['data'])
+
+            # Bind via the target class, not the registry.
+            ctx = self.domain.get_target_type().from_domain(
+                domain_obj,
+                **case.get('kwargs', {}),
+            )
+
+            # Assert the bound context is the target type and holds identity.
+            assert isinstance(ctx, self.domain.get_target_type())
+            assert ctx.domain is domain_obj
+
+    # * method: assert_domain_type
+    def assert_domain_type(self) -> None:
+        '''
+        Assert each domain_type case against the target context class.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists return before resolving the target type.
+        if not self.domain.domain_type_cases:
+            return None
+
+        # Assert each case against the target context class.
+        target_cls = self.domain.get_target_type()
+        for case in self.domain.domain_type_cases:
+
+            # Declaring contexts own domain_type in their namespace.
+            if case['declares']:
+                assert 'domain_type' in target_cls.__dict__
+                assert target_cls.domain_type is self.domain.get_domain_type()
+                continue
+
+            # Omitting contexts leave domain_type out of their own namespace.
+            assert 'domain_type' not in target_cls.__dict__
+
+    # * method: assert_for_domain
+    def assert_for_domain(self) -> None:
+        '''
+        Assert each for_domain case against the ContextMeta registry.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Empty case lists return without importing.
+        if not self.domain.for_domain_cases:
+            return None
+
+        # Assert each registry mapping named by the case.
+        for case in self.domain.for_domain_cases:
+
+            # Import the domain and context classes named by the case.
+            domain_cls = getattr(
+                import_module(case['domain_module_path']),
+                case['domain_class_name'],
+            )
+            context_cls = getattr(
+                import_module(case['context_module_path']),
+                case['context_class_name'],
+            )
+
+            # Assert the registry mapping; CONTEXT_NOT_FOUND propagates.
+            assert BaseContext.for_domain(domain_cls) is context_cls
+
