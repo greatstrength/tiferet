@@ -551,9 +551,11 @@ def test_validate_request_coerces_data():
     # Validate and coerce the request.
     validate_request(feature, request)
 
-    # Assert the data was coerced to the declared types.
+    # Assert the in-flight data was coerced and the pre-flight domain was left alone.
     assert request.data['a'] == 5
     assert request.data['b'] == 2.0
+    assert request.domain.data == {'a': '5', 'b': '2'}
+    assert request.data is not request.domain.data
 
 # ** test: validate_request_invalid_data_raises
 def test_validate_request_invalid_data_raises():
