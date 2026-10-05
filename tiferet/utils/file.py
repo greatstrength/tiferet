@@ -160,7 +160,7 @@ class FileLoader(FileService):
         :type invalid_message: str
         :param not_found_error_id: The error id raised when the resolved path does not exist.
         :type not_found_error_id: str
-        :param format_name: The file format name used in the not-found message.
+        :param format_name: The human-readable format name (e.g. 'YAML') used in the not-found message.
         :type format_name: str
         :param default_path: Optional fallback path checked when the primary path's extension is invalid.
         :type default_path: Optional[Path]
