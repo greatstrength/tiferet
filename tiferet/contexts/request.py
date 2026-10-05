@@ -12,15 +12,29 @@ from ..domain import Request
 # *** contexts
 
 # ** context: request_context
+# >> see: @guides/contexts.md#requestcontext
 class RequestContext(BaseContext):
     '''
-    The request context wraps a ``Request`` domain value object for a single
-    feature execution, proxying its fields and carrying the step-execution
-    result back to the application session hub.
+    The request context splits one feature execution into pre-flight, in-flight,
+    and post-flight state. Pre-flight is the bound :class:`Request` at
+    ``self.domain``. In-flight is the working copy of session, feature, headers,
+    and data on this context. Post-flight is ``result``.
     '''
 
     # * attribute: domain_type
     domain_type = Request
+
+    # * attribute: session_id
+    session_id: str
+
+    # * attribute: feature_id
+    feature_id: str | None
+
+    # * attribute: headers
+    headers: Dict[str, str]
+
+    # * attribute: data
+    data: Dict[str, Any]
 
     # * attribute: result
     result: Any
@@ -58,108 +72,70 @@ class RequestContext(BaseContext):
             data=data or {},
         )
 
+        # Copy pre-flight values onto the in-flight attributes.
+        self.session_id = self.domain.session_id
+        self.feature_id = self.domain.feature_id
+        self.headers = dict(self.domain.headers)
+        self.data = dict(self.domain.data)
+
         # Initialize the result to None.
         self.result = None
 
-    # * attribute: session_id
-    @property
-    def session_id(self) -> str:
+    # * method: set_session_id
+    def set_session_id(self, value: str) -> None:
         '''
-        The session identifier carried by the bound request.
+        Assign the in-flight session identifier.
 
-        :return: The session identifier.
-        :rtype: str
-        '''
-
-        # Return the session identifier from the bound request.
-        return self.domain.session_id
-
-    @session_id.setter
-    def session_id(self, value: str):
-        '''
-        Write the session identifier through to the bound request.
-
-        :param value: The session identifier to set.
+        :param value: The session identifier.
         :type value: str
+        :return: None
+        :rtype: None
         '''
 
-        # Write the session identifier through to the bound request.
-        self.domain.session_id = value
+        # Assign the in-flight session identifier.
+        self.session_id = value
 
-    # * attribute: feature_id
-    @property
-    def feature_id(self) -> str | None:
+    # * method: set_feature_id
+    def set_feature_id(self, value: str | None) -> None:
         '''
-        The identifier of the feature being executed.
+        Assign the in-flight feature identifier.
 
-        :return: The feature identifier, or None when unset.
-        :rtype: str | None
-        '''
-
-        # Return the feature identifier from the bound request.
-        return self.domain.feature_id
-
-    @feature_id.setter
-    def feature_id(self, value: str | None):
-        '''
-        Write the feature identifier through to the bound request.
-
-        :param value: The feature identifier to set.
+        :param value: The feature identifier, or None.
         :type value: str | None
+        :return: None
+        :rtype: None
         '''
 
-        # Write the feature identifier through to the bound request.
-        self.domain.feature_id = value
+        # Assign the in-flight feature identifier.
+        self.feature_id = value
 
-    # * attribute: headers
-    @property
-    def headers(self) -> Dict[str, str]:
+    # * method: set_headers
+    def set_headers(self, value: Dict[str, str]) -> None:
         '''
-        The request headers carried by the bound request.
+        Replace the in-flight headers with a shallow copy.
 
-        :return: The request headers.
-        :rtype: Dict[str, str]
-        '''
-
-        # Return the headers from the bound request.
-        return self.domain.headers
-
-    @headers.setter
-    def headers(self, value: Dict[str, str]):
-        '''
-        Write the request headers through to the bound request.
-
-        :param value: The request headers to set.
+        :param value: The headers mapping.
         :type value: Dict[str, str]
+        :return: None
+        :rtype: None
         '''
 
-        # Write the headers through to the bound request.
-        self.domain.headers = value
+        # Store a shallow copy on the in-flight headers.
+        self.headers = dict(value)
 
-    # * attribute: data
-    @property
-    def data(self) -> Dict[str, Any]:
+    # * method: set_data
+    def set_data(self, value: Dict[str, Any]) -> None:
         '''
-        The request data payload carried by the bound request.
+        Replace the in-flight data with a shallow copy.
 
-        :return: The request data payload.
-        :rtype: Dict[str, Any]
-        '''
-
-        # Return the data payload from the bound request.
-        return self.domain.data
-
-    @data.setter
-    def data(self, value: Dict[str, Any]):
-        '''
-        Write the request data payload through to the bound request.
-
-        :param value: The request data payload to set.
+        :param value: The data mapping.
         :type value: Dict[str, Any]
+        :return: None
+        :rtype: None
         '''
 
-        # Write the data payload through to the bound request.
-        self.domain.data = value
+        # Store a shallow copy on the in-flight data.
+        self.data = dict(value)
 
     # * method: handle_response
     def handle_response(self) -> Any:
@@ -184,7 +160,7 @@ class RequestContext(BaseContext):
         :type data_key: str
         '''
 
-        # If a data key is provided, store the result in the request data.
+        # If a data key is provided, store the result in the in-flight data.
         if data_key:
             self.data[data_key] = result
 
