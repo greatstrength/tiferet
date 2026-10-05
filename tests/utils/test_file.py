@@ -340,11 +340,11 @@ def test_file_loader_verify_extension_success(tmp_path):
     loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
     FileLoader.verify_extension(
         loader,
-        format_name='TEST',
         allowed_extensions={'.ext'},
         invalid_error_id='INVALID_TEST_FILE',
         invalid_message='File must have .ext extension',
         not_found_error_id='TEST_FILE_NOT_FOUND',
+        format_name='TEST',
     )
 
 # ** test: file_loader_verify_extension_invalid_extension
@@ -366,11 +366,11 @@ def test_file_loader_verify_extension_invalid_extension(tmp_path):
     with pytest.raises(ServiceError) as exc_info:
         FileLoader.verify_extension(
             loader,
-            format_name='TEST',
             allowed_extensions={'.ext'},
             invalid_error_id='INVALID_TEST_FILE',
             invalid_message='File must have .ext extension',
             not_found_error_id='TEST_FILE_NOT_FOUND',
+            format_name='TEST',
         )
 
     # Verify the error code and message.
@@ -397,11 +397,11 @@ def test_file_loader_verify_extension_fallback(tmp_path):
     # Verify succeeds using the fallback path.
     FileLoader.verify_extension(
         loader,
-        format_name='TEST',
         allowed_extensions={'.ext'},
         invalid_error_id='INVALID_TEST_FILE',
         invalid_message='File must have .ext extension',
         not_found_error_id='TEST_FILE_NOT_FOUND',
+        format_name='TEST',
         default_path=fallback_path,
     )
 
@@ -423,11 +423,11 @@ def test_file_loader_verify_extension_not_found(tmp_path):
     with pytest.raises(ServiceError) as exc_info:
         FileLoader.verify_extension(
             loader,
-            format_name='TEST',
             allowed_extensions={'.ext'},
             invalid_error_id='INVALID_TEST_FILE',
             invalid_message='File must have .ext extension',
             not_found_error_id='TEST_FILE_NOT_FOUND',
+            format_name='TEST',
         )
 
     # Verify the error code and kwargs.

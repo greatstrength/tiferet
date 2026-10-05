@@ -73,11 +73,11 @@ class TomlLoader(FileLoader):
         # Delegate to the shared file-extension verification helper.
         FileLoader.verify_extension(
             loader,
-            format_name='TOML',
             allowed_extensions={'.toml'},
             invalid_error_id=INVALID_TOML_FILE_ID,
             invalid_message='File must have .toml extension.',
             not_found_error_id=TOML_FILE_NOT_FOUND_ID,
+            format_name='TOML',
             default_path=default_path,
         )
 

@@ -140,11 +140,11 @@ class FileLoader(FileService):
     # * method: verify_extension (static)
     @staticmethod
     def verify_extension(loader: 'FileLoader',
-            format_name: str,
             allowed_extensions: set,
             invalid_error_id: str,
             invalid_message: str,
             not_found_error_id: str,
+            format_name: str,
             default_path: Optional[Path] = None):
         '''
         Verify the loader's file has an allowed extension and exists, with an
@@ -152,8 +152,6 @@ class FileLoader(FileService):
 
         :param loader: The file loader instance to verify.
         :type loader: FileLoader
-        :param format_name: The file format name used in the not-found message.
-        :type format_name: str
         :param allowed_extensions: The set of lowercase extensions the file may have.
         :type allowed_extensions: set
         :param invalid_error_id: The error id raised when no candidate path has an allowed extension.
@@ -162,6 +160,8 @@ class FileLoader(FileService):
         :type invalid_message: str
         :param not_found_error_id: The error id raised when the resolved path does not exist.
         :type not_found_error_id: str
+        :param format_name: The file format name used in the not-found message.
+        :type format_name: str
         :param default_path: Optional fallback path checked when the primary path's extension is invalid.
         :type default_path: Optional[Path]
         '''
@@ -212,11 +212,11 @@ class FileLoader(FileService):
         '''
         Ensure encoding is provided when required for text modes.
 
-        :raises ServiceError: If encoding is missing or unsupported for a text mode.
+        :raises ServiceError: If encoding is None for a text (non-binary) mode.
         '''
 
-        # Raise an error if encoding is missing or unsupported for a text mode.
-        if 'b' not in self.mode and self.encoding not in VALID_ENCODINGS:
+        # Raise an error if encoding is missing for a text mode.
+        if 'b' not in self.mode and self.encoding is None:
             ServiceError.raise_for(
                 self,
                 INVALID_ENCODING_ID,

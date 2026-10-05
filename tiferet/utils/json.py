@@ -73,11 +73,11 @@ class JsonLoader(FileLoader):
         # Delegate to the shared file-extension verification helper.
         FileLoader.verify_extension(
             loader,
-            format_name='JSON',
             allowed_extensions={'.json'},
             invalid_error_id=INVALID_FILE_ID,
             invalid_message='File must have .json extension.',
             not_found_error_id=JSON_FILE_NOT_FOUND_ID,
+            format_name='JSON',
             default_path=default_path,
         )
 

@@ -70,11 +70,11 @@ class YamlLoader(FileLoader):
         # Delegate to the shared file-extension verification helper.
         FileLoader.verify_extension(
             loader,
-            format_name='YAML',
             allowed_extensions={'.yaml', '.yml'},
             invalid_error_id=INVALID_FILE_ID,
             invalid_message='File must have .yaml or .yml extension.',
             not_found_error_id=YAML_FILE_NOT_FOUND_ID,
+            format_name='YAML',
             default_path=default_path,
         )
 
