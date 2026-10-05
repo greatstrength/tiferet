@@ -316,8 +316,11 @@ def test_csv_loader_save_rows_dict_no_fieldnames(tmp_path):
     with pytest.raises(ServiceError) as exc_info:
         CsvLoader.save_rows(file_path, data)
 
-    # Verify the error code.
+    # Verify the error code, message, and path.
     assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.message == 'Fieldnames must be provided when writing dict-based CSV rows.'
+    assert exc_info.value.kwargs['path'] == str(file_path)
+    assert exc_info.value.class_name == 'CsvLoader'
 
 # ** test: csv_loader_append_row_static
 def test_csv_loader_append_row_static(tmp_path):
@@ -391,8 +394,10 @@ def test_csv_loader_invalid_read_mode(tmp_path):
         with pytest.raises(ServiceError) as exc_info:
             loader.build_reader()
 
-    # Verify the error code.
+    # Verify the error code, message, and mode.
     assert exc_info.value.error_code == CSV_INVALID_READ_MODE_ID
+    assert exc_info.value.message == 'File not opened in readable mode for CSV reading.'
+    assert exc_info.value.kwargs['mode'] == 'w'
 
 # ** test: csv_loader_invalid_write_mode
 def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
@@ -408,8 +413,10 @@ def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
         with pytest.raises(ServiceError) as exc_info:
             loader.build_writer()
 
-    # Verify the error code.
+    # Verify the error code, message, and mode.
     assert exc_info.value.error_code == CSV_INVALID_WRITE_MODE_ID
+    assert exc_info.value.message == 'File not opened in writable mode for CSV writing.'
+    assert exc_info.value.kwargs['mode'] == 'r'
 
 # ** test: csv_loader_file_not_found
 def test_csv_loader_file_not_found(tmp_path):
@@ -578,8 +585,11 @@ def test_csv_dict_loader_save_rows_no_fieldnames(tmp_path):
     with pytest.raises(ServiceError) as exc_info:
         CsvDictLoader.save_rows(file_path, data)
 
-    # Verify the error code.
+    # Verify the error code, message, and path.
     assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.message == 'Fieldnames must be provided when writing dict-based CSV rows.'
+    assert exc_info.value.kwargs['path'] == str(file_path)
+    assert exc_info.value.class_name == 'CsvDictLoader'
 
 # ** test: csv_dict_loader_fieldnames_required_on_build_writer
 def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
@@ -596,8 +606,49 @@ def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
         with pytest.raises(ServiceError) as exc_info:
             loader.build_writer()
 
-    # Verify the error code.
+    # Verify the error code, message, and path.
     assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.message == 'Fieldnames must be provided when writing dict-based CSV rows.'
+    assert exc_info.value.kwargs['path'] == str(file_path)
+
+# ** test: csv_dict_loader_invalid_read_mode
+def test_csv_dict_loader_invalid_read_mode(tmp_path):
+    '''
+    Test that building a DictReader in write-only mode raises CSV_INVALID_READ_MODE.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Open in write mode and attempt to build a reader.
+    file_path = tmp_path / 'dict_write_only.csv'
+    with CsvDictLoader(path=file_path, mode='w', fieldnames=['name']) as loader:
+        with pytest.raises(ServiceError) as exc_info:
+            loader.build_reader()
+
+    # Verify the error code, message, and mode.
+    assert exc_info.value.error_code == CSV_INVALID_READ_MODE_ID
+    assert exc_info.value.message == 'File not opened in readable mode for CSV reading.'
+    assert exc_info.value.kwargs['mode'] == 'w'
+
+# ** test: csv_dict_loader_invalid_write_mode
+def test_csv_dict_loader_invalid_write_mode(temp_dict_csv_file: Path):
+    '''
+    Test that building a DictWriter in read-only mode raises CSV_INVALID_WRITE_MODE.
+
+    :param temp_dict_csv_file: The path to the temporary CSV file with header.
+    :type temp_dict_csv_file: pathlib.Path
+    '''
+
+    # Open in read mode and attempt to build a writer.
+    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
+        with pytest.raises(ServiceError) as exc_info:
+            loader.build_writer()
+
+    # Verify the error code, message, and mode.
+    assert exc_info.value.error_code == CSV_INVALID_WRITE_MODE_ID
+    assert exc_info.value.message == 'File not opened in writable mode for CSV writing.'
+    assert exc_info.value.kwargs['mode'] == 'r'
 
 # ** test: csv_dict_loader_yield_rows
 def test_csv_dict_loader_yield_rows(temp_dict_csv_file: Path):

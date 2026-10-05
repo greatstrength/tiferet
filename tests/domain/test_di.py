@@ -6,11 +6,36 @@
 import pytest
 
 # ** app
-from tiferet.domain.core import DomainObject
+from tiferet.blueprints.tester import use_tester
+from tiferet.domain.core import DomainObject, ServiceDependency
 from tiferet.domain.di import (
     FlaggedDependency,
     ServiceRegistration,
 )
+
+# *** constants
+
+# ** constant: flagged_dependency_sample_data
+FLAGGED_DEPENDENCY_SAMPLE_DATA = {
+    'flag': 'test_alpha',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependencyAlpha',
+    'parameters': {'test_param': 'test_value', 'param': 'value1'},
+}
+
+# ** constant: service_registration_sample_data
+SERVICE_REGISTRATION_SAMPLE_DATA = {
+    'id': 'test_service',
+    'module_path': 'tests.domain.test_di',
+    'class_name': 'DummyDependency',
+    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
+}
+
+# ** constant: service_registration_no_default_sample_data
+SERVICE_REGISTRATION_NO_DEFAULT_SAMPLE_DATA = {
+    'id': 'test_service_no_default',
+    'dependencies': [FLAGGED_DEPENDENCY_SAMPLE_DATA],
+}
 
 # *** classes
 
@@ -263,3 +288,69 @@ def test_service_registration_get_service_type_flag_priority(
     # test_beta first — should resolve beta.
     resolved = service_registration_multiple_deps.get_service_type('test_beta', 'test_alpha')
     assert resolved is DummyDependencyBeta
+
+# *** testers
+
+# ** tester: test_service_registration
+@use_tester(
+    type='domain',
+    target_cls=ServiceRegistration,
+    sample_data=SERVICE_REGISTRATION_SAMPLE_DATA,
+    equality_fields=['id', 'module_path', 'class_name'],
+)
+class TestServiceRegistration:
+    '''
+    Tests for ServiceRegistration construction, lookup, and type resolution.
+    '''
+
+    # * test: resolve_service_flagged
+    def test_resolve_service_flagged(self, test_ctx):
+        '''
+        Assert resolve_service returns the flagged dependency.
+
+        :param test_ctx: The bound domain tester context.
+        :type test_ctx: DomainTesterContext
+        '''
+
+        # Resolve the flagged override.
+        result = test_ctx.make_target().resolve_service('test_alpha')
+
+        # Assert the flagged dependency fields.
+        assert isinstance(result, ServiceDependency)
+        assert result.module_path == 'tests.domain.test_di'
+        assert result.class_name == 'DummyDependencyAlpha'
+        assert result.parameters == {'test_param': 'test_value', 'param': 'value1'}
+
+    # * test: resolve_service_default
+    def test_resolve_service_default(self, test_ctx):
+        '''
+        Assert resolve_service falls back to the default definition.
+
+        :param test_ctx: The bound domain tester context.
+        :type test_ctx: DomainTesterContext
+        '''
+
+        # Resolve with no flag.
+        result = test_ctx.make_target().resolve_service()
+
+        # Assert the default dependency fields.
+        assert isinstance(result, ServiceDependency)
+        assert result.module_path == 'tests.domain.test_di'
+        assert result.class_name == 'DummyDependency'
+
+    # * test: resolve_service_none
+    def test_resolve_service_none(self, test_ctx):
+        '''
+        Assert resolve_service returns None when no default exists.
+
+        :param test_ctx: The bound domain tester context.
+        :type test_ctx: DomainTesterContext
+        '''
+
+        # Resolve an unknown flag against a registration with no default.
+        result = test_ctx.make_target(
+            data=SERVICE_REGISTRATION_NO_DEFAULT_SAMPLE_DATA,
+        ).resolve_service('unknown_flag')
+
+        # Assert nothing is resolved.
+        assert result is None

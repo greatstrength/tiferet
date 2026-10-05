@@ -75,8 +75,9 @@ class JsonLoader(FileLoader):
             loader,
             allowed_extensions={'.json'},
             invalid_error_id=INVALID_FILE_ID,
-            invalid_message='File must have .json extension',
+            invalid_message='File must have .json extension.',
             not_found_error_id=JSON_FILE_NOT_FOUND_ID,
+            format_name='JSON',
             default_path=default_path,
         )
 
@@ -122,6 +123,7 @@ class JsonLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 JSON_FILE_LOAD_ERROR_ID,
+                f'Failed to parse JSON: {e}. Path: {self.path}.',
                 error=str(e),
                 path=str(self.path),
                 cause=e,
@@ -133,6 +135,7 @@ class JsonLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 JSON_FILE_LOAD_ERROR_ID,
+                f'Failed to parse JSON: {e}. Path: {self.path}.',
                 error=str(e),
                 path=str(self.path),
                 cause=e,
@@ -176,6 +179,7 @@ class JsonLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 JSON_FILE_SAVE_ERROR_ID,
+                f'Failed to serialize/write JSON: {e}. Path: {self.path}.',
                 error=str(e),
                 path=str(self.path),
                 cause=e,
@@ -213,6 +217,7 @@ class JsonLoader(FileLoader):
                 ServiceError.raise_for(
                     JsonLoader,
                     INVALID_JSON_PATH_ID,
+                    f'Invalid JSON path: {path}. Failed at segment: {part}.',
                     path=path,
                     part=part,
                 )

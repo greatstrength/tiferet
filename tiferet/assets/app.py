@@ -8,7 +8,7 @@ the bootstrap catalog dicts consumed by the blueprint layer during cache seeding
 # *** imports
 
 # ** core
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 # ** app
 from .core import (
@@ -220,6 +220,9 @@ CACHE_MIDDLEWARE_DATA = create_app_service_dependency_data(
 
 # *** constants (groups)
 
+# ** constant: app_service_cache_prefix
+APP_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('app', 'services')
+
 # ** constant: core_default_services
 CORE_DEFAULT_SERVICES: Dict[str, Dict[str, Any]] = {
     DI_SERVICE_ID: DI_SERVICE_DATA,
@@ -238,6 +241,9 @@ CORE_DEFAULT_SERVICES: Dict[str, Dict[str, Any]] = {
     CACHE_MIDDLEWARE_ID: CACHE_MIDDLEWARE_DATA,
 }
 
+# ** constant: app_constant_cache_prefix
+APP_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('app', 'constants')
+
 # ** constant: core_default_constants
 CORE_DEFAULT_CONSTANTS: Dict[str, str] = {
     CLI_CONFIG_ID: DEFAULT_CONFIG_FILE,
@@ -247,10 +253,16 @@ CORE_DEFAULT_CONSTANTS: Dict[str, str] = {
     FEATURE_CONFIG_ID: DEFAULT_CONFIG_FILE,
 }
 
+# ** constant: admin_service_cache_prefix
+ADMIN_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'services')
+
 # ** constant: admin_default_services
 ADMIN_DEFAULT_SERVICES = {
     **CORE_DEFAULT_SERVICES,
 }
+
+# ** constant: admin_constant_cache_prefix
+ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'constants')
 
 # ** constant: admin_default_constants
 # Core constants plus the app_config key that the admin layer exposes directly.
@@ -258,6 +270,9 @@ ADMIN_DEFAULT_CONSTANTS = {
     **CORE_DEFAULT_CONSTANTS,
     'app_config': DEFAULT_CONFIG_FILE,
 }
+
+# ** constant: app_session_cache_prefix
+APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = ('app', 'sessions')
 
 # ** constant: core_default_app_sessions
 # Built-in session definitions seeded into the cache by build_cache.

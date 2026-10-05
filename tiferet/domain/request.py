@@ -7,7 +7,7 @@ from typing import Any, Dict
 from uuid import uuid4
 
 # ** infra
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 # ** app
 from .core import DomainObject
@@ -15,12 +15,16 @@ from .core import DomainObject
 # *** models
 
 # ** model: request
+# >> see: @guides/domain/request.md#request
 class Request(DomainObject):
     '''
     A request value object carrying the session, feature, headers, and data for
     a single feature execution. Runtime output (``result``) is intentionally not
     modeled here; it is owned by the operational request context.
     '''
+
+    # * attribute: model_config
+    model_config = ConfigDict(frozen=True)
 
     # * attribute: session_id
     session_id: str = Field(

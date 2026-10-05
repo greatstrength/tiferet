@@ -292,9 +292,9 @@ def validate_request(feature: Feature, request: RequestContext) -> None:
     if feature.params_schema is None:
         return
 
-    # Coerce the request data, assigning the merged result back.
+    # Coerce the in-flight request data and replace it through set_data.
     try:
-        request.data = feature.params_schema.coerce(request.data)
+        request.set_data(feature.params_schema.coerce(request.data))
 
     # Name the schema failure in the framework's request vocabulary.
     except ValidationError as error:

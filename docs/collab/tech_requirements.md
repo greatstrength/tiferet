@@ -20,7 +20,7 @@ Do not write a TRD that says "copy from proto." Do not put `Version: Request for
 2. Size: [project_fields.md](project_fields.md).
 3. Path:
    - **Standalone** — XL or below, or XL with no seam. One issue, one branch, one PR. Session record on that issue.
-   - **Super-TRD** — XL+ *and* a seam. Parent + children. Genre below; individual implementation of one child is [main.md](main.md).
+   - **Super-TRD** — XL+ *and* a seam. Parent + children. Genre below. The branch is not one PR that children commit onto; see [process.md](process.md) and [main.md](main.md).
 
 ## General guidelines
 
@@ -79,8 +79,8 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 - **§3:** artifact action per module, not a vague "Changes" blurb.
 - **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`).
 - **§5:** target artifacts exist *and* retired ones are gone.
-- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included).
-- **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the Release reviewer measures against, or `None` when no prototype exists. The implementor does not read it; it is the reviewer's fidelity source.
+- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included). External blockers of a Super-TRD child are wired on that child and on the parent issue ([process.md](process.md)). Before wiring a set, check for a cycle — two or more issues each naming the other's output as a prerequisite — and do not publish one ([process.md](process.md)).
+- **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the Release reviewer measures against, or `None` when no prototype exists. The reviewer also reads the prototype branch, read-only ([code_review.md](code_review.md)). The implementor does not read either.
 - **§7 hotfix:** no freeze row and no reference prototype row. Name the defect and why proto was not consulted.
 - **§8:** always `tiferet-code-style`; component skills as touched. Fallback: `docs/core/<component>.md`.
 
@@ -88,7 +88,7 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 
 TRDs specify **artifacts to add, update, or remove** — never prose narratives or "copy from X." An artifact is any unit named by the structured code style: module, class, attribute, `# * method:`, `# ** <component>:`, `# *** <section>` (see [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
-An implementor satisfies the TRD by acting on named artifacts. The Release reviewer verifies each one independently, not only the ones the AC names, against the reference prototype when one is recorded in §7 and against the TRD alone when it is not ([code_review.md](code_review.md)). The implementor must not be sent to the proto branch.
+An implementor satisfies the TRD by acting on named artifacts. The Release reviewer verifies each one independently, not only the ones the AC names, against the reference prototype when one is recorded in §7, against the prototype branch read-only, and against the TRD alone when no prototype is recorded ([code_review.md](code_review.md)). The implementor must not be sent to the proto branch.
 
 Because the TRD is the whole fidelity source when no prototype exists, name every artifact completely: exact labels, names, section and sub-group placement, parameters, and test catalog rows.
 
@@ -145,7 +145,7 @@ The TRD is written in the **target ubiquitous language** extracted from the free
 
 - Do not tell the implementor to read, diff, or copy proto.
 - Name classes, methods, parameters, mappers, roles, error codes.
-- Proto comparison is the Release reviewer's required measurement of every artifact §3 and §4 name, when a reference prototype is recorded in §7 ([code_review.md](code_review.md)). It is review measurement, never authoring or implementation.
+- Proto comparison is the Release reviewer's required measurement of every artifact §3 and §4 name, when a reference prototype is recorded in §7, plus a read-only check of the prototype branch ([code_review.md](code_review.md)). It is review measurement, never authoring or implementation. The reviewer does not check proto out, merge it, cherry-pick it, or copy it.
 
 ## Super-TRD format
 
@@ -182,7 +182,7 @@ Exceeds M → split. Reference scoping: issues #935 and #939.
 
 ### Closing
 
-A Super-TRD child does not get a Collaboration Report. Short status on the child issue is enough. The parent PR uses `Closes #<parent>` only. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
+A Super-TRD child does not get a Collaboration Report. Short status on the child issue is enough. The child stays In Review until the Super-TRD PR to `main` is squash-merged; closing children is closeout. A sub-TRD PR uses `Refs #<child>` and `Refs #<parent>` and never a closing keyword. The Super-TRD PR uses `Closes #<parent>` only. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
 
 ## Review checklist (author)
 
@@ -222,10 +222,16 @@ Milestone description payloads live in `.milestones/m<N>_<kebab-title>.md` if yo
 
 ## Creating GitHub issues
 
-Impact-check merged PRs **and** in-flight feature branches before creating issues from TRDs. For Super-TRD child 2, "current state" is the feature branch after child 1, not `main`.
+Impact-check merged PRs **and** in-flight branches before creating issues from TRDs. For a later Super-TRD child, current state is the Super-TRD branch after earlier children have merged into it, not `main`, and not a branch that children commit onto together.
 
 Use the REST API (`gh api`), not `gh issue create --milestone` (silently fails on en-dashes). After create, rename the TRD file to insert `m<N>_` and the issue number. Set Status=Ready. Wire blocked-by and Super-TRD sub-issues with the commands in [commands.md](commands.md).
 
 ## Branch naming (trunk)
 
-`<issue-number>-<lowercase-hyphenated-title>`, from and targeting `main`. Super-TRD: `<parent-issue>-<slug>`. Prototype branches are specified in [rfp.md](rfp.md), not here.
+Standalone and hotfix: `<issue-number>-<lowercase-hyphenated-title>`, cut from and targeting `main`.
+
+Super-TRD branch: `<parent-issue>-<slug>`, cut from `main` at the freeze base (trunk as it stands for this reconstruction, not proto) and pushed before any child starts. The orchestrator or the human cuts it. A child does not.
+
+Child: `<child-issue>-<slug>`, cut from the Super-TRD branch tip. The PR targets that branch, never `main`.
+
+The Super-TRD PR is that branch targeting `main`, opened after the child PRs have merged. See [process.md](process.md). Prototype branches are specified in [rfp.md](rfp.md), not here.

@@ -96,3 +96,48 @@ def test_default_app_service_class_name():
 
     # Verify the class name.
     assert app.DEFAULT_APP_SERVICE_CLASS_NAME == 'AppConfigRepository'
+
+# ** test: app_service_cache_prefix
+def test_app_service_cache_prefix():
+    '''
+    Verify APP_SERVICE_CACHE_PREFIX is the app services tuple.
+    '''
+
+    # Verify the prefix literal.
+    assert app.APP_SERVICE_CACHE_PREFIX == ('app', 'services')
+
+# ** test: app_constant_cache_prefix
+def test_app_constant_cache_prefix():
+    '''
+    Verify APP_CONSTANT_CACHE_PREFIX is the app constants tuple.
+    '''
+
+    # Verify the prefix literal.
+    assert app.APP_CONSTANT_CACHE_PREFIX == ('app', 'constants')
+
+# ** test: admin_service_cache_prefix
+def test_admin_service_cache_prefix():
+    '''
+    Verify ADMIN_SERVICE_CACHE_PREFIX is the admin services tuple.
+    '''
+
+    # Verify the prefix literal.
+    assert app.ADMIN_SERVICE_CACHE_PREFIX == ('admin', 'services')
+
+# ** test: admin_constant_cache_prefix
+def test_admin_constant_cache_prefix():
+    '''
+    Verify ADMIN_CONSTANT_CACHE_PREFIX is the admin constants tuple.
+    '''
+
+    # Verify the prefix literal.
+    assert app.ADMIN_CONSTANT_CACHE_PREFIX == ('admin', 'constants')
+
+# ** test: app_session_cache_prefix
+def test_app_session_cache_prefix():
+    '''
+    Verify APP_SESSION_CACHE_PREFIX is the app sessions tuple.
+    '''
+
+    # Verify the prefix literal.
+    assert app.APP_SESSION_CACHE_PREFIX == ('app', 'sessions')

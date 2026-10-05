@@ -79,6 +79,7 @@ def normalize_flags(*flags) -> List[str]:
 # *** classes
 
 # ** class: service_container
+# >> see: @guides/di.md#the-servicecontainer-contract
 class ServiceContainer(ABC):
     '''
     Abstract DI container contract for the Tiferet framework.
@@ -104,7 +105,7 @@ class ServiceContainer(ABC):
         :type service: ServiceDependency
         '''
 
-        raise NotImplementedError()
+        raise NotImplementedError('add_service method is required for ServiceContainer.')
 
     # * method: add_constant
     @abstractmethod
@@ -118,7 +119,7 @@ class ServiceContainer(ABC):
         :type value: Any
         '''
 
-        raise NotImplementedError()
+        raise NotImplementedError('add_constant method is required for ServiceContainer.')
 
     # * method: get_dependency
     @abstractmethod
@@ -132,7 +133,7 @@ class ServiceContainer(ABC):
         :rtype: Any
         '''
 
-        raise NotImplementedError()
+        raise NotImplementedError('get_dependency method is required for ServiceContainer.')
 
     # * method: has_dependency
     @abstractmethod
@@ -146,7 +147,7 @@ class ServiceContainer(ABC):
         :rtype: bool
         '''
 
-        raise NotImplementedError()
+        raise NotImplementedError('has_dependency method is required for ServiceContainer.')
 
     # * method: remove_dependency
     @abstractmethod
@@ -158,7 +159,7 @@ class ServiceContainer(ABC):
         :type dependency_id: str
         '''
 
-        raise NotImplementedError()
+        raise NotImplementedError('remove_dependency method is required for ServiceContainer.')
 
     # * method: load_container
     @abstractmethod
@@ -178,9 +179,10 @@ class ServiceContainer(ABC):
         :type constants: Dict[str, Any] | None
         '''
 
-        raise NotImplementedError()
+        raise NotImplementedError('load_container method is required for ServiceContainer.')
 
 # ** class: service_resolver
+# >> see: @guides/di.md#the-serviceresolver-contract
 class ServiceResolver(ABC):
     '''
     Abstract service resolver for the Tiferet framework.
@@ -239,7 +241,7 @@ class ServiceResolver(ABC):
 
     # * method: build_container
     @abstractmethod
-    def build_container(self, flags: List[str]) -> ServiceContainer:
+    def build_container(self, flags: List[str] = None) -> ServiceContainer:
         '''
         Build a new service container for the given normalized flag list.
 
@@ -249,7 +251,7 @@ class ServiceResolver(ABC):
         :rtype: ServiceContainer
         '''
 
-        raise NotImplementedError()
+        raise NotImplementedError('build_container method is required for ServiceResolver.')
 
     # * method: get_dependency
     def get_dependency(self, service_id: str, *flags) -> Any:

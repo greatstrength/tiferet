@@ -109,7 +109,7 @@ class CsvLoader(FileLoader):
         '''
         Lazily initialize the CSV reader if not already created.
 
-        :raises TiferetError: If the file is not opened in a readable mode.
+        :raises ServiceError: If the file is not opened in a readable mode.
         '''
 
         # Return early if the reader is already initialized.
@@ -118,7 +118,12 @@ class CsvLoader(FileLoader):
 
         # Verify the file is opened in a readable mode.
         if 'r' not in self.mode and '+' not in self.mode:
-            ServiceError.raise_for(self, CSV_INVALID_READ_MODE_ID)
+            ServiceError.raise_for(
+                self,
+                CSV_INVALID_READ_MODE_ID,
+                'File not opened in readable mode for CSV reading.',
+                mode=self.mode,
+            )
 
         # Create the CSV reader from the open file stream.
         self.reader = csv.reader(self.file)
@@ -128,7 +133,7 @@ class CsvLoader(FileLoader):
         '''
         Lazily initialize the CSV writer if not already created.
 
-        :raises TiferetError: If the file is not opened in a writable mode.
+        :raises ServiceError: If the file is not opened in a writable mode.
         '''
 
         # Return early if the writer is already initialized.
@@ -137,7 +142,12 @@ class CsvLoader(FileLoader):
 
         # Verify the file is opened in a writable mode.
         if 'w' not in self.mode and 'a' not in self.mode and '+' not in self.mode:
-            ServiceError.raise_for(self, CSV_INVALID_WRITE_MODE_ID)
+            ServiceError.raise_for(
+                self,
+                CSV_INVALID_WRITE_MODE_ID,
+                'File not opened in writable mode for CSV writing.',
+                mode=self.mode,
+            )
 
         # Create the CSV writer from the open file stream.
         self.writer = csv.writer(self.file)
@@ -287,7 +297,12 @@ class CsvLoader(FileLoader):
 
             # Raise error if fieldnames are not provided for dict rows.
             if fieldnames is None:
-                ServiceError.raise_for(CsvLoader, CSV_FIELDNAMES_REQUIRED_ID)
+                ServiceError.raise_for(
+                    CsvLoader,
+                    CSV_FIELDNAMES_REQUIRED_ID,
+                    'Fieldnames must be provided when writing dict-based CSV rows.',
+                    path=str(csv_file),
+                )
 
             # Write dict rows using DictWriter.
             with CsvLoader(path=csv_file, mode=mode) as loader:
@@ -367,7 +382,7 @@ class CsvDictLoader(CsvLoader):
         '''
         Lazily initialize the CSV DictReader if not already created.
 
-        :raises TiferetError: If the file is not opened in a readable mode.
+        :raises ServiceError: If the file is not opened in a readable mode.
         '''
 
         # Return early if the reader is already initialized.
@@ -376,7 +391,12 @@ class CsvDictLoader(CsvLoader):
 
         # Verify the file is opened in a readable mode.
         if 'r' not in self.mode and '+' not in self.mode:
-            ServiceError.raise_for(self, CSV_INVALID_READ_MODE_ID)
+            ServiceError.raise_for(
+                self,
+                CSV_INVALID_READ_MODE_ID,
+                'File not opened in readable mode for CSV reading.',
+                mode=self.mode,
+            )
 
         # Create the DictReader from the open file stream.
         self.reader = csv.DictReader(self.file, fieldnames=self.fieldnames)
@@ -386,7 +406,7 @@ class CsvDictLoader(CsvLoader):
         '''
         Lazily initialize the CSV DictWriter if not already created.
 
-        :raises TiferetError: If the file is not opened in a writable mode or fieldnames are missing.
+        :raises ServiceError: If the file is not opened in a writable mode or fieldnames are missing.
         '''
 
         # Return early if the writer is already initialized.
@@ -395,11 +415,21 @@ class CsvDictLoader(CsvLoader):
 
         # Verify the file is opened in a writable mode.
         if 'w' not in self.mode and 'a' not in self.mode and '+' not in self.mode:
-            ServiceError.raise_for(self, CSV_INVALID_WRITE_MODE_ID)
+            ServiceError.raise_for(
+                self,
+                CSV_INVALID_WRITE_MODE_ID,
+                'File not opened in writable mode for CSV writing.',
+                mode=self.mode,
+            )
 
         # Verify fieldnames are provided for DictWriter.
         if self.fieldnames is None:
-            ServiceError.raise_for(self, CSV_FIELDNAMES_REQUIRED_ID)
+            ServiceError.raise_for(
+                self,
+                CSV_FIELDNAMES_REQUIRED_ID,
+                'Fieldnames must be provided when writing dict-based CSV rows.',
+                path=str(self.path),
+            )
 
         # Create the DictWriter from the open file stream.
         self.writer = csv.DictWriter(self.file, fieldnames=self.fieldnames)
@@ -563,7 +593,12 @@ class CsvDictLoader(CsvLoader):
 
         # Raise error if fieldnames are not provided.
         if fieldnames is None:
-            ServiceError.raise_for(CsvDictLoader, CSV_FIELDNAMES_REQUIRED_ID)
+            ServiceError.raise_for(
+                CsvDictLoader,
+                CSV_FIELDNAMES_REQUIRED_ID,
+                'Fieldnames must be provided when writing dict-based CSV rows.',
+                path=str(csv_file),
+            )
 
         # Write dict rows with optional header.
         with CsvDictLoader(path=csv_file, mode=mode, fieldnames=fieldnames) as loader:

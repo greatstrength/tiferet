@@ -8,33 +8,151 @@ import time
 from typing import Any, Callable, Dict, List, Tuple
 
 # ** app
+from .. import a
 from ..assets import TiferetError, TiferetAPIError
 from ..assets.error import APP_ERROR_ID
 from ..domain import AppSession, AppServiceDependency
-from .core import BaseContext, add_default_cache_items
+from .core import BaseContext
 from .cache import CacheContext
 from .request import RequestContext
 
 # *** constants
 
 # ** constant: app_service_cache_prefix
-APP_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('app', 'services')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+APP_SERVICE_CACHE_PREFIX: Tuple[str, ...] = a.app.APP_SERVICE_CACHE_PREFIX
 
 # ** constant: app_constant_cache_prefix
-APP_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('app', 'constants')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+APP_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = a.app.APP_CONSTANT_CACHE_PREFIX
 
 # ** constant: admin_service_cache_prefix
-ADMIN_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'services')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+ADMIN_SERVICE_CACHE_PREFIX: Tuple[str, ...] = a.app.ADMIN_SERVICE_CACHE_PREFIX
 
 # ** constant: admin_constant_cache_prefix
-ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'constants')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = a.app.ADMIN_CONSTANT_CACHE_PREFIX
 
 # ** constant: app_session_cache_prefix
-APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = ('app', 'sessions')
+# -- obsolete: alias of the assets/app.py prefix; removal is a later slice
+APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = a.app.APP_SESSION_CACHE_PREFIX
 
 # *** functions
 
+# ** function: add_default_app_services
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
+def add_default_app_services(services: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default app service dependencies.
+
+    :param services: A mapping of service id to raw service dependency definition dicts.
+    :type services: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Import locally to avoid a cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to add_default_catalog under the asset prefix.
+    return add_default_catalog(
+        services,
+        a.app.APP_SERVICE_CACHE_PREFIX,
+        model=AppServiceDependency,
+        id_field='service_id',
+    )
+
+# ** function: add_default_app_constants
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
+def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default app constants.
+
+    :param constants: A mapping of constant id to scalar value.
+    :type constants: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Import locally to avoid a cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to add_default_catalog under the asset prefix.
+    return add_default_catalog(
+        constants,
+        a.app.APP_CONSTANT_CACHE_PREFIX,
+    )
+
+# ** function: add_default_admin_services
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
+def add_default_admin_services(services: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default admin service dependencies.
+
+    :param services: A mapping of service id to raw service dependency definition dicts.
+    :type services: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Import locally to avoid a cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to add_default_catalog under the asset prefix.
+    return add_default_catalog(
+        services,
+        a.app.ADMIN_SERVICE_CACHE_PREFIX,
+        model=AppServiceDependency,
+        id_field='service_id',
+    )
+
+# ** function: add_default_admin_constants
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
+def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default admin constants.
+
+    :param constants: A mapping of constant id to scalar value.
+    :type constants: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Import locally to avoid a cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to add_default_catalog under the asset prefix.
+    return add_default_catalog(
+        constants,
+        a.app.ADMIN_CONSTANT_CACHE_PREFIX,
+    )
+
+# ** function: add_default_app_sessions
+# -- obsolete: delegates to add_default_catalog; removal is a later slice
+def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default app sessions.
+
+    :param sessions: A mapping of session id to raw app session definition dicts.
+    :type sessions: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Import locally to avoid a cycle with blueprints.core.
+    from ..blueprints.core import add_default_catalog
+
+    # Delegate to add_default_catalog under the asset prefix.
+    return add_default_catalog(
+        sessions,
+        a.app.APP_SESSION_CACHE_PREFIX,
+        model=AppSession,
+        id_field='id',
+    )
+
 # ** function: raise_unwired_handler_error
+# -- obsolete: delegates to assets.core.raise_unwired_handler_error; removal is a later slice
 def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
     '''
     Raise a structured API error when a required hub handler is unwired.
@@ -49,108 +167,18 @@ def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) ->
     :type kwargs: dict
     '''
 
-    # Compose a message naming the missing handler and the session that needed it.
-    message = (
-        f'No {handler_name} is wired on the app session context for session '
-        f'{session_id}; the blueprint must supply {handler_name}.'
-    )
-
-    # Raise a structured API error; this function never returns.
-    raise TiferetAPIError(
+    # Delegate to the asset helper; this function does not catch the raise.
+    a.core.raise_unwired_handler_error(
+        handler_name,
+        session_id,
         error_code=APP_ERROR_ID,
-        name='App Error',
-        message=message,
         **kwargs,
-    )
-
-# ** function: add_default_app_services
-def add_default_app_services(services: Dict[str, Any]) -> Callable:
-    '''
-    Decorator factory that pre-seeds a cache context with default app service dependencies.
-
-    :param services: A mapping of service id to raw service dependency definition dicts.
-    :type services: Dict[str, Any]
-    :return: A decorator that wraps a cache-builder callable.
-    :rtype: Callable
-    '''
-
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(
-        services,
-        APP_SERVICE_CACHE_PREFIX,
-        model=AppServiceDependency,
-        id_field='service_id',
-    )
-
-# ** function: add_default_app_constants
-def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
-    '''
-    Decorator factory that pre-seeds a cache context with default app constants.
-
-    :param constants: A mapping of constant id to scalar value.
-    :type constants: Dict[str, Any]
-    :return: A decorator that wraps a cache-builder callable.
-    :rtype: Callable
-    '''
-
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(constants, APP_CONSTANT_CACHE_PREFIX)
-
-# ** function: add_default_admin_services
-def add_default_admin_services(services: Dict[str, Any]) -> Callable:
-    '''
-    Decorator factory that pre-seeds a cache context with default admin service dependencies.
-
-    :param services: A mapping of service id to raw service dependency definition dicts.
-    :type services: Dict[str, Any]
-    :return: A decorator that wraps a cache-builder callable.
-    :rtype: Callable
-    '''
-
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(
-        services,
-        ADMIN_SERVICE_CACHE_PREFIX,
-        model=AppServiceDependency,
-        id_field='service_id',
-    )
-
-# ** function: add_default_admin_constants
-def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
-    '''
-    Decorator factory that pre-seeds a cache context with default admin constants.
-
-    :param constants: A mapping of constant id to scalar value.
-    :type constants: Dict[str, Any]
-    :return: A decorator that wraps a cache-builder callable.
-    :rtype: Callable
-    '''
-
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(constants, ADMIN_CONSTANT_CACHE_PREFIX)
-
-# ** function: add_default_app_sessions
-def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
-    '''
-    Decorator factory that pre-seeds a cache context with default app sessions.
-
-    :param sessions: A mapping of session id to raw app session definition dicts.
-    :type sessions: Dict[str, Any]
-    :return: A decorator that wraps a cache-builder callable.
-    :rtype: Callable
-    '''
-
-    # Delegate to the shared cache-seeding factory.
-    return add_default_cache_items(
-        sessions,
-        APP_SESSION_CACHE_PREFIX,
-        model=AppSession,
-        id_field='id',
     )
 
 # *** contexts
 
 # ** context: app_session_context
+# >> see: @guides/contexts.md#appsessioncontext
 class AppSessionContext(BaseContext):
     '''
     The application session hub binds a loaded ``AppSession`` domain object
@@ -216,7 +244,7 @@ class AppSessionContext(BaseContext):
 
         # Store the DI resolution handler and shared bootstrap cache.
         self.get_dependency = get_dependency
-        self.cache = cache or CacheContext()
+        self.cache = cache if cache is not None else CacheContext()
 
         # Store the five template-method handlers (validated lazily on first use).
         self._build_logger = build_logger_handler

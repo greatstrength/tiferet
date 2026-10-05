@@ -72,8 +72,9 @@ class YamlLoader(FileLoader):
             loader,
             allowed_extensions={'.yaml', '.yml'},
             invalid_error_id=INVALID_FILE_ID,
-            invalid_message='File must have .yaml or .yml extension',
+            invalid_message='File must have .yaml or .yml extension.',
             not_found_error_id=YAML_FILE_NOT_FOUND_ID,
+            format_name='YAML',
             default_path=default_path,
         )
 
@@ -123,6 +124,7 @@ class YamlLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 YAML_FILE_LOAD_ERROR_ID,
+                f'Failed to parse YAML file: {e}. Path: {self.path}.',
                 error=str(e),
                 path=str(self.path),
                 cause=e,
@@ -134,6 +136,7 @@ class YamlLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 YAML_FILE_LOAD_ERROR_ID,
+                f'Failed to parse YAML file: {e}. Path: {self.path}.',
                 error=str(e),
                 path=str(self.path),
                 cause=e,
@@ -177,6 +180,7 @@ class YamlLoader(FileLoader):
             ServiceError.raise_for(
                 self,
                 YAML_FILE_SAVE_ERROR_ID,
+                f'Failed to write YAML file: {e}. Path: {self.path}.',
                 error=str(e),
                 path=str(self.path),
                 cause=e,

@@ -5,7 +5,7 @@ Thank you for wanting to contribute. This page is the front door. The map of how
 ## Getting started
 
 1. Fork the repository and clone your fork.
-2. Cut a branch from the right base (proto for an RFP, `main` for trunk or docs).
+2. Cut a branch from the right base (proto for an RFP, `main` for a standalone trunk TRD or docs, the already-pushed Super-TRD branch for a Super-TRD child).
 3. Set up a virtual environment and install in development mode:
 
 ```bash
@@ -24,7 +24,7 @@ Trunk and prototype are two independent histories of the same version family. Wh
 | Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
 | Change docs or agent skills | a **Doc PR** — no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
-As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child)**. You do not plan a release, mint a freeze, or tag a version. The reviewer assigns the issue to a milestone.
+As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child whose Super-TRD branch is already pushed)**. You do not plan a release, mint a freeze, cut a Super-TRD branch, or tag a version. The reviewer assigns the issue to a milestone.
 
 Commands used across all of that: [docs/collab/commands.md](docs/collab/commands.md). Facts that belong only to this repo: [docs/collab/binding.md](docs/collab/binding.md).
 
@@ -58,13 +58,13 @@ When a PR is squash-merged, clean up after yourself: remove the worktree and its
 
 ### Pull requests
 
-RFPs target proto. Trunk and Doc target `main`. GitHub-link the PR to the authorizing issue (RFP, standalone TRD, or Super-TRD parent). Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
+RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue. A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
 
 The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
 
 ### Review
 
-Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD, or against the TRD alone when there is none. The reviewer approves and reports; a human squash-merges (unless the human explicitly delegates the merge for that PR). More in [code_review.md](docs/collab/code_review.md).
+Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD and, read-only, against the prototype branch, or against the TRD alone when there is no prototype. The first line of the review is `Verdict: Approve` or `Verdict: Changes requested`. A human squash-merges a PR that targets `main`, unless the human explicitly delegates that PR. A Release reviewer may squash-merge a sub-TRD PR into the Super-TRD branch when [code_review.md](docs/collab/code_review.md) says so. That does not extend to `main`.
 
 ### Collaboration Report
 
@@ -79,8 +79,8 @@ Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in t
 - `tiferet-author-rfp` — draft or amend one RFP; publish the issue; wire blocked-by.
 - `tiferet-rfp-session` — implement one published RFP on proto; link the PR to that issue; close the issue after squash.
 - `tiferet-author-trd` — one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
-- `tiferet-implement-trd` — implement one published TRD or one Super-TRD child; link the PR to the standalone issue or the parent.
-- `tiferet-pr-code-review` — review one PR as the Prototype or Release reviewer; one consolidated review and a verdict.
+- `tiferet-implement-trd` — implement one published TRD, or one Super-TRD child on a PR to the already-pushed Super-TRD branch. Never `main` for a child.
+- `tiferet-pr-code-review` — one consolidated review, verdict line first. Never merges to `main` unless the human delegates that PR. May squash-merge a sub-TRD PR into the Super-TRD branch when the base and verdict hold.
 - `tiferet-collab-report` — standalone TRD closeout on the issue.
 
 **Docs:** `tiferet-guide-docs`.
