@@ -338,6 +338,7 @@ def test_app_session_context_build_request_unwired(app_session: AppSession, get_
     # Assert the structured app error names the missing handler.
     assert exc_info.value.error_code == APP_ERROR_ID
     assert 'create_request_handler' in exc_info.value.message
+    assert exc_info.value.kwargs.get('feature_id') == 'test.feature'
 
 # ** test: app_session_context_execute_feature_wired
 def test_app_session_context_execute_feature_wired(app_session_context: AppSessionContext, execute_feature_handler: Callable):
@@ -369,6 +370,7 @@ def test_app_session_context_execute_feature_unwired(app_session: AppSession, ge
     # Assert the structured app error names the missing handler.
     assert exc_info.value.error_code == APP_ERROR_ID
     assert 'execute_feature_handler' in exc_info.value.message
+    assert exc_info.value.kwargs.get('feature_id') == 'test.feature'
 
 # ** test: app_session_context_handle_error_wired
 def test_app_session_context_handle_error_wired(app_session_context: AppSessionContext, raise_error_handler: Callable):
@@ -424,6 +426,8 @@ def test_app_session_context_handle_error_unwired(app_session: AppSession, get_d
     # Assert the structured app error names the missing handler.
     assert exc_info.value.error_code == APP_ERROR_ID
     assert 'raise_error_handler' in exc_info.value.message
+    assert exc_info.value.kwargs['original_error_code'] == 'SOME_ERROR'
+    assert exc_info.value.kwargs['original_error_message'] == str(error)
 
 # ** test: app_session_context_build_response_wired
 def test_app_session_context_build_response_wired(app_session_context: AppSessionContext, response_handler: Callable):
@@ -456,6 +460,38 @@ def test_app_session_context_build_response_unwired(app_session: AppSession, get
     # Assert the structured app error names the missing handler.
     assert exc_info.value.error_code == APP_ERROR_ID
     assert 'response_handler' in exc_info.value.message
+
+# ** test: app_session_context_execute_feature_unwired_handler_passes_through_run
+def test_app_session_context_execute_feature_unwired_handler_passes_through_run(
+        app_session: AppSession,
+        get_dependency: Callable,
+        build_logger_handler: Callable,
+        create_request_handler: Callable,
+        response_handler: Callable,
+    ):
+    '''
+    Test that run surfaces the unwired execute handler without wrapping it.
+    '''
+
+    # Wire every handler except execute and raise.
+    context = AppSessionContext.from_domain(
+        app_session,
+        get_dependency=get_dependency,
+        build_logger_handler=build_logger_handler,
+        create_request_handler=create_request_handler,
+        response_handler=response_handler,
+    )
+
+    # Run and assert the execute-slot error passes through.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.run('group.feat')
+
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'execute_feature_handler' in exc_info.value.message
+    assert 'raise_error_handler' not in exc_info.value.message
+    assert exc_info.value.kwargs['feature_id'] == 'group.feat'
+    assert 'An error occurred in the app' not in exc_info.value.message
+    build_logger_handler.return_value.error.assert_called_once()
 
 # ** test: app_session_context_run_success
 def test_app_session_context_run_success(

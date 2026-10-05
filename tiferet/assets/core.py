@@ -553,6 +553,42 @@ def create_default_cli_command_data(
     # Return the assembled command definition.
     return command
 
+# ** function: raise_unwired_handler_error
+def raise_unwired_handler_error(handler_name: str,
+        session_id: str,
+        error_code: str,
+        **kwargs) -> None:
+    '''
+    An absent handler is a composition bug, so the caller raises a TiferetAPIError instead of rebuilding the handler.
+
+    The error code is a parameter so this module does not import the catalog.
+
+    :param handler_name: The name of the missing handler slot.
+    :type handler_name: str
+    :param session_id: The app session id that expected the handler.
+    :type session_id: str
+    :param error_code: The catalog error code to raise.
+    :type error_code: str
+    :param kwargs: Additional context forwarded onto the API error.
+    :type kwargs: dict
+    :return: This function always raises and does not return.
+    :rtype: None
+    '''
+
+    # Name the missing handler and the session that needed it.
+    message = (
+        f'No {handler_name} is wired on the app session context for session '
+        f'{session_id}; the blueprint must supply {handler_name}.'
+    )
+
+    # Raise a structured API error; this function never returns.
+    raise TiferetAPIError(
+        error_code=error_code,
+        name='App Error',
+        message=message,
+        **kwargs,
+    )
+
 # *** classes
 
 # ** class: tiferet_error

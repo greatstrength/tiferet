@@ -35,9 +35,8 @@ def build_app_session_context(app_session: AppSession, cache: CacheContext, **co
         AppSessionContext,
         app_session,
         cache,
-        app_container,
         resolver,
-        create_request_handler=core.create_session_request,
+        create_request_handler=core.create_request_context,
         response_handler=core.response_handler,
         **context_kwargs,
     )
