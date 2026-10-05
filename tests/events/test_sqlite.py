@@ -47,6 +47,8 @@ def sqlite_mock_dependencies() -> dict:
     # Return the dependency mapping.
     return {'sqlite_service': service}
 
+# *** fixtures
+
 # ** fixture: mock_dependencies
 @pytest.fixture
 def mock_dependencies() -> dict:
