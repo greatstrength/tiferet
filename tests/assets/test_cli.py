@@ -77,29 +77,29 @@ def test_error_add_includes_additional_messages_dict_arg():
         'Additional messages beyond the primary one, as lang=text pairs.'
     )
 
-# ** test: list_shaped_json_arguments_remain_json
-def test_list_shaped_json_arguments_remain_json():
+# ** test: corrected_argument_flags
+def test_corrected_argument_flags():
     '''
-    Verify list-shaped arguments out of scope stay type='json'.
+    Verify the review corrections on app.add and cli.add-argument.
     '''
 
-    # Assert app.add --flags remains json.
+    # Assert app.add no longer exposes --flags.
     flags_arg = find_argument(cli_assets.APP_ADD_CLI_CMD_DATA, '--flags')
-    assert flags_arg is not None
-    assert flags_arg['type'] == 'json'
+    assert flags_arg is None
 
-    # Assert cli.add-argument --name-or-flags remains json.
+    # Assert cli.add-argument uses a positional name_or_flags argument.
     name_or_flags_arg = find_argument(
         cli_assets.CLI_ADD_ARGUMENT_CLI_CMD_DATA,
-        '--name-or-flags',
+        'name_or_flags',
     )
     assert name_or_flags_arg is not None
-    assert name_or_flags_arg['type'] == 'json'
+    assert 'type' not in name_or_flags_arg
+    assert 'required' not in name_or_flags_arg
 
 # ** test: feature_get_cli_command_registered
 def test_feature_get_cli_command_registered():
     '''
-    Verify feature.get CLI artifacts exist and sit after feature.list in the catalog.
+    Verify feature.get CLI artifacts exist and sit between feature.add and feature.list.
     '''
 
     # Assert the feature.get command id and catalog entry.
@@ -114,9 +114,9 @@ def test_feature_get_cli_command_registered():
     assert cli_assets.FEATURE_GET_CLI_CMD_DATA['key'] == 'get'
     assert cli_assets.FEATURE_GET_CLI_CMD_DATA['group_key'] == 'feature'
 
-    # Assert insertion order: list, get, add.
+    # Assert insertion order: add, get, list.
     command_ids = list(cli_assets.ADMIN_DEFAULT_COMMANDS)
-    list_index = command_ids.index(cli_assets.FEATURE_LIST_CLI_CMD_ID)
-    get_index = command_ids.index(cli_assets.FEATURE_GET_CLI_CMD_ID)
     add_index = command_ids.index(cli_assets.FEATURE_ADD_CLI_CMD_ID)
-    assert list_index < get_index < add_index
+    get_index = command_ids.index(cli_assets.FEATURE_GET_CLI_CMD_ID)
+    list_index = command_ids.index(cli_assets.FEATURE_LIST_CLI_CMD_ID)
+    assert add_index < get_index < list_index
