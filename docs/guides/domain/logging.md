@@ -191,12 +191,11 @@ The following domain events interact with `Formatter`, `Handler`, and `Logger`:
 
 | Event                     | Description                                           |
 |---------------------------|-------------------------------------------------------|
-| `ListAllLoggingConfigs`   | Retrieves all formatters, handlers, and loggers.      |
+| `ListAllLoggingConfigs`   | Retrieves all formatters, handlers, and loggers in one call (wired as `logging_list_all_evt`). |
 | `AddFormatter`            | Creates and persists a new `Formatter`.               |
 | `AddHandler`              | Creates and persists a new `Handler`.                 |
 | `AddLogger`               | Creates and persists a new `Logger`.                  |
 | `RemoveFormatter` / `RemoveHandler` / `RemoveLogger` | Idempotent removals used by admin CRUD. |
-| `ListAllLoggingConfigs`   | Lists formatters, handlers, and loggers (also wired as `logging_list_all_evt`). |
 
 These events depend on the `LoggingService` interface for persistence operations.
 
@@ -204,14 +203,17 @@ These events depend on the `LoggingService` interface for persistence operations
 
 **`LoggingService`** (`tiferet/interfaces/logging.py`) defines the abstract contract for Logging domain persistence:
 
-- `list_formatters() -> List[Formatter]`
-- `list_handlers() -> List[Handler]`
-- `list_loggers() -> List[Logger]`
-- `save_formatter(formatter) -> None`
-- `save_handler(handler) -> None`
-- `save_logger(logger) -> None`
+- `list_all() -> Tuple[List[FormatterAggregate], List[HandlerAggregate], List[LoggerAggregate]]`
+- `save_formatter(formatter: FormatterAggregate) -> None`
+- `save_handler(handler: HandlerAggregate) -> None`
+- `save_logger(logger: LoggerAggregate) -> None`
+- `delete_formatter(formatter_id: str) -> None`
+- `delete_handler(handler_id: str) -> None`
+- `delete_logger(logger_id: str) -> None`
 
-Concrete implementations (e.g., `LoggingYamlRepository`) satisfy this interface.
+The read side is a **single** `list_all()` returning all three collections as one tuple, not three separate list methods — the three sections are always loaded together, so one call avoids three reads of the same file. As elsewhere, the contract is typed with aggregates rather than the bare value objects, since a caller retrieving a configuration is generally about to mutate and re-save it.
+
+Concrete implementations (e.g., `LoggingConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 

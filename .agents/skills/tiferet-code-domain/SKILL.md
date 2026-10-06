@@ -38,7 +38,7 @@ Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `assets` sub-modules only (e.g. `from .. import assets as a`). Never import from `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** none. `domain` imports no framework package. Never import from `assets`, `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
 - Extend `DomainObject` from `tiferet.domain.core` (which extends `pydantic.BaseModel`).
 - `DomainObject` config: `extra='forbid'`, `populate_by_name=True`, `validate_assignment=True`, `arbitrary_types_allowed=True`, `coerce_numbers_to_str=True`.
 - Declare all fields with `pydantic.Field(...)` including a `description` kwarg.

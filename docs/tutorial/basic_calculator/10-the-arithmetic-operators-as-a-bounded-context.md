@@ -153,7 +153,7 @@ def create_calculator_cli(interface_id='calc_cli', argv=None, config_file='confi
     return cli_context.run(argv)
 ```
 
-`CliContext` has no `record_run` override, so CLI runs get the arithmetic defaults but not history recording -- a small, accepted scope boundary; `calc_client.py` and `calc_fluent.py` (Chapter 11) are where history matters.
+`CliSessionContext` has no `record_run` override, so CLI runs get the arithmetic defaults but not history recording -- a small, accepted scope boundary; `calc_client.py` and `calc_fluent.py` (Chapter 11) are where history matters.
 
 **calc_cli.py** shrinks to one call:
 
