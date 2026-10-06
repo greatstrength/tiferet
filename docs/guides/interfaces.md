@@ -72,7 +72,7 @@ def list(self, group_id: Optional[str] = None) -> List[FeatureAggregate]: ...
 
 ### CliService — Extra Query Method
 
-`CliService` adds `get_parent_arguments()` beyond the standard five methods. This method returns all top-level `CliArgumentAggregate` objects — arguments that apply to the CLI root rather than to any specific command. It is not part of the CRUD contract but serves a specific runtime need of `CliContext`.
+`CliService` adds `get_parent_arguments()` beyond the standard five methods. This method returns all top-level `CliArgumentAggregate` objects — arguments that apply to the CLI root rather than to any specific command. It is not part of the CRUD contract but serves a specific runtime need of `CliSessionContext`.
 
 ```python
 def get_parent_arguments(self) -> List[CliArgumentAggregate]: ...
@@ -168,7 +168,7 @@ class GetFeature(DomainEvent):
         # Verify that the feature exists.
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             feature_id=id,
         )
 
