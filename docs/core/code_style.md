@@ -447,7 +447,7 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
 
 A test module has the same three roots in Python comments and in YAML, in this order: `fixtures`, `tests`, `testers`. Omit an empty root. The YAML file lives at `tiferet_tests/<rel>.yml` for `tests/**/test_*.py`; the document law, the path rule, and the anchor rule are in [testing.md](testing.md).
 
-A YAML test, at the root or inside a tester, is three phases and no fourth: `conditions`, then `execute`, then `assert`. A tester holds `attributes` and `fixtures` and contains `tests`. It is not a fourth phase and not a fourth root. `testers:` is legal only as a root of that YAML file. It is illegal in application `config.yml`.
+A YAML test, at the root or inside a tester, is three phases and no fourth: `conditions`, then `execute`, then `assert`. The model field is `asserts`. The YAML key stays `assert`, and the mapping is held for the transfer object, which is not added here. A tester holds `attributes` and `fixtures` and contains `tests`. It is not a fourth phase and not a fourth root. `testers:` is legal only as a root of that YAML file. It is illegal in application `config.yml`.
 
 After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` — standalone helpers only, never a tester), a Python test module declares group-level sections in this order:
 
