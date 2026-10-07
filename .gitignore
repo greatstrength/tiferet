@@ -160,8 +160,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Test file.
+# Scratch test file. The Test dialect modules are not scratch files.
 test.py
+!tiferet/domain/test.py
+!tiferet/contexts/test.py
 
 # VS Code
 .vscode/

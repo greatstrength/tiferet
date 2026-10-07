@@ -39,6 +39,9 @@ from .feature import (
     ParameterSpecification,
     RequestSpecification,
 )
+from .test import (
+    Test,
+)
 from .request import (
     Request,
 )
@@ -80,6 +83,7 @@ __all__ = [
     'EventFeatureStep',
     'ParameterSpecification',
     'RequestSpecification',
+    'Test',
     'Request',
     'TesterObject',
     'Verification',
