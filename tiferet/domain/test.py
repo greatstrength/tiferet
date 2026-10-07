@@ -18,8 +18,11 @@ class Test(Feature):
     '''
     A test is a feature in purpose and a test in name — the same workflow
     noun, spoken as the three phases ``conditions``, ``execute``, and
-    ``assert``, so a YAML test module can name what a feature step list
+    ``asserts``, so a YAML test module can name what a feature step list
     cannot say on its own.
+
+    The YAML phase key is ``assert``. Mapping that key onto ``asserts``
+    belongs on the transfer object, which this model does not carry.
     '''
 
     # * attribute: conditions
@@ -34,9 +37,8 @@ class Test(Feature):
         description='The execute phase. The ordered steps the test performs.',
     )
 
-    # * attribute: assert
-    assert_: List[Dict[str, Any]] = Field(
+    # * attribute: asserts
+    asserts: List[Dict[str, Any]] = Field(
         default_factory=list,
-        alias='assert',
-        description='The assert phase. The ordered checks the test evaluates.',
+        description='The asserts phase. The ordered checks the test evaluates.',
     )
