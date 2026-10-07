@@ -445,11 +445,17 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
 
 ## Test-Module Artifact Grammar
 
-After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` — standalone helpers only, never a tester), test modules declare group-level sections in this order:
+A test module has the same three roots in Python comments and in YAML, in this order: `fixtures`, `tests`, `testers`. Omit an empty root. The YAML file lives at `tiferet_tests/<rel>.yml` for `tests/**/test_*.py`; the document law, the path rule, and the anchor rule are in [testing.md](testing.md).
+
+A YAML test, at the root or inside a tester, is three phases and no fourth: `conditions`, then `execute`, then `assert`. A tester holds `attributes` and `fixtures` and contains `tests`. It is not a fourth phase and not a fourth root. `testers:` is legal only as a root of that YAML file. It is illegal in application `config.yml`.
+
+After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` — standalone helpers only, never a tester), a Python test module declares group-level sections in this order:
 
 1. `# *** fixtures` — module-level pytest fixtures. Mid-level: `# ** fixture: <snake_name>` matching `def <snake_name>`.
 2. `# *** tests` — module-level test **functions** only. Mid-level: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
 3. `# *** testers` — tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
+
+The Python comment grammar above is unchanged. The YAML roots name the same three kinds; they do not replace these comments.
 
 Under a tester class, members are:
 
@@ -535,5 +541,5 @@ For implementation agents, the **`tiferet-code-<component>` skills** (see `docs/
 - **`tiferet-code-interfaces`** / **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Service interface conventions.
 - **`tiferet-code-mappers`** / **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
 - **`tiferet-code-repos`** / **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** – Repository implementation conventions.
-- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Tester subdomain conventions (`TesterObject`, `@use_tester`, `Tester()`).
+- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Test module vocabulary (`Test`, `TestContext`, the three YAML roots, `@use_tester`).
 - **`tiferet-code-utils`** / **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** – Utility and infrastructure conventions.
