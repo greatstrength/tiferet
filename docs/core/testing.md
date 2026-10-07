@@ -33,7 +33,7 @@ A contained test is still the three YAML phases `conditions`, `execute`, `assert
 
 ### The three phases
 
-`Test` (`tiferet/domain/test.py`) extends `Feature`. The model fields are three, in this order: `conditions`, `execute`, `asserts`. There is no fourth phase field. The YAML phase key stays `assert`. Mapping `assert` onto `asserts` belongs on the transfer object. This page does not add that transfer object, and the domain model carries no alias. The tester blueprint compiles those fields into `Feature.steps`; the handlers for those steps are registered by that blueprint. They are not added to the default feature catalog, and they do not decorate `core.build_cache`. RFP-028 names what a phase may contain. This page names the three fields and forbids a fourth.
+`Test` (`tiferet/domain/test.py`) extends `Feature`. The model fields are three, in this order: `conditions`, `execute`, `asserts`. There is no fourth phase field and no field named `assert`. `asserts` carries no alias. The YAML phase key stays `assert`. Mapping `assert` onto `asserts` belongs to the transfer object, which this RFP does not add. The tester blueprint compiles those fields into `Feature.steps`; the handlers for those steps are registered by that blueprint. They are not added to the default feature catalog, and they do not decorate `core.build_cache`. RFP-028 names what a phase may contain. This page names the three fields and forbids a fourth.
 
 `TestContext` (`tiferet/contexts/test.py`) extends `FeatureContext` and declares `domain_type = Test` in its own namespace. `Feature` stays mapped to `FeatureContext`: `BaseContext.for_domain(Feature)` is `FeatureContext`.
 
