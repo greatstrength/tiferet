@@ -40,6 +40,11 @@ from .feature import (
     RequestSpecification,
 )
 from .test import (
+    ArrangedMock,
+    Assertion,
+    Conditions,
+    Execution,
+    ExecutionTarget,
     Test,
 )
 from .request import (
@@ -83,6 +88,11 @@ __all__ = [
     'EventFeatureStep',
     'ParameterSpecification',
     'RequestSpecification',
+    'ArrangedMock',
+    'Assertion',
+    'Conditions',
+    'Execution',
+    'ExecutionTarget',
     'Test',
     'Request',
     'TesterObject',
