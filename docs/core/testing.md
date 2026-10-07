@@ -7,7 +7,7 @@
 
 ## Overview
 
-A unit test has two faces. In Python, `@use_tester` binds a `TesterObject` and injects `test_ctx` and `session`. In YAML, a test module under `tiferet_tests/` is a document whose only roots are `fixtures`, `tests`, and `testers`. A test, at the root or inside a tester, is a `Test`: a feature in purpose and a test in name. The model fields are `conditions`, `execute`, and `asserts`. The YAML phase key is `assert`.
+A unit test has two faces. In Python, `@use_tester` binds a `TesterObject` and injects `test_ctx` and `session`. In YAML, a test module under `tiferet_tests/` is a document whose only roots are `fixtures`, `tests`, and `testers`. A test, at the root or inside a tester, is a `Test`: a feature in purpose and a test in name. The model fields are `conditions`, `executes`, and `asserts`. The YAML keys stay `conditions`, `execute`, and `assert`.
 
 `TestSessionContext` sees a `TestContext`, not a `FeatureContext`. This page states that. The constructor switch off `TesterContext` is performed by RFP-030, not here, so `@use_tester` is unchanged.
 
@@ -23,7 +23,7 @@ A test module is one YAML document. It has three roots, in this order, and no ot
 
 Each root is a mapping. The key is the grammar snake name (`error_message`, `test_error`), not `Test*`. Omit an empty root. Do not write `{}` for an omitted root. No preamble keys.
 
-A contained test is still the three YAML phases `conditions`, `execute`, `assert`. The model field for the third phase is `asserts`. Naming a root test from a tester does not move that test under the tester. A tester-local fixture is not promoted into the root `fixtures` mapping.
+A contained test is still the three YAML phases `conditions`, `execute`, `assert`. On the model those fields are `conditions`, `executes`, and `asserts`. Naming a root test from a tester does not move that test under the tester. A tester-local fixture is not promoted into the root `fixtures` mapping.
 
 ### File root
 
@@ -33,7 +33,11 @@ A contained test is still the three YAML phases `conditions`, `execute`, `assert
 
 ### The three phases
 
-`Test` (`tiferet/domain/test.py`) extends `Feature`. The model fields are three, in this order: `conditions`, `execute`, `asserts`. There is no fourth phase field and no field named `assert`. `asserts` carries no alias. The YAML phase key stays `assert`. Mapping `assert` onto `asserts` belongs to the transfer object, which this RFP does not add. The tester blueprint compiles those fields into `Feature.steps`; the handlers for those steps are registered by that blueprint. They are not added to the default feature catalog, and they do not decorate `core.build_cache`. RFP-028 names what a phase may contain. This page names the three fields and forbids a fourth.
+`Test` (`tiferet/domain/test.py`) extends `Feature`. The model fields are three, in this order: `conditions`, `executes`, `asserts`. `conditions` is a `Conditions`. `executes` is a list of `Execution`. `asserts` is a list of `Assertion`. These fields do not replace inherited `steps`. There is no fourth phase field, and no field named `execute`, `assert`, or `as`. None of them carries an alias.
+
+`Conditions` is one object, not a list. It holds fixture names and a dict of `ArrangedMock`. `ArrangedMock` has `module_path`, `class_name`, and optional `context`. `return_value` stays data. `Execution` has `target` (`str` or `ExecutionTarget`), `method`, `args`, `kwargs`, `data_key`, and `raises`. `ExecutionTarget` is `module_path` plus exactly one of `class_name` or `attribute`. `Assertion` is one model. `check` is the discriminator. `is` and `type` are values of `check`, not field names. A comparison tree inside `fields` stays data.
+
+The YAML keys stay `conditions`, `execute`, and `assert`. `as` maps onto `data_key`. RFP-035 owns that mapping, including `as` onto `data_key`. This RFP does not add that mapping, and it adds no mapper module. The tester blueprint compiles these fields into `Feature.steps`. The handlers are not added to the default feature catalog, and they do not decorate `core.build_cache`. RFP-028 names what a phase may contain. This page names the three fields and forbids a fourth.
 
 `TestContext` (`tiferet/contexts/test.py`) extends `FeatureContext` and declares `domain_type = Test` in its own namespace. `Feature` stays mapped to `FeatureContext`: `BaseContext.for_domain(Feature)` is `FeatureContext`.
 
