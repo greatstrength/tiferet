@@ -6,15 +6,18 @@
 from typing import Any, ClassVar, Dict, List, Tuple
 
 # ** infra
-from pydantic import AliasChoices, Field, model_serializer, model_validator
+from pydantic import AliasChoices, Field, ValidationError, model_serializer, model_validator
 
 # ** app
 from ..domain import (
+    INVALID_MODEL_ATTRIBUTE_ID,
+    INVALID_MODEL_VALUE_ID,
     ArrangedMock,
     Assertion,
     Conditions,
     Execution,
     ExecutionTarget,
+    ModelError,
     Test,
 )
 from ..domain.test import (
@@ -22,7 +25,10 @@ from ..domain.test import (
     ASSERTION_CHECK_FIELDS,
     ASSERTION_PAYLOAD_FIELDS,
 )
-from .core import TransferObject
+from .core import (
+    Aggregate,
+    TransferObject,
+)
 
 # *** constants
 
@@ -70,111 +76,6 @@ def payload_fields(check: str) -> Tuple[str, ...]:
         for name in allowed
         if name not in SIBLING_FIELDS and name != check
     )
-
-# ** function: store_payload
-def store_payload(data: Dict[str, Any], check: str, value: Any) -> None:
-    '''
-    Store a check key's value on the attributes Assertion already uses.
-
-    :param data: The assert item being lifted.
-    :type data: Dict[str, Any]
-    :param check: The check name.
-    :type check: str
-    :param value: The check key's value.
-    :type value: Any
-    '''
-
-    # A same-named field keeps the value. Do not walk it.
-    fields = payload_fields(check)
-    if not fields and check in ASSERTION_PAYLOAD_FIELDS:
-        data[check] = value
-        return
-
-    # A flag check has no attribute for its value.
-    if not fields or value is True:
-        return
-
-    # Reject a value that cannot be stored on the payload fields.
-    if not isinstance(value, dict):
-        raise ValueError(f'Check {check} payload must be a mapping.')
-
-    # Spread the mapping. A key inside the value stays data.
-    for name in fields:
-        if name in value:
-            data[name] = value[name]
-
-# ** function: lift_check_key
-def lift_check_key(data: Any) -> Any:
-    '''
-    Lift one top-level check key onto ``check`` and that check's payload.
-
-    :param data: The raw assert item.
-    :type data: Any
-    :return: The item with the check key lifted, or the original value.
-    :rtype: Any
-    '''
-
-    # Pass non-mappings through for ordinary validation.
-    if not isinstance(data, dict):
-        return data
-
-    # Copy so the caller's mapping is not mutated.
-    lifted = dict(data)
-
-    # A check field and no YAML check key is the from_model shape.
-    if lifted.get('check') is not None:
-        foreign = [
-            key for key in lifted
-            if key in ASSERTION_CHECKS and key not in ASSERTION_PAYLOAD_FIELDS
-        ]
-        if foreign:
-            raise ValueError(
-                'An assert item cannot carry both check and a check key.',
-            )
-        return lifted
-
-    # A YAML item has exactly one top-level key from the closed set.
-    keys = [key for key in lifted if key in ASSERTION_CHECKS]
-    if len(keys) != 1:
-        raise ValueError('An assert item requires exactly one check key.')
-
-    # Lift that key. Its value is stored on the payload attributes.
-    check = keys[0]
-    value = lifted.pop(check)
-    lifted['check'] = check
-    store_payload(lifted, check, value)
-    return lifted
-
-# ** function: emit_check_key
-def emit_check_key(data: Dict[str, Any]) -> Dict[str, Any]:
-    '''
-    Emit the check key and its value, not ``check`` or a sibling payload name.
-
-    :param data: The canonical field dump.
-    :type data: Dict[str, Any]
-    :return: The dump with the YAML check key.
-    :rtype: Dict[str, Any]
-    '''
-
-    # Copy so the handler's dump is not mutated.
-    emitted = dict(data)
-    check = emitted.pop('check', None)
-    if check is None:
-        return emitted
-
-    # A same-named payload field is already the check key.
-    fields = payload_fields(check)
-    if not fields and check in ASSERTION_PAYLOAD_FIELDS:
-        return emitted
-
-    # Fold payload fields under the check key, or emit the flag value.
-    payload = {
-        name: emitted.pop(name)
-        for name in fields
-        if name in emitted
-    }
-    emitted[check] = payload if payload else True
-    return emitted
 
 # ** function: emitting_yaml_keys
 def emitting_yaml_keys(info: Any) -> bool:
@@ -348,6 +249,71 @@ class ExecutionTargetConfigObject(ExecutionTarget, TransferObject):
         # Copy the noun without renaming its keys.
         return super().from_model(execution_target, **overrides)
 
+# ** mapper: conditions_aggregate
+class ConditionsAggregate(Conditions, Aggregate):
+    '''
+    Stores the fixtures and mocks of a conditions phase so the config object
+    can map them without mutating the phase itself.
+    '''
+
+    # * method: store_fixtures
+    def store_fixtures(self, fixtures: List[str]) -> None:
+        '''
+        Store the fixture names for this phase.
+
+        :param fixtures: Fixture names, in list order.
+        :type fixtures: List[str]
+        '''
+
+        # Reject a value that is not a list of names.
+        names = isinstance(fixtures, list) and all(isinstance(item, str) for item in fixtures)
+        if not names:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Conditions fixtures must be a list of names.',
+                model=self,
+                attribute='fixtures',
+            )
+
+        # Store the names.
+        self.set_attribute('fixtures', fixtures)
+
+    # * method: store_mocks
+    def store_mocks(self, mocks: Dict[str, ArrangedMock]) -> None:
+        '''
+        Store the arranged mocks for this phase.
+
+        :param mocks: Arranged mocks keyed by mock name.
+        :type mocks: Dict[str, ArrangedMock]
+        '''
+
+        # Reject a value that is not a name-keyed mock mapping.
+        if not isinstance(mocks, dict) or any(
+            not isinstance(name, str) or not isinstance(mock, ArrangedMock)
+            for name, mock in mocks.items()
+        ):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Conditions mocks must be ArrangedMock values keyed by name.',
+                model=self,
+                attribute='mocks',
+            )
+
+        # Store the mocks. A return value stays data.
+        self.set_attribute('mocks', mocks)
+
+    # * method: stream
+    def stream(self) -> Dict[str, Any]:
+        '''
+        Stream the stored phase as a mapping.
+
+        :return: The stored fields.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Emit the stored fields. This is not a file write.
+        return self.model_dump()
+
 # ** mapper: conditions_config_object
 class ConditionsConfigObject(Conditions, TransferObject):
     '''
@@ -396,15 +362,18 @@ class ConditionsConfigObject(Conditions, TransferObject):
         :rtype: Conditions
         '''
 
-        # Convert each mock, then map to the domain noun.
-        return super().map(
-            Conditions,
-            mocks={
-                name: mock.map()
-                for name, mock in self.mocks.items()
-            },
-            **overrides,
-        )
+        # Store the phase on the aggregate. This object does not mutate it.
+        aggregate = ConditionsAggregate()
+        aggregate.store_fixtures(list(self.fixtures))
+        aggregate.store_mocks({
+            name: mock.map()
+            for name, mock in self.mocks.items()
+        })
+        for name, value in overrides.items():
+            aggregate.set_attribute(name, value)
+
+        # Stream the stored phase back as the domain noun.
+        return Conditions.model_validate(aggregate.stream())
 
     # * method: from_model
     @classmethod
@@ -429,6 +398,67 @@ class ConditionsConfigObject(Conditions, TransferObject):
             },
             **overrides,
         )
+
+# ** mapper: execution_aggregate
+class ExecutionAggregate(Execution, Aggregate):
+    '''
+    Stores an execute target and its result key so the config object can map
+    the item without mutating it.
+    '''
+
+    # * method: store_target
+    def store_target(self, target: str | ExecutionTarget) -> None:
+        '''
+        Store the execute target.
+
+        :param target: A fixture name, a runtime reference, or an import target.
+        :type target: str | ExecutionTarget
+        '''
+
+        # Reject a target that is neither a string nor an import target.
+        if not isinstance(target, (str, ExecutionTarget)):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Execution target must be a string or an ExecutionTarget.',
+                model=self,
+                attribute='target',
+            )
+
+        # Store the target. A string stays a string.
+        self.set_attribute('target', target)
+
+    # * method: store_data_key
+    def store_data_key(self, data_key: str | None) -> None:
+        '''
+        Store the result key for this execute item.
+
+        :param data_key: The session-data key, or None when the result is not addressable.
+        :type data_key: str | None
+        '''
+
+        # Reject a result key that is not a string.
+        if data_key is not None and not isinstance(data_key, str):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Execution data_key must be a string.',
+                model=self,
+                attribute='data_key',
+            )
+
+        # Store the result key.
+        self.set_attribute('data_key', data_key)
+
+    # * method: stream
+    def stream(self) -> Dict[str, Any]:
+        '''
+        Stream the stored execute item as a mapping.
+
+        :return: The stored fields.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Emit the stored fields. This is not a file write.
+        return self.model_dump()
 
 # ** mapper: execution_config_object
 class ExecutionConfigObject(Execution, TransferObject):
@@ -489,13 +519,20 @@ class ExecutionConfigObject(Execution, TransferObject):
         # Pass a string target through. Convert a mapping target.
         mapped_target = self.target if isinstance(self.target, str) else self.target.map()
 
-        # The base map parameter is also named target, so set the field on the dump.
-        data = self.to_primitive(role='to_model')
-        data['target'] = mapped_target
-        data.update(overrides)
+        # Store the item on the aggregate. This object does not mutate it.
+        aggregate = ExecutionAggregate.model_construct(
+            method=self.method,
+            args=list(self.args),
+            kwargs=dict(self.kwargs),
+            raises=self.raises,
+        )
+        aggregate.store_target(mapped_target)
+        aggregate.store_data_key(self.data_key)
+        for name, value in overrides.items():
+            aggregate.set_attribute(name, value)
 
-        # Construct the domain noun.
-        return Execution(**data)
+        # Stream the stored item back as the domain noun.
+        return Execution.model_validate(aggregate.stream())
 
     # * method: from_model
     @classmethod
@@ -522,6 +559,146 @@ class ExecutionConfigObject(Execution, TransferObject):
             target=target,
             **overrides,
         )
+
+# ** mapper: assertion_aggregate
+class AssertionAggregate(Assertion, Aggregate):
+    '''
+    Stores an assertion payload and streams the YAML check key, so the config
+    object can represent the item without mutating it.
+    '''
+
+    # * method: store_payload (static)
+    @staticmethod
+    def store_payload(data: Dict[str, Any], check: str, value: Any) -> None:
+        '''
+        Store a check key's value on the attributes Assertion already uses.
+
+        :param data: The assert item being lifted.
+        :type data: Dict[str, Any]
+        :param check: The check name.
+        :type check: str
+        :param value: The check key's value.
+        :type value: Any
+        '''
+
+        # A same-named field keeps the value. Do not walk it.
+        fields = payload_fields(check)
+        if not fields and check in ASSERTION_PAYLOAD_FIELDS:
+            data[check] = value
+            return
+
+        # A flag check has no attribute for its value.
+        if not fields or value is True:
+            return
+
+        # Reject a value that cannot be stored on the payload fields.
+        if not isinstance(value, dict):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'Check {check} payload must be a mapping.',
+                model=AssertionAggregate.model_construct(check=check),
+                attribute=check,
+            )
+
+        # Spread the mapping. A key inside the value stays data.
+        for name in fields:
+            if name in value:
+                data[name] = value[name]
+
+    # * method: lift_check_key (static)
+    @staticmethod
+    def lift_check_key(data: Any) -> Any:
+        '''
+        Lift one top-level check key onto ``check`` and that check's payload.
+
+        :param data: The raw assert item.
+        :type data: Any
+        :return: The item with the check key lifted, or the original value.
+        :rtype: Any
+        '''
+
+        # Pass non-mappings through for ordinary validation.
+        if not isinstance(data, dict):
+            return data
+
+        # Copy so the caller's mapping is not mutated.
+        lifted = dict(data)
+
+        # A check field and no YAML check key is the from_model shape.
+        if lifted.get('check') is not None:
+            foreign = [
+                key for key in lifted
+                if key in ASSERTION_CHECKS and key not in ASSERTION_PAYLOAD_FIELDS
+            ]
+            if foreign:
+                ModelError.raise_error(
+                    INVALID_MODEL_ATTRIBUTE_ID,
+                    message='An assert item cannot carry both check and a check key.',
+                    model=AssertionAggregate.model_construct(check=lifted.get('check')),
+                    attribute='check',
+                )
+            return lifted
+
+        # A YAML item has exactly one top-level key from the closed set.
+        keys = [key for key in lifted if key in ASSERTION_CHECKS]
+        if len(keys) != 1:
+            ModelError.raise_error(
+                INVALID_MODEL_ATTRIBUTE_ID,
+                message='An assert item requires exactly one check key.',
+                model=AssertionAggregate.model_construct(),
+                attribute='check',
+            )
+
+        # Lift that key. Its value is stored on the payload attributes.
+        check = keys[0]
+        value = lifted.pop(check)
+        lifted['check'] = check
+        AssertionAggregate.store_payload(lifted, check, value)
+        return lifted
+
+    # * method: emit_check_key (static)
+    @staticmethod
+    def emit_check_key(data: Dict[str, Any]) -> Dict[str, Any]:
+        '''
+        Emit the check key and its value, not ``check`` or a sibling payload name.
+
+        :param data: The canonical field dump.
+        :type data: Dict[str, Any]
+        :return: The dump with the YAML check key.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Copy so the handler's dump is not mutated.
+        emitted = dict(data)
+        check = emitted.pop('check', None)
+        if check is None:
+            return emitted
+
+        # A same-named payload field is already the check key.
+        fields = payload_fields(check)
+        if not fields and check in ASSERTION_PAYLOAD_FIELDS:
+            return emitted
+
+        # Fold payload fields under the check key, or emit the flag value.
+        payload = {
+            name: emitted.pop(name)
+            for name in fields
+            if name in emitted
+        }
+        emitted[check] = payload if payload else True
+        return emitted
+
+    # * method: stream
+    def stream(self) -> Dict[str, Any]:
+        '''
+        Stream the stored assertion as a mapping.
+
+        :return: The stored fields.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Emit the stored fields. This is not a file write.
+        return self.model_dump()
 
 # ** mapper: assertion_config_object
 class AssertionConfigObject(Assertion, TransferObject):
@@ -551,8 +728,8 @@ class AssertionConfigObject(Assertion, TransferObject):
         :rtype: Any
         '''
 
-        # Lift one top-level check key. Do not recurse into its value.
-        return lift_check_key(data)
+        # The aggregate lifts the check key. This object does not mutate the item.
+        return AssertionAggregate.lift_check_key(data)
 
     # * method: serialize_assertion
     @model_serializer(mode='wrap')
@@ -573,8 +750,8 @@ class AssertionConfigObject(Assertion, TransferObject):
         if not isinstance(data, dict) or not emitting_yaml_keys(info):
             return data
 
-        # Emit the check key. to_model keeps check and the payload fields.
-        return emit_check_key(data)
+        # The aggregate emits the check key for the to_data shape.
+        return AssertionAggregate.emit_check_key(data)
 
     # * method: to_primitive
     def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
@@ -603,8 +780,13 @@ class AssertionConfigObject(Assertion, TransferObject):
         :rtype: Assertion
         '''
 
-        # Map to the domain noun. to_model keeps check and the payload fields.
-        return super().map(Assertion, **overrides)
+        # Store the item on the aggregate. This object does not mutate it.
+        aggregate = AssertionAggregate.model_validate(self.to_primitive(role='to_model'))
+        for name, value in overrides.items():
+            aggregate.set_attribute(name, value)
+
+        # Stream the stored item back as the domain noun.
+        return Assertion.model_validate(aggregate.stream())
 
     # * method: from_model
     @classmethod
@@ -622,6 +804,115 @@ class AssertionConfigObject(Assertion, TransferObject):
 
         # Copy the noun. The check field is the from_model shape.
         return super().from_model(assertion, **overrides)
+
+# ** mapper: test_aggregate
+class TestAggregate(Test, Aggregate):
+    '''
+    Stores a test's conditions, executes, and asserts so the config object can
+    map the phase document without mutating it.
+    '''
+
+    # * method: open (classmethod)
+    @classmethod
+    def open(cls, **identity) -> 'TestAggregate':
+        '''
+        Open a test aggregate from the identity the caller supplies.
+
+        :param identity: Feature identity fields. Omitted fields may be derived.
+        :type identity: dict
+        :return: The opened aggregate.
+        :rtype: TestAggregate
+        '''
+
+        # Drop omitted keys so Feature can derive a consistent subset.
+        provided = {
+            name: value
+            for name, value in identity.items()
+            if value is not None
+        }
+
+        # A broken identity is a model error, not a raw validation error.
+        try:
+            return cls(**provided)
+        except ValidationError as error:
+            ModelError.raise_for_validation(error)
+
+    # * method: store_conditions
+    def store_conditions(self, conditions: Conditions) -> None:
+        '''
+        Store the conditions phase.
+
+        :param conditions: The conditions phase.
+        :type conditions: Conditions
+        '''
+
+        # Reject a value that is not the conditions noun.
+        if not isinstance(conditions, Conditions):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Test conditions must be a Conditions.',
+                model=self,
+                attribute='conditions',
+            )
+
+        # Store the phase.
+        self.set_attribute('conditions', conditions)
+
+    # * method: store_executes
+    def store_executes(self, executes: List[Execution]) -> None:
+        '''
+        Store the executes phase.
+
+        :param executes: The ordered execute items.
+        :type executes: List[Execution]
+        '''
+
+        # Reject a value that is not a list of execute items.
+        items = isinstance(executes, list) and all(isinstance(item, Execution) for item in executes)
+        if not items:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Test executes must be a list of Execution items.',
+                model=self,
+                attribute='executes',
+            )
+
+        # Store the phase.
+        self.set_attribute('executes', executes)
+
+    # * method: store_asserts
+    def store_asserts(self, asserts: List[Assertion]) -> None:
+        '''
+        Store the asserts phase.
+
+        :param asserts: The ordered assert items.
+        :type asserts: List[Assertion]
+        '''
+
+        # Reject a value that is not a list of assert items.
+        items = isinstance(asserts, list) and all(isinstance(item, Assertion) for item in asserts)
+        if not items:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Test asserts must be a list of Assertion items.',
+                model=self,
+                attribute='asserts',
+            )
+
+        # Store the phase.
+        self.set_attribute('asserts', asserts)
+
+    # * method: stream
+    def stream(self) -> Dict[str, Any]:
+        '''
+        Stream the stored test as a mapping.
+
+        :return: The stored fields.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Emit the stored fields. This is not a file write.
+        return self.model_dump()
 
 # ** mapper: test_config_object
 class TestConfigObject(Test, TransferObject):
@@ -713,14 +1004,21 @@ class TestConfigObject(Test, TransferObject):
         :rtype: Test
         '''
 
-        # Convert each child, then map. Identity comes from the caller.
-        return super().map(
-            Test,
-            conditions=self.conditions.map(),
-            executes=[item.map() for item in self.executes],
-            asserts=[item.map() for item in self.asserts],
-            **overrides,
+        # Store the document on the aggregate. Identity comes from the caller.
+        aggregate = TestAggregate.open(
+            id=overrides.pop('id', None),
+            name=overrides.pop('name', None),
+            group_id=overrides.pop('group_id', None),
+            feature_key=overrides.pop('feature_key', None),
         )
+        aggregate.store_conditions(self.conditions.map())
+        aggregate.store_executes([item.map() for item in self.executes])
+        aggregate.store_asserts([item.map() for item in self.asserts])
+        for name, value in overrides.items():
+            aggregate.set_attribute(name, value)
+
+        # Stream the stored test back as the domain noun.
+        return Test.model_validate(aggregate.stream())
 
     # * method: from_model
     @classmethod
