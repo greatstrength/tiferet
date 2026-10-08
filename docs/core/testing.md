@@ -2,277 +2,179 @@
 
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
-**Date:** September 10, 2026
-**Version:** 2.1.0
+**Date:** October 7, 2026
+**Version:** 2.2.0b1
 
 ## Overview
 
-Tester is a **core subdomain contour**, not an eleventh package. One `TesterObject` describes a constructible framework component and the assertions used to verify it. Variant contexts bind that object and expose ordinary assertion methods. Two public surfaces stay distinct:
+A unit test has two faces. In Python, `@use_tester` binds a `TesterObject` and injects `test_ctx` and `session`. In YAML, a test module under `tiferet_tests/` is a document whose only roots are `fixtures`, `tests`, and `testers`. A test, at the root or inside a tester, is a `Test`: a feature in purpose and a test in name. The model fields are `conditions`, `executes`, and `asserts`. The YAML keys stay `conditions`, `execute`, and `assert`.
 
-- **Component testers:** `build_tester_context` / `@use_tester` inject a bound variant context as `test_ctx`.
-- **Fluent session:** `Tester()` / `@test_case` compose a `TestSessionContext` (`given` / `invoke` / `verify` / `run`).
+`TestSessionContext` sees a `TestContext`, not a `FeatureContext`. This page states that. The constructor switch off `TesterContext` is performed by RFP-030, not here, so `@use_tester` is unchanged.
 
-The former `tiferet/testing/` package was retired. There is no `tiferet/tester/` package, no empty `utils/tester.py` or `di/tester.py`, and pytest is not a Tiferet package.
+There is no `variables:` root. There is no separate tester vision file. Vision stays the class docstrings.
 
-## Contour
+## The test module
 
-`tester.py` exists only in packages that actually have it:
+A test module is one YAML document. It has three roots, in this order, and no others:
 
-- `tiferet/assets/tester.py` — default tester ids, data, sessions, and catalogs
-- `tiferet/domain/tester.py` — `TesterObject`, `Verification`
-- `tiferet/mappers/tester.py` — `TesterAggregate`, one `TesterConfigObject`
-- `tiferet/interfaces/tester.py` — `TesterService`
-- `tiferet/repos/tester.py` — `TesterConfigRepository`
-- `tiferet/events/tester.py` — `TesterEvent` plus add/get/list/update/remove
-- `tiferet/contexts/tester.py` — `TesterContext` and omitting-`domain_type` variants; `TestSessionContext`
-- `tiferet/blueprints/tester.py` — `Tester` / `build_tester_context` / `@use_tester` / `@test_case`
+1. `fixtures` — named samples the tests and testers draw on.
+2. `tests` — module-level tests.
+3. `testers` — the attribution level. A tester holds `attributes` and `fixtures` and contains `tests`. It is not a fourth root and not a fourth phase.
 
-Do not invent modules in `utils` or `di`.
+Each root is a mapping. The key is the grammar snake name (`error_message`, `test_error`), not `Test*`. Omit an empty root. Do not write `{}` for an omitted root. No preamble keys.
 
-## One TesterObject
+A contained test is still the three YAML phases `conditions`, `execute`, `assert`. On the model those fields are `conditions`, `executes`, and `asserts`. Naming a root test from a tester does not move that test under the tester. A tester-local fixture is not promoted into the root `fixtures` mapping.
 
-`TesterObject` (`tiferet/domain/tester.py`) is the only tester domain model. `type` is the component discriminator:
+### File root
 
-- `domain`
-- `aggregate`
-- `transfer_object`
-- `domain_event`
-- `service_event`
+`tests/<rel>.py` maps to `tiferet_tests/<rel>.yml`, and only for `tests/**/test_*.py`. The extension is `.yml` only. `tests/domain/test_error.py` maps to `tiferet_tests/domain/test_error.yml`.
 
-Shared fields: `id`, `module_path`, `class_name`, `sample_data`, `expected_data` (defaults to `sample_data` when omitted), `equality_fields`, `field_normalizers`.
+`conftest.py`, `__init__.py`, and `tests_int/` have no counterpart. Do not write the YAML under `tests/`. Do not delete the Python tests. This page names the tree; it does not create it. On this tip `tests/domain/test_error.py` has only testers, so its counterpart may omit `fixtures` and `tests` until a later RFP writes them.
 
-Variant fields live on the same model:
+### The three phases
 
-- **domain** — `description_cases`
-- **aggregate** — `set_attribute_params`
-- **transfer_object** — `aggregate_module_path`, `aggregate_class_name`, `aggregate_sample_data`, `map_kwargs`
-- **domain_event / service_event** — `dependencies`, `sample_kwargs`, `required_params`
-- **service_event** — also `service_attr`, `not_found_error_code`, `not_found_kwargs`
+`Test` (`tiferet/domain/test.py`) extends `Feature`. The model fields are three, in this order: `conditions`, `executes`, `asserts`. `conditions` is a `Conditions`. `executes` is a list of `Execution`. `asserts` is a list of `Assertion`. These fields do not replace inherited `steps`. There is no fourth phase field, and no field named `execute`, `assert`, or `as`. None of them carries an alias.
 
-There is one configuration transfer object: `TesterConfigObject`. Configuration is a flat `testers:` map keyed by tester id.
+`Conditions` is one object, not a list. It holds fixture names and a dict of `ArrangedMock`. `ArrangedMock` has `module_path`, `class_name`, and optional `context`. `return_value` stays data. `Execution` has `target` (`str` or `ExecutionTarget`), `method`, `args`, `kwargs`, `data_key`, and `raises`. `ExecutionTarget` is `module_path` plus exactly one of `class_name` or `attribute`. `Assertion` is one model. `check` is the discriminator. `is` and `type` are values of `check`, not field names. A comparison tree inside `fields` stays data.
 
-### Event `dependencies` shape
+The YAML keys stay `conditions`, `execute`, and `assert`. `as` maps onto `data_key`. RFP-035 (#1238) owns that mapping, including `as` onto `data_key`. This RFP does not add that mapping, and it adds no mapper module. The tester blueprint compiles these fields into `Feature.steps`. The handlers are not added to the default feature catalog, and they do not decorate `core.build_cache`. RFP-028 names what a phase may contain. This page names the three fields and forbids a fourth.
 
-Event testers declare constructor mocks as `ServiceDependency` dicts (`module_path`, `class_name`, optional `parameters`):
+`TestContext` (`tiferet/contexts/test.py`) extends `FeatureContext` and declares `domain_type = Test` in its own namespace. `Feature` stays mapped to `FeatureContext`: `BaseContext.for_domain(Feature)` is `FeatureContext`.
+
+## Anchors, aliases, and merge
+
+Anchors are load-time. `$r.` and `$fixture.` are runtime.
+
+`&name`, `*name`, and `<<:` are part of the document. `yaml.safe_load` resolves them before a `Test` is built. The blueprint copies an aliased mapping when it builds a fixture or a test, so two tests do not share one sample dict. `$fixture.<name>` names a built fixture. `$r.<key>` names session data, including an `as` result. An anchor cannot do either, because those values do not exist at load time.
+
+A management write preserves anchors. A `safe_dump` round-trip is not compliance: `safe_load` resolves anchors, and `safe_dump` does not emit them.
+
+## Normative document
+
+This is the document law, not a suggestion. `*plain` is the expected string. `$fixture.error_message` is the built instance. It is the law for a file that has all three roots. It is not a claim that proto's Python file already has all three.
 
 ```yaml
+fixtures:
+  error_message: &error_message
+    module_path: &error_module tiferet.domain.error
+    class_name: ErrorMessage
+    attributes: &plain_message
+      lang: &lang en_US
+      text: &plain An error occurred.
+  formatted_error_message:
+    <<: *error_message
+    attributes:
+      lang: *lang
+      text: &formatted 'An error occurred: {error}'
+
+tests:
+  error_message_format:
+    conditions:
+      fixtures: [error_message, formatted_error_message]
+    execute:
+      - target: error_message
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: *plain
+
 testers:
-  service_event.GetError:
-    type: service_event
-    module_path: tiferet.events.error
-    class_name: GetError
-    dependencies:
-      error_service:
-        module_path: tiferet.interfaces
-        class_name: ErrorService
-    sample_kwargs:
-      id: TEST_ERROR
-    required_params: []
-    service_attr: error_service
-    not_found_error_code: ERROR_NOT_FOUND
+  test_error:
+    module_path: *error_module
+    class_name: Error
+    attributes:
+      id: &error_id TEST_ERROR
+      name: Test Error
+      message: [$fixture.error_message]
+    fixtures:
+      error_message: *error_message
+    tests:
+      construction_derives_error_code:
+        conditions:
+          fixtures: [error_message]
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: *error_id
+              error_code: *error_id
 ```
 
-`@use_tester(..., dependencies={...})` uses the same dict shape. `DomainEventTesterContext.mock_dependencies()` builds `unittest.mock.Mock(spec=dependency.get_service_type())` for each entry.
+The snippet carries one anchor (`&error_message`), one alias (`*error_module`), one merge (`<<: *error_message`), one `$fixture.` reference (`$fixture.error_message`), and one `*alias` used as an expected value (`equals: *plain`).
 
-## Import Law
+## What stays absent
 
-Cite `tiferet-code-architecture`. Every `*/tester.py` follows its package's `# ** app` import rule:
+These stay absent. Do not restore them:
 
-- **assets / domain** — no framework package.
-- **mappers** — `domain` only.
-- **contexts** — `assets`, `domain`, sibling contexts, and `events` only.
-- **blueprints** — reach domain objects via `contexts` (for example `TesterObject` re-exported from `contexts.tester`).
+- `TesterService`
+- `TesterConfigRepository`
+- `TesterConfigObject`
+- `TesterAggregate`
+- `resolve_tester`
+- tester events
+- `Tester()`
+- `test_case`
 
-`contexts/tester.py` does not import pytest, does not generate test classes, and is not a `pytest11` plugin. `unittest.mock` is stdlib and is used only to build declared event-dependency specs.
+`testers:` is legal only as a root of a `tiferet_tests/**/*.yml` file. It is illegal in application `config.yml`. A `tiferet_tests/` file is not that forbidden section.
 
-## Two Public Surfaces
+There is no AdminApp tester domain. A unit test is not dispatched through `AppSessionContext`. There is no stored callable, no `predicate` key, no `field_normalizers` key, and no YAML Python object tag.
 
-Do not collapse these APIs. `@use_tester` injects `test_ctx`. `@test_case` injects `tester_ctx`.
+## The Python grammar
 
-### Component testers — `build_tester_context` / `@use_tester`
+The Python comment grammar is unchanged and stays beside the YAML roots. After preamble, a test module declares `# *** fixtures`, `# *** tests`, and `# *** testers`, in that order, and omits an empty group. Testers compose fixtures and tests; they do not replace them.
 
-`TesterContext` registers `domain_type = TesterObject`. Variant subclasses **omit** `domain_type` (the `CliSessionContext` analog) so `ContextMeta` keeps mapping `TesterObject` to `TesterContext`:
+Under a tester class, members are `# * fixture:` and `# * test:`. `# * test:` is the only place a class member is a test rather than `# * method:`.
 
-- `domain` → `DomainTesterContext` — `assert_new`, `assert_description`
-- `aggregate` → `AggregateTesterContext` — `assert_new`, `assert_set_attribute`
-- `transfer_object` → `TransferObjectTesterContext` — `assert_map`, `assert_from_model`, `assert_round_trip`
-- `domain_event` → `DomainEventTesterContext` — `handle`, `assert_missing_required_params`
-- `service_event` → `ServiceEventTesterContext` — `handle`, `assert_missing_required_params`, `assert_not_found`
-
-Those methods are ordinary `# * method:` members on the context, not generated `test_*` methods. Tests call them on the injected `test_ctx`.
-
-`build_tester_context(tester)` selects the variant from `tester.type` and returns `context_cls.from_domain(tester)`.
-
-`@use_tester` constructs one `TesterObject` and one master `TesterContext` at decoration time (`target_cls` supplies `module_path` / `class_name`; `aggregate_cls` supplies aggregate coordinates; `id` defaults to `{type}.{class_name}`). Class form wraps every callable member whose signature lists `test_ctx` or `session`, including `# * fixture:` methods, and strips those names from the pytest signature. Function form wraps the decorated callable the same way. Two `test_*` methods on the same class receive the same `test_ctx` instance.
+`@use_tester` (`tiferet.blueprints.tester`, exported from `tiferet`) injects `test_ctx` and `session` by parameter name and strips those names from the pytest signature. Types: `domain` | `aggregate` | `transfer_object` | `domain_event` | `service_event` | `generic` | `repo` | `context`.
 
 ```python
-from tiferet.blueprints.tester import use_tester
-from tiferet.mappers.error import ErrorAggregate
-
-@use_tester(
-    type='aggregate',
-    target_cls=ErrorAggregate,
-    sample_data={'id': 'TEST_ERROR', 'name': 'Test Error'},
-    equality_fields=['id', 'name', 'error_code'],
-    set_attribute_params=[
-        ('name', 'Updated Error', None),
-        ('invalid_attribute', 'value', 'INVALID_MODEL_ATTRIBUTE'),
-    ],
-)
-class TestErrorAggregate:
-
-    # * test: new
-    def test_new(self, test_ctx):
-        test_ctx.assert_new()
-
-    # * test: set_attribute
-    def test_set_attribute(self, test_ctx):
-        test_ctx.assert_set_attribute()
-```
-
-Event tests call `test_ctx.handle(mock_dependencies, **overrides)`, which delegates to `DomainEvent.handle` with `sample_kwargs` merged under caller overrides. A `# * fixture: mock_dependencies` may pre-configure the primary service; `assert_not_found` reconfigures `service.get.return_value = None` on its own mocks.
-
-### Fluent session — `Tester()` / `@test_case`
-
-`Tester` is the public alias of `tiferet.blueprints.tester.build_app`. It returns a `TestSessionContext`, which **still extends** `AppSessionContext`.
-
-```python
-from tiferet import Tester, test_case
-
-result = (
-    Tester()
-    .given(value=1)
-    .invoke(feature_id='test.empty')
-    .verify(None)
-    .run()
-)
-
-@test_case(value=1)
-def test_empty_feature(tester_ctx):
-    tester_ctx.invoke(feature_id='test.empty').verify(None).run()
-```
-
-- `given(preset_id=None, **data)` merges cache-seeded presets then literal state.
-- `invoke(feature_id=..., event=...)` selects **exactly one** dispatch target.
-- `verify(assertion, message=None)` queues a deferred predicate or literal.
-- `run()` dispatches once, evaluates queued verifications, and clears the chain.
-
-`@test_case(**given)` constructs `Tester()` (optional `interface_id`), seeds decoration-time given-state, and injects that session as `tester_ctx` without dispatching.
-
-Fluent `run()` does **not** go through `AppSessionContext.run()`. Feature dispatch, event dispatch, and harness errors (`COMMAND_PARAMETER_REQUIRED`, `TEST_PRESET_NOT_FOUND`) raise raw `TiferetError`. Do not treat feature-path `TiferetAPIError` or `TestSessionContext` as a `RequestContext` as current API.
-
-## Pytest
-
-Pytest is an optional extra (`pip install tiferet[test]`) and the runner for `tests/` (`testpaths = ["tests", "tests_int"]` in `pyproject.toml`). Files under `tests/` may import pytest and use `@use_tester`. The `tiferet/` package does not import pytest.
-
-Fixture wiring is pytest parameter-name injection. There is no Tiferet `use_fixture` decorator. A `# * test:` may list any `# *** fixtures` name, any same-class `# * fixture:` name, and `test_ctx`. Class-form `@use_tester` injects `test_ctx` into any member that lists it, including `# * fixture:` methods.
-
-## Test-Module Artifact Grammar
-
-After `# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` (standalone helpers only — never a tester), test modules declare:
-
-1. `# *** fixtures` — module-level pytest fixtures. Sections: `# ** fixture: <snake_name>` matching `def <snake_name>`.
-2. `# *** tests` — module-level test **functions** only. Sections: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
-3. `# *** testers` — tester classes, last because they compose fixtures and tests. Sections: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
-
-Under a tester class, members are:
-
-- `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name, and may list `test_ctx`.
-- `# * test: <name>` — a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
-
-```python
-"""Tiferet Error Mapper Tests"""
+"""Tiferet Error Domain Tests"""
 
 # *** imports
 
-# ** infra
-import pytest
-
 # ** app
-from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
-from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
-from tiferet.blueprints.tester import use_tester
-
-# *** constants
-
-# ** constant: error_sample_data
-ERROR_SAMPLE_DATA = {
-    'id': 'TEST_ERROR',
-    'name': 'Test Error',
-    'error_code': 'TEST_ERROR',
-    'message': [{'lang': 'en_US', 'text': 'Test error message.'}],
-}
-
-# ** constant: equality_fields
-EQUALITY_FIELDS = ['id', 'name', 'error_code']
+from tiferet import use_tester
+from tiferet.domain.error import ErrorMessage
 
 # *** testers
 
-# ** tester: test_error_aggregate
+# ** tester: test_error_message
 @use_tester(
-    type='aggregate',
-    target_cls=ErrorAggregate,
-    sample_data=ERROR_SAMPLE_DATA,
-    equality_fields=EQUALITY_FIELDS,
-    set_attribute_params=[
-        ('name', 'Updated Error', None),
-        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
-    ],
+    type='domain',
+    target_cls=ErrorMessage,
+    sample_data={'lang': 'en_US', 'text': 'An error occurred.'},
+    equality_fields=['lang', 'text'],
+    description_cases=[('format', (), 'An error occurred.')],
 )
-class TestErrorAggregate:
-    '''Bound aggregate tester for ErrorAggregate.'''
+class TestErrorMessage:
+    '''
+    Tests for ErrorMessage.
+    '''
 
-    # * test: new
-    def test_new(self, test_ctx):
-        '''Verify construction against declared expected data.'''
+    # * test: new_and_format
+    def test_new_and_format(self, test_ctx, session):
+        '''
+        Construct from sample data and assert description cases.
 
+        :param test_ctx: The bound domain tester context.
+        :type test_ctx: DomainTesterContext
+        :param session: A fresh test session.
+        :type session: TestSessionContext
+        '''
+
+        # Assert construction and description methods.
         test_ctx.assert_new()
-
-    # * test: set_attribute
-    def test_set_attribute(self, test_ctx):
-        '''Verify declared set_attribute cases.'''
-
-        test_ctx.assert_set_attribute()
-
-    # * test: rename
-    def test_rename(self, test_ctx):
-        '''Test the domain-specific rename mutation.'''
-
-        aggregate = test_ctx.make_target()
-        aggregate.rename('Renamed Error')
-        assert aggregate.name == 'Renamed Error'
-
-# ** tester: test_error_config_object
-@use_tester(
-    type='transfer_object',
-    target_cls=ErrorConfigObject,
-    aggregate_cls=ErrorAggregate,
-    sample_data=ERROR_SAMPLE_DATA,
-    aggregate_sample_data=ERROR_SAMPLE_DATA,
-    equality_fields=EQUALITY_FIELDS,
-)
-class TestErrorConfigObject:
-    '''Bound transfer-object tester for ErrorConfigObject.'''
-
-    # * test: map
-    def test_map(self, test_ctx):
-        test_ctx.assert_map()
-
-    # * test: from_model
-    def test_from_model(self, test_ctx):
-        test_ctx.assert_from_model()
-
-    # * test: round_trip
-    def test_round_trip(self, test_ctx):
-        test_ctx.assert_round_trip()
+        test_ctx.assert_description()
 ```
 
-Event testers follow the same groups. Use `type='domain_event'` or `type='service_event'` and the YAML `dependencies` shape above. Call `test_ctx.handle(...)` / `test_ctx.assert_missing_required_params()` / `test_ctx.assert_not_found()`. Standalone `# ** test:` functions that call `DomainEvent.handle` directly remain valid for cases that do not need a bound tester.
+Pytest is an optional extra (`pip install tiferet[test]`) and the runner for `tests/` (`testpaths = ["tests", "tests_int"]` in `pyproject.toml`). The `tiferet/` package does not import pytest. `tiferet/testing/` is absent. Do not recreate it.
 
 ## Related Documentation
 
-- [code_style.md](code_style.md) — artifact comments, including test-module grammar
-- [mappers.md](mappers.md) — Aggregate and TransferObject conventions
-- [events.md](events.md) — domain event patterns
-- [tiferet-code-architecture](../collab/agents/skills/tiferet-code-architecture/SKILL.md) — layer import law
-- [tiferet-code-testing](../collab/agents/skills/tiferet-code-testing/SKILL.md) — skill distillation of this guide
+- [code_style.md](code_style.md) — artifact comments, including the test-module grammar
+- [contexts.md](contexts.md) — `FeatureContext`, which `TestContext` extends
+- [domain.md](domain.md) — `Feature`, which `Test` extends
