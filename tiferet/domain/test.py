@@ -357,6 +357,40 @@ class Execution(DomainObject):
         description='Whether the call is expected to raise. The caught exception is stored at data_key.',
     )
 
+    # * method: _validate_execution (model validator)
+    @model_validator(mode='after')
+    def _validate_execution(self) -> 'Execution':
+        '''
+        Reject a reserved action that is not legal on this step.
+
+        ``new`` and ``handle`` are legal only on ``target: self``. ``new``
+        takes no arguments. ``raises`` requires ``data_key``.
+
+        :return: This execution.
+        :rtype: Execution
+        '''
+
+        # A caught exception has to be addressable.
+        if self.raises and not self.data_key:
+            raise ValueError('raises requires data_key.')
+
+        # Reserved actions are not getattr, and they are only legal on self.
+        if self.method in ('new', 'handle') and self.target != 'self':
+            raise ValueError(
+                f'{self.method} is legal only on target self.',
+            )
+
+        # new constructs from the tester attributes, not from step arguments.
+        if self.method == 'new' and (self.args or self.kwargs):
+            raise ValueError('new takes no args and no kwargs.')
+
+        # handle passes step kwargs to the event. It has no positional args.
+        if self.method == 'handle' and self.args:
+            raise ValueError('handle takes kwargs, not args.')
+
+        # Return the validated execution.
+        return self
+
 # ** model: assertion
 class Assertion(DomainObject):
     '''
@@ -561,6 +595,9 @@ class Test(Feature):
     execute item's ``as`` maps onto ``Execution.data_key``. RFP-035 owns
     that mapping. This model carries no alias.
     '''
+
+    # * attribute: test
+    __test__ = False
 
     # * attribute: conditions
     conditions: Conditions = Field(
