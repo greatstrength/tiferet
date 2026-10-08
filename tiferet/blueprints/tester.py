@@ -20,7 +20,8 @@ from ..contexts.app import (
     add_default_app_sessions,
 )
 from ..contexts.cache import CacheContext
-from ..contexts.test import PhaseRuntime
+from ..contexts.core import BaseContext
+from ..contexts.test import PhaseRuntime, PhaseRuntimeContext
 from ..contexts.tester import (
     AggregateTesterContext,
     ContextTesterContext,
@@ -170,9 +171,9 @@ def register_phase_handlers() -> Dict[str, Any]:
 
     # Register the three handlers the dialect runs, in phase order.
     return {
-        'conditions': PhaseRuntime.handle_conditions,
-        'execute': PhaseRuntime.handle_execution,
-        'assert': PhaseRuntime.handle_assertion,
+        'conditions': PhaseRuntimeContext.handle_conditions,
+        'execute': PhaseRuntimeContext.handle_execution,
+        'assert': PhaseRuntimeContext.handle_assertion,
     }
 
 # ** blueprint: build_phase_runtime
@@ -183,9 +184,13 @@ def build_phase_runtime(
         tester_attributes: Dict[str, Any] = None,
         root_fixtures: Dict[str, Dict[str, Any]] = None,
         tester_fixtures: Dict[str, Dict[str, Any]] = None,
-    ) -> PhaseRuntime:
+    ) -> PhaseRuntimeContext:
     '''
     Build the runtime that executes one test's phases.
+
+    The value is a ``PhaseRuntime``. ``from_domain`` selects
+    ``PhaseRuntimeContext``. This function does not construct that context
+    by hand and does not return the domain value.
 
     :param session: The session whose data stores ``as`` results.
     :type session: Any
@@ -199,19 +204,19 @@ def build_phase_runtime(
     :type root_fixtures: Dict[str, Dict[str, Any]]
     :param tester_fixtures: Tester-local fixture specs.
     :type tester_fixtures: Dict[str, Dict[str, Any]]
-    :return: The phase runtime.
-    :rtype: PhaseRuntime
+    :return: The phase runtime context.
+    :rtype: PhaseRuntimeContext
     '''
 
-    # Construct the runtime directly. Do not resolve it from the app session.
-    return PhaseRuntime(
-        session=session,
+    # Build the value, then let the registry select the context.
+    value = PhaseRuntime(
         tester_module_path=tester_module_path,
         tester_class_name=tester_class_name,
-        tester_attributes=tester_attributes,
-        root_fixtures=root_fixtures,
-        tester_fixtures=tester_fixtures,
+        tester_attributes=tester_attributes or {},
+        root_fixtures=root_fixtures or {},
+        tester_fixtures=tester_fixtures or {},
     )
+    return BaseContext.from_domain(value, session=session)
 
 # ** blueprint: build_tester_context
 def build_tester_context(tester: TesterObject) -> TesterContext:
@@ -235,8 +240,11 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
         'context': ContextTesterContext,
     }[tester.type]
 
-    # Bind the selected subclass to the tester domain object.
-    return context_cls.from_domain(tester)
+    # Bind the selected subclass and inject the phase-runtime factory.
+    return context_cls.from_domain(
+        tester,
+        build_phase_runtime_handler=build_phase_runtime,
+    )
 
 # ** blueprint: build_test_session
 def build_test_session(

@@ -7,7 +7,7 @@ import inspect
 import re
 from importlib import import_module
 from types import SimpleNamespace
-from typing import Any, Dict, List, Mapping, Tuple
+from typing import Any, Dict, List, Mapping
 from unittest.mock import Mock, call
 
 # ** infra
@@ -34,6 +34,7 @@ from ..domain.test import (
     Conditions,
     Execution,
     ExecutionTarget,
+    PhaseRuntime,
     Test,
 )
 from ..events import AsyncDomainEvent, DomainEvent
@@ -47,96 +48,8 @@ FIXTURE_REF_PREFIX = '$fixture.'
 # ** constant: mock_ref_prefix
 MOCK_REF_PREFIX = '$mock.'
 
-# ** constant: python_tag
-PYTHON_TAG = '!!python/'
-
 # ** constant: ref_name
 REF_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
-
-# ** constant: conditions_keys
-CONDITIONS_KEYS: Tuple[str, ...] = (
-    'fixtures',
-    'mocks',
-)
-
-# ** constant: execute_keys
-EXECUTE_KEYS: Tuple[str, ...] = (
-    'target',
-    'method',
-    'args',
-    'kwargs',
-    'as',
-    'raises',
-)
-
-# ** constant: fixture_spec_keys
-FIXTURE_SPEC_KEYS: Tuple[str, ...] = (
-    'module_path',
-    'class_name',
-    'attributes',
-)
-
-# ** constant: mock_spec_keys
-MOCK_SPEC_KEYS: Tuple[str, ...] = (
-    'module_path',
-    'class_name',
-    'context',
-    'return_value',
-)
-
-# ** constant: import_keys
-IMPORT_KEYS: Tuple[str, ...] = (
-    'module_path',
-    'class_name',
-)
-
-# ** constant: call_spec_keys
-CALL_SPEC_KEYS: Tuple[str, ...] = (
-    'args',
-    'kwargs',
-    'times',
-    'calls',
-)
-
-# ** constant: data_checks
-DATA_CHECKS: Tuple[str, ...] = (
-    'equals',
-    'null',
-    'fields',
-    'absent',
-    'error_code',
-    'type',
-    'is',
-    'message',
-    'assert_called_once_with',
-)
-
-# ** constant: harness_checks
-HARNESS_CHECKS: Tuple[str, ...] = (
-    'domain_contract',
-    'mapper_contract',
-    'event_base',
-    'parameters_required',
-    'service_contract',
-    'middleware_chain',
-    'cause',
-)
-
-# ** constant: illegal_keys
-ILLEGAL_KEYS: Tuple[str, ...] = (
-    'predicate',
-    'field_normalizers',
-    'side_effect',
-    'eval',
-    'code',
-    'python',
-    'body',
-    'contains',
-    'any',
-    'target_method',
-    'abstract_methods',
-    'subclass_of',
-)
 
 # ** constant: phase_conditions_id
 PHASE_CONDITIONS_ID = 'phase_conditions'
@@ -147,22 +60,6 @@ PHASE_EXECUTE_ID = 'phase_execute'
 # ** constant: phase_assert_id
 PHASE_ASSERT_ID = 'phase_assert'
 
-# ** constant: middleware_chains
-MIDDLEWARE_CHAINS: Tuple[str, ...] = (
-    'none',
-    'single',
-    'order',
-    'capture',
-    'intercept',
-    'async',
-)
-
-# ** constant: reserved_methods
-RESERVED_METHODS: Tuple[str, ...] = (
-    'new',
-    'handle',
-)
-
 # ** constant: builtin_types
 BUILTIN_TYPES: Dict[str, type] = {
     'int': int,
@@ -171,162 +68,6 @@ BUILTIN_TYPES: Dict[str, type] = {
     'bool': bool,
     'list': list,
     'dict': dict,
-}
-
-# ** constant: assertion_yaml_fields
-ASSERTION_YAML_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
-    'equals': {
-        'required': (
-            'outcome',
-            'equals',
-        ),
-        'allowed': (
-            'outcome',
-            'equals',
-        ),
-    },
-    'null': {
-        'required': (
-            'outcome',
-            'null',
-        ),
-        'allowed': (
-            'outcome',
-            'null',
-        ),
-    },
-    'fields': {
-        'required': (
-            'outcome',
-            'fields',
-        ),
-        'allowed': (
-            'outcome',
-            'fields',
-        ),
-    },
-    'absent': {
-        'required': (
-            'outcome',
-            'absent',
-        ),
-        'allowed': (
-            'outcome',
-            'absent',
-        ),
-    },
-    'error_code': {
-        'required': (
-            'outcome',
-            'error_code',
-        ),
-        'allowed': (
-            'outcome',
-            'error_code',
-        ),
-    },
-    'type': {
-        'required': (
-            'outcome',
-            'type',
-        ),
-        'allowed': (
-            'outcome',
-            'type',
-            'negate',
-        ),
-    },
-    'is': {
-        'required': (
-            'outcome',
-            'is',
-        ),
-        'allowed': (
-            'outcome',
-            'is',
-        ),
-    },
-    'message': {
-        'required': (
-            'outcome',
-            'message',
-        ),
-        'allowed': (
-            'outcome',
-            'message',
-        ),
-    },
-    'assert_called_once_with': {
-        'required': (
-            'mock',
-            'method',
-            'assert_called_once_with',
-        ),
-        'allowed': (
-            'mock',
-            'method',
-            'assert_called_once_with',
-        ),
-    },
-    'domain_contract': {
-        'required': (
-            'domain_contract',
-        ),
-        'allowed': (
-            'domain_contract',
-        ),
-    },
-    'mapper_contract': {
-        'required': (
-            'mapper_contract',
-        ),
-        'allowed': (
-            'mapper_contract',
-            'exclude',
-        ),
-    },
-    'event_base': {
-        'required': (
-            'event_base',
-        ),
-        'allowed': (
-            'event_base',
-        ),
-    },
-    'parameters_required': {
-        'required': (
-            'parameters_required',
-        ),
-        'allowed': (
-            'parameters_required',
-        ),
-    },
-    'service_contract': {
-        'required': (
-            'service_contract',
-        ),
-        'allowed': (
-            'service_contract',
-        ),
-    },
-    'middleware_chain': {
-        'required': (
-            'middleware_chain',
-        ),
-        'allowed': (
-            'middleware_chain',
-        ),
-    },
-    'cause': {
-        'required': (
-            'outcome',
-            'cause',
-        ),
-        'allowed': (
-            'outcome',
-            'cause',
-        ),
-    },
 }
 
 # *** functions
@@ -347,7 +88,10 @@ def import_named(module_path: str, name: str) -> Any:
     # Import the module, then the named attribute.
     module = import_module(module_path)
     if not hasattr(module, name):
-        raise ValueError(f'{module_path} has no {name}.')
+        TiferetError.raise_error(
+            a.error.PHASE_STEP_FAILED_ID,
+            detail=f'{module_path} has no {name}.',
+        )
     return getattr(module, name)
 
 # ** function: copy_data
@@ -373,271 +117,6 @@ def _copy_data(value: Any) -> Any:
             for item in value
         ]
     return value
-
-# ** function: reject_illegal_keys
-def _reject_illegal_keys(mapping: Dict[str, Any]) -> None:
-    '''
-    Reject an illegal check key, even when its value is data.
-
-    :param mapping: The phase mapping.
-    :type mapping: Dict[str, Any]
-    :return: None.
-    :rtype: None
-    '''
-
-    # These keys are not checks. A data value does not make them legal.
-    found = set(mapping) & set(ILLEGAL_KEYS)
-    if found:
-        raise ValueError(f'Illegal phase key {sorted(found)}.')
-
-# ** function: reject_python_tags
-def _reject_python_tags(value: Any) -> None:
-    '''
-    Reject a YAML Python tag or a stored callable.
-
-    :param value: The value to walk.
-    :type value: Any
-    :return: None.
-    :rtype: None
-    '''
-
-    # A tag or a callable is a Python body. Data is not.
-    if isinstance(value, str) and PYTHON_TAG in value:
-        raise ValueError('A YAML Python tag is not legal.')
-    if isinstance(value, dict):
-        for item in value.values():
-            _reject_python_tags(item)
-        return
-    if isinstance(value, list):
-        for item in value:
-            _reject_python_tags(item)
-        return
-    if callable(value):
-        raise ValueError('A stored callable is not legal.')
-
-# ** function: require_import_spec
-def _require_import_spec(spec: Any, label: str) -> None:
-    '''
-    Require a mapping of module_path and class_name.
-
-    :param spec: The candidate import mapping.
-    :type spec: Any
-    :param label: The check name used in the failure.
-    :type label: str
-    :return: None.
-    :rtype: None
-    '''
-
-    # The import is two strings, not a class body.
-    if not isinstance(spec, dict) or set(spec) != set(IMPORT_KEYS):
-        raise ValueError(f'{label} is module_path and class_name.')
-    if not isinstance(spec['module_path'], str) or not isinstance(spec['class_name'], str):
-        raise ValueError(f'{label} names a class by string.')
-
-# ** function: validate_conditions_mapping
-def validate_conditions_mapping(mapping: Dict[str, Any]) -> None:
-    '''
-    Reject a conditions mapping outside the closed key set.
-
-    :param mapping: The conditions mapping.
-    :type mapping: Dict[str, Any]
-    :return: None.
-    :rtype: None
-    '''
-
-    # conditions is a mapping of fixtures and mocks, or empty.
-    if not isinstance(mapping, dict):
-        raise ValueError('conditions is a mapping.')
-    _reject_illegal_keys(mapping)
-    _reject_python_tags(mapping)
-    unknown = set(mapping) - set(CONDITIONS_KEYS)
-    if unknown:
-        raise ValueError(f'conditions does not allow {sorted(unknown)}.')
-
-    # Fixture names are a list. Mock specs are a mapping.
-    if 'fixtures' in mapping and not isinstance(mapping['fixtures'], list):
-        raise ValueError('fixtures is a list of names.')
-    if 'mocks' not in mapping:
-        return
-    if not isinstance(mapping['mocks'], dict):
-        raise ValueError('mocks is a mapping.')
-    for spec in mapping['mocks'].values():
-        if not isinstance(spec, dict) or not set(spec) <= set(MOCK_SPEC_KEYS):
-            raise ValueError('A mock is module_path, class_name, and optional return_value.')
-        if 'module_path' not in spec or 'class_name' not in spec:
-            raise ValueError('A mock requires module_path and class_name.')
-
-# ** function: validate_execution_mapping
-def validate_execution_mapping(mapping: Dict[str, Any]) -> None:
-    '''
-    Reject an execute item outside the closed key set.
-
-    :param mapping: The execute item.
-    :type mapping: Dict[str, Any]
-    :return: None.
-    :rtype: None
-    '''
-
-    # An execute item names a target and a method, and nothing else.
-    if not isinstance(mapping, dict):
-        raise ValueError('An execute item is a mapping.')
-    _reject_illegal_keys(mapping)
-    _reject_python_tags(mapping)
-    unknown = set(mapping) - set(EXECUTE_KEYS)
-    if unknown:
-        raise ValueError(f'An execute item does not allow {sorted(unknown)}.')
-    if 'target' not in mapping or 'method' not in mapping:
-        raise ValueError('An execute item requires target and method.')
-    if mapping.get('raises') not in (None, True, False):
-        raise ValueError('raises is true or false.')
-    if mapping.get('raises') is True and 'as' not in mapping:
-        raise ValueError('raises requires as.')
-
-# ** function: validate_execute_phase
-def validate_execute_phase(items: List[Dict[str, Any]]) -> None:
-    '''
-    Reject an execute phase that is empty or contains an illegal item.
-
-    :param items: The execute phase.
-    :type items: List[Dict[str, Any]]
-    :return: None.
-    :rtype: None
-    '''
-
-    # execute is a non-empty list of closed items.
-    if not isinstance(items, list) or not items:
-        raise ValueError('execute is a non-empty list.')
-    for item in items:
-        validate_execution_mapping(item)
-
-# ** function: validate_check_value
-def _validate_check_value(check: str, mapping: Dict[str, Any]) -> None:
-    '''
-    Reject a check value that is not the closed form for that check.
-
-    :param check: The check key.
-    :type check: str
-    :param mapping: The assert item.
-    :type mapping: Dict[str, Any]
-    :return: None.
-    :rtype: None
-    '''
-
-    # Boolean checks accept only true.
-    if check in ('null', 'domain_contract', 'mapper_contract'):
-        if mapping[check] is not True:
-            raise ValueError(f'{check} accepts only true.')
-
-    # equals null is the null check, not an expected value.
-    if check == 'equals' and mapping['equals'] is None:
-        raise ValueError('YAML null under equals is rejected.')
-
-    # type and event_base name one imported class.
-    if check == 'type':
-        _require_import_spec(mapping['type'], 'type')
-    if check == 'event_base':
-        _require_import_spec(mapping['event_base'], 'event_base')
-
-    # is is an import or a builtin, not both.
-    if check == 'is':
-        spec = mapping['is']
-        if not isinstance(spec, dict):
-            raise ValueError('is names a class or a builtin.')
-        if set(spec) == {'builtin'}:
-            if spec['builtin'] not in BUILTIN_TYPES:
-                raise ValueError('is builtin is not a legal live type.')
-        elif set(spec) == set(IMPORT_KEYS):
-            _require_import_spec(spec, 'is')
-        else:
-            raise ValueError('is requires module_path and class_name, or builtin, not both.')
-
-    # cause names the chained exception. It is not a frame walk.
-    if check == 'cause':
-        spec = mapping['cause']
-        if not isinstance(spec, dict) or set(spec) != {'module_path', 'class_name', 'message'}:
-            raise ValueError('cause is module_path, class_name, and message.')
-
-    # parameters_required is the decorator matrix, not a second error_code.
-    if check == 'parameters_required':
-        spec = mapping['parameters_required']
-        if not isinstance(spec, dict) or set(spec) != {'names'} or not isinstance(spec['names'], list):
-            raise ValueError('parameters_required is {names: [...]}.' )
-
-    # service_contract locks a table. abstract_methods is not the key.
-    if check == 'service_contract':
-        spec = mapping['service_contract']
-        if not isinstance(spec, dict):
-            raise ValueError('service_contract is a mapping.')
-        unknown = set(spec) - {'abstracts', 'methods', 'absent'}
-        if unknown or 'abstracts' not in spec or 'methods' not in spec:
-            raise ValueError('service_contract takes abstracts, methods, and optional absent.')
-
-    # middleware_chain is one of the harness shapes. There is no async phase key.
-    if check == 'middleware_chain' and mapping['middleware_chain'] not in MIDDLEWARE_CHAINS:
-        raise ValueError('middleware_chain is not a legal shape.')
-
-    # An exclude set is a list. No YAML set.
-    if check == 'mapper_contract' and 'exclude' in mapping:
-        if isinstance(mapping['exclude'], set) or not isinstance(mapping['exclude'], list):
-            raise ValueError('An exclude set is a list. No YAML set.')
-
-    # times 0 cannot carry args.
-    if check == 'assert_called_once_with':
-        spec = mapping['assert_called_once_with']
-        if not isinstance(spec, dict) or not set(spec) <= set(CALL_SPEC_KEYS):
-            raise ValueError('assert_called_once_with is args, kwargs, times, or calls.')
-        if spec.get('times') == 0 and ('args' in spec or 'kwargs' in spec):
-            raise ValueError('times 0 requires args to be omitted.')
-
-# ** function: validate_assertion_mapping
-def validate_assertion_mapping(mapping: Dict[str, Any]) -> None:
-    '''
-    Reject an assert item that does not have exactly one closed check.
-
-    :param mapping: The assert item.
-    :type mapping: Dict[str, Any]
-    :return: None.
-    :rtype: None
-    '''
-
-    # Exactly one data check or one harness check.
-    if not isinstance(mapping, dict):
-        raise ValueError('An assert item is a mapping.')
-    _reject_illegal_keys(mapping)
-    _reject_python_tags(mapping)
-    checks = [
-        key
-        for key in mapping
-        if key in DATA_CHECKS or key in HARNESS_CHECKS
-    ]
-    if len(checks) != 1:
-        raise ValueError('An assert item has exactly one check key.')
-    check = checks[0]
-    allowed = set(ASSERTION_YAML_FIELDS[check]['allowed'])
-    unknown = set(mapping) - allowed
-    if unknown:
-        raise ValueError(f'Check {check} does not allow {sorted(unknown)}.')
-    missing = set(ASSERTION_YAML_FIELDS[check]['required']) - set(mapping)
-    if missing:
-        raise ValueError(f'Check {check} requires {sorted(missing)}.')
-    _validate_check_value(check, mapping)
-
-# ** function: validate_assert_phase
-def validate_assert_phase(items: List[Dict[str, Any]]) -> None:
-    '''
-    Reject an assert phase that is empty or contains an illegal item.
-
-    :param items: The assert phase.
-    :type items: List[Dict[str, Any]]
-    :return: None.
-    :rtype: None
-    '''
-
-    # assert is a non-empty list of closed items.
-    if not isinstance(items, list) or not items:
-        raise ValueError('assert is a non-empty list.')
-    for item in items:
-        validate_assertion_mapping(item)
 
 # ** function: annotation_name
 def _annotation_name(annotation: Any) -> str | None:
@@ -699,30 +178,21 @@ def compile_phase_steps(test: Test) -> List[EventFeatureStep]:
 
 # *** contexts
 
-# ** context: phase_runtime
-class PhaseRuntime(BaseContext):
+# ** context: phase_runtime_context
+class PhaseRuntimeContext(BaseContext):
     '''
-    Runs one test's phases. The handlers take Conditions, Execution, and
-    Assertion. They are not dispatched through AppSessionContext.
+    Runs one test's phases against a bound ``PhaseRuntime``. The model names
+    the tester class and the fixture specs. Built fixtures, arranged mocks,
+    and ``as`` keys are run state on this context. The handlers take
+    Conditions, Execution, and Assertion. They are not dispatched through
+    AppSessionContext.
     '''
+
+    # * attribute: domain_type
+    domain_type = PhaseRuntime
 
     # * attribute: session
     session: RequestContext
-
-    # * attribute: tester_module_path
-    tester_module_path: str
-
-    # * attribute: tester_class_name
-    tester_class_name: str
-
-    # * attribute: tester_attributes
-    tester_attributes: Dict[str, Any]
-
-    # * attribute: root_fixtures
-    root_fixtures: Dict[str, Dict[str, Any]]
-
-    # * attribute: tester_fixtures
-    tester_fixtures: Dict[str, Dict[str, Any]]
 
     # * attribute: fixtures
     fixtures: Dict[str, Any]
@@ -737,43 +207,24 @@ class PhaseRuntime(BaseContext):
     steps: List[EventFeatureStep]
 
     # * init
-    def __init__(self,
-            session: RequestContext,
-            tester_module_path: str,
-            tester_class_name: str,
-            tester_attributes: Dict[str, Any] = None,
-            root_fixtures: Dict[str, Dict[str, Any]] = None,
-            tester_fixtures: Dict[str, Dict[str, Any]] = None,
-        ) -> None:
+    def __init__(self, session: RequestContext) -> None:
         '''
-        Initialize a phase runtime for one test.
+        Initialize a phase runtime context for one session.
+
+        ``from_domain`` binds the ``PhaseRuntime`` after construction. This
+        constructor does not copy the model onto attributes.
 
         :param session: The session whose data stores ``as`` results.
         :type session: RequestContext
-        :param tester_module_path: The tester class module.
-        :type tester_module_path: str
-        :param tester_class_name: The tester class name.
-        :type tester_class_name: str
-        :param tester_attributes: Attributes used by ``new``.
-        :type tester_attributes: Dict[str, Any]
-        :param root_fixtures: Root fixture specs, looked up after tester-local.
-        :type root_fixtures: Dict[str, Dict[str, Any]]
-        :param tester_fixtures: Tester-local fixture specs.
-        :type tester_fixtures: Dict[str, Dict[str, Any]]
         :return: None.
         :rtype: None
         '''
 
-        # Do not register a domain type. Test stays mapped to TestContext.
+        # Register through domain_type. Do not clobber Feature or Test.
         super().__init__()
 
-        # Hold the session and the tester coordinates the reserved actions use.
+        # Hold the session. Tester coordinates stay on the bound model.
         self.session = session
-        self.tester_module_path = tester_module_path
-        self.tester_class_name = tester_class_name
-        self.tester_attributes = tester_attributes or {}
-        self.root_fixtures = root_fixtures or {}
-        self.tester_fixtures = tester_fixtures or {}
 
         # Built fixtures, arranged mocks, and as keys start empty.
         self.fixtures = {}
@@ -794,12 +245,19 @@ class PhaseRuntime(BaseContext):
 
         # Handlers take the object, not an anonymous dict.
         if not isinstance(conditions, Conditions):
-            raise ValueError('Handlers take Conditions, not a dict.')
+            TiferetError.raise_error(
+                a.error.PHASE_HANDLER_MISMATCH_ID,
+                received=type(conditions).__name__,
+                expected='Conditions',
+            )
 
         # A mock name and a fixture name must not collide.
         overlap = set(conditions.mocks) & (set(conditions.fixtures) | set(self.fixtures))
         if overlap:
-            raise ValueError(f'Mock and fixture names collide: {sorted(overlap)}.')
+            TiferetError.raise_error(
+                a.error.PHASE_NAME_COLLISION_ID,
+                names=sorted(overlap),
+            )
 
         # Build fixtures first so a mock can reference one.
         for name in conditions.fixtures:
@@ -822,7 +280,11 @@ class PhaseRuntime(BaseContext):
 
         # Handlers take the object, not an anonymous dict.
         if not isinstance(execution, Execution):
-            raise ValueError('Handlers take Execution, not a dict.')
+            TiferetError.raise_error(
+                a.error.PHASE_HANDLER_MISMATCH_ID,
+                received=type(execution).__name__,
+                expected='Execution',
+            )
         self._invoke(execution)
 
     # * method: handle_assertion
@@ -838,7 +300,11 @@ class PhaseRuntime(BaseContext):
 
         # Handlers take the object, not an anonymous dict.
         if not isinstance(assertion, Assertion):
-            raise ValueError('Handlers take Assertion, not a dict.')
+            TiferetError.raise_error(
+                a.error.PHASE_HANDLER_MISMATCH_ID,
+                received=type(assertion).__name__,
+                expected='Assertion',
+            )
         checker = {
             'equals': self._check_equals,
             'null': self._check_null,
@@ -872,11 +338,21 @@ class PhaseRuntime(BaseContext):
 
         # A test is one Test. execute and assert are non-empty.
         if not isinstance(test, Test):
-            raise ValueError('A test is a Test, not a dict.')
+            TiferetError.raise_error(
+                a.error.PHASE_HANDLER_MISMATCH_ID,
+                received=type(test).__name__,
+                expected='Test',
+            )
         if not test.executes:
-            raise ValueError('execute is a non-empty list.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='execute is a non-empty list.',
+            )
         if not test.asserts:
-            raise ValueError('assert is a non-empty list.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='assert is a non-empty list.',
+            )
 
         # Compile for data_key. Do not dispatch through AppSessionContext.
         self.steps = compile_phase_steps(test)
@@ -898,15 +374,13 @@ class PhaseRuntime(BaseContext):
         :rtype: None
         '''
 
-        # Tester-local wins. A tester-local fixture is not promoted.
-        if name in self.tester_fixtures:
-            spec = self.tester_fixtures[name]
-        elif name in self.root_fixtures:
-            spec = self.root_fixtures[name]
-        else:
-            raise ValueError(f'Fixture {name} was not found.')
-        if set(spec) != set(FIXTURE_SPEC_KEYS):
-            raise ValueError('A fixture entry is module_path, class_name, and attributes.')
+        # Tester-local wins. The model already closed the spec keys.
+        spec = self.domain.fixture_spec(name)
+        if spec is None:
+            TiferetError.raise_error(
+                a.error.PHASE_FIXTURE_NOT_FOUND_ID,
+                name=name,
+            )
 
         # Call the class. Do not call a method named new.
         cls = import_named(spec['module_path'], spec['class_name'])
@@ -956,7 +430,10 @@ class PhaseRuntime(BaseContext):
 
         # raises and return_value are mutually exclusive on one method.
         if isinstance(value, dict) and 'raises' in value and set(value) != {'raises'}:
-            raise ValueError('return_value and raises are mutually exclusive.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='return_value and raises are mutually exclusive.',
+            )
         if isinstance(value, dict) and set(value) == {'raises'}:
             self._arrange_raises(mock, method_name, value['raises'])
             return
@@ -991,9 +468,15 @@ class PhaseRuntime(BaseContext):
 
         # The spec names a class and an optional message. It is not a callable.
         if not isinstance(spec, dict) or not {'module_path', 'class_name'} <= set(spec):
-            raise ValueError('raises is module_path, class_name, and optional message.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='raises is module_path, class_name, and optional message.',
+            )
         if set(spec) - {'module_path', 'class_name', 'message'}:
-            raise ValueError('raises is module_path, class_name, and optional message.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='raises is module_path, class_name, and optional message.',
+            )
         exc_cls = import_named(spec['module_path'], spec['class_name'])
         message = spec.get('message')
         method = getattr(mock, method_name)
@@ -1029,7 +512,10 @@ class PhaseRuntime(BaseContext):
                 for key, item in value.items()
             }
         if callable(value):
-            raise ValueError('A stored callable is not legal.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='A stored callable is not legal.',
+            )
         return value
 
     # * method: resolve_scalar
@@ -1047,7 +533,10 @@ class PhaseRuntime(BaseContext):
 
         # $r. is illegal in conditions, including as a path.
         if value.startswith(REQUEST_REF_PREFIX) and not allow_request:
-            raise ValueError('$r. is illegal in conditions.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='$r. is illegal in conditions.',
+            )
         if value.startswith(FIXTURE_REF_PREFIX):
             return self._lookup_ref(value, FIXTURE_REF_PREFIX, self.fixtures)
         if value.startswith(MOCK_REF_PREFIX):
@@ -1055,7 +544,10 @@ class PhaseRuntime(BaseContext):
         if value.startswith(REQUEST_REF_PREFIX):
             name = self._ref_name(value, REQUEST_REF_PREFIX)
             if name not in self.as_keys:
-                raise ValueError(f'Missing runtime reference {value}.')
+                TiferetError.raise_error(
+                    a.error.PHASE_REFERENCE_NOT_FOUND_ID,
+                    reference=value,
+                )
             return self.session.data[name]
 
         # A prefix inside a longer string is a literal, not a substitution.
@@ -1079,7 +571,10 @@ class PhaseRuntime(BaseContext):
         # A missing name fails the step. It is not None.
         name = self._ref_name(value, prefix)
         if name not in store:
-            raise ValueError(f'Missing runtime reference {value}.')
+            TiferetError.raise_error(
+                a.error.PHASE_REFERENCE_NOT_FOUND_ID,
+                reference=value,
+            )
         return store[name]
 
     # * method: ref_name
@@ -1098,7 +593,10 @@ class PhaseRuntime(BaseContext):
         # $r.built.lang is not a path.
         name = value[len(prefix):]
         if not REF_NAME.fullmatch(name):
-            raise ValueError(f'{value} is not a runtime reference.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'{value} is not a runtime reference.',
+            )
         return name
 
     # * method: invoke
@@ -1147,10 +645,16 @@ class PhaseRuntime(BaseContext):
         # self is only the reserved target.
         target = self._resolve_target(execution)
         if target == 'self':
-            raise ValueError('self is legal only for new and handle.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='self is legal only for new and handle.',
+            )
         if isinstance(execution.target, ExecutionTarget) and execution.target.attribute:
             if execution.method != execution.target.attribute:
-                raise ValueError('A module attribute target calls that attribute.')
+                TiferetError.raise_error(
+                    a.error.PHASE_STEP_FAILED_ID,
+                    detail='A module attribute target calls that attribute.',
+                )
             return target(*args, **kwargs)
         method = getattr(target, execution.method)
         return method(*args, **kwargs)
@@ -1165,8 +669,8 @@ class PhaseRuntime(BaseContext):
         '''
 
         # Attributes may contain fixture refs. They must already be built.
-        cls = import_named(self.tester_module_path, self.tester_class_name)
-        attributes = self._resolve_value(_copy_data(self.tester_attributes))
+        cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
+        attributes = self._resolve_value(_copy_data(self.domain.tester_attributes))
         return cls(**attributes)
 
     # * method: call_handle
@@ -1181,7 +685,7 @@ class PhaseRuntime(BaseContext):
         '''
 
         # Do not merge sample_kwargs. Do not construct an instance here.
-        cls = import_named(self.tester_module_path, self.tester_class_name)
+        cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
         return DomainEvent.handle(
             cls,
             dependencies=dict(self.mocks),
@@ -1216,8 +720,9 @@ class PhaseRuntime(BaseContext):
 
         # A bare name is a fixture. It is not an as key.
         if not isinstance(target, str) or target not in self.fixtures:
-            raise ValueError(
-                f'Target {target} is not a fixture. A bare name is not a prior as key.',
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'Target {target} is not a fixture. A bare name is not a prior as key.',
             )
         return self.fixtures[target]
 
@@ -1255,16 +760,25 @@ class PhaseRuntime(BaseContext):
         else:
             name = outcome
         if name in self.as_keys and name in self.fixtures:
-            raise ValueError(f'{name} is both an as key and a fixture name.')
+            TiferetError.raise_error(
+                a.error.PHASE_NAME_COLLISION_ID,
+                names=name,
+            )
         if outcome.startswith(REQUEST_REF_PREFIX):
             if name not in self.as_keys:
-                raise ValueError(f'Missing runtime reference {outcome}.')
+                TiferetError.raise_error(
+                    a.error.PHASE_REFERENCE_NOT_FOUND_ID,
+                    reference=outcome,
+                )
             return self.session.data[name]
         if name in self.as_keys:
             return self.session.data[name]
         if name in self.fixtures:
             return self.fixtures[name]
-        raise ValueError(f'Outcome {name} is not an as key or a fixture.')
+        TiferetError.raise_error(
+            a.error.PHASE_REFERENCE_NOT_FOUND_ID,
+            reference=name,
+        )
 
     # * method: compare
     def _compare(self, actual: Any, expected: Any) -> None:
@@ -1382,7 +896,10 @@ class PhaseRuntime(BaseContext):
 
         # YAML null is not an expected value.
         if assertion.equals is None:
-            raise ValueError('YAML null under equals is rejected.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='YAML null under equals is rejected.',
+            )
         outcome = self._resolve_outcome(assertion.outcome)
         expected = self._resolve_value(assertion.equals)
         if outcome != expected:
@@ -1536,7 +1053,10 @@ class PhaseRuntime(BaseContext):
 
         # Resolve refs in the call spec before comparing.
         if assertion.mock not in self.mocks:
-            raise ValueError(f'Missing mock {assertion.mock}.')
+            TiferetError.raise_error(
+                a.error.PHASE_REFERENCE_NOT_FOUND_ID,
+                reference=assertion.mock,
+            )
         method = getattr(self.mocks[assertion.mock], assertion.method)
         spec = self._resolve_value(assertion.assert_called_once_with)
         if 'calls' in spec:
@@ -1550,7 +1070,10 @@ class PhaseRuntime(BaseContext):
         times = spec.get('times', 1)
         if times == 0:
             if 'args' in spec or 'kwargs' in spec:
-                raise ValueError('times 0 requires args to be omitted.')
+                TiferetError.raise_error(
+                    a.error.PHASE_STEP_FAILED_ID,
+                    detail='times 0 requires args to be omitted.',
+                )
             if method.call_count != 0:
                 self._fail(f'Expected no calls, got {method.call_count}.')
             return
@@ -1739,10 +1262,10 @@ class PhaseRuntime(BaseContext):
         '''
 
         # One check covers a bare base-event tester.
-        event_cls = import_named(self.tester_module_path, self.tester_class_name)
+        event_cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
         base_cls = import_named(assertion.module_path, assertion.class_name)
         if not issubclass(event_cls, base_cls):
-            self._fail(f'{self.tester_class_name} is not a {assertion.class_name}.')
+            self._fail(f'{self.domain.tester_class_name} is not a {assertion.class_name}.')
         instance = event_cls(**self.mocks)
         for name, mock in self.mocks.items():
             if getattr(instance, name) is not mock:
@@ -1825,7 +1348,7 @@ class PhaseRuntime(BaseContext):
         '''
 
         # The tester class is the service. This is not assert_contract.
-        cls = import_named(self.tester_module_path, self.tester_class_name)
+        cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
         abstracts = set(assertion.abstracts)
         declared = set(getattr(cls, '__abstractmethods__', ()))
         if abstracts != declared:
@@ -1905,7 +1428,10 @@ class PhaseRuntime(BaseContext):
         if shape == 'async':
             self._run_async_chain()
             return
-        raise ValueError(f'middleware_chain {shape} is not legal.')
+        TiferetError.raise_error(
+            a.error.PHASE_STEP_FAILED_ID,
+            detail=f'middleware_chain {shape} is not legal.',
+        )
 
     # * method: run_chain
     def _run_chain(self, middleware: list, **kwargs) -> Any:

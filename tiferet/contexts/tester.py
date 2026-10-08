@@ -106,6 +106,75 @@ class TesterContext(BaseContext):
     # * attribute: domain_type
     domain_type = TesterObject
 
+    # * attribute: build_phase_runtime (private)
+    _build_phase_runtime: Callable
+
+    # * init
+    def __init__(self, build_phase_runtime_handler: Callable = None) -> None:
+        '''
+        Initialize a tester context.
+
+        The phase-runtime factory is injected. This context does not import
+        the blueprint that builds it.
+
+        :param build_phase_runtime_handler: The callable that builds a phase runtime.
+        :type build_phase_runtime_handler: Callable
+        :return: None.
+        :rtype: None
+        '''
+
+        # Initialize the base context.
+        super().__init__()
+
+        # Store the injected factory. An absent slot is unwired, not a fallback.
+        self._build_phase_runtime = build_phase_runtime_handler
+
+    # * method: build_phase_runtime
+    def build_phase_runtime(self,
+            session: Any,
+            tester_module_path: str,
+            tester_class_name: str,
+            tester_attributes: Dict[str, Any] = None,
+            root_fixtures: Dict[str, Dict[str, Any]] = None,
+            tester_fixtures: Dict[str, Dict[str, Any]] = None,
+        ) -> Any:
+        '''
+        Build a phase runtime through the injected handler.
+
+        :param session: The session whose data stores ``as`` results.
+        :type session: Any
+        :param tester_module_path: The tester class module.
+        :type tester_module_path: str
+        :param tester_class_name: The tester class name.
+        :type tester_class_name: str
+        :param tester_attributes: Attributes used by ``new``.
+        :type tester_attributes: Dict[str, Any]
+        :param root_fixtures: Root fixture specs.
+        :type root_fixtures: Dict[str, Dict[str, Any]]
+        :param tester_fixtures: Tester-local fixture specs.
+        :type tester_fixtures: Dict[str, Dict[str, Any]]
+        :return: The phase runtime context.
+        :rtype: Any
+        '''
+
+        # An absent callable is an unwired handler, not a local construction.
+        if self._build_phase_runtime is None:
+            a.core.raise_unwired_handler_error(
+                'build_phase_runtime_handler',
+                self.domain.id,
+                error_code=a.error.APP_ERROR_ID,
+            )
+
+        # Delegate. This context does not build the domain value.
+        return self._build_phase_runtime(
+            session,
+            tester_module_path,
+            tester_class_name,
+            tester_attributes,
+            root_fixtures,
+            tester_fixtures,
+        )
+
     # * method: make_target
     def make_target(self, data: Dict[str, Any] = None) -> Any:
         '''

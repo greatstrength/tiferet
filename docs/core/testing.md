@@ -92,6 +92,8 @@ One test compiles to one `Test`. The execute-phase items are the model's `execut
 
 `TestContext` (`tiferet/contexts/test.py`) extends `FeatureContext` and declares `domain_type = Test` in its own namespace. `Feature` stays mapped to `FeatureContext`: `BaseContext.for_domain(Feature)` is `FeatureContext`.
 
+`PhaseRuntime` (`tiferet/domain/test.py`) is the declared coordinates of one phase run: the class `new` and `handle` use, and the fixture specs. It does not build fixtures, arrange mocks, or touch a session. `PhaseRuntimeContext` declares `domain_type = PhaseRuntime` in its own namespace. `build_phase_runtime` builds that value and calls `BaseContext.from_domain`, so the registry returns `PhaseRuntimeContext`. It does not construct the context by hand, and it does not return the domain value. The tester context stores that callable and exposes `build_phase_runtime`. An absent callable is an unwired handler. The bound model stays immutable. Built fixtures, arranged mocks, and `as` keys are context attributes. A closed-set defect raises `ModelError`. A phase side effect raises `TiferetError`. A failed check raises `AssertionError`.
+
 ## Anchors, aliases, and merge
 
 Anchors are load-time. `$r.` and `$fixture.` are runtime.

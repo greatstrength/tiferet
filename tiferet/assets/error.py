@@ -72,6 +72,21 @@ REQUEST_VALIDATION_FAILED_ID = 'REQUEST_VALIDATION_FAILED'
 # ** constant: test_preset_not_found_id
 TEST_PRESET_NOT_FOUND_ID = 'TEST_PRESET_NOT_FOUND'
 
+# ** constant: phase_fixture_not_found_id
+PHASE_FIXTURE_NOT_FOUND_ID = 'PHASE_FIXTURE_NOT_FOUND'
+
+# ** constant: phase_name_collision_id
+PHASE_NAME_COLLISION_ID = 'PHASE_NAME_COLLISION'
+
+# ** constant: phase_reference_not_found_id
+PHASE_REFERENCE_NOT_FOUND_ID = 'PHASE_REFERENCE_NOT_FOUND'
+
+# ** constant: phase_handler_mismatch_id
+PHASE_HANDLER_MISMATCH_ID = 'PHASE_HANDLER_MISMATCH'
+
+# ** constant: phase_step_failed_id
+PHASE_STEP_FAILED_ID = 'PHASE_STEP_FAILED'
+
 # *** constants (ids_admin)
 
 # ** constant: cli_command_already_exists_id
@@ -211,6 +226,36 @@ TEST_PRESET_NOT_FOUND_DATA = create_default_error_data(
     [(EN_US, 'Test preset not found: {preset_id}.')],
 )
 
+# ** constant: phase_fixture_not_found_data
+PHASE_FIXTURE_NOT_FOUND_DATA = create_default_error_data(
+    'Phase Fixture Not Found',
+    [(EN_US, 'Fixture {name} was not found.')],
+)
+
+# ** constant: phase_name_collision_data
+PHASE_NAME_COLLISION_DATA = create_default_error_data(
+    'Phase Name Collision',
+    [(EN_US, 'Mock and fixture names collide: {names}.')],
+)
+
+# ** constant: phase_reference_not_found_data
+PHASE_REFERENCE_NOT_FOUND_DATA = create_default_error_data(
+    'Phase Reference Not Found',
+    [(EN_US, 'Missing runtime reference {reference}.')],
+)
+
+# ** constant: phase_handler_mismatch_data
+PHASE_HANDLER_MISMATCH_DATA = create_default_error_data(
+    'Phase Handler Mismatch',
+    [(EN_US, 'Phase handler received {received}, not {expected}.')],
+)
+
+# ** constant: phase_step_failed_data
+PHASE_STEP_FAILED_DATA = create_default_error_data(
+    'Phase Step Failed',
+    [(EN_US, 'Phase step failed: {detail}.')],
+)
+
 # *** constants (models_admin)
 
 # ** constant: cli_command_already_exists_data
@@ -311,6 +356,11 @@ CORE_DEFAULT_ERRORS = {
     REQUEST_NOT_FOUND_ID: REQUEST_NOT_FOUND_DATA,
     REQUEST_VALIDATION_FAILED_ID: REQUEST_VALIDATION_FAILED_DATA,
     TEST_PRESET_NOT_FOUND_ID: TEST_PRESET_NOT_FOUND_DATA,
+    PHASE_FIXTURE_NOT_FOUND_ID: PHASE_FIXTURE_NOT_FOUND_DATA,
+    PHASE_NAME_COLLISION_ID: PHASE_NAME_COLLISION_DATA,
+    PHASE_REFERENCE_NOT_FOUND_ID: PHASE_REFERENCE_NOT_FOUND_DATA,
+    PHASE_HANDLER_MISMATCH_ID: PHASE_HANDLER_MISMATCH_DATA,
+    PHASE_STEP_FAILED_ID: PHASE_STEP_FAILED_DATA,
 }
 
 # ** constant: admin_default_errors

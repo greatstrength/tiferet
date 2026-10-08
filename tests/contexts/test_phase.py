@@ -12,17 +12,21 @@ import pytest
 from tiferet.assets import TiferetError
 from tiferet.blueprints.tester import (
     build_phase_runtime,
+    build_tester_context,
     register_phase_handlers,
 )
+from tiferet.contexts.core import BaseContext
+from tiferet.contexts.feature import FeatureContext
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.test import (
-    PhaseRuntime,
+    PhaseRuntimeContext,
     compile_phase_steps,
-    validate_assert_phase,
-    validate_conditions_mapping,
-    validate_execute_phase,
 )
-from tiferet.domain import EventFeatureStep, Feature
+from tiferet.domain import (
+    EventFeatureStep,
+    Feature,
+    ModelError,
+)
 from tiferet.domain.core import DomainObject
 from tiferet.domain.error import Error, ErrorMessage
 from tiferet.domain.test import (
@@ -30,6 +34,7 @@ from tiferet.domain.test import (
     Assertion,
     Conditions,
     Execution,
+    PhaseRuntime,
     Test,
 )
 from tiferet.events.core import DomainEvent
@@ -108,7 +113,7 @@ def _runtime(
         tester_attributes: dict = None,
         root_fixtures: dict = None,
         tester_fixtures: dict = None,
-    ) -> PhaseRuntime:
+    ) -> PhaseRuntimeContext:
     '''
     Build a phase runtime on a fresh session.
 
@@ -122,8 +127,8 @@ def _runtime(
     :type root_fixtures: dict
     :param tester_fixtures: Tester-local fixture specs.
     :type tester_fixtures: dict
-    :return: The phase runtime.
-    :rtype: PhaseRuntime
+    :return: The phase runtime context.
+    :rtype: PhaseRuntimeContext
     '''
 
     # The blueprint builds the runtime. It is not an app-session dispatch.
@@ -203,31 +208,28 @@ def test_closed_phase_keys_are_rejected():
     '''
 
     # conditions accepts only fixtures and mocks.
-    with pytest.raises(ValueError):
-        validate_conditions_mapping({
-            'fixtures': [],
-            'variables': {},
-        })
+    with pytest.raises(ModelError):
+        Conditions(
+            fixtures=[],
+            variables={},
+        )
 
-    # An execute item accepts only the six keys.
-    with pytest.raises(ValueError):
-        validate_execute_phase([
-            {
-                'target': 'self',
-                'method': 'new',
-                'sample_kwargs': {},
-            },
-        ])
+    # An execute item accepts only its fields.
+    with pytest.raises(ModelError):
+        Execution(
+            target='self',
+            method='new',
+            sample_kwargs={},
+        )
 
-    # An assert item has exactly one check.
-    with pytest.raises(ValueError):
-        validate_assert_phase([
-            {
-                'outcome': 'built',
-                'equals': 'a',
-                'null': True,
-            },
-        ])
+    # An assert item does not take a second check key.
+    with pytest.raises(ModelError):
+        Assertion(
+            check='equals',
+            outcome='built',
+            equals='a',
+            null=True,
+        )
 
 # ** test: illegal_keys_and_python_tags_are_rejected
 def test_illegal_keys_and_python_tags_are_rejected():
@@ -246,25 +248,23 @@ def test_illegal_keys_and_python_tags_are_rejected():
         'body',
         'contains',
     ):
-        with pytest.raises(ValueError):
-            validate_assert_phase([
-                {
-                    'outcome': 'built',
-                    key: 'data',
-                },
-            ])
+        with pytest.raises(ModelError):
+            Assertion(
+                check='equals',
+                outcome='built',
+                equals='a',
+                **{key: 'data'},
+            )
 
     # A YAML Python tag is not a value.
-    with pytest.raises(ValueError):
-        validate_execute_phase([
-            {
-                'target': 'self',
-                'method': 'new',
-                'kwargs': {
-                    'body': '!!python/object:os.system',
-                },
+    with pytest.raises(ModelError):
+        Execution(
+            target='fixture',
+            method='format',
+            kwargs={
+                'body': '!!python/object:os.system',
             },
-        ])
+        )
 
 # ** test: fixture_construction_does_not_call_new
 def test_fixture_construction_does_not_call_new():
@@ -329,12 +329,13 @@ def test_refs_resolve_before_the_call():
         },
     )
     runtime.handle_conditions(Conditions(fixtures=['error_message']))
-    with pytest.raises(ValueError):
+    with pytest.raises(TiferetError) as caught:
         runtime.handle_execution(Execution(
             target='$fixture.missing',
             method='format',
             data_key='missing',
         ))
+    assert caught.value.error_code == 'PHASE_REFERENCE_NOT_FOUND'
     runtime.handle_execution(Execution(
         target={
             'module_path': 'tests.contexts.test_phase',
@@ -908,9 +909,9 @@ def test_handlers_are_registered_and_not_default_features():
     # The registry is the three handlers, not a feature dispatch.
     handlers = register_phase_handlers()
     assert set(handlers) == {'conditions', 'execute', 'assert'}
-    assert handlers['conditions'] is PhaseRuntime.handle_conditions
-    assert handlers['execute'] is PhaseRuntime.handle_execution
-    assert handlers['assert'] is PhaseRuntime.handle_assertion
+    assert handlers['conditions'] is PhaseRuntimeContext.handle_conditions
+    assert handlers['execute'] is PhaseRuntimeContext.handle_execution
+    assert handlers['assert'] is PhaseRuntimeContext.handle_assertion
     assert not hasattr(Feature, 'CORE_DEFAULT_FEATURES')
 
 # ** test: harness_checks_run
@@ -1022,3 +1023,46 @@ def test_harness_checks_run():
         ],
     ))
     assert issubclass(MiddlewareService, Service)
+
+# ** test: phase_runtime_is_reached_through_from_domain
+def test_phase_runtime_is_reached_through_from_domain():
+    '''
+    PhaseRuntime maps to PhaseRuntimeContext. Feature and Test stay put.
+    '''
+
+    # Import here so pytest does not collect Test-prefixed classes.
+    from tiferet.contexts.test import TestContext
+    from tiferet.contexts.tester import TesterContext
+    from tiferet.domain import TesterObject
+
+    # The registry selects the context. It does not clobber Feature or Test.
+    assert BaseContext.for_domain(PhaseRuntime) is PhaseRuntimeContext
+    assert BaseContext.for_domain(Feature) is FeatureContext
+    assert BaseContext.for_domain(Test) is TestContext
+
+    # An unwired tester context names the missing handler.
+    tester = TesterObject(
+        type='generic',
+        id='phase.tester',
+        module_path=ErrorMessage.__module__,
+        class_name=ErrorMessage.__name__,
+    )
+    unwired = TesterContext.from_domain(tester)
+    with pytest.raises(TiferetError) as caught:
+        unwired.build_phase_runtime(
+            RequestContext(),
+            ErrorMessage.__module__,
+            ErrorMessage.__name__,
+        )
+    assert 'build_phase_runtime_handler' in str(caught.value)
+
+    # The injected callable returns the context, not the domain value.
+    wired = build_tester_context(tester)
+    runtime = wired.build_phase_runtime(
+        RequestContext(),
+        ErrorMessage.__module__,
+        ErrorMessage.__name__,
+    )
+    assert isinstance(runtime, PhaseRuntimeContext)
+    assert isinstance(runtime.domain, PhaseRuntime)
+    assert runtime.domain.tester_class_name == ErrorMessage.__name__

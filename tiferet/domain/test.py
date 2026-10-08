@@ -9,7 +9,12 @@ from typing import Any, Dict, List, Literal, Tuple
 from pydantic import Field, model_validator
 
 # ** app
-from .core import DomainObject
+from .core import (
+    INVALID_MODEL_ATTRIBUTE_ID,
+    INVALID_MODEL_VALUE_ID,
+    DomainObject,
+    ModelError,
+)
 from .feature import Feature
 
 # *** constants
@@ -215,6 +220,75 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
     },
 }
 
+# *** functions
+
+# ** function: phase_value_defect
+def phase_value_defect(value: Any) -> str | None:
+    '''
+    Return a defect message for a YAML Python tag or a stored callable.
+
+    :param value: The value to inspect.
+    :type value: Any
+    :return: The defect message, or None when the value is data.
+    :rtype: str | None
+    '''
+
+    # A tag or a callable is a Python body. Data is not.
+    if isinstance(value, str) and '!!python/' in value:
+        return 'A YAML Python tag is not legal.'
+    if isinstance(value, dict):
+        for item in value.values():
+            defect = phase_value_defect(item)
+            if defect:
+                return defect
+        return None
+    if isinstance(value, list):
+        for item in value:
+            defect = phase_value_defect(item)
+            if defect:
+                return defect
+        return None
+    if callable(value):
+        return 'A stored callable is not legal.'
+    return None
+
+# ** function: phase_mapping_defect
+def phase_mapping_defect(
+        fields: Tuple[str, ...],
+        data: Any,
+    ) -> Tuple[str, str] | None:
+    '''
+    Return a model-defect code and message for a mapping outside its fields.
+
+    :param fields: The field names the mapping may contain.
+    :type fields: Tuple[str, ...]
+    :param data: The candidate mapping.
+    :type data: Any
+    :return: The code and message, or None when the mapping is in set.
+    :rtype: Tuple[str, str] | None
+    '''
+
+    # Non-mappings are left for Pydantic.
+    if not isinstance(data, dict):
+        return None
+
+    # A key outside the model fields is an invalid attribute.
+    unknown = sorted(set(data) - set(fields))
+    if unknown:
+        return (
+            INVALID_MODEL_ATTRIBUTE_ID,
+            f'does not allow {unknown}.',
+        )
+
+    # A tag or a callable inside a legal field is an invalid value.
+    defect = phase_value_defect(data)
+    if defect:
+        return (
+            INVALID_MODEL_VALUE_ID,
+            defect,
+        )
+    return None
+
 # *** models
 
 # ** model: arranged_mock
@@ -248,6 +322,28 @@ class ArrangedMock(DomainObject):
         description='Method return values, kept as data. A method raises spec stays data inside this mapping.',
     )
 
+    # * method: _reject_closed_set (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_closed_set(cls, data: Any) -> Any:
+        '''
+        Reject a key, tag, or callable outside this model's closed set.
+
+        :param data: The raw input.
+        :type data: Any
+        :return: The input when it is in set.
+        :rtype: Any
+        '''
+
+        # A closed-set defect is a model error, not a dict walk in the context.
+        defect = phase_mapping_defect(tuple(cls.model_fields), data)
+        if defect:
+            ModelError.raise_error(
+                defect[0],
+                message=f'{cls.__name__} {defect[1]}',
+            )
+        return data
+
 # ** model: conditions
 class Conditions(DomainObject):
     '''
@@ -266,6 +362,28 @@ class Conditions(DomainObject):
         default_factory=dict,
         description='Arranged mocks keyed by mock name.',
     )
+
+    # * method: _reject_closed_set (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_closed_set(cls, data: Any) -> Any:
+        '''
+        Reject a key, tag, or callable outside this model's closed set.
+
+        :param data: The raw input.
+        :type data: Any
+        :return: The input when it is in set.
+        :rtype: Any
+        '''
+
+        # A closed-set defect is a model error, not a dict walk in the context.
+        defect = phase_mapping_defect(tuple(cls.model_fields), data)
+        if defect:
+            ModelError.raise_error(
+                defect[0],
+                message=f'{cls.__name__} {defect[1]}',
+            )
+        return data
 
 # ** model: execution_target
 class ExecutionTarget(DomainObject):
@@ -292,6 +410,28 @@ class ExecutionTarget(DomainObject):
         description='The module attribute to use as the target. Exclusive with class_name.',
     )
 
+    # * method: _reject_closed_set (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_closed_set(cls, data: Any) -> Any:
+        '''
+        Reject a key, tag, or callable outside this model's closed set.
+
+        :param data: The raw input.
+        :type data: Any
+        :return: The input when it is in set.
+        :rtype: Any
+        '''
+
+        # A closed-set defect is a model error, not a dict walk in the context.
+        defect = phase_mapping_defect(tuple(cls.model_fields), data)
+        if defect:
+            ModelError.raise_error(
+                defect[0],
+                message=f'{cls.__name__} {defect[1]}',
+            )
+        return data
+
     # * method: _validate_target (model validator)
     @model_validator(mode='after')
     def _validate_target(self) -> 'ExecutionTarget':
@@ -307,8 +447,9 @@ class ExecutionTarget(DomainObject):
 
         # Reject both and neither.
         if named != 1:
-            raise ValueError(
-                'ExecutionTarget requires exactly one of class_name or attribute.',
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='ExecutionTarget requires exactly one of class_name or attribute.',
             )
 
         # Return the validated target.
@@ -320,6 +461,7 @@ class Execution(DomainObject):
     One step a test performs. The YAML key ``as`` is not a field here; the
     result name is ``data_key``.
     '''
+
 
     # * attribute: target
     target: str | ExecutionTarget = Field(
@@ -357,6 +499,28 @@ class Execution(DomainObject):
         description='Whether the call is expected to raise. The caught exception is stored at data_key.',
     )
 
+    # * method: _reject_closed_set (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_closed_set(cls, data: Any) -> Any:
+        '''
+        Reject a key, tag, or callable outside this model's closed set.
+
+        :param data: The raw input.
+        :type data: Any
+        :return: The input when it is in set.
+        :rtype: Any
+        '''
+
+        # A closed-set defect is a model error, not a dict walk in the context.
+        defect = phase_mapping_defect(tuple(cls.model_fields), data)
+        if defect:
+            ModelError.raise_error(
+                defect[0],
+                message=f'{cls.__name__} {defect[1]}',
+            )
+        return data
+
     # * method: _validate_execution (model validator)
     @model_validator(mode='after')
     def _validate_execution(self) -> 'Execution':
@@ -372,21 +536,31 @@ class Execution(DomainObject):
 
         # A caught exception has to be addressable.
         if self.raises and not self.data_key:
-            raise ValueError('raises requires data_key.')
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='raises requires data_key.',
+            )
 
         # Reserved actions are not getattr, and they are only legal on self.
         if self.method in ('new', 'handle') and self.target != 'self':
-            raise ValueError(
-                f'{self.method} is legal only on target self.',
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'{self.method} is legal only on target self.',
             )
 
         # new constructs from the tester attributes, not from step arguments.
         if self.method == 'new' and (self.args or self.kwargs):
-            raise ValueError('new takes no args and no kwargs.')
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='new takes no args and no kwargs.',
+            )
 
         # handle passes step kwargs to the event. It has no positional args.
         if self.method == 'handle' and self.args:
-            raise ValueError('handle takes kwargs, not args.')
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='handle takes kwargs, not args.',
+            )
 
         # Return the validated execution.
         return self
@@ -397,6 +571,7 @@ class Assertion(DomainObject):
     One named check. ``check`` is the discriminator, so ``is`` and ``type``
     stay values in that set rather than field names.
     '''
+
 
     # * attribute: check
     check: Literal[
@@ -536,6 +711,28 @@ class Assertion(DomainObject):
         description='The middleware chain shape a middleware_chain check runs.',
     )
 
+    # * method: _reject_closed_set (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_closed_set(cls, data: Any) -> Any:
+        '''
+        Reject a key, tag, or callable outside this model's closed set.
+
+        :param data: The raw input.
+        :type data: Any
+        :return: The input when it is in set.
+        :rtype: Any
+        '''
+
+        # A closed-set defect is a model error, not a dict walk in the context.
+        defect = phase_mapping_defect(tuple(cls.model_fields), data)
+        if defect:
+            ModelError.raise_error(
+                defect[0],
+                message=f'{cls.__name__} {defect[1]}',
+            )
+        return data
+
     # * method: _validate_check_payload (model validator)
     @model_validator(mode='after')
     def _validate_check_payload(self) -> 'Assertion':
@@ -557,15 +754,17 @@ class Assertion(DomainObject):
         # Reject a field this check does not name.
         unexpected = present - set(spec['allowed'])
         if unexpected:
-            raise ValueError(
-                f'Check {self.check} does not allow {sorted(unexpected)}.',
+            ModelError.raise_error(
+                INVALID_MODEL_ATTRIBUTE_ID,
+                message=f'Check {self.check} does not allow {sorted(unexpected)}.',
             )
 
         # Reject a missing required payload field.
         missing = set(spec['required']) - present
         if missing:
-            raise ValueError(
-                f'Check {self.check} requires {sorted(missing)}.',
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'Check {self.check} requires {sorted(missing)}.',
             )
 
         # An identity check names one subject, not both.
@@ -573,12 +772,14 @@ class Assertion(DomainObject):
             by_import = self.module_path is not None or self.class_name is not None
             by_builtin = self.builtin is not None
             if by_import == by_builtin:
-                raise ValueError(
-                    'Check is requires module_path and class_name, or builtin, not both.',
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message='Check is requires module_path and class_name, or builtin, not both.',
                 )
             if by_import and (self.module_path is None or self.class_name is None):
-                raise ValueError(
-                    'Check is requires both module_path and class_name.',
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message='Check is requires both module_path and class_name.',
                 )
 
         # Return the validated assertion.
@@ -616,3 +817,103 @@ class Test(Feature):
         default_factory=list,
         description='The asserts phase. The ordered Assertion items the test evaluates.',
     )
+
+# ** model: phase_runtime
+class PhaseRuntime(DomainObject):
+    '''
+    The declared coordinates of one phase run. It names the class ``new`` and
+    ``handle`` use, and where fixture specs are looked up. It does not build
+    those fixtures, arrange mocks, or touch a session.
+    '''
+
+    # * attribute: tester_module_path
+    tester_module_path: str = Field(
+        ...,
+        description='The module of the class new and handle use.',
+    )
+
+    # * attribute: tester_class_name
+    tester_class_name: str = Field(
+        ...,
+        description='The class new and handle use.',
+    )
+
+    # * attribute: tester_attributes
+    tester_attributes: Dict[str, Any] = Field(
+        default_factory=dict,
+        description='Attributes new passes to the tester class.',
+    )
+
+    # * attribute: root_fixtures
+    root_fixtures: Dict[str, Dict[str, Any]] = Field(
+        default_factory=dict,
+        description='Root fixture specs, looked up after tester-local specs.',
+    )
+
+    # * attribute: tester_fixtures
+    tester_fixtures: Dict[str, Dict[str, Any]] = Field(
+        default_factory=dict,
+        description='Tester-local fixture specs. They are not promoted.',
+    )
+
+    # * method: _reject_closed_set (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_closed_set(cls, data: Any) -> Any:
+        '''
+        Reject a key, tag, or callable outside this model's closed set.
+
+        :param data: The raw input.
+        :type data: Any
+        :return: The input when it is in set.
+        :rtype: Any
+        '''
+
+        # A closed-set defect is a model error, not a dict walk in the context.
+        defect = phase_mapping_defect(tuple(cls.model_fields), data)
+        if defect:
+            ModelError.raise_error(
+                defect[0],
+                message=f'{cls.__name__} {defect[1]}',
+            )
+        return data
+
+
+    # * method: _validate_fixture_specs (model validator)
+    @model_validator(mode='after')
+    def _validate_fixture_specs(self) -> 'PhaseRuntime':
+        '''
+        Require each fixture spec to be module_path, class_name, and attributes.
+
+        :return: This runtime value.
+        :rtype: PhaseRuntime
+        '''
+
+        # A fixture entry is construction data, not a second constructor call.
+        for name, spec in {**self.root_fixtures, **self.tester_fixtures}.items():
+            if set(spec) != {'module_path', 'class_name', 'attributes'}:
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message=f'Fixture {name} is module_path, class_name, and attributes.',
+                )
+
+        # Return the validated value.
+        return self
+
+    # * method: fixture_spec
+    def fixture_spec(self, name: str) -> Dict[str, Any] | None:
+        '''
+        Look up a fixture spec, tester-local first, then the root.
+
+        :param name: The fixture name.
+        :type name: str
+        :return: The spec, or None when the name is not declared.
+        :rtype: Dict[str, Any] | None
+        '''
+
+        # Tester-local wins. A tester-local fixture is not promoted.
+        if name in self.tester_fixtures:
+            return self.tester_fixtures[name]
+        if name in self.root_fixtures:
+            return self.root_fixtures[name]
+        return None

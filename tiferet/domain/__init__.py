@@ -45,6 +45,7 @@ from .test import (
     Conditions,
     Execution,
     ExecutionTarget,
+    PhaseRuntime,
     Test,
 )
 from .request import (
@@ -93,6 +94,7 @@ __all__ = [
     'Conditions',
     'Execution',
     'ExecutionTarget',
+    'PhaseRuntime',
     'Test',
     'Request',
     'TesterObject',
