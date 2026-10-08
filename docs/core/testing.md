@@ -226,6 +226,18 @@ class TestErrorMessage:
 
 Pytest is an optional extra (`pip install tiferet[test]`) and the runner for `tests/` (`testpaths = ["tests", "tests_int"]` in `pyproject.toml`). The `tiferet/` package does not import pytest. `tiferet/testing/` is absent. Do not recreate it.
 
+## The writer
+
+`tiferet.blueprints.tester` is the writer for one `tiferet_tests/<rel>.yml` document. The seventeen functions are `add_fixture`, `get_fixture`, `list_fixtures`, `update_fixture`, `remove_fixture`, `add_test`, `get_test`, `list_tests`, `update_test`, `remove_test`, `add_tester`, `get_tester`, `list_testers`, `update_tester`, `remove_tester`, `attach_test`, and `detach_test`. Callers import them from that module. They are not exported from `tiferet` or `tiferet.blueprints`, and they are not domain events, a service, a repository, or admin commands.
+
+`rel` is the stem derived from `tests/<rel>.py` by dropping `.py`. The file is `base_dir/tiferet_tests/<rel>.yml`. The writer does not read the Python file and does not accept a filesystem path, so it cannot be pointed at application `config.yml`.
+
+`attach_test` inserts the root test's node under `testers.<tester>.tests` under the same key. It does not copy the body and does not remove the root entry. `detach_test` drops that containment only. It does not remove the root test and does not clear the anchor name.
+
+A management write records anchor names before the composer clears its table and emits those names, including a node referenced once. It does not call `yaml.safe_dump`. A `safe_dump` round-trip is not compliance. The case payload stays an opaque mapping, or a YAML fragment when that mapping contains an anchor, an alias, or a merge. This writer does not name phase fields.
+
+A `tiferet_tests/` file is still not an application `testers:` section. `TesterService` stays absent.
+
 ## Related Documentation
 
 - [code_style.md](code_style.md) — artifact comments, including the test-module grammar
