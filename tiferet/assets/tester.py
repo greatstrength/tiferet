@@ -35,6 +35,29 @@ TIFERET_TESTER_ID = 'tester'
 # ** constant: context_request_context_tester_id
 CONTEXT_REQUEST_CONTEXT_TESTER_ID = 'context.RequestContext'
 
+# *** constants (ids_module)
+
+# ** constant: test_module_path_invalid_id
+TEST_MODULE_PATH_INVALID_ID = 'TEST_MODULE_PATH_INVALID'
+
+# ** constant: test_module_not_found_id
+TEST_MODULE_NOT_FOUND_ID = 'TEST_MODULE_NOT_FOUND'
+
+# ** constant: test_module_load_failed_id
+TEST_MODULE_LOAD_FAILED_ID = 'TEST_MODULE_LOAD_FAILED'
+
+# ** constant: test_artifact_not_found_id
+TEST_ARTIFACT_NOT_FOUND_ID = 'TEST_ARTIFACT_NOT_FOUND'
+
+# ** constant: test_artifact_already_exists_id
+TEST_ARTIFACT_ALREADY_EXISTS_ID = 'TEST_ARTIFACT_ALREADY_EXISTS'
+
+# ** constant: test_anchor_conflict_id
+TEST_ANCHOR_CONFLICT_ID = 'TEST_ANCHOR_CONFLICT'
+
+# ** constant: test_module_write_refused_id
+TEST_MODULE_WRITE_REFUSED_ID = 'TEST_MODULE_WRITE_REFUSED'
+
 # *** constants (data)
 
 # ** constant: domain_error_message_tester_data
