@@ -8,10 +8,10 @@ import re
 from importlib import import_module
 from types import SimpleNamespace
 from typing import Any, Dict, List, Mapping, Tuple
+from unittest.mock import Mock, call
 
 # ** infra
 from pydantic import Field, ValidationError
-from unittest.mock import Mock, call
 
 # ** app
 from .core import BaseContext
@@ -37,7 +37,7 @@ from ..domain.test import (
     Test,
 )
 from ..events import AsyncDomainEvent, DomainEvent
-from ..events.phase import run_mapper_contract
+from ..events.phase import MapperContract
 
 # *** constants
 
@@ -709,6 +709,21 @@ class PhaseRuntime(BaseContext):
     # * attribute: session
     session: RequestContext
 
+    # * attribute: tester_module_path
+    tester_module_path: str
+
+    # * attribute: tester_class_name
+    tester_class_name: str
+
+    # * attribute: tester_attributes
+    tester_attributes: Dict[str, Any]
+
+    # * attribute: root_fixtures
+    root_fixtures: Dict[str, Dict[str, Any]]
+
+    # * attribute: tester_fixtures
+    tester_fixtures: Dict[str, Dict[str, Any]]
+
     # * attribute: fixtures
     fixtures: Dict[str, Any]
 
@@ -717,6 +732,9 @@ class PhaseRuntime(BaseContext):
 
     # * attribute: as_keys
     as_keys: set
+
+    # * attribute: steps
+    steps: List[EventFeatureStep]
 
     # * init
     def __init__(self,
@@ -1707,7 +1725,7 @@ class PhaseRuntime(BaseContext):
         '''
 
         # The events module holds the procedure because it may import mappers.
-        run_mapper_contract(exclude=assertion.exclude)
+        MapperContract.run(exclude=assertion.exclude)
 
     # * method: check_event_base
     def _check_event_base(self, assertion: Assertion) -> None:

@@ -596,7 +596,7 @@ class Test(Feature):
     that mapping. This model carries no alias.
     '''
 
-    # * attribute: test
+    # * attribute: __test__
     __test__ = False
 
     # * attribute: conditions

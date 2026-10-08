@@ -37,77 +37,6 @@ from tiferet.events.error import AddError, ErrorEvent, GetError
 from tiferet.interfaces import ErrorService, MiddlewareService, Service
 from tiferet.mappers.error import ErrorAggregate
 
-# *** functions
-
-# ** function: echo
-def echo(value: str) -> str:
-    '''
-    Return the value unchanged, so a partial ref stays visible.
-
-    :param value: The value to return.
-    :type value: str
-    :return: The same value.
-    :rtype: str
-    '''
-
-    # Return the value without formatting it.
-    return value
-
-# *** classes
-
-# ** class: has_new
-class HasNew(DomainObject):
-    '''
-    A class whose method named new must not be the fixture constructor.
-    '''
-
-    # * attribute: value
-    value: str
-
-    # * method: new
-    def new(self):
-        '''
-        A real method the dialect must not call.
-
-        :return: A marker that construction called this method.
-        :rtype: str
-        '''
-
-        # Return a marker the construction path must not produce.
-        return 'called'
-
-# ** class: recording_event
-class RecordingEvent(DomainEvent):
-    '''
-    An event that returns the kwargs it was given, so a hidden merge is visible.
-    '''
-
-    # * init
-    def __init__(self, error_service):
-        '''
-        Store the arranged mock.
-
-        :param error_service: The arranged error service.
-        :type error_service: Any
-        '''
-
-        # Store the dependency handle must pass.
-        self.error_service = error_service
-
-    # * method: execute
-    def execute(self, **kwargs):
-        '''
-        Return the kwargs the dialect passed.
-
-        :param kwargs: The event arguments.
-        :type kwargs: dict
-        :return: The received arguments.
-        :rtype: dict
-        '''
-
-        # Return a copy so the test can see a hidden merge.
-        return dict(kwargs)
-
 # *** constants
 
 # ** constant: formatted_fixture
@@ -131,6 +60,20 @@ ERROR_MESSAGE_FIXTURE = {
 }
 
 # *** functions
+
+# ** function: echo
+def echo(value: str) -> str:
+    '''
+    Return the value unchanged, so a partial ref stays visible.
+
+    :param value: The value to return.
+    :type value: str
+    :return: The same value.
+    :rtype: str
+    '''
+
+    # Return the value without formatting it.
+    return value
 
 # ** function: test_model
 def _test(test_id: str, conditions: Conditions, executes: list, asserts: list) -> Test:
@@ -192,6 +135,64 @@ def _runtime(
         root_fixtures=root_fixtures,
         tester_fixtures=tester_fixtures,
     )
+
+# *** classes
+
+# ** class: has_new
+class HasNew(DomainObject):
+    '''
+    A class whose method named new must not be the fixture constructor.
+    '''
+
+    # * attribute: value
+    value: str
+
+    # * method: new
+    def new(self):
+        '''
+        A real method the dialect must not call.
+
+        :return: A marker that construction called this method.
+        :rtype: str
+        '''
+
+        # Return a marker the construction path must not produce.
+        return 'called'
+
+# ** class: recording_event
+class RecordingEvent(DomainEvent):
+    '''
+    An event that returns the kwargs it was given, so a hidden merge is visible.
+    '''
+
+    # * attribute: error_service
+    error_service: object
+
+    # * init
+    def __init__(self, error_service):
+        '''
+        Store the arranged mock.
+
+        :param error_service: The arranged error service.
+        :type error_service: Any
+        '''
+
+        # Store the dependency handle must pass.
+        self.error_service = error_service
+
+    # * method: execute
+    def execute(self, **kwargs):
+        '''
+        Return the kwargs the dialect passed.
+
+        :param kwargs: The event arguments.
+        :type kwargs: dict
+        :return: The received arguments.
+        :rtype: dict
+        '''
+
+        # Return a copy so the test can see a hidden merge.
+        return dict(kwargs)
 
 # *** tests
 
