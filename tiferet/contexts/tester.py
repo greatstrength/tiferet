@@ -106,7 +106,7 @@ class TesterContext(BaseContext):
     # * attribute: domain_type
     domain_type = TesterObject
 
-    # * attribute: build_phase_runtime (private)
+    # * attribute: _build_phase_runtime
     _build_phase_runtime: Callable
 
     # * init
@@ -170,9 +170,9 @@ class TesterContext(BaseContext):
             session,
             tester_module_path,
             tester_class_name,
-            tester_attributes,
-            root_fixtures,
-            tester_fixtures,
+            tester_attributes=tester_attributes,
+            root_fixtures=root_fixtures,
+            tester_fixtures=tester_fixtures,
         )
 
     # * method: make_target

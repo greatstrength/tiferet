@@ -462,7 +462,6 @@ class Execution(DomainObject):
     result name is ``data_key``.
     '''
 
-
     # * attribute: target
     target: str | ExecutionTarget = Field(
         ...,
@@ -571,7 +570,6 @@ class Assertion(DomainObject):
     One named check. ``check`` is the discriminator, so ``is`` and ``type``
     stay values in that set rather than field names.
     '''
-
 
     # * attribute: check
     check: Literal[
@@ -877,7 +875,6 @@ class PhaseRuntime(DomainObject):
                 message=f'{cls.__name__} {defect[1]}',
             )
         return data
-
 
     # * method: _validate_fixture_specs (model validator)
     @model_validator(mode='after')
