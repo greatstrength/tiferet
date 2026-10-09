@@ -19,6 +19,7 @@ from ..domain import (
 from ..events import DomainEvent
 from .core import BaseContext, add_default_cache_items
 from .request import RequestContext
+from .test import TestContext
 
 # *** constants
 
@@ -416,7 +417,10 @@ class TestSessionContext(RequestContext):
     '''
 
     # * attribute: tester_ctx
-    tester_ctx: TesterContext
+    tester_ctx: TesterContext | None
+
+    # * attribute: test_context
+    test_context: TestContext | None
 
     # * attribute: verifications
     verifications: List[Verification]
@@ -425,21 +429,40 @@ class TestSessionContext(RequestContext):
     outcome: Any
 
     # * init
-    def __init__(self, tester_ctx: TesterContext, **kwargs: Any) -> None:
+    def __init__(self,
+            tester_ctx: TesterContext = None,
+            *,
+            test_context: TestContext = None,
+            **kwargs: Any,
+        ) -> None:
         '''
-        Initialize a test session bound to a read-only tester context.
+        Initialize a test session bound to one collaborator.
+
+        The positional collaborator is a ``TesterContext``. The module run
+        passes ``test_context`` and does not pass a ``TesterContext``. Passing
+        both, or neither, is a construction error. This session still omits
+        ``domain_type``.
 
         :param tester_ctx: The bound variant tester context.
         :type tester_ctx: TesterContext
+        :param test_context: The bound test context for a YAML module run.
+        :type test_context: TestContext
         :param kwargs: Request-context initialization arguments.
         :type kwargs: Any
         '''
 
+        # One collaborator. A TestContext is not stored in tester_ctx.
+        if (tester_ctx is None) == (test_context is None):
+            raise ValueError(
+                'Pass tester_ctx or test_context, not both and not neither.',
+            )
+
         # Initialize the inherited request context, binding a Request as domain.
         super().__init__(**kwargs)
 
-        # Hold the tester context as a collaborator, not as domain.
+        # Hold the supplied collaborator. The other stays unset.
         self.tester_ctx = tester_ctx
+        self.test_context = test_context
 
         # Initialize test-chain state separately from the request result.
         self.verifications = []
@@ -566,6 +589,10 @@ class TestSessionContext(RequestContext):
         :return: The captured tester outcome.
         :rtype: Any
         '''
+
+        # A YAML session runs the bound TestContext. It does not exercise a tester.
+        if self.test_context is not None:
+            return self.test_context.execute_feature(self)
 
         # Reject a live target on specialized testers.
         tester = self.tester_ctx.domain
