@@ -327,7 +327,8 @@ def test_session_context_run_exercises_bound_tester() -> None:
 
     # Assert run does not call the application hub pipeline.
     source = inspect.getsource(_TestSessionContext.run)
-    assert 'execute_feature' not in source
+    assert 'self.test_context.execute_feature(self)' in source
+    assert 'AppSessionContext' not in source
     assert 'build_logger' not in source
     assert 'handle_error' not in source
     assert 'TiferetAPIError' not in source
@@ -637,7 +638,8 @@ def test_session_run_generic_invokes_local_callable() -> None:
     assert test_ctx.domain.sample_data is sample
 
     source = inspect.getsource(_TestSessionContext.run)
-    assert 'execute_feature' not in source
+    assert 'self.test_context.execute_feature(self)' in source
+    assert 'AppSessionContext' not in source
     assert '_dispatch_event' not in source
     assert 'build_logger' not in source
     assert 'handle_error' not in source

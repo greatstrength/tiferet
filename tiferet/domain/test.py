@@ -252,6 +252,32 @@ def phase_value_defect(value: Any) -> str | None:
         return 'A stored callable is not legal.'
     return None
 
+# ** function: phase_input_keys
+def phase_input_keys(model: Any) -> Tuple[str, ...]:
+    '''
+    Return the input keys a model accepts, including validation aliases.
+
+    The domain field stays ``data_key``. A config subclass may accept the
+    YAML key ``as`` without adding that alias to the domain model.
+
+    :param model: The model class being validated.
+    :type model: Any
+    :return: The accepted input keys.
+    :rtype: Tuple[str, ...]
+    '''
+
+    # Start with the field names. An alias is an input key, not a new field.
+    names = set(model.model_fields)
+    for field in model.model_fields.values():
+        alias = field.validation_alias
+        if isinstance(alias, str):
+            names.add(alias)
+            continue
+        choices = getattr(alias, 'choices', None)
+        if choices:
+            names.update(str(choice) for choice in choices)
+    return tuple(names)
+
 # ** function: phase_mapping_defect
 def phase_mapping_defect(
         fields: Tuple[str, ...],
@@ -511,8 +537,8 @@ class Execution(DomainObject):
         :rtype: Any
         '''
 
-        # A closed-set defect is a model error, not a dict walk in the context.
-        defect = phase_mapping_defect(tuple(cls.model_fields), data)
+        # Include a subclass alias. The domain field name stays data_key.
+        defect = phase_mapping_defect(phase_input_keys(cls), data)
         if defect:
             ModelError.raise_error(
                 defect[0],

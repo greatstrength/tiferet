@@ -4,12 +4,14 @@
 
 # ** core
 import builtins
+import copy
 import functools
 import inspect
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Callable, Dict
+from types import SimpleNamespace
+from typing import Any, Callable, Dict, List
 
 # ** app
 from .. import a
@@ -26,7 +28,15 @@ from ..contexts.app import (
 )
 from ..contexts.cache import CacheContext
 from ..contexts.core import BaseContext
-from ..contexts.test import PhaseRuntime, PhaseRuntimeContext
+from ..contexts.test import (
+    PHASE_ASSERT_ID,
+    PHASE_CONDITIONS_ID,
+    PHASE_EXECUTE_ID,
+    PhaseRuntime,
+    PhaseRuntimeContext,
+    TestContext,
+    compile_phase_steps,
+)
 from ..contexts.tester import (
     AggregateTesterContext,
     ContextTesterContext,
@@ -42,8 +52,11 @@ from ..contexts.tester import (
     add_default_testers,
 )
 from ..contexts.test_module import TestModuleContext
+from ..domain import ModelError
 from ..events import DomainEvent
 from ..events.yaml import GetAnchoredYaml
+from ..mappers.test import TestConfigObject
+from ..utils.yaml import YamlLoader
 from . import core
 
 # *** functions
@@ -228,6 +241,299 @@ def _read_test_module(rel: str, base_dir: str, edit):
     raw = _read_test_module_text(context.domain.path)
     return edit(context, raw)
 
+# ** function: copy_tree
+def _copy_tree(value: Any) -> Any:
+    '''
+    Copy a loaded mapping so two tests do not share one dict.
+
+    :param value: The loaded value.
+    :type value: Any
+    :return: The copy.
+    :rtype: Any
+    '''
+
+    # Anchors are already resolved. The copy is what a fixture or test builds from.
+    return copy.deepcopy(value)
+
+# ** function: phase_get_dependency
+def _phase_get_dependency(test: Any, slot: Dict[str, Any]) -> Callable:
+    '''
+    Resolve compiled phase steps to the registered handlers.
+
+    The handlers are not a default feature catalog and not the app resolver.
+
+    :param test: The bound test whose phase objects the steps address.
+    :type test: Any
+    :param slot: The slot filled with the phase runtime before steps run.
+    :type slot: Dict[str, Any]
+    :return: A get_dependency callable.
+    :rtype: Callable
+    '''
+
+    # The registered names are the dialect names, not the compiled service ids.
+    handlers = register_phase_handlers()
+    queues = {
+        PHASE_CONDITIONS_ID: (
+            'conditions',
+            [test.conditions],
+        ),
+        PHASE_EXECUTE_ID: (
+            'execute',
+            list(test.executes),
+        ),
+        PHASE_ASSERT_ID: (
+            'assert',
+            list(test.asserts),
+        ),
+    }
+    cursors = {
+        service_id: 0
+        for service_id in queues
+    }
+
+    # Each compiled step resolves once, in document order.
+    def get_dependency(service_id: str, *flags) -> Any:
+        kind, items = queues[service_id]
+        index = cursors[service_id]
+        cursors[service_id] = index + 1
+        item = items[index]
+        handler = handlers[kind]
+
+        # Return the stored result so the feature step does not overwrite it.
+        def execute(**kwargs):
+            runtime = slot['runtime']
+            handler(runtime, item)
+            data_key = getattr(item, 'data_key', None)
+            if data_key:
+                return runtime.session.data[data_key]
+            return None
+
+        return SimpleNamespace(execute=execute)
+
+    return get_dependency
+
+# ** function: count_line
+def _count_line(passed: int, failed: int) -> str:
+    '''
+    Format the count line. There is no skipped count.
+
+    :param passed: The number of passed tests.
+    :type passed: int
+    :param failed: The number of failed tests.
+    :type failed: int
+    :return: The count line.
+    :rtype: str
+    '''
+
+    # Both counts print failed first. An empty run is 0 passed.
+    if failed and passed:
+        return f'{failed} failed, {passed} passed'
+    if failed:
+        return f'{failed} failed'
+    return f'{passed} passed'
+
+# ** function: refuse_python_module
+def _refuse_python_module(path: Path) -> None:
+    '''
+    Refuse a path that is not a Python test module under tests/.
+
+    :param path: The input path.
+    :type path: Path
+    :return: None.
+    :rtype: None
+    '''
+
+    # A missing file is a ValueError before any YAML load.
+    if not path.is_file():
+        raise ValueError(f'Python test module not found: {path}.')
+
+    # Refuse YAML input, conftest, package markers, and non-test modules.
+    if path.suffix != '.py' or not path.name.startswith('test_'):
+        raise ValueError(f'Not a Python test module: {path}.')
+    if path.name in ('conftest.py', '__init__.py'):
+        raise ValueError(f'Not a Python test module: {path}.')
+    if 'tests_int' in path.parts or 'tests' not in path.parts:
+        raise ValueError(f'Not a tests/ module: {path}.')
+
+# ** function: yaml_counterpart
+def _yaml_counterpart(path: Path) -> tuple:
+    '''
+    Derive the YAML counterpart from a Python test module path.
+
+    :param path: The Python module path.
+    :type path: Path
+    :return: The relative stem and the YAML path.
+    :rtype: tuple
+    '''
+
+    # rel is the path under tests/, without the .py suffix.
+    parts = path.parts
+    index = len(parts) - 1 - list(reversed(parts)).index('tests')
+    relative = Path(*parts[index + 1:]).with_suffix('')
+    tests_root = Path(*parts[:index + 1])
+    yaml_path = tests_root.parent / 'tiferet_tests' / relative.with_suffix('.yml')
+    return relative.as_posix(), yaml_path
+
+# ** function: load_test_document
+def _load_test_document(yaml_path: Path) -> Dict[str, Any]:
+    '''
+    Load the YAML document. Do not write it and do not expand runtime refs.
+
+    :param yaml_path: The counterpart path.
+    :type yaml_path: Path
+    :return: The loaded mapping.
+    :rtype: Dict[str, Any]
+    '''
+
+    # A missing file raises the existing YAML not-found error.
+    loader = YamlLoader(path=yaml_path)
+    YamlLoader.verify_yaml_file(loader)
+    document = loader.load()
+
+    # An empty file is a legal document with no tests.
+    if document is None:
+        document = {}
+    if not isinstance(document, dict):
+        raise ValueError('A test module document must be a mapping.')
+    illegal = [
+        key
+        for key in document
+        if key not in ('fixtures', 'tests', 'testers')
+    ]
+    if illegal:
+        raise ValueError(f'Illegal test-module root: {illegal[0]}.')
+    return document
+
+# ** function: iter_document_tests
+def _iter_document_tests(document: Dict[str, Any], node_root: str):
+    '''
+    Yield root tests, then each tester's contained tests, in document order.
+
+    A tester is not a test. Fixtures are not tests.
+
+    :param document: The loaded document.
+    :type document: Dict[str, Any]
+    :param node_root: The YAML node-id prefix.
+    :type node_root: str
+    :return: Node id, test key, copied test mapping, and phase coordinates.
+    :rtype: tuple
+    '''
+
+    # Copy root fixtures once per test so an alias is not a shared dict.
+    root_fixtures = document.get('fixtures') or {}
+    if not isinstance(root_fixtures, dict):
+        raise ValueError('fixtures must be a mapping.')
+
+    # Root tests come first. A tester is not yielded here.
+    for test_key, test_mapping in (document.get('tests') or {}).items():
+        yield (
+            f'{node_root}::{test_key}',
+            test_key,
+            test_mapping,
+            {
+                'tester_module_path': '',
+                'tester_class_name': '',
+                'tester_attributes': {},
+                'root_fixtures': _copy_tree(root_fixtures),
+                'tester_fixtures': {},
+            },
+        )
+
+    # Contained tests follow, tester by tester.
+    for tester_key, tester in (document.get('testers') or {}).items():
+        if not isinstance(tester, dict):
+            raise ValueError(f'Tester {tester_key} must be a mapping.')
+        contained = tester.get('tests') or {}
+        if not isinstance(contained, dict):
+            raise ValueError(f'Tester {tester_key} tests must be a mapping.')
+        for test_key, test_mapping in contained.items():
+            yield (
+                f'{node_root}::{tester_key}::{test_key}',
+                test_key,
+                test_mapping,
+                {
+                    'tester_module_path': tester.get('module_path') or '',
+                    'tester_class_name': tester.get('class_name') or '',
+                    'tester_attributes': _copy_tree(tester.get('attributes') or {}),
+                    'root_fixtures': _copy_tree(root_fixtures),
+                    'tester_fixtures': _copy_tree(tester.get('fixtures') or {}),
+                },
+            )
+
+# ** function: build_module_test
+def _build_module_test(test_key: str, test_mapping: Any, coordinates: Dict[str, Any]) -> TestContext:
+    '''
+    Build one Test through the config object and bind a TestContext.
+
+    :param test_key: The grammar key, used as the Test name.
+    :type test_key: str
+    :param test_mapping: The copied phase document.
+    :type test_mapping: Any
+    :param coordinates: Phase-runtime coordinates for this test.
+    :type coordinates: Dict[str, Any]
+    :return: The bound test context.
+    :rtype: TestContext
+    '''
+
+    # A test mapping is legal only with the three phase keys.
+    if not isinstance(test_mapping, dict) or set(test_mapping) != {
+        'conditions',
+        'execute',
+        'assert',
+    }:
+        raise ValueError(
+            f'Test {test_key} is legal only with conditions, execute, and assert.',
+        )
+
+    # The config object maps execute and assert. Do not construct those field names.
+    test = TestConfigObject.model_validate(_copy_tree(test_mapping)).map(
+        id=f'test.{test_key}',
+        name=test_key,
+    )
+    test.steps = compile_phase_steps(test)
+
+    # The resolver reads the runtime the context builds on execute.
+    slot = {}
+    return TestContext.from_domain(
+        test,
+        get_dependency=_phase_get_dependency(test, slot),
+        build_phase_runtime_handler=build_phase_runtime,
+        phase_runtime_slot=slot,
+        **coordinates,
+    )
+
+# ** function: run_one_test
+def _run_one_test(test_key: str, test_mapping: Any, coordinates: Dict[str, Any]) -> Any:
+    '''
+    Build and run one test. A model defect and a failed run stay distinct.
+
+    :param test_key: The grammar key.
+    :type test_key: str
+    :param test_mapping: The phase document.
+    :type test_mapping: Any
+    :param coordinates: Phase-runtime coordinates.
+    :type coordinates: Dict[str, Any]
+    :return: The caught error, or None when the run returned.
+    :rtype: Any
+    '''
+
+    # An illegal test mapping raises before that test is printed PASSED.
+    try:
+        test_ctx = _build_module_test(test_key, test_mapping, coordinates)
+    except ModelError as error:
+        return error
+
+    # Pass means execute_feature returned. Fail means the run raised.
+    try:
+        session = build_test_session(test_context=test_ctx)
+        test_ctx.execute_feature(session)
+    except ModelError as error:
+        return error
+    except TiferetError as error:
+        return error
+    except AssertionError as error:
+        return error
+    return None
 
 # *** blueprints
 
@@ -351,22 +657,40 @@ def build_tester_context(tester: TesterObject) -> TesterContext:
 
 # ** blueprint: build_test_session
 def build_test_session(
-        tester_ctx: TesterContext,
+        tester_ctx: TesterContext = None,
+        *,
+        test_context: TestContext = None,
         **request_fields: Any,
     ) -> TestSessionContext:
     '''
-    Construct a test session bound to a tester context.
+    Construct a test session bound to one collaborator.
+
+    The positional form stays. ``@use_tester`` keeps calling it. The module
+    run passes keyword-only ``test_context`` and does not pass a
+    ``TesterContext``.
 
     :param tester_ctx: The bound variant tester context.
     :type tester_ctx: TesterContext
+    :param test_context: The bound test context for a YAML module run.
+    :type test_context: TestContext
     :param request_fields: Optional RequestContext initialization fields.
     :type request_fields: dict
     :return: A new test session for one test request.
     :rtype: TestSessionContext
     '''
 
-    # Construct the session directly; the tester context is a collaborator.
-    return TestSessionContext(tester_ctx, **request_fields)
+    # One collaborator. Passing both, or neither, is a construction error.
+    if (tester_ctx is None) == (test_context is None):
+        raise ValueError(
+            'Pass tester_ctx or test_context, not both and not neither.',
+        )
+
+    # Construct the session directly. Do not store a TestContext in tester_ctx.
+    return TestSessionContext(
+        tester_ctx,
+        test_context=test_context,
+        **request_fields,
+    )
 
 # ** blueprint: use_tester
 def use_tester(
@@ -427,7 +751,6 @@ def use_tester(
         return _inject_test_session(obj, test_ctx)
 
     return decorator
-
 
 # ** blueprint: add_fixture
 def add_fixture(rel: str,
@@ -672,3 +995,60 @@ def detach_test(rel: str, tester: str, name: str, *, base_dir: str = '.') -> Non
         base_dir,
         lambda context, raw: context.detach_test(raw, tester, name),
     )
+
+# ** blueprint: run_test_module
+def run_test_module(module_path: str, summary: bool = False) -> List[Dict[str, Any]]:
+    '''
+    Run one test module and print pytest-shaped lines plus a count.
+
+    The argument is the filesystem path of a Python test module. The Python
+    file is read only to prove it exists and to derive the YAML counterpart.
+    It is not imported and it is not executed. ``summary=True`` prints only
+    the count line. It is the same run, not a second runner.
+
+    :param module_path: The Python test module path, relative or absolute.
+    :type module_path: str
+    :param summary: When true, print only the count line.
+    :type summary: bool
+    :return: The ordered outcomes.
+    :rtype: List[Dict[str, Any]]
+    '''
+
+    # Refuse a bad path before any YAML load or test line.
+    path = Path(module_path)
+    _refuse_python_module(path)
+    path.read_bytes()
+    relative, yaml_path = _yaml_counterpart(path)
+    document = _load_test_document(yaml_path)
+
+    # Root tests, then tester-contained tests. A tester is not a test.
+    node_root = f'tiferet_tests/{relative}.yml'
+    outcomes = []
+    passed = 0
+    failed = 0
+    for node_id, test_key, test_mapping, coordinates in _iter_document_tests(
+        document,
+        node_root,
+    ):
+        error = _run_one_test(test_key, test_mapping, coordinates)
+        status = 'FAILED' if error is not None else 'PASSED'
+        outcomes.append({
+            'node_id': node_id,
+            'status': status,
+            'error': error,
+        })
+        if error is None:
+            passed += 1
+            if not summary:
+                print(f'{node_id} PASSED')
+            continue
+
+        # One failure does not abort the module and does not change the error type.
+        failed += 1
+        if not summary:
+            print(f'{node_id} FAILED')
+            print(error)
+
+    # The count is the same run. Printing changes. Execution does not.
+    print(_count_line(passed, failed))
+    return outcomes

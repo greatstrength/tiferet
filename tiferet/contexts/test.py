@@ -7,7 +7,7 @@ import inspect
 import re
 from importlib import import_module
 from types import SimpleNamespace
-from typing import Any, Dict, List, Mapping
+from typing import Any, Callable, Dict, List, Mapping
 from unittest.mock import Mock, call
 
 # ** infra
@@ -1635,7 +1635,164 @@ class TestContext(FeatureContext):
     The session's view of one test. It extends ``FeatureContext`` so a test
     runs as a feature, and it declares ``domain_type = Test`` in its own
     namespace so ``Feature`` stays mapped to ``FeatureContext``.
+
+    The phase runtime is not built here. The tester blueprint injects
+    ``build_phase_runtime``. This context stores that callable and wraps it.
+    It does not import the blueprint.
     '''
 
     # * attribute: domain_type
     domain_type = Test
+
+    # * attribute: _build_phase_runtime
+    _build_phase_runtime: Callable
+
+    # * attribute: _phase_runtime_slot
+    _phase_runtime_slot: Dict[str, Any]
+
+    # * attribute: _tester_module_path
+    _tester_module_path: str
+
+    # * attribute: _tester_class_name
+    _tester_class_name: str
+
+    # * attribute: _tester_attributes
+    _tester_attributes: Dict[str, Any]
+
+    # * attribute: _root_fixtures
+    _root_fixtures: Dict[str, Dict[str, Any]]
+
+    # * attribute: _tester_fixtures
+    _tester_fixtures: Dict[str, Dict[str, Any]]
+
+    # * init
+    def __init__(self,
+            get_dependency: Callable,
+            build_phase_runtime_handler: Callable = None,
+            phase_runtime_slot: Dict[str, Any] = None,
+            tester_module_path: str = '',
+            tester_class_name: str = '',
+            tester_attributes: Dict[str, Any] = None,
+            root_fixtures: Dict[str, Dict[str, Any]] = None,
+            tester_fixtures: Dict[str, Dict[str, Any]] = None,
+            **kwargs,
+        ) -> None:
+        '''
+        Initialize a test context.
+
+        The phase-runtime factory is injected. This context does not import
+        the blueprint that builds it.
+
+        :param get_dependency: The handler that resolves compiled phase steps.
+        :type get_dependency: Callable
+        :param build_phase_runtime_handler: The callable that builds a phase runtime.
+        :type build_phase_runtime_handler: Callable
+        :param phase_runtime_slot: Shared slot the step resolver reads after build.
+        :type phase_runtime_slot: Dict[str, Any]
+        :param tester_module_path: The tester class module, empty for a root test.
+        :type tester_module_path: str
+        :param tester_class_name: The tester class name, empty for a root test.
+        :type tester_class_name: str
+        :param tester_attributes: Attributes used by ``new``.
+        :type tester_attributes: Dict[str, Any]
+        :param root_fixtures: Root fixture specs.
+        :type root_fixtures: Dict[str, Dict[str, Any]]
+        :param tester_fixtures: Tester-local fixture specs.
+        :type tester_fixtures: Dict[str, Dict[str, Any]]
+        :param kwargs: Feature-context initialization arguments.
+        :type kwargs: dict
+        :return: None.
+        :rtype: None
+        '''
+
+        # Initialize the feature context. The bound Test is the workflow.
+        super().__init__(get_dependency, **kwargs)
+
+        # Store the injected factory. An absent slot is unwired, not a fallback.
+        self._build_phase_runtime = build_phase_runtime_handler
+        self._phase_runtime_slot = phase_runtime_slot if phase_runtime_slot is not None else {}
+
+        # Coordinates stay here. The context does not construct the runtime value.
+        self._tester_module_path = tester_module_path
+        self._tester_class_name = tester_class_name
+        self._tester_attributes = tester_attributes or {}
+        self._root_fixtures = root_fixtures or {}
+        self._tester_fixtures = tester_fixtures or {}
+
+    # * method: build_phase_runtime
+    def build_phase_runtime(self,
+            session: Any,
+            tester_module_path: str,
+            tester_class_name: str,
+            tester_attributes: Dict[str, Any] = None,
+            root_fixtures: Dict[str, Dict[str, Any]] = None,
+            tester_fixtures: Dict[str, Dict[str, Any]] = None,
+        ) -> Any:
+        '''
+        Build a phase runtime through the injected handler.
+
+        :param session: The session whose data stores ``as`` results.
+        :type session: Any
+        :param tester_module_path: The tester class module.
+        :type tester_module_path: str
+        :param tester_class_name: The tester class name.
+        :type tester_class_name: str
+        :param tester_attributes: Attributes used by ``new``.
+        :type tester_attributes: Dict[str, Any]
+        :param root_fixtures: Root fixture specs.
+        :type root_fixtures: Dict[str, Dict[str, Any]]
+        :param tester_fixtures: Tester-local fixture specs.
+        :type tester_fixtures: Dict[str, Dict[str, Any]]
+        :return: The phase runtime context.
+        :rtype: Any
+        '''
+
+        # An absent callable is an unwired handler, not a local construction.
+        if self._build_phase_runtime is None:
+            a.core.raise_unwired_handler_error(
+                'build_phase_runtime_handler',
+                self.domain.id,
+                error_code=a.error.APP_ERROR_ID,
+            )
+
+        # Delegate. This context does not build the domain value.
+        return self._build_phase_runtime(
+            session,
+            tester_module_path,
+            tester_class_name,
+            tester_attributes=tester_attributes,
+            root_fixtures=root_fixtures,
+            tester_fixtures=tester_fixtures,
+        )
+
+    # * method: execute_feature
+    def execute_feature(self, request: RequestContext, *flags, **kwargs):
+        '''
+        Run the bound test. The session is the request.
+
+        The phase runtime is reached through the injected callable before the
+        compiled steps resolve. This is not ``AppSessionContext.run``.
+
+        :param request: The test session.
+        :type request: RequestContext
+        :param flags: Execution flags forwarded to the feature loop.
+        :type flags: tuple
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The feature execution result.
+        :rtype: Any
+        '''
+
+        # Build the runtime first so step handlers can read it.
+        runtime = self.build_phase_runtime(
+            request,
+            self._tester_module_path,
+            self._tester_class_name,
+            tester_attributes=self._tester_attributes,
+            root_fixtures=self._root_fixtures,
+            tester_fixtures=self._tester_fixtures,
+        )
+        self._phase_runtime_slot['runtime'] = runtime
+
+        # The bound Test is the workflow. Do not look it up by feature id.
+        return super().execute_feature(request, *flags, **kwargs)
