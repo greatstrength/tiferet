@@ -39,6 +39,7 @@ from .feature import (
     ParameterSpecification,
     RequestSpecification,
 )
+from .test_module import TestModuleAddress
 from .test import (
     ArrangedMock,
     Assertion,
@@ -96,6 +97,7 @@ __all__ = [
     'ExecutionTarget',
     'PhaseRuntime',
     'Test',
+    'TestModuleAddress',
     'Request',
     'TesterObject',
     'Verification',

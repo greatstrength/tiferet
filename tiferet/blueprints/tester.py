@@ -6,13 +6,18 @@
 import builtins
 import functools
 import inspect
+import os
+import tempfile
+from pathlib import Path
 from typing import Any, Callable, Dict
 
 # ** app
 from .. import a
+from ..assets import TiferetError
 from ..assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
+    TEST_MODULE_LOAD_FAILED_ID,
 )
 from ..contexts.app import (
     add_default_app_constants,
@@ -36,6 +41,9 @@ from ..contexts.tester import (
     TransferObjectTesterContext,
     add_default_testers,
 )
+from ..contexts.test_module import TestModuleContext
+from ..events import DomainEvent
+from ..events.yaml import GetAnchoredYaml
 from . import core
 
 # *** functions
@@ -125,6 +133,101 @@ def _wrap_member(member: Any, test_ctx: TesterContext) -> Any:
     if getattr(member, '_fixture_function', None) is inner:
         member._fixture_function = wrapped
     return member
+
+# ** function: test_module_context
+def _test_module_context(rel: str, base_dir: str):
+    '''Bind a test-module context with the event-supplied YAML callable.'''
+
+    # The event may import the loader. This blueprint does not.
+    extension = DomainEvent.handle(GetAnchoredYaml)
+    return TestModuleContext.bind(rel, base_dir, yaml_extension=extension)
+
+# ** function: read_test_module_text
+def _read_test_module_text(path: str):
+    '''Read module bytes. A missing file is None and is not created.'''
+
+    file = Path(path)
+    if not file.is_file():
+        return None
+    try:
+        raw = file.read_bytes()
+    except OSError as error:
+        TiferetError.raise_error(
+            TEST_MODULE_LOAD_FAILED_ID,
+            f'Failed to read the test module: {error}.',
+            path=path,
+        )
+    try:
+        return raw.decode('utf-8')
+    except UnicodeDecodeError:
+        TiferetError.raise_error(
+            TEST_MODULE_LOAD_FAILED_ID,
+            'A test module must be utf-8.',
+            path=path,
+        )
+
+# ** function: created_parent_directories
+def _created_parent_directories(parent: Path) -> list:
+    '''Create missing parents and return the directories this call created.'''
+
+    missing = []
+    cursor = parent
+    while not cursor.exists():
+        missing.append(cursor)
+        cursor = cursor.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    return missing
+
+# ** function: replace_test_module
+def _replace_test_module(path: Path, text: str, *, create: bool) -> None:
+    '''Replace the module with a sibling temp file. Delete that temp on failure.'''
+
+    created = []
+    temp_name = None
+    replaced = False
+    try:
+        if create:
+            created = _created_parent_directories(path.parent)
+        descriptor, temp_name = tempfile.mkstemp(
+            prefix='.test-module-',
+            suffix='.yml',
+            dir=str(path.parent),
+        )
+        with os.fdopen(descriptor, 'w', encoding='utf-8', newline='\n') as handle:
+            handle.write(text)
+        os.replace(temp_name, path)
+        replaced = True
+        temp_name = None
+    finally:
+        if temp_name is not None:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
+        if not replaced:
+            for directory in created:
+                try:
+                    directory.rmdir()
+                except OSError:
+                    break
+
+# ** function: write_test_module
+def _write_test_module(rel: str, base_dir: str, edit) -> None:
+    '''Read bytes, delegate the edit, then replace. A failure leaves the file.'''
+
+    context = _test_module_context(rel, base_dir)
+    raw = _read_test_module_text(context.domain.path)
+    text = edit(context, raw)
+    _replace_test_module(Path(context.domain.path), text, create=raw is None)
+
+# ** function: read_test_module
+def _read_test_module(rel: str, base_dir: str, edit):
+    '''Read bytes and delegate. Do not replace the file.'''
+
+    context = _test_module_context(rel, base_dir)
+    raw = _read_test_module_text(context.domain.path)
+    return edit(context, raw)
+
 
 # *** blueprints
 
@@ -324,3 +427,248 @@ def use_tester(
         return _inject_test_session(obj, test_ctx)
 
     return decorator
+
+
+# ** blueprint: add_fixture
+def add_fixture(rel: str,
+        name: str,
+        *,
+        base_dir: str = '.',
+        tester: str = None,
+        payload=None,
+        fragment: str = None,
+        alias: str = None,
+        anchor: str = None,
+        merge: str = None,
+    ) -> None:
+    '''Add one fixture. The payload stays opaque. The file is replaced here.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.add_fixture(
+            raw,
+            name,
+            tester=tester,
+            payload=payload,
+            fragment=fragment,
+            alias=alias,
+            anchor=anchor,
+            merge=merge,
+        ),
+    )
+
+# ** blueprint: get_fixture
+def get_fixture(rel: str,
+        name: str,
+        *,
+        base_dir: str = '.',
+        tester: str = None,
+    ):
+    '''Read one fixture. This does not replace the file.'''
+
+    return _read_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.get_fixture(raw, name, tester=tester),
+    )
+
+# ** blueprint: list_fixtures
+def list_fixtures(rel: str, *, base_dir: str = '.', tester: str = None):
+    '''List fixture names in document order.'''
+
+    return _read_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.list_fixtures(raw, tester=tester),
+    )
+
+# ** blueprint: update_fixture
+def update_fixture(rel: str,
+        name: str,
+        *,
+        base_dir: str = '.',
+        tester: str = None,
+        payload=None,
+        fragment: str = None,
+        merge: str = None,
+    ) -> None:
+    '''Patch one fixture. The node object stays. The file is replaced here.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.update_fixture(
+            raw,
+            name,
+            tester=tester,
+            payload=payload,
+            fragment=fragment,
+            merge=merge,
+        ),
+    )
+
+# ** blueprint: remove_fixture
+def remove_fixture(rel: str, name: str, *, base_dir: str = '.', tester: str = None) -> None:
+    '''Remove one fixture pair. A missing name does not write.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.remove_fixture(raw, name, tester=tester),
+    )
+
+# ** blueprint: add_test
+def add_test(rel: str,
+        name: str,
+        *,
+        base_dir: str = '.',
+        tester: str = None,
+        payload=None,
+        fragment: str = None,
+        anchor: str = None,
+    ) -> None:
+    '''Add one test body. This is not attach.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.add_test(
+            raw,
+            name,
+            tester=tester,
+            payload=payload,
+            fragment=fragment,
+            anchor=anchor,
+        ),
+    )
+
+# ** blueprint: get_test
+def get_test(rel: str, name: str, *, base_dir: str = '.', tester: str = None):
+    '''Read one test. This does not replace the file.'''
+
+    return _read_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.get_test(raw, name, tester=tester),
+    )
+
+# ** blueprint: list_tests
+def list_tests(rel: str, *, base_dir: str = '.', tester: str = None):
+    '''List test names in document order.'''
+
+    return _read_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.list_tests(raw, tester=tester),
+    )
+
+# ** blueprint: update_test
+def update_test(rel: str,
+        name: str,
+        *,
+        base_dir: str = '.',
+        tester: str = None,
+        payload=None,
+        fragment: str = None,
+    ) -> None:
+    '''Patch one test. Phase keys are not inspected.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.update_test(
+            raw,
+            name,
+            tester=tester,
+            payload=payload,
+            fragment=fragment,
+        ),
+    )
+
+# ** blueprint: remove_test
+def remove_test(rel: str, name: str, *, base_dir: str = '.', tester: str = None) -> None:
+    '''Remove one test pair.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.remove_test(raw, name, tester=tester),
+    )
+
+# ** blueprint: add_tester
+def add_tester(rel: str,
+        name: str,
+        *,
+        base_dir: str = '.',
+        payload=None,
+        fragment: str = None,
+        anchor: str = None,
+    ) -> None:
+    '''Add one tester mapping. The initial fragment may carry aliases.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.add_tester(
+            raw,
+            name,
+            payload=payload,
+            fragment=fragment,
+            anchor=anchor,
+        ),
+    )
+
+# ** blueprint: get_tester
+def get_tester(rel: str, name: str, *, base_dir: str = '.'):
+    '''Read one tester. This does not replace the file.'''
+
+    return _read_test_module(rel, base_dir, lambda context, raw: context.get_tester(raw, name))
+
+# ** blueprint: list_testers
+def list_testers(rel: str, *, base_dir: str = '.'):
+    '''List tester names in document order.'''
+
+    return _read_test_module(rel, base_dir, lambda context, raw: context.list_testers(raw))
+
+# ** blueprint: update_tester
+def update_tester(rel: str,
+        name: str,
+        *,
+        base_dir: str = '.',
+        payload=None,
+        fragment: str = None,
+    ) -> None:
+    '''Patch one tester. fixtures and tests are refused.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.update_tester(raw, name, payload=payload, fragment=fragment),
+    )
+
+# ** blueprint: remove_tester
+def remove_tester(rel: str, name: str, *, base_dir: str = '.') -> None:
+    '''Remove one tester pair.'''
+
+    _write_test_module(rel, base_dir, lambda context, raw: context.remove_tester(raw, name))
+
+# ** blueprint: attach_test
+def attach_test(rel: str, tester: str, name: str, *, base_dir: str = '.') -> None:
+    '''Contain a root test by node identity. Do not copy the body.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.attach_test(raw, tester, name),
+    )
+
+# ** blueprint: detach_test
+def detach_test(rel: str, tester: str, name: str, *, base_dir: str = '.') -> None:
+    '''Drop one containment. Leave the root test and its anchor.'''
+
+    _write_test_module(
+        rel,
+        base_dir,
+        lambda context, raw: context.detach_test(raw, tester, name),
+    )
