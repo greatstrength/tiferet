@@ -26,11 +26,14 @@ def test_admin_default_errors_extends_core():
 # ** test: test_tier_sizes
 def test_tier_sizes():
     '''
-    Lock the core and admin-only tier sizes after orphaned-constant removal.
+    Lock the core and admin-only tier sizes.
+
+    Core includes the five phase codes: fixture not found, name collision,
+    reference not found, handler mismatch, and step failed.
     '''
 
     # Core tier size and admin-only delta.
-    assert len(CORE_DEFAULT_ERRORS) == 16
+    assert len(CORE_DEFAULT_ERRORS) == 21
     assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 13
 
 # ** test: test_every_entry_omits_redundant_id
