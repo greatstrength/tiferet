@@ -165,7 +165,11 @@ def test_writers_stay_on_the_blueprint() -> None:
     # The writer does not import pytest or dump through safe_dump.
     assert 'import pytest' not in module_source
     assert 'safe_dump' not in module_source
+    assert 'YamlLoader' not in module_source
+    assert 'from ..domain' not in module_source
+    assert 'from ..utils' not in module_source
     assert 'yaml.safe_dump' in inspect.getsource(YamlLoader.save)
+    assert 'def anchored' in inspect.getsource(YamlLoader)
 
 # ** test: add_fixture_creates_only_the_test_module
 def test_add_fixture_creates_only_the_test_module(tmp_path) -> None:
@@ -377,6 +381,6 @@ def test_no_writer_modules_are_added() -> None:
     assert not (root / 'events' / 'tester.py').exists()
     assert not (root / 'interfaces' / 'tester.py').exists()
     assert not (root / 'mappers' / 'tester.py').exists()
-    assert not (root / 'mappers' / 'test.py').exists()
     assert not (root / 'repos' / 'tester.py').exists()
+    assert not (root / 'events' / 'tester.py').exists()
     assert not (root / 'tiferet_tests').exists()
