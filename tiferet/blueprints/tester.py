@@ -32,6 +32,7 @@ from ..contexts.test import (
     PHASE_ASSERT_ID,
     PHASE_CONDITIONS_ID,
     PHASE_EXECUTE_ID,
+    ModelError,
     PhaseRuntime,
     PhaseRuntimeContext,
     TestContext,
@@ -52,11 +53,9 @@ from ..contexts.tester import (
     add_default_testers,
 )
 from ..contexts.test_module import TestModuleContext
-from ..domain import ModelError
 from ..events import DomainEvent
-from ..events.yaml import GetAnchoredYaml
+from ..events.yaml import GetAnchoredYaml, LoadYamlMapping
 from ..mappers.test import TestConfigObject
-from ..utils.yaml import YamlLoader
 from . import core
 
 # *** functions
@@ -385,10 +384,9 @@ def _load_test_document(yaml_path: Path) -> Dict[str, Any]:
     :rtype: Dict[str, Any]
     '''
 
-    # A missing file raises the existing YAML not-found error.
-    loader = YamlLoader(path=yaml_path)
-    YamlLoader.verify_yaml_file(loader)
-    document = loader.load()
+    # The event may import the loader. This blueprint does not.
+    load = DomainEvent.handle(LoadYamlMapping)
+    document = load(yaml_path)
 
     # An empty file is a legal document with no tests.
     if document is None:
