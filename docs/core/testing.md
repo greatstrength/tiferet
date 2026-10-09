@@ -228,7 +228,9 @@ Pytest is an optional extra (`pip install tiferet[test]`) and the runner for `te
 
 ## The writer
 
-`tiferet.blueprints.tester` is the writer for one `tiferet_tests/<rel>.yml` document. The seventeen functions are `add_fixture`, `get_fixture`, `list_fixtures`, `update_fixture`, `remove_fixture`, `add_test`, `get_test`, `list_tests`, `update_test`, `remove_test`, `add_tester`, `get_tester`, `list_testers`, `update_tester`, `remove_tester`, `attach_test`, and `detach_test`. Callers import them from that module. They are not exported from `tiferet` or `tiferet.blueprints`, and they are not domain events, a service, a repository, or admin commands.
+`tiferet.blueprints.tester` is the writer for one `tiferet_tests/<rel>.yml` document. The seventeen functions are `add_fixture`, `get_fixture`, `list_fixtures`, `update_fixture`, `remove_fixture`, `add_test`, `get_test`, `list_tests`, `update_test`, `remove_test`, `add_tester`, `get_tester`, `list_testers`, `update_tester`, `remove_tester`, `attach_test`, and `detach_test`. They delegate. The blueprint reads the bytes and performs `os.replace`. Callers import them from that module. They are not exported from `tiferet` or `tiferet.blueprints`, and they are not domain events, a service, a repository, or admin commands.
+
+`TestModuleAddress` (`tiferet/domain/test_module.py`) is the read-only address. `TestModuleContext` (`tiferet/contexts/test_module.py`) owns the document edit and the document policy. It does not import the loader. Anchor compose, load, and serialize are a pure extension of `YamlLoader`. The blueprint obtains that callable from an event and injects it. That event is not a tester event and does not wrap these seventeen verbs.
 
 `rel` is the stem derived from `tests/<rel>.py` by dropping `.py`. The file is `base_dir/tiferet_tests/<rel>.yml`. The writer does not read the Python file and does not accept a filesystem path, so it cannot be pointed at application `config.yml`.
 
