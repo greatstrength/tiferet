@@ -165,11 +165,22 @@ def test_writers_stay_on_the_blueprint() -> None:
     # The writer does not import pytest or dump through safe_dump.
     assert 'import pytest' not in module_source
     assert 'safe_dump' not in module_source
-    assert 'YamlLoader' not in module_source
     assert 'from ..domain' not in module_source
     assert 'from ..utils' not in module_source
     assert 'yaml.safe_dump' in inspect.getsource(YamlLoader.save)
     assert 'def anchored' in inspect.getsource(YamlLoader)
+
+    # One delegation owns the read, the document event, and the replace.
+    delegation = inspect.getsource(tester_blueprints._delegate_test_module)
+    assert 'ReadTestModuleDocument' in delegation
+    assert '_read_test_module_text' in delegation
+    assert 'os.replace' in delegation or '_replace_test_module' in delegation
+    assert 'YamlLoader' not in delegation
+    for name in names:
+        source = inspect.getsource(getattr(tester_blueprints, name))
+        assert '_delegate_test_module' in source
+        assert 'os.replace' not in source
+        assert 'DomainEvent.handle' not in source
 
 # ** test: add_fixture_creates_only_the_test_module
 def test_add_fixture_creates_only_the_test_module(tmp_path) -> None:
@@ -379,8 +390,16 @@ def test_no_writer_modules_are_added() -> None:
 
     root = Path(__file__).parents[2] / 'tiferet'
     assert not (root / 'events' / 'tester.py').exists()
+    assert not (root / 'events' / 'yaml.py').exists()
     assert not (root / 'interfaces' / 'tester.py').exists()
     assert not (root / 'mappers' / 'tester.py').exists()
     assert not (root / 'repos' / 'tester.py').exists()
-    assert not (root / 'events' / 'tester.py').exists()
     assert not (root / 'tiferet_tests').exists()
+    assert (root / 'events' / 'test_module.py').is_file()
+    event_source = (root / 'events' / 'test_module.py').read_text()
+    assert 'class ReadTestModuleDocument' in event_source
+    assert 'class WriteTestModuleDocument' in event_source
+    assert 'class GetAnchoredYaml' not in event_source
+    assert 'TesterService' not in event_source
+    assert 'yaml.safe_dump' not in event_source
+    assert 'YamlLoader.save' not in event_source

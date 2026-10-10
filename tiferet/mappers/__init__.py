@@ -26,6 +26,7 @@ __all__ = [
     'LoggerAggregate',
     'LoggerConfigObject',
     'LoggingSettingsConfigObject',
+    'TestModuleDocumentAggregate',
 ]
 
 # ** app
@@ -67,3 +68,4 @@ from .logging import (
     LoggerConfigObject,
     LoggingSettingsConfigObject,
 )
+from .test_module import TestModuleDocumentAggregate
