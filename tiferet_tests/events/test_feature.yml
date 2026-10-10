@@ -1,0 +1,1480 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+  sample_feature: &sample_feature
+    module_path: tiferet.mappers.feature
+    class_name: FeatureAggregate
+    attributes:
+      id: &feature_id group.sample_feature
+      name: Sample Feature
+      group_id: group
+      feature_key: sample_feature
+      description: A sample feature for testing.
+  opaque: &opaque
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: opaque
+  unread_index: &unread_index
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: unread
+
+testers:
+  test_feature_event:
+    module_path: &feature_events tiferet.events.feature
+    class_name: FeatureEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            feature_service: &feature_service
+              module_path: tiferet.interfaces
+              class_name: FeatureService
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_add_feature:
+    module_path: *feature_events
+    class_name: AddFeature
+    fixtures:
+      opaque: *opaque
+    tests:
+      minimal_success:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              name: New Feature
+              group_id: group
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.feature
+              class_name: Feature
+          - outcome: created
+            fields:
+              name: New Feature
+              group_id: group
+              feature_key: new_feature
+              id: group.new_feature
+              description: New Feature
+          - mock: feature_service
+            method: exists
+            assert_called_once_with:
+              args: [group.new_feature]
+          - mock: feature_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+      full_parameters:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              name: Explicit Feature
+              group_id: group
+              feature_key: explicit_key
+              id: group.explicit_key
+              description: Explicit description.
+              steps: []
+              log_params:
+                foo: bar
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              name: Explicit Feature
+              group_id: group
+              feature_key: explicit_key
+              id: group.explicit_key
+              description: Explicit description.
+              steps: []
+              log_params:
+                foo: bar
+      duplicate_id:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                exists: true
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              name: New Feature
+              group_id: group
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_ALREADY_EXISTS
+          - mock: feature_service
+            method: save
+            assert_called_once_with:
+              times: 0
+      contextual_kwargs_not_forwarded:
+        conditions:
+          fixtures: [opaque]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              name: New Feature
+              group_id: group
+              request: $fixture.opaque
+              logger: $fixture.opaque
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.feature
+              class_name: Feature
+          - outcome: created
+            fields:
+              name: New Feature
+          - outcome: created
+            absent: [request, logger]
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              name: null
+              group_id: group
+            raises: true
+            as: missing_name
+          - target: self
+            method: handle
+            kwargs:
+              name: New Feature
+              group_id: null
+            raises: true
+            as: missing_group
+        assert:
+          - outcome: missing_name
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_name
+            message: name
+          - outcome: missing_group
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_group
+            message: group_id
+
+  test_get_feature:
+    module_path: *feature_events
+    class_name: GetFeature
+    fixtures:
+      sample_feature: *sample_feature
+      unread_index: *unread_index
+    tests:
+      success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+            as: found
+        assert:
+          - outcome: found
+            equals: $fixture.sample_feature
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              args: [*feature_id]
+      fallback_to_default_index:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              default_feature_index:
+                group.sample_feature: $fixture.sample_feature
+            as: found
+        assert:
+          - outcome: found
+            equals: $fixture.sample_feature
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              args: [*feature_id]
+      miss_with_nonmatching_index:
+        conditions:
+          fixtures: [unread_index]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              default_feature_index:
+                other.feature: $fixture.unread_index
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NOT_FOUND
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+      not_found:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NOT_FOUND
+
+  test_list_features:
+    module_path: *feature_events
+    class_name: ListFeatures
+    fixtures:
+      sample_feature: *sample_feature
+    tests:
+      all:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                list:
+                  - $fixture.sample_feature
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              group_id: null
+            as: listed
+        assert:
+          - outcome: listed
+            equals:
+              - $fixture.sample_feature
+          - mock: feature_service
+            method: list
+            assert_called_once_with:
+              kwargs:
+                group_id: null
+      by_group_id:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                list:
+                  - $fixture.sample_feature
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              group_id: group
+            as: listed
+        assert:
+          - outcome: listed
+            equals:
+              - $fixture.sample_feature
+          - mock: feature_service
+            method: list
+            assert_called_once_with:
+              kwargs:
+                group_id: group
+      empty_result:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                list: []
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              group_id: null
+            as: listed
+        assert:
+          - outcome: listed
+            equals: []
+
+  test_remove_feature:
+    module_path: *feature_events
+    class_name: RemoveFeature
+    tests:
+      success:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+            as: removed
+        assert:
+          - outcome: removed
+            equals: *feature_id
+          - mock: feature_service
+            method: delete
+            assert_called_once_with:
+              args: [*feature_id]
+      idempotent_multiple_calls:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+            as: first
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+            as: second
+        assert:
+          - outcome: first
+            equals: *feature_id
+          - outcome: second
+            equals: *feature_id
+          - mock: feature_service
+            method: delete
+            assert_called_once_with:
+              times: 2
+              args: [*feature_id]
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+
+  test_update_feature:
+    module_path: *feature_events
+    class_name: UpdateFeature
+    fixtures:
+      sample_feature: *sample_feature
+    tests:
+      name_success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              attribute: name
+              value: Updated Feature Name
+            as: updated
+        assert:
+          - outcome: updated
+            equals: $fixture.sample_feature
+          - outcome: sample_feature
+            fields:
+              name: Updated Feature Name
+          - mock: feature_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.sample_feature]
+      description_success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              attribute: description
+              value: Updated description.
+            as: updated
+        assert:
+          - outcome: sample_feature
+            fields:
+              description: Updated description.
+      clear_description:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              attribute: description
+              value: null
+            as: updated
+        assert:
+          - outcome: sample_feature
+            fields:
+              description: null
+      invalid_attribute:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              attribute: invalid
+              value: ignored
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_FEATURE_ATTRIBUTE
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              times: 0
+      missing_name_value:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              attribute: name
+              value: ' '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NAME_REQUIRED
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              times: 0
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              attribute: name
+              value: Updated Feature Name
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              attribute: null
+              value: Updated Feature Name
+            raises: true
+            as: missing_attribute
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_attribute
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_attribute
+            message: attribute
+      not_found:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.feature
+              attribute: name
+              value: Updated Feature Name
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NOT_FOUND
+
+  test_add_feature_step:
+    module_path: *feature_events
+    class_name: AddFeatureStep
+    fixtures:
+      sample_feature: *sample_feature
+    tests:
+      append_success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              name: do_something
+              service_id: container.attribute
+              parameters:
+                foo: bar
+              data_key: result_key
+              pass_on_error: true
+            as: added
+        assert:
+          - outcome: added
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: do_something
+                  service_id: container.attribute
+                  parameters:
+                    foo: bar
+                  data_key: result_key
+                  pass_on_error: true
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              args: [*feature_id]
+          - mock: feature_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.sample_feature]
+      insert_success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: first
+              service_id: container.first
+              parameters:
+                index: 0
+              data_key: first_key
+              pass_on_error: false
+            as: first
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: second
+              service_id: container.second
+              parameters:
+                index: 1
+              data_key: second_key
+            as: second
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              name: inserted
+              service_id: container.inserted
+              parameters:
+                index: 1
+              data_key: inserted_key
+              position: 1
+            as: added
+        assert:
+          - outcome: added
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: first
+                - name: inserted
+                  service_id: container.inserted
+                - name: second
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              name: do_something
+              service_id: container.attribute
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              name: null
+              service_id: container.attribute
+            raises: true
+            as: missing_name
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              name: do_something
+              service_id: null
+            raises: true
+            as: missing_service
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_name
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_name
+            message: name
+          - outcome: missing_service
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_service
+            message: service_id
+      not_found:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.feature
+              name: do_something
+              service_id: container.attribute
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NOT_FOUND
+
+  test_update_feature_step:
+    module_path: *feature_events
+    class_name: UpdateFeatureStep
+    fixtures:
+      sample_feature: *sample_feature
+    tests:
+      update_name:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: original
+              service_id: container.original
+              parameters:
+                foo: bar
+              data_key: original_key
+              pass_on_error: false
+            as: step
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: name
+              value: updated_name
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: updated_name
+          - mock: feature_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.sample_feature]
+      update_service_id:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: original
+              service_id: container.original
+              parameters:
+                foo: bar
+              data_key: original_key
+            as: step
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: service_id
+              value: container.updated
+            as: updated
+        assert:
+          - outcome: sample_feature
+            fields:
+              steps:
+                - service_id: container.updated
+      update_data_key:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: original
+              service_id: container.original
+              data_key: original_key
+            as: step
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: data_key
+              value: updated_key
+            as: updated
+        assert:
+          - outcome: sample_feature
+            fields:
+              steps:
+                - data_key: updated_key
+      update_parameters_success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: original
+              service_id: container.original
+              parameters:
+                foo: bar
+              data_key: original_key
+            as: step
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: parameters
+              value:
+                baz: qux
+                foo: null
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - parameters:
+                    baz: qux
+      update_pass_on_error_success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: original
+              service_id: container.original
+              pass_on_error: false
+            as: step
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: pass_on_error
+              value: true
+            as: updated
+        assert:
+          - outcome: sample_feature
+            fields:
+              steps:
+                - pass_on_error: true
+      invalid_attribute:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: invalid
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_FEATURE_COMMAND_ATTRIBUTE
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              times: 0
+      missing_name_value:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: name
+              value: ' '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              times: 0
+      missing_service_id_value:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: service_id
+              value: ' '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - mock: feature_service
+            method: get
+            assert_called_once_with:
+              times: 0
+      step_not_found:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: original
+              service_id: container.original
+            as: step
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 5
+              attribute: name
+              value: updated_name
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_COMMAND_NOT_FOUND
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              position: 0
+              attribute: name
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: null
+              attribute: name
+            raises: true
+            as: missing_position
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+              attribute: null
+            raises: true
+            as: missing_attribute
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_position
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_attribute
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_attribute
+            message: attribute
+      not_found:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.feature
+              position: 0
+              attribute: name
+              value: Updated Name
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NOT_FOUND
+
+  test_remove_feature_step:
+    module_path: *feature_events
+    class_name: RemoveFeatureStep
+    fixtures:
+      sample_feature: *sample_feature
+    tests:
+      success:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: first
+              service_id: container.first
+              parameters:
+                index: 0
+              data_key: first_key
+            as: first
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: second
+              service_id: container.second
+              parameters:
+                index: 1
+              data_key: second_key
+            as: second
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 0
+            as: removed
+        assert:
+          - outcome: removed
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: second
+                  service_id: container.second
+          - mock: feature_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.sample_feature]
+      invalid_position_idempotent:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: only
+              service_id: container.only
+              parameters:
+                index: 0
+              data_key: only_key
+            as: only
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: 5
+            as: removed
+        assert:
+          - outcome: removed
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: only
+          - mock: feature_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.sample_feature]
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              position: 0
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              position: null
+            raises: true
+            as: missing_position
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_position
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_position
+            message: position
+      not_found:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.feature
+              position: 0
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NOT_FOUND
+
+  test_reorder_feature_step:
+    module_path: *feature_events
+    class_name: ReorderFeatureStep
+    fixtures:
+      sample_feature: *sample_feature
+    tests:
+      forward:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: first
+              service_id: container.first
+              parameters:
+                index: 0
+              data_key: first_key
+            as: first
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: second
+              service_id: container.second
+              parameters:
+                index: 1
+              data_key: second_key
+            as: second
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: third
+              service_id: container.third
+              parameters:
+                index: 2
+              data_key: third_key
+            as: third
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              start_position: 0
+              end_position: 2
+            as: moved
+        assert:
+          - outcome: moved
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: second
+                - name: third
+                - name: first
+      backward:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: first
+              service_id: container.first
+              data_key: first_key
+            as: first
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: second
+              service_id: container.second
+              data_key: second_key
+            as: second
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: third
+              service_id: container.third
+              data_key: third_key
+            as: third
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              start_position: 2
+              end_position: 0
+            as: moved
+        assert:
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: third
+                - name: first
+                - name: second
+      clamp_low:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: first
+              service_id: container.first
+            as: first
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: second
+              service_id: container.second
+            as: second
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: third
+              service_id: container.third
+            as: third
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              start_position: 2
+              end_position: -5
+            as: moved
+        assert:
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: third
+                - name: first
+                - name: second
+      clamp_high:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: first
+              service_id: container.first
+            as: first
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: second
+              service_id: container.second
+            as: second
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: third
+              service_id: container.third
+            as: third
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              start_position: 0
+              end_position: 10
+            as: moved
+        assert:
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: second
+                - name: third
+                - name: first
+      invalid_start_position_idempotent:
+        conditions:
+          fixtures: [sample_feature]
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: $fixture.sample_feature
+        execute:
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: first
+              service_id: container.first
+              data_key: first_key
+            as: first
+          - target: sample_feature
+            method: add_step
+            kwargs:
+              name: second
+              service_id: container.second
+              data_key: second_key
+            as: second
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              start_position: 5
+              end_position: 0
+            as: moved
+        assert:
+          - outcome: moved
+            equals: *feature_id
+          - outcome: sample_feature
+            fields:
+              steps:
+                - name: first
+                - name: second
+      missing_required_params:
+        conditions:
+          mocks:
+            feature_service: *feature_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              start_position: 0
+              end_position: 1
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              start_position: null
+              end_position: 1
+            raises: true
+            as: missing_start
+          - target: self
+            method: handle
+            kwargs:
+              id: *feature_id
+              start_position: 0
+              end_position: null
+            raises: true
+            as: missing_end
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_start
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_end
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_end
+            message: end_position
+      not_found:
+        conditions:
+          mocks:
+            feature_service:
+              <<: *feature_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.feature
+              start_position: 0
+              end_position: 1
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FEATURE_NOT_FOUND

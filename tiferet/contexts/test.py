@@ -8,7 +8,7 @@ import re
 from importlib import import_module
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 # ** app
 from .core import BaseContext
@@ -452,14 +452,17 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: None
         '''
 
-        # Spec the class. Do not construct it.
+        # Spec the class. Do not construct it. A context mock must be a MagicMock.
         cls = self._require_named(arranged.module_path, arranged.class_name)
-        mock = Mock(spec=cls)
+        if arranged.context:
+            mock = MagicMock(spec=cls)
+            mock.__enter__.return_value = mock
+            mock.__exit__.return_value = None
+        else:
+            mock = Mock(spec=cls)
         if arranged.return_value:
             for method_name, value in arranged.return_value.items():
                 self._arrange_method(mock, method_name, value)
-        if arranged.context:
-            mock.__enter__.return_value = mock
         self.mocks[name] = mock
 
     # * method: arrange_method
@@ -732,7 +735,10 @@ class PhaseRuntimeContext(BaseContext):
     # * method: call_handle
     def _call_handle(self, kwargs: Dict[str, Any]) -> Any:
         '''
-        Call DomainEvent.handle with the arranged mocks and the step kwargs.
+        Call DomainEvent.handle with constructor dependencies and the step kwargs.
+
+        An arranged mock that is not a constructor parameter stays in the mock
+        store. It is an argument, not an injected dependency.
 
         :param kwargs: The resolved event arguments.
         :type kwargs: Dict[str, Any]
@@ -742,9 +748,25 @@ class PhaseRuntimeContext(BaseContext):
 
         # Do not merge sample_kwargs. Do not construct an instance here.
         cls = self._require_named(self.domain.tester_module_path, self.domain.tester_class_name)
+        parameters = inspect.signature(cls.__init__).parameters
+        if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters.values()):
+            dependencies = dict(self.mocks)
+        else:
+            names = {
+                name
+                for name, param in parameters.items()
+                if name != 'self'
+            }
+            dependencies = {
+                name: mock
+                for name, mock in self.mocks.items()
+                if name in names
+            }
+
+        # Inject constructor dependencies only. Other mocks stay addressable.
         return DomainEvent.handle(
             cls,
-            dependencies=dict(self.mocks),
+            dependencies=dependencies,
             **kwargs,
         )
 
@@ -901,7 +923,11 @@ class PhaseRuntimeContext(BaseContext):
                     a.error.PHASE_REFERENCE_NOT_FOUND_ID,
                     reference=assertion.mock,
                 )
-            values['method'] = getattr(self.mocks[assertion.mock], assertion.method)
+            # __call__ is the mock's own call record. getattr returns the real function.
+            if assertion.method == '__call__':
+                values['method'] = self.mocks[assertion.mock]
+            else:
+                values['method'] = getattr(self.mocks[assertion.mock], assertion.method)
             spec = self._resolve_value(assertion.assert_called_once_with)
             if spec.get('times') == 0 and ('args' in spec or 'kwargs' in spec):
                 TiferetError.raise_error(
