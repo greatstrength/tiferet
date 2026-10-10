@@ -84,7 +84,7 @@ Harness checks. The harness owns the procedure and any throwaway class. The YAML
 - `middleware_chain` is one of `none`, `single`, `order`, `capture`, `intercept`, or `async`. The harness owns the wrappers. The check awaits on `async`. No async phase key. No lambda in the YAML file.
 - `cause: {module_path, class_name, message}` reads `outcome.__cause__`. It is not a frame walk.
 
-Runtime refs are whole values. `$fixture.<name>` is a fixture built in this test's `conditions`. `$r.<key>` is a `data_key` already stored by an earlier step of this test. `$mock.<name>` is an arranged mock. The name has no further dot. `$r.built.lang` is not a path. A ref is the entire scalar, not a substring. `An error occurred: $r.x` is a literal. Resolution does not call `eval` and does not call `evaluate_condition`. A missing name fails the step. It is not `None`. YAML `null` remains `None`.
+Runtime refs are whole values. `$fixture.<name>` is a fixture built in this test's `conditions`. `$r.<key>` is a `data_key` already stored by an earlier step of this test. `$mock.<name>` is an arranged mock. The name has no further dot. `$r.built.lang` is not a path. A whole `$r.` scalar whose remainder is not a legal ref name is text. A ref is the entire scalar, not a substring. `An error occurred: $r.x` is a literal. Resolution does not call `eval` and does not call `evaluate_condition`. A missing name fails the step. It is not `None`. YAML `null` remains `None`.
 
 Frame-derived `target_method` is not a check. A harness check that called `raise_for` itself would record the harness name, not the method under test. The two Python assertions stay in `tests/interfaces/test_core.py` because that file is not deleted. They are not YAML coverage.
 
