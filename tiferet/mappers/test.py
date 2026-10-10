@@ -519,15 +519,16 @@ class ExecutionConfigObject(Execution, TransferObject):
         # Pass a string target through. Convert a mapping target.
         mapped_target = self.target if isinstance(self.target, str) else self.target.map()
 
-        # Store the item on the aggregate. This object does not mutate it.
+        # Store the target and the result key before raises. Assignment
+        # validation rejects raises while data_key is still empty.
         aggregate = ExecutionAggregate.model_construct(
             method=self.method,
             args=list(self.args),
             kwargs=dict(self.kwargs),
-            raises=self.raises,
         )
         aggregate.store_target(mapped_target)
         aggregate.store_data_key(self.data_key)
+        aggregate.set_attribute('raises', self.raises)
         for name, value in overrides.items():
             aggregate.set_attribute(name, value)
 
