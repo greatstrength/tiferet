@@ -96,19 +96,63 @@ tests:
 
   handle_command:
     conditions:
-      fixtures: [event]
-    execute:
-      - target: event
-        method: verify
-        args: [true, TEST_ERROR, ok]
-        as: verified
-    assert:
-      - outcome: event
-        type:
+      mocks:
+        command_instance:
           module_path: *events_core
           class_name: *domain_event
-      - outcome: verified
-        "null": true
+          return_value:
+            execute: result
+        command:
+          module_path: *events_core
+          class_name: *domain_event
+    execute:
+      - target: $mock.command
+        method: configure_mock
+        kwargs:
+          return_value: $mock.command_instance
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [*events_core]
+        as: events_module
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.events_module, *domain_event]
+        as: event_cls
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.event_cls, handle]
+        as: handle_fn
+      - target: $r.handle_fn
+        method: __call__
+        args: [$mock.command]
+        kwargs:
+          dependencies:
+            dep: value
+          arg: test
+        as: handled
+      - target: $mock.command
+        method: assert_called_once_with
+        kwargs:
+          dep: value
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$mock.command_instance, execute]
+        as: execute_mock
+      - target: $r.execute_mock
+        method: assert_called_once_with
+        kwargs:
+          arg: test
+    assert:
+      - outcome: handled
+        equals: result
 
   parameters_required:
     conditions:
@@ -145,11 +189,18 @@ tests:
       - target: async_event
         method: execute
         as: pending
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.pending]
+        raises: true
+        as: failed
     assert:
-      - outcome: pending
+      - outcome: failed
         type:
-          module_path: types
-          class_name: CoroutineType
+          module_path: builtins
+          class_name: NotImplementedError
 
   async_verify_success:
     conditions:
@@ -180,36 +231,140 @@ tests:
 
   async_execute_returns_result:
     conditions:
-      fixtures: [event]
+      mocks:
+        async_event:
+          module_path: *events_core
+          class_name: *domain_event
     execute:
-      - target: event
-        method: verify
-        args: [true, TEST_ERROR, ok]
-        as: verified
+      - target:
+          module_path: asyncio
+          attribute: sleep
+        method: sleep
+        args: [0]
+        kwargs:
+          result: async_result
+        as: pending
+      - target: $mock.async_event
+        method: configure_mock
+        kwargs:
+          execute.return_value: $r.pending
+      - target: $mock.async_event
+        method: execute
+        as: returned_coro
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.returned_coro]
+        as: returned
     assert:
-      - middleware_chain: async
+      - outcome: returned
+        equals: async_result
 
   handle_async_without_dependencies:
     conditions:
-      fixtures: [event]
+      mocks:
+        event_cls:
+          module_path: *events_core
+          class_name: *domain_event
+        instance:
+          module_path: *events_core
+          class_name: *domain_event
     execute:
-      - target: event
-        method: verify
-        args: [true, TEST_ERROR, ok]
-        as: verified
+      - target:
+          module_path: asyncio
+          attribute: sleep
+        method: sleep
+        args: [0]
+        kwargs:
+          result: 42
+        as: done
+      - target: $mock.instance
+        method: configure_mock
+        kwargs:
+          execute.return_value: $r.done
+      - target: $mock.event_cls
+        method: configure_mock
+        kwargs:
+          return_value: $mock.instance
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: handle_async
+        kwargs:
+          event_cls: $mock.event_cls
+          value: 21
+        as: pending
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.pending]
+        as: handled
+      - target: $mock.event_cls
+        method: assert_called_once_with
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$mock.instance, execute]
+        as: execute_mock
+      - target: $r.execute_mock
+        method: assert_called_once_with
+        kwargs:
+          value: 21
     assert:
-      - middleware_chain: async
+      - outcome: handled
+        equals: 42
 
   handle_async_with_dependencies:
     conditions:
-      fixtures: [event]
+      mocks:
+        event_cls:
+          module_path: *events_core
+          class_name: *domain_event
+        instance:
+          module_path: *events_core
+          class_name: *domain_event
     execute:
-      - target: event
-        method: verify
-        args: [true, TEST_ERROR, ok]
-        as: verified
+      - target:
+          module_path: asyncio
+          attribute: sleep
+        method: sleep
+        args: [0]
+        kwargs:
+          result: injected
+        as: done
+      - target: $mock.instance
+        method: configure_mock
+        kwargs:
+          execute.return_value: $r.done
+      - target: $mock.event_cls
+        method: configure_mock
+        kwargs:
+          return_value: $mock.instance
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: handle_async
+        kwargs:
+          event_cls: $mock.event_cls
+          dependencies:
+            service: injected
+        as: pending
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.pending]
+        as: handled
+      - target: $mock.event_cls
+        method: assert_called_once_with
+        kwargs:
+          service: injected
     assert:
-      - middleware_chain: async
+      - outcome: handled
+        equals: injected
 
   middleware_none:
     conditions:
