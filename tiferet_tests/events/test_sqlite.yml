@@ -1,0 +1,1267 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+  empty_params: &empty_params
+    module_path: builtins
+    class_name: tuple
+    attributes: {}
+
+testers:
+  test_sqlite_event:
+    module_path: &sqlite_events tiferet.events.sqlite
+    class_name: SqliteEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            sqlite_service: &sqlite_service
+              module_path: tiferet.interfaces
+              class_name: SqliteService
+              context: true
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_is_valid_identifier:
+    module_path: *sqlite_events
+    class_name: SqliteEvent
+    tests:
+      valid_identifiers:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: [users]
+            as: users
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: [user_table]
+            as: user_table
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: [_private]
+            as: private
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: [table1]
+            as: table1
+        assert:
+          - outcome: users
+            equals: true
+          - outcome: user_table
+            equals: true
+          - outcome: private
+            equals: true
+          - outcome: table1
+            equals: true
+      rejects_empty:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: ['']
+            as: rejected
+        assert:
+          - outcome: rejected
+            equals: false
+      rejects_leading_digit:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: ['1table']
+            as: rejected
+        assert:
+          - outcome: rejected
+            equals: false
+      rejects_non_alphanumeric:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: ['invalid table']
+            as: spaced
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: [table-name]
+            as: hyphen
+          - target:
+              module_path: *sqlite_events
+              attribute: is_valid_identifier
+            method: is_valid_identifier
+            args: ['table;drop']
+            as: punct
+        assert:
+          - outcome: spaced
+            equals: false
+          - outcome: hyphen
+            equals: false
+          - outcome: punct
+            equals: false
+
+  test_query_sql:
+    module_path: *sqlite_events
+    class_name: QuerySql
+    fixtures:
+      empty_params: *empty_params
+    tests:
+      fetch_all:
+        conditions:
+          fixtures: [empty_params]
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                fetch_all:
+                  - id: 1
+                    name: Alice
+                  - id: 2
+                    name: Bob
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              query: SELECT * FROM users
+            as: rows
+        assert:
+          - outcome: rows
+            equals:
+              - id: 1
+                name: Alice
+              - id: 2
+                name: Bob
+          - mock: sqlite_service
+            method: fetch_all
+            assert_called_once_with:
+              args: ['SELECT * FROM users', $fixture.empty_params]
+          - mock: sqlite_service
+            method: fetch_one
+            assert_called_once_with:
+              times: 0
+      fetch_one:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                fetch_one:
+                  id: 1
+                  name: Alice
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              query: SELECT * FROM users WHERE id = ?
+              parameters: [1]
+              fetch_one: true
+            as: row
+        assert:
+          - outcome: row
+            equals:
+              id: 1
+              name: Alice
+          - mock: sqlite_service
+            method: fetch_one
+            assert_called_once_with:
+              args: ['SELECT * FROM users WHERE id = ?', [1]]
+          - mock: sqlite_service
+            method: fetch_all
+            assert_called_once_with:
+              times: 0
+      empty_result:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                fetch_all: []
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              query: SELECT * FROM users WHERE id = 999
+            as: rows
+        assert:
+          - outcome: rows
+            equals: []
+      parameterized:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                fetch_all:
+                  - id: 1
+                    name: Alice
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              query: SELECT * FROM users WHERE name = :name
+              parameters:
+                name: Alice
+            as: rows
+        assert:
+          - outcome: rows
+            equals:
+              - id: 1
+                name: Alice
+          - mock: sqlite_service
+            method: fetch_all
+            assert_called_once_with:
+              args:
+                - SELECT * FROM users WHERE name = :name
+                - name: Alice
+      invalid_query:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              query: INSERT INTO users VALUES (1, 'Alice')
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Query must start with SELECT or WITH
+      service_error_propagates:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                fetch_all:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_QUERY_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              query: SELECT * FROM invalid_table
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            error_code: SQLITE_QUERY_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              query: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: query
+
+  test_mutate_sql:
+    module_path: *sqlite_events
+    class_name: MutateSql
+    fixtures:
+      empty_params: *empty_params
+    tests:
+      insert_success:
+        conditions:
+          fixtures: [empty_params]
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  attributes:
+                    rowcount: 1
+                    lastrowid: 100
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: INSERT INTO users (name) VALUES ('Alice')
+            as: mutated
+        assert:
+          - outcome: mutated
+            fields:
+              rowcount: 1
+              lastrowid: 100
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args: ["INSERT INTO users (name) VALUES ('Alice')", $fixture.empty_params]
+      update_success:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  attributes:
+                    rowcount: 5
+                    lastrowid: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: UPDATE users SET name = 'Bob' WHERE id = 1
+            as: mutated
+        assert:
+          - outcome: mutated
+            fields:
+              rowcount: 5
+              lastrowid: null
+      delete_success:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  attributes:
+                    rowcount: 1
+                    lastrowid: 9
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: DELETE FROM users WHERE id = 1
+            as: mutated
+        assert:
+          - outcome: mutated
+            fields:
+              rowcount: 1
+              lastrowid: null
+      parameterized:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  attributes:
+                    rowcount: 1
+                    lastrowid: 101
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: INSERT INTO users (name) VALUES (?)
+              parameters: [Alice]
+            as: mutated
+        assert:
+          - outcome: mutated
+            equals:
+              rowcount: 1
+              lastrowid: 101
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args: ['INSERT INTO users (name) VALUES (?)', [Alice]]
+      invalid_statement:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: SELECT * FROM users
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Statement must start with INSERT, UPDATE, or DELETE
+      service_error_propagates:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_STATEMENT_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: INSERT INTO users (name) VALUES ('Alice')
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: statement
+
+  test_bulk_mutate_sql:
+    module_path: *sqlite_events
+    class_name: BulkMutateSql
+    tests:
+      insert_success:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                executemany:
+                  attributes:
+                    rowcount: 2
+                    lastrowid: 102
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: INSERT INTO users (name) VALUES (?)
+              parameters_list:
+                - [Alice]
+                - [Bob]
+            as: mutated
+        assert:
+          - outcome: mutated
+            fields:
+              total_rowcount: 2
+              lastrowids: [102]
+          - mock: sqlite_service
+            method: executemany
+            assert_called_once_with:
+              args:
+                - INSERT INTO users (name) VALUES (?)
+                - - [Alice]
+                  - [Bob]
+      update_success:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                executemany:
+                  attributes:
+                    rowcount: 2
+                    lastrowid: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: UPDATE users SET active = 1 WHERE id = ?
+              parameters_list:
+                - [1]
+                - [2]
+            as: mutated
+        assert:
+          - outcome: mutated
+            fields:
+              total_rowcount: 2
+              lastrowids: null
+      invalid_statement:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: SELECT * FROM users
+              parameters_list:
+                - [1]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Statement must start with INSERT, UPDATE, or DELETE
+      empty_parameters_list:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: INSERT INTO users (name) VALUES (?)
+              parameters_list: []
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Parameters list must not be empty
+      service_error_propagates:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                executemany:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_STATEMENT_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: INSERT INTO users (name) VALUES (?)
+              parameters_list:
+                - [Alice]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              statement: null
+              parameters_list:
+                - [Alice]
+            raises: true
+            as: missing_statement
+          - target: self
+            method: handle
+            kwargs:
+              statement: INSERT INTO users (name) VALUES (?)
+              parameters_list: null
+            raises: true
+            as: missing_parameters
+        assert:
+          - outcome: missing_statement
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_statement
+            message: statement
+          - outcome: missing_parameters
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_parameters
+            message: parameters_list
+
+  test_execute_script_sql:
+    module_path: *sqlite_events
+    class_name: ExecuteScriptSql
+    tests:
+      success:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              script: CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);
+            as: ran
+        assert:
+          - outcome: ran
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: executescript
+            assert_called_once_with:
+              args: ['CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);']
+      whitespace_only_script:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              script: "   \n   "
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: script
+      service_error_propagates:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                executescript:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_STATEMENT_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              script: INVALID SQL;
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              script: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: script
+
+  test_backup_sql:
+    module_path: *sqlite_events
+    class_name: BackupSql
+    tests:
+      success:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              target_path: /tmp/backup.db
+            as: backed
+        assert:
+          - outcome: backed
+            fields:
+              success: true
+              message: null
+          - mock: sqlite_service
+            method: backup
+            assert_called_once_with:
+              args: [/tmp/backup.db]
+              kwargs:
+                pages: -1
+                progress: null
+      with_options:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+            progress:
+              module_path: unittest.mock
+              class_name: Mock
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              target_path: /tmp/backup.db
+              pages: 5
+              progress: $mock.progress
+            as: backed
+        assert:
+          - outcome: backed
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: backup
+            assert_called_once_with:
+              args: [/tmp/backup.db]
+              kwargs:
+                pages: 5
+                progress: $mock.progress
+          - mock: progress
+            method: __call__
+            assert_called_once_with:
+              times: 0
+      service_error_propagates:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                backup:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_BACKUP_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              target_path: /invalid/path/backup.db
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_BACKUP_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              target_path: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: target_path
+
+  test_create_table_sql:
+    module_path: *sqlite_events
+    class_name: CreateTableSql
+    tests:
+      success:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: users
+              columns:
+                id: INTEGER PRIMARY KEY
+                name: TEXT NOT NULL
+                email: TEXT
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args:
+                - |-
+                  CREATE TABLE IF NOT EXISTS "users" (
+                    "id" INTEGER PRIMARY KEY,
+                    "name" TEXT NOT NULL,
+                    "email" TEXT
+                  )
+      with_constraints:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: products
+              columns:
+                id: INTEGER PRIMARY KEY
+                name: TEXT NOT NULL
+                price: REAL
+              constraints: ['UNIQUE(name)', 'CHECK(price >= 0)']
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args:
+                - |-
+                  CREATE TABLE IF NOT EXISTS "products" (
+                    "id" INTEGER PRIMARY KEY,
+                    "name" TEXT NOT NULL,
+                    "price" REAL,
+                    UNIQUE(name),
+                    CHECK(price >= 0)
+                  )
+      if_not_exists_false:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: temp_table
+              columns:
+                id: INTEGER
+              if_not_exists: false
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args:
+                - |-
+                  CREATE TABLE "temp_table" (
+                    "id" INTEGER
+                  )
+      idempotent:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: existing_table
+              columns:
+                id: INTEGER
+            as: first
+          - target: self
+            method: handle
+            kwargs:
+              table_name: existing_table
+              columns:
+                id: INTEGER
+            as: second
+        assert:
+          - outcome: first
+            fields:
+              success: true
+          - outcome: second
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              times: 2
+              args:
+                - |-
+                  CREATE TABLE IF NOT EXISTS "existing_table" (
+                    "id" INTEGER
+                  )
+      duplicate_without_if_not_exists:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_STATEMENT_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: existing_table
+              columns:
+                id: INTEGER
+              if_not_exists: false
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      invalid_table_name_space:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: invalid table
+              columns:
+                id: INTEGER
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Invalid table name
+      invalid_table_name_hyphen:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: table-name
+              columns:
+                id: INTEGER
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      empty_columns:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: users
+              columns: {}
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Columns must be a non-empty dictionary
+      invalid_column_name:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: users
+              columns:
+                '': INTEGER
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Column name must be a non-empty string
+      invalid_column_type:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: users
+              columns:
+                id: ''
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: must be a non-empty string
+      service_error_propagates:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_STATEMENT_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: users
+              columns:
+                id: INVALID_TYPE
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: null
+              columns:
+                id: INTEGER
+            raises: true
+            as: missing_table
+          - target: self
+            method: handle
+            kwargs:
+              table_name: users
+              columns: null
+            raises: true
+            as: missing_columns
+        assert:
+          - outcome: missing_table
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_table
+            message: table_name
+          - outcome: missing_columns
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_columns
+            message: columns
+
+  test_drop_table_sql:
+    module_path: *sqlite_events
+    class_name: DropTableSql
+    tests:
+      success:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: users
+            as: dropped
+        assert:
+          - outcome: dropped
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args: ['DROP TABLE IF EXISTS "users"']
+      without_if_exists:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: temp_table
+              if_exists: false
+            as: dropped
+        assert:
+          - outcome: dropped
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args: ['DROP TABLE "temp_table"']
+      idempotent:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: non_existent_table
+            as: dropped
+        assert:
+          - outcome: dropped
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args: ['DROP TABLE IF EXISTS "non_existent_table"']
+      non_existent_without_if_exists:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_STATEMENT_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: non_existent_table
+              if_exists: false
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      invalid_table_name_space:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: invalid table
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: Invalid table name
+      invalid_table_name_hyphen:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: table-name
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      with_data:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: populated_table
+            as: dropped
+        assert:
+          - outcome: dropped
+            fields:
+              success: true
+          - mock: sqlite_service
+            method: execute
+            assert_called_once_with:
+              args: ['DROP TABLE IF EXISTS "populated_table"']
+      service_error_propagates:
+        conditions:
+          mocks:
+            sqlite_service:
+              <<: *sqlite_service
+              return_value:
+                execute:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: SQLITE_STATEMENT_FAILED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: test_table
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            sqlite_service: *sqlite_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              table_name: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: table_name
