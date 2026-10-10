@@ -19,31 +19,6 @@ from ..mappers.core import Aggregate, TransferObject
 # ** constant: check_call_invalid
 CHECK_CALL_INVALID = 'CHECK_CALL_INVALID'
 
-# *** functions
-
-# ** function: reject_call
-def _reject_call(service: Any, message: str) -> None:
-    '''
-    Raise the uncatalogued bad-call code.
-
-    The code sits beside ``ServiceError.raise_for``. It is not a catalogued
-    ``a.error`` code and it has no language entry.
-
-    :param service: The check instance that rejected the call.
-    :type service: Any
-    :param message: The defect message.
-    :type message: str
-    :return: None.
-    :rtype: None
-    '''
-
-    # A bad call is infrastructural. It is not a recorded check failure.
-    ServiceError.raise_for(
-        service,
-        CHECK_CALL_INVALID,
-        message=message,
-    )
-
 # *** utils
 
 # ** util: check
@@ -54,6 +29,27 @@ class Check(CheckService):
     It does not see the module, the node id, or the failure pool, and it does
     not read or write the test-module document.
     '''
+
+    # * method: reject_call
+    def _reject_call(self, message: str) -> None:
+        '''
+        Raise the uncatalogued bad-call code.
+
+        The code sits beside ``ServiceError.raise_for``. It is not a catalogued
+        ``a.error`` code and it has no language entry.
+
+        :param message: The defect message.
+        :type message: str
+        :return: None.
+        :rtype: None
+        '''
+
+        # A bad call is infrastructural. It is not a recorded check failure.
+        ServiceError.raise_for(
+            self,
+            CHECK_CALL_INVALID,
+            message=message,
+        )
 
     # * method: equal
     def equal(self, actual: Any, expected: Any) -> str | None:
@@ -104,7 +100,7 @@ class Check(CheckService):
 
         # A non-string is a bad call, not a mismatch and not a model import.
         if not isinstance(actual, str) or not isinstance(expected, str):
-            _reject_call(self, 'codes compares two error-code strings.')
+            self._reject_call('codes compares two error-code strings.')
         if actual != expected:
             return f'{actual!r} != {expected!r}.'
         return None
@@ -124,11 +120,11 @@ class Check(CheckService):
 
         # A dump that is not a mapping is a bad call.
         if not isinstance(dumped, Mapping):
-            _reject_call(self, 'role_dump requires a mapping.')
+            self._reject_call('role_dump requires a mapping.')
         if exclude is None:
             exclude = []
         if isinstance(exclude, (str, bytes)) or not isinstance(exclude, (list, set, tuple)):
-            _reject_call(self, 'role_dump exclude is a set of names.')
+            self._reject_call('role_dump exclude is a set of names.')
 
         # An excluded name that is present is the mismatch.
         for name in set(exclude):
@@ -154,9 +150,9 @@ class Check(CheckService):
 
         # A missing source or a non-list exclude is a bad call.
         if source is None or not hasattr(source, 'model_dump'):
-            _reject_call(self, 'mapper_contract requires a source.')
+            self._reject_call('mapper_contract requires a source.')
         if exclude is not None and not isinstance(exclude, list):
-            _reject_call(self, 'mapper_contract exclude is a list.')
+            self._reject_call('mapper_contract exclude is a list.')
         excluded = set(exclude or [])
 
         # The harness owns the aggregate base.

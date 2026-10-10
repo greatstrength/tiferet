@@ -547,13 +547,6 @@ def _registered_check():
     module = import_module(registration['module_path'])
     return getattr(module, registration['class_name'])()
 
-# ** function: unused_dependency
-def _unused_dependency(*args, **kwargs):
-    '''Fail if the reporter asks the tester cache for an event.'''
-
-    # The seeded error catalog is a cache hit. This is not get_error_evt.
-    raise RuntimeError('The reporter cache must not resolve get_error_evt.')
-
 # ** function: reporter_cache
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def _reporter_cache(cache: Dict[str, Any] = None) -> CacheContext:
@@ -577,6 +570,22 @@ def _module_run_session() -> ModuleRunContext:
     )
 
 # *** blueprints
+
+# ** blueprint: unused_dependency
+def _unused_dependency(*args, **kwargs):
+    '''
+    Fail if the reporter asks the tester cache for an event.
+
+    :param args: Unused positional arguments.
+    :type args: tuple
+    :param kwargs: Unused keyword arguments.
+    :type kwargs: dict
+    :return: None.
+    :rtype: None
+    '''
+
+    # The seeded error catalog is a cache hit. This is not get_error_evt.
+    raise RuntimeError('The reporter cache must not resolve get_error_evt.')
 
 # ** blueprint: build_cache
 @add_default_app_sessions(CORE_DEFAULT_TESTER_SESSIONS)
