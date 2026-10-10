@@ -7,28 +7,17 @@ import inspect
 import re
 from importlib import import_module
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, List, Mapping
-from unittest.mock import Mock, call
-
-# ** infra
-from pydantic import Field, ValidationError
+from typing import Any, Callable, Dict, List
+from unittest.mock import Mock
 
 # ** app
 from .core import BaseContext
-from .feature import FeatureContext, run_coroutine
+from .feature import FeatureContext
 from .request import RequestContext
 from .. import a
 from ..assets import TiferetError
 from ..assets.core import REQUEST_REF_PREFIX
-from ..domain import (
-    INVALID_MODEL_ATTRIBUTE_ID,
-    INVALID_MODEL_VALUE_ID,
-    DomainObject,
-    EventFeatureStep,
-    ModelError,
-    describe_model,
-    unpack_validation_error,
-)
+from ..domain import EventFeatureStep
 from ..domain.test import (
     Assertion,
     Conditions,
@@ -37,8 +26,8 @@ from ..domain.test import (
     PhaseRuntime,
     Test,
 )
-from ..events import AsyncDomainEvent, DomainEvent
-from ..events.phase import MapperContract
+from ..events import DomainEvent
+from ..events.phase import EvaluateAssertion, ExerciseMapperBases
 
 # *** constants
 
@@ -85,13 +74,13 @@ def import_named(module_path: str, name: str) -> Any:
     :rtype: Any
     '''
 
-    # Import the module, then the named attribute.
-    module = import_module(module_path)
+    # Import the module, then the named attribute. A miss is None.
+    try:
+        module = import_module(module_path)
+    except (ImportError, TypeError, ValueError):
+        return None
     if not hasattr(module, name):
-        TiferetError.raise_error(
-            a.error.PHASE_STEP_FAILED_ID,
-            detail=f'{module_path} has no {name}.',
-        )
+        return None
     return getattr(module, name)
 
 # ** function: copy_data
@@ -135,6 +124,25 @@ def _annotation_name(annotation: Any) -> str | None:
     if isinstance(annotation, str):
         return annotation
     return getattr(annotation, '__name__', str(annotation))
+
+# ** function: ref_name
+def ref_name(value: str, prefix: str) -> str | None:
+    '''
+    Return the name of a whole-value ref, or None when it is not a name.
+
+    :param value: The scalar ref.
+    :type value: str
+    :param prefix: The ref prefix.
+    :type prefix: str
+    :return: The ref name, or None when a further dot makes it illegal.
+    :rtype: str | None
+    '''
+
+    # $r.built.lang is not a path. The method raises when this is None.
+    name = value[len(prefix):]
+    if not REF_NAME.fullmatch(name):
+        return None
+    return name
 
 # ** function: compile_phase_steps
 def compile_phase_steps(test: Test) -> List[EventFeatureStep]:
@@ -206,16 +214,22 @@ class PhaseRuntimeContext(BaseContext):
     # * attribute: steps
     steps: List[EventFeatureStep]
 
+    # * attribute: check
+    check: Any
+
     # * init
-    def __init__(self, session: RequestContext) -> None:
+    def __init__(self, session: RequestContext, check: Any = None) -> None:
         '''
         Initialize a phase runtime context for one session.
 
         ``from_domain`` binds the ``PhaseRuntime`` after construction. This
-        constructor does not copy the model onto attributes.
+        constructor does not copy the model onto attributes. The check is
+        injected. This context does not import it.
 
         :param session: The session whose data stores ``as`` results.
         :type session: RequestContext
+        :param check: The injected check instance.
+        :type check: Any
         :return: None.
         :rtype: None
         '''
@@ -223,8 +237,9 @@ class PhaseRuntimeContext(BaseContext):
         # Register through domain_type. Do not clobber Feature or Test.
         super().__init__()
 
-        # Hold the session. Tester coordinates stay on the bound model.
+        # Hold the session and the injected check.
         self.session = session
+        self.check = check
 
         # Built fixtures, arranged mocks, and as keys start empty.
         self.fixtures = {}
@@ -305,25 +320,20 @@ class PhaseRuntimeContext(BaseContext):
                 received=type(assertion).__name__,
                 expected='Assertion',
             )
-        checker = {
-            'equals': self._check_equals,
-            'null': self._check_null,
-            'fields': self._check_fields,
-            'absent': self._check_absent,
-            'error_code': self._check_error_code,
-            'type': self._check_type,
-            'is': self._check_is,
-            'message': self._check_message,
-            'assert_called_once_with': self._check_called,
-            'domain_contract': self._check_domain_contract,
-            'mapper_contract': self._check_mapper_contract,
-            'event_base': self._check_event_base,
-            'parameters_required': self._check_parameters_required,
-            'service_contract': self._check_service_contract,
-            'middleware_chain': self._check_middleware_chain,
-            'cause': self._check_cause,
-        }[assertion.check]
-        checker(assertion)
+
+        # mapper_contract is ExerciseMapperBases. Every other check is one event.
+        if assertion.check == 'mapper_contract':
+            self._check_mapper_contract(assertion, ExerciseMapperBases)
+            return
+        if assertion.check == 'equals' and assertion.equals is None:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='YAML null under equals is rejected.',
+            )
+        EvaluateAssertion(self.check).execute(
+            assertion=assertion,
+            values=self._resolved_assertion_values(assertion),
+        )
 
     # * method: run
     def run(self, test: Test) -> List[EventFeatureStep]:
@@ -383,7 +393,7 @@ class PhaseRuntimeContext(BaseContext):
             )
 
         # Call the class. Do not call a method named new.
-        cls = import_named(spec['module_path'], spec['class_name'])
+        cls = self._require_named(spec['module_path'], spec['class_name'])
         attributes = self._resolve_value(
             _copy_data(spec['attributes']),
             allow_request=False,
@@ -404,7 +414,7 @@ class PhaseRuntimeContext(BaseContext):
         '''
 
         # Spec the class. Do not construct it.
-        cls = import_named(arranged.module_path, arranged.class_name)
+        cls = self._require_named(arranged.module_path, arranged.class_name)
         mock = Mock(spec=cls)
         if arranged.return_value:
             for method_name, value in arranged.return_value.items():
@@ -477,7 +487,7 @@ class PhaseRuntimeContext(BaseContext):
                 a.error.PHASE_STEP_FAILED_ID,
                 detail='raises is module_path, class_name, and optional message.',
             )
-        exc_cls = import_named(spec['module_path'], spec['class_name'])
+        exc_cls = self._require_named(spec['module_path'], spec['class_name'])
         message = spec.get('message')
         method = getattr(mock, method_name)
         if message is None:
@@ -590,9 +600,9 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: str
         '''
 
-        # $r.built.lang is not a path.
-        name = value[len(prefix):]
-        if not REF_NAME.fullmatch(name):
+        # The helper returns the name. An illegal ref fails here.
+        name = ref_name(value, prefix)
+        if name is None:
             TiferetError.raise_error(
                 a.error.PHASE_STEP_FAILED_ID,
                 detail=f'{value} is not a runtime reference.',
@@ -619,7 +629,10 @@ class PhaseRuntimeContext(BaseContext):
             self._store(execution.data_key, error)
             return
         if execution.raises:
-            raise AssertionError('A step marked raises did not raise.')
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='A step marked raises did not raise.',
+            )
         if execution.data_key:
             self._store(execution.data_key, result)
 
@@ -669,7 +682,7 @@ class PhaseRuntimeContext(BaseContext):
         '''
 
         # Attributes may contain fixture refs. They must already be built.
-        cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
+        cls = self._require_named(self.domain.tester_module_path, self.domain.tester_class_name)
         attributes = self._resolve_value(_copy_data(self.domain.tester_attributes))
         return cls(**attributes)
 
@@ -685,7 +698,7 @@ class PhaseRuntimeContext(BaseContext):
         '''
 
         # Do not merge sample_kwargs. Do not construct an instance here.
-        cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
+        cls = self._require_named(self.domain.tester_module_path, self.domain.tester_class_name)
         return DomainEvent.handle(
             cls,
             dependencies=dict(self.mocks),
@@ -707,8 +720,8 @@ class PhaseRuntimeContext(BaseContext):
         target = execution.target
         if isinstance(target, ExecutionTarget):
             if target.class_name:
-                return import_named(target.module_path, target.class_name)
-            return import_named(target.module_path, target.attribute)
+                return self._require_named(target.module_path, target.class_name)
+            return self._require_named(target.module_path, target.attribute)
         if target == 'self':
             return 'self'
         if isinstance(target, str) and (
@@ -780,854 +793,112 @@ class PhaseRuntimeContext(BaseContext):
             reference=name,
         )
 
-    # * method: compare
-    def _compare(self, actual: Any, expected: Any) -> None:
+    # * method: require_named
+    def _require_named(self, module_path: str, name: str) -> Any:
         '''
-        Compare one fields value. Extra object attributes are ignored.
+        Import one attribute. A miss is PHASE_STEP_FAILED.
 
-        :param actual: The actual value.
-        :type actual: Any
-        :param expected: The expected value.
-        :type expected: Any
-        :return: None.
-        :rtype: None
-        '''
-
-        # A keyed list replaces field_normalizers. It is not an index path.
-        if isinstance(expected, dict) and isinstance(actual, list) and self._is_keyed_list(expected):
-            self._compare_keyed(actual, expected)
-            return
-        if isinstance(expected, dict):
-            self._compare_mapping(actual, expected)
-            return
-        if isinstance(expected, list):
-            if not isinstance(actual, list) or len(actual) != len(expected):
-                self._fail('List field length does not match.')
-            for actual_item, expected_item in zip(actual, expected):
-                self._compare(actual_item, expected_item)
-            return
-        if actual != expected:
-            self._fail(f'{actual!r} != {expected!r}.')
-
-    # * method: is_keyed_list
-    def _is_keyed_list(self, expected: Dict[str, Any]) -> bool:
-        '''
-        Report whether an expected value is the keyed-list form.
-
-        :param expected: The expected mapping.
-        :type expected: Dict[str, Any]
-        :return: True when the mapping is key plus items.
-        :rtype: bool
+        :param module_path: The module that holds the attribute.
+        :type module_path: str
+        :param name: The attribute name.
+        :type name: str
+        :return: The imported attribute.
+        :rtype: Any
         '''
 
-        # The form is exactly those two keys. Other mappings are attributes.
-        return (
-            set(expected) == {'key', 'items'}
-            and isinstance(expected.get('key'), str)
-            and isinstance(expected.get('items'), dict)
-        )
-
-    # * method: compare_mapping
-    def _compare_mapping(self, actual: Any, expected: Dict[str, Any]) -> None:
-        '''
-        Compare a mapping or an object's attributes. A missing expected key fails.
-
-        :param actual: The actual mapping or object.
-        :type actual: Any
-        :param expected: The expected attributes.
-        :type expected: Dict[str, Any]
-        :return: None.
-        :rtype: None
-        '''
-
-        # A mapping compares keys. An object compares attributes.
-        if isinstance(actual, Mapping):
-            for key, item in expected.items():
-                if key not in actual:
-                    self._fail(f'Missing key {key}.')
-                self._compare(actual[key], item)
-            return
-        for key, item in expected.items():
-            if not hasattr(actual, key):
-                self._fail(f'Missing attribute {key}.')
-            self._compare(getattr(actual, key), item)
-
-    # * method: compare_keyed
-    def _compare_keyed(self, actual: List[Any], expected: Dict[str, Any]) -> None:
-        '''
-        Match a list of objects to a mapping keyed by one attribute.
-
-        :param actual: The actual list.
-        :type actual: List[Any]
-        :param expected: The keyed-list form.
-        :type expected: Dict[str, Any]
-        :return: None.
-        :rtype: None
-        '''
-
-        # Every object matches one item, and every item matches one object.
-        attr = expected['key']
-        items = expected['items']
-        if len(actual) != len(items):
-            self._fail('Keyed list length does not match items.')
-        seen = {}
-        for obj in actual:
-            if not hasattr(obj, attr):
-                self._fail(f'Missing key attribute {attr}.')
-            key = getattr(obj, attr)
-            if key in seen:
-                self._fail(f'Duplicate key {key}.')
-            seen[key] = obj
-        if set(seen) != set(items):
-            self._fail('Keyed list keys do not match items.')
-        for key, fields in items.items():
-            self._compare(seen[key], fields)
-
-    # * method: check_equals
-    def _check_equals(self, assertion: Assertion) -> None:
-        '''
-        Assert equality after ref resolution.
-
-        :param assertion: The equals check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # YAML null is not an expected value.
-        if assertion.equals is None:
+        # The helper returns None. The method raises the catalogued miss.
+        value = import_named(module_path, name)
+        if value is None:
             TiferetError.raise_error(
                 a.error.PHASE_STEP_FAILED_ID,
-                detail='YAML null under equals is rejected.',
+                detail=f'{module_path} has no {name}.',
             )
-        outcome = self._resolve_outcome(assertion.outcome)
-        expected = self._resolve_value(assertion.equals)
-        if outcome != expected:
-            self._fail(f'{outcome!r} != {expected!r}.')
+        return value
 
-    # * method: check_null
-    def _check_null(self, assertion: Assertion) -> None:
+    # * method: check_mapper_contract
+    def _check_mapper_contract(self, assertion: Assertion, event_cls: type = None) -> None:
         '''
-        Assert the outcome is None.
+        Run the mapper protocol through ExerciseMapperBases.
 
-        :param assertion: The null check.
+        :param assertion: The mapper_contract check.
         :type assertion: Assertion
+        :param event_cls: The event that raises the catalogued failure.
+        :type event_cls: type
         :return: None.
         :rtype: None
         '''
 
-        # null: true is is None. It is not equals null.
-        outcome = self._resolve_outcome(assertion.outcome)
-        if outcome is not None:
-            self._fail(f'Expected None, got {outcome!r}.')
+        # The event constructs the domain source and calls the check.
+        event_cls = ExerciseMapperBases if event_cls is None else event_cls
+        event_cls(self.check).execute(exclude=list(assertion.exclude or []))
 
-    # * method: check_fields
-    def _check_fields(self, assertion: Assertion) -> None:
+    # * method: resolved_assertion_values
+    def _resolved_assertion_values(self, assertion: Assertion) -> Dict[str, Any]:
         '''
-        Compare the fields tree. No normalizer and no index path.
+        Resolve the values one check reads. The event does not see the session.
 
-        :param assertion: The fields check.
+        :param assertion: The assert item.
         :type assertion: Assertion
-        :return: None.
-        :rtype: None
+        :return: The resolved values.
+        :rtype: Dict[str, Any]
         '''
 
-        # Resolve refs in the tree, then compare attributes.
-        outcome = self._resolve_outcome(assertion.outcome)
-        expected = self._resolve_value(assertion.fields)
-        self._compare(outcome, expected)
-
-    # * method: check_absent
-    def _check_absent(self, assertion: Assertion) -> None:
-        '''
-        Assert each name is absent from a mapping or a model dump.
-
-        :param assertion: The absent check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # A mapping uses keys. A model uses model_dump.
-        outcome = self._resolve_outcome(assertion.outcome)
-        if isinstance(outcome, Mapping):
-            for name in assertion.absent:
-                if name in outcome:
-                    self._fail(f'{name} is present.')
-            return
-        if not hasattr(outcome, 'model_dump'):
-            self._fail('absent requires a mapping or a model.')
-        dumped = outcome.model_dump()
-        for name in assertion.absent:
-            if name in dumped:
-                self._fail(f'{name} is present.')
-
-    # * method: check_error_code
-    def _check_error_code(self, assertion: Assertion) -> None:
-        '''
-        Compare outcome.error_code to the expected string.
-
-        :param assertion: The error_code check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # A missing attribute fails. The string is the code, not a constant.
-        outcome = self._resolve_outcome(assertion.outcome)
-        missing = object()
-        code = getattr(outcome, 'error_code', missing)
-        if code is missing:
-            self._fail('Outcome has no error_code.')
-        if code != assertion.error_code:
-            self._fail(f'{code!r} != {assertion.error_code!r}.')
-
-    # * method: check_type
-    def _check_type(self, assertion: Assertion) -> None:
-        '''
-        Assert isinstance against one imported class.
-
-        :param assertion: The type check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # negate means not an instance. A subclass passes unless negated.
-        outcome = self._resolve_outcome(assertion.outcome)
-        cls = import_named(assertion.module_path, assertion.class_name)
-        matched = isinstance(outcome, cls)
-        if assertion.negate:
-            if matched:
-                self._fail(f'{outcome!r} is an instance of {assertion.class_name}.')
-            return
-        if not matched:
-            self._fail(f'{outcome!r} is not an instance of {assertion.class_name}.')
-
-    # * method: check_is
-    def _check_is(self, assertion: Assertion) -> None:
-        '''
-        Assert identity with an imported class or a builtin type.
-
-        :param assertion: The is check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # This is the live type. It is not isinstance.
-        outcome = self._resolve_outcome(assertion.outcome)
-        if assertion.builtin:
-            expected = BUILTIN_TYPES[assertion.builtin]
-        else:
-            expected = import_named(assertion.module_path, assertion.class_name)
-        if outcome is not expected:
-            self._fail(f'{outcome!r} is not {expected!r}.')
-
-    # * method: check_message
-    def _check_message(self, assertion: Assertion) -> None:
-        '''
-        Assert the message is a substring of str(outcome).
-
-        :param assertion: The message check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # message is not a general contains.
-        outcome = self._resolve_outcome(assertion.outcome)
-        if assertion.message not in str(outcome):
-            self._fail(f'{assertion.message!r} is not in {outcome!r}.')
-
-    # * method: check_called
-    def _check_called(self, assertion: Assertion) -> None:
-        '''
-        Assert the named mock method was called as specified.
-
-        :param assertion: The assert_called_once_with check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # Resolve refs in the call spec before comparing.
-        if assertion.mock not in self.mocks:
-            TiferetError.raise_error(
-                a.error.PHASE_REFERENCE_NOT_FOUND_ID,
-                reference=assertion.mock,
+        # Outcome, expected trees, and imports are resolved here.
+        values = {}
+        if assertion.outcome is not None:
+            values['outcome'] = self._resolve_outcome(assertion.outcome)
+        if assertion.equals is not None:
+            values['equals'] = self._resolve_value(assertion.equals)
+        if assertion.fields is not None:
+            values['fields'] = self._resolve_value(assertion.fields)
+        if assertion.check == 'error_code':
+            missing = object()
+            code = getattr(values['outcome'], 'error_code', missing)
+            values['has_error_code'] = code is not missing
+            if code is not missing:
+                values['error_code'] = code
+        if assertion.check in ('type', 'cause') or (
+            assertion.check == 'is' and not assertion.builtin
+        ):
+            values['cls'] = self._require_named(
+                assertion.module_path,
+                assertion.class_name,
             )
-        method = getattr(self.mocks[assertion.mock], assertion.method)
-        spec = self._resolve_value(assertion.assert_called_once_with)
-        if 'calls' in spec:
-            expected_calls = [
-                call(*item.get('args', []), **item.get('kwargs', {}))
-                for item in spec['calls']
-            ]
-            if list(method.call_args_list) != expected_calls:
-                self._fail(f'Calls {method.call_args_list!r} != {expected_calls!r}.')
-            return
-        times = spec.get('times', 1)
-        if times == 0:
-            if 'args' in spec or 'kwargs' in spec:
+            if assertion.check == 'is':
+                values['expected'] = values['cls']
+        if assertion.check == 'is' and assertion.builtin:
+            values['expected'] = BUILTIN_TYPES[assertion.builtin]
+        if assertion.check == 'assert_called_once_with':
+            if assertion.mock not in self.mocks:
+                TiferetError.raise_error(
+                    a.error.PHASE_REFERENCE_NOT_FOUND_ID,
+                    reference=assertion.mock,
+                )
+            values['method'] = getattr(self.mocks[assertion.mock], assertion.method)
+            spec = self._resolve_value(assertion.assert_called_once_with)
+            if spec.get('times') == 0 and ('args' in spec or 'kwargs' in spec):
                 TiferetError.raise_error(
                     a.error.PHASE_STEP_FAILED_ID,
                     detail='times 0 requires args to be omitted.',
                 )
-            if method.call_count != 0:
-                self._fail(f'Expected no calls, got {method.call_count}.')
-            return
-        args = spec.get('args', [])
-        kwargs = spec.get('kwargs', {})
-        if times == 1 and ('args' in spec or 'kwargs' in spec):
-            method.assert_called_once_with(*args, **kwargs)
-            return
-        if method.call_count != times:
-            self._fail(f'Expected {times} calls, got {method.call_count}.')
-        if 'args' in spec or 'kwargs' in spec:
-            expected = call(*args, **kwargs)
-            for actual in method.call_args_list:
-                if actual != expected:
-                    self._fail(f'{actual!r} != {expected!r}.')
-
-    # * method: check_domain_contract
-    def _check_domain_contract(self, assertion: Assertion) -> None:
-        '''
-        Run the DomainObject and model-error protocol on harness-owned classes.
-
-        :param assertion: The domain_contract check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # The harness owns these classes. The YAML file does not define them.
-        class TestDomainObject(DomainObject):
-            '''Harness domain object.'''
-
-            attribute: str = Field(
-                ...,
-                description='The attribute.',
+            values['spec'] = spec
+        if assertion.check == 'event_base':
+            values['event_cls'] = self._require_named(
+                self.domain.tester_module_path,
+                self.domain.tester_class_name,
             )
-
-        class TestIdentifiedObject(DomainObject):
-            '''Harness identified domain object.'''
-
-            id: str = Field(
-                ...,
-                description='The identifier.',
+            values['base_cls'] = self._require_named(
+                assertion.module_path,
+                assertion.class_name,
             )
-
-            name: str = Field(
-                ...,
-                description='The name.',
+            values['mocks'] = dict(self.mocks)
+        if assertion.check == 'service_contract':
+            values['cls'] = self._require_named(
+                self.domain.tester_module_path,
+                self.domain.tester_class_name,
             )
+        return values
 
-        class Stub:
-            '''Harness stub with a non-primitive identity.'''
-
-            id = {'nested': 'value'}
-
-        # Construction.
-        domain_object = TestDomainObject(attribute='test')
-        if domain_object.attribute != 'test':
-            self._fail('Construction did not keep the attribute.')
-
-        # An extra field is a ValidationError.
-        try:
-            TestDomainObject(attribute='test', unknown='nope')
-        except ValidationError:
-            pass
-        else:
-            self._fail('An extra field should be rejected.')
-
-        # Assignment of an invalid value fails before it is classified.
-        try:
-            domain_object.attribute = ['not', 'a', 'string']
-        except ValidationError:
-            pass
-        else:
-            self._fail('Invalid assignment should fail.')
-
-        # unpack_validation_error flattens a missing field.
-        try:
-            TestDomainObject()
-        except ValidationError as error:
-            violations = unpack_validation_error(error)
-        else:
-            self._fail('A missing field should fail.')
-        if violations[0]['field'] != 'attribute' or set(violations[0]) != {'field', 'type', 'message'}:
-            self._fail('unpack_validation_error did not flatten the violation.')
-
-        # describe_model reports identity and omits a non-primitive field.
-        identified = TestIdentifiedObject(id='test_id', name='Test Name')
-        descriptor = describe_model(identified)
-        if descriptor.get('type') != 'TestIdentifiedObject' or descriptor.get('id') != 'test_id':
-            self._fail('describe_model did not report the identity.')
-        if 'key' in descriptor:
-            self._fail('describe_model reported an undeclared identity field.')
-        if 'id' in describe_model(Stub()):
-            self._fail('describe_model kept a non-primitive identity.')
-
-        # raise_for_validation, unknown attribute, with and without a model.
-        self._raise_for_validation(domain_object, 'not_a_field', 1, INVALID_MODEL_ATTRIBUTE_ID, with_model=False)
-        self._raise_for_validation(identified, 'not_a_field', 1, INVALID_MODEL_ATTRIBUTE_ID, with_model=True)
-
-        # raise_for_validation, invalid value, with and without a model.
-        self._raise_for_validation(
-            domain_object,
-            'attribute',
-            ['not', 'a', 'string'],
-            INVALID_MODEL_VALUE_ID,
-            with_model=False,
-        )
-        self._raise_for_validation(
-            identified,
-            'name',
-            ['not', 'a', 'string'],
-            INVALID_MODEL_VALUE_ID,
-            with_model=True,
-        )
-
-    # * method: raise_for_validation
-    def _raise_for_validation(self,
-            model: Any,
-            attribute: str,
-            value: Any,
-            error_code: str,
-            with_model: bool,
-        ) -> None:
-        '''
-        Classify one assignment failure, with or without the model instance.
-
-        :param model: The model to assign on.
-        :type model: Any
-        :param attribute: The attribute to assign.
-        :type attribute: str
-        :param value: The value to assign.
-        :type value: Any
-        :param error_code: The expected model error code.
-        :type error_code: str
-        :param with_model: Whether to pass the model into the raiser.
-        :type with_model: bool
-        :return: None.
-        :rtype: None
-        '''
-
-        # Capture the assignment failure, then classify it.
-        try:
-            setattr(model, attribute, value)
-        except ValidationError as error:
-            captured = error
-        else:
-            self._fail('Assignment should have failed.')
-        try:
-            if with_model:
-                ModelError.raise_for_validation(captured, model=model, attribute=attribute)
-            else:
-                ModelError.raise_for_validation(captured, attribute=attribute)
-        except ModelError as error:
-            if error.error_code != error_code:
-                self._fail(f'{error.error_code} != {error_code}.')
-            if with_model and error.model.get('type') != type(model).__name__:
-                self._fail('raise_for_validation did not describe the model.')
-            if not with_model and error.model.get('type') != type(model).__name__:
-                self._fail('raise_for_validation did not fall back to the error title.')
-            return
-        self._fail('raise_for_validation did not raise.')
-
-    # * method: check_mapper_contract
-    def _check_mapper_contract(self, assertion: Assertion) -> None:
-        '''
-        Run the mapper base protocol. Contexts do not import mappers.
-
-        :param assertion: The mapper_contract check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # The events module holds the procedure because it may import mappers.
-        MapperContract.run(exclude=assertion.exclude)
-
-    # * method: check_event_base
-    def _check_event_base(self, assertion: Assertion) -> None:
-        '''
-        Assert the bound event subclasses the named base and stores its mocks.
-
-        :param assertion: The event_base check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # One check covers a bare base-event tester.
-        event_cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
-        base_cls = import_named(assertion.module_path, assertion.class_name)
-        if not issubclass(event_cls, base_cls):
-            self._fail(f'{self.domain.tester_class_name} is not a {assertion.class_name}.')
-        instance = event_cls(**self.mocks)
-        for name, mock in self.mocks.items():
-            if getattr(instance, name) is not mock:
-                self._fail(f'{name} was not stored on the event.')
-
-    # * method: check_parameters_required
-    def _check_parameters_required(self, assertion: Assertion) -> None:
-        '''
-        Run the decorator matrix on a harness-owned event.
-
-        :param assertion: The parameters_required check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # The harness owns the event. The names come from the check.
-        names = list(assertion.names)
-
-        class RequiredEvent(DomainEvent):
-            '''Harness event for the parameters_required matrix.'''
-
-            @DomainEvent.parameters_required(names)
-            def execute(self, **kwargs):
-                return 'ok'
-
-        # A valid call passes. It is not a second meaning of error_code.
-        result = DomainEvent.handle(
-            RequiredEvent,
-            **{name: 'value' for name in names},
-        )
-        if result != 'ok':
-            self._fail('A valid call should pass parameters_required.')
-        for name in names:
-            others = {
-                other: 'value'
-                for other in names
-                if other != name
-            }
-            self._expect_required(RequiredEvent, name, others)
-            self._expect_required(RequiredEvent, name, {**others, name: None})
-            self._expect_required(RequiredEvent, name, {**others, name: ''})
-            self._expect_required(RequiredEvent, name, {**others, name: '   '})
-
-    # * method: expect_required
-    def _expect_required(self, event_cls: type, name: str, kwargs: Dict[str, Any]) -> None:
-        '''
-        Assert one invalid call raises COMMAND_PARAMETER_REQUIRED and names the parameter.
-
-        :param event_cls: The harness event.
-        :type event_cls: type
-        :param name: The parameter name.
-        :type name: str
-        :param kwargs: The invalid call arguments.
-        :type kwargs: Dict[str, Any]
-        :return: None.
-        :rtype: None
-        '''
-
-        # The code is COMMAND_PARAMETER_REQUIRED. The name is in the message.
-        try:
-            DomainEvent.handle(event_cls, **kwargs)
-        except TiferetError as error:
-            if error.error_code != a.error.COMMAND_PARAMETER_REQUIRED_ID:
-                self._fail(f'{name} raised {error.error_code}.')
-            if name not in str(error):
-                self._fail(f'{name} is not in the message.')
-            return
-        self._fail(f'{name} did not raise COMMAND_PARAMETER_REQUIRED.')
-
-    # * method: check_service_contract
-    def _check_service_contract(self, assertion: Assertion) -> None:
-        '''
-        Lock the service method table and fail direct construction when abstract.
-
-        :param assertion: The service_contract check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # The tester class is the service. This is not assert_contract.
-        cls = import_named(self.domain.tester_module_path, self.domain.tester_class_name)
-        abstracts = set(assertion.abstracts)
-        declared = set(getattr(cls, '__abstractmethods__', ()))
-        if abstracts != declared:
-            self._fail(f'Abstracts {declared} != {abstracts}.')
-        for spec in assertion.methods:
-            self._lock_method(cls, spec)
-        for name in assertion.absent or []:
-            if hasattr(cls, name):
-                self._fail(f'{name} is not absent.')
-        if not abstracts:
-            return
-        try:
-            cls()
-        except TypeError:
-            return
-        self._fail('Direct construction should fail.')
-
-    # * method: lock_method
-    def _lock_method(self, cls: type, spec: Dict[str, Any]) -> None:
-        '''
-        Lock one method's parameters, defaults, annotations, and return.
-
-        :param cls: The service class.
-        :type cls: type
-        :param spec: The method table row.
-        :type spec: Dict[str, Any]
-        :return: None.
-        :rtype: None
-        '''
-
-        # name and params are required. The rest are optional.
-        name = spec['name']
-        if not hasattr(cls, name):
-            self._fail(f'Missing method {name}.')
-        signature = inspect.signature(getattr(cls, name))
-        params = list(signature.parameters)
-        if params != list(spec['params']):
-            self._fail(f'{name} params {params} != {spec["params"]}.')
-        for param_name, expected in (spec.get('defaults') or {}).items():
-            if signature.parameters[param_name].default != expected:
-                self._fail(f'{name} default {param_name} does not match.')
-        for param_name, expected in (spec.get('annotations') or {}).items():
-            actual = _annotation_name(signature.parameters[param_name].annotation)
-            if actual != expected:
-                self._fail(f'{name} annotation {param_name} is {actual!r}.')
-        if 'returns' in spec and _annotation_name(signature.return_annotation) != spec['returns']:
-            self._fail(f'{name} return annotation does not match.')
-
-    # * method: check_middleware_chain
-    def _check_middleware_chain(self, assertion: Assertion) -> None:
-        '''
-        Run one middleware chain shape. The harness owns the wrappers.
-
-        :param assertion: The middleware_chain check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # No lambda in the YAML file. The wrappers are defined here.
-        shape = assertion.middleware_chain
-        if shape == 'none':
-            self._run_chain([])
-            return
-        if shape == 'single':
-            self._run_single()
-            return
-        if shape == 'order':
-            self._run_order()
-            return
-        if shape == 'capture':
-            self._run_capture()
-            return
-        if shape == 'intercept':
-            self._run_intercept()
-            return
-        if shape == 'async':
-            self._run_async_chain()
-            return
-        TiferetError.raise_error(
-            a.error.PHASE_STEP_FAILED_ID,
-            detail=f'middleware_chain {shape} is not legal.',
-        )
-
-    # * method: run_chain
-    def _run_chain(self, middleware: list, **kwargs) -> Any:
-        '''
-        Run a synchronous probe event through the given wrappers.
-
-        :param middleware: The harness wrappers.
-        :type middleware: list
-        :param kwargs: Event arguments.
-        :type kwargs: dict
-        :return: The chain result.
-        :rtype: Any
-        '''
-
-        # The probe is a harness event, not a YAML class.
-        class Probe(DomainEvent):
-            '''Harness event for a synchronous chain.'''
-
-            def execute(self, **event_kwargs):
-                return 'ran'
-
-        result = DomainEvent.handle(Probe, middleware=middleware, **kwargs)
-        if result != 'ran' and middleware == []:
-            self._fail('An empty chain should return the event result.')
-        return result
-
-    # * method: run_single
-    def _run_single(self) -> None:
-        '''
-        Prove one wrapper calls next and returns the event result.
-
-        :return: None.
-        :rtype: None
-        '''
-
-        # One wrapper, outermost and only.
-        class Single:
-            '''Harness wrapper that continues the chain.'''
-
-            def __init__(self):
-                self.seen = False
-
-            def __call__(self, event, kwargs, next_fn):
-                self.seen = True
-                return next_fn()
-
-        wrapper = Single()
-        result = self._run_chain([wrapper])
-        if result != 'ran' or not wrapper.seen:
-            self._fail('A single wrapper should continue the chain.')
-
-    # * method: run_order
-    def _run_order(self) -> None:
-        '''
-        Prove two wrappers run outermost first.
-
-        :return: None.
-        :rtype: None
-        '''
-
-        # Entry is outer then inner. Exit is inner then outer.
-        order = []
-
-        class Track:
-            '''Harness wrapper that records entry and exit.'''
-
-            def __init__(self, name):
-                self.name = name
-
-            def __call__(self, event, kwargs, next_fn):
-                order.append(self.name)
-                result = next_fn()
-                order.append(f'{self.name}-post')
-                return result
-
-        self._run_chain([Track('outer'), Track('inner')])
-        if order != ['outer', 'inner', 'inner-post', 'outer-post']:
-            self._fail(f'Wrapper order was {order}.')
-
-    # * method: run_capture
-    def _run_capture(self) -> None:
-        '''
-        Prove a wrapper sees the event and the kwargs.
-
-        :return: None.
-        :rtype: None
-        '''
-
-        # The wrapper records what the chain passed it.
-        captured = {}
-
-        class Capture:
-            '''Harness wrapper that records the call.'''
-
-            def __call__(self, event, kwargs, next_fn):
-                captured['event'] = event
-                captured['kwargs'] = dict(kwargs)
-                return next_fn()
-
-        self._run_chain([Capture()], token='yes')
-        if captured.get('kwargs', {}).get('token') != 'yes':
-            self._fail('The wrapper did not see the kwargs.')
-        if type(captured.get('event')).__name__ != 'Probe':
-            self._fail('The wrapper did not see the event.')
-
-    # * method: run_intercept
-    def _run_intercept(self) -> None:
-        '''
-        Prove a wrapper can return without calling next.
-
-        :return: None.
-        :rtype: None
-        '''
-
-        # Intercept does not call the event.
-        called = {'value': False}
-
-        class Probe(DomainEvent):
-            '''Harness event that records whether execute ran.'''
-
-            def execute(self, **kwargs):
-                called['value'] = True
-                return 'ran'
-
-        class Intercept:
-            '''Harness wrapper that stops the chain.'''
-
-            def __call__(self, event, kwargs, next_fn):
-                return 'stopped'
-
-        result = DomainEvent.handle(Probe, middleware=[Intercept()])
-        if result != 'stopped' or called['value']:
-            self._fail('Intercept should stop the chain.')
-
-    # * method: run_async_chain
-    def _run_async_chain(self) -> None:
-        '''
-        Await an async wrapper. There is no async phase key.
-
-        :return: None.
-        :rtype: None
-        '''
-
-        # The check awaits. The wrapper is owned here, not in the YAML file.
-        class AsyncProbe(AsyncDomainEvent):
-            '''Harness async event.'''
-
-            async def execute(self, **kwargs):
-                return 'async-ran'
-
-        class AsyncWrap:
-            '''Harness async wrapper.'''
-
-            async def __call__(self, event, kwargs, next_fn):
-                return await next_fn()
-
-        result = run_coroutine(DomainEvent.handle_async(
-            AsyncProbe,
-            middleware=[AsyncWrap()],
-        ))
-        if result != 'async-ran':
-            self._fail('The async chain did not await the event.')
-
-    # * method: check_cause
-    def _check_cause(self, assertion: Assertion) -> None:
-        '''
-        Read outcome.__cause__. This is not a frame walk.
-
-        :param assertion: The cause check.
-        :type assertion: Assertion
-        :return: None.
-        :rtype: None
-        '''
-
-        # The chained exception is the cause. The frame is not consulted.
-        outcome = self._resolve_outcome(assertion.outcome)
-        cause = outcome.__cause__
-        cls = import_named(assertion.module_path, assertion.class_name)
-        if not isinstance(cause, cls):
-            self._fail('Cause type does not match.')
-        if assertion.message not in str(cause):
-            self._fail('Cause message does not match.')
-
-    # * method: fail
-    def _fail(self, message: str) -> None:
-        '''
-        Fail the check.
-
-        :param message: The failure message.
-        :type message: str
-        :return: None.
-        :rtype: None
-        '''
-
-        # The first failure fails the test.
-        raise AssertionError(message)
 
 # ** context: test_context
 class TestContext(FeatureContext):

@@ -8,6 +8,7 @@ import copy
 import functools
 import inspect
 import os
+from importlib import import_module
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -27,12 +28,12 @@ from ..contexts.app import (
     add_default_app_sessions,
 )
 from ..contexts.cache import CacheContext
+from ..contexts.error import add_default_errors
 from ..contexts.core import BaseContext
 from ..contexts.test import (
     PHASE_ASSERT_ID,
     PHASE_CONDITIONS_ID,
     PHASE_EXECUTE_ID,
-    ModelError,
     PhaseRuntime,
     PhaseRuntimeContext,
     TestContext,
@@ -46,6 +47,8 @@ from ..contexts.tester import (
     GenericTesterContext,
     RepoTesterContext,
     ServiceEventTesterContext,
+    ModelError,
+    ModuleRunContext,
     TestSessionContext,
     TesterContext,
     TesterObject,
@@ -519,19 +522,59 @@ def _run_one_test(test_key: str, test_mapping: Any, coordinates: Dict[str, Any])
     try:
         test_ctx = _build_module_test(test_key, test_mapping, coordinates)
     except ModelError as error:
-        return error
+        return error, None
 
     # Pass means execute_feature returned. Fail means the run raised.
+    session = None
     try:
         session = build_test_session(test_context=test_ctx)
         test_ctx.execute_feature(session)
     except ModelError as error:
-        return error
+        return error, session
     except TiferetError as error:
-        return error
-    except AssertionError as error:
-        return error
-    return None
+        return error, session
+    return None, session
+
+# ** function: registered_check
+def _registered_check():
+    '''Resolve Check from registration data. Do not import the util.'''
+
+    # The same string shape as a default service dependency.
+    registration = {
+        'module_path': 'tiferet.utils.check',
+        'class_name': 'Check',
+    }
+    module = import_module(registration['module_path'])
+    return getattr(module, registration['class_name'])()
+
+# ** function: unused_dependency
+def _unused_dependency(*args, **kwargs):
+    '''Fail if the reporter asks the tester cache for an event.'''
+
+    # The seeded error catalog is a cache hit. This is not get_error_evt.
+    raise RuntimeError('The reporter cache must not resolve get_error_evt.')
+
+# ** function: reporter_cache
+@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
+def _reporter_cache(cache: Dict[str, Any] = None) -> CacheContext:
+    '''Seed the reporter cache with the core error catalog.'''
+
+    # Do not add this decorator to build_cache.
+    return CacheContext(cache=cache)
+
+# ** function: module_run_session
+def _module_run_session() -> ModuleRunContext:
+    '''Construct the session that pools one module run.'''
+
+    # The handler is a cache hit. It is not AppSessionContext.run.
+    cache = _reporter_cache()
+    return ModuleRunContext(
+        get_dependency=_unused_dependency,
+        cache=cache,
+        raise_error_handler=core.raise_error_handler(
+            core.get_error(cache, _unused_dependency),
+        ),
+    )
 
 # *** blueprints
 
@@ -623,7 +666,11 @@ def build_phase_runtime(
         root_fixtures=root_fixtures or {},
         tester_fixtures=tester_fixtures or {},
     )
-    return BaseContext.from_domain(value, session=session)
+    return BaseContext.from_domain(
+        value,
+        session=session,
+        check=_registered_check(),
+    )
 
 # ** blueprint: build_tester_context
 def build_tester_context(tester: TesterObject) -> TesterContext:
@@ -995,21 +1042,22 @@ def detach_test(rel: str, tester: str, name: str, *, base_dir: str = '.') -> Non
     )
 
 # ** blueprint: run_test_module
-def run_test_module(module_path: str, summary: bool = False) -> List[Dict[str, Any]]:
+def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
     '''
     Run one test module and print pytest-shaped lines plus a count.
 
     The argument is the filesystem path of a Python test module. The Python
     file is read only to prove it exists and to derive the YAML counterpart.
     It is not imported and it is not executed. ``summary=True`` prints only
-    the count line. It is the same run, not a second runner.
+    the count line. It is the same run, not a second runner. The return is
+    the report the session pooled.
 
     :param module_path: The Python test module path, relative or absolute.
     :type module_path: str
     :param summary: When true, print only the count line.
     :type summary: bool
-    :return: The ordered outcomes.
-    :rtype: List[Dict[str, Any]]
+    :return: The session report, with outcomes and failures.
+    :rtype: Dict[str, Any]
     '''
 
     # Refuse a bad path before any YAML load or test line.
@@ -1019,34 +1067,29 @@ def run_test_module(module_path: str, summary: bool = False) -> List[Dict[str, A
     relative, yaml_path = _yaml_counterpart(path)
     document = _load_test_document(yaml_path)
 
-    # Root tests, then tester-contained tests. A tester is not a test.
+    # The session pools. This function still walks the document.
+    session = _module_run_session()
     node_root = f'tiferet_tests/{relative}.yml'
-    outcomes = []
     passed = 0
     failed = 0
     for node_id, test_key, test_mapping, coordinates in _iter_document_tests(
         document,
         node_root,
     ):
-        error = _run_one_test(test_key, test_mapping, coordinates)
-        status = 'FAILED' if error is not None else 'PASSED'
-        outcomes.append({
-            'node_id': node_id,
-            'status': status,
-            'error': error,
-        })
-        if error is None:
+        error, test_session = _run_one_test(test_key, test_mapping, coordinates)
+        printable = session.note(node_id, error, test_session)
+        if printable is None:
             passed += 1
             if not summary:
                 print(f'{node_id} PASSED')
             continue
 
-        # One failure does not abort the module and does not change the error type.
+        # One failure does not abort the module and does not change the lines.
         failed += 1
         if not summary:
             print(f'{node_id} FAILED')
-            print(error)
+            print(printable)
 
     # The count is the same run. Printing changes. Execution does not.
     print(_count_line(passed, failed))
-    return outcomes
+    return session.report()

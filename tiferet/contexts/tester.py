@@ -5,18 +5,20 @@
 # ** core
 from importlib import import_module
 import inspect
+import json
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import Mock
 
 # ** app
 from .. import a
-from ..assets import TiferetError
+from ..assets import TiferetAPIError, TiferetError
 from ..domain import (
     ModelError,
     TesterObject,
     Verification,
 )
 from ..events import DomainEvent
+from .app import AppSessionContext
 from .core import BaseContext, add_default_cache_items
 from .request import RequestContext
 from .test import TestContext
@@ -94,6 +96,27 @@ def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
 
     # Delegate raw preset storage to the shared cache-seeding factory.
     return add_default_cache_items(presets, TEST_PRESET_CACHE_PREFIX)
+
+# ** function: own_message
+def _own_message(error: ModelError) -> str:
+    '''
+    Read a model error's own message. This is not ``str(error)``.
+
+    :param error: The model defect.
+    :type error: ModelError
+    :return: The message the model carried.
+    :rtype: str
+    '''
+
+    # The serialized payload holds the message. The exception text does not.
+    try:
+        payload = json.loads(str(error))
+    except (TypeError, ValueError):
+        return error.error_code
+    message = payload.get('message')
+    if message:
+        return message
+    return error.error_code
 
 # *** contexts
 
@@ -468,6 +491,11 @@ class TestSessionContext(RequestContext):
         self.verifications = []
         self.outcome = None
 
+        # A module node id is set only by the module run.
+        self.module_node_id = None
+        self.module_status = None
+        self.module_message = None
+
     # * method: given
     def given(self, **state: Any) -> 'TestSessionContext':
         '''
@@ -627,6 +655,147 @@ class TestSessionContext(RequestContext):
         # Consume queued verifications and return the outcome.
         self.evaluate_verifications()
         return outcome
+
+    # * method: handle_response
+    def handle_response(self) -> Any:
+        '''
+        Shape one module outcome, or return the request result.
+
+        A pass has an empty message. The message is not ``str(error)``.
+        When this session has no module node id, the ``@use_tester`` path
+        is unchanged.
+
+        :return: One outcome, or the request result.
+        :rtype: Any
+        '''
+
+        # The Python harness does not set a module node id.
+        if not self.module_node_id:
+            return self.result
+
+        # The module run already chose the status and the message.
+        return {
+            'node_id': self.module_node_id,
+            'status': self.module_status or 'PASSED',
+            'message': '' if self.module_message is None else self.module_message,
+        }
+
+# ** context: module_run_context
+class ModuleRunContext(AppSessionContext):
+    '''
+    Pools one module run and returns the report.
+
+    It omits ``domain_type``, so ``AppSession`` stays mapped to
+    ``AppSessionContext``. It does not run a feature id, and it is not
+    the check service.
+    '''
+
+    # * attribute: outcomes
+    outcomes: List[Dict[str, Any]]
+
+    # * attribute: failures
+    failures: List[Dict[str, Any]]
+
+    # * init
+    def __init__(self,
+            get_dependency: Callable,
+            cache: Any = None,
+            raise_error_handler: Callable = None,
+        ) -> None:
+        '''
+        Initialize a module-run session.
+
+        :param get_dependency: The injected resolver. The reporter does not call it.
+        :type get_dependency: Callable
+        :param cache: The cache seeded with the core error catalog.
+        :type cache: Any
+        :param raise_error_handler: The existing error-raising handler.
+        :type raise_error_handler: Callable
+        :return: None.
+        :rtype: None
+        '''
+
+        # Omit domain_type. Do not register over AppSessionContext.
+        super().__init__(
+            get_dependency=get_dependency,
+            cache=cache,
+            raise_error_handler=raise_error_handler,
+        )
+
+        # The pool starts empty. One failure does not clear it.
+        self.outcomes = []
+        self.failures = []
+
+    # * method: note
+    def note(self,
+            node_id: str,
+            error: BaseException = None,
+            test_session: TestSessionContext = None,
+        ) -> BaseException | None:
+        '''
+        Record one test. A catalogued error is formatted. A model error is not.
+
+        :param node_id: The YAML node id.
+        :type node_id: str
+        :param error: The caught error, or None when the test passed.
+        :type error: BaseException
+        :param test_session: The session that ran the test, when one was built.
+        :type test_session: TestSessionContext
+        :return: The exception to print, or None when the test passed.
+        :rtype: BaseException | None
+        '''
+
+        # A pass has an empty message. A model defect keeps its own message.
+        status = 'PASSED'
+        message = ''
+        printable = None
+        if isinstance(error, ModelError):
+            status = 'FAILED'
+            message = _own_message(error)
+            printable = error
+        elif isinstance(error, TiferetError):
+            status = 'FAILED'
+            try:
+                self._raise_error(error)
+            except TiferetAPIError as api_error:
+                message = api_error.message or ''
+                printable = api_error
+        elif error is not None:
+            raise error
+
+        # handle_response shapes the outcome when a test session exists.
+        if test_session is None:
+            outcome = {
+                'node_id': node_id,
+                'status': status,
+                'message': message,
+            }
+        else:
+            test_session.module_node_id = node_id
+            test_session.module_status = status
+            test_session.module_message = message
+            outcome = test_session.handle_response()
+
+        # Failures are the failed subset, in document order.
+        self.outcomes.append(outcome)
+        if status == 'FAILED':
+            self.failures.append(outcome)
+        return printable
+
+    # * method: report
+    def report(self) -> Dict[str, Any]:
+        '''
+        Return the full report. This is not a domain noun.
+
+        :return: Outcomes in document order, and the failed subset.
+        :rtype: Dict[str, Any]
+        '''
+
+        # The caller prints. This method does not.
+        return {
+            'outcomes': list(self.outcomes),
+            'failures': list(self.failures),
+        }
 
 # ** context: domain_event_tester_context
 class DomainEventTesterContext(TesterContext):
