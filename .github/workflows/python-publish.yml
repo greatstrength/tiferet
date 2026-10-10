@@ -1,50 +1,38 @@
-# Unified workflow: builds and publishes Tiferet to PyPI for both stable
-# releases and pre-releases.  Triggered on any GitHub Release (published).
+# Publishes Tiferet to PyPI when a GitHub Release is published.
+# Tests and the package build check already ran on the pull request
+# and on main. This workflow does not repeat them.
 #
-# - Tests run for every release.
-# - Build validates the version tag, runs twine check, and uploads artifacts.
-# - Publish branches on the pre-release flag to select the correct PyPI
-#   environment ("pypi" for stable, "pypi-pre-release" for alpha/beta).
+# It checks out the release tag, confirms the tag is v plus
+# tiferet.__version__, builds the distribution to upload, and publishes.
+# A release event's default github.sha is the default-branch tip, not
+# the tag, so the tag is checked out explicitly.
+#
+# Stable and pre-release both use the pypi environment and
+# upload.pypi.org, matching the previous publish jobs.
 
-name: Build and Publish Tiferet
+name: Publish Tiferet
 
 on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
-  test:
+  publish:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10"]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install .[test]
-
-      - name: Run tests
-        run: |
-          pytest --verbose
-
-  build:
-    runs-on: ubuntu-latest
-    needs: test
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
     env:
       TIFERET_SILENT_IMPORTS: "1"
     steps:
-      - name: Checkout code
+      - name: Checkout release tag
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -54,75 +42,27 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          pip install build
 
       - name: Extract version from tiferet/__init__.py
         id: get_version
         run: |
           VERSION=$(python -c "from tiferet import __version__; print(__version__)")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Validate version matches release tag
         run: |
-          RELEASE_TAG=${{ github.event.release.tag_name }}
-          PACKAGE_VERSION=${{ steps.get_version.outputs.version }}
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          PACKAGE_VERSION="${{ steps.get_version.outputs.version }}"
           if [ "$RELEASE_TAG" != "v$PACKAGE_VERSION" ]; then
             echo "Error: Release tag ($RELEASE_TAG) does not match package version ($PACKAGE_VERSION)"
             exit 1
           fi
 
       - name: Build package
-        run: |
-          python -m build
-
-      - name: Check package
-        run: |
-          twine check dist/*
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-dist
-          path: dist/
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event.release.prerelease == false
-    environment: pypi
-
-    permissions:
-      id-token: write
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: package-dist
-          path: dist/
+        run: python -m build
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://upload.pypi.org/legacy/
-
-  publish-pre-release:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event.release.prerelease == true
-    environment: pypi
-
-    permissions:
-      id-token: write
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: package-dist
-          path: dist/
-
-      - name: Publish to PyPI (pre-release)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
