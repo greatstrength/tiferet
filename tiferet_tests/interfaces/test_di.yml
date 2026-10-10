@@ -1,0 +1,188 @@
+testers:
+  test_di_service:
+    module_path: &di_module tiferet.interfaces.di
+    class_name: DIService
+    tests:
+      test_contract:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract: &di_contract
+              abstracts: &di_abstracts
+                - registration_exists
+                - get_registration
+                - list_all
+                - save_registration
+                - delete_registration
+                - save_constants
+              methods: &di_methods
+                - name: registration_exists
+                  params: [self, id]
+                - name: get_registration
+                  params: [self, registration_id, flag]
+                  defaults:
+                    flag: null
+                  returns: ServiceRegistrationAggregate
+                - name: list_all
+                  params: [self]
+                - name: save_registration
+                  params: [self, registration]
+                  annotations:
+                    registration: ServiceRegistrationAggregate
+                - name: delete_registration
+                  params: [self, registration_id]
+                - name: save_constants
+                  params: [self, constants]
+                  defaults:
+                    constants: {}
+
+      test_has_registration_exists:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *di_abstracts
+              methods:
+                - name: registration_exists
+                  params: [self, id]
+
+      test_has_get_registration:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *di_abstracts
+              methods:
+                - name: get_registration
+                  params: [self, registration_id, flag]
+                  defaults:
+                    flag: null
+                  returns: ServiceRegistrationAggregate
+
+      test_has_list_all:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *di_abstracts
+              methods:
+                - name: list_all
+                  params: [self]
+
+      test_has_save_registration:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *di_abstracts
+              methods:
+                - name: save_registration
+                  params: [self, registration]
+                  annotations:
+                    registration: ServiceRegistrationAggregate
+
+      test_has_delete_registration:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *di_abstracts
+              methods:
+                - name: delete_registration
+                  params: [self, registration_id]
+
+      test_has_save_constants:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *di_abstracts
+              methods:
+                - name: save_constants
+                  params: [self, constants]
+                  defaults:
+                    constants: {}
+
+      test_methods_are_abstract:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract: *di_contract
+
+      test_drops_configuration_terminology:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract:
+              <<: *di_contract
+              absent:
+                - configuration_exists
+                - get_configuration
+                - save_configuration
+                - delete_configuration
+
+      test_cannot_instantiate:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*di_module]
+            as: loaded
+        assert:
+          - service_contract: *di_contract
