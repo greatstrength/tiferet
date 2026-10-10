@@ -1,58 +1,34 @@
-# Unified workflow: builds and publishes Tiferet to PyPI.
+# Publishes Tiferet when a v* tag is pushed.
+# Proto betas and alphas publish on tag push, not on the GitHub Release
+# event trunk uses. Tests and the package build check already ran on the
+# pull request and on v2.x-proto. This workflow does not repeat them.
 #
-# Trigger:
-#   - Tag push matching 'v*' (e.g. v2.0.0b4, v2.0.0).
-#
-# Flow:
-#   1. test   — runs pytest on 3.10, 3.11, 3.12.
-#   2. build  — validates version/tag match, builds tiferet into
-#               a dist artifact, runs twine check.
-#   3. publish — stable or pre-release publish job, each with a dedicated
-#                GitHub environment mapped 1:1 to a PyPI trusted publisher.
-#
-# Environments (2):
-#   pypi-tiferet             — stable releases of tiferet
-#   pypi-tiferet-pre         — pre-releases of tiferet
+# It confirms the tag is v plus tiferet.__version__, builds the
+# distribution to upload, and publishes. Stable and pre-release both
+# use the pypi environment and upload.pypi.org, matching the previous
+# publish jobs.
 
-name: Build and Publish Tiferet
+name: Publish Tiferet
 
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
-  test:
+  publish:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test]"
-
-      - name: Run tests
-        run: |
-          pytest tests/ tests_int/ --verbose
-
-  build:
-    runs-on: ubuntu-latest
-    needs: test
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
     env:
       TIFERET_SILENT_IMPORTS: "1"
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -63,7 +39,7 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          pip install build
 
       - name: Extract version
         id: get_version
@@ -77,52 +53,17 @@ jobs:
 
       - name: Validate version matches release tag
         run: |
-          TAG=${{ github.ref_name }}
-          TIFERET_VERSION=${{ steps.get_version.outputs.tiferet_version }}
-
+          TAG="${{ github.ref_name }}"
+          TIFERET_VERSION="${{ steps.get_version.outputs.tiferet_version }}"
           if [ "$TAG" != "v$TIFERET_VERSION" ]; then
             echo "Error: Tag ($TAG) does not match tiferet version (v$TIFERET_VERSION)"
             exit 1
           fi
 
-      - name: Build tiferet
-        run: |
-          python -m build --outdir dist/
+      - name: Build package
+        run: python -m build --outdir dist/
 
-      - name: Check package
-        run: |
-          twine check dist/*
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          name: dist-tiferet
-          path: dist/
-
-  # ── tiferet stable ──────────────────────────────────────────
-  publish-tiferet:
-    runs-on: ubuntu-latest
-    needs: build
-    if: ${{ !contains(github.ref_name, 'a') && !contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc') }}
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: dist-tiferet, path: dist/ }
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with: { repository-url: 'https://upload.pypi.org/legacy/' }
-
-  # ── tiferet pre-release ─────────────────────────────────────
-  publish-tiferet-pre:
-    runs-on: ubuntu-latest
-    needs: build
-    if: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: dist-tiferet, path: dist/ }
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with: { repository-url: 'https://upload.pypi.org/legacy/' }
+          repository-url: https://upload.pypi.org/legacy/
