@@ -92,7 +92,9 @@ One test compiles to one `Test`. The execute-phase items are the model's `execut
 
 `TestContext` (`tiferet/contexts/test.py`) extends `FeatureContext` and declares `domain_type = Test` in its own namespace. `Feature` stays mapped to `FeatureContext`: `BaseContext.for_domain(Feature)` is `FeatureContext`.
 
-`PhaseRuntime` (`tiferet/domain/test.py`) is the declared coordinates of one phase run: the class `new` and `handle` use, and the fixture specs. It does not build fixtures, arrange mocks, or touch a session. `PhaseRuntimeContext` declares `domain_type = PhaseRuntime` in its own namespace. `build_phase_runtime` builds that value and calls `BaseContext.from_domain`, so the registry returns `PhaseRuntimeContext`. It does not construct the context by hand, and it does not return the domain value. The tester context stores that callable and exposes `build_phase_runtime`. An absent callable is an unwired handler. The bound model stays immutable. Built fixtures, arranged mocks, and `as` keys are context attributes. A closed-set defect raises `ModelError`. A phase side effect raises `TiferetError`. A failed check raises `AssertionError`.
+`PhaseRuntime` (`tiferet/domain/test.py`) is the declared coordinates of one phase run: the class `new` and `handle` use, and the fixture specs. It does not build fixtures, arrange mocks, or touch a session. `PhaseRuntimeContext` declares `domain_type = PhaseRuntime` in its own namespace. `build_phase_runtime` builds that value and calls `BaseContext.from_domain`, so the registry returns `PhaseRuntimeContext`. It does not construct the context by hand, and it does not return the domain value. The tester context stores that callable and exposes `build_phase_runtime`. An absent callable is an unwired handler. The bound model stays immutable. Built fixtures, arranged mocks, and `as` keys are context attributes. A closed-set defect raises `ModelError`. A phase side effect raises `TiferetError`.
+
+`handle_conditions`, `handle_execution`, and `handle_assertion` stay methods on `PhaseRuntimeContext`. They are not events. `handle_assertion` calls `EvaluateAssertion` for every check except `mapper_contract`, and `ExerciseMapperBases` for that check. Both events take `CheckService`. `Check` (`tiferet/utils/check.py`) implements that interface and returns a mismatch or `None`. The event raises catalogued `PHASE_CHECK_FAILED`. A failed check is not an `AssertionError`. The context imports neither the interface nor the util. The blueprint resolves `Check` from `module_path` `tiferet.utils.check` and `class_name` `Check` and injects the instance. §5.4 is the event call. §5.5 is `raise_error_handler`. §7 keeps the context off the util.
 
 ## Anchors, aliases, and merge
 
@@ -228,7 +230,7 @@ Pytest is an optional extra (`pip install tiferet[test]`) and the runner for `te
 
 ## Module run
 
-`run_test_module` (`tiferet/blueprints/tester.py`) is the module run. It is not a console script, not an admin command, and not exported from `tiferet`. It is not a second function. `summary=True` is the same run: it prints only the count line and returns the same outcomes.
+`run_test_module` (`tiferet/blueprints/tester.py`) is the module run. It is not a console script, not an admin command, and not exported from `tiferet`. It is not a second function. It sequences. It does not become a util, and it does not call `CheckService`. `summary=True` is the same run: it prints only the count line and returns the same report.
 
 The argument is the filesystem path of a Python test module. The entry reads `tests/<rel>.py` and `tiferet_tests/<rel>.yml`. It reads the Python path to prove the file exists and to derive `<rel>`. It does not import the Python module and does not call its tests. The YAML document is loaded through `YamlLoader.load` / `yaml.safe_load`. Extension is `.yml` only. A missing Python file raises `ValueError` before the YAML load. A missing YAML file raises the existing YAML not-found error. `conftest.py`, `__init__.py`, a path under `tests_int/`, a file not named `test_*.py`, a YAML path passed as the input, and a `variables:` root are refused before any test line.
 
@@ -242,7 +244,9 @@ The report uses YAML node ids. A root test is `tiferet_tests/<rel>.yml::<test_ke
 
 A pytest plugin may call this entry with the Python module's filesystem path. It must not collect YAML instead of Python, must not skip a Python module because a counterpart exists, and must not hide a Python node id. This entry does not register a plugin, does not add a `pytest11` entry point, and does not import pytest. `testpaths` stays `["tests", "tests_int"]`.
 
-A model defect is a `ModelError`. A failed run is a `TiferetError`. A failed check is an `AssertionError`. The runner records the error it caught. It does not turn one into the other.
+`ModuleRunContext` pools the report. It extends `AppSessionContext` and omits `domain_type`, so `AppSession` stays mapped to `AppSessionContext`. It does not call `AppSessionContext.run`. A catalogued `TiferetError` goes through `raise_error_handler`; the session catches the `TiferetAPIError` and records the outcome. A `ModelError` is a failed test with its own message and is not wrapped as `APP_ERROR`. A `ServiceError` propagates. `TestSessionContext.handle_response` shapes one outcome: `node_id`, `status`, and `message`. `message` is not `str(error)`. A pass has an empty message. When the session has no module node id, `handle_response` still returns `self.result`.
+
+The return is the report: `outcomes` in document order, and `failures`, the failed subset in that same order. One failed test does not abort the module. The printer lines are unchanged: the node id, then `PASSED` or `FAILED`, then the exception text, then the count. The count line stays `N passed`, `N failed`, or `N failed, M passed`. No banner. No duration. No third status.
 
 ## The writer
 
