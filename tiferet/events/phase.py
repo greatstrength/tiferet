@@ -873,13 +873,13 @@ def _evaluate_check(assertion: Any,
 
 # *** events
 
-# ** event: exercise_mapper_bases
-class ExerciseMapperBases(DomainEvent):
+# ** event: check_event
+class CheckEvent(DomainEvent):
     '''
-    Runs the mapper protocol through a check and raises the catalogued failure.
+    Holds the shared check for one phase verification.
 
-    The event constructs the domain source the protocol copies. It does not
-    import mappers, and it does not keep the old contract runner.
+    Concrete events extend this base and define only execute. The check
+    answers the comparison. The event raises the catalogued failure.
     '''
 
     # * attribute: check_service
@@ -890,14 +890,23 @@ class ExerciseMapperBases(DomainEvent):
         '''
         Initialize the event with the check it calls during this check.
 
-        :param check_service: The check that runs the mapper protocol.
+        :param check_service: The check that compares values.
         :type check_service: CheckService
         :return: None.
         :rtype: None
         '''
 
-        # Store the check. This event has no other service.
+        # Store the check. This base has no other service.
         self.check_service = check_service
+
+# ** event: exercise_mapper_bases
+class ExerciseMapperBases(CheckEvent):
+    '''
+    Runs the mapper protocol through a check and raises the catalogued failure.
+
+    The event constructs the domain source the protocol copies. It does not
+    import mappers, and it does not keep the old contract runner.
+    '''
 
     # * method: execute
     def execute(self, exclude: list = None, **kwargs) -> None:
@@ -939,30 +948,13 @@ class ExerciseMapperBases(DomainEvent):
         return None
 
 # ** event: evaluate_assertion
-class EvaluateAssertion(DomainEvent):
+class EvaluateAssertion(CheckEvent):
     '''
     Evaluates one assertion through a check and raises the catalogued failure.
 
     It is the one event a phase method calls for every check except the mapper
     protocol. It is not a handler, and it is not one event per check name.
     '''
-
-    # * attribute: check_service
-    check_service: CheckService
-
-    # * init
-    def __init__(self, check_service: CheckService) -> None:
-        '''
-        Initialize the event with the check it calls during this check.
-
-        :param check_service: The check that compares values.
-        :type check_service: CheckService
-        :return: None.
-        :rtype: None
-        '''
-
-        # Store the check. This event has no other service.
-        self.check_service = check_service
 
     # * method: execute
     def execute(self, assertion: Any, values: Dict[str, Any] = None, **kwargs) -> Any:

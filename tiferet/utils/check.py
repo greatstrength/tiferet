@@ -44,9 +44,9 @@ def _reject_call(service: Any, message: str) -> None:
         message=message,
     )
 
-# *** classes
+# *** utils
 
-# ** class: check
+# ** util: check
 class Check(CheckService):
     '''
     Compares values during one check and returns a mismatch or ``None``.
