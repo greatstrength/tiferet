@@ -234,20 +234,10 @@ tests:
       mocks:
         async_event:
           module_path: *events_core
-          class_name: *domain_event
+          class_name: AsyncDomainEvent
+          return_value:
+            execute: async_result
     execute:
-      - target:
-          module_path: asyncio
-          attribute: sleep
-        method: sleep
-        args: [0]
-        kwargs:
-          result: async_result
-        as: pending
-      - target: $mock.async_event
-        method: configure_mock
-        kwargs:
-          execute.return_value: $r.pending
       - target: $mock.async_event
         method: execute
         as: returned_coro
@@ -257,6 +247,14 @@ tests:
         method: run_coroutine
         args: [$r.returned_coro]
         as: returned
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$mock.async_event, execute]
+        as: execute_mock
+      - target: $r.execute_mock
+        method: assert_called_once_with
     assert:
       - outcome: returned
         equals: async_result
