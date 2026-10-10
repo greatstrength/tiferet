@@ -735,6 +735,21 @@ class Assertion(DomainObject):
         description='The middleware chain shape a middleware_chain check runs.',
     )
 
+    # * method: value_fields
+    def value_fields(self) -> Tuple[str, ...]:
+        '''
+        Name the fields this check reads.
+
+        The names are data on the assertion. A runtime reference is not
+        resolved here.
+
+        :return: The field names this check reads.
+        :rtype: Tuple[str, ...]
+        '''
+
+        # The closed set already names which fields this check may read.
+        return ASSERTION_CHECK_FIELDS[self.check]['allowed']
+
     # * method: _reject_closed_set (model validator)
     @model_validator(mode='before')
     @classmethod

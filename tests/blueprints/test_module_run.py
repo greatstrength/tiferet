@@ -10,7 +10,6 @@ from pathlib import Path
 import pytest
 
 # ** app
-from tiferet.assets import TiferetError
 from tiferet.blueprints import tester as tester_blueprints
 from tiferet.blueprints.tester import (
     build_test_session,
@@ -22,7 +21,7 @@ from tiferet.contexts.feature import FeatureContext
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.test import PhaseRuntime, PhaseRuntimeContext, TestContext
 from tiferet.contexts.tester import TestSessionContext
-from tiferet.domain import Feature, ModelError, Request, Test, TesterObject
+from tiferet.domain import Feature, Request, Test, TesterObject
 from tiferet.domain.error import ErrorMessage
 from tiferet.interfaces.core import ServiceError
 from tiferet.utils.yaml import YAML_FILE_NOT_FOUND_ID
@@ -76,11 +75,13 @@ def test_proof_run_prints_yaml_node_ids(capsys) -> None:
 
     # Capture the bytes so the run can be shown not to write.
     before = PROOF_YAML.read_bytes()
-    outcomes = run_test_module(PROOF_PATH)
+    report = run_test_module(PROOF_PATH)
+    outcomes = report['outcomes']
     printed = capsys.readouterr().out.splitlines()
 
     # The node ids are YAML ids, in document order, then the count.
     assert printed == list(PASSED_LINES)
+    assert report['failures'] == []
     assert [item['node_id'] for item in outcomes] == [
         'tiferet_tests/domain/test_error.yml::error_message_format',
         'tiferet_tests/domain/test_error.yml::test_error::construction_derives_error_code',
@@ -92,12 +93,12 @@ def test_proof_run_prints_yaml_node_ids(capsys) -> None:
 def test_summary_prints_only_the_count(capsys) -> None:
     '''summary=True is the same run and prints only the count.'''
 
-    outcomes = run_test_module(PROOF_PATH, summary=True)
+    report = run_test_module(PROOF_PATH, summary=True)
     printed = capsys.readouterr().out.splitlines()
 
-    # Printing changes. The outcomes do not.
+    # Printing changes. The report does not.
     assert printed == ['2 passed']
-    assert [item['status'] for item in outcomes] == ['PASSED', 'PASSED']
+    assert [item['status'] for item in report['outcomes']] == ['PASSED', 'PASSED']
     assert not hasattr(tester_blueprints, 'summarize_test_module')
 
 # ** test: session_uses_test_context
@@ -218,13 +219,15 @@ tests:
         equals: kept
 '''
     python_path = _write_pair(tmp_path, 'domain/test_model', document)
-    outcomes = run_test_module(str(python_path))
+    report = run_test_module(str(python_path))
+    outcomes = report['outcomes']
     printed = capsys.readouterr().out
 
-    # The model error is not wrapped, and the other test still passes.
+    # The model error is not wrapped as APP_ERROR, and the other test still passes.
     assert outcomes[0]['status'] == 'FAILED'
-    assert isinstance(outcomes[0]['error'], ModelError)
-    assert not isinstance(outcomes[0]['error'], TiferetError)
+    assert 'APP_ERROR' not in outcomes[0]['message']
+    assert 'APP_ERROR' not in printed
+    assert report['failures'] == [outcomes[0]]
     assert outcomes[1]['status'] == 'PASSED'
     assert 'FAILED' in printed
     assert 'PASSED' in printed
@@ -265,12 +268,13 @@ tests:
         equals: kept
 '''
     python_path = _write_pair(tmp_path, 'domain/test_run', document)
-    outcomes = run_test_module(str(python_path))
+    report = run_test_module(str(python_path))
+    outcomes = report['outcomes']
     printed = capsys.readouterr().out
 
-    # The run error stays a TiferetError.
-    assert isinstance(outcomes[0]['error'], TiferetError)
-    assert not isinstance(outcomes[0]['error'], ModelError)
+    # The run error is recorded. It is not an APP_ERROR, and the module continues.
+    assert outcomes[0]['status'] == 'FAILED'
+    assert 'APP_ERROR' not in outcomes[0]['message']
     assert outcomes[1]['status'] == 'PASSED'
     assert printed.rstrip().endswith('1 failed, 1 passed')
 
@@ -309,15 +313,19 @@ tests:
         equals: kept
 '''
     python_path = _write_pair(tmp_path, 'domain/test_assert', document)
-    outcomes = run_test_module(str(python_path))
+    report = run_test_module(str(python_path))
+    outcomes = report['outcomes']
     printed = capsys.readouterr().out
 
     # The call does not raise. The temporary pair is outside tests/.
     assert outcomes[0]['status'] == 'FAILED'
     assert outcomes[1]['status'] == 'PASSED'
+    assert report['failures'] == [outcomes[0]]
     assert 'FAILED' in printed
     assert 'PASSED' in printed
     assert 'other' in printed
+    assert '===' not in printed
+    assert 'duration' not in printed
     assert printed.index('FAILED') < printed.index('PASSED')
     assert printed.rstrip().endswith('1 failed, 1 passed')
     assert not (Path('tests') / 'domain' / 'test_assert.py').exists()

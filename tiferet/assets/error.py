@@ -87,6 +87,9 @@ PHASE_HANDLER_MISMATCH_ID = 'PHASE_HANDLER_MISMATCH'
 # ** constant: phase_step_failed_id
 PHASE_STEP_FAILED_ID = 'PHASE_STEP_FAILED'
 
+# ** constant: phase_check_failed_id
+PHASE_CHECK_FAILED_ID = 'PHASE_CHECK_FAILED'
+
 # *** constants (ids_admin)
 
 # ** constant: cli_command_already_exists_id
@@ -256,6 +259,12 @@ PHASE_STEP_FAILED_DATA = create_default_error_data(
     [(EN_US, 'Phase step failed: {detail}.')],
 )
 
+# ** constant: phase_check_failed_data
+PHASE_CHECK_FAILED_DATA = create_default_error_data(
+    'Phase Check Failed',
+    [(EN_US, 'Phase check {check} failed: {detail}.')],
+)
+
 # *** constants (models_admin)
 
 # ** constant: cli_command_already_exists_data
@@ -361,6 +370,7 @@ CORE_DEFAULT_ERRORS = {
     PHASE_REFERENCE_NOT_FOUND_ID: PHASE_REFERENCE_NOT_FOUND_DATA,
     PHASE_HANDLER_MISMATCH_ID: PHASE_HANDLER_MISMATCH_DATA,
     PHASE_STEP_FAILED_ID: PHASE_STEP_FAILED_DATA,
+    PHASE_CHECK_FAILED_ID: PHASE_CHECK_FAILED_DATA,
 }
 
 # ** constant: admin_default_errors

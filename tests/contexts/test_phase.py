@@ -493,8 +493,9 @@ def test_raises_stores_the_exception():
             ),
         ],
     )
-    with pytest.raises(AssertionError):
+    with pytest.raises(TiferetError) as caught:
         runtime.run(quiet)
+    assert caught.value.error_code == 'PHASE_STEP_FAILED'
 
 # ** test: error_format_with_kwargs
 def test_error_format_with_kwargs():
