@@ -1,0 +1,1000 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+  app_interface: &app_interface
+    module_path: &app_mapper tiferet.mappers.app
+    class_name: AppSessionAggregate
+    attributes: &app_attrs
+      id: &app_id test
+      name: Test App
+      description: The test app.
+      flags: [test]
+      services:
+        - service_id: test_service
+          module_path: test_module_path
+          class_name: test_class_name
+  app_interface_params: &app_interface_params
+    <<: *app_interface
+    attributes:
+      id: *app_id
+      name: Test App
+      description: The test app.
+      flags: [test]
+      services:
+        - service_id: test_service
+          module_path: test_module_path
+          class_name: test_class_name
+          parameters:
+            keep: value
+            override: old
+            remove: to_be_removed
+  app_interface_constants: &app_interface_constants
+    <<: *app_interface
+    attributes:
+      id: *app_id
+      name: Test App
+      description: The test app.
+      flags: [test]
+      services:
+        - service_id: test_service
+          module_path: test_module_path
+          class_name: test_class_name
+      constants:
+        KEEP: keep_value
+        OVERRIDE: old
+        REMOVE: to_be_removed
+  app_interface_existing_constants: &app_interface_existing_constants
+    <<: *app_interface
+    attributes:
+      id: *app_id
+      name: Test App
+      flags: [test]
+      constants:
+        EXISTING: value
+        OTHER: other_value
+  other_interface: &other_interface
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: other
+      name: Other App
+  plain_session: &plain_session
+    module_path: tiferet.domain.app
+    class_name: AppSession
+    attributes:
+      id: test.interface
+      name: Test Interface
+  unread_index: &unread_index
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: unread
+
+testers:
+  test_app_event:
+    module_path: &app_events tiferet.events.app
+    class_name: AppEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            app_service: &app_service
+              module_path: tiferet.interfaces
+              class_name: AppService
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_add_app_session:
+    module_path: *app_events
+    class_name: AddAppSession
+    tests:
+      minimal_success:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.interface
+              name: Test Interface
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.app
+              class_name: AppSession
+          - outcome: created
+            fields:
+              id: test.interface
+              name: Test Interface
+              description: null
+              logger_id: default
+              flags: [default]
+              services: []
+              constants: {}
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+      full_parameters:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.interface
+              name: Test Interface
+              description: A test app interface.
+              logger_id: test_logger
+              flags: [test_feature, test_data]
+              services:
+                - service_id: svc1
+                  module_path: test.module
+                  class_name: TestClass
+                  parameters:
+                    foo: bar
+              constants:
+                CONST_KEY: VALUE
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              id: test.interface
+              description: A test app interface.
+              logger_id: test_logger
+              flags: [test_feature, test_data]
+              constants:
+                CONST_KEY: VALUE
+              services:
+                - service_id: svc1
+                  module_path: test.module
+                  class_name: TestClass
+                  parameters:
+                    foo: bar
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+      default_fallbacks:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.interface
+              name: Test Interface
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              logger_id: default
+              flags: [default]
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+      none_arguments_coerced:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.interface
+              name: Test Interface
+              logger_id: null
+              flags: null
+              services: null
+              constants: null
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              logger_id: default
+              flags: [default]
+              services: []
+              constants: {}
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+      missing_required_params:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              name: Test Interface
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: test.interface
+              name: null
+            raises: true
+            as: missing_name
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_id
+            message: id
+          - outcome: missing_name
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_name
+            message: name
+
+  test_get_app_session:
+    module_path: *app_events
+    class_name: GetAppSession
+    fixtures:
+      app_interface: *app_interface
+      plain_session: *plain_session
+    tests:
+      success:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+            as: found
+        assert:
+          - outcome: found
+            equals: $fixture.app_interface
+      returns_domain_object_without_rewrap:
+        conditions:
+          fixtures: [plain_session]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.plain_session
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.interface
+            as: found
+        assert:
+          - outcome: found
+            equals: $fixture.plain_session
+          - mock: app_service
+            method: get
+            assert_called_once_with:
+              args: [test.interface]
+      missing_required_params:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+      not_found:
+        conditions:
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: non_existent_id
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: APP_SESSION_NOT_FOUND
+
+  test_list_app_sessions:
+    module_path: *app_events
+    class_name: ListAppSessions
+    fixtures:
+      app_interface: *app_interface
+      other_interface: *other_interface
+    tests:
+      empty:
+        conditions:
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                list: []
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals: []
+          - mock: app_service
+            method: list
+            assert_called_once_with:
+              args: []
+      multiple:
+        conditions:
+          fixtures: [app_interface, other_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                list:
+                  - $fixture.app_interface
+                  - $fixture.other_interface
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals:
+              - $fixture.app_interface
+              - $fixture.other_interface
+          - mock: app_service
+            method: list
+            assert_called_once_with:
+              args: []
+
+  test_set_service_dependency:
+    module_path: *app_events
+    class_name: SetServiceDependency
+    fixtures:
+      app_interface: *app_interface
+      app_interface_params: *app_interface_params
+    tests:
+      creates_new_service:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              service_id: new_dependency
+              module_path: new.module.path
+              class_name: NewClass
+              parameters:
+                param1: value1
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *app_id
+          - outcome: app_interface
+            fields:
+              services:
+                - service_id: test_service
+                  module_path: test_module_path
+                  class_name: test_class_name
+                - service_id: new_dependency
+                  module_path: new.module.path
+                  class_name: NewClass
+                  parameters:
+                    param1: value1
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.app_interface]
+      updates_existing_and_merges_parameters:
+        conditions:
+          fixtures: [app_interface_params]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface_params
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              service_id: test_service
+              module_path: updated.module.path
+              class_name: UpdatedClass
+              parameters:
+                override: new
+                remove: null
+                new_param: new_value
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *app_id
+          - outcome: app_interface_params
+            fields:
+              services:
+                - service_id: test_service
+                  module_path: updated.module.path
+                  class_name: UpdatedClass
+                  parameters:
+                    keep: value
+                    override: new
+                    new_param: new_value
+      parameters_none_clears_existing:
+        conditions:
+          fixtures: [app_interface_params]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface_params
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              service_id: test_service
+              module_path: tiferet.contexts.app
+              class_name: AppContext
+              parameters: null
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *app_id
+          - outcome: app_interface_params
+            fields:
+              services:
+                - service_id: test_service
+                  parameters: {}
+      missing_required_params:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              service_id: dep
+              module_path: tiferet.contexts.app
+              class_name: AppContext
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              service_id: null
+              module_path: tiferet.contexts.app
+              class_name: AppContext
+            raises: true
+            as: missing_service_id
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_id
+            message: id
+          - outcome: missing_service_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_service_id
+            message: service_id
+      not_found:
+        conditions:
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.interface
+              service_id: dep
+              module_path: tiferet.contexts.app
+              class_name: AppContext
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: APP_SESSION_NOT_FOUND
+
+  test_update_app_session:
+    module_path: *app_events
+    class_name: UpdateAppSession
+    fixtures:
+      app_interface: *app_interface
+    tests:
+      success_name:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              attribute: name
+              value: Updated Name
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *app_id
+          - outcome: app_interface
+            fields:
+              name: Updated Name
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.app_interface]
+      success_description:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              attribute: description
+              value: Updated description
+            as: updated
+        assert:
+          - outcome: app_interface
+            fields:
+              description: Updated description
+      success_logger_id:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              attribute: logger_id
+              value: updated_logger
+            as: updated
+        assert:
+          - outcome: app_interface
+            fields:
+              logger_id: updated_logger
+      success_flags:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              attribute: flags
+              value: [updated_flags]
+            as: updated
+        assert:
+          - outcome: app_interface
+            fields:
+              flags: [updated_flags]
+      invalid_attribute_raises_model_error:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              attribute: invalid_attribute
+              value: value
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: failed
+            error_code: ATTRIBUTE_NOT_SETTABLE
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              times: 0
+      model_error_is_not_a_domain_error:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              attribute: invalid_attribute
+              value: value
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      missing_required_params:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              attribute: name
+              value: Updated Name
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              attribute: null
+              value: Updated Name
+            raises: true
+            as: missing_attribute
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_id
+            message: id
+          - outcome: missing_attribute
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_attribute
+            message: attribute
+      not_found:
+        conditions:
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.interface
+              attribute: name
+              value: Updated Name
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: APP_SESSION_NOT_FOUND
+
+  test_set_app_constants:
+    module_path: *app_events
+    class_name: SetAppConstants
+    fixtures:
+      app_interface: *app_interface
+      app_interface_existing_constants: *app_interface_existing_constants
+      app_interface_constants: *app_interface_constants
+    tests:
+      full_clear:
+        conditions:
+          fixtures: [app_interface_existing_constants]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface_existing_constants
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              constants: null
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *app_id
+          - outcome: app_interface_existing_constants
+            fields:
+              constants: {}
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.app_interface_existing_constants]
+      merge_override_and_remove:
+        conditions:
+          fixtures: [app_interface_constants]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface_constants
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              constants:
+                OVERRIDE: new
+                REMOVE: null
+                ADD: added
+            as: updated
+        assert:
+          - outcome: app_interface_constants
+            fields:
+              constants:
+                KEEP: keep_value
+                OVERRIDE: new
+                ADD: added
+      add_new_constants:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              constants:
+                NEW_ONE: one
+                NEW_TWO: two
+            as: updated
+        assert:
+          - outcome: app_interface
+            fields:
+              constants:
+                NEW_ONE: one
+                NEW_TWO: two
+      missing_required_params:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              constants:
+                KEY: VALUE
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+      not_found:
+        conditions:
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.interface
+              constants:
+                KEY: VALUE
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: APP_SESSION_NOT_FOUND
+
+  test_remove_service_dependency:
+    module_path: *app_events
+    class_name: RemoveServiceDependency
+    fixtures:
+      app_interface: *app_interface
+    tests:
+      removes_existing:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              service_id: test_service
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *app_id
+          - outcome: app_interface
+            fields:
+              services: []
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.app_interface]
+      missing_service_is_idempotent:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: $fixture.app_interface
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              service_id: missing_service
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *app_id
+          - outcome: app_interface
+            fields:
+              services:
+                - service_id: test_service
+          - mock: app_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.app_interface]
+      missing_required_params:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              service_id: test_service
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: *app_id
+              service_id: null
+            raises: true
+            as: missing_service_id
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_service_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_service_id
+            message: service_id
+      not_found:
+        conditions:
+          mocks:
+            app_service:
+              <<: *app_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.interface
+              service_id: dep
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: APP_SESSION_NOT_FOUND
+
+  test_remove_app_session:
+    module_path: *app_events
+    class_name: RemoveAppSession
+    tests:
+      success_existing:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: existing.interface
+            as: removed
+        assert:
+          - outcome: removed
+            equals: existing.interface
+          - mock: app_service
+            method: delete
+            assert_called_once_with:
+              args: [existing.interface]
+      success_missing_is_idempotent:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing.interface
+            as: removed
+        assert:
+          - outcome: removed
+            equals: missing.interface
+          - mock: app_service
+            method: delete
+            assert_called_once_with:
+              args: [missing.interface]
+      missing_required_params:
+        conditions:
+          mocks:
+            app_service: *app_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id

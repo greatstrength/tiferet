@@ -1,0 +1,835 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+  service_registration: &service_registration
+    module_path: tiferet.mappers.di
+    class_name: ServiceRegistrationAggregate
+    attributes:
+      id: &registration_id svc_test
+      module_path: tiferet.repos.example
+      class_name: ExampleRepository
+      parameters:
+        param_1: value_1
+      dependencies:
+        - module_path: tiferet.repos.example
+          class_name: ExampleRepository
+          flag: test_alpha
+          parameters:
+            test_param: test_value
+            param: value1
+  only_deps: &only_deps
+    module_path: tiferet.mappers.di
+    class_name: ServiceRegistrationAggregate
+    attributes:
+      id: svc_only_deps
+      parameters: {}
+      dependencies:
+        - module_path: tiferet.repos.example
+          class_name: ExampleRepository
+          flag: test_alpha
+          parameters:
+            test_param: test_value
+            param: value1
+
+testers:
+  test_di_event:
+    module_path: &di_events tiferet.events.di
+    class_name: DIEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            di_service: &di_service
+              module_path: tiferet.interfaces.di
+              class_name: DIService
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_add_service_registration:
+    module_path: *di_events
+    class_name: AddServiceRegistration
+    tests:
+      default_type_only:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                registration_exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: svc_new
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+              parameters:
+                param: value
+              flagged_dependencies: []
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.di
+              class_name: ServiceRegistration
+          - outcome: created
+            fields:
+              id: svc_new
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+              parameters:
+                param: value
+              dependencies: []
+          - mock: di_service
+            method: registration_exists
+            assert_called_once_with:
+              args: [svc_new]
+          - mock: di_service
+            method: save_registration
+            assert_called_once_with:
+              args: [$r.created]
+      dependencies_only:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                registration_exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: svc_new
+              module_path: null
+              class_name: null
+              parameters: {}
+              flagged_dependencies:
+                - module_path: tiferet.repos.example
+                  class_name: ExampleRepository
+                  flag: alpha
+                  parameters:
+                    flag_param: x
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              id: svc_new
+              module_path: null
+              class_name: null
+              dependencies:
+                - flag: alpha
+                  module_path: tiferet.repos.example
+      default_and_dependencies:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                registration_exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: svc_new
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+              parameters:
+                param: value
+              flagged_dependencies:
+                - module_path: tiferet.repos.example
+                  class_name: ExampleRepository
+                  flag: beta
+                  parameters:
+                    flag_param: y
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+              dependencies:
+                - flag: beta
+      duplicate_id:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                registration_exists: true
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: svc_new
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SERVICE_REGISTRATION_ALREADY_EXISTS
+      no_type_source:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                registration_exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: svc_new
+              module_path: null
+              class_name: null
+              flagged_dependencies: []
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_SERVICE_REGISTRATION
+      missing_required_params:
+        conditions:
+          mocks:
+            di_service: *di_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+
+  test_set_default_service_registration:
+    module_path: *di_events
+    class_name: SetDefaultServiceRegistration
+    fixtures:
+      service_registration: *service_registration
+    tests:
+      full_update:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              module_path: new.module
+              class_name: NewClass
+              parameters:
+                param: value
+            as: updated
+        assert:
+          - outcome: updated
+            equals: $fixture.service_registration
+          - outcome: service_registration
+            fields:
+              module_path: new.module
+              class_name: NewClass
+              parameters:
+                param: value
+          - mock: di_service
+            method: save_registration
+            assert_called_once_with:
+              args: [$r.updated]
+      parameters_only:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              module_path: null
+              class_name: null
+              parameters:
+                param_1: updated
+                drop: null
+            as: updated
+        assert:
+          - outcome: service_registration
+            fields:
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+              parameters:
+                param_1: updated
+      clear_parameters:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              module_path: null
+              class_name: null
+              parameters: null
+            as: updated
+        assert:
+          - outcome: service_registration
+            fields:
+              parameters: {}
+              module_path: tiferet.repos.example
+      incomplete_type:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              module_path: new.module
+              class_name: null
+              parameters:
+                param: value
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_SERVICE_REGISTRATION
+      not_found:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing
+              module_path: mod
+              class_name: Cls
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SERVICE_REGISTRATION_NOT_FOUND
+
+  test_set_service_dependency:
+    module_path: *di_events
+    class_name: SetServiceDependency
+    fixtures:
+      service_registration: *service_registration
+    tests:
+      add_new:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              flag: alpha
+              module_path: tiferet.repos.example
+              class_name: ExampleAlpha
+              parameters:
+                param: value
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *registration_id
+          - outcome: service_registration
+            fields:
+              dependencies:
+                - flag: test_alpha
+                - flag: alpha
+                  module_path: tiferet.repos.example
+                  class_name: ExampleAlpha
+                  parameters:
+                    param: value
+          - mock: di_service
+            method: save_registration
+            assert_called_once_with:
+              args: [$fixture.service_registration]
+      update_existing:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              flag: test_alpha
+              module_path: tiferet.repos.updated
+              class_name: UpdatedAlpha
+              parameters:
+                test_param: updated
+                extra: null
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *registration_id
+          - outcome: service_registration
+            fields:
+              dependencies:
+                - flag: test_alpha
+                  module_path: tiferet.repos.updated
+                  class_name: UpdatedAlpha
+                  parameters:
+                    test_param: updated
+                    param: value1
+      incomplete_type:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              flag: alpha
+              module_path: tiferet.repos.example
+              class_name: ''
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_FLAGGED_DEPENDENCY
+      not_found:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing
+              flag: alpha
+              module_path: tiferet.repos.example
+              class_name: ExampleAlpha
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SERVICE_REGISTRATION_NOT_FOUND
+      missing_required_params:
+        conditions:
+          mocks:
+            di_service: *di_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              flag: null
+              module_path: tiferet.repos.example
+              class_name: ExampleAlpha
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: flag
+
+  test_remove_service_dependency:
+    module_path: *di_events
+    class_name: RemoveServiceDependency
+    fixtures:
+      service_registration: *service_registration
+      only_deps: *only_deps
+    tests:
+      success_with_remaining_default:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              flag: test_alpha
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *registration_id
+          - outcome: service_registration
+            fields:
+              dependencies: []
+              module_path: tiferet.repos.example
+              class_name: ExampleRepository
+          - mock: di_service
+            method: save_registration
+            assert_called_once_with:
+              args: [$fixture.service_registration]
+      nonexistent_flag:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.service_registration
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              flag: non_existent_flag
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *registration_id
+          - outcome: service_registration
+            fields:
+              module_path: tiferet.repos.example
+              dependencies:
+                - flag: test_alpha
+      invalid_after_removal:
+        conditions:
+          fixtures: [only_deps]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: $fixture.only_deps
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: svc_only_deps
+              flag: test_alpha
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_SERVICE_REGISTRATION
+      not_found:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                get_registration: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing_attr
+              flag: alpha
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: SERVICE_REGISTRATION_NOT_FOUND
+      missing_required_params:
+        conditions:
+          mocks:
+            di_service: *di_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *registration_id
+              flag: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: flag
+
+  test_remove_service_registration:
+    module_path: *di_events
+    class_name: RemoveServiceRegistration
+    tests:
+      existing:
+        conditions:
+          mocks:
+            di_service: *di_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: svc_to_delete
+            as: removed
+        assert:
+          - outcome: removed
+            equals: svc_to_delete
+          - mock: di_service
+            method: delete_registration
+            assert_called_once_with:
+              args: [svc_to_delete]
+      nonexistent_is_idempotent:
+        conditions:
+          mocks:
+            di_service: *di_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: missing_id
+            as: removed
+        assert:
+          - outcome: removed
+            equals: missing_id
+          - mock: di_service
+            method: delete_registration
+            assert_called_once_with:
+              args: [missing_id]
+      missing_required_params:
+        conditions:
+          mocks:
+            di_service: *di_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+
+  test_set_service_constants:
+    module_path: *di_events
+    class_name: SetServiceConstants
+    tests:
+      clear_all_with_none:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all: [[], {existing: old}]
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              constants: null
+            as: updated
+        assert:
+          - outcome: updated
+            equals: {}
+          - mock: di_service
+            method: save_constants
+            assert_called_once_with:
+              args: [{}]
+      partial_removal:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all:
+                  - []
+                  - keep: value
+                    remove: to_delete
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              constants:
+                remove: null
+            as: updated
+        assert:
+          - outcome: updated
+            equals:
+              keep: value
+          - mock: di_service
+            method: save_constants
+            assert_called_once_with:
+              args:
+                - keep: value
+      add_new:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all: [[], {existing: old}]
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              constants:
+                new: value
+            as: updated
+        assert:
+          - outcome: updated
+            equals:
+              existing: old
+              new: value
+      update_existing:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all: [[], {existing: old}]
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              constants:
+                existing: new
+            as: updated
+        assert:
+          - outcome: updated
+            equals:
+              existing: new
+      mixed_operations:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all:
+                  - []
+                  - keep: value
+                    remove: to_delete
+                    update: old
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              constants:
+                remove: null
+                update: new
+                add: added
+            as: updated
+        assert:
+          - outcome: updated
+            equals:
+              keep: value
+              update: new
+              add: added
+          - mock: di_service
+            method: save_constants
+            assert_called_once_with:
+              args:
+                - keep: value
+                  update: new
+                  add: added
+      empty_dict:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all: [[], {existing: old}]
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              constants: {}
+            as: updated
+        assert:
+          - outcome: updated
+            equals:
+              existing: old
+      omitted_is_noop:
+        conditions:
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all: [[], {existing: old}]
+        execute:
+          - target: self
+            method: handle
+            as: updated
+        assert:
+          - outcome: updated
+            equals:
+              existing: old
+          - mock: di_service
+            method: save_constants
+            assert_called_once_with:
+              args:
+                - existing: old
+
+  test_list_all_settings:
+    module_path: *di_events
+    class_name: ListAllSettings
+    fixtures:
+      service_registration: *service_registration
+    tests:
+      calls_list_all:
+        conditions:
+          fixtures: [service_registration]
+          mocks:
+            di_service:
+              <<: *di_service
+              return_value:
+                list_all:
+                  - [$fixture.service_registration]
+                  - constant_1: value
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals:
+              - [$fixture.service_registration]
+              - constant_1: value
+          - mock: di_service
+            method: list_all
+            assert_called_once_with:
+              args: []

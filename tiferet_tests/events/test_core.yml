@@ -1,0 +1,431 @@
+fixtures:
+  event: &event
+    module_path: &events_core tiferet.events.core
+    class_name: &domain_event DomainEvent
+    attributes: {}
+  async_event:
+    module_path: *events_core
+    class_name: AsyncDomainEvent
+    attributes: {}
+
+tests:
+  execute_not_implemented:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: execute
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type:
+          module_path: builtins
+          class_name: NotImplementedError
+
+  raise_error_basic:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: raise_error
+        args: [TEST_ERROR, An error has occurred.]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type:
+          module_path: tiferet.assets.core
+          class_name: TiferetError
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: An error has occurred.
+
+  raise_error_with_args:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: raise_error
+        args: [TEST_ERROR, An error has occurred.]
+        kwargs:
+          arg1: arg1
+          arg2: arg2
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: An error has occurred.
+      - outcome: failed
+        fields:
+          kwargs:
+            arg1: arg1
+            arg2: arg2
+
+  verify_success:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, Test message]
+        as: verified
+    assert:
+      - outcome: verified
+        "null": true
+
+  verify_failure:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [false, TEST_ERROR, Test message]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: Test message
+
+  handle_command:
+    conditions:
+      mocks:
+        command_instance:
+          module_path: *events_core
+          class_name: *domain_event
+          return_value:
+            execute: result
+        command:
+          module_path: *events_core
+          class_name: *domain_event
+    execute:
+      - target: $mock.command
+        method: configure_mock
+        kwargs:
+          return_value: $mock.command_instance
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [*events_core]
+        as: events_module
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.events_module, *domain_event]
+        as: event_cls
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.event_cls, handle]
+        as: handle_fn
+      - target: $r.handle_fn
+        method: __call__
+        args: [$mock.command]
+        kwargs:
+          dependencies:
+            dep: value
+          arg: test
+        as: handled
+      - target: $mock.command
+        method: assert_called_once_with
+        kwargs:
+          dep: value
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$mock.command_instance, execute]
+        as: execute_mock
+      - target: $r.execute_mock
+        method: assert_called_once_with
+        kwargs:
+          arg: test
+    assert:
+      - outcome: handled
+        equals: result
+
+  parameters_required:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - parameters_required:
+          names: [id, name, value, a, b, c, d]
+
+  async_domain_event_is_subclass:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: verify
+        args: [true, TEST_ERROR, Should not raise]
+        as: verified
+    assert:
+      - outcome: async_event
+        type:
+          module_path: *events_core
+          class_name: *domain_event
+      - outcome: verified
+        "null": true
+
+  async_execute_not_implemented:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: execute
+        as: pending
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.pending]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type:
+          module_path: builtins
+          class_name: NotImplementedError
+
+  async_verify_success:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: verify
+        args: [true, TEST_ERROR, Should not raise]
+        as: verified
+    assert:
+      - outcome: verified
+        "null": true
+
+  async_verify_failure:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: verify
+        args: [false, TEST_ERROR, Async failure]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: Async failure
+
+  async_execute_returns_result:
+    conditions:
+      mocks:
+        async_event:
+          module_path: *events_core
+          class_name: AsyncDomainEvent
+          return_value:
+            execute: async_result
+    execute:
+      - target: $mock.async_event
+        method: execute
+        as: returned_coro
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.returned_coro]
+        as: returned
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$mock.async_event, execute]
+        as: execute_mock
+      - target: $r.execute_mock
+        method: assert_called_once_with
+    assert:
+      - outcome: returned
+        equals: async_result
+
+  handle_async_without_dependencies:
+    conditions:
+      mocks:
+        event_cls:
+          module_path: *events_core
+          class_name: *domain_event
+        instance:
+          module_path: *events_core
+          class_name: *domain_event
+    execute:
+      - target:
+          module_path: asyncio
+          attribute: sleep
+        method: sleep
+        args: [0]
+        kwargs:
+          result: 42
+        as: done
+      - target: $mock.instance
+        method: configure_mock
+        kwargs:
+          execute.return_value: $r.done
+      - target: $mock.event_cls
+        method: configure_mock
+        kwargs:
+          return_value: $mock.instance
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: handle_async
+        kwargs:
+          event_cls: $mock.event_cls
+          value: 21
+        as: pending
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.pending]
+        as: handled
+      - target: $mock.event_cls
+        method: assert_called_once_with
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$mock.instance, execute]
+        as: execute_mock
+      - target: $r.execute_mock
+        method: assert_called_once_with
+        kwargs:
+          value: 21
+    assert:
+      - outcome: handled
+        equals: 42
+
+  handle_async_with_dependencies:
+    conditions:
+      mocks:
+        event_cls:
+          module_path: *events_core
+          class_name: *domain_event
+        instance:
+          module_path: *events_core
+          class_name: *domain_event
+    execute:
+      - target:
+          module_path: asyncio
+          attribute: sleep
+        method: sleep
+        args: [0]
+        kwargs:
+          result: injected
+        as: done
+      - target: $mock.instance
+        method: configure_mock
+        kwargs:
+          execute.return_value: $r.done
+      - target: $mock.event_cls
+        method: configure_mock
+        kwargs:
+          return_value: $mock.instance
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: handle_async
+        kwargs:
+          event_cls: $mock.event_cls
+          dependencies:
+            service: injected
+        as: pending
+      - target:
+          module_path: tiferet.contexts.feature
+          attribute: run_coroutine
+        method: run_coroutine
+        args: [$r.pending]
+        as: handled
+      - target: $mock.event_cls
+        method: assert_called_once_with
+        kwargs:
+          service: injected
+    assert:
+      - outcome: handled
+        equals: injected
+
+  middleware_none:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: none
+
+  middleware_single:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: single
+
+  middleware_order:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: order
+
+  middleware_capture:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: capture
+
+  middleware_intercept:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: intercept
+
+  middleware_async:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: async
