@@ -9,6 +9,7 @@ fixtures:
         key: value
       data_key: &event_data_key result
       pass_on_error: true
+      condition: &event_condition '$r.x > 0'
   feature_aggregate: &feature_aggregate
     module_path: *feature_mapper
     class_name: FeatureAggregate
@@ -215,24 +216,7 @@ testers:
               parameters: *event_parameters
               data_key: *event_data_key
               pass_on_error: true
-      condition_stored_as_text:
-        conditions: {}
-        execute:
-          - target: self
-            method: new
-            as: built
-          - target:
-              module_path: operator
-              attribute: add
-            method: add
-            args: ['$', 'r.x > 0']
-            as: condition_text
-          - target: $r.built
-            method: set_attribute
-            args: [condition, $r.condition_text]
-        assert:
-          - outcome: built
-            message: '$r.x > 0'
+              condition: *event_condition
       set_attribute:
         conditions: {}
         execute:
@@ -257,15 +241,9 @@ testers:
           - target: self
             method: new
             as: conditioned
-          - target:
-              module_path: operator
-              attribute: add
-            method: add
-            args: ['$', 'r.y != 0']
-            as: condition_text
           - target: $r.conditioned
             method: set_attribute
-            args: [condition, $r.condition_text]
+            args: [condition, '$r.y != 0']
         assert:
           - outcome: renamed
             fields:
@@ -277,7 +255,8 @@ testers:
             fields:
               data_key: new_key
           - outcome: conditioned
-            message: '$r.y != 0'
+            fields:
+              condition: '$r.y != 0'
       set_pass_on_error:
         conditions: {}
         execute:
@@ -778,26 +757,19 @@ testers:
             args:
               - name: Conditional Event
                 service_id: conditional_handler
+                condition: '$r.b != 0'
             as: yaml_obj
           - target: $r.yaml_obj
             method: map
             as: event
-          - target:
-              module_path: operator
-              attribute: add
-            method: add
-            args: ['$', 'r.b != 0']
-            as: condition_text
-          - target: $r.event
-            method: set_attribute
-            args: [condition, $r.condition_text]
         assert:
           - outcome: event
             type:
               module_path: *feature_mapper
               class_name: EventFeatureStepAggregate
           - outcome: event
-            message: '$r.b != 0'
+            fields:
+              condition: '$r.b != 0'
       feature_event_yaml_from_model:
         conditions:
           fixtures: [event_model]
