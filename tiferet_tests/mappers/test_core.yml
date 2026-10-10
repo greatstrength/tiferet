@@ -1,0 +1,26 @@
+# The thirteen tests/mappers/test_core.py cases are the mapper_contract check.
+# The harness owns Aggregate and TransferObject. These files do not declare them.
+tests:
+  aggregate_construct: &mapper_bases
+    conditions: {}
+    execute:
+      - target:
+          module_path: builtins
+          attribute: list
+        method: list
+        as: unused
+    assert:
+      - mapper_contract:
+          exclude: [id]
+  aggregate_extra_field_rejected: *mapper_bases
+  aggregate_set_attribute_success: *mapper_bases
+  aggregate_set_attribute_invalid: *mapper_bases
+  aggregate_set_attribute_validates_assignment: *mapper_bases
+  aggregate_set_attribute_describes_offending_model: *mapper_bases
+  transfer_object_from_data: *mapper_bases
+  transfer_object_from_model: *mapper_bases
+  transfer_object_from_model_with_overrides: *mapper_bases
+  transfer_object_map: *mapper_bases
+  transfer_object_to_primitive_with_role: *mapper_bases
+  aggregate_to_dict: *mapper_bases
+  aggregate_to_dict_with_overrides: *mapper_bases
