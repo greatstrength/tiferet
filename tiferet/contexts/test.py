@@ -590,8 +590,12 @@ class PhaseRuntimeContext(BaseContext):
             return self._lookup_ref(value, FIXTURE_REF_PREFIX, self.fixtures)
         if value.startswith(MOCK_REF_PREFIX):
             return self._lookup_ref(value, MOCK_REF_PREFIX, self.mocks)
+
+        # A $r. scalar is a reference only when the remainder is a legal name.
         if value.startswith(REQUEST_REF_PREFIX):
-            name = self._ref_name(value, REQUEST_REF_PREFIX)
+            name = ref_name(value, REQUEST_REF_PREFIX)
+            if name is None:
+                return value
             if name not in self.as_keys:
                 TiferetError.raise_error(
                     a.error.PHASE_REFERENCE_NOT_FOUND_ID,

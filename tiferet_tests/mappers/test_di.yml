@@ -1,0 +1,793 @@
+fixtures:
+  flagged_dependency_aggregate: &flagged_dependency_aggregate
+    module_path: &di_mapper tiferet.mappers.di
+    class_name: FlaggedDependencyAggregate
+    attributes: &flagged_sample
+      module_path: &dep_module tests.repos.test
+      class_name: &dep_class TestRepoProxy
+      flag: &dep_flag test
+      parameters: &dep_parameters
+        keep: original
+        override: old
+  service_registration_aggregate: &service_registration_aggregate
+    module_path: *di_mapper
+    class_name: ServiceRegistrationAggregate
+    attributes: &registration_sample
+      id: &registration_id test_repo
+      module_path: *dep_module
+      class_name: DefaultTestRepoProxy
+      parameters:
+        default_param: default_value
+      dependencies:
+        - module_path: *dep_module
+          class_name: *dep_class
+          flag: existing
+          parameters:
+            param1: value1
+  registration_for_transfer: &registration_for_transfer
+    module_path: *di_mapper
+    class_name: ServiceRegistrationAggregate
+    attributes: &transfer_aggregate_sample
+      id: *registration_id
+      module_path: *dep_module
+      class_name: DefaultTestRepoProxy
+      parameters: &transfer_parameters
+        test_param: test_value
+        param0: value0
+      dependencies: &transfer_dependencies
+        - module_path: *dep_module
+          class_name: *dep_class
+          flag: test
+          parameters:
+            test_param: test_value
+        - module_path: *dep_module
+          class_name: TestRepoProxy2
+          flag: test2
+          parameters:
+            param2: value2
+  service_registration_config:
+    module_path: *di_mapper
+    class_name: ServiceRegistrationConfigObject
+    attributes: &transfer_sample
+      id: *registration_id
+      module_path: *dep_module
+      class_name: DefaultTestRepoProxy
+      deps: &keyed_deps
+        test:
+          module_path: *dep_module
+          class_name: *dep_class
+          params:
+            test_param: test_value
+        test2:
+          module_path: *dep_module
+          class_name: TestRepoProxy2
+          params:
+            param2: value2
+      params: *transfer_parameters
+  flagged_model:
+    module_path: &di_domain tiferet.domain.di
+    class_name: FlaggedDependency
+    attributes:
+      module_path: *dep_module
+      class_name: TestRepoProxy2
+      flag: *dep_flag
+      parameters:
+        test_param2: test_value2
+
+testers:
+  test_flagged_dependency_aggregate:
+    module_path: *di_mapper
+    class_name: FlaggedDependencyAggregate
+    attributes: *flagged_sample
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyAggregate
+          - outcome: built
+            fields:
+              module_path: *dep_module
+              class_name: *dep_class
+              flag: *dep_flag
+              parameters: *dep_parameters
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: moved
+          - target: $r.moved
+            method: set_attribute
+            args: [module_path, new.module.path]
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [class_name, NewClassName]
+        assert:
+          - outcome: moved
+            fields:
+              module_path: new.module.path
+          - outcome: renamed
+            fields:
+              class_name: NewClassName
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [invalid_attr, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_ATTRIBUTE
+      set_parameters_clears_when_none:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_parameters
+            kwargs:
+              parameters: null
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.built, parameters]
+            as: parameters
+        assert:
+          - outcome: parameters
+            equals: {}
+      set_parameters_merges_and_prunes_none_values:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_parameters
+            kwargs:
+              parameters:
+                override: new
+                remove: null
+                add: added
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.built, parameters]
+            as: parameters
+        assert:
+          - outcome: parameters
+            equals:
+              keep: original
+              override: new
+              add: added
+  test_service_registration_aggregate:
+    module_path: *di_mapper
+    class_name: ServiceRegistrationAggregate
+    attributes: *registration_sample
+    fixtures:
+      service_registration_aggregate: *service_registration_aggregate
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationAggregate
+          - outcome: built
+            fields:
+              id: *registration_id
+              module_path: *dep_module
+              class_name: DefaultTestRepoProxy
+              parameters:
+                default_param: default_value
+              dependencies:
+                - module_path: *dep_module
+                  class_name: *dep_class
+                  flag: existing
+                  parameters:
+                    param1: value1
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Service]
+          - target: self
+            method: new
+            as: moved
+          - target: $r.moved
+            method: set_attribute
+            args: [module_path, updated.module]
+          - target: self
+            method: new
+            as: reclassed
+          - target: $r.reclassed
+            method: set_attribute
+            args: [class_name, UpdatedClass]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Service
+          - outcome: moved
+            fields:
+              module_path: updated.module
+          - outcome: reclassed
+            fields:
+              class_name: UpdatedClass
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [invalid_attr, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_ATTRIBUTE
+      set_default_type_updates:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_default_type
+            kwargs:
+              module_path: updated.module
+              class_name: UpdatedClass
+              parameters:
+                new_param: new_value
+        assert:
+          - outcome: built
+            fields:
+              module_path: updated.module
+              class_name: UpdatedClass
+              parameters:
+                new_param: new_value
+      set_default_type_clears_when_both_none:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_default_type
+            kwargs:
+              module_path: null
+              class_name: null
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.built, parameters]
+            as: parameters
+        assert:
+          - outcome: built
+            fields:
+              module_path: null
+              class_name: null
+          - outcome: parameters
+            equals: {}
+      set_dependency_creates_new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_dependency
+            args: [new_flag]
+            as: missing
+          - target: $r.built
+            method: set_dependency
+            kwargs:
+              flag: new_flag
+              module_path: *dep_module
+              class_name: NewTestRepoProxy
+              parameters:
+                new_param: new_value
+          - target: $r.built
+            method: get_dependency
+            args: [new_flag]
+            as: created
+        assert:
+          - outcome: missing
+            'null': true
+          - outcome: created
+            type:
+              module_path: *di_domain
+              class_name: FlaggedDependency
+          - outcome: created
+            fields:
+              module_path: *dep_module
+              class_name: NewTestRepoProxy
+              parameters:
+                new_param: new_value
+          - outcome: built
+            fields:
+              dependencies:
+                - flag: existing
+                - flag: new_flag
+      set_dependency_updates_existing:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_dependency
+            kwargs:
+              flag: existing
+              module_path: tests.repos.updated
+              class_name: UpdatedRepoProxy
+              parameters:
+                param1: null
+                param2: value2
+          - target: $r.built
+            method: get_dependency
+            args: [existing]
+            as: updated
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.updated, parameters]
+            as: parameters
+        assert:
+          - outcome: updated
+            fields:
+              module_path: tests.repos.updated
+              class_name: UpdatedRepoProxy
+          - outcome: parameters
+            equals:
+              param2: value2
+          - outcome: built
+            fields:
+              dependencies:
+                - flag: existing
+      remove_dependency:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_dependency
+            args: [existing]
+            as: present
+          - target: $r.built
+            method: remove_dependency
+            args: [existing]
+          - target: $r.built
+            method: get_dependency
+            args: [existing]
+            as: gone
+        assert:
+          - outcome: present
+            fields:
+              flag: existing
+          - outcome: gone
+            'null': true
+          - outcome: built
+            fields:
+              dependencies: []
+      remove_dependency_missing_flag_is_noop:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: remove_dependency
+            args: [nonexistent]
+        assert:
+          - outcome: built
+            fields:
+              dependencies:
+                - flag: existing
+  test_service_registration_config_object:
+    module_path: *di_mapper
+    class_name: ServiceRegistrationConfigObject
+    attributes: *transfer_sample
+    fixtures:
+      registration_for_transfer: *registration_for_transfer
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: model_validate
+            args: [*transfer_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationAggregate
+          - outcome: mapped
+            fields:
+              id: *registration_id
+              module_path: *dep_module
+              class_name: DefaultTestRepoProxy
+              parameters: *transfer_parameters
+              dependencies:
+                key: flag
+                items:
+                  test:
+                    module_path: *dep_module
+                    class_name: *dep_class
+                    parameters:
+                      test_param: test_value
+                  test2:
+                    module_path: *dep_module
+                    class_name: TestRepoProxy2
+                    parameters:
+                      param2: value2
+      from_model:
+        conditions:
+          fixtures: [registration_for_transfer]
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: from_model
+            args: [$fixture.registration_for_transfer]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+      round_trip:
+        conditions:
+          fixtures: [registration_for_transfer]
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: from_model
+            args: [$fixture.registration_for_transfer]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationAggregate
+          - outcome: restored
+            fields:
+              id: *registration_id
+              parameters: *transfer_parameters
+              dependencies:
+                key: flag
+                items:
+                  test:
+                    module_path: *dep_module
+                    class_name: *dep_class
+                    parameters:
+                      test_param: test_value
+                  test2:
+                    module_path: *dep_module
+                    class_name: TestRepoProxy2
+                    parameters:
+                      param2: value2
+      to_primitive_to_data:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: model_validate
+            args: [*transfer_sample]
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: to_primitive
+            kwargs:
+              role: to_data
+            as: primitive
+        assert:
+          - outcome: primitive
+            absent: [id]
+          - outcome: primitive
+            equals:
+              module_path: *dep_module
+              class_name: DefaultTestRepoProxy
+              deps: *keyed_deps
+              params: *transfer_parameters
+      to_model_role_excludes_dependencies_and_parameters:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: model_validate
+            args: [*transfer_sample]
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: to_primitive
+            args: [to_model]
+            as: primitive
+        assert:
+          - outcome: primitive
+            absent: [dependencies, parameters]
+          - outcome: primitive
+            fields:
+              id: *registration_id
+              module_path: *dep_module
+              class_name: DefaultTestRepoProxy
+      flags_alias_round_trip:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: model_validate
+            args:
+              - id: test_repo_flags
+                module_path: *dep_module
+                class_name: DefaultTestRepoProxy
+                flags:
+                  flag1:
+                    module_path: *dep_module
+                    class_name: *dep_class
+                    params:
+                      test_param: test_value
+                params:
+                  test_param: test_value
+            as: data_object
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.data_object, dependencies]
+            as: dependencies
+          - target: $r.dependencies
+            method: __getitem__
+            args: [flag1]
+            as: flagged
+          - target: $r.data_object
+            method: to_primitive
+            kwargs:
+              role: to_data
+            as: primitive
+        assert:
+          - outcome: data_object
+            type:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+          - outcome: flagged
+            type:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+          - outcome: primitive
+            absent: [flags]
+          - outcome: primitive
+            fields:
+              deps:
+                flag1:
+                  module_path: *dep_module
+                  class_name: *dep_class
+      from_model_with_added_dependency:
+        conditions:
+          fixtures: [registration_for_transfer]
+        execute:
+          - target: registration_for_transfer
+            method: set_dependency
+            kwargs:
+              flag: test3
+              module_path: *dep_module
+              class_name: TestRepoProxy3
+              parameters:
+                param3: value3
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: from_model
+            args: [$fixture.registration_for_transfer]
+            as: data_object
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.data_object, dependencies]
+            as: dependencies
+          - target: $r.dependencies
+            method: __getitem__
+            args: [test]
+            as: first
+          - target: $r.dependencies
+            method: __getitem__
+            args: [test2]
+            as: second
+          - target: $r.dependencies
+            method: __getitem__
+            args: [test3]
+            as: third
+        assert:
+          - outcome: data_object
+            type:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+          - outcome: data_object
+            fields:
+              id: *registration_id
+              dependencies:
+                test:
+                  flag: test
+                test2:
+                  flag: test2
+                test3:
+                  flag: test3
+          - outcome: first
+            type:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+          - outcome: second
+            type:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+          - outcome: third
+            type:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+      flagged_dependency_yaml_map_basic:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+            method: model_validate
+            args:
+              - module_path: *dep_module
+                class_name: *dep_class
+                flag: *dep_flag
+                params:
+                  test_param: test_value
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: dep
+        assert:
+          - outcome: dep
+            type:
+              module_path: *di_domain
+              class_name: FlaggedDependency
+          - outcome: dep
+            fields:
+              module_path: *dep_module
+              class_name: *dep_class
+              flag: *dep_flag
+              parameters:
+                test_param: test_value
+      flagged_dependency_yaml_aliasing_params:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+            method: model_validate
+            args:
+              - module_path: alias.test.mod
+                class_name: AliasImpl
+                flag: aliased
+                params:
+                  alias_key: value
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: dep
+        assert:
+          - outcome: dep
+            fields:
+              parameters:
+                alias_key: value
+      flagged_dependency_yaml_from_model:
+        conditions:
+          fixtures: [flagged_model]
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+            method: from_model
+            args: [$fixture.flagged_model]
+            as: yaml_obj
+        assert:
+          - outcome: yaml_obj
+            type:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+          - outcome: yaml_obj
+            fields:
+              module_path: *dep_module
+              class_name: TestRepoProxy2
+              flag: *dep_flag
+              parameters:
+                test_param2: test_value2
+      flagged_dependency_yaml_roles_to_data_excludes_flag:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: FlaggedDependencyConfigObject
+            method: model_validate
+            args:
+              - module_path: *dep_module
+                class_name: *dep_class
+                flag: *dep_flag
+                params:
+                  test_param: test_value
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: to_primitive
+            args: [to_data]
+            as: primitive
+        assert:
+          - outcome: primitive
+            absent: [flag]
+          - outcome: primitive
+            fields:
+              module_path: *dep_module
+              class_name: *dep_class
+      flagged_dependency_yaml_round_trip_via_parent:
+        conditions:
+          fixtures: [registration_for_transfer]
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: from_model
+            args: [$fixture.registration_for_transfer]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            fields:
+              dependencies:
+                - flag: test
+                  module_path: *dep_module
+                  class_name: *dep_class
+                  parameters:
+                    test_param: test_value
+                - flag: test2
+                  module_path: *dep_module
+                  class_name: TestRepoProxy2
+                  parameters:
+                    param2: value2
