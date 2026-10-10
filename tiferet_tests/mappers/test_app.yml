@@ -1,0 +1,707 @@
+fixtures:
+  app_session_aggregate: &app_session_aggregate
+    module_path: &app_mapper tiferet.mappers.app
+    class_name: AppSessionAggregate
+    attributes: &aggregate_sample
+      id: &session_id test.interface
+      name: &session_name Test Interface
+      description: &session_description The test app interface.
+      flags: &session_flags [test_feature, test_data]
+      logger_id: &logger_id default
+      services: &aggregate_services
+        - service_id: &svc_test test_attribute
+          module_path: &svc_test_module test.module.path
+          class_name: &svc_test_class TestClassName
+          parameters: &svc_test_params
+            test_param: test_value
+            debug: '1'
+        - service_id: logging
+          module_path: tiferet.utils.logging
+          class_name: LoggingService
+          parameters: {}
+      constants: &session_constants
+        APP_NAME: Tiferet Test
+        VERSION: 2.0.0a1
+        DEBUG: '1'
+  app_session_config: &app_session_config
+    module_path: *app_mapper
+    class_name: AppSessionConfigObject
+    attributes: &transfer_sample
+      id: *session_id
+      name: *session_name
+      description: *session_description
+      flags: *session_flags
+      logger_id: *logger_id
+      services: &keyed_services
+        test_attribute:
+          module_path: *svc_test_module
+          class_name: *svc_test_class
+          parameters: *svc_test_params
+        logging:
+          module_path: tiferet.utils.logging
+          class_name: LoggingService
+          parameters: {}
+      constants: *session_constants
+  constants_clear: &constants_clear
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      constants:
+        a: '1'
+        b: '2'
+  constants_merge: &constants_merge
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      constants:
+        keep: orig
+        old: v1
+  constants_prune: &constants_prune
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      constants:
+        keep: '1'
+        drop: x
+  remove_middle: &remove_three
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      services: &three_services
+        - &svc_first
+          service_id: first
+          module_path: mod.first
+          class_name: FirstClass
+          parameters:
+            p: first
+        - &svc_middle
+          service_id: middle
+          module_path: mod.middle
+          class_name: MiddleClass
+          parameters:
+            p: middle
+        - &svc_last
+          service_id: last
+          module_path: mod.last
+          class_name: LastClass
+          parameters:
+            p: last
+  remove_first: &remove_first
+    <<: *remove_three
+  remove_last: &remove_last
+    <<: *remove_three
+  remove_missing: &remove_missing
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      services:
+        - service_id: a
+          module_path: mod.a
+          class_name: AClass
+          parameters:
+            p: a
+        - service_id: b
+          module_path: mod.b
+          class_name: BClass
+          parameters:
+            p: b
+  remove_empty: &remove_empty
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      services: []
+
+testers:
+  test_app_session_aggregate:
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes: *aggregate_sample
+    fixtures:
+      constants_clear:
+        module_path: *app_mapper
+        class_name: AppSessionAggregate
+        attributes:
+          id: *session_id
+          name: *session_name
+          constants:
+            a: '1'
+            b: '2'
+      constants_merge:
+        module_path: *app_mapper
+        class_name: AppSessionAggregate
+        attributes:
+          id: *session_id
+          name: *session_name
+          constants:
+            keep: orig
+            old: v1
+      constants_prune:
+        module_path: *app_mapper
+        class_name: AppSessionAggregate
+        attributes:
+          id: *session_id
+          name: *session_name
+          constants:
+            keep: '1'
+            drop: x
+      remove_middle: *remove_three
+      remove_first: *remove_first
+      remove_last: *remove_last
+      remove_missing: *remove_missing
+      remove_empty: *remove_empty
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *app_mapper
+              class_name: AppSessionAggregate
+          - outcome: built
+            fields:
+              id: *session_id
+              name: *session_name
+              description: *session_description
+              logger_id: *logger_id
+              flags: *session_flags
+              constants: *session_constants
+              services:
+                - service_id: *svc_test
+                  module_path: *svc_test_module
+                  class_name: *svc_test_class
+                  parameters: *svc_test_params
+                - service_id: logging
+                  module_path: tiferet.utils.logging
+                  class_name: LoggingService
+                  parameters: {}
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Interface]
+          - target: self
+            method: new
+            as: described
+          - target: $r.described
+            method: set_attribute
+            args: [description, New description text]
+          - target: self
+            method: new
+            as: logged
+          - target: $r.logged
+            method: set_attribute
+            args: [logger_id, custom.logger.id]
+          - target: self
+            method: new
+            as: flagged
+          - target: $r.flagged
+            method: set_attribute
+            args: [flags, [flag1, flag2]]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Interface
+          - outcome: described
+            fields:
+              description: New description text
+          - outcome: logged
+            fields:
+              logger_id: custom.logger.id
+          - outcome: flagged
+            fields:
+              flags: [flag1, flag2]
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [invalid_attr, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ATTRIBUTE_NOT_SETTABLE
+      set_constants_clear_when_none:
+        conditions:
+          fixtures: [constants_clear]
+        execute:
+          - target: constants_clear
+            method: set_constants
+            kwargs:
+              constants: null
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$fixture.constants_clear, constants]
+            as: constants
+        assert:
+          - outcome: constants
+            equals: {}
+      set_constants_merge_and_override:
+        conditions:
+          fixtures: [constants_merge]
+        execute:
+          - target: constants_merge
+            method: set_constants
+            kwargs:
+              constants:
+                old: v2
+                new: '42'
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$fixture.constants_merge, constants]
+            as: constants
+        assert:
+          - outcome: constants
+            equals:
+              keep: orig
+              old: v2
+              new: '42'
+      set_constants_remove_none_values:
+        conditions:
+          fixtures: [constants_prune]
+        execute:
+          - target: constants_prune
+            method: set_constants
+            kwargs:
+              constants:
+                drop: null
+                add: 'yes'
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$fixture.constants_prune, constants]
+            as: constants
+        assert:
+          - outcome: constants
+            equals:
+              keep: '1'
+              add: 'yes'
+      remove_service_middle:
+        conditions:
+          fixtures: [remove_middle]
+        execute:
+          - target: remove_middle
+            method: remove_service
+            args: [middle]
+            as: removed
+        assert:
+          - outcome: removed
+            fields:
+              service_id: middle
+          - outcome: remove_middle
+            fields:
+              services:
+                - service_id: first
+                - service_id: last
+      remove_service_first:
+        conditions:
+          fixtures: [remove_first]
+        execute:
+          - target: remove_first
+            method: remove_service
+            args: [first]
+            as: removed
+        assert:
+          - outcome: removed
+            fields:
+              service_id: first
+          - outcome: remove_first
+            fields:
+              services:
+                - service_id: middle
+                - service_id: last
+      remove_service_last:
+        conditions:
+          fixtures: [remove_last]
+        execute:
+          - target: remove_last
+            method: remove_service
+            args: [last]
+            as: removed
+        assert:
+          - outcome: removed
+            fields:
+              service_id: last
+          - outcome: remove_last
+            fields:
+              services:
+                - service_id: first
+                - service_id: middle
+      remove_service_missing:
+        conditions:
+          fixtures: [remove_missing]
+        execute:
+          - target: remove_missing
+            method: remove_service
+            args: [c]
+            as: removed
+        assert:
+          - outcome: removed
+            'null': true
+          - outcome: remove_missing
+            fields:
+              services:
+                - service_id: a
+                - service_id: b
+      remove_service_empty:
+        conditions:
+          fixtures: [remove_empty]
+        execute:
+          - target: remove_empty
+            method: remove_service
+            args: [x]
+            as: removed
+        assert:
+          - outcome: removed
+            'null': true
+          - outcome: remove_empty
+            fields:
+              services: []
+      add_service_appends_with_service_id_first:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_service
+            args: [added_svc]
+            as: missing
+          - target: $r.built
+            method: add_service
+            args: [added_svc, pkg.added.module, AddedService]
+            kwargs:
+              parameters:
+                p1: v1
+          - target: $r.built
+            method: get_service
+            args: [added_svc]
+            as: added
+        assert:
+          - outcome: missing
+            'null': true
+          - outcome: added
+            fields:
+              module_path: pkg.added.module
+              class_name: AddedService
+              parameters:
+                p1: v1
+      add_service_defaults_parameters_to_empty:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_service
+            args: [no_params_svc, pkg.noparams, NoParamsService]
+          - target: $r.built
+            method: get_service
+            args: [no_params_svc]
+            as: added
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.added, parameters]
+            as: parameters
+        assert:
+          - outcome: parameters
+            equals: {}
+      set_service_update_existing_merge_params:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_service
+            kwargs:
+              service_id: *svc_test
+              module_path: new.mod.path
+              class_name: NewImplementation
+              parameters:
+                old: null
+                keep: 'yes'
+                extra: '123'
+                debug: '0'
+          - target: $r.built
+            method: get_service
+            args: [*svc_test]
+            as: updated
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.updated, parameters]
+            as: parameters
+        assert:
+          - outcome: updated
+            fields:
+              module_path: new.mod.path
+              class_name: NewImplementation
+          - outcome: parameters
+            equals:
+              test_param: test_value
+              keep: 'yes'
+              extra: '123'
+              debug: '0'
+      set_service_create_new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_service
+            args: [brand_new]
+            as: missing
+          - target: $r.built
+            method: set_service
+            kwargs:
+              service_id: brand_new
+              module_path: pkg.sub.module
+              class_name: FreshService
+              parameters:
+                p1: v1
+                p2: '42'
+          - target: $r.built
+            method: get_service
+            args: [brand_new]
+            as: created
+        assert:
+          - outcome: missing
+            'null': true
+          - outcome: created
+            fields:
+              module_path: pkg.sub.module
+              class_name: FreshService
+              parameters:
+                p1: v1
+                p2: '42'
+  test_app_session_config_object:
+    module_path: *app_mapper
+    class_name: AppSessionConfigObject
+    attributes: *transfer_sample
+    fixtures:
+      app_session_aggregate: *app_session_aggregate
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: model_validate
+            args: [*transfer_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *app_mapper
+              class_name: AppSessionAggregate
+          - outcome: mapped
+            fields:
+              id: *session_id
+              name: *session_name
+              description: *session_description
+              logger_id: *logger_id
+              flags: *session_flags
+              constants: *session_constants
+              services:
+                key: service_id
+                items:
+                  test_attribute:
+                    module_path: *svc_test_module
+                    class_name: *svc_test_class
+                    parameters: *svc_test_params
+                  logging:
+                    module_path: tiferet.utils.logging
+                    class_name: LoggingService
+                    parameters: {}
+      from_model:
+        conditions:
+          fixtures: [app_session_aggregate]
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: from_model
+            args: [$fixture.app_session_aggregate]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+      round_trip:
+        conditions:
+          fixtures: [app_session_aggregate]
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: from_model
+            args: [$fixture.app_session_aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *app_mapper
+              class_name: AppSessionAggregate
+          - outcome: restored
+            fields:
+              id: *session_id
+              name: *session_name
+              services:
+                key: service_id
+                items:
+                  test_attribute:
+                    module_path: *svc_test_module
+                    class_name: *svc_test_class
+                    parameters: *svc_test_params
+                  logging:
+                    module_path: tiferet.utils.logging
+                    class_name: LoggingService
+                    parameters: {}
+      app_service_dependency_yaml_map_basic:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppServiceDependencyConfigObject
+            method: model_validate
+            args:
+              - module_path: example.service.module
+                class_name: ExampleServiceImpl
+                parameters:
+                  timeout: '30'
+                  retries: '3'
+                  ssl: '1'
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            kwargs:
+              service_id: injected_svc
+            as: dep
+        assert:
+          - outcome: dep
+            type:
+              module_path: tiferet.domain.app
+              class_name: AppServiceDependency
+          - outcome: dep
+            fields:
+              service_id: injected_svc
+              module_path: example.service.module
+              class_name: ExampleServiceImpl
+              parameters:
+                timeout: '30'
+                retries: '3'
+                ssl: '1'
+      app_service_dependency_yaml_aliasing_params:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppServiceDependencyConfigObject
+            method: model_validate
+            args:
+              - module_path: alias.test.mod
+                class_name: AliasImpl
+                params:
+                  alias_key: value
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            kwargs:
+              service_id: aliased_dep
+            as: dep
+        assert:
+          - outcome: dep
+            fields:
+              parameters:
+                alias_key: value
+      app_service_dependency_yaml_roles_to_model_excludes:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppServiceDependencyConfigObject
+            method: model_validate
+            args:
+              - module_path: ex.test.mod
+                class_name: ExcludeTest
+                parameters:
+                  secret: dontleak
+                service_id: should_ignore
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: to_primitive
+            args: [to_model]
+            as: primitive
+        assert:
+          - outcome: primitive
+            absent: [parameters, service_id]
+          - outcome: primitive
+            fields:
+              module_path: ex.test.mod
+              class_name: ExcludeTest
+      app_service_dependency_yaml_round_trip_via_parent:
+        conditions:
+          fixtures: [app_session_aggregate]
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: from_model
+            args: [$fixture.app_session_aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            fields:
+              services:
+                - service_id: *svc_test
+                  module_path: *svc_test_module
+                  class_name: *svc_test_class
+                  parameters: *svc_test_params
+                - service_id: logging
+                  module_path: tiferet.utils.logging
+                  class_name: LoggingService
+                  parameters: {}

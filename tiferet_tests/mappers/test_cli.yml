@@ -1,0 +1,550 @@
+fixtures:
+  argument_aggregate: &argument_aggregate
+    module_path: &cli_mapper tiferet.mappers.cli
+    class_name: CliArgumentAggregate
+    attributes: &argument_sample
+      name_or_flags: &verbose_flags [-v, --verbose]
+      description: &verbose_description Enable verbose output.
+      type: &argument_type str
+      required: false
+      default: &argument_default 'false'
+  command_aggregate: &command_aggregate
+    module_path: *cli_mapper
+    class_name: CliCommandAggregate
+    attributes: &command_sample
+      id: &command_id calc.add
+      name: &command_name Add Number Command
+      description: &command_description Adds two numbers.
+      key: &command_key add
+      group_key: &command_group calc
+      arguments: &command_arguments
+        - name_or_flags: &arg_a [a]
+          description: &arg_a_description The first number to add.
+          type: *argument_type
+        - name_or_flags: &arg_b [b]
+          description: &arg_b_description The second number to add.
+          type: *argument_type
+  empty_command:
+    module_path: *cli_mapper
+    class_name: CliCommandAggregate
+    attributes:
+      id: calc.divide
+      name: Divide Number Command
+      key: divide
+      group_key: *command_group
+  subtract_command:
+    module_path: &cli_domain tiferet.domain.cli
+    class_name: CliCommand
+    attributes:
+      group_key: *command_group
+      key: subtract
+      name: Subtract Number Command
+      description: Subtracts one number from another.
+      arguments:
+        - name_or_flags: *arg_a
+          description: The number to subtract from.
+  command_config:
+    module_path: *cli_mapper
+    class_name: CliCommandConfigObject
+    attributes: &command_transfer_sample
+      id: *command_id
+      name: *command_name
+      description: *command_description
+      key: *command_key
+      group_key: *command_group
+      args: *command_arguments
+
+testers:
+  test_cli_argument_aggregate:
+    module_path: *cli_mapper
+    class_name: CliArgumentAggregate
+    attributes: *argument_sample
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *cli_mapper
+              class_name: CliArgumentAggregate
+          - outcome: built
+            fields:
+              name_or_flags: *verbose_flags
+              description: *verbose_description
+              type: *argument_type
+              required: false
+              default: *argument_default
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: described
+          - target: $r.described
+            method: set_attribute
+            args: [description, Updated description.]
+          - target: self
+            method: new
+            as: typed
+          - target: $r.typed
+            method: set_attribute
+            args: [type, int]
+          - target: self
+            method: new
+            as: required
+          - target: $r.required
+            method: set_attribute
+            args: [required, true]
+          - target: self
+            method: new
+            as: defaulted
+          - target: $r.defaulted
+            method: set_attribute
+            args: [default, new_default]
+        assert:
+          - outcome: described
+            fields:
+              description: Updated description.
+          - outcome: typed
+            fields:
+              type: int
+          - outcome: required
+            fields:
+              required: true
+          - outcome: defaulted
+            fields:
+              default: new_default
+      set_attribute_name_or_flags:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [name_or_flags, [b]]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ATTRIBUTE_NOT_SETTABLE
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [invalid_attr, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ATTRIBUTE_NOT_SETTABLE
+  test_cli_command_aggregate:
+    module_path: *cli_mapper
+    class_name: CliCommandAggregate
+    attributes: *command_sample
+    fixtures:
+      empty_command:
+        module_path: *cli_mapper
+        class_name: CliCommandAggregate
+        attributes:
+          id: calc.divide
+          name: Divide Number Command
+          key: divide
+          group_key: *command_group
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *cli_mapper
+              class_name: CliCommandAggregate
+          - outcome: built
+            fields:
+              id: *command_id
+              name: *command_name
+              description: *command_description
+              key: *command_key
+              group_key: *command_group
+              arguments:
+                - name_or_flags: *arg_a
+                  description: *arg_a_description
+                  type: *argument_type
+                - name_or_flags: *arg_b
+                  description: *arg_b_description
+                  type: *argument_type
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Command Name]
+          - target: self
+            method: new
+            as: described
+          - target: $r.described
+            method: set_attribute
+            args: [description, New description text.]
+          - target: self
+            method: new
+            as: rekeyed
+          - target: $r.rekeyed
+            method: set_attribute
+            args: [key, subtract]
+          - target: self
+            method: new
+            as: regrouped
+          - target: $r.regrouped
+            method: set_attribute
+            args: [group_key, math]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Command Name
+          - outcome: described
+            fields:
+              description: New description text.
+          - outcome: rekeyed
+            fields:
+              key: subtract
+          - outcome: regrouped
+            fields:
+              group_key: math
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [invalid_attr, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ATTRIBUTE_NOT_SETTABLE
+      set_attribute_not_settable_describes_model:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [id, calc.subtract]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ATTRIBUTE_NOT_SETTABLE
+          - outcome: failed
+            message: '"type": "CliCommandAggregate"'
+          - outcome: failed
+            message: '"id": "calc.add"'
+          - outcome: failed
+            message: '"attribute": "id"'
+      add_argument_appends:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_argument
+            kwargs:
+              name_or_flags: [c]
+              description: The third operand.
+              type: int
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.built, arguments]
+            as: arguments
+          - target: $r.arguments
+            method: __getitem__
+            args: [-1]
+            as: last
+        assert:
+          - outcome: built
+            fields:
+              arguments:
+                - name_or_flags: *arg_a
+                - name_or_flags: *arg_b
+                - name_or_flags: [c]
+                  description: The third operand.
+                  type: int
+          - outcome: last
+            type:
+              module_path: *cli_domain
+              class_name: CliArgument
+          - outcome: last
+            fields:
+              name_or_flags: [c]
+              description: The third operand.
+              type: int
+      add_argument_multiple:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_argument
+            kwargs:
+              name_or_flags: [c]
+              description: Third operand.
+              type: float
+          - target: $r.built
+            method: add_argument
+            kwargs:
+              name_or_flags: *verbose_flags
+              description: *verbose_description
+              type: bool
+        assert:
+          - outcome: built
+            fields:
+              arguments:
+                - name_or_flags: *arg_a
+                - name_or_flags: *arg_b
+                - name_or_flags: [c]
+                  type: float
+                - name_or_flags: *verbose_flags
+                  type: bool
+      add_argument_to_empty:
+        conditions:
+          fixtures: [empty_command]
+        execute:
+          - target: empty_command
+            method: add_argument
+            kwargs:
+              name_or_flags: *arg_a
+              description: The numerator.
+              type: int
+        assert:
+          - outcome: empty_command
+            fields:
+              arguments:
+                - name_or_flags: *arg_a
+                  description: The numerator.
+                  type: int
+  test_cli_command_config_object:
+    module_path: *cli_mapper
+    class_name: CliCommandConfigObject
+    attributes: *command_transfer_sample
+    fixtures:
+      command_aggregate: *command_aggregate
+      subtract_command:
+        module_path: *cli_domain
+        class_name: CliCommand
+        attributes:
+          group_key: *command_group
+          key: subtract
+          name: Subtract Number Command
+          description: Subtracts one number from another.
+          arguments:
+            - name_or_flags: *arg_a
+              description: The number to subtract from.
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: model_validate
+            args: [*command_transfer_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *cli_mapper
+              class_name: CliCommandAggregate
+          - outcome: mapped
+            fields:
+              id: *command_id
+              name: *command_name
+              description: *command_description
+              key: *command_key
+              group_key: *command_group
+              arguments:
+                - name_or_flags: *arg_a
+                  description: *arg_a_description
+                  type: *argument_type
+                - name_or_flags: *arg_b
+                  description: *arg_b_description
+                  type: *argument_type
+      from_model:
+        conditions:
+          fixtures: [command_aggregate]
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: from_model
+            args: [$fixture.command_aggregate]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+      round_trip:
+        conditions:
+          fixtures: [command_aggregate]
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: from_model
+            args: [$fixture.command_aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *cli_mapper
+              class_name: CliCommandAggregate
+          - outcome: restored
+            fields:
+              id: *command_id
+              name: *command_name
+              key: *command_key
+              group_key: *command_group
+              arguments:
+                - name_or_flags: *arg_a
+                  description: *arg_a_description
+                  type: *argument_type
+                - name_or_flags: *arg_b
+                  description: *arg_b_description
+                  type: *argument_type
+      args_alias_deserialization:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: model_validate
+            args: [*command_transfer_sample]
+            as: yaml_obj
+        assert:
+          - outcome: yaml_obj
+            fields:
+              arguments:
+                - name_or_flags: *arg_a
+                  description: *arg_a_description
+                - name_or_flags: *arg_b
+                  description: *arg_b_description
+      to_primitive_excludes_id_and_inlines_args:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: model_validate
+            args: [*command_transfer_sample]
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: to_primitive
+            args: [to_data]
+            as: primitive
+        assert:
+          - outcome: primitive
+            absent: [id]
+          - outcome: primitive
+            fields:
+              args:
+                - name_or_flags: *arg_a
+                - name_or_flags: *arg_b
+              name: *command_name
+              key: *command_key
+              group_key: *command_group
+      to_model_role_excludes_arguments:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: model_validate
+            args: [*command_transfer_sample]
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: to_primitive
+            args: [to_model]
+            as: primitive
+        assert:
+          - outcome: primitive
+            absent: [arguments]
+          - outcome: primitive
+            fields:
+              id: *command_id
+              name: *command_name
+              key: *command_key
+              group_key: *command_group
+      from_model_via_domain_factory:
+        conditions:
+          fixtures: [subtract_command]
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: from_model
+            args: [$fixture.subtract_command]
+            as: yaml_obj
+        assert:
+          - outcome: yaml_obj
+            type:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+          - outcome: yaml_obj
+            fields:
+              id: calc.subtract
+              name: Subtract Number Command
+              key: subtract
+              group_key: *command_group
+              arguments:
+                - name_or_flags: *arg_a
+      round_trip_preserves_arguments:
+        conditions:
+          fixtures: [command_aggregate]
+        execute:
+          - target:
+              module_path: *cli_mapper
+              class_name: CliCommandConfigObject
+            method: from_model
+            args: [$fixture.command_aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            fields:
+              arguments:
+                - name_or_flags: *arg_a
+                  description: *arg_a_description
+                  type: *argument_type
+                - name_or_flags: *arg_b
+                  description: *arg_b_description
+                  type: *argument_type
