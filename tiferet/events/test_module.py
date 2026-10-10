@@ -64,185 +64,6 @@ _DEFECT_IDS = {
 
 # *** functions
 
-# ** function: name_defect
-def name_defect(value: str, label: str = 'name'):
-    '''
-    Return a defect when a grammar name is illegal. Do not raise.
-
-    :param value: The name to check.
-    :type value: str
-    :param label: The name's role in the message.
-    :type label: str
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # A snake name is the grammar. Anything else is a path defect.
-    if not isinstance(value, str) or _NAME_PATTERN.fullmatch(value) is None:
-        return (
-            TEST_MODULE_PATH_INVALID_ID,
-            f'A test module {label} is illegal.',
-            {'name': value},
-        )
-    return None
-
-# ** function: missing_defect
-def missing_defect(document: TestModuleDocument):
-    '''
-    Return a defect when the file is absent. Do not raise.
-
-    :param document: The bound document.
-    :type document: TestModuleDocument
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # An absent file is not created here.
-    if document.text is None:
-        return (
-            TEST_MODULE_NOT_FOUND_ID,
-            f'Test module not found: {document.address.path}.',
-            {'path': document.address.path},
-        )
-    return None
-
-# ** function: plain_value_defect
-def plain_value_defect(value: Any):
-    '''
-    Return a defect when a value is not plain data. Do not raise.
-
-    :param value: The value to check.
-    :type value: Any
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # None, strings, and bools are plain. Bool is checked before int.
-    if value is None or isinstance(value, (str, bool)):
-        return None
-    if isinstance(value, int):
-        return None
-    if isinstance(value, float):
-        if value != value or value in (float('inf'), float('-inf')):
-            return (TEST_MODULE_WRITE_REFUSED_ID, 'A payload float must be finite.', {})
-        return None
-    if isinstance(value, list):
-        for item in value:
-            defect = plain_value_defect(item)
-            if defect:
-                return defect
-        return None
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if not isinstance(key, str) or key == '<<':
-                return (TEST_MODULE_WRITE_REFUSED_ID, 'A payload key is illegal.', {'key': key})
-            defect = plain_value_defect(item)
-            if defect:
-                return defect
-        return None
-    return (
-        TEST_MODULE_WRITE_REFUSED_ID,
-        'A payload value is not plain data.',
-        {'value_type': type(value).__name__},
-    )
-
-# ** function: plain_payload_defect
-def plain_payload_defect(value: Any):
-    '''
-    Return a defect when a payload is not a mapping of plain data.
-
-    :param value: The payload to check.
-    :type value: Any
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # A payload is a mapping. A list is not a payload.
-    if not isinstance(value, dict):
-        return (
-            TEST_MODULE_WRITE_REFUSED_ID,
-            'A payload must be a mapping of plain data.',
-            {'value_type': type(value).__name__},
-        )
-    return plain_value_defect(value)
-
-# ** function: tag_defect
-def tag_defect(node: Any, fragment: bool = False):
-    '''
-    Return a defect when a tag is not plain. Do not raise.
-
-    :param node: The node to check.
-    :type node: Any
-    :param fragment: Use the write-refused id when the node came from a fragment.
-    :type fragment: bool
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # A merge tag is legal only on the merge key itself.
-    error_id = TEST_MODULE_WRITE_REFUSED_ID if fragment else TEST_MODULE_LOAD_FAILED_ID
-    if getattr(node, 'tag', None) == YAML_MERGE_TAG:
-        if isinstance(node, ScalarNode) and node.value == '<<':
-            return None
-        return (error_id, 'A merge tag is only legal on a merge key.', {})
-    if getattr(node, 'tag', None) not in YAML_PLAIN_TAGS:
-        return (error_id, 'A test module contains a non-plain tag.', {})
-    return None
-
-# ** function: tree_defect
-def tree_defect(root: Any, fragment: bool = False):
-    '''
-    Return the first plain-tree defect. Do not raise. Do not edit the tree.
-
-    :param root: The node to walk.
-    :type root: Any
-    :param fragment: Use the write-refused id when the tree came from a fragment.
-    :type fragment: bool
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # Aliases are not expanded. The first visit is the one that is checked.
-    error_id = TEST_MODULE_WRITE_REFUSED_ID if fragment else TEST_MODULE_LOAD_FAILED_ID
-    seen = set()
-
-    def walk(node: Any):
-        if id(node) in seen:
-            return None
-        seen.add(id(node))
-        if isinstance(node, ScalarNode):
-            return tag_defect(node, fragment=fragment)
-        if isinstance(node, SequenceNode):
-            defect = tag_defect(node, fragment=fragment)
-            if defect:
-                return defect
-            for item in node.value:
-                defect = walk(item)
-                if defect:
-                    return defect
-            return None
-        if isinstance(node, MappingNode):
-            defect = tag_defect(node, fragment=fragment)
-            if defect:
-                return defect
-            keys = set()
-            for key_node, value_node in node.value:
-                if not isinstance(key_node, ScalarNode):
-                    return (error_id, 'A test module key must be a scalar.', {})
-                if key_node.value in keys:
-                    return (error_id, f'Duplicate key: {key_node.value}.', {'key': key_node.value})
-                keys.add(key_node.value)
-                defect = walk(key_node)
-                if defect:
-                    return defect
-                defect = walk(value_node)
-                if defect:
-                    return defect
-            return None
-        return (error_id, 'A test module contains a non-plain node.', {})
-
-    return walk(root)
-
 # ** function: mapped_defect
 def mapped_defect(defect):
     '''
@@ -259,30 +80,6 @@ def mapped_defect(defect):
         return None
     reason, message, kwargs = defect
     return (_DEFECT_IDS[reason], message, kwargs)
-
-# ** function: loaded_defect
-def loaded_defect(document: TestModuleDocument, working: Any):
-    '''
-    Return a defect when a present file is not a legal root. Do not raise.
-
-    :param document: The bound document.
-    :type document: TestModuleDocument
-    :param working: The working graph.
-    :type working: Any
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # A missing file, a non-mapping root, a bad tree, or an illegal key.
-    defect = missing_defect(document)
-    if defect:
-        return defect
-    if not isinstance(working, MappingNode):
-        return (TEST_MODULE_LOAD_FAILED_ID, 'A test module root must be a mapping.', {})
-    defect = tree_defect(working)
-    if defect:
-        return defect
-    return mapped_defect(TestModuleDocumentAggregate.bind(document, working).reject_illegal_root())
 
 # ** function: root_insert_index
 def root_insert_index(root: MappingNode, key: str) -> int:
@@ -350,7 +147,7 @@ def tester_present(root: MappingNode, tester: str) -> bool:
 # ** function: container_steps
 def container_steps(root: MappingNode, kind: str, tester: str, create: bool):
     '''
-    Describe the container a verb reads. Do not create it.
+    Describe the container a verb reads. Do not create it. Do not raise.
 
     :param root: The document root.
     :type root: MappingNode
@@ -415,20 +212,17 @@ def container_steps(root: MappingNode, kind: str, tester: str, create: bool):
 # ** function: alias_node
 def alias_node(root: MappingNode, alias: str):
     '''
-    Return the aliased node, or a defect. Do not copy it.
+    Return the aliased node, or a defect. Do not check the name. Do not copy it.
 
     :param root: The document root.
     :type root: MappingNode
-    :param alias: The anchor name.
+    :param alias: The anchor name. The verb already checked it.
     :type alias: str
     :return: A defect and the node.
     :rtype: tuple
     '''
 
-    # The name must exist, and the node must already carry it.
-    defect = name_defect(alias, label='anchor')
-    if defect:
-        return defect, None
+    # The verb checked the name. This only looks the anchor up.
     table = anchor_table(root)
     if alias not in table:
         return (TEST_ANCHOR_CONFLICT_ID, f'Undefined alias: {alias}.', {'alias': alias}), None
@@ -436,37 +230,6 @@ def alias_node(root: MappingNode, alias: str):
     if not getattr(node, 'anchor_name', None):
         return (TEST_ANCHOR_CONFLICT_ID, 'A shared node has no anchor name.', {'alias': alias}), None
     return None, node
-
-# ** function: anchor_defect
-def anchor_defect(node: Any, anchor: str, root: MappingNode):
-    '''
-    Return a defect when an anchor cannot be recorded. Do not assign it.
-
-    :param node: The node that would receive the anchor.
-    :type node: Any
-    :param anchor: The requested anchor, or None.
-    :type anchor: str
-    :param root: The document root.
-    :type root: MappingNode
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # The same name is a no-op. A different name is a rename, which is refused.
-    if anchor is None:
-        return None
-    defect = name_defect(anchor, label='anchor')
-    if defect:
-        return defect
-    current = getattr(node, 'anchor_name', None)
-    if current == anchor:
-        return None
-    if current is not None:
-        return (TEST_ANCHOR_CONFLICT_ID, 'The writer does not rename an anchor.', {'anchor': anchor})
-    table = anchor_table(root)
-    if anchor in table and table[anchor] is not node:
-        return (TEST_ANCHOR_CONFLICT_ID, f'Anchor already exists: {anchor}.', {'anchor': anchor})
-    return None
 
 # ** function: merge_anchor_name
 def merge_anchor_name(node: Any, first: dict, node_path: tuple):
@@ -513,110 +276,6 @@ def pair_index(container: MappingNode, name: str):
     for index, (key_node, _value_node) in enumerate(container.value):
         if isinstance(key_node, ScalarNode) and key_node.value == name:
             return index
-    return None
-
-# ** function: source_defect
-def source_defect(payload: Any, fragment: str, alias: str):
-    '''
-    Return a defect when add sources are combined or omitted. Do not raise.
-
-    :param payload: The plain payload, or None.
-    :type payload: Any
-    :param fragment: The YAML fragment, or None.
-    :type fragment: str
-    :param alias: The alias, or None.
-    :type alias: str
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # One source, or a refusal. An omitted payload is not an empty mapping.
-    if payload is not None and fragment is not None:
-        return (TEST_MODULE_WRITE_REFUSED_ID, 'payload and fragment cannot be combined.', {})
-    if payload is not None and alias is not None:
-        return (TEST_MODULE_WRITE_REFUSED_ID, 'payload and alias cannot be combined.', {})
-    if fragment is not None and alias is not None:
-        return (TEST_MODULE_WRITE_REFUSED_ID, 'fragment and alias cannot be combined.', {})
-    if payload is None and fragment is None and alias is None:
-        return (TEST_MODULE_WRITE_REFUSED_ID, 'An omitted payload is not an empty mapping.', {})
-    return None
-
-# ** function: fragment_text_defect
-def fragment_text_defect(fragment: str):
-    '''
-    Return a defect when a fragment is blank. Do not compose it.
-
-    :param fragment: The fragment text.
-    :type fragment: str
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # A fragment is one YAML value, not a blank string.
-    if not isinstance(fragment, str) or fragment.strip() == '':
-        return (TEST_MODULE_WRITE_REFUSED_ID, 'A fragment must be one YAML value.', {})
-    return None
-
-# ** function: update_omitted_defect
-def update_omitted_defect(payload: Any, fragment: str, merge: str):
-    '''
-    Return a defect when an update sends no payload, fragment, or merge.
-
-    :param payload: The plain payload, or None.
-    :type payload: Any
-    :param fragment: The YAML fragment, or None.
-    :type fragment: str
-    :param merge: The merge anchor, or None.
-    :type merge: str
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # A merge-only fixture update is not omitted. A test has no merge.
-    if payload is not None and fragment is not None:
-        return (TEST_MODULE_WRITE_REFUSED_ID, 'payload and fragment cannot be combined.', {})
-    if payload is None and fragment is None and merge is None:
-        return (TEST_MODULE_WRITE_REFUSED_ID, 'An omitted payload is not an empty mapping.', {})
-    return None
-
-# ** function: dict_key_defect
-def dict_key_defect(payload: Any, keys: tuple, message: str):
-    '''
-    Return a defect when a plain payload contains a refused key.
-
-    :param payload: The plain payload.
-    :type payload: Any
-    :param keys: The refused keys.
-    :type keys: tuple
-    :param message: The refusal message.
-    :type message: str
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # Only a mapping can carry the refused keys.
-    if isinstance(payload, dict) and any(key in payload for key in keys):
-        return (TEST_MODULE_WRITE_REFUSED_ID, message, {})
-    return None
-
-# ** function: node_key_defect
-def node_key_defect(node: Any, keys: tuple, message: str):
-    '''
-    Return a defect when a mapping node contains a refused key.
-
-    :param node: The mapping node.
-    :type node: Any
-    :param keys: The refused keys.
-    :type keys: tuple
-    :param message: The refusal message.
-    :type message: str
-    :return: The defect, or None.
-    :rtype: tuple
-    '''
-
-    # The event decides which keys are refused.
-    if any(find_mapping_pair(node, key) is not None for key in keys):
-        return (TEST_MODULE_WRITE_REFUSED_ID, message, {})
     return None
 
 # ** function: entry_plan
@@ -675,8 +334,684 @@ def scalar_names(container: Any) -> list:
 
 # *** events
 
+# ** event: test_module_event
+class TestModuleEvent(DomainEvent):
+    '''
+    Shared defect checks for one test-module document.
+
+    The base holds no service. A check calls verify. A computing function does not.
+    '''
+
+    # * method: verify_defect
+    def verify_defect(self, defect) -> None:
+        '''
+        Verify that a computed defect is absent.
+
+        :param defect: The defect tuple, or None.
+        :type defect: tuple
+        '''
+
+        # A function or the aggregate returned this. This method does not unpack a raise.
+        self.verify(
+            expression=defect is None,
+            error_code=defect[0] if defect else None,
+            message=defect[1] if defect else None,
+            **(defect[2] if defect else {}),
+        )
+
+    # * method: name_defect
+    def name_defect(self, value: str, label: str = 'name') -> None:
+        '''
+        Verify a grammar name.
+
+        :param value: The name to check.
+        :type value: str
+        :param label: The name's role in the message.
+        :type label: str
+        '''
+
+        # A snake name is the grammar.
+        self.verify(
+            expression=isinstance(value, str) and _NAME_PATTERN.fullmatch(value) is not None,
+            error_code=TEST_MODULE_PATH_INVALID_ID,
+            message=f'A test module {label} is illegal.',
+            name=value,
+        )
+
+    # * method: missing_defect
+    def missing_defect(self, document: TestModuleDocument) -> None:
+        '''
+        Verify that the file is present.
+
+        :param document: The bound document.
+        :type document: TestModuleDocument
+        '''
+
+        # An absent file is not created here.
+        self.verify(
+            expression=document.text is not None,
+            error_code=TEST_MODULE_NOT_FOUND_ID,
+            message=f'Test module not found: {document.address.path}.',
+            path=document.address.path,
+        )
+
+    # * method: plain_value_defect
+    def plain_value_defect(self, value: Any) -> None:
+        '''
+        Verify that a value is plain data.
+
+        :param value: The value to check.
+        :type value: Any
+        '''
+
+        # None, strings, and bools are plain. Bool is checked before int.
+        if value is None or isinstance(value, (str, bool)):
+            return
+        if isinstance(value, int):
+            return
+        if isinstance(value, float):
+            self.verify(
+                expression=value == value and value not in (float('inf'), float('-inf')),
+                error_code=TEST_MODULE_WRITE_REFUSED_ID,
+                message='A payload float must be finite.',
+            )
+            return
+        if isinstance(value, list):
+            for item in value:
+                self.plain_value_defect(item)
+            return
+        if isinstance(value, dict):
+            for key, item in value.items():
+                self.verify(
+                    expression=isinstance(key, str) and key != '<<',
+                    error_code=TEST_MODULE_WRITE_REFUSED_ID,
+                    message='A payload key is illegal.',
+                    key=key,
+                )
+                self.plain_value_defect(item)
+            return
+        self.verify(
+            expression=value is None or isinstance(value, (str, bool, int, float, list, dict)),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A payload value is not plain data.',
+            value_type=type(value).__name__,
+        )
+
+    # * method: plain_payload_defect
+    def plain_payload_defect(self, value: Any) -> None:
+        '''
+        Verify that a payload is a mapping of plain data.
+
+        :param value: The payload to check.
+        :type value: Any
+        '''
+
+        # A payload is a mapping. A list is not a payload.
+        self.verify(
+            expression=isinstance(value, dict),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A payload must be a mapping of plain data.',
+            value_type=type(value).__name__,
+        )
+        self.plain_value_defect(value)
+
+    # * method: tag_defect
+    def tag_defect(self, node: Any, fragment: bool = False) -> None:
+        '''
+        Verify that a tag is plain.
+
+        :param node: The node to check.
+        :type node: Any
+        :param fragment: Use the write-refused id when the node came from a fragment.
+        :type fragment: bool
+        '''
+
+        # A merge tag is legal only on the merge key itself.
+        error_id = TEST_MODULE_WRITE_REFUSED_ID if fragment else TEST_MODULE_LOAD_FAILED_ID
+        if getattr(node, 'tag', None) == YAML_MERGE_TAG:
+            self.verify(
+                expression=isinstance(node, ScalarNode) and node.value == '<<',
+                error_code=error_id,
+                message='A merge tag is only legal on a merge key.',
+            )
+            return
+        self.verify(
+            expression=getattr(node, 'tag', None) in YAML_PLAIN_TAGS,
+            error_code=error_id,
+            message='A test module contains a non-plain tag.',
+        )
+
+    # * method: tree_defect
+    def tree_defect(self, root: Any, fragment: bool = False) -> None:
+        '''
+        Verify a plain tree. Do not edit it.
+
+        :param root: The node to walk.
+        :type root: Any
+        :param fragment: Use the write-refused id when the tree came from a fragment.
+        :type fragment: bool
+        '''
+
+        # Aliases are not expanded. The first illegal node fails the verify.
+        error_id = TEST_MODULE_WRITE_REFUSED_ID if fragment else TEST_MODULE_LOAD_FAILED_ID
+        seen = set()
+
+        def walk(node: Any) -> None:
+            if id(node) in seen:
+                return
+            seen.add(id(node))
+            if isinstance(node, ScalarNode):
+                self.tag_defect(node, fragment=fragment)
+                return
+            if isinstance(node, SequenceNode):
+                self.tag_defect(node, fragment=fragment)
+                for item in node.value:
+                    walk(item)
+                return
+            if isinstance(node, MappingNode):
+                self.tag_defect(node, fragment=fragment)
+                keys = set()
+                for key_node, value_node in node.value:
+                    self.verify(
+                        expression=isinstance(key_node, ScalarNode),
+                        error_code=error_id,
+                        message='A test module key must be a scalar.',
+                    )
+                    self.verify(
+                        expression=key_node.value not in keys,
+                        error_code=error_id,
+                        message=f'Duplicate key: {key_node.value}.',
+                        key=key_node.value,
+                    )
+                    keys.add(key_node.value)
+                    walk(key_node)
+                    walk(value_node)
+                return
+            self.verify(
+                expression=isinstance(node, (ScalarNode, SequenceNode, MappingNode)),
+                error_code=error_id,
+                message='A test module contains a non-plain node.',
+            )
+
+        walk(root)
+
+    # * method: loaded_defect
+    def loaded_defect(self, document: TestModuleDocument, working: Any) -> None:
+        '''
+        Verify that a present file is a legal root.
+
+        :param document: The bound document.
+        :type document: TestModuleDocument
+        :param working: The working graph.
+        :type working: Any
+        '''
+
+        # A missing file, a non-mapping root, a bad tree, or an illegal key.
+        self.missing_defect(document)
+        self.verify(
+            expression=isinstance(working, MappingNode),
+            error_code=TEST_MODULE_LOAD_FAILED_ID,
+            message='A test module root must be a mapping.',
+        )
+        self.tree_defect(working)
+        defect = mapped_defect(
+            TestModuleDocumentAggregate.bind(document, working).reject_illegal_root(),
+        )
+        self.verify(
+            expression=defect is None,
+            error_code=defect[0] if defect else None,
+            message=defect[1] if defect else None,
+            **(defect[2] if defect else {}),
+        )
+
+    # * method: source_defect
+    def source_defect(self, payload: Any, fragment: str, alias: str) -> None:
+        '''
+        Verify that add sources are not combined and not omitted.
+
+        :param payload: The plain payload, or None.
+        :type payload: Any
+        :param fragment: The YAML fragment, or None.
+        :type fragment: str
+        :param alias: The alias, or None.
+        :type alias: str
+        '''
+
+        # One source, or a refusal. An omitted payload is not an empty mapping.
+        self.verify(
+            expression=not (payload is not None and fragment is not None),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='payload and fragment cannot be combined.',
+        )
+        self.verify(
+            expression=not (payload is not None and alias is not None),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='payload and alias cannot be combined.',
+        )
+        self.verify(
+            expression=not (fragment is not None and alias is not None),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='fragment and alias cannot be combined.',
+        )
+        self.verify(
+            expression=payload is not None or fragment is not None or alias is not None,
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='An omitted payload is not an empty mapping.',
+        )
+
+    # * method: fragment_text_defect
+    def fragment_text_defect(self, fragment: str) -> None:
+        '''
+        Verify that a fragment is one YAML value.
+
+        :param fragment: The fragment text.
+        :type fragment: str
+        '''
+
+        # A fragment is one YAML value, not a blank string.
+        self.verify(
+            expression=isinstance(fragment, str) and fragment.strip() != '',
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A fragment must be one YAML value.',
+        )
+
+    # * method: update_omitted_defect
+    def update_omitted_defect(self, payload: Any, fragment: str, merge: str) -> None:
+        '''
+        Verify that an update sent a payload, a fragment, or a merge.
+
+        :param payload: The plain payload, or None.
+        :type payload: Any
+        :param fragment: The YAML fragment, or None.
+        :type fragment: str
+        :param merge: The merge anchor, or None.
+        :type merge: str
+        '''
+
+        # A merge-only fixture update is not omitted. A test has no merge.
+        self.verify(
+            expression=not (payload is not None and fragment is not None),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='payload and fragment cannot be combined.',
+        )
+        self.verify(
+            expression=payload is not None or fragment is not None or merge is not None,
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='An omitted payload is not an empty mapping.',
+        )
+
+    # * method: dict_key_defect
+    def dict_key_defect(self, payload: Any, keys: tuple, message: str) -> None:
+        '''
+        Verify that a plain payload omits the refused keys.
+
+        :param payload: The plain payload.
+        :type payload: Any
+        :param keys: The refused keys.
+        :type keys: tuple
+        :param message: The refusal message.
+        :type message: str
+        '''
+
+        # Only a mapping can carry the refused keys.
+        self.verify(
+            expression=not (isinstance(payload, dict) and any(key in payload for key in keys)),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message=message,
+        )
+
+    # * method: node_key_defect
+    def node_key_defect(self, node: Any, keys: tuple, message: str) -> None:
+        '''
+        Verify that a mapping node omits the refused keys.
+
+        :param node: The mapping node.
+        :type node: Any
+        :param keys: The refused keys.
+        :type keys: tuple
+        :param message: The refusal message.
+        :type message: str
+        '''
+
+        # The event decides which keys are refused.
+        self.verify(
+            expression=not any(find_mapping_pair(node, key) is not None for key in keys),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message=message,
+        )
+
+    # * method: anchor_defect
+    def anchor_defect(self, node: Any, anchor: str, root: MappingNode) -> None:
+        '''
+        Verify that an anchor can be recorded. Do not assign it.
+
+        :param node: The node that would receive the anchor.
+        :type node: Any
+        :param anchor: The requested anchor, or None.
+        :type anchor: str
+        :param root: The document root.
+        :type root: MappingNode
+        '''
+
+        # The same name is a no-op. A different name is a rename, which is refused.
+        if anchor is None:
+            return
+        self.name_defect(anchor, label='anchor')
+        current = getattr(node, 'anchor_name', None)
+        if current == anchor:
+            return
+        self.verify(
+            expression=current is None,
+            error_code=TEST_ANCHOR_CONFLICT_ID,
+            message='The writer does not rename an anchor.',
+            anchor=anchor,
+        )
+        table = anchor_table(root)
+        self.verify(
+            expression=anchor not in table or table[anchor] is node,
+            error_code=TEST_ANCHOR_CONFLICT_ID,
+            message=f'Anchor already exists: {anchor}.',
+            anchor=anchor,
+        )
+
+    # * method: verify_absent
+    def verify_absent(self, absent: bool, name: str, message: str) -> None:
+        '''
+        Verify that a name is not already present.
+
+        :param absent: Whether the name is absent.
+        :type absent: bool
+        :param name: The artifact name.
+        :type name: str
+        :param message: The refusal message.
+        :type message: str
+        '''
+
+        # Already-exists is a verify. The verb does not raise_error it.
+        self.verify(
+            expression=absent,
+            error_code=TEST_ARTIFACT_ALREADY_EXISTS_ID,
+            message=message,
+            name=name,
+        )
+
+    # * method: verify_present
+    def verify_present(self, present: bool, name: str, message: str) -> None:
+        '''
+        Verify that a name is present.
+
+        :param present: Whether the name was found.
+        :type present: bool
+        :param name: The artifact name.
+        :type name: str
+        :param message: The refusal message.
+        :type message: str
+        '''
+
+        # Not-found is a verify. The verb does not raise_error it.
+        self.verify(
+            expression=present,
+            error_code=TEST_ARTIFACT_NOT_FOUND_ID,
+            message=message,
+            name=name,
+        )
+
+    # * method: mark
+    def _mark(self, root: Any) -> None:
+        '''Record first visits before this write edits the graph. Do not raise.'''
+
+        if getattr(root, '_tiferet_before', None) is None:
+            root._tiferet_before = index_first_visits(root)
+
+    # * method: apply
+    def _apply(self, steps: list):
+        '''
+        Apply a container plan. Return a child-plan defect. Do not raise.
+
+        :param steps: The plan from container_steps.
+        :type steps: list
+        :return: A defect and the container.
+        :rtype: tuple
+        '''
+
+        # The verb verifies the defect. This method only edits.
+        container = None
+        for step in steps:
+            if step[0] == 'use':
+                container = step[1]
+                continue
+            parent, key, ordered = step[1], step[2], step[3]
+            defect, plan = child_plan(parent, key, root_order=ordered)
+            if defect:
+                return defect, None
+            if plan[0] == 'found':
+                container = plan[1]
+            elif plan[0] == 'replace':
+                container = empty_mapping_node()
+                replace_mapping_value(parent, key, container)
+            else:
+                container = plan[1]
+                insert_mapping_key(parent, plan[2], container, index=plan[3])
+        return None, container
+
+    # * method: compose
+    def _compose(self, document: TestModuleDocument, root: MappingNode, fragment: str):
+        '''
+        Compose one fragment. Return a loader error or the node. Do not raise.
+
+        :param document: The bound document.
+        :type document: TestModuleDocument
+        :param root: The document root.
+        :type root: MappingNode
+        :param fragment: The fragment text. The verb already checked it.
+        :type fragment: str
+        :return: A loader error or None, and the node.
+        :rtype: tuple
+        '''
+
+        # The read event may raise. This method returns that error to the verb.
+        try:
+            composed = DomainEvent.handle(
+                ReadTestModuleDocument,
+                address=document.address,
+                text=fragment,
+                anchors=anchor_table(root),
+            )
+        except TiferetError as error:
+            return error, None
+        return None, composed.body
+
+    # * method: accept_fragment
+    def _accept_fragment(self, document: TestModuleDocument, root: MappingNode, fragment: str):
+        '''Compose a fragment and verify it. Do not decide a fixture from a test.'''
+
+        # A blank fragment, a loader failure, and a non-plain tree are checks.
+        self.fragment_text_defect(fragment)
+        error, node = self._compose(document, root, fragment)
+        if error is not None and error.error_code == TEST_ANCHOR_CONFLICT_ID:
+            raise error
+        self.verify(
+            expression=error is None,
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message=(error.kwargs.get('detail') or str(error)) if error else None,
+        )
+        self.verify(
+            expression=node is not None,
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A fragment must be one YAML value.',
+        )
+        self.tree_defect(node, fragment=True)
+        return node
+
+    # * method: project
+    def _project(self, document: TestModuleDocument, node: Any, already: list) -> str:
+        '''Serialize one owned node. An unnamed share is an anchor conflict.'''
+
+        # The projection does not replace the file.
+        try:
+            written = DomainEvent.handle(
+                WriteTestModuleDocument,
+                document=document,
+                working=node,
+                already=already,
+            )
+        except TiferetError as error:
+            self.verify(
+                expression=error.error_code != TEST_ANCHOR_CONFLICT_ID,
+                error_code=TEST_ANCHOR_CONFLICT_ID,
+                message=error.kwargs.get('detail') or 'A shared node has no anchor name.',
+            )
+            raise
+        text = written.text or ''
+        if text and not text.endswith('\n'):
+            text += '\n'
+        if not text.endswith('\n'):
+            text += '\n'
+        return text
+
+    # * method: read_entry
+    def _read_entry(self, document, working, name, kind, tester):
+        '''Read one entry. The caller names the kind.'''
+
+        self.name_defect(name)
+        if tester is not None:
+            self.name_defect(tester)
+        self.missing_defect(document)
+        self.tree_defect(working)
+        if tester is not None:
+            self.verify_present(
+                tester_present(working, tester),
+                tester,
+                f'Tester not found: {tester}.',
+            )
+        defect, steps, path = container_steps(working, kind, tester, create=False)
+        self.verify_defect(defect)
+        container = None if steps is None else steps[0][1]
+        pair = None if container is None else find_mapping_pair(container, name)
+        self.verify_present(pair is not None, name, f'{name} was not found.')
+        plan = entry_plan(name, pair[1], working, path + (('val', name),))
+        if 'defect' in plan:
+            self.verify_defect(plan['defect'])
+        if 'alias' in plan:
+            return {
+                'name': name,
+                'anchor': None,
+                'alias': plan['alias'],
+                'merge': None,
+                'fragment': f'*{plan["alias"]}\n',
+            }
+        fragment = self._project(document, plan['node'], plan['already'])
+        return {
+            'name': name,
+            'anchor': plan['anchor'],
+            'alias': None,
+            'merge': plan['merge'],
+            'fragment': fragment,
+        }
+
+    # * method: read_names
+    def _read_names(self, document, working, kind, tester):
+        '''Return scalar names. A missing container is an empty list.'''
+
+        if tester is not None:
+            self.name_defect(tester)
+        self.missing_defect(document)
+        self.tree_defect(working)
+        if tester is not None:
+            self.verify_present(
+                tester_present(working, tester),
+                tester,
+                f'Tester not found: {tester}.',
+            )
+        defect, steps, _path = container_steps(working, kind, tester, create=False)
+        self.verify_defect(defect)
+        container = None if steps is None else steps[0][1]
+        return scalar_names(container)
+
+    # * method: open_update
+    def _open_update(self, document, working, name, kind, tester, payload, fragment, merge,
+            refuse_merge_key=False, refuse_containers=False):
+        '''Open a mapping patch. The caller decides merge and container law.'''
+
+        self.name_defect(name)
+        if tester is not None:
+            self.name_defect(tester)
+        self.update_omitted_defect(payload, fragment, merge)
+        if payload is not None:
+            self.plain_payload_defect(payload)
+            if refuse_containers:
+                self.dict_key_defect(
+                    payload,
+                    ('fixtures', 'tests'),
+                    'A tester update cannot edit fixtures or tests.',
+                )
+        self.loaded_defect(document, working)
+        root = working
+        self._mark(root)
+        defect, steps, _path = container_steps(root, kind, tester, create=False)
+        self.verify_defect(defect)
+        container = None if steps is None else steps[0][1]
+        pair = None if container is None else find_mapping_pair(container, name)
+        self.verify_present(pair is not None, name, f'{name} was not found.')
+        self.verify(
+            expression=isinstance(pair[1], MappingNode),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='Update patches a mapping.',
+        )
+        updates = None
+        if fragment is not None:
+            fragment_node = self._accept_fragment(document, root, fragment)
+            self.verify(
+                expression=isinstance(fragment_node, MappingNode),
+                error_code=TEST_MODULE_WRITE_REFUSED_ID,
+                message='An update fragment must be a mapping.',
+            )
+            if refuse_containers:
+                self.node_key_defect(
+                    fragment_node,
+                    ('fixtures', 'tests'),
+                    'A tester update cannot edit fixtures or tests.',
+                )
+            if refuse_merge_key:
+                self.node_key_defect(
+                    fragment_node,
+                    ('<<',),
+                    'A test or tester node rejects a merge key.',
+                )
+            updates = fragment_node
+        if payload is not None:
+            updates = node_from_plain(payload)
+        return TestModuleDocumentAggregate.bind(document, root), pair[1], updates, root
+
+    # * method: open_remove
+    def _open_remove(self, document, working, name, kind, tester):
+        '''Find the pair index. Do not delete it.'''
+
+        self.name_defect(name)
+        if tester is not None:
+            self.name_defect(tester)
+        self.loaded_defect(document, working)
+        root = working
+        self._mark(root)
+        defect, steps, _path = container_steps(root, kind, tester, create=False)
+        self.verify_defect(defect)
+        container = None if steps is None else steps[0][1]
+        index = pair_index(container, name)
+        self.verify_present(index is not None, name, f'{name} was not found.')
+        return TestModuleDocumentAggregate.bind(document, root), container, index
+
+    # * method: open_add
+    def _open_add(self, root, kind, tester):
+        '''Ensure a container. Return it. Do not decide an alias or a merge.'''
+
+        defect, steps, _path = container_steps(root, kind, tester, create=True)
+        self.verify_defect(defect)
+        defect, container = self._apply(steps)
+        self.verify_defect(defect)
+        return container
+
 # ** event: read_test_module_document
-class ReadTestModuleDocument(DomainEvent):
+class ReadTestModuleDocument(TestModuleEvent):
     '''
     Read one test-module document from an address and a YAML revision.
 
@@ -727,7 +1062,7 @@ class ReadTestModuleDocument(DomainEvent):
         return TestModuleDocument(address=address, text=text, body=body)
 
 # ** event: write_test_module_document
-class WriteTestModuleDocument(DomainEvent):
+class WriteTestModuleDocument(TestModuleEvent):
     '''
     Write one test-module document from a working graph.
 
@@ -762,20 +1097,14 @@ class WriteTestModuleDocument(DomainEvent):
         if already is None:
             aggregate = TestModuleDocumentAggregate.bind(document, working)
             aggregate.omit_empty()
-            defect = mapped_defect(aggregate.reject_illegal_root())
-            if defect:
-                self.raise_error(defect[0], defect[1], **defect[2])
+            self.verify_defect(mapped_defect(aggregate.reject_illegal_root()))
             before = getattr(working, '_tiferet_before', None)
             if before is not None:
-                defect = mapped_defect(aggregate.reject_moved_anchors(before, index_first_visits(working)))
-                if defect:
-                    self.raise_error(defect[0], defect[1], **defect[2])
-            defect = mapped_defect(aggregate.reject_unanchored_shares())
-            if defect:
-                self.raise_error(defect[0], defect[1], **defect[2])
-            defect = mapped_defect(aggregate.reject_test_merges())
-            if defect:
-                self.raise_error(defect[0], defect[1], **defect[2])
+                self.verify_defect(mapped_defect(
+                    aggregate.reject_moved_anchors(before, index_first_visits(working)),
+                ))
+            self.verify_defect(mapped_defect(aggregate.reject_unanchored_shares()))
+            self.verify_defect(mapped_defect(aggregate.reject_test_merges()))
             if isinstance(working, MappingNode) and not working.value:
                 return TestModuleDocument(address=document.address, text='\n', body=working)
 
@@ -789,34 +1118,8 @@ class WriteTestModuleDocument(DomainEvent):
             raise
         return TestModuleDocument(address=document.address, text=text, body=working)
 
-    # * method: project
-    def _project(self, document: TestModuleDocument, node: Any, already: list) -> str:
-        '''Serialize one owned node. An unnamed share is an anchor conflict.'''
-
-        # The projection does not replace the file.
-        try:
-            written = DomainEvent.handle(
-                WriteTestModuleDocument,
-                document=document,
-                working=node,
-                already=already,
-            )
-        except TiferetError as error:
-            if error.error_code == TEST_ANCHOR_CONFLICT_ID:
-                self.raise_error(
-                    TEST_ANCHOR_CONFLICT_ID,
-                    error.kwargs.get('detail') or 'A shared node has no anchor name.',
-                )
-            raise
-        text = written.text or ''
-        if text and not text.endswith('\n'):
-            text += '\n'
-        if not text.endswith('\n'):
-            text += '\n'
-        return text
-
 # ** event: add_fixture
-class AddFixture(DomainEvent):
+class AddFixture(TestModuleEvent):
     '''
     Add one fixture to a test-module document.
 
@@ -866,38 +1169,41 @@ class AddFixture(DomainEvent):
         '''
 
         # A fixture name is a grammar name. A scoped add does not create a file.
-        self._refuse(name_defect(name))
+        self.name_defect(name)
         if tester is not None:
-            self._refuse(name_defect(tester))
+            self.name_defect(tester)
         if document.text is None and tester is not None:
-            self._refuse(missing_defect(document))
+            self.missing_defect(document)
 
         # A fixture may name an alias. It may not combine sources or omit them.
-        self._refuse(source_defect(payload, fragment, alias))
+        self.source_defect(payload, fragment, alias)
         if payload is not None:
-            self._refuse(plain_payload_defect(payload))
+            self.plain_payload_defect(payload)
         root = working
         if document.text is not None:
-            self._refuse(loaded_defect(document, working))
+            self.loaded_defect(document, working)
 
         # Record first visits, then open the fixtures mapping. This write may create it.
         self._mark(root)
-        self._refuse_steps(container_steps(root, 'fixtures', tester, create=True))
-        container = self._apply(container_steps(root, 'fixtures', tester, create=True)[1])
-        if find_mapping_pair(container, name) is not None:
-            self.raise_error(TEST_ARTIFACT_ALREADY_EXISTS_ID, f'{name} already exists.', name=name)
+        container = self._open_add(root, 'fixtures', tester)
+        self.verify_absent(
+            find_mapping_pair(container, name) is None,
+            name,
+            f'{name} already exists.',
+        )
 
         # The node comes from one source. A fixture may be an alias.
         if payload is not None:
             node = node_from_plain(payload)
         elif alias is not None:
+            self.name_defect(alias, label='anchor')
             defect, node = alias_node(root, alias)
-            self._refuse(defect)
+            self.verify_defect(defect)
         else:
-            node = self._compose(document, root, fragment)
+            node = self._accept_fragment(document, root, fragment)
 
         # Record the anchor, insert the pair, then merge when this fixture asks to.
-        self._refuse(anchor_defect(node, anchor, root))
+        self.anchor_defect(node, anchor, root)
         aggregate = TestModuleDocumentAggregate.bind(document, root)
         aggregate.add_entry(container, ScalarNode(YAML_STR_TAG, name), node)
         if anchor is not None and getattr(node, 'anchor_name', None) != anchor:
@@ -905,81 +1211,21 @@ class AddFixture(DomainEvent):
         self._merge(document, root, node, merge)
         return document
 
-    # * method: refuse
-    def _refuse(self, defect) -> None:
-        '''Raise a returned defect. A module function does not raise.'''
-
-        if defect:
-            self.raise_error(defect[0], defect[1], **defect[2])
-
-    # * method: refuse_steps
-    def _refuse_steps(self, found) -> None:
-        '''Raise a container defect. Do not apply the plan.'''
-
-        self._refuse(found[0])
-
-    # * method: mark
-    def _mark(self, root: Any) -> None:
-        '''Record first visits before this write edits the graph.'''
-
-        if getattr(root, '_tiferet_before', None) is None:
-            root._tiferet_before = index_first_visits(root)
-
-    # * method: apply
-    def _apply(self, steps: list):
-        '''Apply a container plan. The plan itself does not edit the graph.'''
-
-        container = None
-        for step in steps:
-            if step[0] == 'use':
-                container = step[1]
-                continue
-            parent, key, ordered = step[1], step[2], step[3]
-            defect, plan = child_plan(parent, key, root_order=ordered)
-            self._refuse(defect)
-            if plan[0] == 'found':
-                container = plan[1]
-            elif plan[0] == 'replace':
-                container = empty_mapping_node()
-                replace_mapping_value(parent, key, container)
-            else:
-                container = plan[1]
-                insert_mapping_key(parent, plan[2], container, index=plan[3])
-        return container
-
-    # * method: compose
-    def _compose(self, document: TestModuleDocument, root: MappingNode, fragment: str):
-        '''Compose one fragment against the document anchors.'''
-
-        self._refuse(fragment_text_defect(fragment))
-        try:
-            composed = DomainEvent.handle(
-                ReadTestModuleDocument,
-                address=document.address,
-                text=fragment,
-                anchors=anchor_table(root),
-            )
-        except TiferetError as error:
-            if error.error_code == TEST_ANCHOR_CONFLICT_ID:
-                raise
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, error.kwargs.get('detail') or str(error))
-        node = composed.body
-        if node is None:
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'A fragment must be one YAML value.')
-        self._refuse(tree_defect(node, fragment=True))
-        return node
-
     # * method: merge
     def _merge(self, document: TestModuleDocument, root: MappingNode, node: Any, merge: str) -> None:
         '''Write a named merge. Only a fixture event calls this.'''
 
+        # A fixture may merge. The mutator does not decide that.
         if merge is None:
             return
-        self._refuse(name_defect(merge, label='anchor'))
-        if not isinstance(node, MappingNode):
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'Merge is legal on a fixture mapping only.')
+        self.name_defect(merge, label='anchor')
+        self.verify(
+            expression=isinstance(node, MappingNode),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='Merge is legal on a fixture mapping only.',
+        )
         defect, target = alias_node(root, merge)
-        self._refuse(defect)
+        self.verify_defect(defect)
         pair = find_mapping_pair(node, '<<')
         index = None if pair is None else node.value.index(pair)
         TestModuleDocumentAggregate.bind(document, root).apply_merge(
@@ -990,7 +1236,7 @@ class AddFixture(DomainEvent):
         )
 
 # ** event: get_fixture
-class GetFixture(DomainEvent):
+class GetFixture(TestModuleEvent):
     '''Read one fixture projection. The five-key dict is not a second noun.'''
 
     # * method: execute
@@ -1020,47 +1266,10 @@ class GetFixture(DomainEvent):
         '''
 
         # A read uses a file that already exists. It does not apply write law.
-        return self._read(document, working, name, kind='fixtures', tester=tester)
-
-    # * method: read
-    def _read(self, document, working, name, kind, tester):
-        '''Read one entry. The caller names the kind.'''
-
-        AddFixture()._refuse(name_defect(name))
-        if tester is not None:
-            AddFixture()._refuse(name_defect(tester))
-        AddFixture()._refuse(missing_defect(document))
-        AddFixture()._refuse(tree_defect(working))
-        if tester is not None and not tester_present(working, tester):
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'Tester not found: {tester}.', name=tester)
-        defect, steps, path = container_steps(working, kind, tester, create=False)
-        AddFixture()._refuse(defect)
-        container = None if steps is None else steps[0][1]
-        pair = None if container is None else find_mapping_pair(container, name)
-        if pair is None:
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'{name} was not found.', name=name)
-        plan = entry_plan(name, pair[1], working, path + (('val', name),))
-        if 'defect' in plan:
-            self.raise_error(plan['defect'][0], plan['defect'][1], **plan['defect'][2])
-        if 'alias' in plan:
-            return {
-                'name': name,
-                'anchor': None,
-                'alias': plan['alias'],
-                'merge': None,
-                'fragment': f'*{plan["alias"]}\n',
-            }
-        fragment = WriteTestModuleDocument()._project(document, plan['node'], plan['already'])
-        return {
-            'name': name,
-            'anchor': plan['anchor'],
-            'alias': None,
-            'merge': plan['merge'],
-            'fragment': fragment,
-        }
+        return self._read_entry(document, working, name, kind='fixtures', tester=tester)
 
 # ** event: list_fixtures
-class ListFixtures(DomainEvent):
+class ListFixtures(TestModuleEvent):
     '''List fixture names in document order. A list does not replace the file.'''
 
     # * method: execute
@@ -1087,25 +1296,10 @@ class ListFixtures(DomainEvent):
         '''
 
         # A list does not create a container and does not replace the file.
-        return self._names(document, working, kind='fixtures', tester=tester)
-
-    # * method: names
-    def _names(self, document, working, kind, tester):
-        '''Return scalar names. A missing container is an empty list.'''
-
-        if tester is not None:
-            AddFixture()._refuse(name_defect(tester))
-        AddFixture()._refuse(missing_defect(document))
-        AddFixture()._refuse(tree_defect(working))
-        if tester is not None and not tester_present(working, tester):
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'Tester not found: {tester}.', name=tester)
-        defect, steps, _path = container_steps(working, kind, tester, create=False)
-        AddFixture()._refuse(defect)
-        container = None if steps is None else steps[0][1]
-        return scalar_names(container)
+        return self._read_names(document, working, kind='fixtures', tester=tester)
 
 # ** event: update_fixture
-class UpdateFixture(DomainEvent):
+class UpdateFixture(TestModuleEvent):
     '''Patch one fixture. A fixture update may set a merge.'''
 
     # * method: execute
@@ -1144,67 +1338,41 @@ class UpdateFixture(DomainEvent):
         '''
 
         # A fixture update may set a merge and may omit the payload when it does.
-        aggregate, target, updates, root = self._open(
+        aggregate, target, updates, root = self._open_update(
             document, working, name, kind='fixtures', tester=tester,
             payload=payload, fragment=fragment, merge=merge,
         )
         if updates is not None:
             aggregate.update_entry(target, updates)
-        AddFixture()._merge(document, root, target, merge)
+        self._merge(document, root, target, merge)
         return document
 
-    # * method: open
-    def _open(self, document, working, name, kind, tester, payload, fragment, merge,
-            refuse_merge_key=False, refuse_containers=False):
-        '''Open a mapping patch. The caller decides merge and container law.'''
+    # * method: merge
+    def _merge(self, document: TestModuleDocument, root: MappingNode, node: Any, merge: str) -> None:
+        '''Write a named merge. Only a fixture event calls this.'''
 
-        AddFixture()._refuse(name_defect(name))
-        if tester is not None:
-            AddFixture()._refuse(name_defect(tester))
-        AddFixture()._refuse(update_omitted_defect(payload, fragment, merge))
-        if payload is not None:
-            AddFixture()._refuse(plain_payload_defect(payload))
-            if refuse_containers:
-                AddFixture()._refuse(dict_key_defect(
-                    payload,
-                    ('fixtures', 'tests'),
-                    'A tester update cannot edit fixtures or tests.',
-                ))
-        AddFixture()._refuse(loaded_defect(document, working))
-        root = working
-        AddFixture()._mark(root)
-        defect, steps, _path = container_steps(root, kind, tester, create=False)
-        AddFixture()._refuse(defect)
-        container = None if steps is None else steps[0][1]
-        pair = None if container is None else find_mapping_pair(container, name)
-        if pair is None:
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'{name} was not found.', name=name)
-        if not isinstance(pair[1], MappingNode):
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'Update patches a mapping.')
-        updates = None
-        if fragment is not None:
-            fragment_node = AddFixture()._compose(document, root, fragment)
-            if not isinstance(fragment_node, MappingNode):
-                self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'An update fragment must be a mapping.')
-            if refuse_containers:
-                AddFixture()._refuse(node_key_defect(
-                    fragment_node,
-                    ('fixtures', 'tests'),
-                    'A tester update cannot edit fixtures or tests.',
-                ))
-            if refuse_merge_key:
-                AddFixture()._refuse(node_key_defect(
-                    fragment_node,
-                    ('<<',),
-                    'A test or tester node rejects a merge key.',
-                ))
-            updates = fragment_node
-        if payload is not None:
-            updates = node_from_plain(payload)
-        return TestModuleDocumentAggregate.bind(document, root), pair[1], updates, root
+        # A fixture may merge. The mutator does not decide that.
+        if merge is None:
+            return
+        self.name_defect(merge, label='anchor')
+        self.verify(
+            expression=isinstance(node, MappingNode),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='Merge is legal on a fixture mapping only.',
+        )
+        defect, target = alias_node(root, merge)
+        self.verify_defect(defect)
+        pair = find_mapping_pair(node, '<<')
+        index = None if pair is None else node.value.index(pair)
+        TestModuleDocumentAggregate.bind(document, root).apply_merge(
+            node,
+            ScalarNode(YAML_MERGE_TAG, '<<'),
+            target,
+            index=index,
+        )
 
 # ** event: remove_fixture
-class RemoveFixture(DomainEvent):
+class RemoveFixture(TestModuleEvent):
     '''Remove one fixture pair. The aggregate deletes the pair the event found.'''
 
     # * method: execute
@@ -1234,30 +1402,14 @@ class RemoveFixture(DomainEvent):
         '''
 
         # The event finds the pair. The aggregate deletes that index.
-        aggregate, container, index = self._open(document, working, name, kind='fixtures', tester=tester)
+        aggregate, container, index = self._open_remove(
+            document, working, name, kind='fixtures', tester=tester,
+        )
         aggregate.remove_entry(container, index)
         return document
 
-    # * method: open
-    def _open(self, document, working, name, kind, tester):
-        '''Find the pair index. Do not delete it.'''
-
-        AddFixture()._refuse(name_defect(name))
-        if tester is not None:
-            AddFixture()._refuse(name_defect(tester))
-        AddFixture()._refuse(loaded_defect(document, working))
-        root = working
-        AddFixture()._mark(root)
-        defect, steps, _path = container_steps(root, kind, tester, create=False)
-        AddFixture()._refuse(defect)
-        container = None if steps is None else steps[0][1]
-        index = pair_index(container, name)
-        if index is None:
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'{name} was not found.', name=name)
-        return TestModuleDocumentAggregate.bind(document, root), container, index
-
 # ** event: add_test
-class AddTest(DomainEvent):
+class AddTest(TestModuleEvent):
     '''
     Add one test body.
 
@@ -1303,37 +1455,46 @@ class AddTest(DomainEvent):
         '''
 
         # A test refuses a merge before any other check. It has no alias parameter.
-        if merge is not None:
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'Merge is legal on a fixture only.')
-        writer = AddFixture()
-        writer._refuse(name_defect(name))
+        self.verify(
+            expression=merge is None,
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='Merge is legal on a fixture only.',
+        )
+        self.name_defect(name)
         if tester is not None:
-            writer._refuse(name_defect(tester))
+            self.name_defect(tester)
         if document.text is None and tester is not None:
-            writer._refuse(missing_defect(document))
-        writer._refuse(source_defect(payload, fragment, None))
+            self.missing_defect(document)
+        self.source_defect(payload, fragment, None)
         if payload is not None:
-            writer._refuse(plain_payload_defect(payload))
+            self.plain_payload_defect(payload)
         root = working
         if document.text is not None:
-            writer._refuse(loaded_defect(document, working))
-        writer._mark(root)
-        defect, steps, _path = container_steps(root, 'tests', tester, create=True)
-        writer._refuse(defect)
-        container = writer._apply(steps)
-        if find_mapping_pair(container, name) is not None:
-            self.raise_error(TEST_ARTIFACT_ALREADY_EXISTS_ID, f'{name} already exists.', name=name)
+            self.loaded_defect(document, working)
+        self._mark(root)
+        container = self._open_add(root, 'tests', tester)
+        self.verify_absent(
+            find_mapping_pair(container, name) is None,
+            name,
+            f'{name} already exists.',
+        )
 
         # A fragment that names an existing node is an alias. A test refuses that and a merge key.
         if payload is not None:
             node = node_from_plain(payload)
         else:
-            node = writer._compose(document, root, fragment)
-            if id(node) in node_ids(root):
-                self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'Add does not insert an alias.')
-        if isinstance(node, MappingNode) and find_mapping_pair(node, '<<') is not None:
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'A test or tester node rejects a merge key.')
-        writer._refuse(anchor_defect(node, anchor, root))
+            node = self._accept_fragment(document, root, fragment)
+            self.verify(
+                expression=id(node) not in node_ids(root),
+                error_code=TEST_MODULE_WRITE_REFUSED_ID,
+                message='Add does not insert an alias.',
+            )
+        self.verify(
+            expression=not (isinstance(node, MappingNode) and find_mapping_pair(node, '<<') is not None),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A test or tester node rejects a merge key.',
+        )
+        self.anchor_defect(node, anchor, root)
         aggregate = TestModuleDocumentAggregate.bind(document, root)
         aggregate.add_entry(container, ScalarNode(YAML_STR_TAG, name), node)
         if anchor is not None and getattr(node, 'anchor_name', None) != anchor:
@@ -1341,7 +1502,7 @@ class AddTest(DomainEvent):
         return document
 
 # ** event: get_test
-class GetTest(DomainEvent):
+class GetTest(TestModuleEvent):
     '''Read one test projection.'''
 
     # * method: execute
@@ -1371,10 +1532,10 @@ class GetTest(DomainEvent):
         '''
 
         # A read uses a file that already exists.
-        return GetFixture()._read(document, working, name, kind='tests', tester=tester)
+        return self._read_entry(document, working, name, kind='tests', tester=tester)
 
 # ** event: list_tests
-class ListTests(DomainEvent):
+class ListTests(TestModuleEvent):
     '''List test names in document order.'''
 
     # * method: execute
@@ -1401,10 +1562,10 @@ class ListTests(DomainEvent):
         '''
 
         # A list does not create a container.
-        return ListFixtures()._names(document, working, kind='tests', tester=tester)
+        return self._read_names(document, working, kind='tests', tester=tester)
 
 # ** event: update_test
-class UpdateTest(DomainEvent):
+class UpdateTest(TestModuleEvent):
     '''Patch one test. A test update refuses a merge.'''
 
     # * method: execute
@@ -1443,9 +1604,12 @@ class UpdateTest(DomainEvent):
         '''
 
         # A test refuses a merge before the patch is opened, including a merge key.
-        if merge is not None:
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'Merge is legal on a fixture only.')
-        aggregate, target, updates, _root = UpdateFixture()._open(
+        self.verify(
+            expression=merge is None,
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='Merge is legal on a fixture only.',
+        )
+        aggregate, target, updates, _root = self._open_update(
             document, working, name, kind='tests', tester=tester,
             payload=payload, fragment=fragment, merge=None, refuse_merge_key=True,
         )
@@ -1453,7 +1617,7 @@ class UpdateTest(DomainEvent):
         return document
 
 # ** event: remove_test
-class RemoveTest(DomainEvent):
+class RemoveTest(TestModuleEvent):
     '''Remove one test pair.'''
 
     # * method: execute
@@ -1483,14 +1647,14 @@ class RemoveTest(DomainEvent):
         '''
 
         # The event finds the pair. The aggregate deletes that index.
-        aggregate, container, index = RemoveFixture()._open(
+        aggregate, container, index = self._open_remove(
             document, working, name, kind='tests', tester=tester,
         )
         aggregate.remove_entry(container, index)
         return document
 
 # ** event: add_tester
-class AddTester(DomainEvent):
+class AddTester(TestModuleEvent):
     '''Add one tester mapping. A tester is not itself an alias.'''
 
     # * method: execute
@@ -1526,34 +1690,40 @@ class AddTester(DomainEvent):
         '''
 
         # A tester is a mapping. It is not an alias, and it rejects a merge key.
-        writer = AddFixture()
-        writer._refuse(name_defect(name))
-        writer._refuse(source_defect(payload, fragment, None))
+        self.name_defect(name)
+        self.source_defect(payload, fragment, None)
         if payload is not None:
-            writer._refuse(plain_payload_defect(payload))
+            self.plain_payload_defect(payload)
         root = working
         if document.text is not None:
-            writer._refuse(loaded_defect(document, working))
-        writer._mark(root)
-        defect, steps, _path = container_steps(root, 'testers', None, create=True)
-        writer._refuse(defect)
-        container = writer._apply(steps)
-        if find_mapping_pair(container, name) is not None:
-            self.raise_error(TEST_ARTIFACT_ALREADY_EXISTS_ID, f'{name} already exists.', name=name)
+            self.loaded_defect(document, working)
+        self._mark(root)
+        container = self._open_add(root, 'testers', None)
+        self.verify_absent(
+            find_mapping_pair(container, name) is None,
+            name,
+            f'{name} already exists.',
+        )
         if payload is not None:
             node = node_from_plain(payload)
         else:
-            node = writer._compose(document, root, fragment)
-            if id(node) in node_ids(root):
-                self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'Add does not insert an alias.')
-        if not isinstance(node, MappingNode) or id(node) in node_ids(root):
-            self.raise_error(
-                TEST_MODULE_WRITE_REFUSED_ID,
-                'A tester entry must be a mapping and is not itself an alias.',
+            node = self._accept_fragment(document, root, fragment)
+            self.verify(
+                expression=id(node) not in node_ids(root),
+                error_code=TEST_MODULE_WRITE_REFUSED_ID,
+                message='Add does not insert an alias.',
             )
-        if find_mapping_pair(node, '<<') is not None:
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'A test or tester node rejects a merge key.')
-        writer._refuse(anchor_defect(node, anchor, root))
+        self.verify(
+            expression=isinstance(node, MappingNode) and id(node) not in node_ids(root),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A tester entry must be a mapping and is not itself an alias.',
+        )
+        self.verify(
+            expression=find_mapping_pair(node, '<<') is None,
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A test or tester node rejects a merge key.',
+        )
+        self.anchor_defect(node, anchor, root)
         aggregate = TestModuleDocumentAggregate.bind(document, root)
         aggregate.add_entry(container, ScalarNode(YAML_STR_TAG, name), node)
         if anchor is not None and getattr(node, 'anchor_name', None) != anchor:
@@ -1561,7 +1731,7 @@ class AddTester(DomainEvent):
         return document
 
 # ** event: get_tester
-class GetTester(DomainEvent):
+class GetTester(TestModuleEvent):
     '''Read one tester projection.'''
 
     # * method: execute
@@ -1588,10 +1758,10 @@ class GetTester(DomainEvent):
         '''
 
         # A tester read is unscoped.
-        return GetFixture()._read(document, working, name, kind='testers', tester=None)
+        return self._read_entry(document, working, name, kind='testers', tester=None)
 
 # ** event: list_testers
-class ListTesters(DomainEvent):
+class ListTesters(TestModuleEvent):
     '''List tester names in document order.'''
 
     # * method: execute
@@ -1615,10 +1785,10 @@ class ListTesters(DomainEvent):
         '''
 
         # A list does not create a container.
-        return ListFixtures()._names(document, working, kind='testers', tester=None)
+        return self._read_names(document, working, kind='testers', tester=None)
 
 # ** event: update_tester
-class UpdateTester(DomainEvent):
+class UpdateTester(TestModuleEvent):
     '''Patch one tester, except its fixture and test containers.'''
 
     # * method: execute
@@ -1651,7 +1821,7 @@ class UpdateTester(DomainEvent):
         '''
 
         # A tester update cannot edit its fixture or test containers, or merge.
-        aggregate, target, updates, _root = UpdateFixture()._open(
+        aggregate, target, updates, _root = self._open_update(
             document, working, name, kind='testers', tester=None,
             payload=payload, fragment=fragment, merge=None,
             refuse_merge_key=True, refuse_containers=True,
@@ -1660,7 +1830,7 @@ class UpdateTester(DomainEvent):
         return document
 
 # ** event: remove_tester
-class RemoveTester(DomainEvent):
+class RemoveTester(TestModuleEvent):
     '''Remove one tester pair.'''
 
     # * method: execute
@@ -1687,14 +1857,14 @@ class RemoveTester(DomainEvent):
         '''
 
         # The event finds the pair. The aggregate deletes that index.
-        aggregate, container, index = RemoveFixture()._open(
+        aggregate, container, index = self._open_remove(
             document, working, name, kind='testers', tester=None,
         )
         aggregate.remove_entry(container, index)
         return document
 
 # ** event: attach_test
-class AttachTest(DomainEvent):
+class AttachTest(TestModuleEvent):
     '''
     Contain a root test by node identity.
 
@@ -1728,29 +1898,34 @@ class AttachTest(DomainEvent):
         '''
 
         # Both names are grammar names. The file must already exist.
-        writer = AddFixture()
-        writer._refuse(name_defect(tester))
-        writer._refuse(name_defect(name))
-        writer._refuse(loaded_defect(document, working))
+        self.name_defect(tester)
+        self.name_defect(name)
+        self.loaded_defect(document, working)
         root = working
-        writer._mark(root)
+        self._mark(root)
 
         # The test and the tester must already exist. The tester is not an alias.
         tests = find_mapping_pair(root, 'tests')
         pair = None if tests is None else find_mapping_pair(tests[1], name)
-        if pair is None:
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'Test not found: {name}.', name=name)
-        if not tester_present(root, tester):
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'Tester not found: {tester}.', name=tester)
+        self.verify_present(pair is not None, name, f'Test not found: {name}.')
+        self.verify_present(tester_present(root, tester), tester, f'Tester not found: {tester}.')
         tester_node = find_mapping_pair(find_mapping_pair(root, 'testers')[1], tester)[1]
-        if not isinstance(tester_node, MappingNode):
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'A tester entry must be a mapping.', name=tester)
-        if index_first_visits(root).get(id(tester_node)) != (('val', 'testers'), ('val', tester)):
-            self.raise_error(TEST_MODULE_WRITE_REFUSED_ID, 'A tester entry is not itself an alias.', name=tester)
+        self.verify(
+            expression=isinstance(tester_node, MappingNode),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A tester entry must be a mapping.',
+            name=tester,
+        )
+        self.verify(
+            expression=index_first_visits(root).get(id(tester_node)) == (('val', 'testers'), ('val', tester)),
+            error_code=TEST_MODULE_WRITE_REFUSED_ID,
+            message='A tester entry is not itself an alias.',
+            name=tester,
+        )
 
         # Containment inserts the same node. It does not copy the body.
         defect, plan = child_plan(tester_node, 'tests')
-        writer._refuse(defect)
+        self.verify_defect(defect)
         if plan[0] == 'found':
             tester_tests = plan[1]
         elif plan[0] == 'replace':
@@ -1759,19 +1934,26 @@ class AttachTest(DomainEvent):
         else:
             tester_tests = plan[1]
             insert_mapping_key(tester_node, plan[2], tester_tests, index=plan[3])
-        if find_mapping_pair(tester_tests, name) is not None:
-            self.raise_error(TEST_ARTIFACT_ALREADY_EXISTS_ID, f'{name} is already attached.', name=name)
+        self.verify_absent(
+            find_mapping_pair(tester_tests, name) is None,
+            name,
+            f'{name} is already attached.',
+        )
         test_node = pair[1]
         aggregate = TestModuleDocumentAggregate.bind(document, root)
         if not getattr(test_node, 'anchor_name', None):
-            if name in anchor_table(root):
-                self.raise_error(TEST_ANCHOR_CONFLICT_ID, f'Anchor already exists: {name}.', anchor=name)
+            self.verify(
+                expression=name not in anchor_table(root),
+                error_code=TEST_ANCHOR_CONFLICT_ID,
+                message=f'Anchor already exists: {name}.',
+                anchor=name,
+            )
             aggregate.assign_anchor(test_node, name)
         aggregate.attach(tester_tests, ScalarNode(YAML_STR_TAG, name), test_node)
         return document
 
 # ** event: detach_test
-class DetachTest(DomainEvent):
+class DetachTest(TestModuleEvent):
     '''
     Drop one tester containment.
 
@@ -1805,22 +1987,18 @@ class DetachTest(DomainEvent):
         '''
 
         # Both names are grammar names. The file must already exist.
-        writer = AddFixture()
-        writer._refuse(name_defect(tester))
-        writer._refuse(name_defect(name))
-        writer._refuse(loaded_defect(document, working))
+        self.name_defect(tester)
+        self.name_defect(name)
+        self.loaded_defect(document, working)
         root = working
-        writer._mark(root)
+        self._mark(root)
 
         # Drop the containment only. The root test and its anchor stay.
-        if not tester_present(root, tester):
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'Tester not found: {tester}.', name=tester)
+        self.verify_present(tester_present(root, tester), tester, f'Tester not found: {tester}.')
         tester_node = find_mapping_pair(find_mapping_pair(root, 'testers')[1], tester)[1]
         tests = find_mapping_pair(tester_node, 'tests') if isinstance(tester_node, MappingNode) else None
-        if tests is None:
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'Test containment not found: {name}.', name=name)
+        self.verify_present(tests is not None, name, f'Test containment not found: {name}.')
         index = pair_index(tests[1], name)
-        if index is None:
-            self.raise_error(TEST_ARTIFACT_NOT_FOUND_ID, f'Test containment not found: {name}.', name=name)
+        self.verify_present(index is not None, name, f'Test containment not found: {name}.')
         TestModuleDocumentAggregate.bind(document, root).detach(tests[1], index)
         return document
