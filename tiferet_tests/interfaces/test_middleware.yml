@@ -1,0 +1,109 @@
+testers:
+  test_middleware_service:
+    module_path: &middleware_module tiferet.interfaces.middleware
+    class_name: MiddlewareService
+    tests:
+      test_contract:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*middleware_module]
+            as: loaded
+        assert:
+          - service_contract: &middleware_contract
+              abstracts: &middleware_abstracts
+                - __call__
+              methods: &middleware_methods
+                - name: __call__
+                  params: [self, event, kwargs, next_fn]
+
+      test_is_service:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*middleware_module]
+            as: middleware_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.interfaces.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.middleware_mod, MiddlewareService]
+            as: middleware_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, Service]
+            as: service_cls
+          - target:
+              module_path: builtins
+              attribute: issubclass
+            method: issubclass
+            args: [$r.middleware_cls, $r.service_cls]
+            as: is_service
+        assert:
+          - outcome: is_service
+            equals: true
+
+      test_has_call:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*middleware_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *middleware_abstracts
+              methods: *middleware_methods
+
+      test_call_is_abstract:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*middleware_module]
+            as: loaded
+        assert:
+          - service_contract: *middleware_contract
+
+      test_cannot_instantiate:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*middleware_module]
+            as: loaded
+        assert:
+          - service_contract: *middleware_contract
+
+      test_concrete_wraps_and_continues:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*middleware_module]
+            as: loaded
+        assert:
+          - middleware_chain: single
+          - middleware_chain: capture

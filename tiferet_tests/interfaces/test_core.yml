@@ -1,0 +1,224 @@
+fixtures:
+  service: &service
+    module_path: &interfaces_core tiferet.interfaces.core
+    class_name: Service
+    attributes: {}
+  service_copy:
+    <<: *service
+  yaml_loader:
+    module_path: tiferet.utils.yaml
+    class_name: YamlLoader
+    attributes:
+      path: /tmp/rfp-033-unused.yml
+      mode: nope
+
+tests:
+  test_service_error_is_not_a_tiferet_error:
+    conditions: {}
+    execute:
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [*interfaces_core]
+        as: core
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.assets.core]
+        as: assets
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.core, ServiceError]
+        as: service_error_cls
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.assets, TiferetError]
+        as: tiferet_error_cls
+      - target:
+          module_path: builtins
+          attribute: issubclass
+        method: issubclass
+        args: [$r.service_error_cls, $r.tiferet_error_cls]
+        as: service_is_domain
+      - target:
+          module_path: builtins
+          attribute: issubclass
+        method: issubclass
+        args: [$r.tiferet_error_cls, $r.service_error_cls]
+        as: domain_is_service
+      - target:
+          module_path: *interfaces_core
+          attribute: ServiceError
+        method: ServiceError
+        args: [&sample_code SAMPLE_SERVICE_FAILURE]
+        as: instance
+    assert:
+      - outcome: service_is_domain
+        equals: false
+      - outcome: domain_is_service
+        equals: false
+      - outcome: instance
+        type:
+          module_path: tiferet.assets.core
+          class_name: TiferetError
+          negate: true
+
+  test_raise_for_derives_provenance:
+    conditions: &with_service
+      fixtures: [service, service_copy]
+    execute:
+      - target:
+          module_path: *interfaces_core
+          class_name: ServiceError
+        method: raise_for
+        kwargs:
+          service: $fixture.service
+          error_code: *sample_code
+          message: &failed The sample service failed.
+          detail: &detail sample
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        type:
+          module_path: *interfaces_core
+          class_name: ServiceError
+      - outcome: raised
+        fields:
+          error_code: *sample_code
+          message: *failed
+          module_path: *interfaces_core
+          class_name: Service
+          kwargs:
+            detail: *detail
+
+  test_raise_for_derives_provenance_from_runtime_type:
+    conditions:
+      fixtures: [yaml_loader]
+    execute:
+      - target: yaml_loader
+        method: verify_mode
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        type:
+          module_path: *interfaces_core
+          class_name: ServiceError
+      - outcome: raised
+        fields:
+          class_name: YamlLoader
+          module_path: tiferet.utils.yaml
+
+  test_raise_for_accepts_a_class_for_static_sites:
+    conditions: {}
+    execute:
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [*interfaces_core]
+        as: core
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.core, Service]
+        as: service_cls
+      - target:
+          module_path: *interfaces_core
+          class_name: ServiceError
+        method: raise_for
+        kwargs:
+          service: $r.service_cls
+          error_code: *sample_code
+          message: The sample service failed statically.
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        fields:
+          class_name: Service
+          error_code: *sample_code
+          message: The sample service failed statically.
+
+  test_raise_for_preserves_cause:
+    conditions:
+      fixtures: [service]
+    execute:
+      - target:
+          module_path: builtins
+          attribute: ValueError
+        method: ValueError
+        args: [&driver driver exploded]
+        as: driver
+      - target:
+          module_path: *interfaces_core
+          class_name: ServiceError
+        method: raise_for
+        kwargs:
+          service: $fixture.service
+          error_code: *sample_code
+          message: The sample driver failed.
+          cause: $r.driver
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        cause:
+          module_path: builtins
+          class_name: ValueError
+          message: *driver
+
+  test_raise_for_without_cause_leaves_cause_unset:
+    conditions: *with_service
+    execute:
+      - target:
+          module_path: *interfaces_core
+          class_name: ServiceError
+        method: raise_for
+        kwargs:
+          service: $fixture.service
+          error_code: *sample_code
+          message: *failed
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        fields:
+          __cause__: null
+
+  test_service_error_serializes_provenance:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *interfaces_core
+          attribute: ServiceError
+        method: ServiceError
+        args: [*sample_code]
+        kwargs:
+          message: &serialized_message Something failed.
+          module_path: &sample_module tiferet.utils.sample
+          class_name: &sample_loader SampleLoader
+          target_method: &load load
+          path: &sample_path /tmp/sample.yml
+        as: error
+    assert:
+      - outcome: error
+        message: *sample_code
+      - outcome: error
+        message: *serialized_message
+      - outcome: error
+        message: *sample_module
+      - outcome: error
+        message: *sample_loader
+      - outcome: error
+        message: *load
+      - outcome: error
+        message: *sample_path
