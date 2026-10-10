@@ -38,7 +38,11 @@ PROOF_YAML = Path('tiferet_tests/domain/test_error.yml')
 PASSED_LINES = (
     'tiferet_tests/domain/test_error.yml::error_message_format PASSED',
     'tiferet_tests/domain/test_error.yml::test_error::construction_derives_error_code PASSED',
-    '2 passed',
+    'tiferet_tests/domain/test_error.yml::test_error::description PASSED',
+    'tiferet_tests/domain/test_error.yml::test_error::format_message_with_kwargs PASSED',
+    'tiferet_tests/domain/test_error.yml::test_error_message::new PASSED',
+    'tiferet_tests/domain/test_error.yml::test_error_message::format_with_kwargs PASSED',
+    '6 passed',
 )
 
 # *** functions
@@ -71,7 +75,7 @@ def _write_pair(root: Path, relative: str, document: str) -> Path:
 
 # ** test: proof_run_prints_yaml_node_ids
 def test_proof_run_prints_yaml_node_ids(capsys) -> None:
-    '''The Error proof reads both files and prints the two passed lines.'''
+    '''The Error proof reads both files and prints the six passed lines.'''
 
     # Capture the bytes so the run can be shown not to write.
     before = PROOF_YAML.read_bytes()
@@ -85,8 +89,12 @@ def test_proof_run_prints_yaml_node_ids(capsys) -> None:
     assert [item['node_id'] for item in outcomes] == [
         'tiferet_tests/domain/test_error.yml::error_message_format',
         'tiferet_tests/domain/test_error.yml::test_error::construction_derives_error_code',
+        'tiferet_tests/domain/test_error.yml::test_error::description',
+        'tiferet_tests/domain/test_error.yml::test_error::format_message_with_kwargs',
+        'tiferet_tests/domain/test_error.yml::test_error_message::new',
+        'tiferet_tests/domain/test_error.yml::test_error_message::format_with_kwargs',
     ]
-    assert [item['status'] for item in outcomes] == ['PASSED', 'PASSED']
+    assert [item['status'] for item in outcomes] == ['PASSED'] * 6
     assert PROOF_YAML.read_bytes() == before
 
 # ** test: summary_prints_only_the_count
@@ -97,8 +105,8 @@ def test_summary_prints_only_the_count(capsys) -> None:
     printed = capsys.readouterr().out.splitlines()
 
     # Printing changes. The report does not.
-    assert printed == ['2 passed']
-    assert [item['status'] for item in report['outcomes']] == ['PASSED', 'PASSED']
+    assert printed == ['6 passed']
+    assert [item['status'] for item in report['outcomes']] == ['PASSED'] * 6
     assert not hasattr(tester_blueprints, 'summarize_test_module')
 
 # ** test: session_uses_test_context
@@ -116,7 +124,7 @@ def test_session_uses_test_context(monkeypatch) -> None:
     run_test_module(PROOF_PATH)
 
     # The session is the request. tester_ctx stays unset.
-    assert len(seen) == 2
+    assert len(seen) == 6
     for test_ctx, session in seen:
         assert isinstance(test_ctx, TestContext)
         assert isinstance(session, TestSessionContext)
