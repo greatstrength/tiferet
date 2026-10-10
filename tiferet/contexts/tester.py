@@ -21,7 +21,7 @@ from ..events import DomainEvent
 from .app import AppSessionContext
 from .core import BaseContext, add_default_cache_items
 from .request import RequestContext
-from .test import TestContext
+from .tester_phase import TestContext
 
 # *** constants
 

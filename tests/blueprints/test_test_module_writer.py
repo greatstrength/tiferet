@@ -395,8 +395,8 @@ def test_no_writer_modules_are_added() -> None:
     assert not (root / 'mappers' / 'tester.py').exists()
     assert not (root / 'repos' / 'tester.py').exists()
     assert not (root / 'tiferet_tests').exists()
-    assert (root / 'events' / 'test_module.py').is_file()
-    event_source = (root / 'events' / 'test_module.py').read_text()
+    assert (root / 'events' / 'tester_module.py').is_file()
+    event_source = (root / 'events' / 'tester_module.py').read_text()
     assert 'class ReadTestModuleDocument' in event_source
     assert 'class WriteTestModuleDocument' in event_source
     assert 'class GetAnchoredYaml' not in event_source

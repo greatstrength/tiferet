@@ -23,7 +23,7 @@ from ..domain import (
     describe_model,
     unpack_validation_error,
 )
-from ..interfaces.check import CheckService
+from ..interfaces.tester_check import CheckService
 
 # *** functions
 

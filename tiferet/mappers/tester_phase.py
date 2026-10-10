@@ -20,7 +20,7 @@ from ..domain import (
     ModelError,
     Test,
 )
-from ..domain.test import (
+from ..domain.tester_phase import (
     ASSERTION_CHECKS,
     ASSERTION_CHECK_FIELDS,
     ASSERTION_PAYLOAD_FIELDS,

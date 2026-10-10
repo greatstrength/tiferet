@@ -18,7 +18,7 @@ from .. import a
 from ..assets import TiferetError
 from ..assets.core import REQUEST_REF_PREFIX
 from ..domain import EventFeatureStep
-from ..domain.test import (
+from ..domain.tester_phase import (
     Assertion,
     Conditions,
     Execution,
@@ -27,7 +27,7 @@ from ..domain.test import (
     Test,
 )
 from ..events import DomainEvent
-from ..events.phase import (
+from ..events.tester_phase import (
     EvaluateAssertion,
     ExerciseCalled,
     ExerciseDomainContract,

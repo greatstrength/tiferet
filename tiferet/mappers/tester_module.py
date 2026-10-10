@@ -6,7 +6,7 @@
 from typing import Any
 
 # ** app
-from ..domain.test_module import TestModuleDocument
+from ..domain.tester_module import TestModuleDocument
 from .core import Aggregate
 
 # *** functions

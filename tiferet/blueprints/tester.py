@@ -30,7 +30,7 @@ from ..contexts.app import (
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
 from ..contexts.core import BaseContext
-from ..contexts.test import (
+from ..contexts.tester_phase import (
     PHASE_ASSERT_ID,
     PHASE_CONDITIONS_ID,
     PHASE_EXECUTE_ID,
@@ -55,9 +55,9 @@ from ..contexts.tester import (
     TransferObjectTesterContext,
     add_default_testers,
 )
-from ..contexts.test_module import TestModuleContext
+from ..contexts.tester_module import TestModuleContext
 from ..events import DomainEvent
-from ..events.test_module import (
+from ..events.tester_module import (
     AddFixture,
     AddTest,
     AddTester,
@@ -79,7 +79,7 @@ from ..events.test_module import (
     WriteTestModuleDocument,
 )
 from ..events.yaml_load import LoadYamlMapping
-from ..mappers.test import TestConfigObject
+from ..mappers.tester_phase import TestConfigObject
 from . import core
 
 # *** functions
@@ -570,7 +570,7 @@ def _registered_check():
 
     # The same string shape as a default service dependency.
     registration = {
-        'module_path': 'tiferet.utils.check',
+        'module_path': 'tiferet.utils.tester_check',
         'class_name': 'Check',
     }
     module = import_module(registration['module_path'])

@@ -20,9 +20,9 @@ from ..assets.tester import (
     TEST_MODULE_PATH_INVALID_ID,
     TEST_MODULE_WRITE_REFUSED_ID,
 )
-from ..domain.test_module import TestModuleAddress, TestModuleDocument
+from ..domain.tester_module import TestModuleAddress, TestModuleDocument
 from ..interfaces.core import ServiceError
-from ..mappers.test_module import TestModuleDocumentAggregate
+from ..mappers.tester_module import TestModuleDocumentAggregate
 from ..utils.yaml import (
     YAML_MERGE_TAG,
     YAML_PLAIN_TAGS,
