@@ -9,7 +9,7 @@ fixtures:
         key: value
       data_key: &event_data_key result
       pass_on_error: true
-      condition: &event_condition '($r.x > 0)'
+      condition: &event_condition '$r.x > 0'
   feature_aggregate: &feature_aggregate
     module_path: *feature_mapper
     class_name: FeatureAggregate
@@ -243,7 +243,7 @@ testers:
             as: conditioned
           - target: $r.conditioned
             method: set_attribute
-            args: [condition, '($r.y != 0)']
+            args: [condition, '$r.y != 0']
         assert:
           - outcome: renamed
             fields:
@@ -256,7 +256,7 @@ testers:
               data_key: new_key
           - outcome: conditioned
             fields:
-              condition: '($r.y != 0)'
+              condition: '$r.y != 0'
       set_pass_on_error:
         conditions: {}
         execute:
@@ -757,7 +757,7 @@ testers:
             args:
               - name: Conditional Event
                 service_id: conditional_handler
-                condition: '($r.b != 0)'
+                condition: '$r.b != 0'
             as: yaml_obj
           - target: $r.yaml_obj
             method: map
@@ -769,7 +769,7 @@ testers:
               class_name: EventFeatureStepAggregate
           - outcome: event
             fields:
-              condition: '($r.b != 0)'
+              condition: '$r.b != 0'
       feature_event_yaml_from_model:
         conditions:
           fixtures: [event_model]
