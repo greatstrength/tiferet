@@ -1,0 +1,455 @@
+fixtures:
+  error_message: &error_message
+    module_path: &error_domain tiferet.domain.error
+    class_name: ErrorMessage
+    attributes: &spanish_message
+      lang: &es es
+      text: &spanish Mensaje de prueba
+  error_sample: &error_sample
+    module_path: &error_mapper tiferet.mappers.error
+    class_name: ErrorAggregate
+    attributes: &error_attributes
+      id: &error_id TEST_ERROR
+      name: &error_name TEST_ERROR
+      error_code: *error_id
+      message: &error_messages
+        - lang: &en en
+          text: &error_text Test error message.
+  two_message_error:
+    module_path: *error_domain
+    class_name: Error
+    attributes:
+      id: test_error
+      name: Test Error
+      message:
+        - lang: *en
+          text: Test message
+        - lang: *es
+          text: *spanish
+
+tests:
+  error_message_config_object_map:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *error_mapper
+          class_name: ErrorMessageConfigObject
+        method: model_validate
+        args:
+          - lang: *en
+            text: Test message
+        as: yaml_obj
+      - target: $r.yaml_obj
+        method: map
+        as: msg
+    assert:
+      - outcome: msg
+        type:
+          module_path: *error_domain
+          class_name: ErrorMessage
+      - outcome: msg
+        fields:
+          lang: *en
+          text: Test message
+  error_message_config_object_from_model:
+    conditions:
+      fixtures: [error_message]
+    execute:
+      - target:
+          module_path: *error_mapper
+          class_name: ErrorMessageConfigObject
+        method: from_model
+        args: [$fixture.error_message]
+        as: yaml_obj
+    assert:
+      - outcome: yaml_obj
+        type:
+          module_path: *error_mapper
+          class_name: ErrorMessageConfigObject
+      - outcome: yaml_obj
+        fields:
+          lang: *es
+          text: *spanish
+
+testers:
+  test_error_aggregate:
+    module_path: *error_mapper
+    class_name: ErrorAggregate
+    attributes: *error_attributes
+    fixtures:
+      error_sample: *error_sample
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *error_mapper
+              class_name: ErrorAggregate
+          - outcome: built
+            fields:
+              id: *error_id
+              name: *error_name
+              error_code: *error_id
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Error]
+          - target: self
+            method: new
+            as: described
+          - target: $r.described
+            method: set_attribute
+            args: [description, A new description]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Error
+          - outcome: described
+            fields:
+              description: A new description
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: invalid
+          - target: $r.invalid
+            method: set_attribute
+            args: [invalid_attribute, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_ATTRIBUTE
+      rename:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: rename
+            args: [Renamed Error]
+        assert:
+          - outcome: built
+            fields:
+              name: Renamed Error
+              id: *error_id
+      set_message_new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_message
+            args: [*es, Mensaje de error de prueba.]
+        assert:
+          - outcome: built
+            fields:
+              message:
+                - lang: *en
+                  text: *error_text
+                - lang: *es
+                  text: Mensaje de error de prueba.
+      set_message_update:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_message
+            args: [*en, Updated message]
+        assert:
+          - outcome: built
+            fields:
+              message:
+                - lang: *en
+                  text: Updated message
+      remove_message:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_message
+            args: [*es, *spanish]
+          - target: $r.built
+            method: remove_message
+            args: [*en]
+        assert:
+          - outcome: built
+            fields:
+              message:
+                - lang: *es
+                  text: *spanish
+      remove_message_nonexistent:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: remove_message
+            args: [fr]
+        assert:
+          - outcome: built
+            fields:
+              message: *error_messages
+  test_error_config_object:
+    module_path: *error_mapper
+    class_name: ErrorConfigObject
+    attributes: *error_attributes
+    fixtures:
+      error_sample: *error_sample
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: model_validate
+            args: [*error_attributes]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *error_mapper
+              class_name: ErrorAggregate
+          - outcome: mapped
+            fields:
+              id: *error_id
+              name: *error_name
+              error_code: *error_id
+      from_model:
+        conditions:
+          fixtures: [error_sample]
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: from_model
+            args: [$fixture.error_sample]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+      round_trip:
+        conditions:
+          fixtures: [error_sample]
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: from_model
+            args: [$fixture.error_sample]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *error_mapper
+              class_name: ErrorAggregate
+          - outcome: restored
+            fields:
+              id: *error_id
+              name: *error_name
+              error_code: *error_id
+      from_data:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: model_validate
+            args: [*error_attributes]
+            as: yaml_obj
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.yaml_obj, message]
+            as: messages
+          - target: $r.messages
+            method: __getitem__
+            args: [0]
+            as: first
+        assert:
+          - outcome: yaml_obj
+            fields:
+              name: *error_name
+              error_code: *error_id
+              message:
+                - lang: *en
+                  text: *error_text
+          - outcome: first
+            type:
+              module_path: *error_mapper
+              class_name: ErrorMessageConfigObject
+      to_primitive_to_data:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: model_validate
+            args: [*error_attributes]
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: to_primitive
+            args: [to_data]
+            as: primitive
+        assert:
+          - outcome: primitive
+            absent: [id]
+          - outcome: primitive
+            fields:
+              name: *error_name
+              error_code: *error_id
+              message:
+                - lang: *en
+                  text: *error_text
+      map_messages:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: model_validate
+            args: [*error_attributes]
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: mapped
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.mapped, message]
+            as: messages
+          - target: $r.messages
+            method: __getitem__
+            args: [0]
+            as: first
+        assert:
+          - outcome: first
+            type:
+              module_path: *error_domain
+              class_name: ErrorMessage
+          - outcome: first
+            fields:
+              lang: *en
+              text: *error_text
+      from_model_messages:
+        conditions:
+          fixtures: [error_sample]
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: from_model
+            args: [$fixture.error_sample]
+            as: yaml_obj
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.yaml_obj, message]
+            as: messages
+          - target: $r.messages
+            method: __getitem__
+            args: [0]
+            as: first
+        assert:
+          - outcome: yaml_obj
+            fields:
+              message:
+                - lang: *en
+                  text: *error_text
+          - outcome: first
+            type:
+              module_path: *error_mapper
+              class_name: ErrorMessageConfigObject
+      round_trip_messages:
+        conditions:
+          fixtures: [error_sample]
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: from_model
+            args: [$fixture.error_sample]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            fields:
+              message: *error_messages
+      from_model_via_error_constructor:
+        conditions:
+          fixtures: [two_message_error]
+        execute:
+          - target:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+            method: from_model
+            args: [$fixture.two_message_error]
+            as: yaml_obj
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.yaml_obj, message]
+            as: messages
+          - target: $r.messages
+            method: __getitem__
+            args: [0]
+            as: first
+          - target: $r.messages
+            method: __getitem__
+            args: [1]
+            as: second
+        assert:
+          - outcome: yaml_obj
+            type:
+              module_path: *error_mapper
+              class_name: ErrorConfigObject
+          - outcome: yaml_obj
+            fields:
+              id: test_error
+              name: Test Error
+              message:
+                - lang: *en
+                  text: Test message
+                - lang: *es
+                  text: *spanish
+          - outcome: first
+            type:
+              module_path: *error_mapper
+              class_name: ErrorMessageConfigObject
+          - outcome: second
+            type:
+              module_path: *error_mapper
+              class_name: ErrorMessageConfigObject

@@ -1,0 +1,641 @@
+fixtures:
+  formatter_aggregate: &formatter_aggregate
+    module_path: &logging_mapper tiferet.mappers.logging
+    class_name: FormatterAggregate
+    attributes: &formatter_sample
+      id: &formatter_id simple
+      name: &formatter_name Simple Formatter
+      format: &formatter_format '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: &formatter_datefmt '%Y-%m-%d %H:%M:%S'
+  handler_aggregate: &handler_aggregate
+    module_path: *logging_mapper
+    class_name: HandlerAggregate
+    attributes: &handler_sample
+      id: &handler_id console
+      name: &handler_name Console Handler
+      module_path: &handler_module logging
+      class_name: &handler_class StreamHandler
+      level: &handler_level DEBUG
+      formatter: *formatter_id
+      stream: &handler_stream ext://sys.stdout
+  handler_without_destination: &handler_without_destination
+    module_path: *logging_mapper
+    class_name: HandlerAggregate
+    attributes:
+      id: file_handler
+      name: File Handler
+      module_path: *handler_module
+      class_name: FileHandler
+      level: INFO
+      formatter: *formatter_id
+  logger_aggregate: &logger_aggregate
+    module_path: *logging_mapper
+    class_name: LoggerAggregate
+    attributes: &logger_sample
+      id: &logger_id app
+      name: &logger_name App Logger
+      level: &logger_level DEBUG
+      handlers: &logger_handlers [console]
+  root_logger: &root_logger
+    module_path: *logging_mapper
+    class_name: LoggerAggregate
+    attributes:
+      id: root
+      name: Root Logger
+      level: WARNING
+      handlers: []
+      is_root: true
+
+tests:
+  logging_settings_from_data_success:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *logging_mapper
+          class_name: LoggingSettingsConfigObject
+        method: from_data
+        kwargs:
+          formatters:
+            simple:
+              name: *formatter_name
+              format: *formatter_format
+              datefmt: *formatter_datefmt
+          handlers:
+            console:
+              name: *handler_name
+              module_path: *handler_module
+              class_name: *handler_class
+              level: *handler_level
+              formatter: *formatter_id
+              stream: *handler_stream
+          loggers:
+            app:
+              name: *logger_name
+              level: *logger_level
+              handlers: *logger_handlers
+        as: settings
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.settings, formatters]
+        as: formatters
+      - target: $r.formatters
+        method: __getitem__
+        args: [simple]
+        as: formatter
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.settings, handlers]
+        as: handlers
+      - target: $r.handlers
+        method: __getitem__
+        args: [console]
+        as: handler
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.settings, loggers]
+        as: loggers
+      - target: $r.loggers
+        method: __getitem__
+        args: [app]
+        as: logger
+    assert:
+      - outcome: formatter
+        type:
+          module_path: *logging_mapper
+          class_name: FormatterConfigObject
+      - outcome: formatter
+        fields:
+          id: *formatter_id
+          name: *formatter_name
+      - outcome: handler
+        type:
+          module_path: *logging_mapper
+          class_name: HandlerConfigObject
+      - outcome: handler
+        fields:
+          id: *handler_id
+          name: *handler_name
+      - outcome: logger
+        type:
+          module_path: *logging_mapper
+          class_name: LoggerConfigObject
+      - outcome: logger
+        fields:
+          id: *logger_id
+          name: *logger_name
+  logging_settings_from_data_empty:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *logging_mapper
+          class_name: LoggingSettingsConfigObject
+        method: from_data
+        kwargs:
+          formatters: {}
+          handlers: {}
+          loggers: {}
+        as: settings
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.settings, formatters]
+        as: formatters
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.settings, handlers]
+        as: handlers
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.settings, loggers]
+        as: loggers
+    assert:
+      - outcome: formatters
+        equals: {}
+      - outcome: handlers
+        equals: {}
+      - outcome: loggers
+        equals: {}
+
+testers:
+  test_formatter_aggregate:
+    module_path: *logging_mapper
+    class_name: FormatterAggregate
+    attributes: *formatter_sample
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *logging_mapper
+              class_name: FormatterAggregate
+          - outcome: built
+            fields:
+              id: *formatter_id
+              name: *formatter_name
+              format: *formatter_format
+              datefmt: *formatter_datefmt
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Formatter]
+          - target: self
+            method: new
+            as: reformatted
+          - target: $r.reformatted
+            method: set_attribute
+            args: [format, '%(message)s']
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Formatter
+          - outcome: reformatted
+            fields:
+              format: '%(message)s'
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: invalid
+          - target: $r.invalid
+            method: set_attribute
+            args: [invalid_attribute, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_ATTRIBUTE
+      format_config:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            fields:
+              format: *formatter_format
+              datefmt: *formatter_datefmt
+  test_handler_aggregate:
+    module_path: *logging_mapper
+    class_name: HandlerAggregate
+    attributes: *handler_sample
+    fixtures:
+      handler_without_destination: *handler_without_destination
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *logging_mapper
+              class_name: HandlerAggregate
+          - outcome: built
+            fields:
+              id: *handler_id
+              name: *handler_name
+              module_path: *handler_module
+              class_name: *handler_class
+              level: *handler_level
+              formatter: *formatter_id
+              stream: *handler_stream
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Handler]
+          - target: self
+            method: new
+            as: leveled
+          - target: $r.leveled
+            method: set_attribute
+            args: [level, ERROR]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Handler
+          - outcome: leveled
+            fields:
+              level: ERROR
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: invalid
+          - target: $r.invalid
+            method: set_attribute
+            args: [invalid_attribute, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_ATTRIBUTE
+      format_config:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            fields:
+              class: logging.StreamHandler
+              level: *handler_level
+              formatter: *formatter_id
+              stream: *handler_stream
+      format_config_no_optional:
+        conditions:
+          fixtures: [handler_without_destination]
+        execute:
+          - target: handler_without_destination
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            absent: [stream, filename]
+          - outcome: config
+            fields:
+              class: logging.FileHandler
+              level: INFO
+  test_logger_aggregate:
+    module_path: *logging_mapper
+    class_name: LoggerAggregate
+    attributes: *logger_sample
+    fixtures:
+      root_logger: *root_logger
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *logging_mapper
+              class_name: LoggerAggregate
+          - outcome: built
+            fields:
+              id: *logger_id
+              name: *logger_name
+              level: *logger_level
+              handlers: *logger_handlers
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Logger]
+          - target: self
+            method: new
+            as: leveled
+          - target: $r.leveled
+            method: set_attribute
+            args: [level, ERROR]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Logger
+          - outcome: leveled
+            fields:
+              level: ERROR
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: invalid
+          - target: $r.invalid
+            method: set_attribute
+            args: [invalid_attribute, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_ATTRIBUTE
+      format_config:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            fields:
+              level: *logger_level
+              handlers: *logger_handlers
+              propagate: false
+      empty_handlers_root:
+        conditions:
+          fixtures: [root_logger]
+        execute:
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$fixture.root_logger, is_root]
+            as: is_root
+        assert:
+          - outcome: root_logger
+            fields:
+              is_root: true
+              handlers: []
+              level: WARNING
+          - outcome: is_root
+            equals: true
+  test_formatter_config_object:
+    module_path: *logging_mapper
+    class_name: FormatterConfigObject
+    attributes: *formatter_sample
+    fixtures:
+      formatter_aggregate: *formatter_aggregate
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: FormatterConfigObject
+            method: model_validate
+            args: [*formatter_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *logging_mapper
+              class_name: FormatterAggregate
+          - outcome: mapped
+            fields:
+              id: *formatter_id
+              name: *formatter_name
+              format: *formatter_format
+              datefmt: *formatter_datefmt
+      from_model:
+        conditions:
+          fixtures: [formatter_aggregate]
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: FormatterConfigObject
+            method: from_model
+            args: [$fixture.formatter_aggregate]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *logging_mapper
+              class_name: FormatterConfigObject
+      round_trip:
+        conditions:
+          fixtures: [formatter_aggregate]
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: FormatterConfigObject
+            method: from_model
+            args: [$fixture.formatter_aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *logging_mapper
+              class_name: FormatterAggregate
+          - outcome: restored
+            fields:
+              id: *formatter_id
+              name: *formatter_name
+              format: *formatter_format
+              datefmt: *formatter_datefmt
+  test_handler_config_object:
+    module_path: *logging_mapper
+    class_name: HandlerConfigObject
+    attributes: *handler_sample
+    fixtures:
+      handler_aggregate: *handler_aggregate
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: HandlerConfigObject
+            method: model_validate
+            args: [*handler_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *logging_mapper
+              class_name: HandlerAggregate
+          - outcome: mapped
+            fields:
+              id: *handler_id
+              name: *handler_name
+              module_path: *handler_module
+              class_name: *handler_class
+              level: *handler_level
+              formatter: *formatter_id
+              stream: *handler_stream
+      from_model:
+        conditions:
+          fixtures: [handler_aggregate]
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: HandlerConfigObject
+            method: from_model
+            args: [$fixture.handler_aggregate]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *logging_mapper
+              class_name: HandlerConfigObject
+      round_trip:
+        conditions:
+          fixtures: [handler_aggregate]
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: HandlerConfigObject
+            method: from_model
+            args: [$fixture.handler_aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *logging_mapper
+              class_name: HandlerAggregate
+          - outcome: restored
+            fields:
+              id: *handler_id
+              name: *handler_name
+              module_path: *handler_module
+              class_name: *handler_class
+              level: *handler_level
+              formatter: *formatter_id
+              stream: *handler_stream
+  test_logger_config_object:
+    module_path: *logging_mapper
+    class_name: LoggerConfigObject
+    attributes: *logger_sample
+    fixtures:
+      logger_aggregate: *logger_aggregate
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: LoggerConfigObject
+            method: model_validate
+            args: [*logger_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *logging_mapper
+              class_name: LoggerAggregate
+          - outcome: mapped
+            fields:
+              id: *logger_id
+              name: *logger_name
+              level: *logger_level
+              handlers: *logger_handlers
+      from_model:
+        conditions:
+          fixtures: [logger_aggregate]
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: LoggerConfigObject
+            method: from_model
+            args: [$fixture.logger_aggregate]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *logging_mapper
+              class_name: LoggerConfigObject
+      round_trip:
+        conditions:
+          fixtures: [logger_aggregate]
+        execute:
+          - target:
+              module_path: *logging_mapper
+              class_name: LoggerConfigObject
+            method: from_model
+            args: [$fixture.logger_aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *logging_mapper
+              class_name: LoggerAggregate
+          - outcome: restored
+            fields:
+              id: *logger_id
+              name: *logger_name
+              level: *logger_level
+              handlers: *logger_handlers

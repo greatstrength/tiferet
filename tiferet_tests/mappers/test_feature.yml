@@ -1,0 +1,913 @@
+fixtures:
+  event_step_aggregate: &event_step_aggregate
+    module_path: &feature_mapper tiferet.mappers.feature
+    class_name: EventFeatureStepAggregate
+    attributes: &event_sample
+      name: &event_name Test Event
+      service_id: &event_service test_event_handler
+      parameters: &event_parameters
+        key: value
+      data_key: &event_data_key result
+      pass_on_error: true
+  feature_aggregate: &feature_aggregate
+    module_path: *feature_mapper
+    class_name: FeatureAggregate
+    attributes: &feature_sample
+      name: &feature_name Add Number
+      group_id: &feature_group calc
+      feature_key: &feature_key add_number
+      id: &feature_id calc.add_number
+      description: &feature_description Add Number
+  feature_for_transfer: &feature_for_transfer
+    module_path: *feature_mapper
+    class_name: FeatureAggregate
+    attributes: &transfer_aggregate_sample
+      id: &transfer_id calc.add
+      name: *feature_name
+      group_id: *feature_group
+      feature_key: add
+      description: Adds one number to another
+      steps:
+        - name: Add a and b
+          service_id: add_number_event
+          parameters:
+            precision: '2'
+  feature_config:
+    module_path: *feature_mapper
+    class_name: FeatureConfigObject
+    attributes: &transfer_sample
+      id: *transfer_id
+      name: *feature_name
+      group_id: *feature_group
+      feature_key: add
+      description: Adds one number to another
+      steps:
+        - name: Add a and b
+          service_id: add_number_event
+          params:
+            precision: '2'
+  event_model:
+    module_path: &feature_domain tiferet.domain.feature
+    class_name: EventFeatureStep
+    attributes:
+      name: *event_name
+      service_id: *event_service
+      parameters: *event_parameters
+      data_key: *event_data_key
+      pass_on_error: true
+  schema_feature: &schema_feature
+    module_path: *feature_mapper
+    class_name: FeatureAggregate
+    attributes:
+      name: *feature_name
+      group_id: *feature_group
+
+tests:
+  feature_config_object_maps_params_schema:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *feature_mapper
+          class_name: FeatureConfigObject
+        method: model_validate
+        args:
+          - id: *transfer_id
+            name: *feature_name
+            group_id: *feature_group
+            feature_key: add
+            steps: []
+            params_schema:
+              a: int
+              b:
+                type: float
+                required: false
+                default: 1.0
+        as: yaml_obj
+      - target: $r.yaml_obj
+        method: map
+        as: aggregate
+    assert:
+      - outcome: aggregate
+        fields:
+          params_schema:
+            parameters:
+              key: name
+              items:
+                a:
+                  type: int
+                  required: true
+                  default: null
+                b:
+                  type: float
+                  required: false
+                  default: 1.0
+  feature_config_object_serializes_params_schema_keyed:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *feature_mapper
+          class_name: FeatureConfigObject
+        method: model_validate
+        args:
+          - id: *transfer_id
+            name: *feature_name
+            group_id: *feature_group
+            feature_key: add
+            steps: []
+            params_schema:
+              a: int
+              b:
+                type: float
+                required: false
+                default: 1.0
+        as: yaml_obj
+      - target: $r.yaml_obj
+        method: map
+        as: aggregate
+      - target:
+          module_path: *feature_mapper
+          class_name: FeatureConfigObject
+        method: from_model
+        args: [$r.aggregate]
+        as: copied
+      - target: $r.copied
+        method: to_primitive
+        args: [to_data]
+        as: data
+    assert:
+      - outcome: data
+        fields:
+          params_schema:
+            a: int
+            b:
+              type: float
+              default: 1.0
+              required: false
+  feature_config_object_params_schema_round_trip:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *feature_mapper
+          class_name: FeatureConfigObject
+        method: model_validate
+        args:
+          - id: *transfer_id
+            name: *feature_name
+            group_id: *feature_group
+            feature_key: add
+            steps: []
+            params_schema:
+              a: int
+              b:
+                type: float
+                required: false
+                default: 1.0
+        as: yaml_obj
+      - target: $r.yaml_obj
+        method: map
+        as: aggregate
+      - target:
+          module_path: *feature_mapper
+          class_name: FeatureConfigObject
+        method: from_model
+        args: [$r.aggregate]
+        as: copied
+      - target: $r.copied
+        method: map
+        as: restored
+    assert:
+      - outcome: restored
+        fields:
+          params_schema:
+            parameters:
+              key: name
+              items:
+                a:
+                  type: int
+                  required: true
+                  default: null
+                b:
+                  type: float
+                  required: false
+                  default: 1.0
+
+testers:
+  test_event_feature_step_aggregate:
+    module_path: *feature_mapper
+    class_name: EventFeatureStepAggregate
+    attributes: *event_sample
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepAggregate
+          - outcome: built
+            fields:
+              name: *event_name
+              service_id: *event_service
+              parameters: *event_parameters
+              data_key: *event_data_key
+              pass_on_error: true
+      condition_stored_as_text:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target:
+              module_path: operator
+              attribute: add
+            method: add
+            args: ['$', 'r.x > 0']
+            as: condition_text
+          - target: $r.built
+            method: set_attribute
+            args: [condition, $r.condition_text]
+        assert:
+          - outcome: built
+            message: '$r.x > 0'
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Event]
+          - target: self
+            method: new
+            as: rebound
+          - target: $r.rebound
+            method: set_attribute
+            args: [service_id, updated_handler]
+          - target: self
+            method: new
+            as: rekeyed
+          - target: $r.rekeyed
+            method: set_attribute
+            args: [data_key, new_key]
+          - target: self
+            method: new
+            as: conditioned
+          - target:
+              module_path: operator
+              attribute: add
+            method: add
+            args: ['$', 'r.y != 0']
+            as: condition_text
+          - target: $r.conditioned
+            method: set_attribute
+            args: [condition, $r.condition_text]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Event
+          - outcome: rebound
+            fields:
+              service_id: updated_handler
+          - outcome: rekeyed
+            fields:
+              data_key: new_key
+          - outcome: conditioned
+            message: '$r.y != 0'
+      set_pass_on_error:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: false_lower
+          - target: $r.false_lower
+            method: set_pass_on_error
+            args: ['false']
+          - target: self
+            method: new
+            as: false_upper
+          - target: $r.false_upper
+            method: set_pass_on_error
+            args: ['False']
+          - target: self
+            method: new
+            as: true_str
+          - target: $r.true_str
+            method: set_pass_on_error
+            args: ['true']
+          - target: self
+            method: new
+            as: true_bool
+          - target: $r.true_bool
+            method: set_pass_on_error
+            args: [true]
+        assert:
+          - outcome: false_lower
+            fields:
+              pass_on_error: false
+          - outcome: false_upper
+            fields:
+              pass_on_error: false
+          - outcome: true_str
+            fields:
+              pass_on_error: true
+          - outcome: true_bool
+            fields:
+              pass_on_error: true
+      set_parameters:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: merged
+          - target: $r.merged
+            method: set_parameters
+            kwargs:
+              parameters:
+                key: '10'
+                new_key: '3'
+          - target: self
+            method: new
+            as: pruned
+          - target: $r.pruned
+            method: set_parameters
+            kwargs:
+              parameters:
+                key: '10'
+                new_key: '3'
+          - target: $r.pruned
+            method: set_parameters
+            kwargs:
+              parameters:
+                new_key: null
+          - target: self
+            method: new
+            as: unchanged
+          - target: $r.unchanged
+            method: set_parameters
+            kwargs:
+              parameters:
+                key: '10'
+          - target: $r.unchanged
+            method: set_parameters
+            kwargs:
+              parameters: null
+        assert:
+          - outcome: merged
+            fields:
+              parameters:
+                key: '10'
+                new_key: '3'
+          - outcome: pruned
+            fields:
+              parameters:
+                key: '10'
+          - outcome: unchanged
+            fields:
+              parameters:
+                key: '10'
+      set_attribute_delegation:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [parameters, {y: '2'}]
+          - target: $r.built
+            method: set_attribute
+            args: [pass_on_error, 'false']
+          - target: $r.built
+            method: set_attribute
+            args: [name, Renamed Event]
+        assert:
+          - outcome: built
+            fields:
+              parameters:
+                key: value
+                y: '2'
+              pass_on_error: false
+              name: Renamed Event
+  test_feature_aggregate:
+    module_path: *feature_mapper
+    class_name: FeatureAggregate
+    attributes: *feature_sample
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *feature_mapper
+              class_name: FeatureAggregate
+          - outcome: built
+            fields:
+              id: *feature_id
+              name: *feature_name
+              group_id: *feature_group
+              feature_key: *feature_key
+              description: *feature_description
+      set_attribute:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args: [name, Updated Feature]
+          - target: self
+            method: new
+            as: described
+          - target: $r.described
+            method: set_attribute
+            args: [description, Updated description]
+        assert:
+          - outcome: renamed
+            fields:
+              name: Updated Feature
+          - outcome: described
+            fields:
+              description: Updated description
+      set_attribute_invalid:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_attribute
+            args: [invalid_attr, value]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_ATTRIBUTE
+      add_step:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: Step One
+              service_id: step_one_event
+            as: added
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.built, steps]
+            as: steps
+          - target: $r.steps
+            method: __getitem__
+            args: [0]
+            as: stored
+        assert:
+          - outcome: added
+            fields:
+              name: Step One
+              service_id: step_one_event
+          - outcome: stored
+            fields:
+              name: Step One
+              service_id: step_one_event
+          - outcome: built
+            fields:
+              steps:
+                - name: Step One
+                  service_id: step_one_event
+      add_step_position:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: Step One
+              service_id: step_one_event
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: Step Zero
+              service_id: step_zero_event
+              position: 0
+            as: inserted
+        assert:
+          - outcome: inserted
+            fields:
+              name: Step Zero
+          - outcome: built
+            fields:
+              steps:
+                - name: Step Zero
+                - name: Step One
+      remove_step:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: Step One
+              service_id: step_one_event
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: Step Two
+              service_id: step_two_event
+          - target: $r.built
+            method: remove_step
+            args: [0]
+            as: removed
+          - target: $r.built
+            method: remove_step
+            args: [-1]
+            as: negative
+          - target: $r.built
+            method: remove_step
+            args: [99]
+            as: missing
+        assert:
+          - outcome: removed
+            fields:
+              name: Step One
+          - outcome: negative
+            'null': true
+          - outcome: missing
+            'null': true
+          - outcome: built
+            fields:
+              steps:
+                - name: Step Two
+      reorder_step:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: A
+              service_id: a_event
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: B
+              service_id: b_event
+          - target: $r.built
+            method: add_step
+            kwargs:
+              name: C
+              service_id: c_event
+          - target: $r.built
+            method: reorder_step
+            args: [0, 2]
+            as: moved
+        assert:
+          - outcome: moved
+            fields:
+              name: A
+          - outcome: built
+            fields:
+              steps:
+                - name: B
+                - name: C
+                - name: A
+      rename:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: rename
+            args: [New Name]
+        assert:
+          - outcome: built
+            fields:
+              name: New Name
+              id: *feature_id
+      set_description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_description
+            args: [A custom description]
+        assert:
+          - outcome: built
+            fields:
+              description: A custom description
+      set_description_clears:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_description
+            args: [null]
+        assert:
+          - outcome: built
+            fields:
+              description: null
+  test_feature_config_object:
+    module_path: *feature_mapper
+    class_name: FeatureConfigObject
+    attributes: *transfer_sample
+    fixtures:
+      feature_for_transfer: *feature_for_transfer
+      event_model:
+        module_path: *feature_domain
+        class_name: EventFeatureStep
+        attributes:
+          name: *event_name
+          service_id: *event_service
+          parameters: *event_parameters
+          data_key: *event_data_key
+          pass_on_error: true
+      schema_feature: *schema_feature
+    tests:
+      map:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: FeatureConfigObject
+            method: model_validate
+            args: [*transfer_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+        assert:
+          - outcome: mapped
+            type:
+              module_path: *feature_mapper
+              class_name: FeatureAggregate
+          - outcome: mapped
+            fields:
+              id: *transfer_id
+              name: *feature_name
+              group_id: *feature_group
+              feature_key: add
+              description: Adds one number to another
+              steps:
+                - name: Add a and b
+                  service_id: add_number_event
+                  parameters:
+                    precision: '2'
+      from_model:
+        conditions:
+          fixtures: [feature_for_transfer]
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: FeatureConfigObject
+            method: from_model
+            args: [$fixture.feature_for_transfer]
+            as: copied
+        assert:
+          - outcome: copied
+            type:
+              module_path: *feature_mapper
+              class_name: FeatureConfigObject
+      round_trip:
+        conditions:
+          fixtures: [feature_for_transfer]
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: FeatureConfigObject
+            method: from_model
+            args: [$fixture.feature_for_transfer]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: restored
+            type:
+              module_path: *feature_mapper
+              class_name: FeatureAggregate
+          - outcome: restored
+            fields:
+              id: *transfer_id
+              name: *feature_name
+              steps:
+                - name: Add a and b
+                  service_id: add_number_event
+                  parameters:
+                    precision: '2'
+      feature_event_yaml_map_basic:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepConfigObject
+            method: model_validate
+            args:
+              - name: *event_name
+                service_id: *event_service
+                params: *event_parameters
+                data_key: *event_data_key
+                pass_on_error: true
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: event
+        assert:
+          - outcome: event
+            type:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepAggregate
+          - outcome: event
+            fields:
+              name: *event_name
+              service_id: *event_service
+              parameters: *event_parameters
+              data_key: *event_data_key
+              pass_on_error: true
+      feature_event_yaml_params_alias:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepConfigObject
+            method: model_validate
+            args:
+              - name: Alias Event
+                service_id: alias_handler
+                params:
+                  alias_key: value
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: event
+        assert:
+          - outcome: event
+            fields:
+              parameters:
+                alias_key: value
+      feature_event_yaml_map_with_condition:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepConfigObject
+            method: model_validate
+            args:
+              - name: Conditional Event
+                service_id: conditional_handler
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: event
+          - target:
+              module_path: operator
+              attribute: add
+            method: add
+            args: ['$', 'r.b != 0']
+            as: condition_text
+          - target: $r.event
+            method: set_attribute
+            args: [condition, $r.condition_text]
+        assert:
+          - outcome: event
+            type:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepAggregate
+          - outcome: event
+            message: '$r.b != 0'
+      feature_event_yaml_from_model:
+        conditions:
+          fixtures: [event_model]
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepConfigObject
+            method: from_model
+            args: [$fixture.event_model]
+            as: yaml_obj
+        assert:
+          - outcome: yaml_obj
+            type:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepConfigObject
+          - outcome: yaml_obj
+            fields:
+              name: *event_name
+              service_id: *event_service
+              parameters: *event_parameters
+      feature_event_yaml_middleware_round_trip:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepConfigObject
+            method: model_validate
+            args:
+              - name: Middleware Event
+                service_id: mw_handler
+                middleware: [timing_middleware, audit_middleware]
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: event
+          - target:
+              module_path: *feature_mapper
+              class_name: EventFeatureStepConfigObject
+            method: from_model
+            args: [$r.event]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: event
+            fields:
+              middleware: [timing_middleware, audit_middleware]
+          - outcome: restored
+            fields:
+              middleware: [timing_middleware, audit_middleware]
+      feature_yaml_middleware_round_trip:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_mapper
+              class_name: FeatureConfigObject
+            method: model_validate
+            args:
+              - id: *transfer_id
+                name: *feature_name
+                group_id: *feature_group
+                feature_key: add
+                middleware: [timing_middleware]
+                steps: []
+            as: yaml_obj
+          - target: $r.yaml_obj
+            method: map
+            as: aggregate
+          - target:
+              module_path: *feature_mapper
+              class_name: FeatureConfigObject
+            method: from_model
+            args: [$r.aggregate]
+            as: copied
+          - target: $r.copied
+            method: map
+            as: restored
+        assert:
+          - outcome: aggregate
+            fields:
+              middleware: [timing_middleware]
+          - outcome: restored
+            fields:
+              middleware: [timing_middleware]
+      feature_aggregate_add_step_with_middleware:
+        conditions:
+          fixtures: [schema_feature]
+        execute:
+          - target: schema_feature
+            method: add_step
+            kwargs:
+              name: Step One
+              service_id: step_one_event
+              middleware: [timing_middleware]
+            as: added
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$fixture.schema_feature, steps]
+            as: steps
+          - target: $r.steps
+            method: __getitem__
+            args: [0]
+            as: stored
+        assert:
+          - outcome: added
+            fields:
+              middleware: [timing_middleware]
+          - outcome: stored
+            fields:
+              middleware: [timing_middleware]
