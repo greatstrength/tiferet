@@ -1,0 +1,195 @@
+testers:
+  test_sqlite_service:
+    module_path: &sqlite_module tiferet.interfaces.sqlite
+    class_name: SqliteService
+    tests:
+      test_contract:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract: &sqlite_contract
+              # Inherited FileService names are in the abstract set.
+              # Their signatures are not locked.
+              abstracts: &sqlite_abstracts
+                - execute
+                - executemany
+                - executescript
+                - fetch_one
+                - fetch_all
+                - commit
+                - rollback
+                - backup
+                - open_file
+                - close_file
+                - __enter__
+                - __exit__
+              methods: &sqlite_methods
+                - &has_execute
+                  name: execute
+                  params: [self, sql, parameters]
+                - &has_executemany
+                  name: executemany
+                  params: [self, sql, seq_of_parameters]
+                - &has_executescript
+                  name: executescript
+                  params: [self, sql_script]
+                - &has_fetch_one
+                  name: fetch_one
+                  params: [self, query, parameters]
+                - &has_fetch_all
+                  name: fetch_all
+                  params: [self, query, parameters]
+                - &has_commit
+                  name: commit
+                  params: [self]
+                - &has_rollback
+                  name: rollback
+                  params: [self]
+                - &has_backup
+                  name: backup
+                  params: [self, target_path, pages, progress]
+                  defaults:
+                    pages: -1
+                    progress: null
+
+      test_has_execute:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_execute]
+
+      test_has_executemany:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_executemany]
+
+      test_has_executescript:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_executescript]
+
+      test_has_fetch_one:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_fetch_one]
+
+      test_has_fetch_all:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_fetch_all]
+
+      test_has_commit:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_commit]
+
+      test_has_rollback:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_rollback]
+
+      test_has_backup:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: *sqlite_abstracts
+              methods: [*has_backup]
+
+      test_methods_are_abstract:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract: *sqlite_contract
+
+      test_cannot_instantiate:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*sqlite_module]
+            as: loaded
+        assert:
+          - service_contract: *sqlite_contract
