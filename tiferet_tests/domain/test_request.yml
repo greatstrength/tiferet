@@ -1,0 +1,173 @@
+fixtures:
+  request: &request
+    module_path: &request_module tiferet.domain.request
+    class_name: Request
+    attributes: &request_attrs
+      session_id: &session_id fixed-session
+      feature_id: &feature_id calc.add
+      headers: &headers
+        h: '1'
+      data: &request_data
+        a: 1
+  empty_request:
+    module_path: *request_module
+    class_name: Request
+    attributes: {}
+  second_empty_request:
+    module_path: *request_module
+    class_name: Request
+    attributes: {}
+  round_trip_request:
+    module_path: *request_module
+    class_name: Request
+    attributes:
+      feature_id: *feature_id
+      data: *request_data
+
+testers:
+  test_request:
+    module_path: *request_module
+    class_name: Request
+    attributes: *request_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              session_id: *session_id
+              feature_id: *feature_id
+              headers: *headers
+              data: *request_data
+      defaults:
+        conditions:
+          fixtures: [empty_request]
+        execute:
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [headers]
+            as: read_headers
+          - target: $r.read_headers
+            method: __call__
+            args: [$fixture.empty_request]
+            as: headers
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [data]
+            as: read_data
+          - target: $r.read_data
+            method: __call__
+            args: [$fixture.empty_request]
+            as: data
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [feature_id]
+            as: read_feature
+          - target: $r.read_feature
+            method: __call__
+            args: [$fixture.empty_request]
+            as: feature_id
+        assert:
+          - outcome: headers
+            equals: {}
+          - outcome: data
+            equals: {}
+          - outcome: feature_id
+            'null': true
+      session_id_auto_derived:
+        conditions:
+          fixtures: [empty_request, second_empty_request]
+        execute:
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [session_id]
+            as: read_session
+          - target: $r.read_session
+            method: __call__
+            args: [$fixture.empty_request]
+            as: session_id
+          - target: $r.read_session
+            method: __call__
+            args: [$fixture.second_empty_request]
+            as: other_session_id
+          - target:
+              module_path: builtins
+              attribute: bool
+            method: bool
+            args: [$r.session_id]
+            as: nonempty
+          - target:
+              module_path: operator
+              attribute: ne
+            method: ne
+            args: [$r.session_id, $r.other_session_id]
+            as: differs
+        assert:
+          - outcome: session_id
+            type:
+              module_path: builtins
+              class_name: str
+          - outcome: nonempty
+            equals: true
+          - outcome: differs
+            equals: true
+      session_id_preserved:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [session_id]
+            as: read_session
+          - target: $r.read_session
+            method: __call__
+            args: [$r.built]
+            as: session_id
+        assert:
+          - outcome: session_id
+            equals: *session_id
+      model_dump_round_trip:
+        conditions:
+          fixtures: [round_trip_request]
+        execute:
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [session_id]
+            as: read_session
+          - target: $r.read_session
+            method: __call__
+            args: [$fixture.round_trip_request]
+            as: session_id
+          - target: round_trip_request
+            method: model_dump
+            as: dumped
+          - target:
+              module_path: *request_module
+              class_name: Request
+            method: model_validate
+            args: [$r.dumped]
+            as: reloaded
+        assert:
+          - outcome: reloaded
+            fields:
+              feature_id: *feature_id
+              data: *request_data
+              session_id: $r.session_id
