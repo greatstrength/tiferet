@@ -54,7 +54,27 @@ from ..contexts.tester import (
 )
 from ..contexts.test_module import TestModuleContext
 from ..events import DomainEvent
-from ..events.test_module import ReadTestModuleDocument, WriteTestModuleDocument
+from ..events.test_module import (
+    AddFixture,
+    AddTest,
+    AddTester,
+    AttachTest,
+    DetachTest,
+    GetFixture,
+    GetTest,
+    GetTester,
+    ListFixtures,
+    ListTests,
+    ListTesters,
+    ReadTestModuleDocument,
+    RemoveFixture,
+    RemoveTest,
+    RemoveTester,
+    UpdateFixture,
+    UpdateTest,
+    UpdateTester,
+    WriteTestModuleDocument,
+)
 from ..events.yaml_load import LoadYamlMapping
 from ..mappers.test import TestConfigObject
 from . import core
@@ -217,8 +237,8 @@ def _replace_test_module(path: Path, text: str, *, create: bool) -> None:
                     break
 
 # ** function: delegate_test_module
-def _delegate_test_module(rel: str, base_dir: str, edit, *, write: bool):
-    '''Read bytes, call the document event, and replace the file on a write.'''
+def _delegate_test_module(rel: str, base_dir: str, event_cls, *, write: bool, **kwargs):
+    '''Read bytes, call the verb event, and replace the file on a write.'''
 
     # Resolve the stem through the context. This blueprint does not import domain.
     address = TestModuleContext._address(rel, base_dir)
@@ -229,9 +249,14 @@ def _delegate_test_module(rel: str, base_dir: str, edit, *, write: bool):
         text=raw,
     )
 
-    # Bind the document. Edits go to working, not to domain fields.
+    # Bind the document. The verb event decides the edit.
     context = TestModuleContext.bind(document)
-    result = edit(context)
+    result = DomainEvent.handle(
+        event_cls,
+        document=document,
+        working=context.working,
+        **kwargs,
+    )
     if not write:
         return result
 
@@ -768,20 +793,19 @@ def add_fixture(rel: str,
     ) -> None:
     '''Add one fixture. The payload stays opaque. The file is replaced here.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.add_fixture(
-            name,
-            tester=tester,
-            payload=payload,
-            fragment=fragment,
-            alias=alias,
-            anchor=anchor,
-            merge=merge,
-        ),
+        AddFixture,
         write=True,
+        name=name,
+        tester=tester,
+        payload=payload,
+        fragment=fragment,
+        alias=alias,
+        anchor=anchor,
+        merge=merge,
     )
 
 # ** blueprint: get_fixture
@@ -797,8 +821,10 @@ def get_fixture(rel: str,
     return _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.get_fixture(name, tester=tester),
+        GetFixture,
         write=False,
+        name=name,
+        tester=tester,
     )
 
 # ** blueprint: list_fixtures
@@ -809,8 +835,9 @@ def list_fixtures(rel: str, *, base_dir: str = '.', tester: str = None):
     return _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.list_fixtures(tester=tester),
+        ListFixtures,
         write=False,
+        tester=tester,
     )
 
 # ** blueprint: update_fixture
@@ -825,30 +852,31 @@ def update_fixture(rel: str,
     ) -> None:
     '''Patch one fixture. The node object stays. The file is replaced here.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.update_fixture(
-            name,
-            tester=tester,
-            payload=payload,
-            fragment=fragment,
-            merge=merge,
-        ),
+        UpdateFixture,
         write=True,
+        name=name,
+        tester=tester,
+        payload=payload,
+        fragment=fragment,
+        merge=merge,
     )
 
 # ** blueprint: remove_fixture
 def remove_fixture(rel: str, name: str, *, base_dir: str = '.', tester: str = None) -> None:
     '''Remove one fixture pair. A missing name does not write.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.remove_fixture(name, tester=tester),
+        RemoveFixture,
         write=True,
+        name=name,
+        tester=tester,
     )
 
 # ** blueprint: add_test
@@ -863,18 +891,17 @@ def add_test(rel: str,
     ) -> None:
     '''Add one test body. This is not attach.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.add_test(
-            name,
-            tester=tester,
-            payload=payload,
-            fragment=fragment,
-            anchor=anchor,
-        ),
+        AddTest,
         write=True,
+        name=name,
+        tester=tester,
+        payload=payload,
+        fragment=fragment,
+        anchor=anchor,
     )
 
 # ** blueprint: get_test
@@ -885,8 +912,10 @@ def get_test(rel: str, name: str, *, base_dir: str = '.', tester: str = None):
     return _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.get_test(name, tester=tester),
+        GetTest,
         write=False,
+        name=name,
+        tester=tester,
     )
 
 # ** blueprint: list_tests
@@ -897,8 +926,9 @@ def list_tests(rel: str, *, base_dir: str = '.', tester: str = None):
     return _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.list_tests(tester=tester),
+        ListTests,
         write=False,
+        tester=tester,
     )
 
 # ** blueprint: update_test
@@ -912,29 +942,30 @@ def update_test(rel: str,
     ) -> None:
     '''Patch one test. Phase keys are not inspected.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.update_test(
-            name,
-            tester=tester,
-            payload=payload,
-            fragment=fragment,
-        ),
+        UpdateTest,
         write=True,
+        name=name,
+        tester=tester,
+        payload=payload,
+        fragment=fragment,
     )
 
 # ** blueprint: remove_test
 def remove_test(rel: str, name: str, *, base_dir: str = '.', tester: str = None) -> None:
     '''Remove one test pair.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.remove_test(name, tester=tester),
+        RemoveTest,
         write=True,
+        name=name,
+        tester=tester,
     )
 
 # ** blueprint: add_tester
@@ -948,17 +979,16 @@ def add_tester(rel: str,
     ) -> None:
     '''Add one tester mapping. The initial fragment may carry aliases.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.add_tester(
-            name,
-            payload=payload,
-            fragment=fragment,
-            anchor=anchor,
-        ),
+        AddTester,
         write=True,
+        name=name,
+        payload=payload,
+        fragment=fragment,
+        anchor=anchor,
     )
 
 # ** blueprint: get_tester
@@ -969,8 +999,9 @@ def get_tester(rel: str, name: str, *, base_dir: str = '.'):
     return _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.get_tester(name),
+        GetTester,
         write=False,
+        name=name,
     )
 
 # ** blueprint: list_testers
@@ -981,7 +1012,7 @@ def list_testers(rel: str, *, base_dir: str = '.'):
     return _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.list_testers(),
+        ListTesters,
         write=False,
     )
 
@@ -995,48 +1026,56 @@ def update_tester(rel: str,
     ) -> None:
     '''Patch one tester. fixtures and tests are refused.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.update_tester(name, payload=payload, fragment=fragment),
+        UpdateTester,
         write=True,
+        name=name,
+        payload=payload,
+        fragment=fragment,
     )
 
 # ** blueprint: remove_tester
 def remove_tester(rel: str, name: str, *, base_dir: str = '.') -> None:
     '''Remove one tester pair.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.remove_tester(name),
+        RemoveTester,
         write=True,
+        name=name,
     )
 
 # ** blueprint: attach_test
 def attach_test(rel: str, tester: str, name: str, *, base_dir: str = '.') -> None:
     '''Contain a root test by node identity. Do not copy the body.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.attach_test(tester, name),
+        AttachTest,
         write=True,
+        tester=tester,
+        name=name,
     )
 
 # ** blueprint: detach_test
 def detach_test(rel: str, tester: str, name: str, *, base_dir: str = '.') -> None:
     '''Drop one containment. Leave the root test and its anchor.'''
 
-    # Forward. This function does not read bytes or replace the file.
+    # Forward to the verb event. This function does not replace the file.
     _delegate_test_module(
         rel,
         base_dir,
-        lambda context: context.detach_test(tester, name),
+        DetachTest,
         write=True,
+        tester=tester,
+        name=name,
     )
 
 # ** blueprint: run_test_module
