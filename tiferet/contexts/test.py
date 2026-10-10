@@ -27,7 +27,15 @@ from ..domain.test import (
     Test,
 )
 from ..events import DomainEvent
-from ..events.phase import EvaluateAssertion, ExerciseMapperBases
+from ..events.phase import (
+    EvaluateAssertion,
+    ExerciseCalled,
+    ExerciseDomainContract,
+    ExerciseMapperBases,
+    ExerciseMiddlewareChain,
+    ExerciseParametersRequired,
+    ExerciseServiceContract,
+)
 
 # *** constants
 
@@ -321,18 +329,49 @@ class PhaseRuntimeContext(BaseContext):
                 expected='Assertion',
             )
 
-        # mapper_contract is ExerciseMapperBases. Every other check is one event.
-        if assertion.check == 'mapper_contract':
-            self._check_mapper_contract(assertion, ExerciseMapperBases)
-            return
+        # YAML null under equals is a step failure, not a comparison.
         if assertion.check == 'equals' and assertion.equals is None:
             TiferetError.raise_error(
                 a.error.PHASE_STEP_FAILED_ID,
                 detail='YAML null under equals is rejected.',
             )
+
+        # The context resolves refs. The event that owns the check does the work.
+        resolved = self._resolved_assertion_values(assertion)
+        if assertion.check == 'domain_contract':
+            ExerciseDomainContract(self.check).execute(assertion=assertion)
+            return
+        if assertion.check == 'mapper_contract':
+            ExerciseMapperBases(self.check).execute(assertion=assertion)
+            return
+        if assertion.check == 'parameters_required':
+            ExerciseParametersRequired(self.check).execute(assertion=assertion)
+            return
+        if assertion.check == 'service_contract':
+            ExerciseServiceContract(self.check).execute(
+                assertion=assertion,
+                cls=resolved['cls'],
+            )
+            return
+        if assertion.check == 'middleware_chain':
+            ExerciseMiddlewareChain(self.check).execute(assertion=assertion)
+            return
+        if assertion.check == 'assert_called_once_with':
+            ExerciseCalled(self.check).execute(
+                assertion=assertion,
+                method=resolved['method'],
+                spec=resolved['spec'],
+            )
+            return
+        if assertion.check == 'equals':
+            EvaluateAssertion(self.check).execute(
+                assertion=assertion,
+                values=resolved,
+            )
+            return
         EvaluateAssertion(self.check).execute(
             assertion=assertion,
-            values=self._resolved_assertion_values(assertion),
+            values=resolved,
         )
 
     # * method: run
@@ -815,23 +854,6 @@ class PhaseRuntimeContext(BaseContext):
             )
         return value
 
-    # * method: check_mapper_contract
-    def _check_mapper_contract(self, assertion: Assertion, event_cls: type = None) -> None:
-        '''
-        Run the mapper protocol through ExerciseMapperBases.
-
-        :param assertion: The mapper_contract check.
-        :type assertion: Assertion
-        :param event_cls: The event that raises the catalogued failure.
-        :type event_cls: type
-        :return: None.
-        :rtype: None
-        '''
-
-        # The event constructs the domain source and calls the check.
-        event_cls = ExerciseMapperBases if event_cls is None else event_cls
-        event_cls(self.check).execute(exclude=list(assertion.exclude or []))
-
     # * method: resolved_assertion_values
     def _resolved_assertion_values(self, assertion: Assertion) -> Dict[str, Any]:
         '''
@@ -843,13 +865,14 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: Dict[str, Any]
         '''
 
-        # Outcome, expected trees, and imports are resolved here.
+        # value_fields names the payload. This method still resolves the refs.
+        named = set(assertion.value_fields())
         values = {}
-        if assertion.outcome is not None:
+        if 'outcome' in named and assertion.outcome is not None:
             values['outcome'] = self._resolve_outcome(assertion.outcome)
-        if assertion.equals is not None:
+        if 'equals' in named and assertion.equals is not None:
             values['equals'] = self._resolve_value(assertion.equals)
-        if assertion.fields is not None:
+        if 'fields' in named and assertion.fields is not None:
             values['fields'] = self._resolve_value(assertion.fields)
         if assertion.check == 'error_code':
             missing = object()
