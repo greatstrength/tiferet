@@ -1,0 +1,475 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+  sample_formatter: &sample_formatter
+    module_path: tiferet.mappers.logging
+    class_name: FormatterAggregate
+    attributes:
+      id: simple
+      name: Simple Formatter
+      format: '%(levelname)s - %(message)s'
+      description: A simple formatter.
+  sample_handler: &sample_handler
+    module_path: tiferet.mappers.logging
+    class_name: HandlerAggregate
+    attributes:
+      id: console
+      name: Console Handler
+      module_path: logging
+      class_name: StreamHandler
+      level: INFO
+      formatter: simple
+      stream: ext://sys.stdout
+      description: A console handler.
+  sample_logger: &sample_logger
+    module_path: tiferet.mappers.logging
+    class_name: LoggerAggregate
+    attributes:
+      id: app
+      name: Application Logger
+      level: INFO
+      handlers: [console]
+      description: The main application logger.
+      propagate: true
+
+testers:
+  test_logging_event:
+    module_path: &logging_events tiferet.events.logging
+    class_name: LoggingEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            logging_service: &logging_service
+              module_path: &interfaces tiferet.interfaces
+              class_name: LoggingService
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_list_all_logging_configs:
+    module_path: *logging_events
+    class_name: ListAllLoggingConfigs
+    fixtures:
+      sample_formatter: *sample_formatter
+      sample_handler: *sample_handler
+      sample_logger: *sample_logger
+    tests:
+      success:
+        conditions:
+          fixtures: [sample_formatter, sample_handler, sample_logger]
+          mocks:
+            logging_service:
+              <<: *logging_service
+              return_value:
+                list_all:
+                  - [$fixture.sample_formatter]
+                  - [$fixture.sample_handler]
+                  - [$fixture.sample_logger]
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals:
+              - [$fixture.sample_formatter]
+              - [$fixture.sample_handler]
+              - [$fixture.sample_logger]
+          - mock: logging_service
+            method: list_all
+            assert_called_once_with:
+              args: []
+      empty:
+        conditions:
+          mocks:
+            logging_service:
+              <<: *logging_service
+              return_value:
+                list_all: [[], [], []]
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals: [[], [], []]
+
+  test_add_formatter:
+    module_path: *logging_events
+    class_name: AddFormatter
+    tests:
+      success:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: detailed
+              name: Detailed Formatter
+              format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+              description: A detailed formatter with timestamps.
+              datefmt: '%Y-%m-%d %H:%M:%S'
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.logging
+              class_name: Formatter
+          - outcome: created
+            fields:
+              id: detailed
+              name: Detailed Formatter
+              format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+              datefmt: '%Y-%m-%d %H:%M:%S'
+          - mock: logging_service
+            method: save_formatter
+            assert_called_once_with:
+              args: [$r.created]
+      minimal:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: minimal
+              name: Minimal Formatter
+              format: '%(message)s'
+              description: null
+              datefmt: null
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              id: minimal
+              name: Minimal Formatter
+              format: '%(message)s'
+              description: null
+              datefmt: null
+      missing_required_params:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              name: Detailed Formatter
+              format: '%(message)s'
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: detailed
+              name: null
+              format: '%(message)s'
+            raises: true
+            as: missing_name
+          - target: self
+            method: handle
+            kwargs:
+              id: detailed
+              name: Detailed Formatter
+              format: null
+            raises: true
+            as: missing_format
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_id
+            message: id
+          - outcome: missing_name
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_name
+            message: name
+          - outcome: missing_format
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_format
+            message: format
+
+  test_remove_formatter:
+    module_path: *logging_events
+    class_name: RemoveFormatter
+    tests:
+      success:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: old_formatter
+            as: removed
+        assert:
+          - outcome: removed
+            equals: old_formatter
+          - mock: logging_service
+            method: delete_formatter
+            assert_called_once_with:
+              args: [old_formatter]
+      missing_required_params:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+
+  test_add_handler:
+    module_path: *logging_events
+    class_name: AddHandler
+    tests:
+      success:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: file_handler
+              name: File Handler
+              module_path: logging.handlers
+              class_name: RotatingFileHandler
+              level: DEBUG
+              formatter: detailed
+              description: A rotating file handler.
+              filename: /var/log/app.log
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.logging
+              class_name: Handler
+          - outcome: created
+            fields:
+              id: file_handler
+              name: File Handler
+              level: DEBUG
+              filename: /var/log/app.log
+          - mock: logging_service
+            method: save_handler
+            assert_called_once_with:
+              args: [$r.created]
+      with_stream:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: stderr_handler
+              name: Stderr Handler
+              module_path: logging
+              class_name: StreamHandler
+              level: ERROR
+              formatter: simple
+              stream: ext://sys.stderr
+              filename: null
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              id: stderr_handler
+              stream: ext://sys.stderr
+              filename: null
+      missing_required_params:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              name: File Handler
+              module_path: logging
+              class_name: StreamHandler
+              level: INFO
+              formatter: simple
+            raises: true
+            as: missing_id
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_id
+            message: id
+
+  test_remove_handler:
+    module_path: *logging_events
+    class_name: RemoveHandler
+    tests:
+      success:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: old_handler
+            as: removed
+        assert:
+          - outcome: removed
+            equals: old_handler
+          - mock: logging_service
+            method: delete_handler
+            assert_called_once_with:
+              args: [old_handler]
+      missing_required_params:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+
+  test_add_logger:
+    module_path: *logging_events
+    class_name: AddLogger
+    tests:
+      success:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: app.database
+              name: Database Logger
+              level: WARNING
+              handlers: [console, file_handler]
+              description: Logger for database operations.
+              propagate: false
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.logging
+              class_name: Logger
+          - outcome: created
+            fields:
+              id: app.database
+              name: Database Logger
+              level: WARNING
+              handlers: [console, file_handler]
+              propagate: false
+          - mock: logging_service
+            method: save_logger
+            assert_called_once_with:
+              args: [$r.created]
+      minimal:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: simple_logger
+              name: Simple Logger
+              level: INFO
+              handlers: [console]
+              description: null
+              propagate: true
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              id: simple_logger
+              propagate: true
+              description: null
+      missing_required_params:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              name: Simple Logger
+              level: INFO
+              handlers: [console]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+
+  test_remove_logger:
+    module_path: *logging_events
+    class_name: RemoveLogger
+    tests:
+      success:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: old_logger
+            as: removed
+        assert:
+          - outcome: removed
+            equals: old_logger
+          - mock: logging_service
+            method: delete_logger
+            assert_called_once_with:
+              args: [old_logger]
+      missing_required_params:
+        conditions:
+          mocks:
+            logging_service: *logging_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id

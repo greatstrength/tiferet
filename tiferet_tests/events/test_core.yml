@@ -1,0 +1,278 @@
+fixtures:
+  event: &event
+    module_path: &events_core tiferet.events.core
+    class_name: &domain_event DomainEvent
+    attributes: {}
+  async_event:
+    module_path: *events_core
+    class_name: AsyncDomainEvent
+    attributes: {}
+
+tests:
+  execute_not_implemented:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: execute
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type:
+          module_path: builtins
+          class_name: NotImplementedError
+
+  raise_error_basic:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: raise_error
+        args: [TEST_ERROR, An error has occurred.]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type:
+          module_path: tiferet.assets.core
+          class_name: TiferetError
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: An error has occurred.
+
+  raise_error_with_args:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: raise_error
+        args: [TEST_ERROR, An error has occurred.]
+        kwargs:
+          arg1: arg1
+          arg2: arg2
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: An error has occurred.
+      - outcome: failed
+        fields:
+          kwargs:
+            arg1: arg1
+            arg2: arg2
+
+  verify_success:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, Test message]
+        as: verified
+    assert:
+      - outcome: verified
+        "null": true
+
+  verify_failure:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [false, TEST_ERROR, Test message]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: Test message
+
+  handle_command:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - outcome: event
+        type:
+          module_path: *events_core
+          class_name: *domain_event
+      - outcome: verified
+        "null": true
+
+  parameters_required:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - parameters_required:
+          names: [id, name, value, a, b, c, d]
+
+  async_domain_event_is_subclass:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: verify
+        args: [true, TEST_ERROR, Should not raise]
+        as: verified
+    assert:
+      - outcome: async_event
+        type:
+          module_path: *events_core
+          class_name: *domain_event
+      - outcome: verified
+        "null": true
+
+  async_execute_not_implemented:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: execute
+        as: pending
+    assert:
+      - outcome: pending
+        type:
+          module_path: types
+          class_name: CoroutineType
+
+  async_verify_success:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: verify
+        args: [true, TEST_ERROR, Should not raise]
+        as: verified
+    assert:
+      - outcome: verified
+        "null": true
+
+  async_verify_failure:
+    conditions:
+      fixtures: [async_event]
+    execute:
+      - target: async_event
+        method: verify
+        args: [false, TEST_ERROR, Async failure]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: TEST_ERROR
+      - outcome: failed
+        message: Async failure
+
+  async_execute_returns_result:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: async
+
+  handle_async_without_dependencies:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: async
+
+  handle_async_with_dependencies:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: async
+
+  middleware_none:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: none
+
+  middleware_single:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: single
+
+  middleware_order:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: order
+
+  middleware_capture:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: capture
+
+  middleware_intercept:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: intercept
+
+  middleware_async:
+    conditions:
+      fixtures: [event]
+    execute:
+      - target: event
+        method: verify
+        args: [true, TEST_ERROR, ok]
+        as: verified
+    assert:
+      - middleware_chain: async

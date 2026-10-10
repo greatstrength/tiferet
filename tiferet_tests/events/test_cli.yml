@@ -1,0 +1,433 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+  cli_command: &cli_command
+    module_path: tiferet.mappers.cli
+    class_name: CliCommandAggregate
+    attributes:
+      id: &command_id test.command
+      name: Test Command
+      key: command
+      group_key: test
+      description: A test command
+      arguments: []
+  another_command: &another_command
+    module_path: tiferet.mappers.cli
+    class_name: CliCommandAggregate
+    attributes:
+      id: test.another
+      name: Another Command
+      key: another
+      group_key: test
+  verbose_argument: &verbose_argument
+    module_path: tiferet.domain.cli
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--verbose', '-v']
+      description: Enable verbose output
+      type: str
+      required: false
+  debug_argument: &debug_argument
+    module_path: tiferet.domain.cli
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--debug']
+      description: Enable debug mode
+      type: str
+      required: false
+
+testers:
+  test_cli_event:
+    module_path: &cli_events tiferet.events.cli
+    class_name: CliEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            cli_service: &cli_service
+              module_path: tiferet.interfaces
+              class_name: CliService
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_add_cli_command:
+    module_path: *cli_events
+    class_name: AddCliCommand
+    tests:
+      success:
+        conditions:
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.new_command
+              name: New Command
+              key: new_command
+              group_key: test
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.cli
+              class_name: CliCommand
+          - outcome: created
+            fields:
+              id: test.new_command
+              name: New Command
+              key: new_command
+              group_key: test
+              arguments: []
+          - mock: cli_service
+            method: exists
+            assert_called_once_with:
+              args: [test.new_command]
+          - mock: cli_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+      with_arguments:
+        conditions:
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.verbose_command
+              name: Verbose Command
+              key: verbose_command
+              group_key: test
+              description: A command with arguments
+              arguments:
+                - name_or_flags: ['-v', '--verbose']
+                  description: Enable verbose output
+                  type: str
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              id: test.verbose_command
+              arguments:
+                - name_or_flags: ['-v', '--verbose']
+                  description: Enable verbose output
+                  type: str
+          - mock: cli_service
+            method: exists
+            assert_called_once_with:
+              args: [test.verbose_command]
+      duplicate_id:
+        conditions:
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                exists: true
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.new_command
+              name: New Command
+              key: new_command
+              group_key: test
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: CLI_COMMAND_ALREADY_EXISTS
+      none_arguments_coerced:
+        conditions:
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: test.new_command
+              name: New Command
+              key: new_command
+              group_key: test
+              arguments: null
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              arguments: []
+          - mock: cli_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+      missing_required_params:
+        conditions:
+          mocks:
+            cli_service: *cli_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              name: New Command
+              key: new_command
+              group_key: test
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
+
+  test_add_cli_argument:
+    module_path: *cli_events
+    class_name: AddCliArgument
+    fixtures:
+      cli_command: *cli_command
+    tests:
+      success:
+        conditions:
+          fixtures: [cli_command]
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                get: $fixture.cli_command
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              command_id: *command_id
+              name_or_flags: ['-v', '--verbose']
+              description: Enable verbose output
+            as: added
+        assert:
+          - outcome: added
+            equals: *command_id
+          - outcome: cli_command
+            fields:
+              arguments:
+                - name_or_flags: ['-v', '--verbose']
+                  description: Enable verbose output
+          - mock: cli_service
+            method: get
+            assert_called_once_with:
+              args: [*command_id]
+          - mock: cli_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.cli_command]
+      with_kwargs:
+        conditions:
+          fixtures: [cli_command]
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                get: $fixture.cli_command
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              command_id: *command_id
+              name_or_flags: ['--count']
+              description: Number of items
+              type: int
+              required: true
+              default: '5'
+            as: added
+        assert:
+          - outcome: added
+            equals: *command_id
+          - outcome: cli_command
+            fields:
+              arguments:
+                - name_or_flags: ['--count']
+                  description: Number of items
+                  type: int
+                  required: true
+                  default: '5'
+      multiple_arguments:
+        conditions:
+          fixtures: [cli_command]
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                get: $fixture.cli_command
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              command_id: *command_id
+              name_or_flags: ['-v', '--verbose']
+              description: Enable verbose output
+            as: first
+          - target: self
+            method: handle
+            kwargs:
+              command_id: *command_id
+              name_or_flags: ['-q', '--quiet']
+              description: Quiet mode
+            as: second
+        assert:
+          - outcome: cli_command
+            fields:
+              arguments:
+                - name_or_flags: ['-v', '--verbose']
+                - name_or_flags: ['-q', '--quiet']
+          - mock: cli_service
+            method: save
+            assert_called_once_with:
+              times: 2
+              args: [$fixture.cli_command]
+      missing_required_params:
+        conditions:
+          mocks:
+            cli_service: *cli_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              command_id: null
+              name_or_flags: ['-v']
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: command_id
+      not_found:
+        conditions:
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              command_id: test.missing
+              name_or_flags: ['-v']
+              description: Verbose
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: CLI_COMMAND_NOT_FOUND
+
+  test_list_cli_commands:
+    module_path: *cli_events
+    class_name: ListCliCommands
+    fixtures:
+      cli_command: *cli_command
+      another_command: *another_command
+    tests:
+      empty:
+        conditions:
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                list: []
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals: []
+          - mock: cli_service
+            method: list
+            assert_called_once_with:
+              args: []
+      multiple:
+        conditions:
+          fixtures: [cli_command, another_command]
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                list:
+                  - $fixture.cli_command
+                  - $fixture.another_command
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals:
+              - $fixture.cli_command
+              - $fixture.another_command
+          - mock: cli_service
+            method: list
+            assert_called_once_with:
+              args: []
+
+  test_get_parent_arguments:
+    module_path: *cli_events
+    class_name: GetParentArguments
+    fixtures:
+      verbose_argument: *verbose_argument
+      debug_argument: *debug_argument
+    tests:
+      success:
+        conditions:
+          fixtures: [verbose_argument, debug_argument]
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                get_parent_arguments:
+                  - $fixture.verbose_argument
+                  - $fixture.debug_argument
+        execute:
+          - target: self
+            method: handle
+            as: parents
+        assert:
+          - outcome: parents
+            equals:
+              - $fixture.verbose_argument
+              - $fixture.debug_argument
+          - mock: cli_service
+            method: get_parent_arguments
+            assert_called_once_with:
+              args: []
+      empty:
+        conditions:
+          mocks:
+            cli_service:
+              <<: *cli_service
+              return_value:
+                get_parent_arguments: []
+        execute:
+          - target: self
+            method: handle
+            as: parents
+        assert:
+          - outcome: parents
+            equals: []

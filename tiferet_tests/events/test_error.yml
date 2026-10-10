@@ -1,0 +1,536 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+  error: &error
+    module_path: &error_mapper tiferet.mappers.error
+    class_name: ErrorAggregate
+    attributes: &error_attrs
+      id: &error_id TEST_ERROR
+      name: Test Error
+      message:
+        - lang: en_US
+          text: This is a test error message.
+  error_two_messages: &error_two_messages
+    <<: *error
+    attributes:
+      id: *error_id
+      name: Test Error
+      message:
+        - lang: en_US
+          text: This is a test error message.
+        - lang: es_ES
+          text: Este es un mensaje de error de prueba.
+
+testers:
+  test_error_event:
+    module_path: &error_events tiferet.events.error
+    class_name: ErrorEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            error_service: &error_service
+              module_path: &interfaces tiferet.interfaces
+              class_name: &error_service_cls ErrorService
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_add_error:
+    module_path: *error_events
+    class_name: AddError
+    tests:
+      success:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: NEW_ERROR
+              name: New Error
+              message: This is a new error message.
+              lang: en_US
+              additional_messages: {}
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.error
+              class_name: Error
+          - outcome: created
+            fields:
+              id: NEW_ERROR
+              name: New Error
+              message:
+                - lang: en_US
+                  text: This is a new error message.
+          - mock: error_service
+            method: exists
+            assert_called_once_with:
+              args: [NEW_ERROR]
+          - mock: error_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+
+      with_additional_messages:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: NEW_ERROR
+              name: New Error
+              message: This is a new error message.
+              lang: en_US
+              additional_messages:
+                es_ES: Este es un nuevo error.
+            as: created
+        assert:
+          - outcome: created
+            fields:
+              message:
+                - lang: en_US
+                  text: This is a new error message.
+                - lang: es_ES
+                  text: Este es un nuevo error.
+
+      already_exists:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                exists: true
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: NEW_ERROR
+              name: New Error
+              message: This is a new error message.
+              lang: en_US
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ERROR_ALREADY_EXISTS
+
+      missing_required_params:
+        conditions:
+          mocks:
+            error_service: *error_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+              name: New Error
+              message: This is a new error message.
+            raises: true
+            as: missing_id
+          - target: self
+            method: handle
+            kwargs:
+              id: NEW_ERROR
+              name: null
+              message: This is a new error message.
+            raises: true
+            as: missing_name
+          - target: self
+            method: handle
+            kwargs:
+              id: NEW_ERROR
+              name: New Error
+              message: null
+            raises: true
+            as: missing_message
+        assert:
+          - outcome: missing_id
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_id
+            message: id
+          - outcome: missing_name
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_name
+            message: name
+          - outcome: missing_message
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: missing_message
+            message: message
+
+  test_get_error:
+    module_path: *error_events
+    class_name: GetError
+    fixtures:
+      error: *error
+    tests:
+      found_in_repo:
+        conditions:
+          fixtures: [error]
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: $fixture.error
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+            as: found
+        assert:
+          - outcome: found
+            equals: $fixture.error
+          - mock: error_service
+            method: get
+            assert_called_once_with:
+              args: [*error_id]
+
+      not_found_ignores_built_in_catalog:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: ERROR_NOT_FOUND
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ERROR_NOT_FOUND
+          - mock: error_service
+            method: get
+            assert_called_once_with:
+              args: [ERROR_NOT_FOUND]
+
+      not_found:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ERROR_NOT_FOUND
+
+  test_list_errors:
+    module_path: *error_events
+    class_name: ListErrors
+    fixtures:
+      error: *error
+    tests:
+      success:
+        conditions:
+          fixtures: [error]
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                list:
+                  - $fixture.error
+        execute:
+          - target: self
+            method: handle
+            as: listed
+        assert:
+          - outcome: listed
+            equals:
+              - $fixture.error
+          - mock: error_service
+            method: list
+            assert_called_once_with:
+              args: []
+
+  test_rename_error:
+    module_path: *error_events
+    class_name: RenameError
+    fixtures:
+      error: *error
+    tests:
+      success:
+        conditions:
+          fixtures: [error]
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: $fixture.error
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              new_name: Renamed Error
+            as: renamed
+        assert:
+          - outcome: renamed
+            equals: $fixture.error
+          - outcome: error
+            fields:
+              name: Renamed Error
+          - mock: error_service
+            method: get
+            assert_called_once_with:
+              args: [*error_id]
+          - mock: error_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.error]
+
+      missing_required_params:
+        conditions:
+          mocks:
+            error_service: *error_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              new_name: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: new_name
+
+      not_found:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              new_name: Renamed Error
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ERROR_NOT_FOUND
+
+  test_set_error_message:
+    module_path: *error_events
+    class_name: SetErrorMessage
+    fixtures:
+      error: *error
+    tests:
+      success:
+        conditions:
+          fixtures: [error]
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: $fixture.error
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              message: Updated error message.
+              lang: en_US
+            as: updated
+        assert:
+          - outcome: updated
+            equals: *error_id
+          - outcome: error
+            fields:
+              message:
+                - lang: en_US
+                  text: Updated error message.
+          - mock: error_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.error]
+
+      missing_required_params:
+        conditions:
+          mocks:
+            error_service: *error_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              message: null
+              lang: en_US
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: message
+
+      not_found:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              message: Updated error message.
+              lang: en_US
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ERROR_NOT_FOUND
+
+  test_remove_error_message:
+    module_path: *error_events
+    class_name: RemoveErrorMessage
+    fixtures:
+      error: *error
+      error_two_messages: *error_two_messages
+    tests:
+      success:
+        conditions:
+          fixtures: [error_two_messages]
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: $fixture.error_two_messages
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              lang: es_ES
+            as: removed
+        assert:
+          - outcome: removed
+            equals: *error_id
+          - outcome: error_two_messages
+            fields:
+              message:
+                - lang: en_US
+                  text: This is a test error message.
+          - mock: error_service
+            method: save
+            assert_called_once_with:
+              args: [$fixture.error_two_messages]
+
+      no_messages_left:
+        conditions:
+          fixtures: [error]
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: $fixture.error
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              lang: en_US
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: NO_ERROR_MESSAGES
+
+      not_found:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                get: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+              lang: es_ES
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: ERROR_NOT_FOUND
+
+  test_remove_error:
+    module_path: *error_events
+    class_name: RemoveError
+    tests:
+      success:
+        conditions:
+          mocks:
+            error_service: *error_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: *error_id
+            as: removed
+        assert:
+          - outcome: removed
+            equals: *error_id
+          - mock: error_service
+            method: delete
+            assert_called_once_with:
+              args: [*error_id]
+
+      missing_required_params:
+        conditions:
+          mocks:
+            error_service: *error_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+          - outcome: failed
+            message: id
