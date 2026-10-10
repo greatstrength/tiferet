@@ -10,7 +10,7 @@ from typing import Any
 # ** app
 from ..assets import TiferetError
 from ..assets.tester import TEST_MODULE_PATH_INVALID_ID
-from ..domain.test_module import TestModuleAddress, TestModuleDocument
+from ..domain.tester_module import TestModuleAddress, TestModuleDocument
 from .core import BaseContext
 
 # *** constants

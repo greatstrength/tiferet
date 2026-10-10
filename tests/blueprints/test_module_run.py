@@ -19,7 +19,7 @@ from tiferet.blueprints.tester import (
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.feature import FeatureContext
 from tiferet.contexts.request import RequestContext
-from tiferet.contexts.test import PhaseRuntime, PhaseRuntimeContext, TestContext
+from tiferet.contexts.tester_phase import PhaseRuntime, PhaseRuntimeContext, TestContext
 from tiferet.contexts.tester import TestSessionContext
 from tiferet.domain import Feature, Request, Test, TesterObject
 from tiferet.domain.error import ErrorMessage

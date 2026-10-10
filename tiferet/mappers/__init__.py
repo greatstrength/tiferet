@@ -68,4 +68,4 @@ from .logging import (
     LoggerConfigObject,
     LoggingSettingsConfigObject,
 )
-from .test_module import TestModuleDocumentAggregate
+from .tester_module import TestModuleDocumentAggregate

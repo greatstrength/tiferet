@@ -18,7 +18,7 @@ from tiferet.blueprints.tester import (
 from tiferet.contexts.core import BaseContext
 from tiferet.contexts.feature import FeatureContext
 from tiferet.contexts.request import RequestContext
-from tiferet.contexts.test import (
+from tiferet.contexts.tester_phase import (
     PhaseRuntimeContext,
     compile_phase_steps,
 )
@@ -29,7 +29,7 @@ from tiferet.domain import (
 )
 from tiferet.domain.core import DomainObject
 from tiferet.domain.error import Error, ErrorMessage
-from tiferet.domain.test import (
+from tiferet.domain.tester_phase import (
     ArrangedMock,
     Assertion,
     Conditions,
@@ -1032,7 +1032,7 @@ def test_phase_runtime_is_reached_through_from_domain():
     '''
 
     # Import here so pytest does not collect Test-prefixed classes.
-    from tiferet.contexts.test import TestContext
+    from tiferet.contexts.tester_phase import TestContext
     from tiferet.contexts.tester import TesterContext
     from tiferet.domain import TesterObject
 

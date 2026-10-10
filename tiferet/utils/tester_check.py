@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 from pydantic import Field
 
 # ** app
-from ..interfaces.check import CheckService
+from ..interfaces.tester_check import CheckService
 from ..interfaces.core import ServiceError
 from ..mappers.core import Aggregate, TransferObject
 

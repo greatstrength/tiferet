@@ -28,4 +28,4 @@ from .error import ErrorService
 from .feature import FeatureService
 from .logging import LoggingService
 from .middleware import MiddlewareService
-from .check import CheckService
+from .tester_check import CheckService

@@ -39,8 +39,8 @@ from .feature import (
     ParameterSpecification,
     RequestSpecification,
 )
-from .test_module import TestModuleAddress, TestModuleDocument
-from .test import (
+from .tester_module import TestModuleAddress, TestModuleDocument
+from .tester_phase import (
     ArrangedMock,
     Assertion,
     Conditions,
