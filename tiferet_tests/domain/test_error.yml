@@ -5,11 +5,18 @@ fixtures:
     attributes: &plain_message
       lang: &lang en_US
       text: &plain An error occurred.
-  formatted_error_message:
+  formatted_error_message: &formatted_error_message
     <<: *error_message
-    attributes:
+    attributes: &formatted_message
       lang: *lang
       text: &formatted 'An error occurred: {error}'
+  formatted_error:
+    module_path: *error_module
+    class_name: Error
+    attributes:
+      id: TEST_FORMATTED_ERROR
+      name: Test Formatted Error
+      message: [$fixture.formatted_error_message]
 
 tests:
   error_message_format:
@@ -45,4 +52,66 @@ testers:
           - outcome: built
             fields:
               id: *error_id
+              name: Test Error
               error_code: *error_id
+      description:
+        conditions:
+          fixtures: [error_message]
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_message
+            args: [*lang]
+            as: formatted
+          - target: $r.built
+            method: format_message
+            args: [fr_FR]
+            as: missing
+        assert:
+          - outcome: formatted
+            equals: *plain
+          - outcome: missing
+            'null': true
+      format_message_with_kwargs:
+        conditions:
+          fixtures: [formatted_error_message, formatted_error]
+        execute:
+          - target: formatted_error
+            method: format_message
+            args: [*lang]
+            kwargs:
+              error: test failure
+            as: formatted
+        assert:
+          - outcome: formatted
+            equals: 'An error occurred: test failure'
+  test_error_message:
+    module_path: *error_module
+    class_name: ErrorMessage
+    attributes: *plain_message
+    fixtures:
+      formatted_error_message: *formatted_error_message
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields: *plain_message
+      format_with_kwargs:
+        conditions:
+          fixtures: [formatted_error_message]
+        execute:
+          - target: formatted_error_message
+            method: format
+            kwargs:
+              error: test failure
+            as: formatted
+        assert:
+          - outcome: formatted
+            equals: 'An error occurred: test failure'

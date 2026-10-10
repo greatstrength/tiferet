@@ -1,0 +1,265 @@
+fixtures:
+  flagged_dependency: &flagged_dependency
+    module_path: &di_module tiferet.domain.di
+    class_name: FlaggedDependency
+    attributes: &alpha_attrs
+      flag: &alpha_flag test_alpha
+      module_path: &alpha_module tiferet.domain.error
+      class_name: &alpha_class Error
+      parameters: &alpha_parameters
+        test_param: test_value
+        param: value1
+  flagged_dependency_beta: &flagged_dependency_beta
+    <<: *flagged_dependency
+    attributes: &beta_attrs
+      flag: &beta_flag test_beta
+      module_path: &beta_module tiferet.domain.app
+      class_name: &beta_class AppSession
+      parameters: &beta_parameters
+        test_param: test_value
+        param: value2
+  registration_multi: &registration_multi
+    module_path: *di_module
+    class_name: ServiceRegistration
+    attributes:
+      id: test_service_multi
+      module_path: &default_module tiferet.domain.core
+      class_name: &default_class ServiceDependency
+      dependencies:
+        - *alpha_attrs
+        - *beta_attrs
+  registration_no_default: &registration_no_default
+    module_path: *di_module
+    class_name: ServiceRegistration
+    attributes:
+      id: test_service_no_default
+      dependencies:
+        - *alpha_attrs
+  registration_with_parameters: &registration_with_parameters
+    module_path: *di_module
+    class_name: ServiceRegistration
+    attributes:
+      id: param_service
+      module_path: *default_module
+      class_name: *default_class
+      parameters: &default_parameters
+        p: v
+
+testers:
+  test_flagged_dependency:
+    module_path: *di_module
+    class_name: FlaggedDependency
+    attributes: *alpha_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              flag: *alpha_flag
+              module_path: *alpha_module
+              class_name: *alpha_class
+              parameters: *alpha_parameters
+
+  test_service_registration:
+    module_path: *di_module
+    class_name: ServiceRegistration
+    attributes: &registration_attrs
+      id: &registration_id test_service
+      module_path: *default_module
+      class_name: *default_class
+      dependencies:
+        - *alpha_attrs
+    fixtures:
+      registration_multi: *registration_multi
+      registration_no_default: *registration_no_default
+      registration_with_parameters: *registration_with_parameters
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: *registration_id
+              module_path: *default_module
+              class_name: *default_class
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_dependency
+            args: [invalid]
+            as: missing
+        assert:
+          - outcome: missing
+            'null': true
+      get_dependency:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_dependency
+            args: [*alpha_flag]
+            as: dependency
+        assert:
+          - outcome: dependency
+            fields:
+              flag: *alpha_flag
+              module_path: *alpha_module
+              class_name: *alpha_class
+              parameters: *alpha_parameters
+      get_dependency_multiple_flags:
+        conditions:
+          fixtures: [registration_multi]
+        execute:
+          - target: registration_multi
+            method: get_dependency
+            args: [*alpha_flag, *beta_flag]
+            as: alpha_first
+          - target: registration_multi
+            method: get_dependency
+            args: [*beta_flag, *alpha_flag]
+            as: beta_first
+        assert:
+          - outcome: alpha_first
+            fields:
+              flag: *alpha_flag
+              class_name: *alpha_class
+          - outcome: beta_first
+            fields:
+              flag: *beta_flag
+              class_name: *beta_class
+      get_service_type_default:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_service_type
+            as: resolved
+        assert:
+          - outcome: resolved
+            is:
+              module_path: *default_module
+              class_name: *default_class
+      get_service_type_flagged:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_service_type
+            args: [*alpha_flag]
+            as: resolved
+        assert:
+          - outcome: resolved
+            is:
+              module_path: *alpha_module
+              class_name: *alpha_class
+      get_service_type_no_match:
+        conditions:
+          fixtures: [registration_no_default]
+        execute:
+          - target: registration_no_default
+            method: get_service_type
+            args: [unknown_flag]
+            as: resolved
+        assert:
+          - outcome: resolved
+            'null': true
+      get_service_type_flag_priority:
+        conditions:
+          fixtures: [registration_multi]
+        execute:
+          - target: registration_multi
+            method: get_service_type
+            args: [*alpha_flag, *beta_flag]
+            as: alpha_first
+          - target: registration_multi
+            method: get_service_type
+            args: [*beta_flag, *alpha_flag]
+            as: beta_first
+        assert:
+          - outcome: alpha_first
+            is:
+              module_path: *alpha_module
+              class_name: *alpha_class
+          - outcome: beta_first
+            is:
+              module_path: *beta_module
+              class_name: *beta_class
+      resolve_service_flagged:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: resolve_service
+            args: [*alpha_flag]
+            as: dependency
+        assert:
+          - outcome: dependency
+            type:
+              module_path: *default_module
+              class_name: *default_class
+          - outcome: dependency
+            fields:
+              module_path: *alpha_module
+              class_name: *alpha_class
+              parameters: *alpha_parameters
+      resolve_service_default:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: resolve_service
+            as: dependency
+        assert:
+          - outcome: dependency
+            type:
+              module_path: *default_module
+              class_name: *default_class
+          - outcome: dependency
+            fields:
+              module_path: *default_module
+              class_name: *default_class
+      resolve_service_none:
+        conditions:
+          fixtures: [registration_no_default]
+        execute:
+          - target: registration_no_default
+            method: resolve_service
+            args: [unknown_flag]
+            as: dependency
+        assert:
+          - outcome: dependency
+            'null': true
+      resolve_service_default_parameter_carry_through:
+        conditions:
+          fixtures: [registration_with_parameters]
+        execute:
+          - target: registration_with_parameters
+            method: resolve_service
+            as: dependency
+        assert:
+          - outcome: dependency
+            fields:
+              parameters: *default_parameters

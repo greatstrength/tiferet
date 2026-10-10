@@ -1,0 +1,86 @@
+fixtures:
+  app_service_dependency: &app_service_dependency
+    module_path: &app_module tiferet.domain.app
+    class_name: AppServiceDependency
+    attributes: &app_service_attrs
+      service_id: &service_id test_service
+      module_path: &service_module test_module_path
+      class_name: &service_class test_class_name
+      parameters: &service_parameters
+        param1: value1
+        param2: value2
+
+testers:
+  test_app_service_dependency:
+    module_path: *app_module
+    class_name: AppServiceDependency
+    attributes: *app_service_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              service_id: *service_id
+              module_path: *service_module
+              class_name: *service_class
+              parameters: *service_parameters
+
+  test_app_session:
+    module_path: *app_module
+    class_name: AppSession
+    attributes: &app_session_attrs
+      id: test
+      name: Test App
+      description: The test app.
+      flags: [test]
+      services:
+        - *app_service_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: test
+              name: Test App
+              description: The test app.
+              flags: [test]
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_service
+            args: [invalid]
+            as: missing
+        assert:
+          - outcome: missing
+            'null': true
+      get_service:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_service
+            args: [*service_id]
+            as: service
+        assert:
+          - outcome: service
+            fields:
+              module_path: *service_module
+              class_name: *service_class
+              service_id: *service_id
+              parameters: *service_parameters

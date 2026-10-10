@@ -1,0 +1,762 @@
+fixtures:
+  cli_argument: &cli_argument
+    module_path: &cli_module tiferet.domain.cli
+    class_name: CliArgument
+    attributes: &cli_argument_attrs
+      name_or_flags: &argument_flags ['--test-arg', '-t']
+      description: &argument_description A test argument for CLI commands.
+      required: true
+      type: &argument_type str
+  int_argument:
+    <<: *cli_argument
+    attributes:
+      <<: *cli_argument_attrs
+      type: int
+  float_argument:
+    <<: *cli_argument
+    attributes:
+      <<: *cli_argument_attrs
+      type: float
+  omitted_type_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--no-type']
+  value_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: [a]
+      description: First operand.
+      type: int
+      nargs: '?'
+      choices: ['1', '2']
+      default: '1'
+  bool_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--verbose']
+      description: Enable verbose output.
+      type: bool
+  json_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--config']
+      description: Configuration as JSON string.
+      type: json
+  list_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--handlers']
+      description: Handler IDs.
+      type: list
+  list_plus_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--handlers']
+      description: At least one handler ID required.
+      type: list
+      nargs: '+'
+  dict_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--constants']
+      description: Key=value constant pairs.
+      type: dict
+  short_flag_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['-v']
+  positional_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: [config_file]
+  params_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--params']
+      type: dict
+  str_passthrough_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--name']
+      type: str
+  list_passthrough_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--items']
+      type: list
+  int_passthrough_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes:
+      name_or_flags: ['--count']
+      type: int
+  cli_command: &cli_command
+    module_path: *cli_module
+    class_name: CliCommand
+    attributes: &cli_command_attrs
+      group_key: &group_key test-group
+      key: &command_key test-feature
+      name: &command_name Test Feature Command
+      description: &command_description A command for testing CLI features.
+      arguments:
+        - name_or_flags: ['--arg1', '-a']
+          description: First argument.
+  cli_record: &cli_record
+    module_path: *cli_module
+    class_name: CliRecord
+    attributes: &cli_record_attrs
+      fields: &record_fields
+        id: '42'
+        name: foo
+  empty_record:
+    module_path: *cli_module
+    class_name: CliRecord
+    attributes: {}
+  cli_output_record: &cli_output_record
+    module_path: *cli_module
+    class_name: CliOutputRecord
+    attributes: &output_record_attrs
+      record:
+        fields:
+          id: '42'
+          name: foo bar
+  empty_output_record:
+    module_path: *cli_module
+    class_name: CliOutputRecord
+    attributes:
+      record: {}
+  cli_record_list: &cli_record_list
+    module_path: *cli_module
+    class_name: CliRecordList
+    attributes: &record_list_attrs
+      records:
+        - fields:
+            id: '1'
+            name: Alpha
+        - fields:
+            id: '200'
+            name: Beta
+  aligned_record_list:
+    module_path: *cli_module
+    class_name: CliRecordList
+    attributes:
+      records:
+        - fields:
+            id: '1'
+            name: A
+        - fields:
+            id: '99999'
+            name: B
+  empty_record_list:
+    module_path: *cli_module
+    class_name: CliRecordList
+    attributes: {}
+
+testers:
+  test_cli_argument:
+    module_path: *cli_module
+    class_name: CliArgument
+    attributes: *cli_argument_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              name_or_flags: *argument_flags
+              description: *argument_description
+              required: true
+              type: *argument_type
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_type
+            as: argument_type
+          - target: $r.built
+            method: get_dest
+            as: dest
+        assert:
+          - outcome: argument_type
+            is:
+              builtin: str
+          - outcome: dest
+            equals: test_arg
+      get_type_int:
+        conditions:
+          fixtures: [int_argument]
+        execute:
+          - target: int_argument
+            method: get_type
+            as: argument_type
+        assert:
+          - outcome: argument_type
+            is:
+              builtin: int
+      get_type_float:
+        conditions:
+          fixtures: [float_argument]
+        execute:
+          - target: float_argument
+            method: get_type
+            as: argument_type
+        assert:
+          - outcome: argument_type
+            is:
+              builtin: float
+      get_type_default_str:
+        conditions:
+          fixtures: [omitted_type_argument]
+        execute:
+          - target: omitted_type_argument
+            method: get_type
+            as: argument_type
+        assert:
+          - outcome: omitted_type_argument
+            fields:
+              type: str
+          - outcome: argument_type
+            is:
+              builtin: str
+      to_argparse_kwargs_value_action:
+        conditions:
+          fixtures: [value_argument]
+        execute:
+          - target: value_argument
+            method: to_argparse_kwargs
+            as: kwargs
+          - target: $r.kwargs
+            method: __getitem__
+            args: [type]
+            as: argument_type
+        assert:
+          - outcome: argument_type
+            is:
+              builtin: int
+          - outcome: kwargs
+            fields:
+              nargs: '?'
+              choices: ['1', '2']
+              default: '1'
+              help: First operand.
+          - outcome: kwargs
+            absent: [action, required]
+      to_argparse_kwargs_bool_type:
+        conditions:
+          fixtures: [bool_argument]
+        execute:
+          - target: bool_argument
+            method: to_argparse_kwargs
+            as: kwargs
+        assert:
+          - outcome: kwargs
+            fields:
+              action: store_true
+              help: Enable verbose output.
+          - outcome: kwargs
+            absent: [type, nargs, choices, default]
+      to_argparse_kwargs_json_type:
+        conditions:
+          fixtures: [json_argument]
+        execute:
+          - target: json_argument
+            method: to_argparse_kwargs
+            as: kwargs
+          - target: $r.kwargs
+            method: __getitem__
+            args: [type]
+            as: argument_type
+        assert:
+          - outcome: argument_type
+            is:
+              module_path: json
+              class_name: loads
+          - outcome: kwargs
+            fields:
+              help: Configuration as JSON string.
+          - outcome: kwargs
+            absent: [nargs, action]
+      to_argparse_kwargs_list_type:
+        conditions:
+          fixtures: [list_argument]
+        execute:
+          - target: list_argument
+            method: to_argparse_kwargs
+            as: kwargs
+          - target: $r.kwargs
+            method: __getitem__
+            args: [type]
+            as: argument_type
+        assert:
+          - outcome: kwargs
+            fields:
+              nargs: '*'
+          - outcome: argument_type
+            is:
+              builtin: str
+          - outcome: kwargs
+            absent: [action]
+      to_argparse_kwargs_list_type_nargs_override:
+        conditions:
+          fixtures: [list_plus_argument]
+        execute:
+          - target: list_plus_argument
+            method: to_argparse_kwargs
+            as: kwargs
+        assert:
+          - outcome: kwargs
+            fields:
+              nargs: '+'
+      to_argparse_kwargs_dict_type:
+        conditions:
+          fixtures: [dict_argument]
+        execute:
+          - target: dict_argument
+            method: to_argparse_kwargs
+            as: kwargs
+          - target: $r.kwargs
+            method: __getitem__
+            args: [type]
+            as: argument_type
+        assert:
+          - outcome: kwargs
+            fields:
+              nargs: '*'
+          - outcome: argument_type
+            is:
+              builtin: str
+          - outcome: kwargs
+            absent: [action]
+      get_dest_short_flag:
+        conditions:
+          fixtures: [short_flag_argument]
+        execute:
+          - target: short_flag_argument
+            method: get_dest
+            as: dest
+        assert:
+          - outcome: dest
+            equals: v
+      get_dest_positional:
+        conditions:
+          fixtures: [positional_argument]
+        execute:
+          - target: positional_argument
+            method: get_dest
+            as: dest
+        assert:
+          - outcome: dest
+            equals: config_file
+      parse_value_dict:
+        conditions:
+          fixtures: [params_argument]
+        execute:
+          - target: params_argument
+            method: parse_value
+            args:
+              - [key1=value1, key2=value2]
+            as: parsed
+        assert:
+          - outcome: parsed
+            equals:
+              key1: value1
+              key2: value2
+      parse_value_dict_with_equals_in_value:
+        conditions:
+          fixtures: [params_argument]
+        execute:
+          - target: params_argument
+            method: parse_value
+            args:
+              - ['url=http://example.com?a=1']
+            as: parsed
+        assert:
+          - outcome: parsed
+            equals:
+              url: 'http://example.com?a=1'
+      parse_value_passthrough:
+        conditions:
+          fixtures: [str_passthrough_argument, list_passthrough_argument, int_passthrough_argument]
+        execute:
+          - target: str_passthrough_argument
+            method: parse_value
+            args: [hello]
+            as: parsed_str
+          - target: list_passthrough_argument
+            method: parse_value
+            args:
+              - [a, b]
+            as: parsed_list
+          - target: int_passthrough_argument
+            method: parse_value
+            args: [42]
+            as: parsed_int
+        assert:
+          - outcome: parsed_str
+            equals: hello
+          - outcome: parsed_list
+            equals: [a, b]
+          - outcome: parsed_int
+            equals: 42
+
+  test_cli_command:
+    module_path: *cli_module
+    class_name: CliCommand
+    attributes: *cli_command_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: test_group.test_feature
+              group_key: *group_key
+              key: *command_key
+              name: *command_name
+              description: *command_description
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: has_argument
+            args:
+              - ['-a', '--arg1']
+            as: present
+          - target: $r.built
+            method: has_argument
+            args:
+              - ['-b', '--arg2']
+            as: missing
+        assert:
+          - outcome: present
+            equals: true
+          - outcome: missing
+            equals: false
+
+  test_cli_record:
+    module_path: *cli_module
+    class_name: CliRecord
+    attributes: *cli_record_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              fields: *record_fields
+      default_fields_empty:
+        conditions:
+          fixtures: [empty_record]
+        execute:
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [fields]
+            as: read_fields
+          - target: $r.read_fields
+            method: __call__
+            args: [$fixture.empty_record]
+            as: fields
+        assert:
+          - outcome: fields
+            equals: {}
+
+  test_cli_output_record:
+    module_path: *cli_module
+    class_name: CliOutputRecord
+    attributes: *output_record_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *cli_module
+              class_name: CliOutputRecord
+      format_output:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_output
+            kwargs:
+              indent: 2
+            as: output
+          - target: $r.output
+            method: splitlines
+            as: lines
+          - target:
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.lines]
+            as: line_count
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: first
+          - target: $r.first
+            method: __call__
+            args: [$r.lines]
+            as: line0
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [1]
+            as: second
+          - target: $r.second
+            method: __call__
+            args: [$r.lines]
+            as: line1
+          - target: $r.line0
+            method: startswith
+            args: ['  id  ']
+            as: starts_id
+          - target: $r.line0
+            method: __contains__
+            args: ['42']
+            as: has_id
+          - target: $r.line1
+            method: startswith
+            args: ['  name']
+            as: starts_name
+          - target: $r.line1
+            method: __contains__
+            args: ['foo bar']
+            as: has_name
+        assert:
+          - outcome: line_count
+            equals: 2
+          - outcome: starts_id
+            equals: true
+          - outcome: has_id
+            equals: true
+          - outcome: starts_name
+            equals: true
+          - outcome: has_name
+            equals: true
+      format_output_empty:
+        conditions:
+          fixtures: [empty_output_record]
+        execute:
+          - target: empty_output_record
+            method: format_output
+            as: output
+        assert:
+          - outcome: output
+            equals: ''
+
+  test_cli_record_list:
+    module_path: *cli_module
+    class_name: CliRecordList
+    attributes: *record_list_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *cli_module
+              class_name: CliRecordList
+      format_output:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_output
+            as: output
+          - target: $r.output
+            method: splitlines
+            as: lines
+          - target:
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.lines]
+            as: line_count
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: get0
+          - target: $r.get0
+            method: __call__
+            args: [$r.lines]
+            as: header
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [1]
+            as: get1
+          - target: $r.get1
+            method: __call__
+            args: [$r.lines]
+            as: separator
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [2]
+            as: get2
+          - target: $r.get2
+            method: __call__
+            args: [$r.lines]
+            as: first_row
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [3]
+            as: get3
+          - target: $r.get3
+            method: __call__
+            args: [$r.lines]
+            as: second_row
+          - target: $r.separator
+            method: replace
+            args: ['-', '']
+            as: without_dash
+          - target: $r.without_dash
+            method: replace
+            args: [' ', '']
+            as: bare_separator
+        assert:
+          - outcome: line_count
+            equals: 4
+          - outcome: header
+            message: id
+          - outcome: header
+            message: name
+          - outcome: bare_separator
+            equals: ''
+          - outcome: separator
+            message: '-'
+          - outcome: first_row
+            message: '1'
+          - outcome: first_row
+            message: Alpha
+          - outcome: second_row
+            message: '200'
+          - outcome: second_row
+            message: Beta
+      format_output_aligns_columns:
+        conditions:
+          fixtures: [aligned_record_list]
+        execute:
+          - target: aligned_record_list
+            method: format_output
+            as: output
+          - target: $r.output
+            method: splitlines
+            as: lines
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: get0
+          - target: $r.get0
+            method: __call__
+            args: [$r.lines]
+            as: header
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [2]
+            as: get2
+          - target: $r.get2
+            method: __call__
+            args: [$r.lines]
+            as: first_row
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [3]
+            as: get3
+          - target: $r.get3
+            method: __call__
+            args: [$r.lines]
+            as: second_row
+          - target:
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.header]
+            as: header_length
+          - target:
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.first_row]
+            as: first_length
+          - target:
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.second_row]
+            as: second_length
+        assert:
+          - outcome: first_length
+            equals: $r.header_length
+          - outcome: second_length
+            equals: $r.header_length
+      format_output_empty:
+        conditions:
+          fixtures: [empty_record_list]
+        execute:
+          - target: empty_record_list
+            method: format_output
+            as: output
+        assert:
+          - outcome: output
+            equals: ''

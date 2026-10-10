@@ -1,0 +1,313 @@
+fixtures:
+  formatter: &formatter
+    module_path: &logging_module tiferet.domain.logging
+    class_name: Formatter
+    attributes: &formatter_attrs
+      id: &formatter_id simple
+      name: Simple Formatter
+      format: &formatter_format '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: &datefmt '%Y-%m-%d %H:%M:%S'
+  formatter_no_datefmt: &formatter_no_datefmt
+    <<: *formatter
+    attributes:
+      id: minimal
+      name: Minimal Formatter
+      format: &minimal_format '%(message)s'
+  handler: &handler
+    module_path: *logging_module
+    class_name: Handler
+    attributes: &handler_attrs
+      id: &handler_id console
+      name: Console Handler
+      module_path: &handler_module logging
+      class_name: &handler_class StreamHandler
+      level: &handler_level INFO
+      formatter: *formatter_id
+      stream: &stream ext://sys.stdout
+  handler_no_optional: &handler_no_optional
+    <<: *handler
+    attributes:
+      id: bare
+      name: Bare Handler
+      module_path: *handler_module
+      class_name: *handler_class
+      level: DEBUG
+      formatter: *formatter_id
+  logger: &logger
+    module_path: *logging_module
+    class_name: Logger
+    attributes: &logger_attrs
+      id: &logger_id app
+      name: App Logger
+      level: &logger_level DEBUG
+      handlers: &logger_handlers [console]
+      propagate: true
+  root_logger: &root_logger
+    <<: *logger
+    attributes: &root_logger_attrs
+      id: root
+      name: Root Logger
+      level: &root_level WARNING
+      handlers: []
+      propagate: false
+      is_root: true
+  assembled_settings: &assembled_settings
+    module_path: *logging_module
+    class_name: LoggingSettings
+    attributes:
+      formatters: [*formatter_attrs]
+      handlers: [*handler_attrs]
+      loggers: [*root_logger_attrs]
+  non_root_settings: &non_root_settings
+    module_path: *logging_module
+    class_name: LoggingSettings
+    attributes:
+      loggers: [*logger_attrs]
+
+testers:
+  test_formatter:
+    module_path: *logging_module
+    class_name: Formatter
+    attributes: *formatter_attrs
+    fixtures:
+      formatter_no_datefmt: *formatter_no_datefmt
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: *formatter_id
+              name: Simple Formatter
+              format: *formatter_format
+              datefmt: *datefmt
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            equals:
+              format: *formatter_format
+              datefmt: *datefmt
+      format_config_no_datefmt:
+        conditions:
+          fixtures: [formatter_no_datefmt]
+        execute:
+          - target: formatter_no_datefmt
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            fields:
+              format: *minimal_format
+              datefmt: null
+
+  test_handler:
+    module_path: *logging_module
+    class_name: Handler
+    attributes: *handler_attrs
+    fixtures:
+      handler_no_optional: *handler_no_optional
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: *handler_id
+              name: Console Handler
+              module_path: *handler_module
+              class_name: *handler_class
+              level: *handler_level
+              formatter: *formatter_id
+              stream: *stream
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            equals:
+              class: logging.StreamHandler
+              level: *handler_level
+              formatter: *formatter_id
+              stream: *stream
+      format_config_no_optional:
+        conditions:
+          fixtures: [handler_no_optional]
+        execute:
+          - target: handler_no_optional
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            absent: [stream, filename]
+          - outcome: config
+            fields:
+              class: logging.StreamHandler
+              level: DEBUG
+              formatter: *formatter_id
+
+  test_logger:
+    module_path: *logging_module
+    class_name: Logger
+    attributes: *logger_attrs
+    fixtures:
+      root_logger: *root_logger
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: *logger_id
+              name: App Logger
+              level: *logger_level
+              handlers: *logger_handlers
+              propagate: true
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            equals:
+              level: *logger_level
+              handlers: *logger_handlers
+              propagate: true
+      format_config_empty_handlers:
+        conditions:
+          fixtures: [root_logger]
+        execute:
+          - target: root_logger
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            fields:
+              handlers: []
+              propagate: false
+              level: *root_level
+
+  test_logging_settings:
+    module_path: *logging_module
+    class_name: LoggingSettings
+    attributes: {}
+    fixtures:
+      formatter: *formatter
+      handler: *handler
+      logger: *logger
+      root_logger: *root_logger
+      assembled_settings: *assembled_settings
+      non_root_settings: *non_root_settings
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              version: 1
+              disable_existing_loggers: false
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_config
+            as: config
+        assert:
+          - outcome: config
+            equals:
+              version: 1
+              disable_existing_loggers: false
+              formatters: {}
+              handlers: {}
+              loggers: {}
+              root: null
+      format_config_assembles_sections:
+        conditions:
+          fixtures: [formatter, handler, root_logger, assembled_settings]
+        execute:
+          - target: formatter
+            method: format_config
+            as: formatter_config
+          - target: handler
+            method: format_config
+            as: handler_config
+          - target: root_logger
+            method: format_config
+            as: root_config
+          - target: assembled_settings
+            method: format_config
+            as: config
+          - target: $r.config
+            method: get
+            args: [loggers]
+            as: loggers
+        assert:
+          - outcome: config
+            fields:
+              version: 1
+              disable_existing_loggers: false
+              formatters:
+                simple: $r.formatter_config
+              handlers:
+                console: $r.handler_config
+              root: $r.root_config
+          - outcome: loggers
+            absent: [root]
+      format_config_non_root_logger:
+        conditions:
+          fixtures: [logger, non_root_settings]
+        execute:
+          - target: logger
+            method: format_config
+            as: logger_config
+          - target: non_root_settings
+            method: format_config
+            as: config
+          - target: $r.config
+            method: get
+            args: [root]
+            as: root
+        assert:
+          - outcome: config
+            fields:
+              loggers:
+                app: $r.logger_config
+          - outcome: root
+            'null': true

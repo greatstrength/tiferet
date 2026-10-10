@@ -1,0 +1,621 @@
+tests:
+  tester_object_derives_expected_data_and_target_type:
+    conditions: {}
+    execute:
+      - target:
+          module_path: &tester_module tiferet.domain.tester
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: domain
+          id: domain.ErrorMessage
+          module_path: &error_module tiferet.domain.error
+          class_name: &error_message ErrorMessage
+          sample_data: &sample_data
+            lang: &lang en_US
+            text: An error occurred.
+        as: tester
+      - target:
+          module_path: operator
+          attribute: attrgetter
+        method: attrgetter
+        args: [expected_data]
+        as: read_expected
+      - target: $r.read_expected
+        method: __call__
+        args: [$r.tester]
+        as: expected_data
+      - target:
+          module_path: operator
+          attribute: attrgetter
+        method: attrgetter
+        args: [sample_data]
+        as: read_sample
+      - target: $r.read_sample
+        method: __call__
+        args: [$r.tester]
+        as: sample_data
+      - target: $r.tester
+        method: get_target_type
+        as: target_type
+    assert:
+      - outcome: expected_data
+        equals: $r.sample_data
+      - outcome: target_type
+        is:
+          module_path: *error_module
+          class_name: *error_message
+  tester_object_optional_fields_and_aggregate_target:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: domain
+          id: domain.ErrorMessage
+          module_path: *error_module
+          class_name: *error_message
+        as: domain_tester
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: aggregate
+          id: aggregate.ErrorAggregate
+          module_path: &mapper_module tiferet.mappers.error
+          class_name: &aggregate_class ErrorAggregate
+        as: aggregate_tester
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: transfer_object
+          id: transfer_object.ErrorConfigObject
+          module_path: *mapper_module
+          class_name: ErrorConfigObject
+          aggregate_module_path: *mapper_module
+          aggregate_class_name: *aggregate_class
+        as: transfer_tester
+      - target: $r.aggregate_tester
+        method: get_target_type
+        as: aggregate_type
+      - target: $r.transfer_tester
+        method: get_target_type
+        as: transfer_type
+      - target: $r.transfer_tester
+        method: get_aggregate_type
+        as: transfer_aggregate
+    assert:
+      - outcome: domain_tester
+        fields:
+          description_cases: []
+      - outcome: aggregate_tester
+        fields:
+          set_attribute_params: []
+      - outcome: aggregate_type
+        is:
+          module_path: *mapper_module
+          class_name: *aggregate_class
+      - outcome: transfer_type
+        is:
+          module_path: *mapper_module
+          class_name: ErrorConfigObject
+      - outcome: transfer_aggregate
+        is:
+          module_path: *mapper_module
+          class_name: *aggregate_class
+  tester_object_accepts_event_types_and_optional_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: domain_event
+          id: domain_event.ListErrors
+          module_path: tiferet.events.error
+          class_name: ListErrors
+        as: domain_event
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: service_event
+          id: service_event.GetError
+          module_path: tiferet.events.error
+          class_name: GetError
+          dependencies:
+            error_service:
+              module_path: tiferet.interfaces
+              class_name: ErrorService
+          sample_kwargs:
+            id: TEST_ERROR
+          required_params: []
+          service_attr: error_service
+          not_found_error_code: ERROR_NOT_FOUND
+        as: service_event
+      - target:
+          module_path: operator
+          attribute: attrgetter
+        method: attrgetter
+        args: [dependencies]
+        as: read_dependencies
+      - target: $r.read_dependencies
+        method: __call__
+        args: [$r.service_event]
+        as: dependencies
+      - target: $r.dependencies
+        method: __getitem__
+        args: [error_service]
+        as: error_service
+      - target: $r.service_event
+        method: get_target_type
+        as: target_type
+      - target:
+          module_path: operator
+          attribute: attrgetter
+        method: attrgetter
+        args: [__name__]
+        as: read_name
+      - target: $r.read_name
+        method: __call__
+        args: [$r.target_type]
+        as: target_name
+    assert:
+      - outcome: domain_event
+        fields:
+          sample_kwargs: {}
+          required_params: []
+          service_attr: null
+          not_found_error_code: null
+          not_found_kwargs: {}
+      - outcome: error_service
+        type:
+          module_path: tiferet.domain.core
+          class_name: ServiceDependency
+      - outcome: error_service
+        fields:
+          class_name: ErrorService
+      - outcome: target_name
+        equals: GetError
+  verification_constructs_with_optional_message_default:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          class_name: Verification
+        method: model_construct
+        kwargs:
+          source: 3
+        as: verification
+    assert:
+      - outcome: verification
+        fields:
+          source: 3
+          message: null
+  tester_object_accepts_generic_type:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          id: generic.ErrorMessage
+          module_path: *error_module
+          class_name: *error_message
+        as: tester
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.tester, get_target_type]
+        as: has_target_type
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.tester, get_target]
+        as: has_target
+    assert:
+      - outcome: tester
+        fields:
+          type: generic
+      - outcome: has_target_type
+        equals: true
+      - outcome: has_target
+        equals: true
+  tester_object_accepts_repo_type_and_optional_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: repo
+          id: repo.ErrorConfigRepository
+          module_path: tiferet.repos.error
+          class_name: ErrorConfigRepository
+          config_parameter: error_config
+          aggregate_module_path: *mapper_module
+          aggregate_class_name: *aggregate_class
+        as: tester
+      - target: $r.tester
+        method: get_target_type
+        as: target_type
+      - target: $r.tester
+        method: get_aggregate_type
+        as: aggregate_type
+      - target:
+          module_path: operator
+          attribute: attrgetter
+        method: attrgetter
+        args: [__name__]
+        as: read_name
+      - target: $r.read_name
+        method: __call__
+        args: [$r.target_type]
+        as: target_name
+      - target: $r.read_name
+        method: __call__
+        args: [$r.aggregate_type]
+        as: aggregate_name
+    assert:
+      - outcome: tester
+        fields:
+          type: repo
+          config_parameter: error_config
+          exists_cases: []
+          get_cases: []
+          list_ids: []
+          delete_ids: []
+      - outcome: target_name
+        equals: ErrorConfigRepository
+      - outcome: aggregate_name
+        equals: ErrorAggregate
+  util:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: util
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  assets:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: assets
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  blueprint:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: blueprint
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  interface:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: interface
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  callable:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: callable
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  repository:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: repository
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  config_repository:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: config_repository
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  sqlite:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: sqlite
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  di_repo:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: di_repo
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  logging_repo:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: logging_repo
+          id: invalid.Tester
+          module_path: *error_module
+          class_name: *error_message
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  tester_object_get_target_returns_function_and_instance:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: generic
+          id: generic.join
+          module_path: os.path
+          class_name: join
+        as: function_tester
+      - target: $r.function_tester
+        method: get_target
+        as: joined
+      - target: $r.function_tester
+        method: get_target_type
+        as: join_type
+      - target:
+          module_path: *tester_module
+          attribute: TesterObject
+        method: TesterObject
+        kwargs:
+          type: generic
+          id: generic.ErrorMessage
+          module_path: *error_module
+          class_name: *error_message
+          sample_data: *sample_data
+        as: class_tester
+      - target:
+          module_path: operator
+          attribute: attrgetter
+        method: attrgetter
+        args: [sample_data]
+        as: read_sample
+      - target: $r.read_sample
+        method: __call__
+        args: [$r.class_tester]
+        as: before
+      - target: $r.class_tester
+        method: get_target
+        as: instance
+      - target: $r.read_sample
+        method: __call__
+        args: [$r.class_tester]
+        as: after
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.before, $r.after]
+        as: same
+    assert:
+      - outcome: joined
+        is:
+          module_path: os.path
+          class_name: join
+      - outcome: join_type
+        is:
+          module_path: os.path
+          class_name: join
+      - outcome: instance
+        type:
+          module_path: *error_module
+          class_name: *error_message
+      - outcome: instance
+        fields:
+          lang: *lang
+      - outcome: same
+        equals: true
+      - outcome: before
+        absent: [extra]
+
+testers:
+  tester_object_context_type:
+    module_path: *tester_module
+    class_name: TesterObject
+    tests:
+      accepts_context_type_and_optional_defaults:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *tester_module
+              attribute: TesterObject
+            method: TesterObject
+            kwargs:
+              type: context
+              id: context.RequestContext
+              module_path: tiferet.contexts.request
+              class_name: RequestContext
+            as: tester
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.tester, get_target_type]
+            as: has_target_type
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.tester, get_domain_type]
+            as: has_domain_type
+        assert:
+          - outcome: tester
+            fields:
+              type: context
+              domain_module_path: null
+              domain_class_name: null
+              from_domain_cases: []
+              domain_type_cases: []
+              for_domain_cases: []
+          - outcome: has_target_type
+            equals: true
+          - outcome: has_domain_type
+            equals: true
+      context_tester_object_does_not_exist:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.domain]
+            as: domain_package
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.domain_package, ContextTesterObject]
+            as: has_class
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.domain_package, __all__]
+            as: exported
+          - target:
+              module_path: operator
+              attribute: contains
+            method: contains
+            args: [$r.exported, ContextTesterObject]
+            as: listed
+        assert:
+          - outcome: has_class
+            equals: false
+          - outcome: listed
+            equals: false
