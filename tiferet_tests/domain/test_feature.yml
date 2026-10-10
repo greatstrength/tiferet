@@ -1,0 +1,775 @@
+fixtures:
+  event_feature_step: &event_feature_step
+    module_path: &feature_module tiferet.domain.feature
+    class_name: EventFeatureStep
+    attributes: &event_step_attrs
+      name: &step_name Test Event
+      service_id: &step_service test_event_service
+  flagged_step:
+    <<: *event_feature_step
+    attributes:
+      name: Flagged Event
+      service_id: flagged_event_service
+      flags: &step_flags [flag1, flag2]
+  middleware_step:
+    <<: *event_feature_step
+    attributes:
+      name: Middleware Event
+      service_id: middleware_event_service
+      middleware: &step_middleware [timing_middleware, audit_middleware]
+  step_zero:
+    module_path: *feature_module
+    class_name: EventFeatureStep
+    attributes:
+      name: Step Zero
+      service_id: step_zero_service
+  step_one:
+    module_path: *feature_module
+    class_name: EventFeatureStep
+    attributes:
+      name: Step One
+      service_id: step_one_service
+  feature: &feature
+    module_path: *feature_module
+    class_name: Feature
+    attributes: &feature_attrs
+      id: &feature_id calc.add
+      name: &feature_name Add
+  derived_feature:
+    module_path: *feature_module
+    class_name: Feature
+    attributes:
+      group_id: calc
+      name: Add Number
+  described_feature:
+    module_path: *feature_module
+    class_name: Feature
+    attributes:
+      id: *feature_id
+      name: *feature_name
+      description: Custom description
+  middleware_feature:
+    module_path: *feature_module
+    class_name: Feature
+    attributes:
+      id: *feature_id
+      name: *feature_name
+      middleware: [timing_middleware]
+  async_feature:
+    module_path: *feature_module
+    class_name: Feature
+    attributes:
+      id: *feature_id
+      name: *feature_name
+      is_async: true
+  feature_with_steps:
+    module_path: *feature_module
+    class_name: Feature
+    attributes:
+      id: test_group.test_feature
+      name: Test Feature
+      group_id: test_group
+      feature_key: test_feature
+      description: Test Feature
+      steps:
+        - $fixture.step_zero
+        - $fixture.step_one
+  schema_feature:
+    module_path: *feature_module
+    class_name: Feature
+    attributes:
+      id: *feature_id
+      name: *feature_name
+      params_schema:
+        a: int
+        b: int
+  parameter_specification: &parameter_specification
+    module_path: *feature_module
+    class_name: ParameterSpecification
+    attributes: &parameter_attrs
+      name: a
+      type: int
+  str_parameter:
+    <<: *parameter_specification
+    attributes:
+      name: a
+      type: str
+  int_parameter:
+    <<: *parameter_specification
+    attributes:
+      name: a
+      type: int
+  float_parameter:
+    <<: *parameter_specification
+    attributes:
+      name: a
+      type: float
+  bool_parameter:
+    <<: *parameter_specification
+    attributes:
+      name: a
+      type: bool
+  list_parameter:
+    <<: *parameter_specification
+    attributes:
+      name: a
+      type: list
+  dict_parameter:
+    <<: *parameter_specification
+    attributes:
+      name: a
+      type: dict
+  optional_parameter:
+    module_path: *feature_module
+    class_name: ParameterSpecification
+    attributes:
+      name: b
+      type: float
+      required: false
+      default: 1.0
+  request_specification: &request_specification
+    module_path: *feature_module
+    class_name: RequestSpecification
+    attributes: &request_spec_attrs
+      parameters:
+        - name: a
+          type: int
+          required: true
+
+testers:
+  test_event_feature_step:
+    module_path: *feature_module
+    class_name: EventFeatureStep
+    attributes: *event_step_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              name: *step_name
+              service_id: *step_service
+              type: event
+              condition: null
+              middleware: []
+              flags: []
+      flags_creation_and_round_trip:
+        conditions:
+          fixtures: [flagged_step]
+        execute:
+          - target: flagged_step
+            method: model_dump
+            as: dumped
+          - target:
+              module_path: *feature_module
+              class_name: EventFeatureStep
+            method: model_validate
+            args: [$r.dumped]
+            as: reloaded
+        assert:
+          - outcome: flagged_step
+            fields:
+              flags: *step_flags
+          - outcome: reloaded
+            fields:
+              flags: *step_flags
+      type_round_trip:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: model_dump
+            as: dumped
+          - target:
+              module_path: *feature_module
+              class_name: EventFeatureStep
+            method: model_validate
+            args: [$r.dumped]
+            as: reloaded
+        assert:
+          - outcome: reloaded
+            fields:
+              type: event
+      condition_preserves_value:
+        conditions: {}
+        execute:
+          - target:
+              module_path: operator
+              attribute: add
+            method: add
+            args: ['$', 'r.x > 0']
+            as: condition_text
+          - target:
+              module_path: builtins
+              class_name: dict
+            method: __call__
+            kwargs:
+              name: Conditional Event
+              service_id: conditional_event_service
+            as: payload
+          - target:
+              module_path: operator
+              attribute: setitem
+            method: setitem
+            args: [$r.payload, condition, $r.condition_text]
+          - target:
+              module_path: *feature_module
+              class_name: EventFeatureStep
+            method: model_validate
+            args: [$r.payload]
+            as: built
+          - target: $r.built
+            method: model_dump
+            as: dumped
+        assert:
+          - outcome: built
+            fields:
+              condition: $r.condition_text
+          - outcome: dumped
+            fields:
+              condition: $r.condition_text
+          - outcome: dumped
+            message: '$r.x > 0'
+      middleware_preserves_value:
+        conditions:
+          fixtures: [middleware_step]
+        execute:
+          - target: middleware_step
+            method: model_dump
+            as: dumped
+          - target:
+              module_path: *feature_module
+              class_name: EventFeatureStep
+            method: model_validate
+            args: [$r.dumped]
+            as: reloaded
+        assert:
+          - outcome: middleware_step
+            fields:
+              middleware: *step_middleware
+          - outcome: reloaded
+            fields:
+              middleware: *step_middleware
+
+  test_feature:
+    module_path: *feature_module
+    class_name: Feature
+    attributes: *feature_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              id: *feature_id
+              name: *feature_name
+              group_id: calc
+              feature_key: add
+              description: *feature_name
+              middleware: []
+              is_async: false
+              params_schema: null
+      derive_keys_from_group_and_name:
+        conditions:
+          fixtures: [derived_feature]
+        execute:
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [feature_key]
+            as: read_key
+          - target: $r.read_key
+            method: __call__
+            args: [$fixture.derived_feature]
+            as: feature_key
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [id]
+            as: read_id
+          - target: $r.read_id
+            method: __call__
+            args: [$fixture.derived_feature]
+            as: feature_id
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [description]
+            as: read_description
+          - target: $r.read_description
+            method: __call__
+            args: [$fixture.derived_feature]
+            as: description
+        assert:
+          - outcome: feature_key
+            equals: add_number
+          - outcome: feature_id
+            equals: calc.add_number
+          - outcome: description
+            equals: Add Number
+      explicit_description_preserved:
+        conditions:
+          fixtures: [described_feature]
+        execute:
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [description]
+            as: read_description
+          - target: $r.read_description
+            method: __call__
+            args: [$fixture.described_feature]
+            as: description
+        assert:
+          - outcome: description
+            equals: Custom description
+      middleware_preserves_value:
+        conditions:
+          fixtures: [middleware_feature]
+        execute:
+          - target: middleware_feature
+            method: model_dump
+            as: dumped
+          - target:
+              module_path: *feature_module
+              class_name: Feature
+            method: model_validate
+            args: [$r.dumped]
+            as: reloaded
+        assert:
+          - outcome: middleware_feature
+            fields:
+              middleware: [timing_middleware]
+          - outcome: reloaded
+            fields:
+              middleware: [timing_middleware]
+      is_async_preserves_value:
+        conditions:
+          fixtures: [async_feature]
+        execute:
+          - target: async_feature
+            method: model_dump
+            as: dumped
+          - target:
+              module_path: *feature_module
+              class_name: Feature
+            method: model_validate
+            args: [$r.dumped]
+            as: reloaded
+        assert:
+          - outcome: async_feature
+            fields:
+              is_async: true
+          - outcome: reloaded
+            fields:
+              is_async: true
+      get_step_valid_and_invalid_indices:
+        conditions:
+          fixtures: [step_zero, step_one, feature_with_steps]
+        execute:
+          - target: feature_with_steps
+            method: get_step
+            args: [0]
+            as: step0
+          - target: feature_with_steps
+            method: get_step
+            args: [1]
+            as: step1
+          - target: feature_with_steps
+            method: get_step
+            args: [2]
+            as: missing_index
+          - target: feature_with_steps
+            method: get_step
+            args: [invalid]
+            as: missing_name
+        assert:
+          - outcome: step0
+            fields:
+              name: Step Zero
+          - outcome: step1
+            fields:
+              name: Step One
+          - outcome: missing_index
+            'null': true
+          - outcome: missing_name
+            'null': true
+      params_schema_construction:
+        conditions:
+          fixtures: [schema_feature]
+        execute:
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [params_schema]
+            as: read_schema
+          - target: $r.read_schema
+            method: __call__
+            args: [$fixture.schema_feature]
+            as: schema
+        assert:
+          - outcome: schema
+            type:
+              module_path: *feature_module
+              class_name: RequestSpecification
+          - outcome: schema
+            fields:
+              parameters:
+                - name: a
+                - name: b
+
+  test_parameter_specification:
+    module_path: *feature_module
+    class_name: ParameterSpecification
+    attributes: *parameter_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            fields:
+              name: a
+              type: int
+      description:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: get_type
+            as: parameter_type
+        assert:
+          - outcome: parameter_type
+            is:
+              builtin: int
+      get_type_mapping:
+        conditions:
+          fixtures: [str_parameter, int_parameter, float_parameter, bool_parameter, list_parameter, dict_parameter]
+        execute:
+          - target: str_parameter
+            method: get_type
+            as: str_type
+          - target: int_parameter
+            method: get_type
+            as: int_type
+          - target: float_parameter
+            method: get_type
+            as: float_type
+          - target: bool_parameter
+            method: get_type
+            as: bool_type
+          - target: list_parameter
+            method: get_type
+            as: list_type
+          - target: dict_parameter
+            method: get_type
+            as: dict_type
+        assert:
+          - outcome: str_type
+            is:
+              builtin: str
+          - outcome: int_type
+            is:
+              builtin: int
+          - outcome: float_type
+            is:
+              builtin: float
+          - outcome: bool_type
+            is:
+              builtin: bool
+          - outcome: list_type
+            is:
+              builtin: list
+          - outcome: dict_type
+            is:
+              builtin: dict
+      field_definition_required:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: field_definition
+            as: definition
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: get_annotation
+          - target: $r.get_annotation
+            method: __call__
+            args: [$r.definition]
+            as: annotation
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [1]
+            as: get_field
+          - target: $r.get_field
+            method: __call__
+            args: [$r.definition]
+            as: field
+          - target: $r.field
+            method: is_required
+            as: required
+        assert:
+          - outcome: annotation
+            is:
+              builtin: int
+          - outcome: required
+            equals: true
+      field_definition_optional_with_default:
+        conditions:
+          fixtures: [optional_parameter]
+        execute:
+          - target: optional_parameter
+            method: field_definition
+            as: definition
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [1]
+            as: get_field
+          - target: $r.get_field
+            method: __call__
+            args: [$r.definition]
+            as: field
+          - target: $r.field
+            method: is_required
+            as: required
+        assert:
+          - outcome: required
+            equals: false
+          - outcome: field
+            fields:
+              default: 1.0
+
+  test_request_specification:
+    module_path: *feature_module
+    class_name: RequestSpecification
+    attributes: *request_spec_attrs
+    tests:
+      new:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *feature_module
+              class_name: RequestSpecification
+      normalizes_shorthand:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - a: int
+            as: spec
+        assert:
+          - outcome: spec
+            fields:
+              parameters:
+                - name: a
+                  type: int
+                  required: true
+      normalizes_expanded:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - b:
+                  type: float
+                  required: false
+                  default: 1.0
+                  minimum: 0
+            as: spec
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [parameters]
+            as: read_parameters
+          - target: $r.read_parameters
+            method: __call__
+            args: [$r.spec]
+            as: parameters
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: first
+          - target: $r.first
+            method: __call__
+            args: [$r.parameters]
+            as: param
+        assert:
+          - outcome: param
+            fields:
+              name: b
+              type: float
+              required: false
+              default: 1.0
+              minimum: 0.0
+      coerce_coerces_and_preserves_extra:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - a: int
+                b:
+                  type: float
+                  required: false
+                  default: 1.0
+            as: spec
+          - target: $r.spec
+            method: coerce
+            args:
+              - a: '5'
+                extra: keep
+            as: coerced
+          - target: $r.coerced
+            method: __getitem__
+            args: [a]
+            as: coerced_a
+        assert:
+          - outcome: coerced
+            fields:
+              a: 5
+              b: 1.0
+              extra: keep
+          - outcome: coerced_a
+            type:
+              module_path: builtins
+              class_name: int
+      coerce_missing_required_raises:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: coerce
+            args:
+              - {}
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: pydantic
+              class_name: ValidationError
+          - outcome: error
+            message: 1 validation error
+      coerce_aggregates_multiple_errors:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - a: int
+                b: int
+            as: spec
+          - target: $r.spec
+            method: coerce
+            args:
+              - a: x
+                b: y
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: pydantic
+              class_name: ValidationError
+          - outcome: error
+            message: 2 validation errors
+      coerce_choices:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - mode:
+                  type: str
+                  choices: [add, sub]
+            as: spec
+          - target: $r.spec
+            method: coerce
+            args:
+              - mode: add
+            as: accepted
+          - target: $r.spec
+            method: coerce
+            args:
+              - mode: bad
+            as: rejected
+            raises: true
+        assert:
+          - outcome: accepted
+            fields:
+              mode: add
+          - outcome: rejected
+            type:
+              module_path: pydantic
+              class_name: ValidationError
+      is_satisfied_by:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: is_satisfied_by
+            args:
+              - a: 3
+            as: satisfied
+          - target: $r.built
+            method: is_satisfied_by
+            args:
+              - {}
+            as: unsatisfied
+        assert:
+          - outcome: satisfied
+            equals: true
+          - outcome: unsatisfied
+            equals: false

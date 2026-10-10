@@ -1,0 +1,292 @@
+tests:
+  service_dependency_construct:
+    conditions: {}
+    execute:
+      - target:
+          module_path: &core_module tiferet.domain.core
+          attribute: ServiceDependency
+        method: ServiceDependency
+        kwargs:
+          module_path: *core_module
+          class_name: &dependency_class ServiceDependency
+        as: dependency
+    assert:
+      - outcome: dependency
+        fields:
+          module_path: *core_module
+          class_name: *dependency_class
+          parameters: {}
+  service_dependency_with_parameters:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: ServiceDependency
+        method: ServiceDependency
+        kwargs:
+          module_path: some.module
+          class_name: SomeClass
+          parameters:
+            key: value
+        as: dependency
+    assert:
+      - outcome: dependency
+        fields:
+          parameters:
+            key: value
+  service_dependency_missing_required:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: ServiceDependency
+        method: ServiceDependency
+        kwargs:
+          module_path: some.module
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  service_dependency_extra_field_rejected:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          class_name: ServiceDependency
+        method: model_validate
+        args:
+          - module_path: some.module
+            class_name: SomeClass
+            unknown: nope
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        type:
+          module_path: pydantic
+          class_name: ValidationError
+  service_dependency_get_service_type:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: ServiceDependency
+        method: ServiceDependency
+        kwargs:
+          module_path: *core_module
+          class_name: *dependency_class
+        as: dependency
+      - target: $r.dependency
+        method: get_service_type
+        as: resolved
+    assert:
+      - outcome: resolved
+        is:
+          module_path: *core_module
+          class_name: *dependency_class
+  model_error_is_not_a_tiferet_error:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: ModelError
+        method: ModelError
+        args: [INVALID_MODEL_VALUE]
+        as: error
+    assert:
+      - outcome: error
+        type:
+          module_path: builtins
+          class_name: Exception
+      - outcome: error
+        type:
+          module_path: tiferet.assets
+          class_name: TiferetError
+          negate: true
+  model_error_carries_code_violations_and_context:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: ModelError
+        method: ModelError
+        args: [INVALID_MODEL_VALUE]
+        kwargs:
+          message: Bad value.
+          violations:
+            - field: name
+              type: string_type
+              message: nope
+          attribute: name
+        as: error
+    assert:
+      - outcome: error
+        error_code: INVALID_MODEL_VALUE
+      - outcome: error
+        fields:
+          violations:
+            - field: name
+          kwargs:
+            attribute: name
+          model: {}
+      - outcome: error
+        message: Bad value.
+  model_error_serializes_model_descriptor:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: ModelError
+        method: ModelError
+        args: [ATTRIBUTE_NOT_SETTABLE]
+        kwargs:
+          message: Not settable.
+          model:
+            type: CliCommandAggregate
+            id: calc.add
+          attribute: id
+        as: error
+    assert:
+      - outcome: error
+        fields:
+          model:
+            type: CliCommandAggregate
+            id: calc.add
+      - outcome: error
+        message: CliCommandAggregate
+      - outcome: error
+        message: calc.add
+  model_error_raise_error:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          class_name: ModelError
+        method: raise_error
+        args: [ATTRIBUTE_NOT_SETTABLE]
+        kwargs:
+          message: Not settable.
+          attribute: id
+        as: error
+        raises: true
+    assert:
+      - outcome: error
+        error_code: ATTRIBUTE_NOT_SETTABLE
+      - outcome: error
+        fields:
+          kwargs:
+            attribute: id
+          violations: []
+  domain_object_construct:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  domain_object_strict_extra_field:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  domain_object_validate_assignment:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  unpack_validation_error_flattens_violations:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  describe_model_reports_type_and_identity:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  describe_model_omits_non_primitive_identity:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  model_error_raise_error_describes_model:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  model_error_raise_for_validation_unknown_attribute:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  model_error_raise_for_validation_invalid_value:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  model_error_raise_for_validation_describes_model:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
+  model_error_raise_for_validation_falls_back_to_error_title:
+    conditions: {}
+    execute:
+      - target:
+          module_path: os.path
+          attribute: join
+        method: join
+        args: [a, b]
+    assert:
+      - domain_contract: true
