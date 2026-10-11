@@ -264,7 +264,7 @@ class EmbeddingClient(EmbeddingService):
 - Implement context manager protocol (`__enter__` / `__exit__`) for resource-owning utilities.
 - Provide static one-shot helpers for common operations (e.g., `CsvLoader.load_rows()`). At a static raise site, pass the class in place of an instance.
 - Keep utilities focused on infrastructure — domain logic belongs in domain events and contexts.
-- Implement a Service contract from `tiferet/interfaces/` when the utility must be DI-injectable. It is **not** required otherwise: the configuration loaders (`YamlLoader`, `JsonLoader`, `TomlLoader`) deliberately declare only `FileLoader`.
+- Implement a Service contract from `tiferet/interfaces/` when the utility must be DI-injectable. It is **not** required otherwise. `YamlLoader` implements `YamlService`. `JsonLoader`, `TomlLoader`, and `CsvLoader` still declare only `FileLoader`.
 - Stateless computational utilities need not implement context managers.
 
 ## Testing Utilities
@@ -341,7 +341,7 @@ Some utilities implement Services from `tiferet/interfaces/`:
 
 - `FileLoader` → `FileService` (`interfaces/file.py`)
 - `SqliteClient` → `SqliteService` (`interfaces/sqlite.py`) + `FileService` (via `FileLoader`)
-- `YamlLoader` / `JsonLoader` / `TomlLoader` / `CsvLoader` declare **only** `FileLoader`. They implement no configuration contract, and this is deliberate: format dispatch is owned by `ConfigurationRepository` (`repos/core.py`), so the loaders need no contract of their own.
+- `YamlLoader` implements `YamlService`. `JsonLoader`, `TomlLoader`, and `CsvLoader` declare **only** `FileLoader`. They implement no configuration contract, and this is deliberate: format dispatch is owned by `ConfigurationRepository` (`repos/core.py`), so those loaders need no contract of their own.
 
 A utility needs a Service interface when it must be resolved from the DI container. Where one exists, follow the same pattern: define the interface in `tiferet/interfaces/`, implement the concrete utility in `tiferet/utils/`, and export it with an alias.
 
