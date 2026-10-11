@@ -64,26 +64,6 @@ def assert_plain(value) -> None:
         for item in value:
             assert_plain(item)
 
-# ** function: handle_yaml
-def handle_yaml(event_cls, **kwargs):
-    '''
-    Run a YAML file event on an unbound loader.
-
-    :param event_cls: The event class to handle.
-    :type event_cls: type
-    :param kwargs: Execute arguments.
-    :type kwargs: dict
-    :return: The event result.
-    :rtype: Any
-    '''
-
-    # The other verbs run on a loader constructed with no path.
-    return DomainEvent.handle(
-        event_cls,
-        dependencies={'yaml_service': YamlLoader()},
-        **kwargs,
-    )
-
 # ** function: yaml_resolver
 def yaml_resolver() -> DIDynamicServiceResolver:
     '''
@@ -164,6 +144,26 @@ class TestYamlFileEvents:
     Tests for the four file verbs on an unbound YamlLoader.
     '''
 
+    # * method: handle_yaml
+    def handle_yaml(self, event_cls, **kwargs):
+        '''
+        Run a YAML file event on an unbound loader.
+
+        :param event_cls: The event class to handle.
+        :type event_cls: type
+        :param kwargs: Execute arguments.
+        :type kwargs: dict
+        :return: The event result.
+        :rtype: Any
+        '''
+
+        # The other verbs run on a loader constructed with no path.
+        return DomainEvent.handle(
+            event_cls,
+            dependencies={'yaml_service': YamlLoader()},
+            **kwargs,
+        )
+
     # * test: missing_or_blank_path_is_required
     def test_missing_or_blank_path_is_required(self, tmp_path):
         '''
@@ -172,17 +172,17 @@ class TestYamlFileEvents:
 
         # A missing path is that error.
         with pytest.raises(TiferetError) as missing:
-            handle_yaml(LoadYaml)
+            self.handle_yaml(LoadYaml)
         assert missing.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
 
         # A blank path is that error.
         with pytest.raises(TiferetError) as blank:
-            handle_yaml(LoadYaml, path='   ')
+            self.handle_yaml(LoadYaml, path='   ')
         assert blank.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
 
         # An empty mapping is a valid data value, not that error.
         path = tmp_path / 'empty-map.yml'
-        result = handle_yaml(SaveYaml, path=str(path), data={})
+        result = self.handle_yaml(SaveYaml, path=str(path), data={})
         assert result == {}
         assert result is not None
 
@@ -195,13 +195,13 @@ class TestYamlFileEvents:
         # An empty file stays an empty mapping.
         empty = tmp_path / 'empty.yml'
         empty.write_text('', encoding='utf-8')
-        assert handle_yaml(LoadYaml, path=str(empty)) == {}
+        assert self.handle_yaml(LoadYaml, path=str(empty)) == {}
 
         # A list root is not a mapping.
         listing = tmp_path / 'list.yml'
         listing.write_text('- one\n- two\n', encoding='utf-8')
         with pytest.raises(ServiceError) as exc_info:
-            handle_yaml(LoadYaml, path=str(listing))
+            self.handle_yaml(LoadYaml, path=str(listing))
         assert exc_info.value.error_code == 'YAML_MAPPING_REQUIRED'
 
     # * test: missing_read_path
@@ -212,7 +212,7 @@ class TestYamlFileEvents:
 
         # The event does not name that id. The service does.
         with pytest.raises(ServiceError) as exc_info:
-            handle_yaml(LoadYaml, path=str(tmp_path / 'missing.yml'))
+            self.handle_yaml(LoadYaml, path=str(tmp_path / 'missing.yml'))
         assert exc_info.value.error_code == 'YAML_FILE_NOT_FOUND'
 
     # * test: save_returns_the_mapping
@@ -224,7 +224,7 @@ class TestYamlFileEvents:
         # Save through the event on an unbound loader.
         path = tmp_path / 'saved.yml'
         data = {'name': 'saved', 'count': 2}
-        result = handle_yaml(SaveYaml, path=str(path), data=data)
+        result = self.handle_yaml(SaveYaml, path=str(path), data=data)
 
         # The return is the given mapping, not None and not a re-read.
         assert result is data
@@ -240,7 +240,7 @@ class TestYamlFileEvents:
 
         # Write anchored text through the event.
         path = tmp_path / 'anchored.yml'
-        written = handle_yaml(
+        written = self.handle_yaml(
             WriteAnchoredYaml,
             path=str(path),
             text='item: &item\n  name: one\n',
@@ -253,7 +253,7 @@ class TestYamlFileEvents:
         assert_plain(written)
 
         # Read returns the file text and the same names.
-        read = handle_yaml(ReadAnchoredYaml, path=str(path))
+        read = self.handle_yaml(ReadAnchoredYaml, path=str(path))
         assert read['text'] == path.read_text(encoding='utf-8')
         assert read['anchors'] == ['item']
         assert all(isinstance(name, str) for name in read['anchors'])
@@ -262,7 +262,7 @@ class TestYamlFileEvents:
         # A list root is legal for the anchored read.
         listing = tmp_path / 'list.yml'
         listing.write_text('- one\n- two\n', encoding='utf-8')
-        listed = handle_yaml(ReadAnchoredYaml, path=str(listing))
+        listed = self.handle_yaml(ReadAnchoredYaml, path=str(listing))
         assert listed['text'] == listing.read_text(encoding='utf-8')
         assert listed['anchors'] == []
         assert_plain(listed)
@@ -270,7 +270,7 @@ class TestYamlFileEvents:
         # A duplicate anchor fails before the file is created.
         conflict = tmp_path / 'conflict.yml'
         with pytest.raises(ServiceError) as exc_info:
-            handle_yaml(
+            self.handle_yaml(
                 WriteAnchoredYaml,
                 path=str(conflict),
                 text='a: &item 1\nb: &item 2\n',

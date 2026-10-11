@@ -909,7 +909,7 @@ class YamlLoader(FileLoader, YamlService):
             ServiceError.raise_for(
                 self,
                 YAML_MAPPING_REQUIRED_ID,
-                f'YAML root must be a mapping. Path: {path}.',
+                message=f'YAML root must be a mapping. Path: {path}.',
                 path=str(path),
             )
 
@@ -936,7 +936,7 @@ class YamlLoader(FileLoader, YamlService):
             ServiceError.raise_for(
                 self,
                 YAML_MAPPING_REQUIRED_ID,
-                f'YAML save requires a mapping. Path: {path}.',
+                message=f'YAML save requires a mapping. Path: {path}.',
                 path=str(path),
             )
 
@@ -945,7 +945,7 @@ class YamlLoader(FileLoader, YamlService):
             ServiceError.raise_for(
                 self,
                 INVALID_FILE_ID,
-                'File must have .yaml or .yml extension.',
+                message='File must have .yaml or .yml extension.',
                 path=str(path),
             )
 
@@ -1008,7 +1008,7 @@ class YamlLoader(FileLoader, YamlService):
             ServiceError.raise_for(
                 self,
                 INVALID_FILE_ID,
-                'File must have .yaml or .yml extension.',
+                message='File must have .yaml or .yml extension.',
                 path=str(path),
             )
 
