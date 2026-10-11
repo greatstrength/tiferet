@@ -458,8 +458,12 @@ def plain_mapping(root: Any) -> Any:
             cause=error,
             error=str(error),
         )
+
+    # Treat empty YAML as an empty dict.
     if data is None:
         return {}
+
+    # Return the plain value.
     return data
 
 # *** classes

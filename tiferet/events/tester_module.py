@@ -1067,13 +1067,21 @@ class ReadTestModuleDocument(TestModuleEvent):
                 mapping=plain_mapping(body),
             )
 
-        # A loader failure is one of the two ids the writer already uses.
         try:
+
+            # Compose the revision through the anchored loader.
             body = YamlLoader.compose_anchored(text, anchors=anchors)
+
+            # An empty compose is an empty mapping, not a missing file.
             if body is None:
                 body = empty_mapping_node()
+
+            # Project the plain root. Do not edit the composed body.
             mapping = plain_mapping(body)
+
         except ServiceError as error:
+
+            # A loader failure is one of the two ids the writer already uses.
             failure = error.kwargs.get('failure')
             problem = error.message or str(error)
             if failure == 'anchor' or 'undefined alias' in problem or 'duplicate anchor' in problem:
