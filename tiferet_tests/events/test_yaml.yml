@@ -1,0 +1,329 @@
+fixtures:
+  probe: &probe
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: probe
+
+testers:
+  test_yaml_event:
+    module_path: &yaml_events tiferet.events.yaml
+    class_name: YamlEvent
+    tests:
+      event_base:
+        conditions:
+          fixtures: [probe]
+          mocks:
+            yaml_service: &yaml_service
+              module_path: tiferet.interfaces.yaml
+              class_name: YamlService
+        execute:
+          - target: probe
+            method: format
+            as: formatted
+        assert:
+          - event_base:
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+
+  test_yaml_loader:
+    module_path: &yaml_utils tiferet.utils.yaml
+    class_name: YamlLoader
+    tests:
+      unbound:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.loader, path]
+            as: bound_path
+        assert:
+          - outcome: loader
+            type:
+              module_path: tiferet.interfaces.yaml
+              class_name: YamlService
+          - outcome: bound_path
+            "null": true
+
+  test_load_yaml:
+    module_path: *yaml_events
+    class_name: LoadYaml
+    tests:
+      load_mapping:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                load_mapping:
+                  name: first
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+            as: loaded
+        assert:
+          - outcome: loaded
+            equals:
+              name: first
+          - mock: yaml_service
+            method: load_mapping
+            assert_called_once_with:
+              args: [notes.yml]
+      missing_path:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      blank_path:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: '   '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      service_error_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                load_mapping:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_FILE_NOT_FOUND
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: missing.yml
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            error_code: YAML_FILE_NOT_FOUND
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      mapping_required_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                load_mapping:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_MAPPING_REQUIRED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: list.yml
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_MAPPING_REQUIRED
+
+  test_save_yaml:
+    module_path: *yaml_events
+    class_name: SaveYaml
+    tests:
+      save_mapping:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                save_mapping:
+                  name: saved
+                  count: 2
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: saved.yml
+              data:
+                name: saved
+                count: 2
+            as: saved
+        assert:
+          - outcome: saved
+            equals:
+              name: saved
+              count: 2
+          - mock: yaml_service
+            method: save_mapping
+            assert_called_once_with:
+              args:
+                - saved.yml
+                - name: saved
+                  count: 2
+      empty_mapping:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                save_mapping: {}
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: empty-map.yml
+              data: {}
+            as: saved
+        assert:
+          - outcome: saved
+            equals: {}
+          - mock: yaml_service
+            method: save_mapping
+            assert_called_once_with:
+              args: [empty-map.yml, {}]
+      missing_data:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: saved.yml
+              data: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+
+  test_read_anchored_yaml:
+    module_path: *yaml_events
+    class_name: ReadAnchoredYaml
+    tests:
+      read_anchored:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                read_anchored:
+                  text: 'item: &item\n'
+                  anchors: [item]
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: anchored.yml
+            as: read
+        assert:
+          - outcome: read
+            equals:
+              text: 'item: &item\n'
+              anchors: [item]
+          - mock: yaml_service
+            method: read_anchored
+            assert_called_once_with:
+              args: [anchored.yml]
+
+  test_write_anchored_yaml:
+    module_path: *yaml_events
+    class_name: WriteAnchoredYaml
+    tests:
+      write_anchored:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                write_anchored:
+                  text: 'item: &item\n'
+                  anchors: [item]
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: anchored.yml
+              text: 'item: &item\n'
+            as: written
+        assert:
+          - outcome: written
+            equals:
+              text: 'item: &item\n'
+              anchors: [item]
+          - mock: yaml_service
+            method: write_anchored
+            assert_called_once_with:
+              args: ['anchored.yml', 'item: &item\n']
+      blank_text:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: anchored.yml
+              text: '   '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      anchor_conflict_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                write_anchored:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_ANCHOR_CONFLICT
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: conflict.yml
+              text: 'a: &item 1\n'
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_CONFLICT
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
