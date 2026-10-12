@@ -181,7 +181,7 @@ class TesterCliSessionContext(CliSessionContext):
             except OSError as error:
                 TiferetError.raise_error(
                     TEST_MODULE_LOAD_FAILED_ID,
-                    f'Failed to read the test module: {error}.',
+                    message=f'Failed to read the test module: {error}.',
                     path=path,
                 )
 
@@ -191,7 +191,7 @@ class TesterCliSessionContext(CliSessionContext):
             except UnicodeDecodeError:
                 TiferetError.raise_error(
                     TEST_MODULE_LOAD_FAILED_ID,
-                    'A test module must be utf-8.',
+                    message='A test module must be utf-8.',
                     path=path,
                 )
 

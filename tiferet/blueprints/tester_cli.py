@@ -328,7 +328,7 @@ def build_tester_cli(
 
     # Build the catalog cache and resolve the seeded session.
     cache = build_cache()
-    app_session = core.get_app_session(TESTER_CLI_ID, cache)
+    app_session = core.get_app_session(TESTER_CLI_ID, cache=cache)
 
     # Compose the context and dispatch argv.
     cli_context = build_tester_cli_session_context(
