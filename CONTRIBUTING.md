@@ -42,7 +42,7 @@ See the full TRD authoring guide:
 
 Key points:
 - Follow the standard structure (Overview, Scope, Components Affected, Detailed Requirements, Acceptance Criteria).
-- Include code signatures and behavior descriptions where applicable.
+- In Detailed Requirements, each numbered block is one component: Implementation, then Tests. Tests are cases in tester language. Do not paste pytest or YAML. Acceptance Criteria cite the test name and do not restate the case. See [tech_requirements.md](docs/collab/tech_requirements.md).
 - Reference the relevant [code style guides](docs/core/) for the components you're modifying.
 - Set the **Version** field according to the applicable stream (milestone version for Main, "Request for Prototype" for RFP, latest released version for Doc).
 

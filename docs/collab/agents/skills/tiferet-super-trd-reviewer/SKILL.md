@@ -27,9 +27,11 @@ Collect the list of changed files and the PR head commit SHA.
 
 The primary review criterion is always the **Acceptance Criteria of each child TRD**. For every child TRD:
 1. Read the child TRD's §5 (Acceptance Criteria).
-2. Identify the named artifact each AC line asserts: section header, constant name, factory function, method, count.
+2. Identify the named artifact each AC line asserts: section header, constant name, factory function, method, count, or the test name the line cites.
 3. Locate that artifact in the code.
 4. Verify the binary assertion — the AC line is either true or false; no interpretation required.
+
+A line that covers a test cites the test name. It does not restate the case. Verify that name. Do not require a pasted test.
 
 **Semantic subgroup structure is part of the checklist.** If the AC asserts `# *** constants (ids)` exists with 41 entries, verify the exact section label and entry count. A flat `# *** constants` block where subgroups are asserted is a finding.
 
