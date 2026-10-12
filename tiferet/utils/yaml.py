@@ -31,6 +31,7 @@ from yaml.serializer import Serializer
 # ** app
 from .file import FileLoader, INVALID_FILE_ID
 from ..interfaces.core import ServiceError
+from ..interfaces.yaml import YamlService
 
 # *** constants
 
@@ -83,6 +84,9 @@ YAML_PLAIN_TAGS = (
     YAML_SEQ_TAG,
     YAML_MAP_TAG,
 )
+
+# ** constant: yaml_mapping_required_id
+YAML_MAPPING_REQUIRED_ID = 'YAML_MAPPING_REQUIRED'
 
 # *** functions
 
@@ -690,15 +694,16 @@ class AnchorDumper(Emitter, AnchorSerializer, Resolver):
 
 # ** util: yaml_loader
 # >> see: @guides/utils/yaml.md#yamlloader
-class YamlLoader(FileLoader):
+class YamlLoader(FileLoader, YamlService):
     '''
-    Utility for loading and saving YAML files with structured error handling.
-    Extends FileLoader for stream lifecycle management.
+    Utility for loading and saving YAML files, including anchored text, from a path named at the call.
+
+    Extends FileLoader for stream lifecycle and implements YamlService so one registration can serve any path.
     '''
 
     # * init
     def __init__(self,
-            path: str | Path,
+            path: str | Path = None,
             mode: str = 'r',
             encoding: str = 'utf-8',
             **kwargs,
@@ -706,8 +711,11 @@ class YamlLoader(FileLoader):
         '''
         Initialize YamlLoader.
 
-        :param path: Path to the YAML file.
-        :type path: str | Path
+        A registration omits path so one instance can serve any file. Direct
+        callers still pass path, and that construction is unchanged.
+
+        :param path: Path to the YAML file, or None when the instance is unbound.
+        :type path: str | Path | None
         :param mode: File open mode (typically 'r' or 'w').
         :type mode: str
         :param encoding: Text encoding (defaults to utf-8).
@@ -715,6 +723,15 @@ class YamlLoader(FileLoader):
         :param kwargs: Additional parameters passed to parent.
         :type kwargs: dict
         '''
+
+        # An unbound registration must not build a Path or open a parent stream.
+        if path is None:
+            self.path = None
+            self.mode = mode
+            self.encoding = encoding
+            self.newline = kwargs.get('newline')
+            self.file = None
+            return
 
         # Initialize the parent FileLoader.
         super().__init__(path=path, mode=mode, encoding=encoding, **kwargs)
@@ -903,3 +920,148 @@ class YamlLoader(FileLoader):
         if action == 'compose':
             return YamlLoader.compose_anchored(kwargs.get('text'), anchors=kwargs.get('anchors'))
         return YamlLoader.serialize_anchored(kwargs.get('node'), already=kwargs.get('already'))
+
+    # * method: load_mapping
+    def load_mapping(self, path: str) -> dict:
+        '''
+        Load a YAML file as a mapping, ignoring any path bound on this instance.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :return: The loaded mapping.
+        :rtype: dict
+        :raises ServiceError: If the file is missing, not YAML, or not a mapping.
+        '''
+
+        # Build a read-mode loader for the call path. Do not use self.path.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+
+        # Require a YAML suffix and an existing file before reading.
+        self.verify_yaml_file(bound)
+
+        # Load through the existing reader. An empty file stays {}.
+        data = bound.load()
+
+        # A list or scalar root is not a mapping.
+        if not isinstance(data, dict):
+            ServiceError.raise_for(
+                self,
+                YAML_MAPPING_REQUIRED_ID,
+                message=f'YAML root must be a mapping. Path: {path}.',
+                path=str(path),
+            )
+
+        # Return the mapping.
+        return data
+
+    # * method: save_mapping
+    def save_mapping(self, path: str, data: dict) -> dict:
+        '''
+        Save a mapping to a YAML file and return that mapping.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :param data: The mapping to write.
+        :type data: dict
+        :return: The mapping that was written.
+        :rtype: dict
+        :raises ServiceError: If data is not a mapping, the suffix is not YAML,
+            or the parent directory is missing.
+        '''
+
+        # Reject a non-mapping before any write.
+        if not isinstance(data, dict):
+            ServiceError.raise_for(
+                self,
+                YAML_MAPPING_REQUIRED_ID,
+                message=f'YAML save requires a mapping. Path: {path}.',
+                path=str(path),
+            )
+
+        # Reject a non-YAML suffix before creating the file.
+        if Path(path).suffix.lower() not in {'.yaml', '.yml'}:
+            ServiceError.raise_for(
+                self,
+                INVALID_FILE_ID,
+                message='File must have .yaml or .yml extension.',
+                path=str(path),
+            )
+
+        # Write through the existing saver. Do not re-read.
+        bound = YamlLoader(path=path, mode='w', encoding='utf-8')
+        bound.save(data)
+
+        # Return the mapping that was given.
+        return data
+
+    # * method: read_anchored
+    def read_anchored(self, path: str) -> dict:
+        '''
+        Read a YAML file as text and list its anchor names.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :return: The file text and anchor names in first-visit order.
+        :rtype: dict
+        :raises ServiceError: If the file is missing or not YAML.
+        '''
+
+        # Build a read-mode loader for the call path. Do not use self.path.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+
+        # Require a YAML suffix and an existing file before reading.
+        self.verify_yaml_file(bound)
+
+        # Read the opened stream as text. Do not safe_load.
+        with bound as stream:
+            text = stream.read()
+
+        # Compose only to collect names. The node is not returned.
+        node = self.compose_anchored(text)
+        names = list(anchor_table(node))
+
+        # Return text and names. A list root is legal here.
+        return {
+            'text': text,
+            'anchors': names,
+        }
+
+    # * method: write_anchored
+    def write_anchored(self, path: str, text: str) -> dict:
+        '''
+        Compose anchored YAML text, write the serialized form, and return text and names.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :param text: The YAML text to compose and write.
+        :type text: str
+        :return: The serialized text and anchor names.
+        :rtype: dict
+        :raises ServiceError: If the suffix is not YAML, compose fails, or the
+            parent directory is missing.
+        '''
+
+        # Reject a non-YAML suffix before creating the file.
+        if Path(path).suffix.lower() not in {'.yaml', '.yml'}:
+            ServiceError.raise_for(
+                self,
+                INVALID_FILE_ID,
+                message='File must have .yaml or .yml extension.',
+                path=str(path),
+            )
+
+        # Compose before opening so a rejected document does not create the file.
+        node = self.compose_anchored(text)
+        serialized = self.serialize_anchored(node)
+        names = list(anchor_table(node))
+
+        # Write the serialized string. Do not call save.
+        bound = YamlLoader(path=path, mode='w', encoding='utf-8')
+        with bound as stream:
+            stream.write(serialized)
+
+        # Return the serialized text and names. The node is not a value.
+        return {
+            'text': serialized,
+            'anchors': names,
+        }
