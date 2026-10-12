@@ -24,6 +24,7 @@ from ..domain.tester_module import TestModuleAddress, TestModuleDocument
 from ..interfaces.core import ServiceError
 from ..mappers.tester_module import TestModuleDocumentAggregate
 from ..utils.yaml import (
+    YAML_FILE_NOT_FOUND_ID,
     YAML_MERGE_TAG,
     YAML_PLAIN_TAGS,
     YAML_STR_TAG,
@@ -37,6 +38,7 @@ from ..utils.yaml import (
     node_from_plain,
     node_ids,
     nodes_before_path,
+    plain_mapping,
     replace_mapping_value,
 )
 from .core import DomainEvent
@@ -1016,7 +1018,8 @@ class ReadTestModuleDocument(TestModuleEvent):
     Read one test-module document from an address and a YAML revision.
 
     The event composes through the anchored loader when text is present.
-    It does not open a file, and it does not take a service.
+    It fills the plain mapping and does not open a file. It does not take
+    a service. required is the module-run read. The writer does not pass it.
     '''
 
     # * method: execute
@@ -1025,6 +1028,7 @@ class ReadTestModuleDocument(TestModuleEvent):
             address: TestModuleAddress,
             text: str = None,
             anchors: Any = None,
+            required: bool = False,
             **kwargs,
         ) -> TestModuleDocument:
         '''
@@ -1036,30 +1040,61 @@ class ReadTestModuleDocument(TestModuleEvent):
         :type text: str
         :param anchors: An existing anchor table, used when composing a fragment.
         :type anchors: Any
+        :param required: When true, a missing file is YAML_FILE_NOT_FOUND.
+        :type required: bool
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The document.
+        :return: The document, with mapping set to the plain root.
         :rtype: TestModuleDocument
         '''
 
+        # Module run requires the file. The writer may create it later.
+        if required and text is None:
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_FILE_NOT_FOUND_ID,
+                f'The specified YAML file could not be found at {address.path}.',
+                path=address.path,
+            )
+
         # An absent file is not created. The empty graph is working state for an unscoped add.
         if text is None:
-            return TestModuleDocument(address=address, text=None, body=empty_mapping_node())
+            body = empty_mapping_node()
+            return TestModuleDocument(
+                address=address,
+                text=None,
+                body=body,
+                mapping=plain_mapping(body),
+            )
 
-        # A loader failure is one of the two ids the writer already uses.
         try:
+
+            # Compose the revision through the anchored loader.
             body = YamlLoader.compose_anchored(text, anchors=anchors)
+
+            # An empty compose is an empty mapping, not a missing file.
+            if body is None:
+                body = empty_mapping_node()
+
+            # Project the plain root. Do not edit the composed body.
+            mapping = plain_mapping(body)
+
         except ServiceError as error:
+
+            # A loader failure is one of the two ids the writer already uses.
             failure = error.kwargs.get('failure')
             problem = error.message or str(error)
             if failure == 'anchor' or 'undefined alias' in problem or 'duplicate anchor' in problem:
                 self.raise_error(TEST_ANCHOR_CONFLICT_ID, problem, detail=problem)
             self.raise_error(TEST_MODULE_LOAD_FAILED_ID, problem, detail=problem)
 
-        # An empty compose is an empty mapping, not a missing file.
-        if body is None:
-            body = empty_mapping_node()
-        return TestModuleDocument(address=address, text=text, body=body)
+        # Return the document. The writer still uses body and ignores mapping.
+        return TestModuleDocument(
+            address=address,
+            text=text,
+            body=body,
+            mapping=mapping,
+        )
 
 # ** event: write_test_module_document
 class WriteTestModuleDocument(TestModuleEvent):

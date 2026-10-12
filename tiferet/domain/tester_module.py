@@ -53,6 +53,7 @@ class TestModuleDocument(DomainObject):
     It is the noun the writer reads and writes. It is not a test, not a
     tester, and not only the address. The address is a field. The text is
     the loaded revision. The body is the composed root, not a fixture dict.
+    The mapping is the plain root the runner walks. The writer ignores it.
     '''
 
     # * attribute: model_config
@@ -76,4 +77,10 @@ class TestModuleDocument(DomainObject):
     body: Any = Field(
         None,
         description='The composed root, unset when the file is absent.',
+    )
+
+    # * attribute: mapping
+    mapping: Any = Field(
+        None,
+        description='The plain root. Aliases and merges are values, not nodes.',
     )

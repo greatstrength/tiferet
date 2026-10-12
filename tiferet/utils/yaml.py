@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import copy
 from pathlib import Path
 from io import StringIO
 from typing import Any, Callable, Dict, Optional
@@ -427,6 +428,43 @@ def patch_mapping_node(target: Any, updates: Any) -> bool:
             return False
         replace_mapping_value(target, key_node.value, value_node, key_node=key_node)
     return True
+
+# ** function: plain_mapping
+def plain_mapping(root: Any) -> Any:
+    '''
+    Project a composed root to plain values. Do not open a file.
+
+    Aliases and merges become values. An empty root is an empty mapping.
+    The composed nodes are not edited.
+
+    :param root: The composed root, or None.
+    :type root: Any
+    :return: The plain value. None and an empty compose are {}.
+    :rtype: Any
+    '''
+
+    # An empty compose is an empty mapping, not a missing file.
+    if root is None:
+        return {}
+
+    # Construct a copy so merge flattening does not edit the writer's body.
+    try:
+        data = yaml.constructor.SafeConstructor().construct_document(copy.deepcopy(root))
+    except yaml.constructor.ConstructorError as error:
+        ServiceError.raise_for(
+            YamlLoader,
+            YAML_FILE_LOAD_ERROR_ID,
+            f'Failed to parse YAML file: {error}.',
+            cause=error,
+            error=str(error),
+        )
+
+    # Treat empty YAML as an empty dict.
+    if data is None:
+        return {}
+
+    # Return the plain value.
+    return data
 
 # *** classes
 

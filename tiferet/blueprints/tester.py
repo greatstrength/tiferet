@@ -78,7 +78,6 @@ from ..events.tester_module import (
     UpdateTester,
     WriteTestModuleDocument,
 )
-from ..events.yaml_load import LoadYamlMapping
 from ..mappers.tester_phase import TestConfigObject
 from . import core
 
@@ -389,11 +388,14 @@ def _refuse_python_module(path: Path) -> None:
 # ** function: yaml_counterpart
 def _yaml_counterpart(path: Path) -> tuple:
     '''
-    Derive the YAML counterpart from a Python test module path.
+    Derive rel and base_dir from a Python test module path.
+
+    The YAML path comes from TestModuleContext._address. This does not
+    build a second path.
 
     :param path: The Python module path.
     :type path: Path
-    :return: The relative stem and the YAML path.
+    :return: The relative stem and the directory that holds tiferet_tests.
     :rtype: tuple
     '''
 
@@ -402,37 +404,7 @@ def _yaml_counterpart(path: Path) -> tuple:
     index = len(parts) - 1 - list(reversed(parts)).index('tests')
     relative = Path(*parts[index + 1:]).with_suffix('')
     tests_root = Path(*parts[:index + 1])
-    yaml_path = tests_root.parent / 'tiferet_tests' / relative.with_suffix('.yml')
-    return relative.as_posix(), yaml_path
-
-# ** function: load_test_document
-def _load_test_document(yaml_path: Path) -> Dict[str, Any]:
-    '''
-    Load the YAML document. Do not write it and do not expand runtime refs.
-
-    :param yaml_path: The counterpart path.
-    :type yaml_path: Path
-    :return: The loaded mapping.
-    :rtype: Dict[str, Any]
-    '''
-
-    # The event may import the loader. This blueprint does not.
-    load = DomainEvent.handle(LoadYamlMapping)
-    document = load(yaml_path)
-
-    # An empty file is a legal document with no tests.
-    if document is None:
-        document = {}
-    if not isinstance(document, dict):
-        raise ValueError('A test module document must be a mapping.')
-    illegal = [
-        key
-        for key in document
-        if key not in ('fixtures', 'tests', 'testers')
-    ]
-    if illegal:
-        raise ValueError(f'Illegal test-module root: {illegal[0]}.')
-    return document
+    return relative.as_posix(), str(tests_root.parent)
 
 # ** function: iter_document_tests
 def _iter_document_tests(document: Dict[str, Any], node_root: str):
@@ -1157,16 +1129,36 @@ def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
     path = Path(module_path)
     _refuse_python_module(path)
     path.read_bytes()
-    relative, yaml_path = _yaml_counterpart(path)
-    document = _load_test_document(yaml_path)
+
+    # One address. The event raises when the YAML file is absent.
+    rel, base_dir = _yaml_counterpart(path)
+    address = TestModuleContext._address(rel, base_dir)
+    document = DomainEvent.handle(
+        ReadTestModuleDocument,
+        address=address,
+        text=_read_test_module_text(address.path),
+        required=True,
+    )
+
+    # The illegal-root check reads the plain mapping. It does not load.
+    mapping = document.mapping
+    if not isinstance(mapping, dict):
+        raise ValueError('A test module document must be a mapping.')
+    illegal = [
+        key
+        for key in mapping
+        if key not in ('fixtures', 'tests', 'testers')
+    ]
+    if illegal:
+        raise ValueError(f'Illegal test-module root: {illegal[0]}.')
 
     # The session pools. This function still walks the document.
     session = _module_run_session()
-    node_root = f'tiferet_tests/{relative}.yml'
+    node_root = f'tiferet_tests/{rel}.yml'
     passed = 0
     failed = 0
     for node_id, test_key, test_mapping, coordinates in _iter_document_tests(
-        document,
+        mapping,
         node_root,
     ):
         error, test_session = _run_one_test(test_key, test_mapping, coordinates)
