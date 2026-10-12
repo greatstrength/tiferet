@@ -522,7 +522,7 @@ def _require_plain_value(value: Any, seen: set = None) -> None:
             )
         seen.add(id(value))
         for item in value:
-            _require_plain_value(item, seen)
+            _require_plain_value(item, seen=seen)
         return
     if isinstance(value, dict):
         if id(value) in seen:
@@ -539,7 +539,7 @@ def _require_plain_value(value: Any, seen: set = None) -> None:
                     YAML_PLAIN_VALUE_REQUIRED_ID,
                     message='An anchor value must be a plain value.',
                 )
-            _require_plain_value(item, seen)
+            _require_plain_value(item, seen=seen)
         return
 
     # A tuple, a set, or any other object is not plain.
@@ -1557,7 +1557,7 @@ class YamlLoader(FileLoader, YamlService):
         if name in table:
             target = table[name]
             if key_path is not None:
-                resolved = resolve_key_path(key_path, root, resolve=True)
+                resolved = resolve_key_path(key_path, root=root, resolve=True)
                 if resolved is not target:
                     ServiceError.raise_for(
                         self,
@@ -1576,7 +1576,7 @@ class YamlLoader(FileLoader, YamlService):
                     path=str(path),
                     name=name,
                 )
-            resolved = resolve_key_path(key_path, root, resolve=True)
+            resolved = resolve_key_path(key_path, root=root, resolve=True)
             if getattr(resolved, 'anchor_name', None):
                 ServiceError.raise_for(
                     self,

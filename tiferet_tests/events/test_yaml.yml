@@ -939,3 +939,1470 @@ testers:
               module_path: tiferet.assets.core
               class_name: TiferetError
               negate: true
+
+  test_yaml_anchor_files:
+    module_path: tiferet.utils.yaml
+    class_name: YamlLoader
+    tests:
+      different_path:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, method.yml]
+            as: method_path
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, bound.yml]
+            as: bound_path
+          - target: $r.method_path
+            method: write_text
+            args: ["item: &item 1\n"]
+            kwargs:
+              encoding: utf-8
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.method_path]
+            as: method_text
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.bound_path]
+            as: bound_text
+          - target:
+              module_path: tiferet.utils.yaml
+              attribute: YamlLoader
+            method: YamlLoader
+            kwargs:
+              path: $r.bound_text
+            as: other
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.other, path]
+            as: other_path
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.other_path]
+            as: other_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.other
+              path: $r.method_text
+              name: item
+              value: 9
+            as: set
+          - target: $r.bound_path
+            method: exists
+            as: bound_exists
+          - target: $r.loader
+            method: get_anchor
+            args: [$r.method_text, item]
+            as: got
+        assert:
+          - outcome: other_text
+            equals: $r.bound_text
+          - outcome: bound_exists
+            equals: false
+          - outcome: set
+            equals:
+              value: 9
+          - outcome: got
+            equals:
+              value: 9
+      list_two:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, two.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["first: &first 1\nsecond: &second 2\n"]
+            kwargs:
+              encoding: utf-8
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, ListYamlAnchors]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+            as: names
+          - target:
+              module_path: builtins
+              attribute: type
+            method: type
+            args: [$r.names]
+            as: names_type
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.names_type, __module__]
+            as: names_module
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: read_first
+          - target: $r.read_first
+            method: __call__
+            args: [$r.names]
+            as: first_name
+          - target:
+              module_path: builtins
+              attribute: type
+            method: type
+            args: [$r.first_name]
+            as: first_type
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.first_type, __module__]
+            as: first_module
+        assert:
+          - outcome: names
+            equals: [first, second]
+          - outcome: names_module
+            equals: builtins
+          - outcome: first_module
+            equals: builtins
+      empty_unchanged:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, empty.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: [""]
+            kwargs:
+              encoding: utf-8
+          - target: $r.path
+            method: read_bytes
+            as: before
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, ListYamlAnchors]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+            as: names
+          - target: $r.path
+            method: read_bytes
+            as: after
+        assert:
+          - outcome: names
+            equals: []
+          - outcome: after
+            equals: $r.before
+      get_null:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, null.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["item: &item null\n"]
+            kwargs:
+              encoding: utf-8
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, GetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+            as: got
+          - target:
+              module_path: operator
+              attribute: is_
+            method: is_
+            args: [$r.got, null]
+            as: got_is_null
+          - target:
+              module_path: builtins
+              attribute: type
+            method: type
+            args: [$r.got]
+            as: got_type
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.got_type, __module__]
+            as: got_module
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [value]
+            as: read_value
+          - target: $r.read_value
+            method: __call__
+            args: [$r.got]
+            as: plain
+          - target:
+              module_path: builtins
+              attribute: type
+            method: type
+            args: [$r.plain]
+            as: plain_type
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.plain_type, __module__]
+            as: plain_module
+        assert:
+          - outcome: got
+            equals:
+              value: null
+          - outcome: got_is_null
+            equals: false
+          - outcome: got_module
+            equals: builtins
+          - outcome: plain_module
+            equals: builtins
+      get_star:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, star.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["item: &item '*other'\n"]
+            kwargs:
+              encoding: utf-8
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, GetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+            as: got
+          - target:
+              module_path: builtins
+              attribute: type
+            method: type
+            args: [$r.got]
+            as: got_type
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.got_type, __module__]
+            as: got_module
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [value]
+            as: read_value
+          - target: $r.read_value
+            method: __call__
+            args: [$r.got]
+            as: plain
+          - target:
+              module_path: builtins
+              attribute: type
+            method: type
+            args: [$r.plain]
+            as: plain_type
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.plain_type, __module__]
+            as: plain_module
+        assert:
+          - outcome: got
+            equals:
+              value: '*other'
+          - outcome: got_module
+            equals: builtins
+          - outcome: plain_module
+            equals: builtins
+      set_omitted:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, missing.yml]
+            as: path
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+            raises: true
+            as: failed
+          - target: $r.path
+            method: exists
+            as: created
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_VALUE_REQUIRED
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+          - outcome: created
+            equals: false
+      set_tuple:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, tuple.yml]
+            as: path
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args: [[1, 2]]
+            as: pair
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+              value: $r.pair
+            raises: true
+            as: failed
+          - target: $r.path
+            method: exists
+            as: created
+        assert:
+          - outcome: failed
+            error_code: YAML_PLAIN_VALUE_REQUIRED
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+          - outcome: created
+            equals: false
+      dot_key_path:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, missing.yml]
+            as: path
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+              value: 1
+              key_path: fixtures.user
+            raises: true
+            as: failed
+          - target: $r.path
+            method: exists
+            as: created
+        assert:
+          - outcome: failed
+            error_code: YAML_KEY_PATH_INVALID
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: created
+            equals: false
+      missing_file:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, missing.yml]
+            as: path
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+              value: 1
+              key_path: null
+            raises: true
+            as: failed
+          - target: $r.path
+            method: exists
+            as: created
+        assert:
+          - outcome: failed
+            error_code: YAML_FILE_NOT_FOUND
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: created
+            equals: false
+      missing_name:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, stable.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["item: 1\n"]
+            kwargs:
+              encoding: utf-8
+          - target: $r.path
+            method: read_bytes
+            as: before
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: missing
+              value: 2
+              key_path: null
+            raises: true
+            as: failed
+          - target: $r.path
+            method: read_bytes
+            as: after
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_NOT_FOUND
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: after
+            equals: $r.before
+      record_name:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, doc.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["fixtures:\n  user:\n    name: ada\n"]
+            kwargs:
+              encoding: utf-8
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: set_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, GetYamlAnchor]
+            as: get_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, ListYamlAnchors]
+            as: list_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.set_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: user
+              value:
+                name: ada
+              key_path:
+                - [val, fixtures]
+                - [val, user]
+            as: set
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.get_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: user
+            as: got
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.list_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+            as: names
+        assert:
+          - outcome: set
+            equals:
+              value:
+                name: ada
+          - outcome: got
+            equals:
+              value:
+                name: ada
+          - outcome: names
+            equals: [user]
+      conflict_path:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, conflict.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["a: &item 1\nb: 2\n"]
+            kwargs:
+              encoding: utf-8
+          - target: $r.path
+            method: read_bytes
+            as: before
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, SetYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+              value: 9
+              key_path:
+                - [val, b]
+            raises: true
+            as: failed
+          - target: $r.path
+            method: read_bytes
+            as: after
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_CONFLICT
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: after
+            equals: $r.before
+      rename_taken:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, pair.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["a: &first 1\nb: &second 2\n"]
+            kwargs:
+              encoding: utf-8
+          - target: $r.path
+            method: read_bytes
+            as: before
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, RenameYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: first
+              new_name: second
+            raises: true
+            as: failed
+          - target: $r.path
+            method: read_bytes
+            as: after
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_CONFLICT
+          - outcome: after
+            equals: $r.before
+      rename_same:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, same.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["a: &first 1\n"]
+            kwargs:
+              encoding: utf-8
+          - target: $r.path
+            method: read_bytes
+            as: before
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, RenameYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: first
+              new_name: first
+            as: renamed
+          - target: $r.path
+            method: read_bytes
+            as: after
+        assert:
+          - outcome: renamed
+            equals: first
+          - outcome: after
+            equals: $r.before
+      remove_alias:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, alias.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["a: &item 1\nb: *item\n"]
+            kwargs:
+              encoding: utf-8
+          - target: $r.path
+            method: read_bytes
+            as: before
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, RemoveYamlAnchor]
+            as: event_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.event_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+            raises: true
+            as: failed
+          - target: $r.path
+            method: read_bytes
+            as: after
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_CONFLICT
+          - outcome: after
+            equals: $r.before
+      remove_once:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+          - target:
+              module_path: tempfile
+              attribute: mkdtemp
+            method: mkdtemp
+            as: directory
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, once.yml]
+            as: path
+          - target: $r.path
+            method: write_text
+            args: ["item: &item ada\n"]
+            kwargs:
+              encoding: utf-8
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.path]
+            as: path_text
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.yaml]
+            as: events_mod
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [tiferet.events.core]
+            as: core_mod
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, RemoveYamlAnchor]
+            as: remove_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.events_mod, ListYamlAnchors]
+            as: list_cls
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.core_mod, DomainEvent]
+            as: event_base
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.event_base, handle]
+            as: handle_fn
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.remove_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+              name: item
+            as: removed
+          - target: $r.handle_fn
+            method: __call__
+            args: [$r.list_cls]
+            kwargs:
+              dependencies:
+                yaml_service: $r.loader
+              path: $r.path_text
+            as: names
+          - target: $r.path
+            method: read_text
+            kwargs:
+              encoding: utf-8
+            as: text
+        assert:
+          - outcome: removed
+            equals: item
+          - outcome: names
+            equals: []
+          - outcome: text
+            equals: "item: ada\n"
