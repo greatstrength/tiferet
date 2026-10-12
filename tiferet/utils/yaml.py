@@ -472,46 +472,44 @@ def plain_mapping(root: Any) -> Any:
     return data
 
 # ** function: plain_from_node
-def plain_from_node(node: Any) -> Any:
+def plain_from_node(node: Any) -> tuple:
     '''
-    Return the plain value of a node. Do not return the node.
+    Return the plain value of a node, and whether it was plain.
 
     A string tag returns the scalar text unchanged. A later visit returns
     the same object. A merge key is the string ``<<`` and is not applied.
+    A refusal is a result. This function does not raise.
 
     :param node: The node to read.
     :type node: Any
-    :return: The plain value.
-    :rtype: Any
-    :raises ValueError: If the node is not a plain scalar, sequence, or mapping.
+    :return: The plain value and whether the node was plain.
+    :rtype: tuple
     '''
 
-    # A later visit returns the stored object. A node still on the stack loops.
+    # A refusal is a result. None is a legal plain value, so it is not the signal.
+    refused = object()
     memo = {}
     stack = set()
 
-    def fail() -> None:
-        raise ValueError('An anchor value must be a plain value.')
-
-    def plain_bool(text: Any) -> bool:
+    def plain_bool(text: Any) -> Any:
         if not isinstance(text, str):
-            fail()
+            return refused
         token = text.lower()
         if token in ('true', 'yes', 'on'):
             return True
         if token in ('false', 'no', 'off'):
             return False
-        fail()
+        return refused
 
-    def plain_int(text: Any) -> int:
+    def plain_int(text: Any) -> Any:
         if not isinstance(text, str) or not text:
-            fail()
+            return refused
         token = text.replace('_', '')
         sign = -1 if token[:1] == '-' else 1
         if token[:1] in '+-':
             token = token[1:]
         if not token:
-            fail()
+            return refused
         try:
             if token == '0':
                 return 0
@@ -532,17 +530,17 @@ def plain_from_node(node: Any) -> Any:
                 return sign * total
             return sign * int(token)
         except ValueError:
-            fail()
+            return refused
 
-    def plain_float(text: Any) -> float:
+    def plain_float(text: Any) -> Any:
         if not isinstance(text, str):
-            fail()
+            return refused
         try:
             value = float(text)
         except ValueError:
-            fail()
+            return refused
         if not math.isfinite(value):
-            fail()
+            return refused
         return value
 
     def convert(current: Any) -> Any:
@@ -550,7 +548,7 @@ def plain_from_node(node: Any) -> Any:
         if current_id in memo:
             return memo[current_id]
         if current_id in stack:
-            fail()
+            return refused
         stack.add(current_id)
         tag = getattr(current, 'tag', None)
         if isinstance(current, ScalarNode):
@@ -565,9 +563,15 @@ def plain_from_node(node: Any) -> Any:
             elif tag == YAML_FLOAT_TAG:
                 value = plain_float(current.value)
             else:
-                fail()
+                value = refused
         elif isinstance(current, SequenceNode) and tag == YAML_SEQ_TAG:
-            value = [convert(item) for item in current.value]
+            value = []
+            for item in current.value:
+                plain = convert(item)
+                if plain is refused:
+                    value = refused
+                    break
+                value.append(plain)
         elif isinstance(current, MappingNode) and tag == YAML_MAP_TAG:
             value = {}
             for key_node, value_node in current.value:
@@ -576,16 +580,26 @@ def plain_from_node(node: Any) -> Any:
                 elif isinstance(key_node, ScalarNode) and key_node.tag == YAML_STR_TAG:
                     key = key_node.value
                 else:
-                    fail()
-                value[key] = convert(value_node)
+                    value = refused
+                    break
+                plain = convert(value_node)
+                if plain is refused:
+                    value = refused
+                    break
+                value[key] = plain
         else:
-            fail()
+            value = refused
         stack.remove(current_id)
+        if value is refused:
+            return refused
         memo[current_id] = value
         return value
 
-    # Read the node. Do not safe_load a string.
-    return convert(node)
+    # Read the node. Do not safe_load a string. Do not raise.
+    value = convert(node)
+    if value is refused:
+        return None, False
+    return value, True
 
 # *** classes
 
@@ -1802,18 +1816,17 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: If the node is not a plain scalar, sequence, or mapping.
         '''
 
-        # Inverse by tag. One method for the node and the value it holds.
-        try:
-            return plain_from_node(node)
-        except ValueError as error:
+        # Inverse by tag. The function does not raise. This method refuses.
+        value, plain = plain_from_node(node)
+        if not plain:
             ServiceError.raise_for(
                 YamlLoader,
                 YAML_PLAIN_VALUE_REQUIRED_ID,
                 message=f'Anchor {name} is not a plain value. Path: {path}.',
                 path=str(path),
                 name=name,
-                cause=error,
             )
+        return value
 
     # * method: refuse_generated_anchor (static)
     @staticmethod
