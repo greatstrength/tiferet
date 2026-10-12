@@ -139,7 +139,11 @@ class TesterCliSessionContext(CliSessionContext):
 
         # Build the request, then replace its data with the document.
         parsed = dict(data or {})
-        request = super().build_request(feature_id, headers or {}, parsed)
+        request = super().build_request(
+            feature_id,
+            headers=headers or {},
+            data=parsed,
+        )
 
         # Address keys and parse keys are not command arguments.
         arguments = {
@@ -154,7 +158,7 @@ class TesterCliSessionContext(CliSessionContext):
         # Resolve and read through the injected callables. Do not copy them.
         address = self._resolve_address(
             parsed.get('rel'),
-            parsed.get('base_dir', '.'),
+            base_dir=parsed.get('base_dir', '.'),
         )
         raw = self._read_text(address.path)
         document = DomainEvent.handle(
@@ -267,8 +271,8 @@ class TesterCliSessionContext(CliSessionContext):
             return AppSessionContext.run(
                 self,
                 feature_id,
-                headers,
-                data,
+                headers=headers,
+                data=data,
             )
         except TiferetAPIError as error:
             print(error, file=sys.stderr)
