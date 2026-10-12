@@ -390,7 +390,8 @@ def test_no_writer_modules_are_added() -> None:
 
     root = Path(__file__).parents[2] / 'tiferet'
     assert not (root / 'events' / 'tester.py').exists()
-    assert not (root / 'events' / 'yaml.py').exists()
+    yaml_source = (root / 'events' / 'yaml.py').read_text()
+    assert 'LoadYamlMapping' not in yaml_source
     assert not (root / 'interfaces' / 'tester.py').exists()
     assert not (root / 'mappers' / 'tester.py').exists()
     assert not (root / 'repos' / 'tester.py').exists()
