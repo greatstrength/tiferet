@@ -327,3 +327,615 @@ testers:
             type:
               module_path: tiferet.interfaces.core
               class_name: ServiceError
+
+  test_list_yaml_anchors:
+    module_path: *yaml_events
+    class_name: ListYamlAnchors
+    tests:
+      list_anchors:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                list_anchors: [first, second]
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              key_path: ignored
+            as: names
+        assert:
+          - outcome: names
+            equals: [first, second]
+          - mock: yaml_service
+            method: list_anchors
+            assert_called_once_with:
+              args: [notes.yml]
+      empty_list:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                list_anchors: []
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: empty.yml
+            as: names
+        assert:
+          - outcome: names
+            equals: []
+      missing_path:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: null
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      blank_path:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: '   '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+
+  test_get_yaml_anchor:
+    module_path: *yaml_events
+    class_name: GetYamlAnchor
+    tests:
+      null_value:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                get_anchor:
+                  value: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              key_path: ignored
+            as: got
+        assert:
+          - outcome: got
+            equals:
+              value: null
+          - mock: yaml_service
+            method: get_anchor
+            assert_called_once_with:
+              args: [notes.yml, item]
+      star_string:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                get_anchor:
+                  value: '*other'
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+            as: got
+        assert:
+          - outcome: got
+            equals:
+              value: '*other'
+      blank_name:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: '   '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      service_error_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                get_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_ANCHOR_NOT_FOUND
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: missing
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_NOT_FOUND
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+
+  test_set_yaml_anchor:
+    module_path: *yaml_events
+    class_name: SetYamlAnchor
+    tests:
+      set_value:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  value: ada
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: user
+              value: ada
+              key_path:
+                - [val, fixtures]
+                - [val, user]
+            as: set
+        assert:
+          - outcome: set
+            equals:
+              value: ada
+          - mock: yaml_service
+            method: set_anchor
+            assert_called_once_with:
+              args: [notes.yml, user]
+              kwargs:
+                value: ada
+                key_path:
+                  - [val, fixtures]
+                  - [val, user]
+      empty_string:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  value: ''
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              value: ''
+            as: set
+        assert:
+          - outcome: set
+            equals:
+              value: ''
+          - mock: yaml_service
+            method: set_anchor
+            assert_called_once_with:
+              args: [notes.yml, item]
+              kwargs:
+                value: ''
+                key_path: null
+      null_value:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  value: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              value: null
+            as: set
+        assert:
+          - outcome: set
+            equals:
+              value: null
+          - mock: yaml_service
+            method: set_anchor
+            assert_called_once_with:
+              args: [notes.yml, item]
+              kwargs:
+                value: null
+                key_path: null
+      empty_key_path:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  value: 1
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              value: 1
+              key_path: []
+            as: set
+        assert:
+          - outcome: set
+            equals:
+              value: 1
+          - mock: yaml_service
+            method: set_anchor
+            assert_called_once_with:
+              args: [notes.yml, item]
+              kwargs:
+                value: 1
+                key_path: []
+      omitted_value:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  value: null
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+            as: set
+        assert:
+          - mock: yaml_service
+            method: set_anchor
+            assert_called_once_with:
+              args: [notes.yml, item]
+              kwargs:
+                key_path: null
+      blank_path:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: '   '
+              name: item
+              value: ''
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      value_required_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_ANCHOR_VALUE_REQUIRED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_VALUE_REQUIRED
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+      plain_value_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_PLAIN_VALUE_REQUIRED
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              value: ada
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_PLAIN_VALUE_REQUIRED
+      key_path_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_KEY_PATH_INVALID
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: missing.yml
+              name: item
+              value: 1
+              key_path: fixtures.user
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_KEY_PATH_INVALID
+      file_not_found_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_FILE_NOT_FOUND
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: missing.yml
+              name: item
+              value: 1
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_FILE_NOT_FOUND
+      anchor_conflict_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                set_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_ANCHOR_CONFLICT
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              value: 1
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_CONFLICT
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
+
+  test_remove_yaml_anchor:
+    module_path: *yaml_events
+    class_name: RemoveYamlAnchor
+    tests:
+      remove_anchor:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                remove_anchor: item
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              key_path: ignored
+            as: removed
+        assert:
+          - outcome: removed
+            equals: item
+          - mock: yaml_service
+            method: remove_anchor
+            assert_called_once_with:
+              args: [notes.yml, item]
+      blank_name:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: ''
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      anchor_conflict_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                remove_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_ANCHOR_CONFLICT
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_CONFLICT
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+
+  test_rename_yaml_anchor:
+    module_path: *yaml_events
+    class_name: RenameYamlAnchor
+    tests:
+      rename_anchor:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                rename_anchor: next
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              new_name: next
+              key_path: ignored
+            as: renamed
+        assert:
+          - outcome: renamed
+            equals: next
+          - mock: yaml_service
+            method: rename_anchor
+            assert_called_once_with:
+              args: [notes.yml, item, next]
+      same_name:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                rename_anchor: item
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              new_name: item
+            as: renamed
+        assert:
+          - outcome: renamed
+            equals: item
+      blank_new_name:
+        conditions:
+          mocks:
+            yaml_service: *yaml_service
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              new_name: '   '
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: COMMAND_PARAMETER_REQUIRED
+      anchor_conflict_propagates:
+        conditions:
+          mocks:
+            yaml_service:
+              <<: *yaml_service
+              return_value:
+                rename_anchor:
+                  raises:
+                    module_path: tiferet.interfaces.core
+                    class_name: ServiceError
+                    message: YAML_ANCHOR_CONFLICT
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              path: notes.yml
+              name: item
+              new_name: other
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_CONFLICT
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+              negate: true
