@@ -3,13 +3,17 @@
 # *** imports
 
 # ** core
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 # ** app
 from .. import a
 from . import core
 from .cli import create_cli_request_context, parse_cli_args_handler
-from .tester import run_test_module
+from .tester import (
+    _read_test_module_text,
+    _replace_test_module,
+    run_test_module,
+)
 from ..assets.tester_cli import (
     TESTER_CLI_ID,
     TESTER_CLI_SESSIONS,
@@ -27,6 +31,7 @@ from ..contexts.app import (
 )
 from ..contexts.cache import CacheContext
 from ..contexts.cli import (
+    CliArgument,
     add_default_cli_commands,
     get_default_cli_commands,
 )
@@ -40,32 +45,6 @@ from ..di.dependency_injector import (
     DIAppServiceContainer,
     DIDynamicServiceResolver,
 )
-
-# *** functions
-
-# ** function: parent_argument_spec
-def parent_argument_spec(
-        arguments: List[Dict[str, Any]],
-    ) -> Tuple[List[str], Any, Optional[str]]:
-    '''
-    Read the one catalog parent argument.
-
-    The list is the catalog. This function does not spell a second flag
-    and does not build a parser.
-
-    :param arguments: The catalog parent-argument list.
-    :type arguments: List[Dict[str, Any]]
-    :return: The item's name_or_flags, default, and description.
-    :rtype: Tuple[List[str], Any, Optional[str]]
-    '''
-
-    # The catalog list is one item. Read its three fields and return them.
-    item = arguments[0]
-    return (
-        item['name_or_flags'],
-        item.get('default'),
-        item.get('description'),
-    )
 
 # *** blueprints
 
@@ -149,63 +128,53 @@ def list_tester_commands(cache: CacheContext) -> List:
     # The catalog is already on the cache. Do not resolve a command event.
     return get_default_cli_commands(cache)
 
-# ** blueprint: empty_parent_arguments
-def empty_parent_arguments() -> Callable:
+# ** blueprint: catalog_parent_arguments
+def catalog_parent_arguments() -> List[CliArgument]:
     '''
-    Return a zero-arg callable that returns no parent arguments.
+    Return the catalog parent argument as CLI argument objects.
 
-    The subparser must not define the pre-parsed parent flag a second time.
+    The existing parser merges this list into each command. This entry
+    does not build a second parser and does not load the flag from a service.
 
-    :return: A callable that returns an empty list.
-    :rtype: Callable
+    :return: The catalog parent arguments.
+    :rtype: List[CliArgument]
     '''
 
-    # The handler is zero-arg. The subparser receives no parent flags.
-    def handler() -> List:
-        return []
-
-    return handler
+    # The catalog list is the only parent argument.
+    return [
+        CliArgument.model_validate(argument)
+        for argument in TESTER_DEFAULT_PARENT_ARGUMENTS
+    ]
 
 # ** blueprint: parse_tester_args
-def parse_tester_args(
-        cache: CacheContext,
-        base_dir: str,
-        replace_module: Callable,
-    ) -> Callable:
+def parse_tester_args(cache: CacheContext) -> Callable:
     '''
     Build the tester argv closure from the catalog commands.
 
-    After a successful parse the closure drops the group and command keys,
-    sets the pre-parsed base directory, and passes the address resolver
-    through without calling it.
+    After a successful parse the closure drops the group and command keys.
+    The parent argument stays in the parsed data. Address resolution and
+    file replacement are context slots, not parse fields.
 
     :param cache: The shared cache context.
     :type cache: CacheContext
-    :param base_dir: The pre-parsed base directory.
-    :type base_dir: str
-    :param replace_module: The injected file-replace callable.
-    :type replace_module: Callable
     :return: A closure that returns (feature_id, headers, data).
     :rtype: Callable
     '''
 
-    # List commands from the cache. Parent arguments stay empty.
+    # List commands from the cache. Parent arguments come from the catalog.
     def commands() -> List:
         return list_tester_commands(cache)
 
     inner = parse_cli_args_handler(
         list_commands=commands,
-        get_parent_args=empty_parent_arguments(),
+        get_parent_args=catalog_parent_arguments,
     )
 
-    # Return the closure. It sets the address resolver and does not call it.
-    def handler(argv=None) -> Tuple[str, Dict[str, str], Dict[str, Any]]:
+    # Drop the parse keys. Do not inject context slots into the dict.
+    def handler(argv=None):
         feature_id, headers, parsed = inner(argv)
         parsed.pop('group', None)
         parsed.pop('command', None)
-        parsed['base_dir'] = base_dir
-        parsed['resolve_address'] = TestModuleContext._address
-        parsed['replace_module'] = replace_module
         return feature_id, headers, parsed
 
     return handler
@@ -214,7 +183,6 @@ def parse_tester_args(
 def build_tester_cli_session_context(
         app_session: AppSession,
         cache: CacheContext,
-        base_dir: str,
     ) -> TesterCliSessionContext:
     '''
     Build a wired tester CLI session context from a resolved app session.
@@ -226,72 +194,17 @@ def build_tester_cli_session_context(
     :type app_session: AppSession
     :param cache: The pre-built shared cache context.
     :type cache: CacheContext
-    :param base_dir: The pre-parsed base directory.
-    :type base_dir: str
     :return: The wired tester CLI session context.
     :rtype: TesterCliSessionContext
     '''
-
-    # Replace through a sibling temp file. Delete that temp on failure.
-    def replace_module(path, text, *, create):
-        '''Replace the module with a sibling temp file.'''
-
-        import os
-        import tempfile
-        from pathlib import Path
-
-        # A missing parent is created only when the file itself is absent.
-        target = Path(path)
-        created = []
-        temp_name = None
-        replaced = False
-        try:
-            if create:
-                parent = target.parent
-                cursor = parent
-                while not cursor.exists():
-                    created.append(cursor)
-                    cursor = cursor.parent
-                parent.mkdir(parents=True, exist_ok=True)
-
-            # Write a sibling temp, then replace. A failure unlinks the temp.
-            descriptor, temp_name = tempfile.mkstemp(
-                prefix='.test-module-',
-                suffix='.yml',
-                dir=str(target.parent),
-            )
-            with os.fdopen(descriptor, 'w', encoding='utf-8', newline='\n') as handle:
-                handle.write(text)
-            os.replace(temp_name, target)
-            replaced = True
-            temp_name = None
-        finally:
-            if temp_name is not None:
-                try:
-                    os.unlink(temp_name)
-                except OSError:
-                    pass
-            if not replaced:
-                for directory in created:
-                    try:
-                        directory.rmdir()
-                    except OSError:
-                        break
 
     # Build the app container and the empty-flag resolver.
     app_container = core.build_app_service_container(cache, app_session)
     resolver = build_tester_service_resolver(app_container)
 
-    # The command handler reads the cache. Parent arguments stay empty.
+    # The command handler reads the cache. Parent arguments are the catalog.
     def commands_handler() -> List:
         return list_tester_commands(cache)
-
-    parent_args_handler = empty_parent_arguments()
-    parse_cli_args = parse_tester_args(
-        cache,
-        base_dir,
-        replace_module,
-    )
 
     # Compose the context. The class is passed, not called.
     return core.compose_session_context(
@@ -301,26 +214,27 @@ def build_tester_cli_session_context(
         resolver,
         create_request_handler=create_cli_request_context,
         response_handler=core.response_handler,
-        parse_cli_args=parse_cli_args,
+        parse_cli_args=parse_tester_args(cache),
         list_commands_handler=commands_handler,
-        get_parent_args_handler=parent_args_handler,
+        get_parent_args_handler=catalog_parent_arguments,
         run_test_module=run_test_module,
+        read_text=_read_test_module_text,
+        replace_module=_replace_test_module,
+        resolve_address=TestModuleContext._address,
     )
 
 # ** blueprint: build_tester_cli
 def build_tester_cli(
-        base_dir: str = '.',
         argv: Optional[List[str]] = None,
     ) -> Any:
     '''
     Build the tester CLI session and dispatch argv.
 
     The session is the cache hit. This entry has no consumer config file
-    and does not re-seed session constants.
+    and does not re-seed session constants. The parent argument is parsed
+    with the command, not before it.
 
-    :param base_dir: The pre-parsed base directory.
-    :type base_dir: str
-    :param argv: Optional argument list; defaults to sys.argv[1:] when None.
+    :param argv: Optional argument list; defaults to ``sys.argv[1:]`` when None.
     :type argv: Optional[List[str]]
     :return: The command result.
     :rtype: Any
@@ -331,11 +245,7 @@ def build_tester_cli(
     app_session = core.get_app_session(TESTER_CLI_ID, cache=cache)
 
     # Compose the context and dispatch argv.
-    cli_context = build_tester_cli_session_context(
-        app_session,
-        cache,
-        base_dir=base_dir,
-    )
+    cli_context = build_tester_cli_session_context(app_session, cache)
     return cli_context.run(argv)
 
 # ** blueprint: main
@@ -343,33 +253,15 @@ def main() -> None:
     '''
     Entry point for the ``tiferet-tester`` console script.
 
-    Pre-parses the catalog parent argument, strips it from the remaining
-    argv, and delegates to :func:`build_tester_cli`.
+    Delegates to :func:`build_tester_cli`. The catalog parent argument is
+    parsed with the command.
 
     :return: None
     :rtype: None
     '''
 
-    import argparse
-
-    # Read the catalog parent spec. Do not spell the flag here.
-    flags, default, description = parent_argument_spec(
-        TESTER_DEFAULT_PARENT_ARGUMENTS,
-    )
-    pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument(
-        *flags,
-        default=default,
-        help=description,
-    )
-    pre_args, remaining = pre_parser.parse_known_args()
-
-    # The destination is derived from the catalog flag, then stripped.
-    dest = flags[0].lstrip('-').replace('-', '_')
-    build_tester_cli(
-        base_dir=getattr(pre_args, dest),
-        argv=remaining,
-    )
+    # The calculator entry is the shape. Do not build a second parser.
+    build_tester_cli()
 
 # ** blueprint: tester_cli (alias)
 TesterCLI = build_tester_cli

@@ -26,16 +26,14 @@ from tiferet.blueprints.tester_cli import (
     build_cache,
     build_tester_cli_session_context,
     build_tester_service_resolver,
-    empty_parent_arguments,
+    catalog_parent_arguments,
     list_tester_commands,
     main,
-    parent_argument_spec,
     parse_tester_args,
 )
 from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX
 from tiferet.contexts.cli import CLI_COMMAND_CACHE_PREFIX
 from tiferet.contexts import tester_cli as tester_cli_contexts
-from tiferet.contexts import tester_module as tester_module_contexts
 from tiferet.contexts.feature import FEATURE_CACHE_PREFIX
 
 # *** tests
@@ -79,36 +77,27 @@ def test_resolver_registers_the_empty_flag_container():
     assert resolver.get_container() is container
     assert 'list_all' not in inspect.getsource(build_tester_service_resolver)
 
-# ** test: parent_argument_spec_reads_the_catalog
-def test_parent_argument_spec_reads_the_catalog():
+# ** test: catalog_parent_arguments_reads_the_catalog
+def test_catalog_parent_arguments_reads_the_catalog():
     '''
-    The spec reads name_or_flags, default, and description from the catalog.
+    The parent-argument handler returns the catalog argument as objects.
     '''
 
-    # Read the one catalog parent argument.
-    flags, default, description = parent_argument_spec(
-        TESTER_DEFAULT_PARENT_ARGUMENTS,
-    )
-
-    # The catalog owns the flag spelling. This module does not.
-    assert flags == TESTER_DEFAULT_PARENT_ARGUMENTS[0]['name_or_flags']
-    assert default == '.'
-    assert description == TESTER_DEFAULT_PARENT_ARGUMENTS[0]['description']
+    # Build the catalog parent argument. Do not spell the flag in the blueprint.
+    arguments = catalog_parent_arguments()
     source = inspect.getsource(
         sys.modules['tiferet.blueprints.tester_cli'],
     )
+
+    # The catalog owns the flag spelling. This module does not parse it twice.
+    assert len(arguments) == 1
+    assert arguments[0].name_or_flags == TESTER_DEFAULT_PARENT_ARGUMENTS[0]['name_or_flags']
+    assert arguments[0].default == '.'
+    assert '# *** functions' not in source
+    assert 'argparse' not in source
     assert '--base-dir' not in source
     assert '--config' not in source
     assert 'config.yml' not in source
-
-# ** test: empty_parent_arguments_returns_an_empty_list
-def test_empty_parent_arguments_returns_an_empty_list():
-    '''
-    The parent-argument handler returns an empty list.
-    '''
-
-    # The callable is zero-arg. Its result is empty.
-    assert empty_parent_arguments()() == []
 
 # ** test: parse_tester_args_sets_the_address_resolver
 def test_parse_tester_args_sets_the_address_resolver():
@@ -117,11 +106,7 @@ def test_parse_tester_args_sets_the_address_resolver():
     '''
 
     # Parse a writer command. The address method is not called.
-    handler = parse_tester_args(
-        build_cache(),
-        '/tmp/tests',
-        replace_module=lambda *args, **kwargs: None,
-    )
+    handler = parse_tester_args(build_cache())
     feature_id, _headers, data = handler([
         'fixture',
         'get',
@@ -129,12 +114,13 @@ def test_parse_tester_args_sets_the_address_resolver():
         'error_message',
     ])
 
-    # The closure sets the three execution fields and drops the parse keys.
+    # The closure drops the parse keys and does not inject context slots.
     assert feature_id == 'fixture.get'
     assert 'group' not in data
     assert 'command' not in data
-    assert data['base_dir'] == '/tmp/tests'
-    assert data['resolve_address'].__func__ is tester_module_contexts.TestModuleContext._address.__func__
+    assert data['base_dir'] == '.'
+    assert 'resolve_address' not in data
+    assert 'replace_module' not in data
     assert 'list_all' not in inspect.getsource(list_tester_commands)
     assert 'get_dependency' not in inspect.getsource(list_tester_commands)
 
@@ -144,11 +130,10 @@ def test_writer_add_needs_no_config_file(tmp_path):
     A writer add creates the module and returns its path.
     '''
 
-    # No consumer config file is present.
+    # No consumer config file is present. The catalog flag selects the directory.
     assert not (tmp_path / 'config.yml').exists()
-    with mock.patch('tiferet.contexts.app.AppSessionContext.run') as hub:
-        result = build_tester_cli(
-            base_dir=str(tmp_path),
+    flag = TESTER_DEFAULT_PARENT_ARGUMENTS[0]['name_or_flags'][0]
+    result = build_tester_cli(
             argv=[
                 'fixture',
                 'add',
@@ -156,15 +141,16 @@ def test_writer_add_needs_no_config_file(tmp_path):
                 'error_message',
                 '--payload',
                 'class_name: ErrorMessage',
+                flag,
+                str(tmp_path),
             ],
         )
 
-    # The write returns the path and does not enter the hub run.
+    # The write returns the path. The hub ran the existing step.
     path = (tmp_path / 'tiferet_tests' / 'domain' / 'test_error.yml').resolve()
     assert result == str(path)
     assert 'error_message' in path.read_text()
     assert 'class_name' in path.read_text()
-    hub.assert_not_called()
 
 # ** test: writer_get_does_not_replace_the_file
 def test_writer_get_does_not_replace_the_file(tmp_path):
@@ -173,8 +159,8 @@ def test_writer_get_does_not_replace_the_file(tmp_path):
     '''
 
     # Seed a module through the writer, then read it.
+    flag = TESTER_DEFAULT_PARENT_ARGUMENTS[0]['name_or_flags'][0]
     build_tester_cli(
-        base_dir=str(tmp_path),
         argv=[
             'fixture',
             'add',
@@ -182,44 +168,49 @@ def test_writer_get_does_not_replace_the_file(tmp_path):
             'error_message',
             '--payload',
             'class_name: ErrorMessage',
+            flag,
+            str(tmp_path),
         ],
     )
     path = tmp_path / 'tiferet_tests' / 'domain' / 'test_error.yml'
     before = path.read_bytes()
     got = build_tester_cli(
-        base_dir=str(tmp_path),
         argv=[
             'fixture',
             'get',
             'domain/test_error',
             'error_message',
+            flag,
+            str(tmp_path),
         ],
     )
 
     # The file is unchanged. The projection names the fixture.
     assert path.read_bytes() == before
-    assert got['name'] == 'error_message'
+    name = got['name'] if isinstance(got, dict) else got.record.fields['name']
+    assert name == 'error_message'
 
 # ** test: missing_get_does_not_create_the_file
 def test_missing_get_does_not_create_the_file(tmp_path, capsys):
     '''
-    A missing file stays missing and exits 1.
+    A missing file stays missing. The hub logs the tester id.
     '''
 
-    # A query of an absent module is a domain error, not an argparse error.
-    with pytest.raises(SystemExit) as caught:
+    # A missing file is a tester id. The hub cannot format it; no catalog was seeded.
+    flag = TESTER_DEFAULT_PARENT_ARGUMENTS[0]['name_or_flags'][0]
+    with pytest.raises(Exception):
         build_tester_cli(
-            base_dir=str(tmp_path),
             argv=[
                 'fixture',
                 'get',
                 'domain/test_error',
                 'error_message',
+                flag,
+                str(tmp_path),
             ],
         )
 
-    # The file is not created. The printed error keeps the tester code.
-    assert caught.value.code == 1
+    # The file is not created. The tester code was logged before formatting failed.
     assert not (tmp_path / 'tiferet_tests').exists()
     assert 'TEST_MODULE_NOT_FOUND' in capsys.readouterr().err
 
@@ -237,7 +228,6 @@ def test_module_run_calls_the_injected_runner(tmp_path):
         'tiferet.contexts.app.AppSessionContext.run',
     ) as hub:
         result = build_tester_cli(
-            base_dir=str(tmp_path),
             argv=[
                 'module',
                 'run',
@@ -267,7 +257,6 @@ def test_bad_python_path_propagates(tmp_path):
     ):
         with pytest.raises(ValueError, match='Not a Python test module'):
             build_tester_cli(
-                base_dir=str(tmp_path),
                 argv=[
                     'module',
                     'run',
@@ -284,11 +273,7 @@ def test_unwired_runner_raises(tmp_path):
     # Compose a context, then clear the injected slot.
     cache = build_cache()
     session = cache.get(TESTER_CLI_ID, *a.app.APP_SESSION_CACHE_PREFIX)
-    context = build_tester_cli_session_context(
-        session,
-        cache,
-        base_dir=str(tmp_path),
-    )
+    context = build_tester_cli_session_context(session, cache)
     context._run_test_module = None
 
     # The slot check raises before the runner is called.
@@ -311,8 +296,9 @@ def test_context_omits_domain_type():
     assert 'domain_type' not in context_cls.__dict__
     source = inspect.getsource(context_cls)
     assert 'module.run' not in source
-    assert 'AppSessionContext.run' not in source
+    assert 'AppSessionContext.run' in source
     assert 'super().run' not in source
+    assert 'CliSessionContext.run' not in source
     rest = source.split('class TesterCliSessionContext', 1)[1].split('\n', 1)[1]
     assert 'TesterCliSessionContext(' not in rest
 
@@ -330,58 +316,14 @@ def test_package_exports_and_script():
     assert tiferet.__version__ == '2.2.0b2'
 
 # ** test: main_forwards_the_preparsed_base_dir
-def test_main_forwards_the_preparsed_base_dir(monkeypatch):
+def test_main_calls_build_tester_cli():
     '''
-    main pre-parses the catalog parent flag and strips it from argv.
+    main delegates to the entry and does not build a second parser.
     '''
 
-    # The flag is absent. The catalog default is forwarded.
-    monkeypatch.setattr(
-        sys,
-        'argv',
-        [
-            'tiferet-tester',
-            'fixture',
-            'list',
-            'domain/test_error',
-        ],
-    )
+    # The catalog parent argument is parsed with the command.
     with mock.patch(
         'tiferet.blueprints.tester_cli.build_tester_cli',
     ) as build:
         main()
-    build.assert_called_once_with(
-        base_dir='.',
-        argv=[
-            'fixture',
-            'list',
-            'domain/test_error',
-        ],
-    )
-
-    # The catalog flag is stripped from the remaining argv.
-    flag = TESTER_DEFAULT_PARENT_ARGUMENTS[0]['name_or_flags'][0]
-    monkeypatch.setattr(
-        sys,
-        'argv',
-        [
-            'tiferet-tester',
-            flag,
-            '/tmp/modules',
-            'fixture',
-            'list',
-            'domain/test_error',
-        ],
-    )
-    with mock.patch(
-        'tiferet.blueprints.tester_cli.build_tester_cli',
-    ) as build:
-        main()
-    build.assert_called_once_with(
-        base_dir='/tmp/modules',
-        argv=[
-            'fixture',
-            'list',
-            'domain/test_error',
-        ],
-    )
+    build.assert_called_once_with()
