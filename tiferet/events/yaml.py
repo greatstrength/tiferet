@@ -2,9 +2,88 @@
 
 # *** imports
 
+# ** core
+import math
+from typing import Any, Optional
+
 # ** app
 from .core import DomainEvent
 from ..interfaces.yaml import YamlService
+from ..utils.yaml import (
+    YAML_ANCHOR_VALUE_REQUIRED_ID,
+    YAML_KEY_PATH_INVALID_ID,
+    YAML_PLAIN_VALUE_REQUIRED_ID,
+)
+
+# *** functions
+
+# ** function: is_plain_value
+def is_plain_value(value: Any, seen: Optional[set] = None) -> bool:
+    '''
+    Return whether a value is a plain scalar, sequence, or mapping.
+
+    :param value: The candidate value.
+    :type value: Any
+    :param seen: Container identities already checked.
+    :type seen: Optional[set]
+    :return: Whether the value is plain.
+    :rtype: bool
+    '''
+
+    # None, bool, and str are plain. Check bool before int.
+    if seen is None:
+        seen = set()
+    if value is None or isinstance(value, str) or isinstance(value, bool):
+        return True
+    if isinstance(value, int):
+        return True
+    if isinstance(value, float):
+        return math.isfinite(value)
+
+    # Nested lists and string-keyed mappings are plain. A cycle is not.
+    identity = id(value)
+    if isinstance(value, list):
+        if identity in seen:
+            return False
+        seen.add(identity)
+        return all(is_plain_value(item, seen=seen) for item in value)
+    if isinstance(value, dict):
+        if identity in seen:
+            return False
+        seen.add(identity)
+        return all(
+            isinstance(key, str) and is_plain_value(item, seen=seen)
+            for key, item in value.items()
+        )
+    return False
+
+# ** function: is_key_path
+def is_key_path(key_path: Any) -> bool:
+    '''
+    Return whether a key path is absent or a list of val, key, or seq steps.
+
+    :param key_path: None, or a list of two-item lists.
+    :type key_path: Any
+    :return: Whether the path is well formed.
+    :rtype: bool
+    '''
+
+    # None is no path. An empty list is the root. A string is not a path.
+    if key_path is None:
+        return True
+    if not isinstance(key_path, list):
+        return False
+    for step in key_path:
+        if not isinstance(step, list) or len(step) != 2:
+            return False
+        kind, token = step
+        if kind == 'seq':
+            if isinstance(token, bool) or not isinstance(token, int) or token < 0:
+                return False
+            continue
+        if kind not in ('val', 'key') or not isinstance(token, str):
+            return False
+    return True
 
 # *** events
 
@@ -205,12 +284,31 @@ class SetYamlAnchor(YamlEvent):
         :rtype: dict
         '''
 
-        # Pass value only when the caller sent it. An omitted value stays omitted.
+        # An omitted value is not a blank string. None is a legal value.
+        self.verify(
+            'value' in kwargs,
+            YAML_ANCHOR_VALUE_REQUIRED_ID,
+            message='A value is required to set an anchor.',
+        )
+
+        # A tuple, a non-finite float, or any other object is the wrong sort.
+        self.verify(
+            is_plain_value(kwargs['value']),
+            YAML_PLAIN_VALUE_REQUIRED_ID,
+            message='An anchor value must be a plain value.',
+        )
+
+        # A dot string and a bare list of keys are malformed. None and [] are not.
+        self.verify(
+            is_key_path(kwargs.get('key_path')),
+            YAML_KEY_PATH_INVALID_ID,
+            message='A key path must be a list of val, key, or seq steps.',
+        )
+
+        # Pass value only when the caller sent it. key_path stays a keyword.
         call = {}
         if 'value' in kwargs:
             call['value'] = kwargs['value']
-
-        # key_path is always a keyword. Absent means no path.
         return self.yaml_service.set_anchor(
             path,
             name,

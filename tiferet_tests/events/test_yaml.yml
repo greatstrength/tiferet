@@ -613,25 +613,31 @@ testers:
       omitted_value:
         conditions:
           mocks:
-            yaml_service:
-              <<: *yaml_service
-              return_value:
-                set_anchor:
-                  value: null
+            yaml_service: *yaml_service
         execute:
           - target: self
             method: handle
             kwargs:
               path: notes.yml
               name: item
-            as: set
+            raises: true
+            as: failed
         assert:
+          - outcome: failed
+            error_code: YAML_ANCHOR_VALUE_REQUIRED
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+              negate: true
           - mock: yaml_service
             method: set_anchor
             assert_called_once_with:
-              args: [notes.yml, item]
-              kwargs:
-                key_path: null
+              times: 0
       blank_path:
         conditions:
           mocks:
@@ -672,12 +678,12 @@ testers:
             error_code: YAML_ANCHOR_VALUE_REQUIRED
           - outcome: failed
             type:
-              module_path: tiferet.interfaces.core
-              class_name: ServiceError
-          - outcome: failed
-            type:
               module_path: tiferet.assets.core
               class_name: TiferetError
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
               negate: true
       plain_value_propagates:
         conditions:
@@ -726,6 +732,15 @@ testers:
         assert:
           - outcome: failed
             error_code: YAML_KEY_PATH_INVALID
+          - outcome: failed
+            type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+              negate: true
       file_not_found_propagates:
         conditions:
           mocks:
@@ -1542,12 +1557,12 @@ testers:
             error_code: YAML_ANCHOR_VALUE_REQUIRED
           - outcome: failed
             type:
-              module_path: tiferet.interfaces.core
-              class_name: ServiceError
-          - outcome: failed
-            type:
               module_path: tiferet.assets.core
               class_name: TiferetError
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
               negate: true
           - outcome: created
             equals: false
@@ -1624,19 +1639,54 @@ testers:
           - target: $r.path
             method: exists
             as: created
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.directory, direct.yml]
+            as: direct_path
+          - target:
+              module_path: builtins
+              attribute: str
+            method: str
+            args: [$r.direct_path]
+            as: direct_text
+          - target: $r.loader
+            method: set_anchor
+            args: [$r.direct_text, item]
+            kwargs:
+              value: $r.pair
+            raises: true
+            as: direct
+          - target: $r.direct_path
+            method: exists
+            as: direct_created
         assert:
           - outcome: failed
             error_code: YAML_PLAIN_VALUE_REQUIRED
           - outcome: failed
             type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+          - outcome: failed
+            type:
               module_path: tiferet.interfaces.core
               class_name: ServiceError
-          - outcome: failed
+              negate: true
+          - outcome: created
+            equals: false
+          - outcome: direct
+            error_code: YAML_PLAIN_VALUE_REQUIRED
+          - outcome: direct
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: direct
             type:
               module_path: tiferet.assets.core
               class_name: TiferetError
               negate: true
-          - outcome: created
+          - outcome: direct_created
             equals: false
       dot_key_path:
         conditions: {}
@@ -1711,8 +1761,13 @@ testers:
             error_code: YAML_KEY_PATH_INVALID
           - outcome: failed
             type:
+              module_path: tiferet.assets.core
+              class_name: TiferetError
+          - outcome: failed
+            type:
               module_path: tiferet.interfaces.core
               class_name: ServiceError
+              negate: true
           - outcome: created
             equals: false
       missing_file:
