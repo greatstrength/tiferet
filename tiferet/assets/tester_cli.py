@@ -147,6 +147,146 @@ TESTER_DEFAULT_PARENT_ARGUMENTS: List[Dict[str, Any]] = [
 
 # *** constants (commands)
 
+# ** constant: rel_argument
+REL_ARGUMENT = {
+    'name_or_flags': [
+        'rel',
+    ],
+    'description': 'Relative path of the test module.',
+}
+
+# ** constant: fixture_name_argument
+FIXTURE_NAME_ARGUMENT = {
+    'name_or_flags': [
+        'name',
+    ],
+    'description': 'Fixture name.',
+}
+
+# ** constant: test_name_argument
+TEST_NAME_ARGUMENT = {
+    'name_or_flags': [
+        'name',
+    ],
+    'description': 'Test name.',
+}
+
+# ** constant: tester_name_argument
+TESTER_NAME_ARGUMENT = {
+    'name_or_flags': [
+        'name',
+    ],
+    'description': 'Tester name.',
+}
+
+# ** constant: tester_flag_argument
+TESTER_FLAG_ARGUMENT = {
+    'name_or_flags': [
+        '--tester',
+    ],
+    'description': 'Tester name.',
+}
+
+# ** constant: tester_positional_argument
+TESTER_POSITIONAL_ARGUMENT = {
+    'name_or_flags': [
+        'tester',
+    ],
+    'description': 'Tester name.',
+}
+
+# ** constant: payload_argument
+PAYLOAD_ARGUMENT = {
+    'name_or_flags': [
+        '--payload',
+    ],
+    'description': 'Opaque YAML fragment.',
+    'type': 'str',
+}
+
+# ** constant: fragment_argument
+FRAGMENT_ARGUMENT = {
+    'name_or_flags': [
+        '--fragment',
+    ],
+    'description': 'Fragment text.',
+}
+
+# ** constant: anchor_argument
+ANCHOR_ARGUMENT = {
+    'name_or_flags': [
+        '--anchor',
+    ],
+    'description': 'Anchor name.',
+}
+
+# ** constant: merge_argument
+MERGE_ARGUMENT = {
+    'name_or_flags': [
+        '--merge',
+    ],
+    'description': 'Merge anchor.',
+}
+
+# ** constant: fixture_name_and_tester_arguments
+FIXTURE_NAME_AND_TESTER_ARGUMENTS = [
+    create_default_cli_argument(
+        **REL_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **FIXTURE_NAME_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **TESTER_FLAG_ARGUMENT,
+    ),
+]
+
+# ** constant: test_name_and_tester_arguments
+TEST_NAME_AND_TESTER_ARGUMENTS = [
+    create_default_cli_argument(
+        **REL_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **TEST_NAME_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **TESTER_FLAG_ARGUMENT,
+    ),
+]
+
+# ** constant: tester_name_arguments
+TESTER_NAME_ARGUMENTS = [
+    create_default_cli_argument(
+        **REL_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **TESTER_NAME_ARGUMENT,
+    ),
+]
+
+# ** constant: rel_and_tester_arguments
+REL_AND_TESTER_ARGUMENTS = [
+    create_default_cli_argument(
+        **REL_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **TESTER_FLAG_ARGUMENT,
+    ),
+]
+
+# ** constant: attach_arguments
+ATTACH_ARGUMENTS = [
+    create_default_cli_argument(
+        **REL_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **TESTER_POSITIONAL_ARGUMENT,
+    ),
+    create_default_cli_argument(
+        **TEST_NAME_ARGUMENT,
+    ),
+]
+
 # ** constant: fixture_add_command_data
 FIXTURE_ADD_COMMAND_DATA = create_default_cli_command_data(
     'add',
@@ -155,37 +295,29 @@ FIXTURE_ADD_COMMAND_DATA = create_default_cli_command_data(
     description='Add a fixture to a test module.',
     arguments=[
         create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
+            **REL_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['name'],
-            description='Fixture name.',
+            **FIXTURE_NAME_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
+            **TESTER_FLAG_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--payload'],
-            description='Opaque YAML fragment.',
-            type='str',
+            **PAYLOAD_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--fragment'],
-            description='Fragment text.',
+            **FRAGMENT_ARGUMENT,
         ),
         create_default_cli_argument(
             ['--alias'],
             description='Alias name.',
         ),
         create_default_cli_argument(
-            ['--anchor'],
-            description='Anchor name.',
+            **ANCHOR_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--merge'],
-            description='Merge anchor.',
+            **MERGE_ARGUMENT,
         ),
     ],
 )
@@ -196,20 +328,7 @@ FIXTURE_GET_COMMAND_DATA = create_default_cli_command_data(
     'fixture',
     'Get Fixture',
     description='Get a fixture from a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Fixture name.',
-        ),
-        create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=FIXTURE_NAME_AND_TESTER_ARGUMENTS,
 )
 
 # ** constant: fixture_list_command_data
@@ -218,16 +337,7 @@ FIXTURE_LIST_COMMAND_DATA = create_default_cli_command_data(
     'fixture',
     'List Fixtures',
     description='List fixtures in a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=REL_AND_TESTER_ARGUMENTS,
 )
 
 # ** constant: fixture_update_command_data
@@ -238,29 +348,22 @@ FIXTURE_UPDATE_COMMAND_DATA = create_default_cli_command_data(
     description='Update a fixture in a test module.',
     arguments=[
         create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
+            **REL_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['name'],
-            description='Fixture name.',
+            **FIXTURE_NAME_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
+            **TESTER_FLAG_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--payload'],
-            description='Opaque YAML fragment.',
-            type='str',
+            **PAYLOAD_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--fragment'],
-            description='Fragment text.',
+            **FRAGMENT_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--merge'],
-            description='Merge anchor.',
+            **MERGE_ARGUMENT,
         ),
     ],
 )
@@ -271,20 +374,7 @@ FIXTURE_REMOVE_COMMAND_DATA = create_default_cli_command_data(
     'fixture',
     'Remove Fixture',
     description='Remove a fixture from a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Fixture name.',
-        ),
-        create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=FIXTURE_NAME_AND_TESTER_ARGUMENTS,
 )
 
 # ** constant: test_add_command_data
@@ -295,29 +385,22 @@ TEST_ADD_COMMAND_DATA = create_default_cli_command_data(
     description='Add a test to a test module.',
     arguments=[
         create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
+            **REL_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['name'],
-            description='Test name.',
+            **TEST_NAME_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
+            **TESTER_FLAG_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--payload'],
-            description='Opaque YAML fragment.',
-            type='str',
+            **PAYLOAD_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--fragment'],
-            description='Fragment text.',
+            **FRAGMENT_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--anchor'],
-            description='Anchor name.',
+            **ANCHOR_ARGUMENT,
         ),
     ],
 )
@@ -328,20 +411,7 @@ TEST_GET_COMMAND_DATA = create_default_cli_command_data(
     'test',
     'Get Test',
     description='Get a test from a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Test name.',
-        ),
-        create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=TEST_NAME_AND_TESTER_ARGUMENTS,
 )
 
 # ** constant: test_list_command_data
@@ -350,16 +420,7 @@ TEST_LIST_COMMAND_DATA = create_default_cli_command_data(
     'test',
     'List Tests',
     description='List tests in a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=REL_AND_TESTER_ARGUMENTS,
 )
 
 # ** constant: test_update_command_data
@@ -370,25 +431,19 @@ TEST_UPDATE_COMMAND_DATA = create_default_cli_command_data(
     description='Update a test in a test module.',
     arguments=[
         create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
+            **REL_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['name'],
-            description='Test name.',
+            **TEST_NAME_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
+            **TESTER_FLAG_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--payload'],
-            description='Opaque YAML fragment.',
-            type='str',
+            **PAYLOAD_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--fragment'],
-            description='Fragment text.',
+            **FRAGMENT_ARGUMENT,
         ),
     ],
 )
@@ -399,20 +454,7 @@ TEST_REMOVE_COMMAND_DATA = create_default_cli_command_data(
     'test',
     'Remove Test',
     description='Remove a test from a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Test name.',
-        ),
-        create_default_cli_argument(
-            ['--tester'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=TEST_NAME_AND_TESTER_ARGUMENTS,
 )
 
 # ** constant: tester_add_command_data
@@ -423,25 +465,19 @@ TESTER_ADD_COMMAND_DATA = create_default_cli_command_data(
     description='Add a tester to a test module.',
     arguments=[
         create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
+            **REL_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['name'],
-            description='Tester name.',
+            **TESTER_NAME_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--payload'],
-            description='Opaque YAML fragment.',
-            type='str',
+            **PAYLOAD_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--fragment'],
-            description='Fragment text.',
+            **FRAGMENT_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--anchor'],
-            description='Anchor name.',
+            **ANCHOR_ARGUMENT,
         ),
     ],
 )
@@ -452,16 +488,7 @@ TESTER_GET_COMMAND_DATA = create_default_cli_command_data(
     'tester',
     'Get Tester',
     description='Get a tester from a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=TESTER_NAME_ARGUMENTS,
 )
 
 # ** constant: tester_list_command_data
@@ -472,8 +499,7 @@ TESTER_LIST_COMMAND_DATA = create_default_cli_command_data(
     description='List testers in a test module.',
     arguments=[
         create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
+            **REL_ARGUMENT,
         ),
     ],
 )
@@ -486,21 +512,16 @@ TESTER_UPDATE_COMMAND_DATA = create_default_cli_command_data(
     description='Update a tester in a test module.',
     arguments=[
         create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
+            **REL_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['name'],
-            description='Tester name.',
+            **TESTER_NAME_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--payload'],
-            description='Opaque YAML fragment.',
-            type='str',
+            **PAYLOAD_ARGUMENT,
         ),
         create_default_cli_argument(
-            ['--fragment'],
-            description='Fragment text.',
+            **FRAGMENT_ARGUMENT,
         ),
     ],
 )
@@ -511,16 +532,7 @@ TESTER_REMOVE_COMMAND_DATA = create_default_cli_command_data(
     'tester',
     'Remove Tester',
     description='Remove a tester from a test module.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Tester name.',
-        ),
-    ],
+    arguments=TESTER_NAME_ARGUMENTS,
 )
 
 # ** constant: tester_attach_command_data
@@ -529,20 +541,7 @@ TESTER_ATTACH_COMMAND_DATA = create_default_cli_command_data(
     'tester',
     'Attach Test',
     description='Attach a test to a tester.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['tester'],
-            description='Tester name.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Test name.',
-        ),
-    ],
+    arguments=ATTACH_ARGUMENTS,
 )
 
 # ** constant: tester_detach_command_data
@@ -551,20 +550,7 @@ TESTER_DETACH_COMMAND_DATA = create_default_cli_command_data(
     'tester',
     'Detach Test',
     description='Detach a test from a tester.',
-    arguments=[
-        create_default_cli_argument(
-            ['rel'],
-            description='Relative path of the test module.',
-        ),
-        create_default_cli_argument(
-            ['tester'],
-            description='Tester name.',
-        ),
-        create_default_cli_argument(
-            ['name'],
-            description='Test name.',
-        ),
-    ],
+    arguments=ATTACH_ARGUMENTS,
 )
 
 # ** constant: module_run_command_data
@@ -588,6 +574,61 @@ MODULE_RUN_COMMAND_DATA = create_default_cli_command_data(
 
 # *** constants (features)
 
+# ** constant: optional_str_param
+OPTIONAL_STR_PARAM = {
+    'type': 'str',
+    'required': False,
+}
+
+# ** constant: rel_param
+REL_PARAM = {
+    'rel': 'str',
+}
+
+# ** constant: name_param
+NAME_PARAM = {
+    'name': 'str',
+}
+
+# ** constant: rel_name_params
+REL_NAME_PARAMS = {
+    **REL_PARAM,
+    **NAME_PARAM,
+}
+
+# ** constant: payload_fragment_params
+PAYLOAD_FRAGMENT_PARAMS = {
+    'payload': {
+        **OPTIONAL_STR_PARAM,
+    },
+    'fragment': {
+        **OPTIONAL_STR_PARAM,
+    },
+}
+
+# ** constant: rel_name_tester_params
+REL_NAME_TESTER_PARAMS = {
+    **REL_NAME_PARAMS,
+    'tester': {
+        **OPTIONAL_STR_PARAM,
+    },
+}
+
+# ** constant: rel_tester_params
+REL_TESTER_PARAMS = {
+    **REL_PARAM,
+    'tester': {
+        **OPTIONAL_STR_PARAM,
+    },
+}
+
+# ** constant: attach_params
+ATTACH_PARAMS = {
+    **REL_PARAM,
+    'tester': 'str',
+    **NAME_PARAM,
+}
+
 # ** constant: fixture_add_feature_data
 FIXTURE_ADD_FEATURE_DATA = create_default_feature_data(
     'Add Fixture',
@@ -601,31 +642,19 @@ FIXTURE_ADD_FEATURE_DATA = create_default_feature_data(
     ],
     description='Add a fixture to a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
+        **REL_NAME_PARAMS,
         tester={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
-        payload={
-            'type': 'str',
-            'required': False,
-        },
-        fragment={
-            'type': 'str',
-            'required': False,
-        },
+        **PAYLOAD_FRAGMENT_PARAMS,
         alias={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
         anchor={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
         merge={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
     ),
 )
@@ -643,12 +672,7 @@ FIXTURE_GET_FEATURE_DATA = create_default_feature_data(
     ],
     description='Get a fixture from a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
-        tester={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_NAME_TESTER_PARAMS,
     ),
 )
 
@@ -665,11 +689,7 @@ FIXTURE_LIST_FEATURE_DATA = create_default_feature_data(
     ],
     description='List fixtures in a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        tester={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_TESTER_PARAMS,
     ),
 )
 
@@ -686,23 +706,13 @@ FIXTURE_UPDATE_FEATURE_DATA = create_default_feature_data(
     ],
     description='Update a fixture in a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
+        **REL_NAME_PARAMS,
         tester={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
-        payload={
-            'type': 'str',
-            'required': False,
-        },
-        fragment={
-            'type': 'str',
-            'required': False,
-        },
+        **PAYLOAD_FRAGMENT_PARAMS,
         merge={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
     ),
 )
@@ -720,12 +730,7 @@ FIXTURE_REMOVE_FEATURE_DATA = create_default_feature_data(
     ],
     description='Remove a fixture from a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
-        tester={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_NAME_TESTER_PARAMS,
     ),
 )
 
@@ -742,23 +747,13 @@ TEST_ADD_FEATURE_DATA = create_default_feature_data(
     ],
     description='Add a test to a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
+        **REL_NAME_PARAMS,
         tester={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
-        payload={
-            'type': 'str',
-            'required': False,
-        },
-        fragment={
-            'type': 'str',
-            'required': False,
-        },
+        **PAYLOAD_FRAGMENT_PARAMS,
         anchor={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
     ),
 )
@@ -776,12 +771,7 @@ TEST_GET_FEATURE_DATA = create_default_feature_data(
     ],
     description='Get a test from a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
-        tester={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_NAME_TESTER_PARAMS,
     ),
 )
 
@@ -798,11 +788,7 @@ TEST_LIST_FEATURE_DATA = create_default_feature_data(
     ],
     description='List tests in a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        tester={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_TESTER_PARAMS,
     ),
 )
 
@@ -819,20 +805,11 @@ TEST_UPDATE_FEATURE_DATA = create_default_feature_data(
     ],
     description='Update a test in a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
+        **REL_NAME_PARAMS,
         tester={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
-        payload={
-            'type': 'str',
-            'required': False,
-        },
-        fragment={
-            'type': 'str',
-            'required': False,
-        },
+        **PAYLOAD_FRAGMENT_PARAMS,
     ),
 )
 
@@ -849,12 +826,7 @@ TEST_REMOVE_FEATURE_DATA = create_default_feature_data(
     ],
     description='Remove a test from a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
-        tester={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_NAME_TESTER_PARAMS,
     ),
 )
 
@@ -871,19 +843,10 @@ TESTER_ADD_FEATURE_DATA = create_default_feature_data(
     ],
     description='Add a tester to a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
-        payload={
-            'type': 'str',
-            'required': False,
-        },
-        fragment={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_NAME_PARAMS,
+        **PAYLOAD_FRAGMENT_PARAMS,
         anchor={
-            'type': 'str',
-            'required': False,
+            **OPTIONAL_STR_PARAM,
         },
     ),
 )
@@ -901,8 +864,7 @@ TESTER_GET_FEATURE_DATA = create_default_feature_data(
     ],
     description='Get a tester from a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
+        **REL_NAME_PARAMS,
     ),
 )
 
@@ -919,7 +881,7 @@ TESTER_LIST_FEATURE_DATA = create_default_feature_data(
     ],
     description='List testers in a test module.',
     params_schema=create_params_schema(
-        rel='str',
+        **REL_PARAM,
     ),
 )
 
@@ -936,16 +898,8 @@ TESTER_UPDATE_FEATURE_DATA = create_default_feature_data(
     ],
     description='Update a tester in a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
-        payload={
-            'type': 'str',
-            'required': False,
-        },
-        fragment={
-            'type': 'str',
-            'required': False,
-        },
+        **REL_NAME_PARAMS,
+        **PAYLOAD_FRAGMENT_PARAMS,
     ),
 )
 
@@ -962,8 +916,7 @@ TESTER_REMOVE_FEATURE_DATA = create_default_feature_data(
     ],
     description='Remove a tester from a test module.',
     params_schema=create_params_schema(
-        rel='str',
-        name='str',
+        **REL_NAME_PARAMS,
     ),
 )
 
@@ -980,9 +933,7 @@ TESTER_ATTACH_FEATURE_DATA = create_default_feature_data(
     ],
     description='Attach a test to a tester.',
     params_schema=create_params_schema(
-        rel='str',
-        tester='str',
-        name='str',
+        **ATTACH_PARAMS,
     ),
 )
 
@@ -999,9 +950,7 @@ TESTER_DETACH_FEATURE_DATA = create_default_feature_data(
     ],
     description='Detach a test from a tester.',
     params_schema=create_params_schema(
-        rel='str',
-        tester='str',
-        name='str',
+        **ATTACH_PARAMS,
     ),
 )
 
@@ -1023,174 +972,115 @@ MODULE_RUN_FEATURE_DATA = create_default_feature_data(
 
 # *** constants (services)
 
-# ** constant: get_fixture_evt_data
-GET_FIXTURE_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
+# ** constant: tester_event_registration
+TESTER_EVENT_REGISTRATION = {
+    'module_path': create_service_module_path(
         TIFERET,
         TIFERET_EVENTS_PATH,
         'tester_module',
     ),
-    'GetFixture',
+}
+
+# ** constant: get_fixture_evt_data
+GET_FIXTURE_EVT_DATA = create_service_registration_data(
+    **TESTER_EVENT_REGISTRATION,
+    class_name='GetFixture',
 )
 
 # ** constant: list_fixtures_evt_data
 LIST_FIXTURES_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'ListFixtures',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='ListFixtures',
 )
 
 # ** constant: get_test_evt_data
 GET_TEST_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'GetTest',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='GetTest',
 )
 
 # ** constant: list_tests_evt_data
 LIST_TESTS_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'ListTests',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='ListTests',
 )
 
 # ** constant: get_tester_evt_data
 GET_TESTER_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'GetTester',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='GetTester',
 )
 
 # ** constant: list_testers_evt_data
 LIST_TESTERS_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'ListTesters',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='ListTesters',
 )
 
 # ** constant: add_fixture_evt_data
 ADD_FIXTURE_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'AddFixture',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='AddFixture',
 )
 
 # ** constant: update_fixture_evt_data
 UPDATE_FIXTURE_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'UpdateFixture',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='UpdateFixture',
 )
 
 # ** constant: remove_fixture_evt_data
 REMOVE_FIXTURE_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'RemoveFixture',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='RemoveFixture',
 )
 
 # ** constant: add_test_evt_data
 ADD_TEST_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'AddTest',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='AddTest',
 )
 
 # ** constant: update_test_evt_data
 UPDATE_TEST_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'UpdateTest',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='UpdateTest',
 )
 
 # ** constant: remove_test_evt_data
 REMOVE_TEST_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'RemoveTest',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='RemoveTest',
 )
 
 # ** constant: add_tester_evt_data
 ADD_TESTER_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'AddTester',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='AddTester',
 )
 
 # ** constant: update_tester_evt_data
 UPDATE_TESTER_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'UpdateTester',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='UpdateTester',
 )
 
 # ** constant: remove_tester_evt_data
 REMOVE_TESTER_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'RemoveTester',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='RemoveTester',
 )
 
 # ** constant: attach_test_evt_data
 ATTACH_TEST_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'AttachTest',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='AttachTest',
 )
 
 # ** constant: detach_test_evt_data
 DETACH_TEST_EVT_DATA = create_service_registration_data(
-    create_service_module_path(
-        TIFERET,
-        TIFERET_EVENTS_PATH,
-        'tester_module',
-    ),
-    'DetachTest',
+    **TESTER_EVENT_REGISTRATION,
+    class_name='DetachTest',
 )
 
 # *** constants (sessions)
