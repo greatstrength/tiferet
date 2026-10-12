@@ -27,7 +27,9 @@ When you are the **Starter** (no feature branch exists yet):
 
 Before writing any code, read `tiferet-code-style` (mandatory every session) and the `tiferet-code-<component>` skill(s) for the layers this child touches. For multi-component children, also read `tiferet-code-architecture`.
 
-Implement the child by working through its TRD **section-by-section**: read the child TRD's §4, match each `#### Add/Update/Remove: # *** <section> (<subgroup>)` heading to the corresponding code section, and execute the artifact table row-by-row. The child TRD is the complete and sufficient specification — execute it directly without paraphrasing.
+Implement the child by working through its TRD **section-by-section**: read the child TRD's §4, match each Add/Update/Remove artifact heading under Implementation to the corresponding code section, and execute the artifact table row-by-row. The child TRD is the complete and sufficient specification — execute it directly without paraphrasing.
+
+Tests in §4 are cases on named tests, not a second field table and not a pasted implementation. Until the rendering skill exists, the Python file is the acceptance gate. Do not call `run_test_module`. The YAML document under `tiferet_tests/` is the same cases, not a second spec, and is not a gate.
 
 Run tests (`pytest tests/`) after implementing. Verify the changes compile with no syntax errors.
 

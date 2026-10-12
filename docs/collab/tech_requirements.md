@@ -39,15 +39,21 @@ Every TRD must follow this exact structure:
 | ...             | ...                                | ...                                          |
 
 ## 4. Detailed Requirements
-[Numbered subsections with code examples, signatures, behavior descriptions.]
+
+### 4.1 [Component]
+#### Implementation
+[Add, Update, or Remove. Labels, placement, parameters, constants, messages. No pytest. No YAML.]
+
+#### Tests
+[Add, Update, or Remove. One case per named test. Tester language only. Name the test module.]
 
 ## 5. Acceptance Criteria
-1. Numbered list of verifiable outcomes.
+1. [Cite the test name. Do not restate the case.]
 
 ## 6. Non-Functional Requirements
 - Bullet list (performance, compatibility, style, etc.).
 
-[Optional additional sections: Subtasks, Tests, Verification, etc.]
+[Optional additional sections: Subtasks, Verification, etc.]
 ```
 
 ## Specific Rules
@@ -55,17 +61,14 @@ Every TRD must follow this exact structure:
 - **Overview**: 3–6 sentences. Include motivation and primary benefits.
 - **Scope**: Always include both "In Scope" and "Out of Scope" sections.
 - **Components Table**: Use proper Markdown table syntax. Include all directly modified files.
-- **Detailed Requirements**: 
-  - Use numbered subsections.
-  - Include code blocks with language hint and brief path comment when relevant.
-  - Describe behavior clearly, including validation, error cases, and return values.
-- **Acceptance Criteria**: Numbered, testable statements. Reference tests passing where appropriate.
+- **Detailed Requirements**: One numbered block per component idea. Implementation, then Tests. Both use Add, Update, and Remove. The block does not contain pytest or YAML. See Component Blocks in §4.
+- **Acceptance Criteria**: Numbered. Cite the test name. Do not restate the case.
 - **Non-Functional**: Always include consistency with patterns, backward compatibility, and maintainability notes.
 - **Subtasks**: For parent stories with subtasks, reference them or include separate linked documents.
 
 ## Common Patterns
-- **Commands**: Include constructor, execute signature, validation, behavior, return value, and tests via `Command.handle`.
-- **Model Methods**: Include signature, behavior, and model tests.
+- **Commands**: State the constructor, execute signature, validation, and return as Implementation artifacts. State the cases under Tests. Do not paste a `Command.handle` test.
+- **Model Methods**: State the signature and behavior as Implementation artifacts. State the cases under Tests. Do not paste a model test.
 - **Refactors**: Highlight before/after, removed files, and migration steps.
 - **New Errors**: Add to constants with ID, name, and message.
 
@@ -74,16 +77,75 @@ Every TRD must follow this exact structure:
 TRDs specify work as **artifacts to add, update, or remove** — never as prose narratives or "copy from X" instructions. An *artifact* is any unit named by the structured code style's artifact comments: a module, class, attribute, `# * method:`, mid-level `# ** <component>:` label, or top-level `# *** <section>` (see [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
 - **Components Affected (§3):** give each affected module an *artifact action* summary (Add / Update / Remove), not a vague "Changes" blurb.
-- **Detailed Requirements (§4):** enumerate the specific artifacts per module. For renames, refactors, and migrations, use a delta table with `From (current)` and `To (target)` columns and lead with an **Add / Update / Remove** legend. Factor a shared pattern once and list per-module exceptions to keep the document lean.
-- **Acceptance Criteria (§5):** assert that target artifacts exist *and* that retired ones are gone (e.g., "no `*YamlObject` references remain under `tiferet/repos/`").
+- **Detailed Requirements (§4):** enumerate the specific artifacts per module. For renames, refactors, and migrations, use a delta table with `From (current)` and `To (target)` columns and lead with an **Add / Update / Remove** legend. Factor a shared pattern once and list per-module exceptions to keep the document lean. Each numbered block is one component: Implementation, then Tests. See Component Blocks in §4.
+- **Acceptance Criteria (§5):** assert that target artifacts exist *and* that retired ones are gone (e.g., "no `*YamlObject` references remain under `tiferet/repos/`"). A test line cites the test name and does not restate the case.
 - **Surface what a copy hides:** cross-layer prerequisites (e.g., a mapper role-key rename), artifact-label corrections, and behavioral shifts each become an explicit requirement or prerequisite — not an implicit side effect.
 
 The goal: an implementation agent can satisfy the TRD by acting on named artifacts, and a reviewer can verify each one independently.
 
+## Component Blocks in §4
+
+A numbered block in §4 is one idea, named as the component. It does not contain pytest. It does not contain YAML.
+
+The block has two subsections, in this order. Both use Add, Update, and Remove.
+
+**Implementation.** The code artifacts of that component: labels, placement, parameters, constants, messages. The operation-level headings in the next section sit under Implementation. They are not a third subsection, and they are not cases.
+
+**Tests.** The cases that replicate that implementation. Each case is an operation on a named test, not a second copy of the field table. The case names its test module, so a later skill can parse one module out and render either Python or YAML. The TRD does not choose the rendering.
+
+A case uses tester language only: fixtures, a tester, a subject, conditions, an action, and an expectation.
+
+An expectation is one of:
+
+- an outcome equal to a value
+- an outcome that is null
+- fields equal to values
+- an outcome that raises a named type whose message names a value
+
+One name per test. That name is the name in both renderings.
+
+A function with no class subject is a root test in that same module. It is not a tester. The module boundary is what the skill parses. The tester boundary is what the case uses when the subject is a class.
+
+Python-only marks, written on the case, are only instance identity and a class's own-namespace declaration. A type check is a shared expectation.
+
+Until the rendering skill exists, the Python file is the acceptance gate. The YAML document under `tiferet_tests/` is the same cases, not a second spec, and is not a gate. These cases must not call `run_test_module`.
+
+§5 cites the test name. It does not restate the case.
+
+### Worked example
+
+Phase errors. Six catalog codes. The example shows Add. Update and Remove use the same two subsections.
+
+```markdown
+### 4.1 Phase errors
+
+#### Implementation
+
+Add six catalog codes in `tiferet/assets/error.py`.
+
+- Labels: `# ** constant: phase_fixture_not_found_id` and the matching `*_data` label, and the same pair for each code below.
+- Placement: ids in `# *** constants (ids)`; messages in `# *** constants (models)`; keys on `CORE_DEFAULT_ERRORS` in `# *** constants (groups)`.
+- Constants: `PHASE_FIXTURE_NOT_FOUND_ID`, `PHASE_NAME_COLLISION_ID`, `PHASE_REFERENCE_NOT_FOUND_ID`, `PHASE_HANDLER_MISMATCH_ID`, `PHASE_STEP_FAILED_ID`, `PHASE_CHECK_FAILED_ID`.
+- Names: Phase Fixture Not Found; Phase Name Collision; Phase Reference Not Found; Phase Handler Mismatch; Phase Step Failed; Phase Check Failed.
+- Messages: `Fixture {name} was not found.`; `Mock and fixture names collide: {names}.`; `Missing runtime reference {reference}.`; `Phase handler received {received}, not {expected}.`; `Phase step failed: {detail}.`; `Phase check {check} failed: {detail}.`
+
+#### Tests
+
+Add `phase_fixture_not_found` in module `tests/assets/test_error`.
+
+- Fixtures: none
+- Tester: `test_core_default_errors`
+- Subject: `CORE_DEFAULT_ERRORS`
+- Conditions: none
+- Action: read the `PHASE_FIXTURE_NOT_FOUND` entry
+- Expectation: fields equal to the declared name and the message that names `{name}`
+```
+
+The matching §5 line cites the name only: `phase_fixture_not_found`.
 
 ## Operation-Level Artifact Notation in §4
 
-Every requirement in §4 is expressed as an **operation** on an **artifact type**: Add, Update, or Remove applied to a constant, function, method, section header, import, or file. The notation for each combination is standardized and must be **informationally complete** — an agent reading the table must be able to produce the artifact without consulting any other source, and a DSL compiler must be able to parse the same table as input to generate the code directly.
+Every Implementation requirement in §4 is expressed as an **operation** on an **artifact type**: Add, Update, or Remove applied to a constant, function, method, section header, import, or file. The notation for each combination is standardized and must be **informationally complete** — an agent reading the table must be able to produce the artifact without consulting any other source, and a DSL compiler must be able to parse the same table as input to generate the code directly.
 
 ### "Add Constant" Notation
 
@@ -109,7 +171,7 @@ Each constant uses `create_service_registration_data(create_service_module_path(
 | `ADD_FEATURE_EVT_DATA` | `ADD_FEATURE_EVT_ID` | `TIFERET_EVENTS_PATH` | `FEATURE_DOMAIN_PATH` | `'AddFeature'` |
 ```
 
-**Combining both expressions** — when a code section contains scalar ID constants followed by factory-built object constants (the three-section catalog pattern), produce two tables in sequence under the same `####` heading. The second table references constant names from the first (not bare string values), making the dependency between sections explicit and verifiable.
+**Combining both expressions** — when a code section contains scalar ID constants followed by factory-built object constants (the three-section catalog pattern), produce two tables in sequence under the same Implementation operation heading. The second table references constant names from the first (not bare string values), making the dependency between sections explicit and verifiable.
 
 **Supplementary notes** serve three purposes within an Add Constant block: ordering (which subsection must land before another), naming conventions that apply across all rows (state once rather than repeat per row), and invariants such as optional-field omission rules. Place them as a bold or italic note immediately before or after the table they govern.
 
@@ -120,11 +182,11 @@ A table row must contain every parameter needed to produce the artifact:
 - For factory-built constants: all factory arguments, including which previously-defined constant is passed where. Reference prior constants by their constant name (e.g. `ROOT_LOGGER_ID`), not by their string value (`'root'`), so the dependency chain is derivable.
 - For optional fields: if a field is conditionally included, the condition must be resolvable from the table alone (e.g. a column whose cell is blank when the field is omitted).
 
-This completeness requirement means the same table can serve as the input to a code-generating agent, a test-generating agent, or a future declarative DSL compiler — the notation is the specification, not a summary of it.
+This completeness requirement means the Implementation table is the specification of those code artifacts, not a summary of them. It is not the test spec. Cases are stated under Tests, and they are not a second copy of the field table.
 
 ### Section-Mirroring in §4
 
-Map each `# *** constants (<name>)` code section directly to a `####` sub-heading in §4, using the exact code section label as the heading text (e.g. `#### Add: # *** constants (ids)`). An implementation agent works section-by-section; the heading correspondence eliminates ambiguity about which part of the file each table governs.
+Under Implementation, map each `# *** constants (<name>)` code section directly to an operation heading, using the exact code section label as the heading text (e.g. `##### Add: # *** constants (ids)`). An implementation agent works section-by-section; the heading correspondence eliminates ambiguity about which part of the file each table governs.
 
 ### Constant Section Subgroups
 
@@ -132,7 +194,7 @@ When a module contains many constants of a given type, organize them into named 
 
 Canonical subgroup labels: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`, etc.
 
-The section-mirroring rule extends to subgroup level: each `# *** constants (<subgroup>)` code section maps 1:1 to a `#### Add: # *** constants (<subgroup>)` heading in §4. A flat `# *** constants` block where subgroups apply is a defect — assert the correct structure in §5 AC. The Reviewer verifies both the section label and entry count exactly. Issues #935 and #939 are the canonical reference examples of correct subgroup structure.
+The section-mirroring rule extends to subgroup level: each `# *** constants (<subgroup>)` code section maps 1:1 to a `##### Add: # *** constants (<subgroup>)` heading under Implementation. A flat `# *** constants` block where subgroups apply is a defect — assert the correct structure in §5 AC. The Reviewer verifies both the section label and entry count exactly. Issues #935 and #939 are the canonical reference examples of correct subgroup structure.
 
 ### "Update Constant" and "Remove Constant"
 
@@ -199,6 +261,9 @@ Before finalizing:
 - [ ] Acceptance criteria are verifiable.
 - [ ] No placeholder text or unresolved comments.
 - [ ] Requirements are expressed as artifacts to add/update/remove (not prose or "copy from X").
+- [ ] Each §4 block is one component, with Implementation then Tests, and contains neither pytest nor YAML.
+- [ ] Each case is an operation on one named test, in tester language, names its module, and is not a second copy of the field table.
+- [ ] §5 cites the test name and does not restate the case.
 - [ ] For parity/migration stories, the TRD is branch-agnostic — no prototype/source-branch instructions for the implementation agent.
 
 These instructions ensure all TRDs remain uniform, readable, and actionable across the Tiferet codebase. Follow them strictly for every new document.
