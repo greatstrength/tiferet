@@ -4,6 +4,7 @@
 
 # ** core
 import copy
+import math
 from pathlib import Path
 from io import StringIO
 from typing import Any, Callable, Dict, Optional
@@ -31,7 +32,7 @@ from yaml.serializer import Serializer
 # ** app
 from .file import FileLoader, INVALID_FILE_ID
 from ..interfaces.core import ServiceError
-from ..interfaces.yaml import YamlService
+from ..interfaces.yaml import ANCHOR_VALUE_ABSENT, YamlService
 
 # *** constants
 
@@ -88,19 +89,19 @@ YAML_PLAIN_TAGS = (
 # ** constant: yaml_mapping_required_id
 YAML_MAPPING_REQUIRED_ID = 'YAML_MAPPING_REQUIRED'
 
+# ** constant: yaml_anchor_not_found_id
+YAML_ANCHOR_NOT_FOUND_ID = 'YAML_ANCHOR_NOT_FOUND'
+
+# ** constant: yaml_key_path_invalid_id
+YAML_KEY_PATH_INVALID_ID = 'YAML_KEY_PATH_INVALID'
+
+# ** constant: yaml_anchor_value_required_id
+YAML_ANCHOR_VALUE_REQUIRED_ID = 'YAML_ANCHOR_VALUE_REQUIRED'
+
+# ** constant: yaml_plain_value_required_id
+YAML_PLAIN_VALUE_REQUIRED_ID = 'YAML_PLAIN_VALUE_REQUIRED'
+
 # *** functions
-
-# ** function: raise_anchored
-def _raise_anchored(message, failure='anchor', cause=None):
-    '''Raise a service error from the anchored YAML extension.'''
-
-    ServiceError.raise_for(
-        YamlLoader,
-        YAML_ANCHOR_CONFLICT_ID if failure == 'anchor' else YAML_COMPOSE_FAILED_ID,
-        message,
-        cause=cause,
-        failure=failure,
-    )
 
 # ** function: find_mapping_pair
 def find_mapping_pair(mapping: Any, key: str):
@@ -470,6 +471,136 @@ def plain_mapping(root: Any) -> Any:
     # Return the plain value.
     return data
 
+# ** function: plain_from_node
+def plain_from_node(node: Any) -> tuple:
+    '''
+    Return the plain value of a node, and whether it was plain.
+
+    A string tag returns the scalar text unchanged. A later visit returns
+    the same object. A merge key is the string ``<<`` and is not applied.
+    A refusal is a result. This function does not raise.
+
+    :param node: The node to read.
+    :type node: Any
+    :return: The plain value and whether the node was plain.
+    :rtype: tuple
+    '''
+
+    # A refusal is a result. None is a legal plain value, so it is not the signal.
+    refused = object()
+    memo = {}
+    stack = set()
+
+    def plain_bool(text: Any) -> Any:
+        if not isinstance(text, str):
+            return refused
+        token = text.lower()
+        if token in ('true', 'yes', 'on'):
+            return True
+        if token in ('false', 'no', 'off'):
+            return False
+        return refused
+
+    def plain_int(text: Any) -> Any:
+        if not isinstance(text, str) or not text:
+            return refused
+        token = text.replace('_', '')
+        sign = -1 if token[:1] == '-' else 1
+        if token[:1] in '+-':
+            token = token[1:]
+        if not token:
+            return refused
+        try:
+            if token == '0':
+                return 0
+            if token.startswith('0b'):
+                return sign * int(token[2:], 2)
+            if token.startswith('0x'):
+                return sign * int(token[2:], 16)
+            if token[0] == '0' and token.isdigit():
+                return sign * int(token, 8)
+            if ':' in token:
+                digits = [int(part) for part in token.split(':')]
+                digits.reverse()
+                base = 1
+                total = 0
+                for digit in digits:
+                    total += digit * base
+                    base *= 60
+                return sign * total
+            return sign * int(token)
+        except ValueError:
+            return refused
+
+    def plain_float(text: Any) -> Any:
+        if not isinstance(text, str):
+            return refused
+        try:
+            value = float(text)
+        except ValueError:
+            return refused
+        if not math.isfinite(value):
+            return refused
+        return value
+
+    def convert(current: Any) -> Any:
+        current_id = id(current)
+        if current_id in memo:
+            return memo[current_id]
+        if current_id in stack:
+            return refused
+        stack.add(current_id)
+        tag = getattr(current, 'tag', None)
+        if isinstance(current, ScalarNode):
+            if tag == YAML_STR_TAG:
+                value = current.value
+            elif tag == YAML_NULL_TAG:
+                value = None
+            elif tag == YAML_BOOL_TAG:
+                value = plain_bool(current.value)
+            elif tag == YAML_INT_TAG:
+                value = plain_int(current.value)
+            elif tag == YAML_FLOAT_TAG:
+                value = plain_float(current.value)
+            else:
+                value = refused
+        elif isinstance(current, SequenceNode) and tag == YAML_SEQ_TAG:
+            value = []
+            for item in current.value:
+                plain = convert(item)
+                if plain is refused:
+                    value = refused
+                    break
+                value.append(plain)
+        elif isinstance(current, MappingNode) and tag == YAML_MAP_TAG:
+            value = {}
+            for key_node, value_node in current.value:
+                if getattr(key_node, 'tag', None) == YAML_MERGE_TAG:
+                    key = '<<'
+                elif isinstance(key_node, ScalarNode) and key_node.tag == YAML_STR_TAG:
+                    key = key_node.value
+                else:
+                    value = refused
+                    break
+                plain = convert(value_node)
+                if plain is refused:
+                    value = refused
+                    break
+                value[key] = plain
+        else:
+            value = refused
+        stack.remove(current_id)
+        if value is refused:
+            return refused
+        memo[current_id] = value
+        return value
+
+    # Read the node. Do not safe_load a string. Do not raise.
+    value = convert(node)
+    if value is refused:
+        return None, False
+    return value, True
+
 # *** classes
 
 # ** class: anchor_composer
@@ -568,9 +699,7 @@ class AnchorSerializer(Serializer):
         '''
 
         # A generated id001 is not a recorded anchor name.
-        _raise_anchored(
-            'The writer does not generate an anchor name.',
-        )
+        YamlLoader.refuse_generated_anchor()
 
     # * method: anchor_node
     def anchor_node(self, node: Any) -> None:
@@ -609,9 +738,7 @@ class AnchorSerializer(Serializer):
         alias = getattr(node, 'anchor_name', None)
         if node in self.serialized_nodes:
             if not alias:
-                _raise_anchored(
-                    'A shared node has no anchor name.',
-                )
+                YamlLoader.require_recorded_anchor()
             self.emit(AliasEvent(alias))
             return
         self.serialized_nodes[node] = True
@@ -883,12 +1010,11 @@ class YamlLoader(FileLoader, YamlService):
             return loader.get_single_node()
         except ComposerError as error:
             problem = str(error)
-            failure = 'anchor' if (
-                'undefined alias' in problem or 'duplicate anchor' in problem
-            ) else 'compose'
-            _raise_anchored(problem, failure=failure, cause=error)
+            if 'undefined alias' in problem or 'duplicate anchor' in problem:
+                YamlLoader.raise_anchor_conflict(problem, cause=error)
+            YamlLoader.raise_compose_failed(problem, cause=error)
         except YAMLError as error:
-            _raise_anchored(str(error), failure='compose', cause=error)
+            YamlLoader.raise_compose_failed(str(error), cause=error)
 
     # * method: serialize_anchored (static)
     @staticmethod
@@ -1065,3 +1191,718 @@ class YamlLoader(FileLoader, YamlService):
             'text': serialized,
             'anchors': names,
         }
+
+    # * method: list_anchors
+    def list_anchors(self, path: str) -> list:
+        '''
+        List anchor names in first-visit order.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :return: The anchor names.
+        :rtype: list
+        :raises ServiceError: If the file is missing or not YAML.
+        '''
+
+        # Build a read-mode loader for the call path. Do not use self.path.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+
+        # Require a YAML suffix and an existing file before reading.
+        self.verify_yaml_file(bound)
+
+        # Read the opened stream as text. Do not safe_load.
+        with bound as stream:
+            text = stream.read()
+
+        # Compose only to collect names. An empty stream has none.
+        root = self.compose_anchored(text)
+        if root is None:
+            return []
+
+        # Return first-visit order. Do not sort and do not return the table.
+        return list(anchor_table(root))
+
+    # * method: get_anchor
+    def get_anchor(self, path: str, name: str) -> dict:
+        '''
+        Read one named anchor as a plain value.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :param name: The anchor name.
+        :type name: str
+        :return: The plain value under the value field.
+        :rtype: dict
+        :raises ServiceError: If the file is missing, not YAML, or the name is absent.
+        '''
+
+        # Build a read-mode loader for the call path. Do not use self.path.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+
+        # Require a YAML suffix and an existing file before reading.
+        self.verify_yaml_file(bound)
+
+        # Read the opened stream as text. Do not safe_load.
+        with bound as stream:
+            text = stream.read()
+
+        # Compose. A missing name is a document check.
+        root = self.compose_anchored(text)
+        node = self.require_anchor(name, anchor_table(root), path=path)
+
+        # Return the plain value. A node does not cross this method.
+        return {
+            'value': self.require_plain_node(node, name, path=path),
+        }
+
+    # * method: set_anchor
+    def set_anchor(self,
+                   path: str,
+                   name: str,
+                   value: Any = ANCHOR_VALUE_ABSENT,
+                   key_path: list | None = None) -> dict:
+        '''
+        Set or record a named anchor and return its plain value.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :param name: The anchor name.
+        :type name: str
+        :param value: The plain value to record. An omitted value is rejected.
+        :type value: Any
+        :param key_path: The node to name, or the node an existing name must already be.
+        :type key_path: list | None
+        :return: The plain value under the value field.
+        :rtype: dict
+        :raises ServiceError: If the value, path, name, or file is rejected.
+        '''
+
+        # Reject an omitted or non-plain value before opening a file.
+        self.require_anchor_value(value)
+        self.require_plain_value(value)
+
+        # Reject a bad key path before opening a file.
+        steps = None
+        if key_path is not None:
+            steps = self.require_key_path(key_path)
+
+        # Build a read-mode loader for the call path. Do not use self.path.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+
+        # Require a YAML suffix and an existing file before reading.
+        self.verify_yaml_file(bound)
+
+        # Read the opened stream as text. Do not safe_load.
+        with bound as stream:
+            text = stream.read()
+
+        # Compose. A failure propagates and does not write.
+        root = self.compose_anchored(text)
+
+        # An empty stream has no node to name.
+        if root is None:
+            if steps is None:
+                self.require_anchor(name, {}, path=path)
+            else:
+                self.resolve_key_path(steps, root)
+
+        # Replace one node in place, or retarget parents when the kind changes.
+        def install(current: Any, target: Any) -> Any:
+            replacement = node_from_plain(value)
+            replacement.anchor_name = name
+            if type(target) is type(replacement):
+                target.tag = replacement.tag
+                target.value = replacement.value
+                target.anchor_name = name
+                return current
+            if current is target:
+                return replacement
+            seen = set()
+
+            def walk(node: Any) -> None:
+                if id(node) in seen or node is target or node is replacement:
+                    return
+                seen.add(id(node))
+                if isinstance(node, MappingNode):
+                    for index, (key_node, value_node) in enumerate(node.value):
+                        next_key = replacement if key_node is target else key_node
+                        next_value = replacement if value_node is target else value_node
+                        node.value[index] = (next_key, next_value)
+                        if next_key is not replacement:
+                            walk(next_key)
+                        if next_value is not replacement:
+                            walk(next_value)
+                    return
+                if isinstance(node, SequenceNode):
+                    for index, item in enumerate(node.value):
+                        if item is target:
+                            node.value[index] = replacement
+                            continue
+                        walk(item)
+
+            walk(current)
+            return current
+
+        # Update the named node, or record the name on the resolved node.
+        table = anchor_table(root)
+        if name in table:
+            target = table[name]
+            if steps is not None:
+                resolved = self.resolve_key_path(steps, root)
+                self.require_same_node(resolved, target, name, path=path)
+            root = install(root, target)
+        else:
+            if steps is None:
+                self.require_anchor(name, table, path=path)
+            else:
+                resolved = self.resolve_key_path(steps, root)
+                self.require_unnamed(resolved, name, path=path)
+                root = install(root, resolved)
+
+        # Serialize before opening the write so a failure does not truncate.
+        serialized = self.serialize_anchored(root)
+
+        # Write the serialized string. Do not call save.
+        writer = YamlLoader(path=path, mode='w', encoding='utf-8')
+        with writer as stream:
+            stream.write(serialized)
+
+        # Return the plain value. The node is not a value.
+        return {
+            'value': value,
+        }
+
+    # * method: remove_anchor
+    def remove_anchor(self, path: str, name: str) -> str:
+        '''
+        Remove one anchor name and leave its value.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :param name: The anchor name.
+        :type name: str
+        :return: The name that was removed.
+        :rtype: str
+        :raises ServiceError: If the file is missing, the name is absent, or a later visit remains.
+        '''
+
+        # Build a read-mode loader for the call path. Do not use self.path.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+
+        # Require a YAML suffix and an existing file before reading.
+        self.verify_yaml_file(bound)
+
+        # Read the opened stream as text. Do not safe_load.
+        with bound as stream:
+            text = stream.read()
+
+        # Compose. A later visit of the named node is a conflict.
+        root = self.compose_anchored(text)
+        table = anchor_table(root)
+        target = self.require_anchor(name, table, path=path)
+
+        def visit(node: Any, _path: tuple, later: bool) -> None:
+            self.require_single_visit(
+                node,
+                target,
+                later=later,
+                name=name,
+                path=path,
+            )
+
+        walk_test_module_nodes(root, visit)
+
+        # Clear the name and leave the value. Serialize before the write.
+        target.anchor_name = None
+        serialized = self.serialize_anchored(root)
+
+        # Write the serialized string. Do not call save.
+        writer = YamlLoader(path=path, mode='w', encoding='utf-8')
+        with writer as stream:
+            stream.write(serialized)
+
+        # Return the name that was removed.
+        return name
+
+    # * method: rename_anchor
+    def rename_anchor(self,
+                      path: str,
+                      name: str,
+                      new_name: str) -> str:
+        '''
+        Rename one anchor on the same node.
+
+        :param path: Path to the YAML file.
+        :type path: str
+        :param name: The current anchor name.
+        :type name: str
+        :param new_name: The name to record on the same node.
+        :type new_name: str
+        :return: The recorded name.
+        :rtype: str
+        :raises ServiceError: If the file is missing, the name is absent, or the new name is taken.
+        '''
+
+        # Build a read-mode loader for the call path. Do not use self.path.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+
+        # Require a YAML suffix and an existing file before reading.
+        self.verify_yaml_file(bound)
+
+        # Read the opened stream as text. Do not safe_load.
+        with bound as stream:
+            text = stream.read()
+
+        # Compose. The same name is not a write.
+        root = self.compose_anchored(text)
+        table = anchor_table(root)
+        self.require_anchor(name, table, path=path)
+        if new_name == name:
+            return name
+        if new_name in table:
+            self.raise_anchor_conflict(
+                f'Anchor {new_name} already exists. Path: {path}.',
+                path=str(path),
+                name=name,
+                new_name=new_name,
+            )
+
+        # Record the new name on the same node. Do not move it.
+        table[name].anchor_name = new_name
+        serialized = self.serialize_anchored(root)
+
+        # Write the serialized string. Do not call save.
+        writer = YamlLoader(path=path, mode='w', encoding='utf-8')
+        with writer as stream:
+            stream.write(serialized)
+
+        # Return the recorded name.
+        return new_name
+
+    # * method: require_anchor_value (static)
+    @staticmethod
+    def require_anchor_value(value: Any) -> Any:
+        '''
+        Require a value that was passed.
+
+        :param value: The value to set.
+        :type value: Any
+        :return: The value.
+        :rtype: Any
+        :raises ServiceError: If the value was omitted.
+        '''
+
+        # The sentinel is omitted. None is a legal value.
+        if value is ANCHOR_VALUE_ABSENT:
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_ANCHOR_VALUE_REQUIRED_ID,
+                message='A value is required to set an anchor.',
+            )
+        return value
+
+    # * method: require_plain_value (static)
+    @staticmethod
+    def require_plain_value(value: Any, seen: Optional[set] = None) -> Any:
+        '''
+        Require a plain value that a node can hold.
+
+        :param value: The value to set.
+        :type value: Any
+        :param seen: Containers already visited.
+        :type seen: Optional[set]
+        :return: The value.
+        :rtype: Any
+        :raises ServiceError: If the value is not a plain scalar, sequence, or mapping.
+        '''
+
+        # A cycle is the same refusal as a tuple. Check bool before int.
+        if seen is None:
+            seen = set()
+        if value is None or isinstance(value, str) or isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            if not math.isfinite(value):
+                ServiceError.raise_for(
+                    YamlLoader,
+                    YAML_PLAIN_VALUE_REQUIRED_ID,
+                    message='An anchor value must be a plain value.',
+                )
+            return value
+        identity = id(value)
+        if isinstance(value, list):
+            if identity in seen:
+                ServiceError.raise_for(
+                    YamlLoader,
+                    YAML_PLAIN_VALUE_REQUIRED_ID,
+                    message='An anchor value must be a plain value.',
+                )
+            seen.add(identity)
+            for item in value:
+                YamlLoader.require_plain_value(item, seen=seen)
+            return value
+        if isinstance(value, dict):
+            if identity in seen:
+                ServiceError.raise_for(
+                    YamlLoader,
+                    YAML_PLAIN_VALUE_REQUIRED_ID,
+                    message='An anchor value must be a plain value.',
+                )
+            seen.add(identity)
+            for key, item in value.items():
+                if not isinstance(key, str):
+                    ServiceError.raise_for(
+                        YamlLoader,
+                        YAML_PLAIN_VALUE_REQUIRED_ID,
+                        message='An anchor value must be a plain value.',
+                    )
+                YamlLoader.require_plain_value(item, seen=seen)
+            return value
+        ServiceError.raise_for(
+            YamlLoader,
+            YAML_PLAIN_VALUE_REQUIRED_ID,
+            message='An anchor value must be a plain value.',
+        )
+
+    # * method: require_key_path (static)
+    @staticmethod
+    def require_key_path(key_path: Any) -> Optional[tuple]:
+        '''
+        Require a shaped key path, or no path.
+
+        :param key_path: None, or a sequence of kind and token steps.
+        :type key_path: Any
+        :return: The shaped steps, or None.
+        :rtype: Optional[tuple]
+        :raises ServiceError: If the path is not a sequence of steps.
+        '''
+
+        # None is no path. A dot string and a bare key list are both malformed.
+        if key_path is None:
+            return None
+        if not isinstance(key_path, list):
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_KEY_PATH_INVALID_ID,
+                message='A key path must be a list of val, key, or seq steps.',
+                key_path=key_path,
+            )
+        steps = []
+        for step in key_path:
+            if not isinstance(step, list) or len(step) != 2:
+                ServiceError.raise_for(
+                    YamlLoader,
+                    YAML_KEY_PATH_INVALID_ID,
+                    message='A key path step must be a two-item list.',
+                    key_path=key_path,
+                )
+            kind, token = step
+            if kind == 'val':
+                if not isinstance(token, str):
+                    ServiceError.raise_for(
+                        YamlLoader,
+                        YAML_KEY_PATH_INVALID_ID,
+                        message=f'A value token must be text: {token}.',
+                        key_path=key_path,
+                    )
+            elif kind == 'key':
+                if not isinstance(token, str):
+                    ServiceError.raise_for(
+                        YamlLoader,
+                        YAML_KEY_PATH_INVALID_ID,
+                        message=f'A key token must be text: {token}.',
+                        key_path=key_path,
+                    )
+            elif kind == 'seq':
+                if isinstance(token, bool) or not isinstance(token, int) or token < 0:
+                    ServiceError.raise_for(
+                        YamlLoader,
+                        YAML_KEY_PATH_INVALID_ID,
+                        message=f'A sequence index must be a non-negative int: {token}.',
+                        key_path=key_path,
+                    )
+            else:
+                ServiceError.raise_for(
+                    YamlLoader,
+                    YAML_KEY_PATH_INVALID_ID,
+                    message=f'Key path kind is not val, key, or seq: {kind}.',
+                    key_path=key_path,
+                )
+            steps.append((kind, token))
+        return tuple(steps)
+
+    # * method: resolve_key_path (static)
+    @staticmethod
+    def resolve_key_path(steps: tuple, root: Any) -> Any:
+        '''
+        Walk a shaped key path to one node.
+
+        :param steps: Shaped kind and token steps.
+        :type steps: tuple
+        :param root: The composed document root.
+        :type root: Any
+        :return: The node at the path.
+        :rtype: Any
+        :raises ServiceError: If a step does not name a child of the current node.
+        '''
+
+        # An empty document has no node at a path. Do not invent a root.
+        node = root
+        if node is None:
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_KEY_PATH_INVALID_ID,
+                message='A key path does not resolve.',
+                key_path=steps,
+            )
+        for kind, token in steps:
+            if kind == 'seq':
+                if not isinstance(node, SequenceNode) or token >= len(node.value):
+                    ServiceError.raise_for(
+                        YamlLoader,
+                        YAML_KEY_PATH_INVALID_ID,
+                        message='A key path does not resolve.',
+                        key_path=steps,
+                    )
+                node = node.value[token]
+                continue
+            pair = find_mapping_pair(node, token)
+            if pair is None:
+                ServiceError.raise_for(
+                    YamlLoader,
+                    YAML_KEY_PATH_INVALID_ID,
+                    message='A key path does not resolve.',
+                    key_path=steps,
+                )
+            node = pair[0] if kind == 'key' else pair[1]
+        return node
+
+    # * method: require_anchor (static)
+    @staticmethod
+    def require_anchor(name: str, table: dict, path: str = '') -> Any:
+        '''
+        Require one recorded anchor.
+
+        :param name: The anchor name.
+        :type name: str
+        :param table: Names to the nodes that hold them.
+        :type table: dict
+        :param path: Path to the YAML file.
+        :type path: str
+        :return: The named node.
+        :rtype: Any
+        :raises ServiceError: If the name is absent.
+        '''
+
+        # An empty table is a miss. Do not invent a node.
+        if name not in table:
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_ANCHOR_NOT_FOUND_ID,
+                message=f'Anchor {name} was not found. Path: {path}.',
+                path=str(path),
+                name=name,
+            )
+        return table[name]
+
+    # * method: require_same_node (static)
+    @staticmethod
+    def require_same_node(left: Any, right: Any, name: str, path: str = '') -> Any:
+        '''
+        Require one node under both a name and a key path.
+
+        :param left: The named node.
+        :type left: Any
+        :param right: The node at the key path.
+        :type right: Any
+        :param name: The anchor name.
+        :type name: str
+        :param path: Path to the YAML file.
+        :type path: str
+        :return: The node.
+        :rtype: Any
+        :raises ServiceError: If the name and the path name different nodes.
+        '''
+
+        # Identity, not a path tuple.
+        if left is not right:
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_ANCHOR_CONFLICT_ID,
+                message=f'Anchor {name} and the key path name different nodes. Path: {path}.',
+                path=str(path),
+                name=name,
+            )
+        return left
+
+    # * method: require_unnamed (static)
+    @staticmethod
+    def require_unnamed(node: Any, name: str, path: str = '') -> Any:
+        '''
+        Require a node that does not already hold an anchor name.
+
+        :param node: The node to name.
+        :type node: Any
+        :param name: The anchor name.
+        :type name: str
+        :param path: Path to the YAML file.
+        :type path: str
+        :return: The node.
+        :rtype: Any
+        :raises ServiceError: If the node already has an anchor name.
+        '''
+
+        # A second name on one node is a conflict.
+        if getattr(node, 'anchor_name', None):
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_ANCHOR_CONFLICT_ID,
+                message=f'Anchor {name} would rename a node that already has a name. Path: {path}.',
+                path=str(path),
+                name=name,
+            )
+        return node
+
+    # * method: require_single_visit (static)
+    @staticmethod
+    def require_single_visit(node: Any,
+                             target: Any,
+                             later: bool,
+                             name: str,
+                             path: str = '') -> None:
+        '''
+        Require that a later visit is not the named node.
+
+        :param node: The visited node.
+        :type node: Any
+        :param target: The named node.
+        :type target: Any
+        :param later: Whether this visit follows the defining visit.
+        :type later: bool
+        :param name: The anchor name.
+        :type name: str
+        :param path: Path to the YAML file.
+        :type path: str
+        :rtype: None
+        :raises ServiceError: If a later visit is the named node.
+        '''
+
+        # A later visit is an alias. Removing the name would invent a copy.
+        if later and node is target:
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_ANCHOR_CONFLICT_ID,
+                message=f'Anchor {name} still has a later visit. Path: {path}.',
+                path=str(path),
+                name=name,
+            )
+
+    # * method: require_plain_node (static)
+    @staticmethod
+    def require_plain_node(node: Any, name: str, path: str = '') -> Any:
+        '''
+        Require one plain node and return its value.
+
+        :param node: The named node.
+        :type node: Any
+        :param name: The anchor name.
+        :type name: str
+        :param path: Path to the YAML file.
+        :type path: str
+        :return: The plain value.
+        :rtype: Any
+        :raises ServiceError: If the node is not a plain scalar, sequence, or mapping.
+        '''
+
+        # Inverse by tag. The function does not raise. This method refuses.
+        value, plain = plain_from_node(node)
+        if not plain:
+            ServiceError.raise_for(
+                YamlLoader,
+                YAML_PLAIN_VALUE_REQUIRED_ID,
+                message=f'Anchor {name} is not a plain value. Path: {path}.',
+                path=str(path),
+                name=name,
+            )
+        return value
+
+    # * method: refuse_generated_anchor (static)
+    @staticmethod
+    def refuse_generated_anchor() -> None:
+        '''
+        Refuse an anchor id this loader did not record.
+
+        :rtype: None
+        :raises ServiceError: Always.
+        '''
+
+        # The table is the only source of anchor ids.
+        ServiceError.raise_for(
+            YamlLoader,
+            YAML_COMPOSE_FAILED_ID,
+            message='Refusing to generate an anchor id. Record the name before serialize.',
+        )
+
+    # * method: require_recorded_anchor (static)
+    @staticmethod
+    def require_recorded_anchor() -> None:
+        '''
+        Refuse a shared node whose anchor was not recorded.
+
+        :rtype: None
+        :raises ServiceError: Always.
+        '''
+
+        # A shared node without a recorded name cannot be serialized.
+        ServiceError.raise_for(
+            YamlLoader,
+            YAML_COMPOSE_FAILED_ID,
+            message='A shared node has no recorded anchor.',
+        )
+
+    # * method: raise_anchor_conflict (static)
+    @staticmethod
+    def raise_anchor_conflict(message: str, cause: Optional[BaseException] = None, **kwargs) -> None:
+        '''
+        Raise an anchor conflict.
+
+        :param message: The conflict message.
+        :type message: str
+        :param cause: The compose error, when one was sniffed.
+        :type cause: Optional[BaseException]
+        :rtype: None
+        :raises ServiceError: Always.
+        '''
+
+        # One code for a taken name and for two nodes that claim one name.
+        ServiceError.raise_for(
+            YamlLoader,
+            YAML_ANCHOR_CONFLICT_ID,
+            message=message,
+            cause=cause,
+            **kwargs,
+        )
+
+    # * method: raise_compose_failed (static)
+    @staticmethod
+    def raise_compose_failed(message: str, cause: Optional[BaseException] = None) -> None:
+        '''
+        Raise a compose failure that is not an anchor conflict.
+
+        :param message: The failure message.
+        :type message: str
+        :param cause: The compose error.
+        :type cause: Optional[BaseException]
+        :rtype: None
+        :raises ServiceError: Always.
+        '''
+
+        # The sniff stays in compose. This method only raises.
+        ServiceError.raise_for(
+            YamlLoader,
+            YAML_COMPOSE_FAILED_ID,
+            message=message,
+            cause=cause,
+        )
