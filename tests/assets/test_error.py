@@ -58,7 +58,6 @@ def test_every_entry_omits_redundant_id():
     for definition in ADMIN_DEFAULT_ERRORS.values():
         assert 'id' not in definition
 
-
 # *** testers
 
 # ** tester: test_core_default_errors
