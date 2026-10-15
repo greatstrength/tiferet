@@ -39,6 +39,7 @@ from .feature import (
     ParameterSpecification,
     RequestSpecification,
 )
+from .tester_module import TestModuleAddress, TestModuleDocument
 from .request import (
     Request,
 )
@@ -80,6 +81,8 @@ __all__ = [
     'EventFeatureStep',
     'ParameterSpecification',
     'RequestSpecification',
+    'TestModuleAddress',
+    'TestModuleDocument',
     'Request',
     'Formatter',
     'Handler',
