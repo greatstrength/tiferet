@@ -282,9 +282,11 @@ def test_domain_exports_phase_models() -> None:
             name,
         )
 
-    # Assert the module-document names are absent.
-    assert not hasattr(tiferet.domain, 'TestModuleAddress')
-    assert not hasattr(tiferet.domain, 'TestModuleDocument')
+    # Trunk already exports the module-document names after the phase models.
+    assert exported[start + 7:start + 9] == [
+        'TestModuleAddress',
+        'TestModuleDocument',
+    ]
 
 # *** testers
 
