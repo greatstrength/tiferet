@@ -48,6 +48,7 @@ from .tester_phase import (
     PhaseRuntime,
     Test,
 )
+from .tester_module import TestModuleAddress, TestModuleDocument
 from .request import (
     Request,
 )
@@ -96,6 +97,8 @@ __all__ = [
     'ExecutionTarget',
     'PhaseRuntime',
     'Test',
+    'TestModuleAddress',
+    'TestModuleDocument',
     'Request',
     'Formatter',
     'Handler',
