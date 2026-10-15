@@ -737,12 +737,13 @@ class TestTestModuleDocumentAggregate:
             value=[(scalar_sample, node)],
         )
 
-        # Detach the containment.
+        # Capture the attached object, then detach the containment.
+        attached = container.value[0][1]
         aggregate.detach(container, 0)
 
-        # Assert the container is empty and the node is that same object.
+        # Assert the container is empty and the detached node is that attached object.
         assert len(container.value) == 0
-        assert node is node
+        assert attached is node
 
     # * test: assign_anchor_records_name
     def test_assign_anchor_records_name(
