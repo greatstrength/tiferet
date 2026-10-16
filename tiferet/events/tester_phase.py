@@ -15,7 +15,7 @@ from pydantic import Field, ValidationError
 # ** app
 from .core import DomainEvent, AsyncDomainEvent, a
 from ..assets import TiferetError
-from ..domain.core import (
+from ..domain import (
     INVALID_MODEL_ATTRIBUTE_ID,
     INVALID_MODEL_VALUE_ID,
     DomainObject,
@@ -391,7 +391,7 @@ class ExerciseDomainContract(CheckEvent):
             Harness stub with a non-primitive identity.
             '''
 
-            id = {'nested': True}
+            id = {'nested': 'value'}
 
         # Construct the domain object and confirm the attribute is kept.
         domain_object = TestDomainObject(attribute='test')
@@ -624,7 +624,7 @@ class ExerciseServiceContract(CheckEvent):
     @DomainEvent.parameters_required(['assertion', 'cls'])
     def execute(self,
                 assertion: Any,
-                cls: Any,
+                cls: type,
                 **kwargs) -> Any:
         '''
         Lock one service method table and return the assertion when it holds.
@@ -632,7 +632,7 @@ class ExerciseServiceContract(CheckEvent):
         :param assertion: The assertion describing the protocol to run.
         :type assertion: Any
         :param cls: The already-imported service class to lock.
-        :type cls: Any
+        :type cls: type
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The assertion when the protocol holds.
