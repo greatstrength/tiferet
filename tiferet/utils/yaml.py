@@ -150,14 +150,10 @@ def walk_test_module_nodes(root: Any, visit: Callable) -> None:
         Visit one node and descend only on its first visit.
         '''
 
-        # A missing node is not a visit.
-        if node is None:
-            return
-
-        # Call the visitor, then stop when this node was already seen.
+        # Visit a null node, then do not descend. A null root is a visit.
         later = id(node) in seen
         visit(node, path, later)
-        if later:
+        if later or node is None:
             return
 
         # Record the first visit before descending.
@@ -250,7 +246,7 @@ def node_from_plain(value: Any):
     pairs = []
     for key, item in value.items():
         pairs.append((
-            ScalarNode(YAML_STR_TAG, key if isinstance(key, str) else str(key)),
+            ScalarNode(YAML_STR_TAG, key),
             node_from_plain(item),
         ))
     return MappingNode(YAML_MAP_TAG, pairs, flow_style=False)
@@ -527,12 +523,13 @@ def plain_mapping(root: Any) -> Any:
     copied = copy.deepcopy(root)
     try:
         value = yaml.constructor.SafeConstructor().construct_document(copied)
-    except Exception as error:
+    except yaml.constructor.ConstructorError as error:
         ServiceError.raise_for(
             YamlLoader,
             YAML_FILE_LOAD_ERROR_ID,
             message=f'Failed to parse YAML file: {error}.',
             cause=error,
+            error=str(error),
         )
 
     # A constructed null is an empty mapping.
@@ -832,7 +829,10 @@ class AnchorSerializer(Serializer):
                 self.anchor_node(value_node)
 
     # * method: serialize_node
-    def serialize_node(self, node, parent, index) -> None:
+    def serialize_node(self,
+                       node,
+                       parent,
+                       index) -> None:
         '''
         Emit a recorded name on the first visit and an alias on a later visit.
 
@@ -1131,9 +1131,11 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the text cannot be composed.
         '''
 
+        # Build the loader before the try so a constructor failure is not converted.
+        loader = AnchorLoader(text, anchors=anchors)
+
         # Compose one document. Do not safe-load.
         try:
-            loader = AnchorLoader(text, anchors=anchors)
             return loader.get_single_node()
 
         # An undefined alias or a duplicate anchor is a conflict.
@@ -1171,6 +1173,29 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When a shared node has no recorded name.
         '''
 
+        # Refuse an unrecorded share before a document event, so close can finish.
+        def refuse_unrecorded_share(current, seen):
+            '''
+            Raise when a shared node has no recorded name.
+            '''
+
+            if current is None:
+                return
+            identity = id(current)
+            if identity in seen:
+                if not getattr(current, 'anchor_name', None):
+                    YamlLoader.require_recorded_anchor()
+                return
+            seen.add(identity)
+            if isinstance(current, SequenceNode):
+                for item in current.value:
+                    refuse_unrecorded_share(item, seen)
+                return
+            if isinstance(current, MappingNode):
+                for key_node, value_node in current.value:
+                    refuse_unrecorded_share(key_node, seen)
+                    refuse_unrecorded_share(value_node, seen)
+
         # Open a dumper over a text buffer.
         stream = StringIO()
         dumper = AnchorDumper(stream)
@@ -1179,23 +1204,24 @@ class YamlLoader(FileLoader, YamlService):
                 for item in already:
                     dumper.serialized_nodes[item] = True
             dumper.open()
+            seen = set()
+            if already is not None:
+                for item in already:
+                    seen.add(id(item))
+            refuse_unrecorded_share(node, seen)
             dumper.serialize(node)
             dumper.close()
 
-        # Close the dumper and re-raise a structured failure.
+        # Close the dumper and re-raise. Do not discard a close failure.
         except ServiceError:
-            try:
-                if dumper.closed is False:
-                    dumper.close()
-            except Exception:
-                pass
+            dumper.close()
             raise
 
-        # Append a newline when the emitter did not end with one.
-        emitted = stream.getvalue()
-        if not emitted.endswith('\n'):
-            emitted += '\n'
-        return emitted
+        # Append a newline only when the text is non-empty and does not end with one.
+        text = stream.getvalue()
+        if text and not text.endswith('\n'):
+            text += '\n'
+        return text
 
     # * method: anchored (static)
     @staticmethod
@@ -1215,11 +1241,11 @@ class YamlLoader(FileLoader, YamlService):
         # Compose when asked. Otherwise serialize.
         if action == 'compose':
             return YamlLoader.compose_anchored(
-                kwargs['text'],
+                kwargs.get('text'),
                 anchors=kwargs.get('anchors'),
             )
         return YamlLoader.serialize_anchored(
-            kwargs['node'],
+            kwargs.get('node'),
             already=kwargs.get('already'),
         )
 
@@ -1246,6 +1272,7 @@ class YamlLoader(FileLoader, YamlService):
                 self,
                 YAML_MAPPING_REQUIRED_ID,
                 message=f'YAML root must be a mapping. Path: {path}.',
+                path=str(path),
             )
         return data
 
@@ -1269,6 +1296,7 @@ class YamlLoader(FileLoader, YamlService):
                 self,
                 YAML_MAPPING_REQUIRED_ID,
                 message=f'YAML save requires a mapping. Path: {path}.',
+                path=str(path),
             )
 
         # Reject a non-YAML suffix before creating the file.
@@ -1277,6 +1305,7 @@ class YamlLoader(FileLoader, YamlService):
                 self,
                 INVALID_FILE_ID,
                 message='File must have .yaml or .yml extension.',
+                path=str(path),
             )
 
         # Save through a write loader. Do not re-read.
@@ -1332,6 +1361,7 @@ class YamlLoader(FileLoader, YamlService):
                 self,
                 INVALID_FILE_ID,
                 message='File must have .yaml or .yml extension.',
+                path=str(path),
             )
 
         # Compose before opening, so a rejected document does not create the file.
@@ -1564,7 +1594,10 @@ class YamlLoader(FileLoader, YamlService):
         return name
 
     # * method: rename_anchor
-    def rename_anchor(self, path: str, name: str, new_name: str) -> str:
+    def rename_anchor(self,
+                      path: str,
+                      name: str,
+                      new_name: str) -> str:
         '''
         Rename one anchor on the same node.
 
@@ -1839,7 +1872,10 @@ class YamlLoader(FileLoader, YamlService):
 
     # * method: require_same_node (static)
     @staticmethod
-    def require_same_node(left, right, name, path='') -> Any:
+    def require_same_node(left,
+                          right,
+                          name,
+                          path='') -> Any:
         '''
         Require two references to be the same node.
 
@@ -1897,7 +1933,11 @@ class YamlLoader(FileLoader, YamlService):
 
     # * method: require_single_visit (static)
     @staticmethod
-    def require_single_visit(node, target, later, name, path='') -> None:
+    def require_single_visit(node,
+                             target,
+                             later,
+                             name,
+                             path='') -> None:
         '''
         Refuse a later visit of the target node.
 

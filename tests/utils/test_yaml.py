@@ -716,8 +716,13 @@ def test_plain_mapping_constructor_error():
     A construct failure leaves the utility as ServiceError.
     '''
 
-    # A mapping node whose value is not a list of pairs.
-    root = MappingNode(YAML_MAP_TAG, 'not-pairs', flow_style=False)
+    # A merge key whose value is not a mapping raises ConstructorError.
+    merge_key = ScalarNode(YAML_MERGE_TAG, '<<')
+    root = MappingNode(
+        YAML_MAP_TAG,
+        [(merge_key, ScalarNode(YAML_INT_TAG, '1'))],
+        flow_style=False,
+    )
 
     # Project the mapping.
     with pytest.raises(ServiceError) as exc_info:
