@@ -326,7 +326,7 @@ Utilities implement Services from `tiferet/interfaces/`:
 
 - `FileLoader` → `FileService` (`interfaces/file.py`)
 - `SqliteClient` → `SqliteService` (`interfaces/sqlite.py`) + `FileService` (via `FileLoader`)
-- `YamlLoader` / `JsonLoader` / `CsvLoader` satisfy the `ConfigurationService` pattern indirectly via repositories that consume them.
+- `YamlLoader` implements `YamlService`. `JsonLoader`, `TomlLoader`, and `CsvLoader` still declare only `FileLoader`.
 
 Future utilities follow the same pattern: define a Service interface in `tiferet/interfaces/`, implement the concrete utility in `tiferet/utils/`, and export with an alias.
 
