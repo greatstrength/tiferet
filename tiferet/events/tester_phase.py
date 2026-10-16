@@ -50,9 +50,9 @@ class EvaluateAssertion(CheckEvent):
     # * method: execute
     @DomainEvent.parameters_required(['assertion'])
     def execute(self,
-            assertion: Any,
-            values: Dict[str, Any] = None,
-            **kwargs) -> Any:
+                assertion: Any,
+                values: Dict[str, Any] = None,
+                **kwargs) -> Any:
         '''
         Evaluate one comparison and return the assertion when it holds.
 
