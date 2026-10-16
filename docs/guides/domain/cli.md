@@ -129,7 +129,7 @@ cmd.has_argument(['-z'])            # False if no match
 
 ## The CLI-to-Feature Bridge
 
-The CLI domain's key design pattern is the **CLI-to-Feature bridge**: every `CliCommand.id` corresponds exactly to a feature ID in `feature.yml`. When a user runs a CLI command, the `CliContext` maps the parsed command to a feature and executes it via `FeatureContext`.
+The CLI domain's key design pattern is the **CLI-to-Feature bridge**: every `CliCommand.id` corresponds exactly to a feature ID in `feature.yml`. When a user runs a CLI command, the `CliSessionContext` maps the parsed command to a feature and executes it via `FeatureContext`.
 
 For example:
 - CLI command `calc.add` → Feature `calc.add` (defined in `feature.yml`)
@@ -197,12 +197,16 @@ These events depend on the `CliService` interface for persistence operations.
 **`CliService`** (`tiferet/interfaces/cli.py`) defines the abstract contract for CLI configuration persistence:
 
 - `exists(id: str) -> bool`
-- `get(id: str) -> CliCommand`
-- `list() -> List[CliCommand]`
-- `save(cli_command) -> None`
+- `get(id: str) -> CliCommandAggregate`
+- `list() -> List[CliCommandAggregate]`
+- `save(command: CliCommandAggregate) -> None`
 - `delete(id: str) -> None`
+- `get_parent_arguments() -> List[CliArgumentAggregate]`
+- `save_parent_arguments(parent_arguments: List[CliArgumentAggregate]) -> None`
 
-Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
+Return types are aggregates rather than plain domain objects, so a calling event can mutate the result without casting.
+
+Concrete implementations (e.g., `CliConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 

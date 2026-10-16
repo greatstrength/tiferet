@@ -9,7 +9,7 @@
 
 The DI layer is Tiferet's dependency-injection contract, split deliberately into two files: `di/core.py` declares an abstract `ServiceContainer`/`ServiceResolver` contract with zero third-party imports, and `di/dependency_injector.py` backs that contract with the `dependency-injector` library. The split means the DI *engine* is swappable — a future backend implements the same two ABCs — without touching any call site that depends on `get_dependency`. For the concrete engine classes' constructors, methods, and usage, see [docs/guides/di/dependency_injector.md](di/dependency_injector.md).
 
-The DI layer is deliberately **event-free and asset-free**: it imports only stdlib, `dependency-injector`, `..domain`, and `..interfaces.di`/`..interfaces.core`. It assumes best-case inputs and lets raw exceptions surface to callers with event access to convert.
+The DI layer is deliberately **event-free and asset-free**: it imports only stdlib, `dependency-injector`, `..domain`, and `..interfaces.di`/`..interfaces.core`. Being asset-free is why it raises `ServiceError` rather than a catalogued `TiferetError` — it has no access to the error catalog and forms no opinion about domain meaning. A missing provider raises `ServiceError.raise_for(...)`; a registration that resolves to nothing for the active flags is skipped rather than raised on.
 
 ## Ubiquitous Language
 

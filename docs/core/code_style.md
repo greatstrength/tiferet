@@ -2,6 +2,8 @@
 
 The Tiferet framework enforces a structured code style to ensure consistency, readability, extensibility, and AI-parsability across all components. This style relies on **artifact comments** for hierarchical organization and strict formatting conventions for docstrings, parameters, snippets, and spacing.
 
+The comment hierarchy is also the placement grammar. Because every artifact declares its kind and its place (`# ***` section, `# **` artifact, `# *` member), an artifact that has drifted out of its pattern is visible without reading the body. That is what makes regeneration checkable: a regenerated form can be compared against the declared placement, and a destructive merge shows up as a declaration that no longer matches its neighbors. The grammar is the tight side of that balance, not a closed generator. It names where an artifact belongs. A use case the architecture cannot yet express, or that a custom extension would express better, is settled in [architecture.md](architecture.md), not by breaking the placement. This document is the grammar.
+
 This document defines the required code style for all modules in the `tiferet` package and serves as a guide for application-level code.
 
 ## Artifact Comments: Hierarchy and Purpose
@@ -144,7 +146,7 @@ Defines subcomponents within a class:
 - `# * init` — constructor.
 - `# * method: <name> (property)` — a descriptive `@property`. After `init`, before every other method.
 - `# * method: <name>` — other instance methods.
-- `# * method: <name> (static)` — **static methods** (e.g., `ParseParameter.execute`).
+- `# * method: <name> (static)` — **static methods** (e.g., `DomainEvent.handle`, `DomainEvent.raise_error`).
 
 These labels are an order, not a menu. See [Ordering and Declaration Constraints](#ordering-and-declaration-constraints).
 
@@ -375,7 +377,7 @@ class GetFeature(DomainEvent):
         # If not found, raise structured error.
         if not feature:
             self.raise_error(
-                a.const.FEATURE_NOT_FOUND_ID,
+                a.error.FEATURE_NOT_FOUND_ID,
                 f'Feature not found: {id}',
                 feature_id=id
             )

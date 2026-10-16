@@ -81,7 +81,7 @@ Note that this flow always re-resolves the raised error through the catalog, eve
 
 ## Built-In Defaults
 
-Tiferet provides built-in error definitions in `assets/constants.py::DEFAULT_ERRORS`. These cover framework-level errors such as:
+Tiferet provides built-in error definitions in `assets/error.py::CORE_DEFAULT_ERRORS` (extended by `ADMIN_DEFAULT_ERRORS` for the admin catalog), seeded into the shared cache by `build_cache`. These cover framework-level errors such as:
 
 - `COMMAND_PARAMETER_REQUIRED` — missing required parameters
 - `FEATURE_NOT_FOUND` — unknown feature ID
@@ -132,12 +132,14 @@ These events depend on the `ErrorService` interface for persistence operations.
 **`ErrorService`** (`tiferet/interfaces/error.py`) defines the abstract contract for Error domain persistence:
 
 - `exists(id: str) -> bool`
-- `get(id: str) -> Error`
-- `list() -> List[Error]`
-- `save(error) -> None`
+- `get(id: str) -> ErrorAggregate`
+- `list() -> List[ErrorAggregate]`
+- `save(error: ErrorAggregate) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `ErrorYamlRepository`) satisfy this interface.
+The contract is typed with `ErrorAggregate` rather than the bare `Error`, because a caller retrieving an error is generally about to mutate and re-save it. Read a returned aggregate as an `Error` wherever only the read-only surface is needed.
+
+Concrete implementations (e.g., `ErrorConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
