@@ -939,30 +939,6 @@ class AnchorDumper(Emitter, AnchorSerializer, Resolver):
         # Resolver supplies implicit tags for emitted events.
         Resolver.__init__(self)
 
-    # * method: close
-    def close(self) -> None:
-        '''
-        Finish the stream. A mid-document failure still accepts the end event.
-
-        :return: None
-        :rtype: None
-        '''
-
-        # A partial document cannot accept StreamEnd. Return to a legal state.
-        if (
-            self.closed is False
-            and self.state not in (
-                self.expect_first_document_start,
-                self.expect_document_start,
-            )
-        ):
-            self.events = []
-            self.states = []
-            self.state = self.expect_document_start
-
-        # Emit the stream end. A close failure still propagates.
-        Serializer.close(self)
-
 # *** utils
 
 # ** util: yaml_loader
@@ -1196,18 +1172,18 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When a shared node has no recorded name.
         '''
 
-        # Open a dumper over a text buffer. An unrecorded share fails during emit.
+        # Open first. An unrecorded share fails during emit.
         stream = StringIO()
         dumper = AnchorDumper(stream)
         try:
-            if already is not None:
+            dumper.open()
+            if already:
                 for item in already:
                     dumper.serialized_nodes[item] = True
-            dumper.open()
             dumper.serialize(node)
             dumper.close()
 
-        # Close the dumper and re-raise. Do not discard a close failure.
+        # Close the dumper and re-raise. A close failure still propagates.
         except ServiceError:
             dumper.close()
             raise

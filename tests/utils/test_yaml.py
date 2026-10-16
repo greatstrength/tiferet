@@ -7,6 +7,7 @@ from pathlib import Path
 
 # ** infra
 import pytest
+from yaml.emitter import EmitterError
 from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 # ** app
@@ -2657,7 +2658,7 @@ class TestYamlLoader:
     # * test: serialize_unrecorded_shared
     def test_serialize_unrecorded_shared(self):
         '''
-        A shared node with no recorded name fails.
+        A shared node with no recorded name fails during emit.
         '''
 
         # Two parents hold one node. That node has no anchor name.
@@ -2670,11 +2671,13 @@ class TestYamlLoader:
             ],
             flow_style=False,
         )
-        with pytest.raises(ServiceError) as exc_info:
+        with pytest.raises(EmitterError) as exc_info:
             YamlLoader.serialize_anchored(root)
 
-        # The message names the missing recorded anchor.
-        assert 'A shared node has no recorded anchor' in exc_info.value.message
+        # The share fails during emit. Closing the dumper does not hide that failure.
+        cause = exc_info.value.__context__
+        assert isinstance(cause, ServiceError)
+        assert 'A shared node has no recorded anchor' in cause.message
 
     # * test: anchored_compose
     def test_anchored_compose(self):
