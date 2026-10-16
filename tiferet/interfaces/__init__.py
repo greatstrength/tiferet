@@ -7,6 +7,7 @@ __all__ = [
     'ServiceError',
     'FileService',
     'SqliteService',
+    'YamlService',
     'AppService',
     'CliService',
     'DIService',
@@ -20,6 +21,7 @@ __all__ = [
 from .core import Service, ServiceError
 from .file import FileService
 from .sqlite import SqliteService
+from .yaml import YamlService
 from .app import AppService
 from .cli import CliService
 from .di import DIService
