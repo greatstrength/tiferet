@@ -150,14 +150,13 @@ def walk_test_module_nodes(root: Any, visit: Callable) -> None:
         Visit one node and descend only on its first visit.
         '''
 
-        # Visit a null node, then do not descend. A null root is a visit.
+        # Visit the node, including a null root, and record that visit.
         later = id(node) in seen
         visit(node, path, later)
+        if not later:
+            seen.add(id(node))
         if later or node is None:
             return
-
-        # Record the first visit before descending.
-        seen.add(id(node))
 
         # Mapping children are the key node, then the value node.
         if isinstance(node, MappingNode):
@@ -940,6 +939,30 @@ class AnchorDumper(Emitter, AnchorSerializer, Resolver):
         # Resolver supplies implicit tags for emitted events.
         Resolver.__init__(self)
 
+    # * method: close
+    def close(self) -> None:
+        '''
+        Finish the stream. A mid-document failure still accepts the end event.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # A partial document cannot accept StreamEnd. Return to a legal state.
+        if (
+            self.closed is False
+            and self.state not in (
+                self.expect_first_document_start,
+                self.expect_document_start,
+            )
+        ):
+            self.events = []
+            self.states = []
+            self.state = self.expect_document_start
+
+        # Emit the stream end. A close failure still propagates.
+        Serializer.close(self)
+
 # *** utils
 
 # ** util: yaml_loader
@@ -1173,30 +1196,7 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When a shared node has no recorded name.
         '''
 
-        # Refuse an unrecorded share before a document event, so close can finish.
-        def refuse_unrecorded_share(current, seen):
-            '''
-            Raise when a shared node has no recorded name.
-            '''
-
-            if current is None:
-                return
-            identity = id(current)
-            if identity in seen:
-                if not getattr(current, 'anchor_name', None):
-                    YamlLoader.require_recorded_anchor()
-                return
-            seen.add(identity)
-            if isinstance(current, SequenceNode):
-                for item in current.value:
-                    refuse_unrecorded_share(item, seen)
-                return
-            if isinstance(current, MappingNode):
-                for key_node, value_node in current.value:
-                    refuse_unrecorded_share(key_node, seen)
-                    refuse_unrecorded_share(value_node, seen)
-
-        # Open a dumper over a text buffer.
+        # Open a dumper over a text buffer. An unrecorded share fails during emit.
         stream = StringIO()
         dumper = AnchorDumper(stream)
         try:
@@ -1204,11 +1204,6 @@ class YamlLoader(FileLoader, YamlService):
                 for item in already:
                     dumper.serialized_nodes[item] = True
             dumper.open()
-            seen = set()
-            if already is not None:
-                for item in already:
-                    seen.add(id(item))
-            refuse_unrecorded_share(node, seen)
             dumper.serialize(node)
             dumper.close()
 

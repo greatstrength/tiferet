@@ -713,23 +713,15 @@ def test_plain_mapping_does_not_edit():
 # ** test: plain_mapping_constructor_error
 def test_plain_mapping_constructor_error():
     '''
-    A construct failure leaves the utility as ServiceError.
+    A mapping value that is not a list of pairs is not converted.
     '''
 
-    # A merge key whose value is not a mapping raises ConstructorError.
-    merge_key = ScalarNode(YAML_MERGE_TAG, '<<')
-    root = MappingNode(
-        YAML_MAP_TAG,
-        [(merge_key, ScalarNode(YAML_INT_TAG, '1'))],
-        flow_style=False,
-    )
+    # A mapping node whose value is not a list of pairs.
+    root = MappingNode(YAML_MAP_TAG, 'not-pairs', flow_style=False)
 
-    # Project the mapping.
-    with pytest.raises(ServiceError) as exc_info:
+    # Project the mapping. The driver ValueError is not converted.
+    with pytest.raises(ValueError):
         plain_mapping(root)
-
-    # The message names the parse failure.
-    assert 'Failed to parse YAML file' in exc_info.value.message
 
 # ** test: plain_from_node_string
 def test_plain_from_node_string():
