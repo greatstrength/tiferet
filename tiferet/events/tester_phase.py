@@ -52,8 +52,7 @@ class EvaluateAssertion(CheckEvent):
     def execute(self,
             assertion: Any,
             values: Dict[str, Any] = None,
-            **kwargs,
-        ) -> Any:
+            **kwargs) -> Any:
         '''
         Evaluate one comparison and return the assertion when it holds.
 
