@@ -74,3 +74,4 @@ Children stay **In Review** until the Super-TRD PR is squash-merged to `main`. C
 - Never close a Super-TRD child issue. Children stay In Review until the parent PR to `main` is squash-merged.
 - Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch you cut, and every temp file (`docs/collab/process.md`). Do not remove the Super-TRD branch. `.trd/` and `.rfp/` working copies are not temp.
 - Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <AgentName>` and never merge, tag, or push to `main` (§ Shared bot accounts).

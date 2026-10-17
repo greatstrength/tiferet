@@ -54,3 +54,4 @@ Kind (reconstruction | hotfix). For reconstruction: freeze id (must already exis
 - Never publish a blocked-by cycle.
 - Doc/skills changes do not get a TRD.
 - Do not mint freeze ids. Do not open milestones.
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <AgentName>` and never merge, tag, or push to `main` (§ Shared bot accounts).

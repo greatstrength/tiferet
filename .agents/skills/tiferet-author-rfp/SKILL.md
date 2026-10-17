@@ -51,3 +51,4 @@ Binding file (proto branch, RFP prefix). Distillation sections to cite. Optional
 - Do not write a TRD. Do not set `Version: Request for Prototype` on anything.
 - Never proto → trunk git.
 - Do not tag. Do not bump the package version.
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <AgentName>` and never merge, tag, or push to `main` (§ Shared bot accounts).

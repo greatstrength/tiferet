@@ -135,6 +135,24 @@ The working copies this process defines are not temp: `.rfp/` and `.trd/` stay. 
 
 **Temporary information never goes to external or cloud storage** (gists, pastebins, uploaded images or screenshots, hosted drives, third-party services) unless the human explicitly authorizes it. What the process defines goes where it says: RFP and TRD bodies, status notes, review comments, and Collaboration Reports live on GitHub issues and PRs. Temporary images and scratch output do not.
 
+## Attribution
+
+The agent that did the work attributes itself, in its own name. A Warp agent adds `Co-Authored-By: Warp <agent@warp.dev>`. An Oz agent uses its own identity. Any other agent does the same with its own. No agent ever claims another agent's identity, and no skill or template hardcodes one.
+
+Where the attribution goes depends on the account:
+
+- **An agent on a human's own GitHub account** adds its own `Co-Authored-By: <name> <email>` to each commit it collaborated on, and the same trailer at the end of a review body.
+- **An agent on a shared bot account** signs with a final line instead. See [Shared bot accounts](#shared-bot-accounts).
+
+## Shared bot accounts
+
+Several agents may work through one shared GitHub machine account. Today that account is `tif-ai`: a non-admin collaborator owned by the maintainer, who answers for it.
+
+- **Sign everything.** Every PR body, issue, review, and comment ends with a final line `— <AgentName>`, for example `— Major` or `— Batou`. That line is the attribution. Do not add a `Co-Authored-By` trailer to the commit or the text.
+- **One agent, one working copy.** Each agent works in its own clone or worktree. Never commit onto another agent's branch.
+- **Verdict by comment.** GitHub rejects `--approve` and `--request-changes` from the token that opened the PR. Post the review as a comment whose first line is the `Verdict:` line. The verdict line is the signal ([code_review.md](code_review.md)).
+- **No standing authority.** A shared-account agent never merges, tags, publishes a release, pushes to `main`, or changes repo settings. That holds even where [code_review.md](code_review.md) would let a reviewer merge. A human does those.
+
 ## Binding, and where the skills live
 
 Facts that belong to *this* repo — proto branch name, RFP prefix, GitHub project ids — live in [binding.md](binding.md). Skills should read the current repo's `docs/collab/binding.md` if it exists, and fall back to this repository's file if it does not.

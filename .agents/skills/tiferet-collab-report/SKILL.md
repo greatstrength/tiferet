@@ -41,3 +41,4 @@ Collaboration Report comment on the issue.
 
 - Never post as a PR conversation comment.
 - Never commit or merge unless asked.
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <AgentName>` and never merge, tag, or push to `main` (§ Shared bot accounts).
