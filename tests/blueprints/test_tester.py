@@ -1,501 +1,339 @@
-"""Tests for Tiferet Tester Blueprints"""
+"""Tiferet Tester Blueprint Tests"""
 
 # *** imports
 
 # ** core
-from pathlib import Path
 import inspect
-
-# ** infra
-import pytest
+from pathlib import Path
 
 # ** app
-from tiferet.assets.tester import (
-    AGGREGATE_ERROR_TESTER_ID,
-    DOMAIN_ERROR_MESSAGE_TESTER_ID,
-    SERVICE_EVENT_GET_ERROR_TESTER_ID,
-    TIFERET_TESTER_ID,
-    TRANSFER_OBJECT_ERROR_TESTER_ID,
+import tiferet.assets.tester
+from tiferet import a, use_tester
+from tiferet.assets.app import (
+    APP_CONSTANT_CACHE_PREFIX,
+    APP_SERVICE_CACHE_PREFIX,
 )
 from tiferet.blueprints import tester as tester_blueprints
 from tiferet.blueprints.tester import (
     build_cache,
     build_test_session,
     build_tester_context,
-    use_tester,
 )
-from tiferet.contexts.app import APP_SESSION_CACHE_PREFIX
+from tiferet.contexts.error import ERROR_CACHE_PREFIX
+from tiferet.contexts.request import RequestContext
 from tiferet.contexts.tester import (
-    AggregateTesterContext,
-    DomainEventTesterContext,
-    DomainTesterContext,
     ContextTesterContext,
+    DomainEventTesterContext,
     GenericTesterContext,
     RepoTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
-    TransferObjectTesterContext,
+    TestSessionContext,
+    TesterObject,
 )
-from tiferet.contexts.request import RequestContext
 from tiferet.domain.error import ErrorMessage
 from tiferet.domain.request import Request
-from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
-
-# *** constants
-
-# ** constant: tester_mod
-from tiferet.contexts import tester as tester_contexts
-
-TESTER_OBJECT = tester_contexts.TesterObject
-TESTER_CONTEXT = tester_contexts.TesterContext
-TEST_SESSION_CONTEXT = tester_contexts.TestSessionContext
-
-# ** constant: specialized_context_map
-SPECIALIZED_CONTEXT_MAP = {
-    'domain': (DomainTesterContext, ErrorMessage),
-    'aggregate': (AggregateTesterContext, ErrorAggregate),
-    'transfer_object': (TransferObjectTesterContext, ErrorConfigObject),
-    'domain_event': (DomainEventTesterContext, ErrorMessage),
-    'service_event': (ServiceEventTesterContext, ErrorMessage),
-}
-
-# ** constant: generic_probe
-def _generic_probe():
-    '''Return a sentinel for generic blueprint injection tests.'''
-
-    # Return a stable sentinel.
-    return 'generic-probe'
-
-# ** constant: repo_probe
-class _RepoProbe:
-    '''A dummy repository constructor for repo selector tests.'''
-
-    def __init__(self, error_config: str, encoding: str = 'utf-8'):
-        self.error_config = error_config
-        self.encoding = encoding
+from tiferet.events.error import GetError, ListErrors
+from tiferet.repos.error import ErrorConfigRepository
 
 # *** tests
 
-# ** test: build_tester_context_maps_generic
-def test_build_tester_context_maps_generic() -> None:
+# ** test: tester_build_cache_isolated_from_standard_app_catalogs
+def test_tester_build_cache_isolated_from_standard_app_catalogs() -> None:
     '''
-    Test that build_tester_context maps type='generic' to GenericTesterContext.
+    Build the tester cache without a seed and read its catalogs.
+
+    :return: None
+    :rtype: None
     '''
 
-    # Bind a generic tester.
-    tester = TESTER_OBJECT(
-        type='generic',
-        id='generic._generic_probe',
-        module_path=__name__,
-        class_name='_generic_probe',
+    # Build the tester cache with no seed cache passed.
+    cache = build_cache()
+
+    # The tester prefix matches the default tester catalog, and errors stay empty.
+    assert set(cache.get_by_prefix(*TESTER_CACHE_PREFIX)) == set(
+        a.tester.CORE_DEFAULT_TESTERS,
+    )
+    assert cache.get_by_prefix(*ERROR_CACHE_PREFIX) == {}
+
+    # App services and constants are the tester dialect, not the standard catalogs.
+    assert set(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)) == {
+        a.app.DI_SERVICE_ID,
+        a.app.FEATURE_SERVICE_ID,
+        a.app.GET_FEATURE_EVT_ID,
+    }
+    assert cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX) == {
+        a.app.DI_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+        a.app.FEATURE_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+    }
+
+# ** test: build_test_session_constructs_request_session
+def test_build_test_session_constructs_request_session() -> None:
+    '''
+    Bind an ErrorMessage tester and build a session with overlay data.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Bind a domain tester for ErrorMessage.
+    tester = TesterObject(
+        type='domain',
+        id='domain.ErrorMessage',
+        module_path=ErrorMessage.__module__,
+        class_name='ErrorMessage',
+        sample_data={
+            'lang': 'en_US',
+            'text': 'An error occurred.',
+        },
     )
     bound = build_tester_context(tester)
 
-    # Assert the generic variant was selected.
-    assert isinstance(bound, GenericTesterContext)
-    assert bound.domain is tester
+    # Build a session with overlay data.
+    session = build_test_session(
+        bound,
+        data={'text': 'overlay'},
+    )
 
-# ** test: use_tester_generic_injects_generic_tester_context_as_test_ctx
-def test_use_tester_generic_injects_generic_tester_context_as_test_ctx() -> None:
+    # The session is the request bound to that master.
+    assert type(session) is TestSessionContext
+    assert session.data == {'text': 'overlay'}
+    assert session.tester_ctx is bound
+
+# ** test: tester_build_app_is_not_a_hub
+def test_tester_build_app_is_not_a_hub() -> None:
     '''
-    Test that @use_tester(type='generic') injects GenericTesterContext as test_ctx.
-    '''
+    Read retired names and the source of build_test_session.
 
-    # Decorate a throwaway non-Test* probe class.
-    @use_tester(type='generic', target_cls=_generic_probe)
-    class Probe:
-        def test_one(self, test_ctx):
-            return test_ctx
-
-    # Assert the injected context is the generic variant.
-    ctx = Probe().test_one()
-    assert isinstance(ctx, GenericTesterContext)
-
-# ** test: use_tester_omitted_type_defaults_to_generic
-def test_use_tester_omitted_type_defaults_to_generic() -> None:
-    '''
-    Test that omitting type= injects GenericTesterContext as test_ctx.
+    :return: None
+    :rtype: None
     '''
 
-    # Decorate a throwaway non-Test* probe class without type=.
-    @use_tester(target_cls=_generic_probe)
-    class Probe:
-        def test_one(self, test_ctx):
-            return test_ctx
+    # Retired names are null on the tester blueprint module.
+    for name in (
+        'build_app',
+        'build_test_session_context',
+        'build_test_request',
+        'test_case',
+        'TestRequestContext',
+        'resolve_tester',
+    ):
+        assert getattr(tester_blueprints, name, None) is None
 
-    # Assert omitting type= selects the generic variant.
-    ctx = Probe().test_one()
-    assert isinstance(ctx, GenericTesterContext)
+    # The session builder does not name hub composition.
+    source = inspect.getsource(build_test_session)
+    for token in (
+        'get_app_session',
+        'compose_session_context',
+        'build_app_service_container',
+        'build_service_resolver',
+    ):
+        assert token not in source
+
+# ** test: use_tester_is_exported
+def test_use_tester_is_exported() -> None:
+    '''
+    Compare the tiferet export with the blueprint function.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The imported name is the blueprint function.
+    assert use_tester is tester_blueprints.use_tester
+
+# ** test: use_tester_keeps_pytest_out_of_tiferet
+def test_use_tester_keeps_pytest_out_of_tiferet() -> None:
+    '''
+    Read the tester blueprint source and its attributes.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The module does not import pytest and does not expose use_fixture.
+    source = Path(tester_blueprints.__file__).read_text()
+    assert 'import pytest' not in source
+    assert 'pytest11' not in source
+    assert getattr(tester_blueprints, 'use_fixture', None) is None
+
+# ** test: build_tester_context_selects_event_variants
+def test_build_tester_context_selects_event_variants() -> None:
+    '''
+    Bind a domain-event tester and a service-event tester.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Bind ListErrors as a domain event and GetError as a service event.
+    domain_event = build_tester_context(TesterObject(
+        type='domain_event',
+        id='domain_event.ListErrors',
+        module_path=ListErrors.__module__,
+        class_name='ListErrors',
+    ))
+    service_event = build_tester_context(TesterObject(
+        type='service_event',
+        id='service_event.GetError',
+        module_path=GetError.__module__,
+        class_name='GetError',
+        dependencies={
+            'error_service': {
+                'module_path': 'tiferet.interfaces',
+                'class_name': 'ErrorService',
+            },
+        },
+        sample_kwargs={'id': 'TEST_ERROR'},
+        service_attr='error_service',
+        not_found_error_code='ERROR_NOT_FOUND',
+    ))
+
+    # Each tester selects its own variant.
+    assert type(domain_event) is DomainEventTesterContext
+    assert type(domain_event) is not ServiceEventTesterContext
+    assert type(service_event) is ServiceEventTesterContext
+
+# ** test: build_tester_context_selects_generic_variant
+def test_build_tester_context_selects_generic_variant() -> None:
+    '''
+    Bind a generic tester for ErrorMessage.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Bind the generic tester with the sample data.
+    bound = build_tester_context(TesterObject(
+        type='generic',
+        id='generic.ErrorMessage',
+        module_path=ErrorMessage.__module__,
+        class_name='ErrorMessage',
+        sample_data={
+            'lang': 'en_US',
+            'text': 'An error occurred.',
+        },
+    ))
+
+    # The generic variant is selected.
+    assert type(bound) is GenericTesterContext
+
+# ** test: build_tester_context_selects_repo_variant
+def test_build_tester_context_selects_repo_variant() -> None:
+    '''
+    Bind a repo tester for ErrorConfigRepository.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Bind the repository tester.
+    bound = build_tester_context(TesterObject(
+        type='repo',
+        id='repo.ErrorConfigRepository',
+        module_path=ErrorConfigRepository.__module__,
+        class_name='ErrorConfigRepository',
+        config_parameter='error_config',
+    ))
+
+    # The repo variant is selected.
+    assert type(bound) is RepoTesterContext
+
+# ** test: use_tester_injects_repo_test_ctx
+def test_use_tester_injects_repo_test_ctx() -> None:
+    '''
+    Decorate a function that declares test_ctx and call it.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Decorate a function with the repository coordinates.
+    @use_tester(
+        type='repo',
+        target_cls=ErrorConfigRepository,
+        config_parameter='error_config',
+    )
+    def probe(test_ctx):
+        return test_ctx
+
+    # The injected context is the repo variant.
+    assert type(probe()) is RepoTesterContext
+
+# ** test: use_tester_injects_generic_test_ctx
+def test_use_tester_injects_generic_test_ctx() -> None:
+    '''
+    Decorate a function with target_cls and omit type.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Omit type so the decoration defaults to generic.
+    @use_tester(
+        target_cls=ErrorMessage,
+        sample_data={
+            'lang': 'en_US',
+            'text': 'An error occurred.',
+        },
+    )
+    def probe(test_ctx):
+        return test_ctx
+
+    # The injected context is the generic variant.
+    assert type(probe()) is GenericTesterContext
 
 # *** testers
 
-# ** tester: test_build_tester_context
-class TestBuildTesterContext:
+# ** tester: test_context_tester_blueprint
+class TestContextTesterBlueprint:
     '''
-    Tests for build_tester_context specialized type mapping.
-    '''
-
-    # * test: maps_specialized_types
-    def test_maps_specialized_types(self) -> None:
-        '''
-        Test each specialized type maps to the matching variant context.
-        '''
-
-        # Bind a tester of each specialized type.
-        for tester_type, (context_cls, target_cls) in SPECIALIZED_CONTEXT_MAP.items():
-            tester = TESTER_OBJECT(
-                type=tester_type,
-                id=f'{tester_type}.{target_cls.__name__}',
-                module_path=target_cls.__module__,
-                class_name=target_cls.__name__,
-            )
-            bound = build_tester_context(tester)
-
-            # Assert the matching variant was selected.
-            assert isinstance(bound, context_cls)
-            assert bound.domain is tester
-
-    # * test: unmapped_types_raise_key_error
-    def test_unmapped_types_raise_key_error(self) -> None:
-        '''
-        Test unmapped type keys raise KeyError from the context map.
-        '''
-
-        # Use a stand-in so TesterObject construction is not involved.
-        class StandIn:
-            type = 'unmapped'
-
-        # Assert unknown map keys raise KeyError.
-        with pytest.raises(KeyError):
-            build_tester_context(StandIn())
-
-# ** tester: test_build_test_session
-class TestBuildTestSession:
-    '''
-    Tests for build_test_session.
+    Context-variant selection and injection for the tester blueprint.
     '''
 
-    # * test: binds_tester_ctx_and_request_fields
-    def test_binds_tester_ctx_and_request_fields(self) -> None:
+    # * test: test_build_tester_context_selects_context_variant
+    def test_build_tester_context_selects_context_variant(self) -> None:
         '''
-        Test build_test_session returns a TestSessionContext with request fields.
-        '''
+        Bind a context tester for RequestContext.
 
-        # Bind a domain tester and build a session with a session_id.
-        tester = TESTER_OBJECT(
-            type='domain',
-            id='domain.ErrorMessage',
-            module_path=ErrorMessage.__module__,
-            class_name='ErrorMessage',
-        )
-        test_ctx = build_tester_context(tester)
-        session = build_test_session(test_ctx, session_id='session-1')
-
-        # Assert the session is the request bound to the given tester context.
-        assert isinstance(session, TEST_SESSION_CONTEXT)
-        assert session.tester_ctx is test_ctx
-        assert session.session_id == 'session-1'
-
-# ** tester: test_use_tester_injection
-class TestUseTesterInjection:
-    '''
-    Tests for @use_tester injection by parameter name.
-    '''
-
-    # * test: same_ctx_different_sessions
-    def test_same_ctx_different_sessions(self) -> None:
-        '''
-        Test two methods share test_ctx and receive different sessions.
+        :return: None
+        :rtype: None
         '''
 
-        # Decorate a harness with two injected methods.
-        @use_tester(type='domain', target_cls=ErrorMessage)
-        class Harness:
-            def test_one(self, test_ctx, session):
-                return test_ctx, session
-
-            def test_two(self, test_ctx, session):
-                return test_ctx, session
-
-            def only_session(self, session):
-                return session
-
-            def only_ctx(self, test_ctx):
-                return test_ctx
-
-        # Invoke both methods.
-        harness = Harness()
-        ctx_one, session_one = harness.test_one()
-        ctx_two, session_two = harness.test_two()
-
-        # Assert the same master context and different sessions.
-        assert ctx_one is ctx_two
-        assert session_one is not session_two
-        assert isinstance(ctx_one, DomainTesterContext)
-        assert isinstance(session_one, TEST_SESSION_CONTEXT)
-        assert isinstance(session_two, TEST_SESSION_CONTEXT)
-
-        # Assert signatures no longer expose test_ctx or session.
-        one_sig = inspect.signature(harness.test_one)
-        assert 'test_ctx' not in one_sig.parameters
-        assert 'session' not in one_sig.parameters
-        assert 'tester_ctx' not in one_sig.parameters
-
-        # Assert single-name injection still works.
-        assert harness.only_session() is not session_one
-        assert isinstance(harness.only_session(), TEST_SESSION_CONTEXT)
-        assert harness.only_ctx() is ctx_one
-
-# ** tester: test_use_tester_wrap_all
-class TestUseTesterWrapAll:
-    '''
-    Tests for wrap-all of non-test members and duck-typed fixtures.
-    '''
-
-    # * test: wraps_non_test_member
-    def test_wraps_non_test_member(self) -> None:
-        '''
-        Test a member not named test_* is wrapped when it declares test_ctx.
-        '''
-
-        # Decorate a harness with a helper that declares test_ctx.
-        @use_tester(type='domain', target_cls=ErrorMessage)
-        class Harness:
-            def helper(self, test_ctx):
-                return test_ctx
-
-        # Assert the helper is wrapped.
-        ctx = Harness().helper()
-        assert isinstance(ctx, DomainTesterContext)
-
-    # * test: unwraps_duck_typed_fixture
-    def test_unwraps_duck_typed_fixture(self) -> None:
-        '''
-        Test a duck-typed fixture object is unwrapped, wrapped, and restored.
-        '''
-
-        # Build a fixture-like object pointing at a callable that declares test_ctx.
-        def inner(test_ctx):
-            return test_ctx
-
-        class FixtureObject:
-            def __init__(self, fn):
-                self._fixture_function = fn
-
-        fixture = FixtureObject(inner)
-
-        # Decorate a class that holds the fixture object.
-        class Harness:
-            fx = fixture
-
-        decorated = use_tester(type='domain', target_cls=ErrorMessage)(Harness)
-
-        # Assert the fixture object was restored with a wrapped inner callable.
-        assert decorated.fx is fixture
-        assert decorated.fx._fixture_function is not inner
-        assert isinstance(decorated.fx._fixture_function(), DomainTesterContext)
-
-# ** tester: test_build_cache_seeds_testers
-class TestBuildCacheSeedsTesters:
-    '''
-    Tests for tester-scoped build_cache seeding.
-    '''
-
-    # * test: seeds_testers_and_session
-    def test_seeds_testers_and_session(self) -> None:
-        '''
-        Test build_cache seeds specialized testers and the tester session.
-        '''
-
-        # Build the tester-scoped cache.
-        cache = build_cache()
-
-        # Assert the service-event tester is seeded.
-        seeded = cache.get(
-            SERVICE_EVENT_GET_ERROR_TESTER_ID,
-            *TESTER_CACHE_PREFIX,
-        )
-        assert isinstance(seeded, TESTER_OBJECT)
-        assert seeded.type == 'service_event'
-
-        # Assert the other three specialized ids are present.
-        for tester_id in (
-            DOMAIN_ERROR_MESSAGE_TESTER_ID,
-            AGGREGATE_ERROR_TESTER_ID,
-            TRANSFER_OBJECT_ERROR_TESTER_ID,
-        ):
-            item = cache.get(tester_id, *TESTER_CACHE_PREFIX)
-            assert isinstance(item, TESTER_OBJECT)
-
-        # Assert the tester session is seeded.
-        session = cache.get(TIFERET_TESTER_ID, *APP_SESSION_CACHE_PREFIX)
-        assert session is not None
-        assert session.name == 'Tester'
-
-        # Assert core.build_cache is not decorated with add_default_testers.
-        import tiferet.blueprints.core as core_blueprints
-        core_source = Path(core_blueprints.__file__).read_text()
-        assert 'add_default_testers' not in core_source
-
-# ** tester: test_use_tester_exported
-class TestUseTesterExported:
-    '''
-    Tests that use_tester is exported from blueprints and tiferet.
-    '''
-
-    # * test: exported
-    def test_exported(self) -> None:
-        '''
-        Test from tiferet.blueprints and tiferet import use_tester.
-        '''
-
-        # Import through both public surfaces.
-        from tiferet.blueprints import use_tester as blueprints_use_tester
-        from tiferet import use_tester as root_use_tester
-
-        # Assert both resolve to the blueprint function.
-        assert blueprints_use_tester is use_tester
-        assert root_use_tester is use_tester
-
-# ** tester: test_no_mini_app
-class TestNoMiniApp:
-    '''
-    Tests that mini-App tester entrypoints are absent.
-    '''
-
-    # * test: mini_app_symbols_absent
-    def test_mini_app_symbols_absent(self) -> None:
-        '''
-        Test test_case, Tester, resolve_tester, and tester build_app are absent.
-        '''
-
-        # Assert mini-App symbols are not on the tester blueprint module.
-        assert not hasattr(tester_blueprints, 'test_case')
-        assert not hasattr(tester_blueprints, 'Tester')
-        assert not hasattr(tester_blueprints, 'resolve_tester')
-        assert not hasattr(tester_blueprints, 'build_app')
-
-        # Assert hub composition names are absent from the module source.
-        source = Path(tester_blueprints.__file__).read_text()
-        assert 'get_app_session' not in source
-        assert 'compose_session_context' not in source
-
-# ** tester: test_no_pytest_in_blueprints
-class TestNoPytestInBlueprints:
-    '''
-    Tests that the tester blueprint module does not import pytest.
-    '''
-
-    # * test: no_pytest_import
-    def test_no_pytest_import(self) -> None:
-        '''
-        Test tiferet/blueprints/tester.py has no pytest import.
-        '''
-
-        # Read the production module source.
-        source = Path(tester_blueprints.__file__).read_text()
-
-        # Assert pytest is not imported.
-        assert 'import pytest' not in source
-        assert 'from pytest' not in source
-
-# ** tester: test_build_tester_context_repo
-class TestBuildTesterContextRepo:
-    '''
-    Tests for build_tester_context and @use_tester repo mapping.
-    '''
-
-    # * test: build_tester_context_maps_repo
-    def test_build_tester_context_maps_repo(self) -> None:
-        '''
-        Test that build_tester_context maps type='repo' to RepoTesterContext.
-        '''
-
-        # Bind a repo tester.
-        tester = TESTER_OBJECT(
-            type='repo',
-            id='repo._RepoProbe',
-            module_path=__name__,
-            class_name='_RepoProbe',
-            config_parameter='error_config',
-        )
-        bound = build_tester_context(tester)
-
-        # Assert the repo variant was selected.
-        assert isinstance(bound, RepoTesterContext)
-        assert bound.domain is tester
-
-    # * test: use_tester_injects_repo_tester_context
-    def test_use_tester_injects_repo_tester_context(self) -> None:
-        '''
-        Test that @use_tester(type='repo') injects RepoTesterContext as test_ctx.
-        '''
-
-        # Decorate a throwaway non-Test* probe class.
-        @use_tester(
-            type='repo',
-            target_cls=_RepoProbe,
-            config_parameter='error_config',
-        )
-        class Probe:
-            def check(self, test_ctx):
-                return test_ctx
-
-        # Assert the injected context is the repo variant.
-        ctx = Probe().check()
-        assert isinstance(ctx, RepoTesterContext)
-
-# ** tester: test_build_tester_context_context_type
-class TestBuildTesterContextContextType:
-    '''
-    Tests for build_tester_context context type mapping.
-    '''
-
-    # * test: build_tester_context_maps_context
-    def test_build_tester_context_maps_context(self) -> None:
-        '''
-        Test that build_tester_context maps type='context' to ContextTesterContext.
-        '''
-
-        # Bind a context tester pointing at RequestContext.
-        tester = TESTER_OBJECT(
+        # Bind a context tester whose domain coordinates come from Request.
+        bound = build_tester_context(TesterObject(
             type='context',
             id='context.RequestContext',
             module_path=RequestContext.__module__,
             class_name='RequestContext',
             domain_module_path=Request.__module__,
             domain_class_name='Request',
-        )
-        bound = build_tester_context(tester)
+        ))
 
-        # Assert the context variant was selected.
-        assert isinstance(bound, ContextTesterContext)
-        assert bound.domain is tester
+        # The context variant is selected.
+        assert type(bound) is ContextTesterContext
 
-# ** tester: test_use_tester_context_type
-class TestUseTesterContextType:
-    '''
-    Tests for @use_tester context type injection and domain_cls.
-    '''
-
-    # * test: use_tester_injects_context_tester_context
-    def test_use_tester_injects_context_tester_context(self) -> None:
+    # * test: test_use_tester_injects_context_test_ctx
+    @use_tester(
+        type='context',
+        target_cls=RequestContext,
+        domain_cls=Request,
+        sample_data={
+            'session_id': 'test-session',
+            'feature_id': 'test.feature',
+        },
+    )
+    def test_use_tester_injects_context_test_ctx(self, test_ctx) -> None:
         '''
-        Test that @use_tester(type='context') injects ContextTesterContext as test_ctx.
+        Call the decorated method and read the injected context.
+
+        :param test_ctx: The injected context tester.
+        :type test_ctx: ContextTesterContext
+        :return: None
+        :rtype: None
         '''
 
-        # Decorate a throwaway non-Test* probe class with domain_cls.
-        @use_tester(
-            type='context',
-            target_cls=RequestContext,
-            domain_cls=Request,
-        )
-        class Probe:
-            def check(self, test_ctx):
-                return test_ctx
-
-        # Assert the injected context is the context variant with domain identity filled.
-        ctx = Probe().check()
-        assert isinstance(ctx, ContextTesterContext)
-        assert ctx.domain.domain_module_path == Request.__module__
-        assert ctx.domain.domain_class_name == 'Request'
+        # The injected context is the context variant with Request coordinates.
+        assert type(test_ctx) is ContextTesterContext
+        assert test_ctx.domain.domain_module_path == Request.__module__
+        assert test_ctx.domain.domain_class_name == 'Request'
