@@ -22,6 +22,17 @@ The console script is `tiferet-tester`, not `run_test_module`, and not the `tife
 
 **Test-module modules (v2.2.0):** `tiferet/domain/tester_phase.py`, `tiferet/domain/tester_module.py`, `tiferet/contexts/tester_phase.py`, `tiferet/contexts/tester_module.py`, `tiferet/contexts/tester_cli.py`, `tiferet/blueprints/tester_cli.py`, `tiferet/assets/tester_cli.py`
 
+## Running the suite
+
+From a checkout, install with the `test` extra, then run `pytest` from the repository root:
+
+```bash
+pip install -e '.[test]'
+pytest
+```
+
+The extra brings `pytest`, `pytest_env`, and `pytest-asyncio`. Without `pytest-asyncio` the async tests fail. `pyproject.toml` sets `testpaths` to `tests` and `tests_int`.
+
 ## Part 1 — The v2.1.0 unit-test model
 
 ### One TesterObject

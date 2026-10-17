@@ -40,5 +40,5 @@ Collaboration Report comment on the issue.
 ## Guardrails
 
 - Never post as a PR conversation comment.
-- Never commit or merge unless asked.
-- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <agent>@<platform> via <account>` and never merge, tag, or push to `main` (§ Shared bot accounts).
+- Never commit unless asked. Never merge.
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).

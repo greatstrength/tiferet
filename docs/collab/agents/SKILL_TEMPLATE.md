@@ -34,7 +34,7 @@ Numbered steps. Label strand-specific steps **Trunk** or **Prototype**.
 What is produced, and **which GitHub surface** it is posted on (PR vs issue vs tag vs local file).
 
 ## Guardrails
-- Never commit or merge unless asked.
+- Never commit unless asked. Never merge, tag, bump the version, mint a freeze, or create or close a milestone (`docs/collab/process.md` § Agent guardrails).
 - At closeout remove everything the work created (worktree and its registration, branches, pointers to them, temp files) per `docs/collab/process.md` § Closeout leaves nothing behind.
 - Never put temporary information on external or cloud storage (gists, pastebins, uploaded images, hosted drives) unless the human explicitly authorizes it.
 - Never proto → trunk git.

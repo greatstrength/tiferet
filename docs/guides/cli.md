@@ -3,8 +3,8 @@
 Tiferet ships a built-in command-line interface for managing a Tiferet
 application's configuration file (features, errors, service registrations, app
 interfaces, CLI commands, and logging). It is installed as the `tiferet` console
-script and is implemented by the `build_tiferet_cli` blueprint
-(`tiferet/blueprints/tiferet_cli.py`, exported as `TiferetCLI`).
+script and is implemented by the `build_admin_cli` blueprint
+(`tiferet/blueprints/admin_cli.py`, exported as `AdminCLI`).
 
 The CLI's command catalog and feature workflows are bootstrapped from framework
 asset modules — they are **not** read from your configuration file. Every CRUD
@@ -16,11 +16,13 @@ Install the package so the console script is on your `PATH`:
 
 ```bash
 source .venv/bin/activate
-pip install -e .
+pip install tiferet
 ```
 
+From a checkout of this repository, use `pip install -e '.[test]'` instead, so the test suite runs too ([CONTRIBUTING.md](../../CONTRIBUTING.md)).
+
 This registers the `tiferet` entry point (declared under `[project.scripts]` in
-`pyproject.toml` as `tiferet = "tiferet.blueprints.tiferet_cli:main"`).
+`pyproject.toml` as `tiferet = "tiferet.blueprints.admin_cli:main"`).
 
 ## Invocation
 
@@ -102,7 +104,7 @@ The same behavior is available without the console script by calling the
 blueprint directly:
 
 ```python
-from tiferet.blueprints.tiferet_cli import build_tiferet_cli
+from tiferet.blueprints import build_admin_cli
 
-build_tiferet_cli(app_config='app/config.yml', argv=['feature', 'list'])
+build_admin_cli(app_config='app/config.yml', argv=['feature', 'list'])
 ```
