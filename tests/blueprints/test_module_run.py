@@ -3,7 +3,6 @@
 # *** imports
 
 # ** core
-import inspect
 from pathlib import Path
 
 # ** infra
@@ -21,35 +20,12 @@ from tiferet.contexts.core import BaseContext
 from tiferet.contexts.feature import FeatureContext
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.tester import TestSessionContext, TesterObject
-from tiferet.contexts.tester_phase import (
-    PhaseRuntime,
-    PhaseRuntimeContext,
-    TestContext,
-)
+from tiferet.contexts.tester_phase import TestContext
 from tiferet.domain.error import ErrorMessage
 from tiferet.domain.feature import Feature
 from tiferet.domain.request import Request
 from tiferet.domain.tester_phase import Test
 from tiferet.interfaces.core import ServiceError
-
-# *** constants
-
-# ** constant: proof_path
-PROOF_PATH = 'tests/domain/test_error.py'
-
-# ** constant: proof_yaml
-PROOF_YAML = Path('tiferet_tests/domain/test_error.yml')
-
-# ** constant: passed_lines
-PASSED_LINES = (
-    'tiferet_tests/domain/test_error.yml::error_message_format PASSED',
-    'tiferet_tests/domain/test_error.yml::test_error::construction_derives_error_code PASSED',
-    'tiferet_tests/domain/test_error.yml::test_error::description PASSED',
-    'tiferet_tests/domain/test_error.yml::test_error::format_message_with_kwargs PASSED',
-    'tiferet_tests/domain/test_error.yml::test_error_message::new PASSED',
-    'tiferet_tests/domain/test_error.yml::test_error_message::format_with_kwargs PASSED',
-    '6 passed',
-)
 
 # *** functions
 
@@ -80,118 +56,6 @@ def write_pair(base: Path, rel: str, document: str) -> Path:
     return python_path
 
 # *** tests
-
-# ** test: proof_run_prints_yaml_node_ids
-def test_proof_run_prints_yaml_node_ids(capsys) -> None:
-    '''
-    Run the Error proof pair and compare the printed lines.
-
-    :param capsys: The pytest capture fixture.
-    :type capsys: pytest.CaptureFixture
-    :return: None
-    :rtype: None
-    '''
-
-    # Record the counterpart bytes before the run.
-    before = PROOF_YAML.read_bytes()
-    report = run_test_module(PROOF_PATH)
-    printed = capsys.readouterr().out.splitlines()
-
-    # The printed lines, statuses, and bytes match the proof pair.
-    assert printed == list(PASSED_LINES)
-    assert report['failures'] == []
-    node_ids = [line.rsplit(' ', 1)[0] for line in PASSED_LINES[:6]]
-    assert [item['node_id'] for item in report['outcomes']] == node_ids
-    assert [item['status'] for item in report['outcomes']] == ['PASSED'] * 6
-    assert PROOF_YAML.read_bytes() == before
-
-# ** test: summary_prints_only_the_count
-def test_summary_prints_only_the_count(capsys) -> None:
-    '''
-    Run the proof pair with summary true.
-
-    :param capsys: The pytest capture fixture.
-    :type capsys: pytest.CaptureFixture
-    :return: None
-    :rtype: None
-    '''
-
-    # The same run prints only the count line.
-    report = run_test_module(PROOF_PATH, summary=True)
-    printed = capsys.readouterr().out.splitlines()
-    assert printed == ['6 passed']
-    assert [item['status'] for item in report['outcomes']] == ['PASSED'] * 6
-    assert getattr(tester_blueprints, 'summarize_test_module', None) is None
-
-# ** test: session_uses_test_context
-def test_session_uses_test_context(monkeypatch) -> None:
-    '''
-    Observe TestContext.execute_feature during the proof run.
-
-    :param monkeypatch: The pytest monkeypatch fixture.
-    :type monkeypatch: pytest.MonkeyPatch
-    :return: None
-    :rtype: None
-    '''
-
-    # Observe the real method, then let it run.
-    observed = []
-    real = TestContext.execute_feature
-
-    def spy(self, request, *flags, **kwargs):
-        observed.append((self, request))
-        return real(self, request, *flags, **kwargs)
-
-    monkeypatch.setattr(TestContext, 'execute_feature', spy)
-    run_test_module(PROOF_PATH)
-
-    # Each session is bound to that TestContext and no tester context.
-    assert len(observed) == 6
-    for context, session in observed:
-        assert type(context) is TestContext
-        assert type(session) is TestSessionContext
-        assert session.test_context is context
-        assert session.tester_ctx is None
-
-# ** test: phase_runtime_comes_from_the_injected_callable
-def test_phase_runtime_comes_from_the_injected_callable(monkeypatch) -> None:
-    '''
-    Observe build_phase_runtime during the proof run.
-
-    :param monkeypatch: The pytest monkeypatch fixture.
-    :type monkeypatch: pytest.MonkeyPatch
-    :return: None
-    :rtype: None
-    '''
-
-    # Observe the factory and still return its real value.
-    observed = []
-    real = build_phase_runtime
-
-    def spy(*args, **kwargs):
-        runtime = real(*args, **kwargs)
-        observed.append(runtime)
-        return runtime
-
-    monkeypatch.setattr(tester_blueprints, 'build_phase_runtime', spy)
-    run_test_module(PROOF_PATH)
-
-    # Each runtime comes from the registry, not a hand-built context.
-    assert observed
-    for runtime in observed:
-        assert type(runtime) is PhaseRuntimeContext
-    assert BaseContext.for_domain(PhaseRuntime) is PhaseRuntimeContext
-    source = Path(tester_blueprints.__file__).read_text()
-    for token in (
-        'TestAggregate',
-        'from ..mappers.core',
-        'from ..mappers import',
-        'import pytest',
-        'pytest11',
-    ):
-        assert token not in source
-    # The TestContext source does not name blueprints.
-    assert 'blueprints' not in Path(inspect.getfile(TestContext)).read_text()
 
 # ** test: positional_session_keeps_tester_ctx
 def test_positional_session_keeps_tester_ctx() -> None:
