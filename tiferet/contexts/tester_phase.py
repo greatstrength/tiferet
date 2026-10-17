@@ -467,17 +467,13 @@ class PhaseRuntimeContext(BaseContext):
 
         # Build a context-manager mock or a plain mock.
         if arranged.context:
+            mock = MagicMock(spec=cls)
 
-            # Extend the spec so MagicMock exposes __enter__ and __exit__.
-            context_spec = type(
-                f'{getattr(cls, "__name__", "Spec")}Context',
-                (cls,),
-                {
-                    '__enter__': lambda self: self,
-                    '__exit__': lambda self, *args: None,
-                },
-            )
-            mock = MagicMock(spec=context_spec)
+            # Spec-bound MagicMock omits context-manager magics; enable them.
+            methods = set(mock._mock_methods or [])
+            methods.update({'__enter__', '__exit__'})
+            mock._mock_methods = methods
+            mock._mock_set_magics()
             mock.__enter__.return_value = mock
             mock.__exit__.return_value = None
         else:
@@ -511,9 +507,6 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: None
         '''
 
-        # Resolve or attach the method mock; specs omit names not on the class.
-        method_mock = self._method_mock(mock, method_name)
-
         # A raises dict is exclusive of every other key.
         if isinstance(value, dict) and 'raises' in value:
             if set(value) != {'raises'}:
@@ -524,41 +517,27 @@ class PhaseRuntimeContext(BaseContext):
             self._arrange_raises(mock, method_name, value['raises'])
             return
 
+        # Attach a child when the spec omits this method name.
+        try:
+            method = getattr(mock, method_name)
+        except AttributeError:
+            method = Mock()
+            setattr(mock, method_name, method)
+
         # An attributes bag becomes a SimpleNamespace return value.
         if isinstance(value, dict) and set(value) == {'attributes'}:
             attributes = self._resolve_value(
-                value['attributes'],
+                _copy_data(value['attributes']),
                 allow_request=False,
             )
-            method_mock.return_value = SimpleNamespace(**attributes)
+            method.return_value = SimpleNamespace(**attributes)
             return
 
         # Any other value, including null, is a resolved return value.
-        method_mock.return_value = self._resolve_value(
+        method.return_value = self._resolve_value(
             _copy_data(value),
             allow_request=False,
         )
-
-    # * method: method_mock
-    def _method_mock(self, mock: Mock, method_name: str) -> Mock:
-        '''
-        Return the mock child for a method name, attaching one when absent.
-
-        :param mock: The parent mock.
-        :type mock: Mock
-        :param method_name: The method name to arrange.
-        :type method_name: str
-        :return: The method mock.
-        :rtype: Mock
-        '''
-
-        # Prefer an existing child; attach a new Mock when the spec omits the name.
-        try:
-            return getattr(mock, method_name)
-        except AttributeError:
-            method_mock = Mock()
-            setattr(mock, method_name, method_mock)
-            return method_mock
 
     # * method: arrange_raises
     def _arrange_raises(
@@ -597,15 +576,19 @@ class PhaseRuntimeContext(BaseContext):
         # Import the exception class.
         exc_cls = self._require_named(spec['module_path'], spec['class_name'])
 
-        # Resolve or attach the method mock; specs omit names not on the class.
-        method_mock = self._method_mock(mock, method_name)
+        # Attach a child when the spec omits this method name.
+        try:
+            method = getattr(mock, method_name)
+        except AttributeError:
+            method = Mock()
+            setattr(mock, method_name, method)
 
         # Null or absent message uses the class; any other message uses an instance.
         message = spec.get('message')
         if message is None:
-            method_mock.side_effect = exc_cls
+            method.side_effect = exc_cls
         else:
-            method_mock.side_effect = exc_cls(message)
+            method.side_effect = exc_cls(message)
 
     # * method: resolve_value
     def _resolve_value(
@@ -808,15 +791,15 @@ class PhaseRuntimeContext(BaseContext):
         if execution.method == 'handle':
             return self._call_handle(kwargs)
 
+        # Resolve the call target.
+        target = self._resolve_target(execution)
+
         # self is legal only for the reserved methods above.
-        if execution.target == 'self':
+        if target == 'self':
             TiferetError.raise_error(
                 a.error.PHASE_STEP_FAILED_ID,
                 detail='self is legal only for new and handle.',
             )
-
-        # Resolve the call target.
-        target = self._resolve_target(execution)
 
         # A module attribute target must call that attribute directly.
         if (
@@ -917,9 +900,9 @@ class PhaseRuntimeContext(BaseContext):
                 return self._require_named(target.module_path, target.class_name)
             return self._require_named(target.module_path, target.attribute)
 
-        # The string self returns this context.
+        # The string self returns the string self.
         if target == 'self':
-            return self
+            return 'self'
 
         # A whole-value ref resolves through the scalar path.
         if (
@@ -1139,9 +1122,6 @@ class TestContext(FeatureContext):
     ``build_phase_runtime``. This context stores that callable and wraps it.
     It does not import the blueprint.
     '''
-
-    # * attribute: __test__
-    __test__ = False
 
     # * attribute: domain_type
     domain_type = Test
