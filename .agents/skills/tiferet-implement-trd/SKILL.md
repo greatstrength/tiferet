@@ -15,7 +15,7 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 - Prototype / RFP — `tiferet-rfp-session`.
 - Authoring the TRD — `tiferet-author-trd`.
 - Docs/skills.
-- Cutting the Super-TRD branch, opening the Super-TRD PR to `main`, running a fan-out, or closing a milestone — `takwin-release`, or the human.
+- Cutting the Super-TRD branch, opening the Super-TRD PR to `main`, or running a fan-out — the orchestrator or the maintainer (`docs/collab/process.md` § Super-TRD branch). Closing a milestone — the maintainer only (§ Agent guardrails).
 - A Super-TRD child whose parent branch is not pushed yet. Stop and report. Do not open a PR to `main` in its place.
 
 ## Canonical source
@@ -56,7 +56,7 @@ The first child does not open the parent PR. Later children do not commit onto a
 7. Verify the base: `gh pr view <N> --json baseRefName`. It must be the Super-TRD branch. If it is `main` or anything else, stop and report. Do not request review.
 8. Set this child issue Status to **In Review**. Short status on the **child issue**. No Collaboration Report. Do not close the child. Do not open the Super-TRD PR to `main`.
 
-Children stay **In Review** until the Super-TRD PR is squash-merged to `main`. Closing them is closeout (`takwin-release`), not this skill. A sub-TRD merge does not remove the Super-TRD branch.
+Children stay **In Review** until the Super-TRD PR is squash-merged to `main`. Closing them is the maintainer's closeout, not this skill. A sub-TRD merge does not remove the Super-TRD branch.
 
 ## Outputs
 

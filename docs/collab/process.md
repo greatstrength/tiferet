@@ -120,7 +120,7 @@ These checks keep a fan-out off the wrong base. State them as checks, not as a s
 - Before a fan-out, the orchestrator validates its dispatch branch and PR-base rules against `tiferet-implement-trd`. Every implementer prompt states the PR base explicitly.
 - After opening a PR, the implementer verifies `gh pr view <N> --json baseRefName` and stops if it is wrong.
 - The reviewer verifies that base before posting a verdict, and the maintainer verifies it again immediately before the merge.
-- Freeze and TRD authoring (`takwin-code-freeze`, `tiferet-author-trd`) check the issue set for a blocked-by cycle before wiring edges. A cycle is two or more issues each naming the other's output as a prerequisite. Do not publish it. A child stuck on a cycle stops and reports.
+- Freeze authoring (the maintainer's step) and TRD authoring (`tiferet-author-trd`) check the issue set for a blocked-by cycle before wiring edges. A cycle is two or more issues each naming the other's output as a prerequisite. Do not publish it. A child stuck on a cycle stops and reports.
 
 ## Closeout leaves nothing behind
 
