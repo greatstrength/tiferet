@@ -361,13 +361,12 @@ def test_package_exports_and_script():
             key, value = line.split('=', 1)
             scripts[key.strip()] = value.strip().strip('"')
 
-    # Assert the alias identity, the export boundary, and the trunk version.
-    # This story does not set __version__.
+    # Assert the alias identity, the export boundary, and the package version.
     assert TesterCLI is build_tester_cli
     assert 'TesterCLI' in tiferet.blueprints.__all__
     assert 'build_tester_cli' in tiferet.blueprints.__all__
     assert 'TesterCLI' not in tiferet.__all__
-    assert tiferet.__version__ == '2.1.2'
+    assert tiferet.__version__ == '2.2.0'
     assert scripts['tiferet'] == 'tiferet.blueprints.admin_cli:main'
     assert scripts['tiferet-tester'] == 'tiferet.blueprints.tester_cli:main'
 
