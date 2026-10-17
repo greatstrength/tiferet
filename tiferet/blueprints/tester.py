@@ -8,14 +8,14 @@ import copy
 import functools
 import inspect
 import os
-import tempfile
 from importlib import import_module
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
 
 # ** app
-from .. import assets as a
+from .. import a
 from ..assets import TiferetError
 from ..assets.tester import (
     CORE_DEFAULT_TESTERS,
@@ -45,13 +45,13 @@ from ..contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
-    ModelError,
-    ModuleRunContext,
     RepoTesterContext,
     ServiceEventTesterContext,
+    ModelError,
+    ModuleRunContext,
+    TestSessionContext,
     TesterContext,
     TesterObject,
-    TestSessionContext,
     TransferObjectTesterContext,
     add_default_testers,
 )
@@ -206,20 +206,20 @@ def _read_test_module_text(path: str) -> str:
     try:
         with open(path, 'rb') as handle:
             raw = handle.read()
-    except OSError as error:
-        raise TiferetError(
+    except OSError:
+        TiferetError.raise_error(
             TEST_MODULE_LOAD_FAILED_ID,
             'Failed to read the test module',
-        ) from error
+        )
 
     # Bytes that are not utf-8 raise the same code.
     try:
         return raw.decode('utf-8')
-    except UnicodeDecodeError as error:
-        raise TiferetError(
+    except UnicodeDecodeError:
+        TiferetError.raise_error(
             TEST_MODULE_LOAD_FAILED_ID,
             'The test module text is not utf-8.',
-        ) from error
+        )
 
 # ** function: created_parent_directories
 def _created_parent_directories(parent: Path) -> List[Path]:
@@ -555,7 +555,7 @@ def _iter_document_tests(document: Dict[str, Any], node_root: str):
                 {
                     'tester_module_path': tester.get('module_path') or '',
                     'tester_class_name': tester.get('class_name') or '',
-                    'tester_attributes': tester.get('attributes') or {},
+                    'tester_attributes': _copy_tree(tester.get('attributes') or {}),
                     'root_fixtures': _copy_tree(fixtures),
                     'tester_fixtures': _copy_tree(tester.get('fixtures') or {}),
                 },
@@ -693,6 +693,22 @@ def _module_run_session() -> ModuleRunContext:
 
 # *** blueprints
 
+# ** blueprint: unused_dependency
+def _unused_dependency(*args, **kwargs) -> None:
+    '''
+    Raises RuntimeError whose message names get_error_evt. The reporter cache must not resolve that event.
+
+    :param args: Ignored positional arguments.
+    :type args: tuple
+    :param kwargs: Ignored keyword arguments.
+    :type kwargs: dict
+    :return: This function always raises and does not return.
+    :rtype: None
+    '''
+
+    # The reporter cache must not resolve that event.
+    raise RuntimeError('get_error_evt')
+
 # ** blueprint: build_cache
 @add_default_app_sessions(CORE_DEFAULT_TESTER_SESSIONS)
 @add_default_testers(CORE_DEFAULT_TESTERS)
@@ -717,22 +733,6 @@ def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
 
     # Delegate to the core cache builder. Do not seed the error catalog here.
     return core.build_cache(cache)
-
-# ** blueprint: unused_dependency
-def _unused_dependency(*args, **kwargs) -> None:
-    '''
-    Raises RuntimeError whose message names get_error_evt. The reporter cache must not resolve that event.
-
-    :param args: Ignored positional arguments.
-    :type args: tuple
-    :param kwargs: Ignored keyword arguments.
-    :type kwargs: dict
-    :return: This function always raises and does not return.
-    :rtype: None
-    '''
-
-    # The reporter cache must not resolve that event.
-    raise RuntimeError('get_error_evt')
 
 # ** blueprint: register_phase_handlers
 def register_phase_handlers() -> Dict[str, Callable]:

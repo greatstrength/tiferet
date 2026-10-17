@@ -291,7 +291,7 @@ class TestContextTesterBlueprint:
     Context-variant selection and injection for the tester blueprint.
     '''
 
-    # * test: test_build_tester_context_selects_context_variant
+    # * test: build_tester_context_selects_context_variant
     def test_build_tester_context_selects_context_variant(self) -> None:
         '''
         Bind a context tester for RequestContext.
@@ -313,7 +313,7 @@ class TestContextTesterBlueprint:
         # The context variant is selected.
         assert type(bound) is ContextTesterContext
 
-    # * test: test_use_tester_injects_context_test_ctx
+    # * test: use_tester_injects_context_test_ctx
     @use_tester(
         type='context',
         target_cls=RequestContext,
