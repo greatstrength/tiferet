@@ -1153,10 +1153,6 @@ class TestModuleEvent(DomainEvent):
         if text and not text.endswith('\n'):
             text += '\n'
 
-        # Append again when it still does not end with a newline.
-        if text and not text.endswith('\n'):
-            text += '\n'
-
         # An empty serialization becomes one newline.
         if not text:
             text = '\n'
@@ -1479,12 +1475,17 @@ class ReadTestModuleDocument(TestModuleEvent):
                 mapping=plain_mapping(body),
             )
 
-        # Compose the revision. Do not edit the body.
+        # Compose the revision. A constructor failure is remapped with the loader.
         try:
             body = YamlLoader.compose_anchored(
                 text,
                 anchors=anchors,
             )
+
+            # A null body becomes an empty mapping. Do not edit a composed body.
+            if body is None:
+                body = empty_mapping_node()
+            mapping = plain_mapping(body)
         except ServiceError as error:
             failure = error.kwargs.get('failure')
             problem = error.message or str(error)
@@ -1504,10 +1505,7 @@ class ReadTestModuleDocument(TestModuleEvent):
                 detail=problem,
             )
 
-        # A null body becomes an empty mapping. Do not edit a composed body.
-        if body is None:
-            body = empty_mapping_node()
-        mapping = plain_mapping(body)
+        # Return the composed document.
         return TestModuleDocument(
             address=address,
             text=text,
@@ -2557,9 +2555,9 @@ class AttachTest(TestModuleEvent):
         :rtype: TestModuleDocument
         '''
 
-        # Both names must be grammar names.
-        self.name_defect(name)
+        # The tester name is checked before the test name.
         self.name_defect(tester)
+        self.name_defect(name)
 
         # A present file must be a legal root.
         self.loaded_defect(document, working)
@@ -2681,9 +2679,9 @@ class DetachTest(TestModuleEvent):
         :rtype: TestModuleDocument
         '''
 
-        # Both names must be grammar names.
-        self.name_defect(name)
+        # The tester name is checked before the test name.
         self.name_defect(tester)
+        self.name_defect(name)
 
         # A present file must be a legal root. The tester must be present.
         self.loaded_defect(document, working)

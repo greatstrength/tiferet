@@ -50,12 +50,9 @@ from tiferet.events.tester_module import (
     pair_index,
     root_insert_index,
     scalar_names,
-    tester_present,
+    tester_present as is_tester_present,
 )
 from tiferet.interfaces.core import ServiceError
-
-# The imported function name matches pytest's test_* pattern. Do not collect it.
-tester_present.__test__ = False
 
 # *** functions
 
@@ -289,7 +286,7 @@ def test_root_insert_index_before_later():
     '''
 
     # Build a root whose pairs are tests, then testers.
-    root = mapping([
+    root = mapping(pairs=[
         pair('tests', mapping()),
         pair('testers', mapping()),
     ])
@@ -304,7 +301,7 @@ def test_root_insert_index_appends():
     '''
 
     # Build a root whose only pair is fixtures.
-    root = mapping([pair('fixtures', mapping())])
+    root = mapping(pairs=[pair('fixtures', mapping())])
 
     # Ask for the testers index.
     assert root_insert_index(root, 'testers') == 1
@@ -317,7 +314,7 @@ def test_child_plan_found():
 
     # Pair fixtures to a mapping named found.
     found = mapping()
-    parent = mapping([pair('fixtures', found)])
+    parent = mapping(pairs=[pair('fixtures', found)])
     defect, plan = child_plan(parent, 'fixtures')
 
     # The plan kind is found and the node is that mapping.
@@ -332,8 +329,8 @@ def test_child_plan_replaces_null():
     '''
 
     # Pair fixtures to a null scalar.
-    parent = mapping([
-        pair('fixtures', scalar('null', 'tag:yaml.org,2002:null')),
+    parent = mapping(pairs=[
+        pair('fixtures', scalar('null', tag='tag:yaml.org,2002:null')),
     ])
 
     # The plan replaces that key.
@@ -346,7 +343,7 @@ def test_child_plan_refuses_scalar():
     '''
 
     # Pair fixtures to the scalar no.
-    parent = mapping([pair('fixtures', scalar('no'))])
+    parent = mapping(pairs=[pair('fixtures', scalar('no'))])
 
     # The defect names the key.
     assert child_plan(parent, 'fixtures') == (
@@ -380,7 +377,7 @@ def test_child_plan_root_order():
     '''
 
     # Build a root whose pairs are tests, then testers.
-    parent = mapping([
+    parent = mapping(pairs=[
         pair('tests', mapping()),
         pair('testers', mapping()),
     ])
@@ -398,12 +395,12 @@ def test_tester_present_true():
     '''
 
     # Build testers/sample as an empty mapping.
-    root = mapping([
-        pair('testers', mapping([pair('sample', mapping())])),
+    root = mapping(pairs=[
+        pair('testers', mapping(pairs=[pair('sample', mapping())])),
     ])
 
     # The tester key is present.
-    assert tester_present(root, 'sample') is True
+    assert is_tester_present(root, 'sample') is True
 
 # ** test: tester_present_false_missing
 def test_tester_present_false_missing():
@@ -412,10 +409,10 @@ def test_tester_present_false_missing():
     '''
 
     # Build an empty testers mapping.
-    root = mapping([pair('testers', mapping())])
+    root = mapping(pairs=[pair('testers', mapping())])
 
     # sample is not a key.
-    assert tester_present(root, 'sample') is False
+    assert is_tester_present(root, 'sample') is False
 
 # ** test: tester_present_scalar_counts
 def test_tester_present_scalar_counts():
@@ -424,12 +421,12 @@ def test_tester_present_scalar_counts():
     '''
 
     # Build testers/sample as the scalar no.
-    root = mapping([
-        pair('testers', mapping([pair('sample', scalar('no'))])),
+    root = mapping(pairs=[
+        pair('testers', mapping(pairs=[pair('sample', scalar('no'))])),
     ])
 
     # Presence is a key, not a mapping check.
-    assert tester_present(root, 'sample') is True
+    assert is_tester_present(root, 'sample') is True
 
 # ** test: container_steps_uses_root
 def test_container_steps_uses_root():
@@ -439,7 +436,7 @@ def test_container_steps_uses_root():
 
     # Pair fixtures to the mapping box.
     box = mapping()
-    root = mapping([pair('fixtures', box)])
+    root = mapping(pairs=[pair('fixtures', box)])
     defect, steps, path = container_steps(root, 'fixtures', None, False)
 
     # The use node is box and the path names fixtures.
@@ -521,8 +518,8 @@ def test_container_steps_tester_not_mapping():
     '''
 
     # Build testers/sample as the scalar no.
-    root = mapping([
-        pair('testers', mapping([pair('sample', scalar('no'))])),
+    root = mapping(pairs=[
+        pair('testers', mapping(pairs=[pair('sample', scalar('no'))])),
     ])
     outcome = container_steps(root, 'fixtures', 'sample', False)
 
@@ -545,9 +542,9 @@ def test_container_steps_refuses_alias_tester():
 
     # One mapping is fixtures/shared and testers/sample.
     shared = mapping()
-    root = mapping([
-        pair('fixtures', mapping([pair('shared', shared)])),
-        pair('testers', mapping([pair('sample', shared)])),
+    root = mapping(pairs=[
+        pair('fixtures', mapping(pairs=[pair('shared', shared)])),
+        pair('testers', mapping(pairs=[pair('sample', shared)])),
     ])
     outcome = container_steps(root, 'fixtures', 'sample', True)
 
@@ -570,9 +567,9 @@ def test_container_steps_scoped_use():
 
     # Tester sample is a first-visit mapping whose fixtures value is box.
     box = mapping()
-    tester = mapping([pair('fixtures', box)])
-    root = mapping([
-        pair('testers', mapping([pair('sample', tester)])),
+    tester = mapping(pairs=[pair('fixtures', box)])
+    root = mapping(pairs=[
+        pair('testers', mapping(pairs=[pair('sample', tester)])),
     ])
     defect, steps, path = container_steps(root, 'fixtures', 'sample', False)
 
@@ -589,7 +586,7 @@ def test_alias_node_found():
 
     # Record anchor shared on a mapping in the root.
     shared = mapping(anchor='shared')
-    root = mapping([pair('fixtures', shared)])
+    root = mapping(pairs=[pair('fixtures', shared)])
     defect, node = alias_node(root, 'shared')
 
     # The node is that mapping.
@@ -623,7 +620,7 @@ def test_merge_anchor_name_found():
 
     # Point << at a node named base. Its first path is not the merge path.
     target = mapping(anchor='base')
-    node = mapping([(scalar('<<', 'tag:yaml.org,2002:merge'), target)])
+    node = mapping(pairs=[(scalar('<<', tag='tag:yaml.org,2002:merge'), target)])
     node_path = (('val', 'sample'),)
     first = {id(target): (('val', 'fixtures'), ('val', 'base'))}
 
@@ -637,7 +634,7 @@ def test_merge_anchor_name_sequence():
     '''
 
     # Point << at a sequence.
-    node = mapping([(scalar('<<', 'tag:yaml.org,2002:merge'), sequence())])
+    node = mapping(pairs=[(scalar('<<', tag='tag:yaml.org,2002:merge'), sequence())])
 
     # The outcome is null.
     assert merge_anchor_name(node, {}, ()) is None
@@ -650,7 +647,7 @@ def test_merge_anchor_name_first_visit():
 
     # The target first path equals the entry path plus the merge step.
     target = mapping(anchor='base')
-    node = mapping([(scalar('<<'), target)])
+    node = mapping(pairs=[(scalar('<<'), target)])
     node_path = (('val', 'sample'),)
     first = {id(target): node_path + (('val', '<<'),)}
 
@@ -664,7 +661,7 @@ def test_pair_index_found():
     '''
 
     # Build pairs lang, text.
-    container = mapping([
+    container = mapping(pairs=[
         pair('lang', scalar('en_US')),
         pair('text', scalar('hello')),
     ])
@@ -679,7 +676,7 @@ def test_pair_index_missing():
     '''
 
     # Build a container whose only pair is lang.
-    container = mapping([pair('lang', scalar('en_US'))])
+    container = mapping(pairs=[pair('lang', scalar('en_US'))])
 
     # text is absent.
     assert pair_index(container, 'text') is None
@@ -692,8 +689,8 @@ def test_entry_plan_owned():
 
     # The value's first path equals the entry path. Its anchor is shared.
     value = mapping(anchor='shared')
-    root = mapping([
-        pair('fixtures', mapping([pair('sample', value)])),
+    root = mapping(pairs=[
+        pair('fixtures', mapping(pairs=[pair('sample', value)])),
     ])
     plan = entry_plan(
         'sample',
@@ -715,8 +712,8 @@ def test_entry_plan_alias():
 
     # The first path is not the entry path. The anchor is shared.
     value = mapping(anchor='shared')
-    root = mapping([
-        pair('fixtures', mapping([pair('shared', value)])),
+    root = mapping(pairs=[
+        pair('fixtures', mapping(pairs=[pair('shared', value)])),
     ])
     plan = entry_plan(
         'sample',
@@ -757,7 +754,7 @@ def test_scalar_names_order():
     '''
 
     # Build pairs zeta, alpha.
-    container = mapping([
+    container = mapping(pairs=[
         pair('zeta', mapping()),
         pair('alpha', mapping()),
     ])
@@ -938,7 +935,7 @@ class TestTestModuleEvent:
         '''
 
         # Build a mapping with two lang keys.
-        root = mapping([
+        root = mapping(pairs=[
             pair('lang', scalar('en_US')),
             pair('lang', scalar('fr_FR')),
         ])
@@ -1041,7 +1038,7 @@ class TestReadTestModuleDocument:
         '''
 
         # Replace compose so it returns the mapping body.
-        body = mapping([pair('name', scalar('sample'))])
+        body = mapping(pairs=[pair('name', scalar('sample'))])
         with patch.object(YamlLoader, 'compose_anchored', return_value=body):
             result = DomainEvent.handle(
                 ReadTestModuleDocument,
@@ -1161,9 +1158,9 @@ class TestWriteTestModuleDocument:
         '''
 
         # Build a legal root that contains the pair lang/en_US.
-        working = mapping([
-            pair('fixtures', mapping([
-                pair('sample', mapping([
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[
+                pair('sample', mapping(pairs=[
                     pair('lang', scalar('en_US')),
                 ])),
             ])),
@@ -1191,9 +1188,9 @@ class TestWriteTestModuleDocument:
 
         # fixtures/db and tests/sample are one mapping with no anchor.
         shared = mapping()
-        working = mapping([
-            pair('fixtures', mapping([pair('db', shared)])),
-            pair('tests', mapping([pair('sample', shared)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('db', shared)])),
+            pair('tests', mapping(pairs=[pair('sample', shared)])),
         ])
         assert_tiferet(
             'A shared node has no recorded anchor name.',
@@ -1228,8 +1225,8 @@ class TestWriteTestModuleDocument:
 
         # The anchor shared was at fixtures/db and is now at tests/sample.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('tests', mapping([pair('sample', shared)])),
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[pair('sample', shared)])),
         ])
         working._tiferet_before = {
             id(shared): (('val', 'fixtures'), ('val', 'db')),
@@ -1315,7 +1312,7 @@ class TestWriteTestModuleDocument:
 
         # Build one empty fixtures pair.
         fixtures = mapping()
-        working = mapping([pair('fixtures', fixtures)])
+        working = mapping(pairs=[pair('fixtures', fixtures)])
         assert len(fixtures.value) == 0
         result = DomainEvent.handle(
             WriteTestModuleDocument,
@@ -1393,8 +1390,8 @@ class TestAddFixture:
 
         # Record anchor shared and add sample as that alias.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('fixtures', mapping([pair('base', shared)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('base', shared)])),
         ])
         result = DomainEvent.handle(
             AddFixture,
@@ -1418,8 +1415,8 @@ class TestAddFixture:
 
         # Add a payload and merge the anchor base.
         base = mapping(anchor='base')
-        working = mapping([
-            pair('fixtures', mapping([pair('base', base)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('base', base)])),
         ])
         result = DomainEvent.handle(
             AddFixture,
@@ -1443,8 +1440,8 @@ class TestAddFixture:
         '''
 
         # fixtures/sample already exists.
-        working = mapping([
-            pair('fixtures', mapping([pair('sample', mapping())])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('sample', mapping())])),
         ])
         assert_tiferet(
             'sample already exists.',
@@ -1503,8 +1500,8 @@ class TestAddFixture:
 
         # Alias shared on a node named shared, and request anchor other.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('fixtures', mapping([pair('base', shared)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('base', shared)])),
         ])
         assert_tiferet(
             'The writer does not rename an anchor.',
@@ -1525,7 +1522,7 @@ class TestAddFixture:
         '''
 
         # fixtures is the scalar no.
-        working = mapping([pair('fixtures', scalar('no'))])
+        working = mapping(pairs=[pair('fixtures', scalar('no'))])
         assert_tiferet(
             'fixtures must be a mapping.',
             lambda: DomainEvent.handle(
@@ -1562,7 +1559,7 @@ class TestAddFixture:
         '''
 
         # Add a payload to a root that already has tests and testers.
-        working = mapping([
+        working = mapping(pairs=[
             pair('tests', mapping()),
             pair('testers', mapping()),
         ])
@@ -1618,8 +1615,8 @@ class TestGetFixture:
 
         # One mapping is fixtures/shared and fixtures/sample.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('fixtures', mapping([
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[
                 pair('shared', shared),
                 pair('sample', shared),
             ])),
@@ -1645,8 +1642,8 @@ class TestGetFixture:
         '''
 
         # First-visit fixtures/sample has no anchor.
-        working = mapping([
-            pair('fixtures', mapping([pair('sample', mapping())])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('sample', mapping())])),
         ])
         with patch.object(
             YamlLoader,
@@ -1674,7 +1671,7 @@ class TestGetFixture:
         '''
 
         # fixtures is empty.
-        working = mapping([pair('fixtures', mapping())])
+        working = mapping(pairs=[pair('fixtures', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -1725,8 +1722,8 @@ class TestListFixtures:
         '''
 
         # Build fixtures zeta, alpha.
-        working = mapping([
-            pair('fixtures', mapping([
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[
                 pair('zeta', mapping()),
                 pair('alpha', mapping()),
             ])),
@@ -1763,15 +1760,15 @@ class TestListFixtures:
         '''
 
         # Root fixtures has other. Tester sample fixtures are alpha, beta.
-        tester = mapping([
-            pair('fixtures', mapping([
+        tester = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[
                 pair('alpha', mapping()),
                 pair('beta', mapping()),
             ])),
         ])
-        working = mapping([
-            pair('fixtures', mapping([pair('other', mapping())])),
-            pair('testers', mapping([pair('sample', tester)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('other', mapping())])),
+            pair('testers', mapping(pairs=[pair('sample', tester)])),
         ])
         result = DomainEvent.handle(
             ListFixtures,
@@ -1812,9 +1809,9 @@ class TestUpdateFixture:
 
         # The fixture has one lang/en_US pair.
         lang_key = scalar('lang')
-        sample = mapping([(lang_key, scalar('en_US'))])
-        working = mapping([
-            pair('fixtures', mapping([pair('sample', sample)])),
+        sample = mapping(pairs=[(lang_key, scalar('en_US'))])
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('sample', sample)])),
         ])
         result = DomainEvent.handle(
             UpdateFixture,
@@ -1839,8 +1836,8 @@ class TestUpdateFixture:
         # sample is empty. Anchor base is present. Payload and fragment are null.
         base = mapping(anchor='base')
         sample = mapping()
-        working = mapping([
-            pair('fixtures', mapping([
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[
                 pair('base', base),
                 pair('sample', sample),
             ])),
@@ -1865,7 +1862,7 @@ class TestUpdateFixture:
         '''
 
         # fixtures is empty.
-        working = mapping([pair('fixtures', mapping())])
+        working = mapping(pairs=[pair('fixtures', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -1884,8 +1881,8 @@ class TestUpdateFixture:
         '''
 
         # sample is the scalar no.
-        working = mapping([
-            pair('fixtures', mapping([pair('sample', scalar('no'))])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('sample', scalar('no'))])),
         ])
         assert_tiferet(
             'Update patches a mapping.',
@@ -1938,8 +1935,8 @@ class TestRemoveFixture:
         '''
 
         # fixtures has sample and other.
-        working = mapping([
-            pair('fixtures', mapping([
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[
                 pair('sample', mapping()),
                 pair('other', mapping()),
             ])),
@@ -1963,7 +1960,7 @@ class TestRemoveFixture:
         '''
 
         # fixtures is empty.
-        working = mapping([pair('fixtures', mapping())])
+        working = mapping(pairs=[pair('fixtures', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -2043,8 +2040,8 @@ class TestAddTest:
 
         # Compose returns the existing shared node.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('fixtures', mapping([pair('shared', shared)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('shared', shared)])),
         ])
         with patch.object(YamlLoader, 'compose_anchored', return_value=shared):
             assert_tiferet(
@@ -2065,8 +2062,8 @@ class TestAddTest:
         '''
 
         # Compose returns a fresh mapping with << that is not in the root.
-        fresh = mapping([
-            (scalar('<<', 'tag:yaml.org,2002:merge'), mapping()),
+        fresh = mapping(pairs=[
+            (scalar('<<', tag='tag:yaml.org,2002:merge'), mapping()),
         ])
         with patch.object(YamlLoader, 'compose_anchored', return_value=fresh):
             assert_tiferet(
@@ -2121,8 +2118,8 @@ class TestGetTest:
 
         # One mapping is tests/shared and tests/sample.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('tests', mapping([
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[
                 pair('shared', shared),
                 pair('sample', shared),
             ])),
@@ -2147,7 +2144,7 @@ class TestGetTest:
         '''
 
         # tests is empty.
-        working = mapping([pair('tests', mapping())])
+        working = mapping(pairs=[pair('tests', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -2186,8 +2183,8 @@ class TestListTests:
         '''
 
         # Build tests zeta, alpha.
-        working = mapping([
-            pair('tests', mapping([
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[
                 pair('zeta', mapping()),
                 pair('alpha', mapping()),
             ])),
@@ -2224,11 +2221,11 @@ class TestListTests:
         '''
 
         # Tester sample tests pair is inner.
-        tester = mapping([
-            pair('tests', mapping([pair('inner', mapping())])),
+        tester = mapping(pairs=[
+            pair('tests', mapping(pairs=[pair('inner', mapping())])),
         ])
-        working = mapping([
-            pair('testers', mapping([pair('sample', tester)])),
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[pair('sample', tester)])),
         ])
         result = DomainEvent.handle(
             ListTests,
@@ -2268,9 +2265,9 @@ class TestUpdateTest:
         '''
 
         # The test has name/old.
-        sample = mapping([pair('name', scalar('old'))])
-        working = mapping([
-            pair('tests', mapping([pair('sample', sample)])),
+        sample = mapping(pairs=[pair('name', scalar('old'))])
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[pair('sample', sample)])),
         ])
         result = DomainEvent.handle(
             UpdateTest,
@@ -2309,11 +2306,11 @@ class TestUpdateTest:
         '''
 
         # sample is empty. Compose returns a fresh mapping with <<.
-        fresh = mapping([
-            (scalar('<<', 'tag:yaml.org,2002:merge'), mapping()),
+        fresh = mapping(pairs=[
+            (scalar('<<', tag='tag:yaml.org,2002:merge'), mapping()),
         ])
-        working = mapping([
-            pair('tests', mapping([pair('sample', mapping())])),
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[pair('sample', mapping())])),
         ])
         with patch.object(YamlLoader, 'compose_anchored', return_value=fresh):
             assert_tiferet(
@@ -2334,7 +2331,7 @@ class TestUpdateTest:
         '''
 
         # tests is empty.
-        working = mapping([pair('tests', mapping())])
+        working = mapping(pairs=[pair('tests', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -2385,8 +2382,8 @@ class TestRemoveTest:
         '''
 
         # tests has sample and other.
-        working = mapping([
-            pair('tests', mapping([
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[
                 pair('sample', mapping()),
                 pair('other', mapping()),
             ])),
@@ -2408,7 +2405,7 @@ class TestRemoveTest:
         '''
 
         # tests is empty.
-        working = mapping([pair('tests', mapping())])
+        working = mapping(pairs=[pair('tests', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -2489,8 +2486,8 @@ class TestAddTester:
         '''
 
         # Compose returns a fresh mapping with << that is not in the root.
-        fresh = mapping([
-            (scalar('<<', 'tag:yaml.org,2002:merge'), mapping()),
+        fresh = mapping(pairs=[
+            (scalar('<<', tag='tag:yaml.org,2002:merge'), mapping()),
         ])
         with patch.object(YamlLoader, 'compose_anchored', return_value=fresh):
             assert_tiferet(
@@ -2512,8 +2509,8 @@ class TestAddTester:
 
         # Compose returns a mapping already in the root.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('fixtures', mapping([pair('shared', shared)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('shared', shared)])),
         ])
         with patch.object(YamlLoader, 'compose_anchored', return_value=shared):
             assert_tiferet(
@@ -2567,8 +2564,8 @@ class TestGetTester:
 
         # One mapping is testers/shared and testers/sample.
         shared = mapping(anchor='shared')
-        working = mapping([
-            pair('testers', mapping([
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[
                 pair('shared', shared),
                 pair('sample', shared),
             ])),
@@ -2591,7 +2588,7 @@ class TestGetTester:
         '''
 
         # testers is empty.
-        working = mapping([pair('testers', mapping())])
+        working = mapping(pairs=[pair('testers', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -2630,8 +2627,8 @@ class TestListTesters:
         '''
 
         # Build testers zeta, alpha.
-        working = mapping([
-            pair('testers', mapping([
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[
                 pair('zeta', mapping()),
                 pair('alpha', mapping()),
             ])),
@@ -2689,9 +2686,9 @@ class TestUpdateTester:
         '''
 
         # The tester has name/Old.
-        sample = mapping([pair('name', scalar('Old'))])
-        working = mapping([
-            pair('testers', mapping([pair('sample', sample)])),
+        sample = mapping(pairs=[pair('name', scalar('Old'))])
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[pair('sample', sample)])),
         ])
         result = DomainEvent.handle(
             UpdateTester,
@@ -2712,8 +2709,8 @@ class TestUpdateTester:
         '''
 
         # sample is empty. The payload sends fixtures.
-        working = mapping([
-            pair('testers', mapping([pair('sample', mapping())])),
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[pair('sample', mapping())])),
         ])
         assert_tiferet(
             'A tester update cannot edit fixtures or tests.',
@@ -2733,11 +2730,11 @@ class TestUpdateTester:
         '''
 
         # sample is empty. Compose returns a fresh mapping with <<.
-        fresh = mapping([
-            (scalar('<<', 'tag:yaml.org,2002:merge'), mapping()),
+        fresh = mapping(pairs=[
+            (scalar('<<', tag='tag:yaml.org,2002:merge'), mapping()),
         ])
-        working = mapping([
-            pair('testers', mapping([pair('sample', mapping())])),
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[pair('sample', mapping())])),
         ])
         with patch.object(YamlLoader, 'compose_anchored', return_value=fresh):
             assert_tiferet(
@@ -2758,7 +2755,7 @@ class TestUpdateTester:
         '''
 
         # testers is empty.
-        working = mapping([pair('testers', mapping())])
+        working = mapping(pairs=[pair('testers', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -2798,8 +2795,8 @@ class TestRemoveTester:
         '''
 
         # testers has sample and other.
-        working = mapping([
-            pair('testers', mapping([
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[
                 pair('sample', mapping()),
                 pair('other', mapping()),
             ])),
@@ -2821,7 +2818,7 @@ class TestRemoveTester:
         '''
 
         # testers is empty.
-        working = mapping([pair('testers', mapping())])
+        working = mapping(pairs=[pair('testers', mapping())])
         assert_tiferet(
             'sample was not found.',
             lambda: DomainEvent.handle(
@@ -2862,10 +2859,10 @@ class TestAttachTest:
         # Root tests/sample is body, anchor sample. Tester box is a first-visit empty mapping.
         body = mapping(anchor='sample')
         box = mapping()
-        root_tests = mapping([pair('sample', body)])
-        working = mapping([
+        root_tests = mapping(pairs=[pair('sample', body)])
+        working = mapping(pairs=[
             pair('tests', root_tests),
-            pair('testers', mapping([pair('box', box)])),
+            pair('testers', mapping(pairs=[pair('box', box)])),
         ])
         result = DomainEvent.handle(
             AttachTest,
@@ -2889,9 +2886,9 @@ class TestAttachTest:
         # Root tests/sample has no anchor. sample is not in the anchor table.
         body = mapping()
         box = mapping()
-        working = mapping([
-            pair('tests', mapping([pair('sample', body)])),
-            pair('testers', mapping([pair('box', box)])),
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[pair('sample', body)])),
+            pair('testers', mapping(pairs=[pair('box', box)])),
         ])
         DomainEvent.handle(
             AttachTest,
@@ -2913,12 +2910,12 @@ class TestAttachTest:
 
         # Tester box tests already has sample. Root tests has sample.
         body = mapping(anchor='sample')
-        box = mapping([
-            pair('tests', mapping([pair('sample', body)])),
+        box = mapping(pairs=[
+            pair('tests', mapping(pairs=[pair('sample', body)])),
         ])
-        working = mapping([
-            pair('tests', mapping([pair('sample', body)])),
-            pair('testers', mapping([pair('box', box)])),
+        working = mapping(pairs=[
+            pair('tests', mapping(pairs=[pair('sample', body)])),
+            pair('testers', mapping(pairs=[pair('box', box)])),
         ])
         assert_tiferet(
             'sample is already attached.',
@@ -2938,8 +2935,8 @@ class TestAttachTest:
         '''
 
         # Tester box exists. No root tests/sample.
-        working = mapping([
-            pair('testers', mapping([pair('box', mapping())])),
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[pair('box', mapping())])),
         ])
         assert_tiferet(
             'Test not found: sample.',
@@ -2960,10 +2957,10 @@ class TestAttachTest:
 
         # The tester value is an earlier fixture node. Root tests/sample exists.
         shared = mapping()
-        working = mapping([
-            pair('fixtures', mapping([pair('shared', shared)])),
-            pair('tests', mapping([pair('sample', mapping())])),
-            pair('testers', mapping([pair('box', shared)])),
+        working = mapping(pairs=[
+            pair('fixtures', mapping(pairs=[pair('shared', shared)])),
+            pair('tests', mapping(pairs=[pair('sample', mapping())])),
+            pair('testers', mapping(pairs=[pair('box', shared)])),
         ])
         assert_tiferet(
             'A tester entry is not itself an alias.',
@@ -3005,12 +3002,12 @@ class TestDetachTest:
 
         # Root tests/sample is body, anchor sample. Tester box tests/sample is body.
         body = mapping(anchor='sample')
-        tester_tests = mapping([pair('sample', body)])
-        root_tests = mapping([pair('sample', body)])
-        box = mapping([pair('tests', tester_tests)])
-        working = mapping([
+        tester_tests = mapping(pairs=[pair('sample', body)])
+        root_tests = mapping(pairs=[pair('sample', body)])
+        box = mapping(pairs=[pair('tests', tester_tests)])
+        working = mapping(pairs=[
             pair('tests', root_tests),
-            pair('testers', mapping([pair('box', box)])),
+            pair('testers', mapping(pairs=[pair('box', box)])),
         ])
         result = DomainEvent.handle(
             DetachTest,
@@ -3033,8 +3030,8 @@ class TestDetachTest:
         '''
 
         # Tester box is an empty mapping. No tests key.
-        working = mapping([
-            pair('testers', mapping([pair('box', mapping())])),
+        working = mapping(pairs=[
+            pair('testers', mapping(pairs=[pair('box', mapping())])),
         ])
         assert_tiferet(
             'Test containment not found: sample.',
