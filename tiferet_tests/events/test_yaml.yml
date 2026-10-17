@@ -1,0 +1,348 @@
+fixtures:
+  yaml_service:
+    module_path: tiferet.interfaces.yaml
+    class_name: YamlService
+
+tests:
+  none_is_plain:
+    conditions: the value is null.
+    action: call is_plain_value.
+    expectation: the outcome equals true.
+  string_is_plain:
+    conditions: the value is ada.
+    action: call is_plain_value.
+    expectation: the outcome equals true.
+  false_is_plain:
+    conditions: the value is false.
+    action: call is_plain_value.
+    expectation: the outcome equals true.
+  zero_is_plain:
+    conditions: the value is 0.
+    action: call is_plain_value.
+    expectation: the outcome equals true.
+  finite_float_is_plain:
+    conditions: the value is 1.5.
+    action: call is_plain_value.
+    expectation: the outcome equals true.
+  nonfinite_float_rejected:
+    conditions: the values are inf, -inf, and nan.
+    action: call is_plain_value on each.
+    expectation: each outcome equals false.
+  nested_list_is_plain:
+    conditions: the value is a list of 1, a, null, and false.
+    action: call is_plain_value.
+    expectation: the outcome equals true.
+  string_keyed_mapping_is_plain:
+    conditions: the value is a mapping whose key is a and whose value is a list of 1.
+    action: call is_plain_value.
+    expectation: the outcome equals true.
+  non_string_key_rejected:
+    conditions: the value is a mapping whose key is 1.
+    action: call is_plain_value.
+    expectation: the outcome equals false.
+  tuple_rejected:
+    conditions: the value is the tuple (1,).
+    action: call is_plain_value.
+    expectation: the outcome equals false.
+  nested_tuple_rejected:
+    conditions: the value is a list whose only item is the tuple (1,).
+    action: call is_plain_value.
+    expectation: the outcome equals false.
+  cycle_rejected:
+    conditions: the value is a list that contains itself.
+    action: call is_plain_value.
+    expectation: the outcome equals false.
+  absent_is_path:
+    conditions: the key path is null.
+    action: call is_key_path.
+    expectation: the outcome equals true.
+  empty_list_is_root:
+    conditions: the key path is [].
+    action: call is_key_path.
+    expectation: the outcome equals true.
+  string_path_rejected:
+    conditions: the key path is fixtures.user.
+    action: call is_key_path.
+    expectation: the outcome equals false.
+  non_list_path_rejected:
+    conditions: the key path is 1.
+    action: call is_key_path.
+    expectation: the outcome equals false.
+  step_not_pair:
+    conditions: the key path is a list whose only step is the list ['val'].
+    action: call is_key_path.
+    expectation: the outcome equals false.
+  step_not_list:
+    conditions: the key path is the list ['val', 'user'].
+    action: call is_key_path.
+    expectation: the outcome equals false.
+  seq_index_accepted:
+    conditions: the key path is a list of one step, kind seq, token 0.
+    action: call is_key_path.
+    expectation: the outcome equals true.
+  seq_bool_rejected:
+    conditions: the key path is a list of one step, kind seq, token true.
+    action: call is_key_path.
+    expectation: the outcome equals false.
+  seq_negative_rejected:
+    conditions: the key path is a list of one step, kind seq, token -1.
+    action: call is_key_path.
+    expectation: the outcome equals false.
+  val_and_key_accepted:
+    conditions: the key path is two steps, kind val token fixtures, then kind key token user.
+    action: call is_key_path.
+    expectation: the outcome equals true.
+  bad_kind_rejected:
+    conditions: the key path is one step, kind id, token user.
+    action: call is_key_path.
+    expectation: the outcome equals false.
+  non_string_token_rejected:
+    conditions: the key path is one step, kind val, token 1.
+    action: call is_key_path.
+    expectation: the outcome equals false.
+
+testers:
+  test_yaml_event:
+    subject_module: tiferet.events.yaml
+    subject_class: YamlEvent
+    tests:
+      event_base:
+        conditions: yaml_service is the fixture mock.
+        action: construct the subject with that mock.
+        expectation: the subject is a subclass of DomainEvent.
+  test_load_yaml:
+    subject_class: LoadYaml
+    required_params:
+      - path
+    sample_kwargs:
+      path: notes.yml
+    tests:
+      load_mapping:
+        conditions: load_mapping returns a mapping whose name is first.
+        action: handle with path notes.yml.
+        expectation: the outcome equals that mapping. The call arguments of load_mapping equal ['notes.yml'].
+      missing_path:
+        conditions: path is null.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and LoadYaml.
+      blank_path:
+        conditions: path is '   '.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and LoadYaml.
+      service_error_propagates:
+        conditions: load_mapping raises ServiceError whose message names YAML_FILE_NOT_FOUND.
+        action: handle with path missing.yml.
+        expectation: the outcome raises ServiceError whose message names YAML_FILE_NOT_FOUND. The outcome is not a TiferetError.
+      mapping_required_propagates:
+        conditions: load_mapping raises ServiceError whose message names YAML_MAPPING_REQUIRED.
+        action: handle with path list.yml.
+        expectation: the outcome raises ServiceError whose message names YAML_MAPPING_REQUIRED.
+  test_save_yaml:
+    subject_class: SaveYaml
+    required_params:
+      - path
+      - data
+    sample_kwargs:
+      path: saved.yml
+      data:
+        name: saved
+        count: 2
+    tests:
+      save_mapping:
+        conditions: save_mapping returns a mapping name saved, count 2.
+        action: handle with path saved.yml and that same mapping as data.
+        expectation: the outcome equals that mapping. The call arguments of save_mapping equal saved.yml and that mapping.
+      empty_mapping:
+        conditions: save_mapping returns {}.
+        action: handle with path empty-map.yml and data {}.
+        expectation: the outcome equals {}. The call arguments equal empty-map.yml and {}.
+      missing_data:
+        conditions: path is saved.yml and data is null.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and SaveYaml.
+  test_read_anchored_yaml:
+    subject_class: ReadAnchoredYaml
+    required_params:
+      - path
+    sample_kwargs:
+      path: anchored.yml
+    tests:
+      read_anchored:
+        conditions: read_anchored returns a mapping whose text is the characters item: &item followed by a backslash and n, and whose anchors is the list item. That text is not a line break.
+        action: handle with path anchored.yml.
+        expectation: the outcome equals that mapping. The call arguments of read_anchored equal ['anchored.yml'].
+  test_write_anchored_yaml:
+    subject_class: WriteAnchoredYaml
+    required_params:
+      - path
+      - text
+    sample_kwargs:
+      path: anchored.yml
+      text: 'item: &item\n'
+    tests:
+      write_anchored:
+        conditions: write_anchored returns a mapping whose text is the characters item: &item followed by a backslash and n, and whose anchors is the list item. That text is not a line break.
+        action: handle with path anchored.yml and that text.
+        expectation: the outcome equals that mapping. The call arguments equal anchored.yml and that same text.
+      blank_text:
+        conditions: path is anchored.yml and text is '   '.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and WriteAnchoredYaml.
+      anchor_conflict_propagates:
+        conditions: write_anchored raises ServiceError whose message names YAML_ANCHOR_CONFLICT.
+        action: handle with path conflict.yml and text the characters a: &item 1 followed by a backslash and n. That text is not a line break.
+        expectation: the outcome raises ServiceError whose message names YAML_ANCHOR_CONFLICT.
+  test_list_yaml_anchors:
+    subject_class: ListYamlAnchors
+    required_params:
+      - path
+    sample_kwargs:
+      path: notes.yml
+    tests:
+      list_anchors:
+        conditions: list_anchors returns the list first, second. The handle keywords include key_path ignored.
+        action: handle with path notes.yml.
+        expectation: the outcome equals that list. The call arguments of list_anchors equal ['notes.yml']. key_path is not a call argument.
+      empty_list:
+        conditions: list_anchors returns [].
+        action: handle with path empty.yml.
+        expectation: the outcome equals [].
+      missing_path:
+        conditions: path is null.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and ListYamlAnchors.
+      blank_path:
+        conditions: path is '   '.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and ListYamlAnchors.
+  test_get_yaml_anchor:
+    subject_class: GetYamlAnchor
+    required_params:
+      - path
+      - name
+    sample_kwargs:
+      path: notes.yml
+      name: item
+    tests:
+      null_value:
+        conditions: get_anchor returns a mapping whose value is null. The handle keywords include key_path ignored.
+        action: handle with path notes.yml and name item.
+        expectation: the outcome equals that mapping. The value field is null. The call arguments equal notes.yml and item. key_path is not a call argument.
+      star_string:
+        conditions: get_anchor returns a mapping whose value is the string *other.
+        action: handle with path notes.yml and name item.
+        expectation: the outcome equals that mapping. The value field equals *other.
+      blank_name:
+        conditions: path is notes.yml and name is '   '.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and GetYamlAnchor.
+      service_error_propagates:
+        conditions: get_anchor raises ServiceError whose message names YAML_ANCHOR_NOT_FOUND.
+        action: handle with path notes.yml and name missing.
+        expectation: the outcome raises ServiceError whose message names YAML_ANCHOR_NOT_FOUND. The outcome is not a TiferetError.
+  test_set_yaml_anchor:
+    subject_class: SetYamlAnchor
+    required_params:
+      - path
+      - name
+    sample_kwargs:
+      path: notes.yml
+      name: user
+      value: ada
+    tests:
+      set_value:
+        conditions: set_anchor returns a mapping whose value is ada.
+        action: handle with path notes.yml, name user, value ada, and a key path of two val steps, tokens fixtures then user.
+        expectation: the outcome equals that mapping. The call arguments equal notes.yml and user. The call keywords equal value ada and that key path.
+      empty_string:
+        conditions: set_anchor returns a mapping whose value is ''.
+        action: handle with path notes.yml, name item, and value ''.
+        expectation: the outcome equals that mapping. The call keywords equal value '' and key_path null.
+      null_value:
+        conditions: set_anchor returns a mapping whose value is null.
+        action: handle with path notes.yml, name item, and value null.
+        expectation: the outcome equals that mapping. The value field is null. The call keywords equal value null and key_path null.
+      empty_key_path:
+        conditions: set_anchor returns a mapping whose value is 1.
+        action: handle with path notes.yml, name item, value 1, and key_path [].
+        expectation: the outcome equals that mapping. The call keywords equal value 1 and key_path [].
+      omitted_value:
+        conditions: path is notes.yml and name is item. value is not sent.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names A value is required to set an anchor. The call count of set_anchor equals 0.
+      blank_path:
+        conditions: path is '   ', name is item, and value is ''.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and SetYamlAnchor.
+      rejects_tuple:
+        conditions: value is the tuple (1,).
+        action: handle with path notes.yml, name item, and that tuple.
+        expectation: the outcome raises TiferetError whose message names An anchor value must be a plain value. The call count of set_anchor equals 0.
+      value_required_propagates:
+        conditions: set_anchor is armed to raise ServiceError whose message names YAML_ANCHOR_VALUE_REQUIRED. value is not sent.
+        action: handle with path notes.yml and name item.
+        expectation: the outcome raises TiferetError whose message names A value is required to set an anchor. The outcome is not a ServiceError. The armed service error is not the outcome.
+      plain_value_propagates:
+        conditions: set_anchor raises ServiceError whose message names YAML_PLAIN_VALUE_REQUIRED. value is the plain string ada.
+        action: handle with path notes.yml, name item, and value ada.
+        expectation: the outcome raises ServiceError whose message names YAML_PLAIN_VALUE_REQUIRED.
+      key_path_propagates:
+        conditions: set_anchor is armed to raise ServiceError whose message names YAML_KEY_PATH_INVALID. key_path is the string fixtures.user. value is 1.
+        action: handle with path missing.yml, name item, value 1, and that string.
+        expectation: the outcome raises TiferetError whose message names A key path must be a list of val, key, or seq steps. The outcome is not a ServiceError. The armed service error is not the outcome.
+      file_not_found_propagates:
+        conditions: set_anchor raises ServiceError whose message names YAML_FILE_NOT_FOUND.
+        action: handle with path missing.yml, name item, and value 1.
+        expectation: the outcome raises ServiceError whose message names YAML_FILE_NOT_FOUND.
+      anchor_conflict_propagates:
+        conditions: set_anchor raises ServiceError whose message names YAML_ANCHOR_CONFLICT.
+        action: handle with path notes.yml, name item, and value 1.
+        expectation: the outcome raises ServiceError whose message names YAML_ANCHOR_CONFLICT. The outcome is not a TiferetError.
+  test_remove_yaml_anchor:
+    subject_class: RemoveYamlAnchor
+    required_params:
+      - path
+      - name
+    sample_kwargs:
+      path: notes.yml
+      name: item
+    tests:
+      remove_anchor:
+        conditions: remove_anchor returns item. The handle keywords include key_path ignored.
+        action: handle with path notes.yml and name item.
+        expectation: the outcome equals item. The call arguments equal notes.yml and item. key_path is not a call argument.
+      blank_name:
+        conditions: path is notes.yml and name is ''.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and RemoveYamlAnchor.
+      anchor_conflict_propagates:
+        conditions: remove_anchor raises ServiceError whose message names YAML_ANCHOR_CONFLICT.
+        action: handle with path notes.yml and name item.
+        expectation: the outcome raises ServiceError whose message names YAML_ANCHOR_CONFLICT.
+  test_rename_yaml_anchor:
+    subject_class: RenameYamlAnchor
+    required_params:
+      - path
+      - name
+      - new_name
+    sample_kwargs:
+      path: notes.yml
+      name: item
+      new_name: next
+    tests:
+      rename_anchor:
+        conditions: rename_anchor returns next. The handle keywords include key_path ignored.
+        action: handle with path notes.yml, name item, and new_name next.
+        expectation: the outcome equals next. The call arguments equal notes.yml, item, and next. key_path is not a call argument.
+      same_name:
+        conditions: rename_anchor returns item.
+        action: handle with path notes.yml, name item, and new_name item.
+        expectation: the outcome equals item.
+      blank_new_name:
+        conditions: path is notes.yml, name is item, and new_name is '   '.
+        action: handle.
+        expectation: the outcome raises TiferetError whose message names COMMAND_PARAMETER_REQUIRED and RenameYamlAnchor.
+      anchor_conflict_propagates:
+        conditions: rename_anchor raises ServiceError whose message names YAML_ANCHOR_CONFLICT.
+        action: handle with path notes.yml, name item, and new_name other.
+        expectation: the outcome raises ServiceError whose message names YAML_ANCHOR_CONFLICT. The outcome is not a TiferetError.
