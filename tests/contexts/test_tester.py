@@ -9,6 +9,8 @@ import inspect
 import pytest
 
 # ** app
+from tiferet.assets import TiferetAPIError, TiferetError
+from tiferet.assets.error import APP_ERROR_ID, FEATURE_NOT_FOUND_ID
 from tiferet.blueprints.tester import (
     build_test_session,
     build_tester_context,
@@ -27,6 +29,7 @@ from tiferet.contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
+    ModuleRunContext,
     RepoTesterContext,
     ServiceEventTesterContext,
     TestSessionContext as _TestSessionContext,
@@ -35,16 +38,18 @@ from tiferet.contexts.tester import (
     add_default_test_presets,
     add_default_testers,
 )
+from tiferet.contexts.tester_phase import PhaseRuntimeContext, TestContext
 from tiferet.domain import (
     INVALID_MODEL_ATTRIBUTE_ID,
     AppSession,
+    ModelError,
     Request,
     TesterObject,
     Verification,
 )
 from tiferet.domain.error import ErrorMessage
 from tiferet.events.error import GetError
-from tiferet.interfaces import ErrorService
+from tiferet.interfaces import ErrorService, ServiceError
 from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
 
 # *** constants
@@ -365,7 +370,6 @@ def test_session_context_run_exercises_bound_tester() -> None:
     assert sample == ERROR_MESSAGE_SAMPLE_DATA
     source = inspect.getsource(_TestSessionContext.run)
     for forbidden in (
-        'execute_feature',
         'build_logger',
         'handle_error',
         'TiferetAPIError',
@@ -734,7 +738,6 @@ def test_session_run_generic_invokes_local_callable() -> None:
     assert tester.sample_data is sample
     source = inspect.getsource(_TestSessionContext.run)
     for forbidden in (
-        'execute_feature',
         '_dispatch_event',
         'build_logger',
         'handle_error',
@@ -822,6 +825,443 @@ def test_repo_tester_context_empty_cases_are_noops() -> None:
     test_ctx.assert_list(None)
     test_ctx.assert_save(None)
     test_ctx.assert_delete(None)
+
+# ** test: module_run_omits_domain_type
+def test_module_run_omits_domain_type() -> None:
+    '''
+    Assert ModuleRunContext omits domain_type and extends the app session hub.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Own-namespace omission keeps the hub registration intact.
+    assert 'domain_type' not in ModuleRunContext.__dict__
+    assert issubclass(ModuleRunContext, AppSessionContext)
+
+# ** test: app_session_stays_app_session_context
+def test_app_session_stays_app_session_context() -> None:
+    '''
+    Assert the module run does not steal existing registry mappings.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # AppSession, Request, and TesterObject stay on their declaring contexts.
+    assert BaseContext.for_domain(AppSession) is AppSessionContext
+    assert BaseContext.for_domain(Request) is RequestContext
+    assert BaseContext.for_domain(TesterObject) is TesterContext
+
+# ** test: module_run_from_domain_binds_the_domain
+def test_module_run_from_domain_binds_the_domain() -> None:
+    '''
+    Assert from_domain binds ModuleRunContext to the supplied AppSession.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Bind an app session with a callable dependency.
+    app_session = AppSession(id='module_run', name='Module Run')
+    bound = ModuleRunContext.from_domain(
+        app_session,
+        get_dependency=lambda *args, **kwargs: None,
+    )
+    assert type(bound) == ModuleRunContext
+    assert bound.domain is app_session
+
+# ** test: unwired_phase_runtime_handler
+def test_unwired_phase_runtime_handler() -> None:
+    '''
+    Assert an omitted phase-runtime factory raises an unwired-handler error.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Bind the ErrorMessage tester with no handler.
+    ctx = TesterContext.from_domain(_build_error_message_tester())
+    with pytest.raises(TiferetAPIError) as caught:
+        ctx.build_phase_runtime(object(), 'tests.sample', 'Box')
+    assert caught.value.error_code == APP_ERROR_ID
+    assert 'build_phase_runtime_handler' in caught.value.message
+    assert 'domain.ErrorMessage' in caught.value.message
+
+# ** test: injected_phase_runtime_handler
+def test_injected_phase_runtime_handler() -> None:
+    '''
+    Assert build_phase_runtime forwards to the injected factory.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Record the forwarded arguments and return a sentinel.
+    recorded = []
+    sentinel = object()
+
+    def handler(*args, **kwargs):
+        recorded.append((args, kwargs))
+        return sentinel
+
+    ctx = TesterContext.from_domain(
+        _build_error_message_tester(),
+        build_phase_runtime_handler=handler,
+    )
+    tester_attributes = {'label': 'box'}
+    root_fixtures = {'item': {'class_name': 'Box'}}
+    tester_fixtures = {'other': {'class_name': 'Box'}}
+    result = ctx.build_phase_runtime(
+        'sess',
+        'tests.sample',
+        'Box',
+        tester_attributes=tester_attributes,
+        root_fixtures=root_fixtures,
+        tester_fixtures=tester_fixtures,
+    )
+    assert recorded[0][0] == ('sess', 'tests.sample', 'Box')
+    assert recorded[0][1]['tester_attributes'] is tester_attributes
+    assert recorded[0][1]['root_fixtures'] is root_fixtures
+    assert recorded[0][1]['tester_fixtures'] is tester_fixtures
+    assert result is sentinel
+    assert not isinstance(result, PhaseRuntimeContext)
+
+# ** test: positional_session_keeps_tester_ctx
+def test_positional_session_keeps_tester_ctx() -> None:
+    '''
+    Assert the positional session stores the tester and leaves the other null.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The Python path stays positional and still omits domain_type.
+    tester_ctx = TesterContext.from_domain(_build_error_message_tester())
+    session = _TestSessionContext(tester_ctx)
+    assert session.tester_ctx is tester_ctx
+    assert session.test_context is None
+    assert session.module_node_id is None
+    assert 'domain_type' not in _TestSessionContext.__dict__
+
+# ** test: keyword_session_runs_the_test_context
+def test_keyword_session_runs_the_test_context() -> None:
+    '''
+    Assert a keyword test context runs the session and leaves the queue.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The stand-in records the session and is not a TestContext.
+    class _StandIn:
+        def __init__(self):
+            self.sessions = []
+            self.sentinel = object()
+
+        def execute_feature(self, session):
+            self.sessions.append(session)
+            return self.sentinel
+
+    standin = _StandIn()
+    session = _TestSessionContext(test_context=standin)
+    session.verify(True)
+    result = session.run()
+    assert not isinstance(standin, TestContext)
+    assert result is standin.sentinel
+    assert standin.sessions[0] is session
+    assert session.tester_ctx is None
+    assert len(session.verifications) == 1
+
+# ** test: session_rejects_both_collaborators
+def test_session_rejects_both_collaborators() -> None:
+    '''
+    Assert constructing with both collaborators raises ValueError.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Both a bound tester and a stand-in are rejected.
+    tester_ctx = TesterContext.from_domain(_build_error_message_tester())
+    with pytest.raises(ValueError) as caught:
+        _TestSessionContext(tester_ctx, test_context=object())
+    assert str(caught.value) == (
+        'Pass tester_ctx or test_context, not both and not neither.'
+    )
+
+# ** test: session_rejects_neither_collaborator
+def test_session_rejects_neither_collaborator() -> None:
+    '''
+    Assert constructing with neither collaborator raises ValueError.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Neither collaborator is rejected with the same message.
+    with pytest.raises(ValueError) as caught:
+        _TestSessionContext()
+    assert str(caught.value) == (
+        'Pass tester_ctx or test_context, not both and not neither.'
+    )
+
+# ** test: handle_response_without_node_returns_result
+def test_handle_response_without_node_returns_result() -> None:
+    '''
+    Assert handle_response returns the request result when no node is noted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # A positional session with a null module node id returns result.
+    session = _TestSessionContext(
+        TesterContext.from_domain(_build_error_message_tester())
+    )
+    sentinel = object()
+    session.result = sentinel
+    assert session.module_node_id is None
+    assert session.handle_response() is sentinel
+
+# ** test: handle_response_shapes_the_outcome
+def test_handle_response_shapes_the_outcome() -> None:
+    '''
+    Assert a noted module node shapes a pass, then a recorded failure.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # A null status and message become PASSED and an empty message.
+    session = _TestSessionContext(
+        TesterContext.from_domain(_build_error_message_tester())
+    )
+    session.module_node_id = 'node.a'
+    assert session.handle_response() == {
+        'node_id': 'node.a',
+        'status': 'PASSED',
+        'message': '',
+    }
+
+    # A recorded failure keeps the node and the supplied message.
+    session.module_status = 'FAILED'
+    session.module_message = 'closed set'
+    assert session.handle_response() == {
+        'node_id': 'node.a',
+        'status': 'FAILED',
+        'message': 'closed set',
+    }
+
+# ** test: note_pass_without_session
+def test_note_pass_without_session() -> None:
+    '''
+    Assert a pass note without a session records the pass mapping.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The dependency records calls and is not invoked.
+    calls = []
+
+    def get_dependency(*args, **kwargs):
+        calls.append((args, kwargs))
+
+    module_run = ModuleRunContext(get_dependency)
+    assert module_run.note('node.pass', error=None, test_session=None) is None
+    assert module_run.outcomes == [{
+        'node_id': 'node.pass',
+        'status': 'PASSED',
+        'message': '',
+    }]
+    assert len(calls) == 0
+
+# ** test: note_pass_with_session
+def test_note_pass_with_session() -> None:
+    '''
+    Assert a pass note with a session records the pass and the module note.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Note the positional session onto the same module-run construction.
+    module_run = ModuleRunContext(lambda *args, **kwargs: None)
+    session = _TestSessionContext(
+        TesterContext.from_domain(_build_error_message_tester())
+    )
+    assert module_run.note(
+        'node.pass',
+        error=None,
+        test_session=session,
+    ) is None
+    assert module_run.outcomes[0] == {
+        'node_id': 'node.pass',
+        'status': 'PASSED',
+        'message': '',
+    }
+    assert session.module_node_id == 'node.pass'
+    assert session.module_status == 'PASSED'
+    assert session.module_message == ''
+
+# ** test: note_model_error_keeps_own_message
+def test_note_model_error_keeps_own_message() -> None:
+    '''
+    Assert a model error keeps its own message and does not call the handler.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The handler records calls. The model error is not wrapped.
+    calls = []
+    error = ModelError('CLOSED_SET', message='closed set')
+
+    def handler(caught):
+        calls.append(caught)
+
+    module_run = ModuleRunContext(
+        lambda *args, **kwargs: None,
+        raise_error_handler=handler,
+    )
+    assert module_run.note('node.model', error=error) is error
+    assert module_run.outcomes[0]['status'] == 'FAILED'
+    assert module_run.outcomes[0]['message'] == 'closed set'
+    assert module_run.outcomes[0]['message'] != str(error)
+    assert 'APP_ERROR' not in module_run.outcomes[0]['message']
+    assert len(calls) == 0
+
+# ** test: note_catalogued_error_uses_the_handler
+def test_note_catalogued_error_uses_the_handler() -> None:
+    '''
+    Assert a catalogued error is formatted by the injected handler.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The handler raises one prebuilt API error for the catalogued error.
+    original = TiferetError(FEATURE_NOT_FOUND_ID)
+    api_error = TiferetAPIError(
+        error_code=FEATURE_NOT_FOUND_ID,
+        message='missing feature',
+    )
+    received = []
+
+    def handler(caught):
+        received.append(caught)
+        raise api_error
+
+    module_run = ModuleRunContext(
+        lambda *args, **kwargs: None,
+        raise_error_handler=handler,
+    )
+    returned = module_run.note('node.catalogued', error=original)
+    assert received[0] is original
+    assert returned is api_error
+    assert module_run.outcomes[0]['status'] == 'FAILED'
+    assert module_run.outcomes[0]['message'] == 'missing feature'
+    assert module_run.outcomes[0]['message'] != str(original)
+
+# ** test: note_empty_api_message
+def test_note_empty_api_message() -> None:
+    '''
+    Assert a null API message is recorded as an empty string.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # The handler raises an API error whose message is null.
+    def handler(caught):
+        raise TiferetAPIError(
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=None,
+        )
+
+    module_run = ModuleRunContext(
+        lambda *args, **kwargs: None,
+        raise_error_handler=handler,
+    )
+    module_run.note('node.empty', error=TiferetError(FEATURE_NOT_FOUND_ID))
+    assert module_run.outcomes[0]['status'] == 'FAILED'
+    assert module_run.outcomes[0]['message'] == ''
+
+# ** test: service_error_propagates
+def test_service_error_propagates() -> None:
+    '''
+    Assert a service error propagates and leaves the pool unchanged.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # A prior pass stays in the pool when the service error propagates.
+    module_run = ModuleRunContext(lambda *args, **kwargs: None)
+    module_run.note('node.pass')
+    error = ServiceError('LOST', message='lost')
+    with pytest.raises(ServiceError) as caught:
+        module_run.note('node.lost', error=error)
+    assert caught.value is error
+    assert len(module_run.outcomes) == 1
+    assert module_run.failures == []
+
+# ** test: one_failure_does_not_clear_the_pool
+def test_one_failure_does_not_clear_the_pool() -> None:
+    '''
+    Assert one failure stays beside the earlier pass in the report copies.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Note a pass, then a model error, and report the copies.
+    module_run = ModuleRunContext(lambda *args, **kwargs: None)
+    module_run.note('node.pass')
+    module_run.note(
+        'node.fail',
+        error=ModelError('CLOSED_SET', message='closed set'),
+    )
+    reported = module_run.report()
+    assert len(reported['outcomes']) == 2
+    assert reported['outcomes'][0]['status'] == 'PASSED'
+    assert reported['outcomes'][1]['status'] == 'FAILED'
+    assert len(reported['failures']) == 1
+    assert reported['failures'][0] is reported['outcomes'][1]
+    assert reported['outcomes'] is not module_run.outcomes
+    assert reported['failures'] is not module_run.failures
+    reported['outcomes'].append({'node_id': 'extra'})
+    assert len(module_run.report()['outcomes']) == 2
+
+# ** test: module_run_does_not_enter_session_run
+def test_module_run_does_not_enter_session_run() -> None:
+    '''
+    Assert note and report do not call run or get_dependency.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Replace run with a recorder and note one pass.
+    calls = []
+
+    def get_dependency(*args, **kwargs):
+        calls.append((args, kwargs))
+
+    module_run = ModuleRunContext(get_dependency)
+    run_calls = []
+
+    def recorder(*args, **kwargs):
+        run_calls.append((args, kwargs))
+
+    module_run.run = recorder
+    module_run.note('node.pass')
+    reported = module_run.report()
+    assert module_run.outcomes[0]['status'] == 'PASSED'
+    assert len(run_calls) == 0
+    assert len(calls) == 0
+    assert len(reported['outcomes']) == 1
 
 # *** testers
 
