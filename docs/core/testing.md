@@ -20,6 +20,8 @@ Do not delete `tiferet/testing/` in this cycle. Existing mapper and event tests 
 
 The console script is `tiferet-tester`, not `run_test_module`, and not the `tiferet` script. `tiferet-tester` is a separate console script.
 
+**Test-module modules (v2.2.0):** `tiferet/domain/tester_phase.py`, `tiferet/domain/tester_module.py`, `tiferet/contexts/tester_phase.py`, `tiferet/contexts/tester_module.py`, `tiferet/contexts/tester_cli.py`, `tiferet/blueprints/tester_cli.py`, `tiferet/assets/tester_cli.py`
+
 ## Part 1 — The v2.1.0 unit-test model
 
 ### One TesterObject

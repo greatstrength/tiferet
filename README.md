@@ -15,8 +15,8 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.1.1**
-Unit tests use `@use_tester` — see [Testing Harness](docs/core/testing.md).
+Current status: **2.2.0**
+Unit tests use `@use_tester`, and YAML test modules run through the `tiferet-tester` console script — see [Testing Harness](docs/core/testing.md).
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -33,7 +33,7 @@ Create these files in your project folder:
 from tiferet import App
 app = App(
     'basic_calc',
-    app_yaml_file='config.yml',
+    app_config='config.yml',
 )                               # App is the build_app alias
 
 result = app.run(
@@ -45,7 +45,7 @@ print(f"19 + 23 = {result}")    # → 42
 ```
 **config.yml**
 ```yaml
-interfaces:
+sessions:
   basic_calc:
     name: Basic Calculator
     description: Basic calculator interface
@@ -59,8 +59,9 @@ features:
   calc:
     add:
       name: Add Numbers
-      commands:
+      steps:
         - service_id: add_number_event
+          name: Add a and b
 ```
 
 **app/events/calc.py**  
@@ -134,6 +135,7 @@ You should see:
 - [File Loader](docs/guides/utils/file.md)  
 - [YAML Loader](docs/guides/utils/yaml.md)  
 - [JSON Loader](docs/guides/utils/json.md)  
+- [TOML Loader](docs/guides/utils/toml.md)  
 - [CSV Loader](docs/guides/utils/csv.md)  
 - [Sqlite Connector](docs/guides/utils/sqlite.md)
 
@@ -150,7 +152,7 @@ You should see:
 
 We welcome bug reports, documentation improvements, feature ideas, and early adopters.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (issues → TRD → feature branch → PR).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow: an RFP for prototype work, a TRD for trunk reconstruction or a hotfix, and a Doc PR for docs and skills.
 
 Questions, feedback, or just want to say hi?  
 Open an issue or reach out via email: andrew@greatstrength.me

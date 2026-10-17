@@ -1,4 +1,4 @@
-# AGENTS.md — Tiferet Framework (v2.0.0)
+# AGENTS.md — Tiferet Framework (v2.2.0)
 
 ## Project Overview
 
@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0`
+- **Version:** `2.2.0`
 
 ## Architecture
 
@@ -310,6 +310,7 @@ Applications are configured in a consolidated root `config.yml` file:
 - **Run tests:** `pytest tests/` (or plain `pytest` per `pyproject.toml`) from project root (with venv activated).
 - **Unit tests:** `@use_tester` (`tiferet.blueprints.tester`, exported from `tiferet`). One `TesterObject`; `TesterContext` plus omitting-`domain_type` variants; `TestSessionContext` is a `RequestContext`. Inject `test_ctx` and `session` by parameter name. Types: `domain` | `aggregate` | `transfer_object` | `domain_event` | `service_event` | `generic` | `repo` | `context`. Test-module artifacts are three sibling kinds after preamble: `# *** fixtures` / `# *** tests` / `# *** testers` (omit empty). Testers compose fixtures and tests; they do not replace them.
 - **Leftover:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) still exists. Do not delete it. Do not migrate `tests/events` or `tests/mappers` in this cycle.
+- **Test modules (v2.2.0):** Test-module documents live in `domain/tester_module.py` (`TestModuleDocument`, `TestModuleAddress`). Tester phases live in `domain/tester_phase.py` (`Test`, `Execution`, `ExecutionTarget`, `Assertion`, `ArrangedMock`, `Conditions`, `PhaseRuntime`). Test modules run through the `tiferet-tester` console script (`tiferet.blueprints.tester_cli:main`, exported from `tiferet.blueprints` as `build_tester_cli` / `TesterCLI`). `tiferet-tester` is separate from the `tiferet` admin script. `use_tester` remains the only tester export from the top package.
 - **Guide:** [docs/core/testing.md](docs/core/testing.md).
 - **Mocking:** Use `unittest.mock`. Mock injected services. Verify calls and return values.
 - **Event testing:** `DomainEventTesterContext.handle` (or leftover `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`).
@@ -322,13 +323,15 @@ See [docs/core/utils.md](docs/core/utils.md) for the full design document.
 
 Current utilities:
 - `File` / `FileLoader` — Base file I/O implementing `FileService`.
-- `Yaml` / `YamlLoader` — YAML read/write via PyYAML.
+- `Yaml` / `YamlLoader` — YAML read/write via PyYAML, including the anchor-preserving `AnchorLoader`. Implements `YamlService` (`interfaces/yaml.py`).
 - `Json` / `JsonLoader` — JSON read/write with path support.
+- `Toml` / `TomlLoader` — Read-only TOML loading via `tomllib` (`tomli` on Python < 3.11).
 - `Csv` / `CsvLoader` — List-based CSV with helpers.
 - `CsvDict` / `CsvDictLoader` — Dict-based CSV.
 - `Sqlite` / `SqliteClient` — SQLite client implementing `SqliteService` and `FileService`.
 - `LoggingMiddleware` — DEBUG/ERROR logging middleware via stdlib `logging`; takes `logger_id: str`.
 - `TimingMiddleware` — Wall-clock timing middleware via `time.perf_counter`; takes `logger_id: str`.
+- `Check` (`utils/tester_check.py`) — Tester check utility implementing `CheckService` (`interfaces/tester_check.py`). Not exported from `tiferet.utils`.
 
 ### SQLite API (v2.0.0b3)
 
