@@ -11,6 +11,8 @@ __all__ = [
     'AdminApp',
     'build_admin_cli',
     'AdminCLI',
+    'build_tester_cli',
+    'TesterCLI',
     'use_tester',
 ]
 
@@ -19,4 +21,5 @@ from .app import build_app, build_app as App
 from .cli import build_app as build_cli, build_app as CLI
 from .admin import build_admin_app, build_admin_app as AdminApp
 from .admin_cli import build_admin_cli, build_admin_cli as AdminCLI
+from .tester_cli import build_tester_cli, build_tester_cli as TesterCLI
 from .tester import use_tester
