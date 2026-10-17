@@ -148,7 +148,7 @@ Where the attribution goes depends on the account:
 
 Several agents may work through one shared GitHub machine account. Today that account is `tif-ai`: a non-admin collaborator owned by the maintainer, who answers for it.
 
-- **Sign everything.** Every PR body, issue, review, and comment ends with a final line `— <AgentName>`, for example `— Major` or `— Batou`. That line is the attribution. Do not add a `Co-Authored-By` trailer to the commit or the text.
+- **Sign everything.** Every PR body, issue, review, and comment ends with a final line `— <agent>@<platform> via <account>`, for example `— major@grokbot via tif-ai` or `— batou@grokbot via tif-ai`. That line is the attribution: who wrote it, on what platform, through which account. Do not add a `Co-Authored-By` trailer to the commit or the text.
 - **One agent, one working copy.** Each agent works in its own clone or worktree. Never commit onto another agent's branch.
 - **Verdict by comment.** GitHub rejects `--approve` and `--request-changes` from the token that opened the PR. Post the review as a comment whose first line is the `Verdict:` line. The verdict line is the signal ([code_review.md](code_review.md)).
 - **No standing authority.** A shared-account agent never merges, tags, publishes a release, pushes to `main`, or changes repo settings. That holds even where [code_review.md](code_review.md) would let a reviewer merge. A human does those.

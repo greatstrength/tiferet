@@ -52,7 +52,7 @@ Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when y
 
 ### Commit hygiene
 
-Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, it attributes itself in its own name — never another agent's. On a shared bot account it signs `— <AgentName>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit or merge unless someone asked you to.
+Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, it attributes itself in its own name — never another agent's. On a shared bot account it signs `— <agent>@<platform> via <account>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit or merge unless someone asked you to.
 
 When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local and remote branch, and every temp file. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
 

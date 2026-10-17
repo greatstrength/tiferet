@@ -544,5 +544,5 @@ See `CONTRIBUTING.md` and `docs/collab/process.md` for the full workflow:
 1. Prototype work is an RFP on the proto branch. Trunk reconstruction is a TRD that cites a catalog freeze. Hotfixes are trunk TRDs. Docs/skills PRs need no TRD.
 2. Implement following structured code style and the `tiferet-code-*` skills in `.agents/skills/` (fallback: `docs/core/`).
 3. Separate functional changes from docs/config in distinct commits.
-4. Attribute yourself in your own name, never another agent's: your own `Co-Authored-By:` line, or a final `— <AgentName>` line on a shared bot account such as `tif-ai`. See `docs/collab/process.md` § Attribution and § Shared bot accounts.
+4. Attribute yourself in your own name, never another agent's: your own `Co-Authored-By:` line, or a final `— <agent>@<platform> via <account>` line on a shared bot account such as `tif-ai`. See `docs/collab/process.md` § Attribution and § Shared bot accounts.
 5. Publish a Collaboration Report on the **issue** (not the PR) when trunk TRD work completes.
