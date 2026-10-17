@@ -18,6 +18,8 @@ Do not delete `tiferet/testing/` in this cycle. Existing mapper and event tests 
 
 **Modules:** `tiferet/domain/tester.py`, `tiferet/contexts/tester.py`, `tiferet/blueprints/tester.py`, `tiferet/assets/tester.py`
 
+The console script is `tiferet-tester`, not `run_test_module`, and not the `tiferet` script. `tiferet-tester` is a separate console script.
+
 ## Part 1 — The v2.1.0 unit-test model
 
 ### One TesterObject
