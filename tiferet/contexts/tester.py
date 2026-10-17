@@ -4,21 +4,24 @@
 
 # ** core
 import inspect
+import json
 from importlib import import_module
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import Mock
 
 # ** app
 from .. import a
-from ..assets import TiferetError
+from ..assets import TiferetError, TiferetAPIError
 from ..domain import (
     ModelError,
     TesterObject,
     Verification,
 )
 from ..events import DomainEvent
+from .app import AppSessionContext
 from .core import BaseContext, add_default_cache_items
 from .request import RequestContext
+from .tester_phase import TestContext
 
 # *** constants
 
@@ -102,6 +105,31 @@ def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
         TEST_PRESET_CACHE_PREFIX,
     )
 
+# ** function: own_message
+def _own_message(error: ModelError) -> str:
+    '''
+    Read the message the model carried. This is not ``str(error)``.
+
+    :param error: The model error whose carried message is read.
+    :type error: ModelError
+    :return: The carried message, or the error code when it is absent.
+    :rtype: str
+    '''
+
+    # Parse the serialized error. A non-JSON payload is not a message.
+    try:
+        payload = json.loads(str(error))
+    except (TypeError, ValueError):
+        return error.error_code
+
+    # A truthy message is the model's own text. An empty string is not.
+    message = payload.get('message') if isinstance(payload, dict) else None
+    if message:
+        return message
+
+    # Otherwise return the error code.
+    return error.error_code
+
 # *** contexts
 
 # ** context: tester_context
@@ -109,10 +137,80 @@ class TesterContext(BaseContext):
     '''
     The master tester context bound to one TesterObject. Variant contexts
     inherit its construction and comparison helpers without re-registering.
+    The phase-runtime factory is injected. This context stores that callable
+    and forwards it. It does not build the runtime, and it does not import
+    the blueprint that builds it.
     '''
 
     # * attribute: domain_type
     domain_type = TesterObject
+
+    # * attribute: _build_phase_runtime
+    _build_phase_runtime: Callable
+
+    # * init
+    def __init__(self, build_phase_runtime_handler: Callable = None) -> None:
+        '''
+        Initialize the tester context with an injected phase-runtime factory.
+
+        :param build_phase_runtime_handler: The injected factory. Null means unwired.
+        :type build_phase_runtime_handler: Callable
+        :return: None
+        :rtype: None
+        '''
+
+        # Initialize the base context.
+        super().__init__()
+
+        # Store the injected factory. An omitted handler is unwired.
+        self._build_phase_runtime = build_phase_runtime_handler
+
+    # * method: build_phase_runtime
+    def build_phase_runtime(
+            self,
+            session,
+            tester_module_path: str,
+            tester_class_name: str,
+            tester_attributes: Dict[str, Any] = None,
+            root_fixtures: Dict[str, Dict[str, Any]] = None,
+            tester_fixtures: Dict[str, Dict[str, Any]] = None,
+        ) -> Any:
+        '''
+        Forward phase-runtime construction to the injected factory.
+
+        :param session: The session passed through to the factory.
+        :type session: Any
+        :param tester_module_path: The tester class module path.
+        :type tester_module_path: str
+        :param tester_class_name: The tester class name.
+        :type tester_class_name: str
+        :param tester_attributes: Attributes forwarded to the factory.
+        :type tester_attributes: Dict[str, Any]
+        :param root_fixtures: Root fixture specs forwarded to the factory.
+        :type root_fixtures: Dict[str, Dict[str, Any]]
+        :param tester_fixtures: Tester-local fixture specs forwarded to the factory.
+        :type tester_fixtures: Dict[str, Dict[str, Any]]
+        :return: The injected factory result.
+        :rtype: Any
+        '''
+
+        # An absent factory is an unwired handler, not a local construction.
+        if self._build_phase_runtime is None:
+            a.core.raise_unwired_handler_error(
+                'build_phase_runtime_handler',
+                self.domain.id,
+                error_code=a.error.APP_ERROR_ID,
+            )
+
+        # Forward the session and coordinates. Do not read fixture specs here.
+        return self._build_phase_runtime(
+            session,
+            tester_module_path,
+            tester_class_name,
+            tester_attributes=tester_attributes,
+            root_fixtures=root_fixtures,
+            tester_fixtures=tester_fixtures,
+        )
 
     # * method: make_target
     def make_target(self, data: Dict[str, Any] = None) -> Any:
@@ -381,11 +479,24 @@ class TransferObjectTesterContext(TesterContext):
 class TestSessionContext(RequestContext):
     '''
     The test session is the request: a RequestContext that queues given /
-    invoke / verify against a bound TesterContext collaborator.
+    invoke / verify against a bound TesterContext collaborator. It accepts
+    either that collaborator or a TestContext, not both.
     '''
 
     # * attribute: tester_ctx
-    tester_ctx: TesterContext
+    tester_ctx: TesterContext | None
+
+    # * attribute: test_context
+    test_context: TestContext | None
+
+    # * attribute: module_node_id
+    module_node_id: str | None
+
+    # * attribute: module_status
+    module_status: str | None
+
+    # * attribute: module_message
+    module_message: str | None
 
     # * attribute: verifications
     verifications: List[Verification]
@@ -394,23 +505,45 @@ class TestSessionContext(RequestContext):
     outcome: Any
 
     # * init
-    def __init__(self, tester_ctx: TesterContext, **kwargs: Any) -> None:
+    def __init__(
+            self,
+            tester_ctx: TesterContext = None,
+            *,
+            test_context: TestContext = None,
+            **kwargs: Any,
+        ) -> None:
         '''
-        Initialize the test session with a bound tester collaborator.
+        Initialize the test session with exactly one collaborator.
 
-        :param tester_ctx: The bound tester context.
+        :param tester_ctx: The Python-path tester collaborator.
         :type tester_ctx: TesterContext
+        :param test_context: The other collaborator. Keyword-only.
+        :type test_context: TestContext
         :param kwargs: RequestContext fields such as headers and data.
         :type kwargs: dict
+        :return: None
+        :rtype: None
         '''
+
+        # Reject both collaborators and neither collaborator.
+        if (tester_ctx is None) == (test_context is None):
+            raise ValueError(
+                'Pass tester_ctx or test_context, not both and not neither.'
+            )
 
         # Initialize the request context and bind a Request as domain.
         super().__init__(**kwargs)
 
-        # Bind the tester collaborator and an empty verification queue.
+        # Store the supplied collaborator. The other stays null.
         self.tester_ctx = tester_ctx
+        self.test_context = test_context
+
+        # Start the verification queue and the module note empty.
         self.verifications = []
         self.outcome = None
+        self.module_node_id = None
+        self.module_status = None
+        self.module_message = None
 
     # * method: given
     def given(self, **state: Any) -> 'TestSessionContext':
@@ -535,6 +668,10 @@ class TestSessionContext(RequestContext):
         :rtype: Any
         '''
 
+        # A test-context collaborator runs this session and returns.
+        if self.test_context is not None:
+            return self.test_context.execute_feature(self)
+
         # Ignore extra keywords. Reject a live target on specialized types first.
         tester = self.tester_ctx.domain
         if tester.type != 'generic' and target is not None:
@@ -576,6 +713,153 @@ class TestSessionContext(RequestContext):
         self.capture_outcome(outcome)
         self.evaluate_verifications()
         return self.outcome
+
+    # * method: handle_response
+    def handle_response(self) -> Any:
+        '''
+        Return the request result, or the module-note mapping when noted.
+
+        :return: The request result, or the noted outcome mapping.
+        :rtype: Any
+        '''
+
+        # The Python harness does not set a module node id.
+        if not self.module_node_id:
+            return self.result
+
+        # Shape the noted outcome. A null status is a pass with an empty message.
+        return {
+            'node_id': self.module_node_id,
+            'status': 'PASSED' if self.module_status is None else self.module_status,
+            'message': '' if self.module_message is None else self.module_message,
+        }
+
+# ** context: module_run_context
+class ModuleRunContext(AppSessionContext):
+    '''
+    Pools one module run and returns the report. It omits domain_type, so
+    AppSession stays mapped to AppSessionContext. It does not run a feature
+    id, and it is not the check service.
+    '''
+
+    # * attribute: outcomes
+    outcomes: List[Dict[str, Any]]
+
+    # * attribute: failures
+    failures: List[Dict[str, Any]]
+
+    # * init
+    def __init__(
+            self,
+            get_dependency: Callable,
+            cache: Any = None,
+            raise_error_handler: Callable = None,
+        ) -> None:
+        '''
+        Initialize the module run with the hub collaborators it stores.
+
+        :param get_dependency: The DI resolution handler. The reporter does not call it.
+        :type get_dependency: Callable
+        :param cache: The shared bootstrap cache.
+        :type cache: Any
+        :param raise_error_handler: The handler that formats a catalogued error.
+        :type raise_error_handler: Callable
+        :return: None
+        :rtype: None
+        '''
+
+        # Store the hub collaborators. A null handler is not formatted here.
+        super().__init__(
+            get_dependency=get_dependency,
+            cache=cache,
+            raise_error_handler=raise_error_handler,
+        )
+
+        # Start both pools empty.
+        self.outcomes = []
+        self.failures = []
+
+    # * method: note
+    def note(
+            self,
+            node_id: str,
+            error: BaseException = None,
+            test_session: TestSessionContext = None,
+        ) -> BaseException | None:
+        '''
+        Record one test. One failure does not clear the pool.
+
+        :param node_id: The node identifier for this note.
+        :type node_id: str
+        :param error: The error raised by the test, or null when it passed.
+        :type error: BaseException
+        :param test_session: An optional session that shapes the outcome.
+        :type test_session: TestSessionContext
+        :return: The printable error, or null when the test passed.
+        :rtype: BaseException | None
+        '''
+
+        # Start from a pass with an empty message and nothing to print.
+        status = 'PASSED'
+        message = ''
+        printable = None
+
+        # A model error keeps its own message and is not catalogued.
+        if isinstance(error, ModelError):
+            status = 'FAILED'
+            message = _own_message(error)
+            printable = error
+
+        # A catalogued error is formatted by the injected handler.
+        elif isinstance(error, TiferetError):
+            status = 'FAILED'
+            try:
+                self._raise_error(error)
+            except TiferetAPIError as api_error:
+                message = api_error.message or ''
+                printable = api_error
+
+        # Any other error propagates. Nothing is appended.
+        elif error is not None:
+            raise error
+
+        # A null session records the outcome mapping directly.
+        if test_session is None:
+            outcome = {
+                'node_id': node_id,
+                'status': status,
+                'message': message,
+            }
+
+        # Otherwise the session shapes the recorded outcome.
+        else:
+            test_session.module_node_id = node_id
+            test_session.module_status = status
+            test_session.module_message = message
+            outcome = test_session.handle_response()
+
+        # Append the outcome, and that same mapping when it failed.
+        self.outcomes.append(outcome)
+        if status == 'FAILED':
+            self.failures.append(outcome)
+
+        # Return the printable error. This method does not print.
+        return printable
+
+    # * method: report
+    def report(self) -> Dict[str, Any]:
+        '''
+        Return copies of the pooled outcomes and failures.
+
+        :return: The outcomes and failures in the order noted.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Copy both lists so a later note still sees the pool.
+        return {
+            'outcomes': list(self.outcomes),
+            'failures': list(self.failures),
+        }
 
 # ** context: domain_event_tester_context
 class DomainEventTesterContext(TesterContext):
