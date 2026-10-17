@@ -2,9 +2,11 @@
 
 # *** imports
 
+# ** core
+from unittest.mock import Mock
+
 # ** infra
 import pytest
-from unittest.mock import Mock
 
 # ** app
 from tiferet import use_tester

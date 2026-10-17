@@ -51,7 +51,7 @@ def is_plain_value(value: Any, seen: Optional[set] = None) -> bool:
         if id(value) in seen:
             return False
         seen.add(id(value))
-        return all(is_plain_value(item, seen) for item in value)
+        return all(is_plain_value(item, seen=seen) for item in value)
 
     # A string-keyed mapping is plain. A cycle or a non-string key is not.
     if isinstance(value, dict):
@@ -59,7 +59,7 @@ def is_plain_value(value: Any, seen: Optional[set] = None) -> bool:
             return False
         seen.add(id(value))
         return all(
-            isinstance(key, str) and is_plain_value(item, seen)
+            isinstance(key, str) and is_plain_value(item, seen=seen)
             for key, item in value.items()
         )
 
@@ -170,7 +170,8 @@ class SaveYaml(YamlEvent):
     def execute(self,
             path: str,
             data: dict,
-            **kwargs) -> dict:
+            **kwargs,
+        ) -> dict:
         '''
         Save the mapping at path.
 
@@ -221,7 +222,8 @@ class WriteAnchoredYaml(YamlEvent):
     def execute(self,
             path: str,
             text: str,
-            **kwargs) -> dict:
+            **kwargs,
+        ) -> dict:
         '''
         Write the anchored text at path.
 
@@ -377,7 +379,8 @@ class RenameYamlAnchor(YamlEvent):
             path: str,
             name: str,
             new_name: str,
-            **kwargs) -> str:
+            **kwargs,
+        ) -> str:
         '''
         Rename the named anchor at path.
 
