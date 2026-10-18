@@ -81,7 +81,7 @@ DI lives in two modules under `tiferet/di/`:
 - **`tiferet/di/core.py`** — the abstract, domain-only contract: the `ServiceContainer` and `ServiceResolver` ABCs plus the pure functions `injectable_parameter_names` and `normalize_flags`.
 - **`tiferet/di/dependency_injector.py`** — the concrete implementations backed by `dependency-injector`: `DIDynamicServiceContainer` (feature-level, `Factory` scope), `DIAppServiceContainer` (app-level, `Singleton` scope), and `DIDynamicServiceResolver` (per-flag feature resolver holding a `DIService` and an injected `parse_parameter`).
 
-All seven names are exported from `tiferet/di/__init__.py`. The DI layer is **event-free and asset-free**: it assumes best-case inputs, raises raw exceptions for callers with event access to convert, and receives parameter parsing as an injected callable. The resolver's bound `get_dependency(service_id, *flags)` is injected into `AppSessionContext` and forwarded to each `FeatureContext`. The previous `ServiceProvider` family and `tiferet/di/settings.py` are gone (see Migration Notes).
+All seven names are exported from `tiferet/di/__init__.py`. The DI layer is **event-free and asset-free**: it assumes best-case inputs, raises `ServiceError` (`DI_DEPENDENCY_NOT_REGISTERED`) for an unregistered id, lets a failing provider's raw exception surface for callers with event access to convert, and receives parameter parsing as an injected callable. The resolver's bound `get_dependency(service_id, *flags)` is injected into `AppSessionContext` and forwarded to each `FeatureContext`. The previous `ServiceProvider` family and `tiferet/di/settings.py` are gone (see Migration Notes).
 
 See [docs/core/di.md](docs/core/di.md).
 

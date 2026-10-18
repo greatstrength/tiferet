@@ -8,9 +8,9 @@
 The `tiferet/di/` package provides the dependency-injection layer for the Tiferet framework. It is structured across two modules, re-exported from `tiferet/di/__init__.py` (`ServiceContainer`, `ServiceResolver`, `DIAppServiceContainer`, `DIDynamicServiceContainer`, `DIDynamicServiceResolver`, `injectable_parameter_names`, `normalize_flags`):
 
 - **`tiferet/di/core.py`** — the abstract, domain-only core: the `ServiceContainer` and `ServiceResolver` ABCs plus the pure module functions `injectable_parameter_names` and `normalize_flags`. It imports only the standard library and `..domain` (`ServiceDependency`).
-- **`tiferet/di/dependency_injector.py`** — the concrete implementations backed by `dependency_injector`: `DIDynamicServiceContainer` (feature-level, `Factory` scope), `DIAppServiceContainer` (app-level, `Singleton` scope), and `DIDynamicServiceResolver` (per-flag feature resolver). It may additionally import `..interfaces.di` (`DIService`).
+- **`tiferet/di/dependency_injector.py`** — the concrete implementations backed by `dependency_injector`: `DIDynamicServiceContainer` (feature-level, `Factory` scope), `DIAppServiceContainer` (app-level, `Singleton` scope), and `DIDynamicServiceResolver` (per-flag feature resolver). It may additionally import `..interfaces.di` (`DIService`) and `..interfaces.core` (`ServiceError`).
 
-The DI layer is deliberately **event-free and asset-free**: it imports only the standard library, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di` (`DIService`). It assumes best-case inputs and raises raw exceptions, leaving structured error handling to callers that have event access. Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports the blueprint helper (`tiferet/blueprints/core.py::parse_parameter`) itself.
+The DI layer is deliberately **event-free and asset-free**: it imports only the standard library, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di` (`DIService`) and `..interfaces.core` (`ServiceError`). It assumes best-case inputs. An unregistered id raises `ServiceError` with `DI_DEPENDENCY_NOT_REGISTERED_ID` (`'DI_DEPENDENCY_NOT_REGISTERED'`, a module constant in `dependency_injector.py`), not a `TiferetError`; a provider that fails while constructing surfaces its raw exception, leaving structured error handling to callers that have event access. Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports the blueprint helper (`tiferet/blueprints/core.py::parse_parameter`) itself.
 
 App-level core services resolve as shared **Singletons** (`DIAppServiceContainer`), while feature-level services resolve per flag set as **Factories** (`DIDynamicServiceResolver`). Contexts (`AppSessionContext`, `FeatureContext`) consume an injected `get_dependency` callable rather than holding a provider or container directly.
 
@@ -69,7 +69,23 @@ Keeping `di_service` off the base preserves the domain-only boundary; the DI-bou
 
 ## Dependency-Injector Implementations (`di/dependency_injector.py`)
 
-`di/dependency_injector.py` provides the concrete `dependency_injector`-backed implementations. It may import `..interfaces.di` (`DIService`) in addition to `..domain`.
+`di/dependency_injector.py` provides the concrete `dependency_injector`-backed implementations. It may import `..interfaces.di` (`DIService`) and `..interfaces.core` (`ServiceError`) in addition to `..domain`:
+
+```python
+# *** imports
+
+# ** core
+from typing import Any, Callable, Dict, List
+
+# ** infra
+from dependency_injector import containers, providers
+
+# ** app
+from .core import ServiceContainer, ServiceResolver, injectable_parameter_names
+from ..domain import ServiceDependency, AppServiceDependency
+from ..interfaces.di import DIService
+from ..interfaces.core import ServiceError
+```
 
 ### `DIDynamicServiceContainer`
 
@@ -189,14 +205,17 @@ The `di/` package uses `# *** classes` / `# ** class:` artifact comments, consis
 `DIDynamicServiceContainer.add_service(service_id, service)` takes a core `ServiceDependency`. It registers the dependency's `parameters` as constants, then wraps the imported class in a `providers.Factory` whose constructor kwargs are wired to sibling providers. `DIAppServiceContainer` does the same with `providers.Singleton`.
 
 ```python
+# Create the container and register the constant the repository needs.
 container = DIDynamicServiceContainer()
 container.add_constant('feature_config', 'config.yml')
+
+# Register the repository class as a feature service.
 container.add_service('feature_service', ServiceDependency(
     module_path='tiferet.repos.feature',
     class_name='FeatureConfigRepository',
 ))
 
-# FeatureConfigRepository(feature_config='config.yml'), a new instance each time.
+# Resolve FeatureConfigRepository(feature_config='config.yml'), a new instance each time.
 repo = container.get_dependency('feature_service')
 ```
 
@@ -205,9 +224,10 @@ repo = container.get_dependency('feature_service')
 `add_constant(constant_id, value)` wraps the value in a `providers.Object`. Each resolution returns the same value:
 
 ```python
+# Register a scalar constant.
 container.add_constant('app_config', 'config.yml')
 
-# Direct scalar resolution returns 'config.yml'.
+# Resolve the scalar directly; returns 'config.yml'.
 path = container.get_dependency('app_config')
 ```
 
@@ -216,10 +236,14 @@ path = container.get_dependency('app_config')
 `DIDynamicServiceResolver(di_service, parse_parameter=None)` uses `parse_parameter` to resolve constant and parameter values (e.g. `$env.` references). It defaults to an identity function so the DI layer never imports blueprint code. `core.build_service_resolver` injects `tiferet/blueprints/core.py::parse_parameter` and registers the app container under the `'app'` flag. Tests can inject a custom parser:
 
 ```python
+# Compose the resolver with a custom parameter parser.
 resolver = DIDynamicServiceResolver(
     di_service=mock_di_service,
     parse_parameter=lambda value: value.upper(),
 )
+
+# Register the app container under the 'app' flag, as core.build_service_resolver does.
+resolver.add_container(app_service_container, 'app')
 ```
 
 For most tests, contexts can be exercised by injecting a `get_dependency` mock directly, bypassing the resolver entirely.
@@ -231,7 +255,7 @@ Tests live in `tests/di/test_core.py` (ABC contract, resolver template, pure fun
 ### Key Patterns
 
 - Test container registration and resolution — register a `ServiceDependency` or constant and assert `get_dependency` returns the expected instance or value.
-- Test `get_dependency` on an unregistered id — assert a raw exception propagates (DI does not raise structured `TiferetError`s).
+- Test `get_dependency` on an unregistered id — assert `ServiceError` with `error_code == 'DI_DEPENDENCY_NOT_REGISTERED'` (DI raises no `TiferetError`).
 - Test `remove_dependency` — assert the dependency is gone, and that removing an unknown id raises nothing.
 - Test `ServiceResolver.get_dependency` — assert per-flag containers are built once, cached, and delegated to.
 

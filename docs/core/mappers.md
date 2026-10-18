@@ -348,10 +348,24 @@ Shared sample data, equality fields, and normalizers are defined as module-level
 For fields containing nested domain objects (e.g., lists of services, arguments, dependencies), pass `field_normalizers` that convert both dicts and domain objects into comparable tuples:
 
 ```python
-# ** constant: svc_tuple
-def SVC_TUPLE(s):
+# *** constants
+
+# ** constant: field_normalizers
+FIELD_NORMALIZERS = {
+    'services': lambda svcs: tuple(sorted(svc_tuple(s) for s in (svcs or []))),
+}
+
+# *** functions
+
+# ** function: svc_tuple
+def svc_tuple(s) -> tuple:
     '''
     Normalize a service (dict or domain object) into a comparable tuple.
+
+    :param s: The service as a dict or a domain object.
+    :type s: dict | AppServiceDependency
+    :return: A comparable tuple of the service fields.
+    :rtype: tuple
     '''
 
     # Normalize a dict-shaped service.
@@ -362,12 +376,9 @@ def SVC_TUPLE(s):
     # Normalize a domain-object service.
     return (s.service_id, s.module_path, s.class_name,
             tuple(sorted((s.parameters or {}).items())))
-
-# ** constant: field_normalizers
-FIELD_NORMALIZERS = {
-    'services': lambda svcs: tuple(sorted(SVC_TUPLE(s) for s in (svcs or []))),
-}
 ```
+
+The lambda resolves `svc_tuple` at call time, so the constant can precede the function and the preamble order (`constants` → `functions`) holds.
 
 #### Child Mapper Tests
 When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppSessionConfigObject`), test the child with `# * test:` members on the parent's tester, or with module-level `# *** tests` functions.
