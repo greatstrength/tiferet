@@ -5,9 +5,9 @@
 
 ## Overview
 
-Utilities are a core component of the Tiferet framework, providing concrete infrastructure implementations that satisfy the **Services** (unified vertical contracts) defined in `tiferet/interfaces/`. They form the infrastructure layer that bridges abstract Service contracts — consumed by domain events and contexts — with underlying repeatable processes, whether those processes involve file system I/O, database access, computational algorithms, or external system integrations.
+Utilities are a core component of the Tiferet framework, providing concrete infrastructure implementations that satisfy the **Services** (unified vertical contracts) defined in `tiferet/interfaces/`. They form the infrastructure layer that bridges abstract Service contracts - consumed by domain events and contexts - with underlying repeatable processes, whether those processes involve file system I/O, database access, computational algorithms, or external system integrations.
 
-The utility pattern encapsulates **any reusable infrastructure concern** behind a consistent, injectable, and testable Service contract. While the current `tiferet/utils/` package contains file and data access utilities (YAML, JSON, CSV, SQLite), the architectural role extends to computational infrastructure as well — sorting algorithms, heuristics, AI model invocations, embedding pipelines, or any other repeatable process that domain events should consume without coupling to implementation details.
+The utility pattern encapsulates **any reusable infrastructure concern** behind a consistent, injectable, and testable Service contract. While the current `tiferet/utils/` package contains file and data access utilities (YAML, JSON, CSV, SQLite), the architectural role extends to computational infrastructure as well - sorting algorithms, heuristics, AI model invocations, embedding pipelines, or any other repeatable process that domain events should consume without coupling to implementation details.
 
 This document describes the structure, design principles, and best practices for writing and extending utilities, adhering to Tiferet's structured code style ([docs/core/code_style.md](code_style.md)).
 
@@ -16,7 +16,7 @@ This document describes the structure, design principles, and best practices for
 A **Utility** in Tiferet is a concrete class that implements one or more Services from `tiferet/interfaces/` and encapsulates a repeatable infrastructure process. Key characteristics:
 
 - Implements a Service contract (e.g., `FileLoader` implements `FileService`, `SqliteClient` implements `SqliteService`).
-- Encapsulates infrastructure concerns — both **physical** (file I/O, database connections, network calls) and **computational** (algorithms, heuristics, model inference, data transformation pipelines).
+- Encapsulates infrastructure concerns - both **physical** (file I/O, database connections, network calls) and **computational** (algorithms, heuristics, model inference, data transformation pipelines).
 - Uses `ServiceError.raise_for(self, ...)` from `tiferet/interfaces/core.py` for structured error handling with framework-defined error codes.
 - Provides both instance methods (for stateful or lifecycle-managed operations) and static convenience methods (for one-shot operations).
 - Is exported from `tiferet/utils/__init__.py` with both full names and shorthand aliases (e.g., `FileLoader` / `File`, `YamlLoader` / `Yaml`).
@@ -41,11 +41,11 @@ In both cases, the pattern is identical: a utility provides a concrete, reusable
 
 `FileLoader` implements `FileService` and provides the foundation for all file-based utilities:
 
-- **Path management** — accepts `str` or `pathlib.Path`, stores as `Path`.
-- **Mode and encoding validation** — `verify_mode()` and `verify_encoding()` with structured error handling.
-- **File existence checks** — `verify_file()` (static) adapts behavior to read vs. write modes.
-- **Context manager protocol** — `__enter__` opens the file stream, `__exit__` closes it.
-- **Already-open guard** — prevents double-open via `open_file()`.
+- **Path management** - accepts `str` or `pathlib.Path`, stores as `Path`.
+- **Mode and encoding validation** - `verify_mode()` and `verify_encoding()` with structured error handling.
+- **File existence checks** - `verify_file()` (static) adapts behavior to read vs. write modes.
+- **Context manager protocol** - `__enter__` opens the file stream, `__exit__` closes it.
+- **Already-open guard** - prevents double-open via `open_file()`.
 
 Format-specific loaders (`YamlLoader`, `JsonLoader`, `CsvLoader`, `SqliteClient`) extend `FileLoader` and override or add methods as needed.
 
@@ -55,9 +55,9 @@ Format-specific loaders (`YamlLoader`, `JsonLoader`, `CsvLoader`, `SqliteClient`
 
 Base utility implementing `FileService`. Manages file stream lifecycle with validation and context-manager support.
 
-- `open_file()` / `close_file()` — stream lifecycle.
-- `verify_file(path, mode)` (static) — existence checks adapted to mode.
-- `verify_mode()` / `verify_encoding()` — validation.
+- `open_file()` / `close_file()` - stream lifecycle.
+- `verify_file(path, mode)` (static) - existence checks adapted to mode.
+- `verify_mode()` / `verify_encoding()` - validation.
 
 ### YamlLoader (alias: Yaml)
 
@@ -72,10 +72,10 @@ Extends `FileLoader` for YAML file operations using PyYAML's `safe_load` and `sa
 
 Extends `FileLoader` for JSON operations using the built-in `json` module.
 
-- `verify_json_file()` (static) — enforces `.json` extension with optional fallback path.
-- `load(start_node, data_factory)` — parse, transform, return.
-- `save(data, data_path)` — serialize with indent=2.
-- `parse_json_path(data, path)` (static) — dot-notation navigation with array index support.
+- `verify_json_file()` (static) - enforces `.json` extension with optional fallback path.
+- `load(start_node, data_factory)` - parse, transform, return.
+- `save(data, data_path)` - serialize with indent=2.
+- `parse_json_path(data, path)` (static) - dot-notation navigation with array index support.
 
 ### CsvLoader (alias: Csv)
 
@@ -109,16 +109,16 @@ Extends `FileLoader` and implements `SqliteService`.
 
 Utilities follow Tiferet's artifact comment structure:
 
-- `# *** utils` — top-level section.
-- `# ** util: <snake_case_name>` — individual utility class.
-- `# * attribute: <name>` — instance attributes.
-- `# * init` — constructor.
-- `# * method: <name>` — instance methods.
-- `# * method: <name> (static)` — static methods.
+- `# *** utils` - top-level section.
+- `# ** util: <snake_case_name>` - individual utility class.
+- `# * attribute: <name>` - instance attributes.
+- `# * init` - constructor.
+- `# * method: <name>` - instance methods.
+- `# * method: <name> (static)` - static methods.
 
 **Spacing rules** match `code_style.md`: one empty line between major sections, after docstrings, and between code snippets.
 
-**Example** — artifact structure for `FileLoader`:
+**Example** - artifact structure for `FileLoader`:
 ```python
 # *** utils
 
@@ -166,7 +166,7 @@ class FileLoader(FileService):
 
 ## Creating New and Extending Utilities
 
-### Physical Infrastructure Example — TomlLoader
+### Physical Infrastructure Example - TomlLoader
 
 ```python
 # *** imports
@@ -213,7 +213,7 @@ class TomlLoader(FileLoader):
             )
 ```
 
-### Computational Infrastructure Example — EmbeddingClient
+### Computational Infrastructure Example - EmbeddingClient
 
 ```python
 # *** imports
@@ -247,10 +247,10 @@ class EmbeddingClient(EmbeddingService):
 ## Best Practices
 
 - Use artifact comments (`# *** utils` / `# ** util:` / `# * method:`) consistently.
-- Raise errors only via `ServiceError.raise_for(self, ...)` — never raise raw exceptions from utilities.
+- Raise errors only via `ServiceError.raise_for(self, ...)` - never raise raw exceptions from utilities.
 - Implement context manager protocol (`__enter__` / `__exit__`) for resource-owning utilities.
 - Provide static one-shot helpers for common operations (e.g., `CsvLoader.load_rows()`).
-- Keep utilities focused on infrastructure — domain logic belongs in domain events and contexts.
+- Keep utilities focused on infrastructure - domain logic belongs in domain events and contexts.
 - Align every utility with a Service contract from `tiferet/interfaces/`.
 - Stateless computational utilities need not implement context managers.
 
@@ -305,12 +305,12 @@ def test_file_loader_invalid_mode(temp_file):
 
 ```
 tiferet/utils/
-├── __init__.py          — Exports + aliases (File, Yaml, Json, Csv, CsvDict, Sqlite)
-├── file.py              — FileLoader (alias: File) — implements FileService
-├── yaml.py              — YamlLoader (alias: Yaml) — YAML read/write via PyYAML
-├── json.py              — JsonLoader (alias: Json) — JSON read/write with path support
-├── csv.py               — CsvLoader (alias: Csv), CsvDictLoader (alias: CsvDict)
-├── sqlite.py            — SqliteClient (alias: Sqlite) — implements SqliteService + FileService
+├── __init__.py - Exports + aliases (File, Yaml, Json, Csv, CsvDict, Sqlite)
+├── file.py - FileLoader (alias: File) - implements FileService
+├── yaml.py - YamlLoader (alias: Yaml) - YAML read/write via PyYAML
+├── json.py - JsonLoader (alias: Json) - JSON read/write with path support
+├── csv.py - CsvLoader (alias: Csv), CsvDictLoader (alias: CsvDict)
+├── sqlite.py - SqliteClient (alias: Sqlite) - implements SqliteService + FileService
 └── tests/
     ├── __init__.py
     ├── test_file.py
@@ -332,7 +332,7 @@ Future utilities follow the same pattern: define a Service interface in `tiferet
 
 ## Conclusion
 
-Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes — both physical and computational — behind injectable Service contracts. Their consistent pattern — Service implementation, `ServiceError` handling, context-manager lifecycle, and artifact organization — ensures reliability, testability, and alignment with the framework's DDD architecture.
+Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes - both physical and computational - behind injectable Service contracts. Their consistent pattern - Service implementation, `ServiceError` handling, context-manager lifecycle, and artifact organization - ensures reliability, testability, and alignment with the framework's DDD architecture.
 
 Explore source in `tiferet/utils/`, contracts in `tiferet/interfaces/`, and tests in `tiferet/utils/tests/`.
 

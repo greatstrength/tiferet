@@ -1,4 +1,4 @@
-# Utilities – SqliteClient (alias: Sqlite)
+# Utilities - SqliteClient (alias: Sqlite)
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -12,7 +12,7 @@
 It builds directly on top of `FileLoader` (so it gets all the path handling and context-manager goodness for free), then adds everything you need for real database work: connections, queries, transactions, backups, and clean error handling.
 
 What makes `SqliteClient` special compared to the other file utilities (`Yaml`, `Json`, `Csv`)?  
-It also implements the full `SqliteService` interface — which means you can inject it into domain events and repositories exactly the same way you inject other services.  
+It also implements the full `SqliteService` interface - which means you can inject it into domain events and repositories exactly the same way you inject other services.  
 At the same time, you can still use it directly (with or without the alias `Sqlite`) for quick scripts, tests, or simple one-off operations inside events.
 
 The context manager is especially helpful here:  
@@ -21,8 +21,8 @@ The context manager is especially helpful here:
 
 ## Ubiquitous Language
 
-- **URI mode** — `ro`/`rw`/`rwc`, SQLite's own connection-level access modes, distinct from the classic file-open modes other loaders use.
-- **No special-cased constraint violations** — `sqlite3.IntegrityError` becomes a `SQLITE_STATEMENT_FAILED` `ServiceError` like any other driver failure; domain semantics for a specific constraint are the calling event's responsibility, not this client's.
+- **URI mode** - `ro`/`rw`/`rwc`, SQLite's own connection-level access modes, distinct from the classic file-open modes other loaders use.
+- **No special-cased constraint violations** - `sqlite3.IntegrityError` becomes a `SQLITE_STATEMENT_FAILED` `ServiceError` like any other driver failure; domain semantics for a specific constraint are the calling event's responsibility, not this client's.
 
 ## When should you reach for SqliteClient?
 
@@ -45,7 +45,7 @@ with Sqlite() as db:                        # defaults to :memory:
     db.execute("INSERT INTO pets VALUES (?, ?)", ("Luna", 3))
     print(db.fetch_all("SELECT * FROM pets WHERE age > 2"))  # → [('Luna', 3)]
 
-# === Persistent file database – create if missing ===
+# === Persistent file database - create if missing ===
 with Sqlite(path="data/myapp.db", mode="rwc") as db:
     db.execute("""
         CREATE TABLE IF NOT EXISTS config (
@@ -115,19 +115,19 @@ try:
         db.execute("INSERT INTO transactions VALUES (...)")
         raise RuntimeError("payment gateway offline")   # simulate failure
 except RuntimeError:
-    pass  # ← nothing was committed – changes are gone
+    pass  # ← nothing was committed - changes are gone
 ```
 
 ## Error handling
 
-No `sqlite3` exception ever escapes `SqliteClient`. Every failure — a lost
-connection, a rejected statement, a constraint violation — is wrapped as a
+No `sqlite3` exception ever escapes `SqliteClient`. Every failure - a lost
+connection, a rejected statement, a constraint violation - is wrapped as a
 `ServiceError` (`tiferet.interfaces.core`) with the driver exception preserved as
 `__cause__`, so you never have to catch `sqlite3` types in your own code.
 
 `ServiceError` is deliberately **not** a `TiferetError`. A database failure is
 infrastructural, not a domain outcome, so it is never resolved through the error
-catalog and never formatted into an API response — it surfaces as an unhandled
+catalog and never formatted into an API response - it surfaces as an unhandled
 exception, which is the intended behaviour. It is also not skippable via a feature
 step's `pass_on_error`, which passes on domain errors only.
 
@@ -183,24 +183,24 @@ def test_record_visit_creates_table_and_row(tmp_path):
         assert db.fetch_one("SELECT page FROM visits")[0] == "/home"
 ```
 
-## Quick reminders – how SqliteClient is different
+## Quick reminders - how SqliteClient is different
 
 - Returns `self` on `__enter__` (not a file object)  
 - Auto-commits on clean exit, auto-rolls back on exception  
 - Uses SQLite URI modes (`ro`/`rw`/`rwc`) instead of classic file modes  
-- Implements `SqliteService` — the only utility that does this  
+- Implements `SqliteService` - the only utility that does this  
 - No `encoding` or `newline` parameters (not meaningful for SQLite)
 
 ## Boundaries
 
 **Inside this domain:** the SQLite connection lifecycle, statement/query execution, transactions, and backups, plus the driver-exception-to-`ServiceError` wrapping.
-**Outside this domain:** the inherited file/path handling ([docs/guides/utils/file.md](file.md)); domain semantics for a specific driver failure code (the calling event's responsibility, not this client's — see the constraint-violation example above); domain-object persistence via a repository ([docs/guides/repos.md](../repos.md)).
+**Outside this domain:** the inherited file/path handling ([docs/guides/utils/file.md](file.md)); domain semantics for a specific driver failure code (the calling event's responsibility, not this client's - see the constraint-violation example above); domain-object persistence via a repository ([docs/guides/repos.md](../repos.md)).
 
 ## Related reading
 
-- [FileLoader guide](../file.md) – the parent class everyone inherits from  
-- [docs/guides/utils.md](../utils.md) – Utils layer strategy guide  
-- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) – full utilities architecture  
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) – `SqliteService` contract  
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) – domain events & testing patterns  
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) – formatting & artifact comments
+- [FileLoader guide](../file.md) - the parent class everyone inherits from  
+- [docs/guides/utils.md](../utils.md) - Utils layer strategy guide  
+- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) - full utilities architecture  
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - `SqliteService` contract  
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - domain events & testing patterns  
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - formatting & artifact comments

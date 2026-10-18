@@ -1,4 +1,4 @@
-# Utilities – FileLoader (alias: File)
+# Utilities - FileLoader (alias: File)
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -17,8 +17,8 @@ Use `FileLoader` (or its alias `File`) directly when you need low-level file I/O
 
 ## Ubiquitous Language
 
-- **Loader** — a `FileLoader` subclass exposing static, one-shot helpers for a specific file format.
-- **Path/encoding validation** — the shared existence/mode/encoding checks `FileLoader` performs before any format-specific parsing runs, so every subclass gets `FILE_NOT_FOUND`/`INVALID_ENCODING` behavior for free.
+- **Loader** - a `FileLoader` subclass exposing static, one-shot helpers for a specific file format.
+- **Path/encoding validation** - the shared existence/mode/encoding checks `FileLoader` performs before any format-specific parsing runs, so every subclass gets `FILE_NOT_FOUND`/`INVALID_ENCODING` behavior for free.
 
 ## When to Use FileLoader vs. Injected FileService
 
@@ -76,7 +76,7 @@ infrastructural failure is not a domain outcome, so it is never resolved through
 the error catalog or formatted into an API response, and it is not skippable via a
 feature step's `pass_on_error`.
 
-Codes are hosted by `tiferet/utils/file.py` — the module that raises them — rather
+Codes are hosted by `tiferet/utils/file.py` - the module that raises them - rather
 than by the error catalog:
 
 ```python
@@ -93,11 +93,11 @@ from tiferet.utils.file import (
 `INVALID_FILE_ID` is hosted here because both `YamlLoader` and `JsonLoader` raise it
 for their extension checks and both already import from this module.
 
-Each error carries the provenance of the failing service — `module_path`,
-`class_name`, and `target_method` — so it names the loader subclass and the method
+Each error carries the provenance of the failing service - `module_path`,
+`class_name`, and `target_method` - so it names the loader subclass and the method
 that failed.
 
-## Example – Domain Event with Direct Usage
+## Example - Domain Event with Direct Usage
 
 ```python
 from tiferet.events import DomainEvent, a
@@ -166,12 +166,12 @@ def test_count_file_lines_success(tmp_path):
 ## Boundaries
 
 **Inside this domain:** low-level file stream lifecycle (open/close, path/mode/encoding validation) and the `FileService` contract implementation.
-**Outside this domain:** format-specific parsing/serialization (`YamlLoader`, `JsonLoader`, `CsvLoader`, `TomlLoader` — their own guides); domain-object persistence (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)); the broader physical-vs-computational utility split ([docs/guides/utils.md](../utils.md)).
+**Outside this domain:** format-specific parsing/serialization (`YamlLoader`, `JsonLoader`, `CsvLoader`, `TomlLoader` - their own guides); domain-object persistence (`ConfigurationRepository` - [docs/guides/repos.md](../repos.md)); the broader physical-vs-computational utility split ([docs/guides/utils.md](../utils.md)).
 
 ## Related Documentation
 
-- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide (physical vs. computational families)
-- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — `FileService` contract definition
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/utils.md](../utils.md) - Utils layer strategy guide (physical vs. computational families)
+- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) - Full utilities architecture and style guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - `FileService` contract definition
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

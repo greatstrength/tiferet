@@ -3,7 +3,7 @@ name: tiferet-code-testing
 description: Apply Tiferet test harness conventions when writing or extending tests in a Tiferet-family repo. Covers @use_tester, TesterObject types, test_ctx+session injection, and the leftover tiferet.testing bases.
 ---
 
-# Testing Harness Code Style – Tiferet
+# Testing Harness Code Style - Tiferet
 
 ## When to use
 - When adding or modifying unit tests for a named Tiferet component.

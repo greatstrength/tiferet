@@ -1,7 +1,7 @@
 <!--
-Events-flavored guide template — Tiferet Framework
+Events-flavored guide template - Tiferet Framework
 =====================================================
-Use this template for a domain event MODULE guide — operation-centric,
+Use this template for a domain event MODULE guide - operation-centric,
 documenting each DomainEvent subclass as a CRUD-style operation with
 required/optional parameters, return type, errors, and behavior steps.
 Examples of this genre: docs/guides/events/app.md, cli.md, di.md, error.md,
@@ -10,15 +10,15 @@ feature.md, logging.md, sqlite.md.
 How to use this file:
 - Copy it to `docs/guides/events/<module>.md`.
 - Replace every `<...>` placeholder. `## Ubiquitous Language` and
-  `## Boundaries` are MANDATORY additions to this genre's existing shape —
+  `## Boundaries` are MANDATORY additions to this genre's existing shape -
   add them even though older event guides predate the convention.
 - One `###` subsection per event class, each with its own anchor (event
   class names are already unique per module, so the heading's own anchor
-  suffices — no separate `<a id>` needed unless a method within an event
+  suffices - no separate `<a id>` needed unless a method within an event
   needs independent linking).
 - Delete this comment block from the copied file.
 -->
-# Events – <Module Concern>
+# Events - <Module Concern>
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -28,7 +28,7 @@ How to use this file:
 ## Overview
 
 <!-- What this event module's CRUD surface manages, and its shared
-dependency. Distillation-style — link to the base event class's docstring
+dependency. Distillation-style - link to the base event class's docstring
 for its value statement rather than repeating it. -->
 
 <One-paragraph overview.>
@@ -37,7 +37,7 @@ for its value statement rather than repeating it. -->
 
 <!-- MANDATORY. -->
 
-- **<Term>** — <definition>.
+- **<Term>** - <definition>.
 
 ## Events at a Glance
 
@@ -49,7 +49,7 @@ for its value statement rather than repeating it. -->
 
 All events inject:
 
-- **`<dependency_attr>: <ServiceType>`** — <what it's used for>.
+- **`<dependency_attr>: <ServiceType>`** - <what it's used for>.
 
 ## Event Details
 
@@ -65,7 +65,7 @@ All events inject:
 |---|---|---|---|
 | `<param>` | `<type>` | `<default>` | <description> |
 
-**Returns:** `<ReturnType>` — <description>.
+**Returns:** `<ReturnType>` - <description>.
 
 **Errors:**
 - `<ERROR_CODE>` if <condition>.
@@ -96,6 +96,6 @@ module (e.g. "Retrieve → Verify → Mutate → Save", idempotent deletes). -->
 
 ## Related Documentation
 
-- [docs/guides/domain/<module>.md](../domain/<module>.md) — Domain objects this module operates on
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
+- [docs/guides/domain/<module>.md](../domain/<module>.md) - Domain objects this module operates on
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service interface conventions

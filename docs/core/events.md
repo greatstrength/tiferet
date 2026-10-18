@@ -5,7 +5,7 @@
 
 ## Overview
 
-Domain events are the operational core of the Tiferet framework. Every focused domain action — validation, service interaction, computation, or orchestration — is expressed as a class extending `DomainEvent` from `tiferet/events/core.py`.
+Domain events are the operational core of the Tiferet framework. Every focused domain action - validation, service interaction, computation, or orchestration - is expressed as a class extending `DomainEvent` from `tiferet/events/core.py`.
 
 `DomainEvent` provides:
 - Core orchestration (`execute`, `handle`)
@@ -49,7 +49,7 @@ class DomainEvent(object):
     # * method: parameters_required (static)
     @staticmethod
     def parameters_required(param_names: list):
-        '''Declarative parameter validator – raises aggregated error.'''
+        '''Declarative parameter validator - raises aggregated error.'''
         ...
 
     # * method: handle (static)
@@ -63,7 +63,7 @@ class DomainEvent(object):
 
 Key characteristics:
 - **`execute(**kwargs)`** is the abstract entry point; subclasses must override it.
-- **`raise_error`** is static — usable from both instance and class context.
+- **`raise_error`** is static - usable from both instance and class context.
 - **`verify`** wraps `assert` with structured error raising for domain rule validation.
 - **`handle(EventClass, dependencies, **kwargs)`** is the standard invocation pattern in tests and contexts.
 - **`@parameters_required`** provides declarative, aggregated parameter validation.
@@ -113,13 +113,13 @@ class GetError(ErrorEvent):
 
 The framework defines seven base events, one per single-service event module:
 
-- `ErrorEvent` (`error_service`) — `tiferet/events/error.py`
-- `FeatureEvent` (`feature_service`) — `tiferet/events/feature.py`
-- `AppEvent` (`app_service`) — `tiferet/events/app.py`
-- `CliEvent` (`cli_service`) — `tiferet/events/cli.py`
-- `DIEvent` (`di_service`) — `tiferet/events/di.py`
-- `LoggingEvent` (`logging_service`) — `tiferet/events/logging.py`
-- `SqliteEvent` (`sqlite_service`) — `tiferet/events/sqlite.py`
+- `ErrorEvent` (`error_service`) - `tiferet/events/error.py`
+- `FeatureEvent` (`feature_service`) - `tiferet/events/feature.py`
+- `AppEvent` (`app_service`) - `tiferet/events/app.py`
+- `CliEvent` (`cli_service`) - `tiferet/events/cli.py`
+- `DIEvent` (`di_service`) - `tiferet/events/di.py`
+- `LoggingEvent` (`logging_service`) - `tiferet/events/logging.py`
+- `SqliteEvent` (`sqlite_service`) - `tiferet/events/sqlite.py`
 
 The static utility events (`ParseParameter`, `ImportDependency` in `tiferet/events/core.py`) take no injected service and therefore use no base event.
 
@@ -129,11 +129,11 @@ The static utility events (`ParseParameter`, `ImportDependency` in `tiferet/even
 
 Domain events follow the standard Tiferet artifact comment structure:
 
-- `# *** events` – top-level section (use `# *** classes` in `core.py`).
-- `# ** event: <name>` – individual domain event (snake_case).
-- `# * attribute: <name>` – injected dependencies.
-- `# * init` – constructor.
-- `# * method: execute` – main execution method.
+- `# *** events` - top-level section (use `# *** classes` in `core.py`).
+- `# ** event: <name>` - individual domain event (snake_case).
+- `# * attribute: <name>` - injected dependencies.
+- `# * init` - constructor.
+- `# * method: execute` - main execution method.
 
 **Spacing rules:**
 - One empty line between `# *** events` and first `# ** event`.
@@ -147,7 +147,7 @@ Domain events follow the standard Tiferet artifact comment structure:
 - Implement `execute`; the base event supplies the `# * attribute` dependency and `# * init` (see [Per-Module Base Events](#per-module-base-events)).
 - Use `@DomainEvent.parameters_required` for declarative parameter validation.
 
-**Example** – `AddError` (extends the `ErrorEvent` base event):
+**Example** - `AddError` (extends the `ErrorEvent` base event):
 ```python
 # *** imports
 
@@ -238,15 +238,15 @@ The domain event test harness (`tiferet/testing/`) provides two base classes tha
 
 Base class for testing any `DomainEvent` subclass. Subclasses declare four class attributes:
 
-- **`event_cls`** — the `DomainEvent` class under test.
-- **`dependencies`** — dict mapping dependency name → type (auto-mocked via the `mock_dependencies` fixture).
-- **`sample_kwargs`** — default kwargs for a successful `execute()` call.
-- **`required_params`** — list of required parameter names (auto-parametrized validation tests).
+- **`event_cls`** - the `DomainEvent` class under test.
+- **`dependencies`** - dict mapping dependency name → type (auto-mocked via the `mock_dependencies` fixture).
+- **`sample_kwargs`** - default kwargs for a successful `execute()` call.
+- **`required_params`** - list of required parameter names (auto-parametrized validation tests).
 
 Provides:
-- **`mock_dependencies`** fixture — creates `mock.Mock(spec=Type)` for each declared dependency.
-- **`handle(mock_dependencies, **overrides)`** — merges `sample_kwargs` with overrides and invokes `DomainEvent.handle`.
-- **`test_missing_required_params`** — auto-parametrized test that sets each required param to `None` and asserts `COMMAND_PARAMETER_REQUIRED` is raised.
+- **`mock_dependencies`** fixture - creates `mock.Mock(spec=Type)` for each declared dependency.
+- **`handle(mock_dependencies, **overrides)`** - merges `sample_kwargs` with overrides and invokes `DomainEvent.handle`.
+- **`test_missing_required_params`** - auto-parametrized test that sets each required param to `None` and asserts `COMMAND_PARAMETER_REQUIRED` is raised.
 
 ```python
 class TestAddError(DomainEventTestBase):
@@ -266,13 +266,13 @@ class TestAddError(DomainEventTestBase):
 
 Extends `DomainEventTestBase` for events that follow the retrieve → verify → mutate → save pattern with a single service. Adds three class attributes:
 
-- **`service_attr`** — the dependency name (e.g., `'error_service'`).
-- **`not_found_error_code`** — error code raised when the service returns `None`.
-- **`not_found_kwargs`** — kwargs that trigger the not-found path (defaults to `sample_kwargs`).
+- **`service_attr`** - the dependency name (e.g., `'error_service'`).
+- **`not_found_error_code`** - error code raised when the service returns `None`.
+- **`not_found_kwargs`** - kwargs that trigger the not-found path (defaults to `sample_kwargs`).
 
 Provides:
-- **`get_service_mock(mock_dependencies)`** — retrieves the primary service mock by `service_attr`.
-- **`test_not_found`** — auto test that configures `service.get()` to return `None` and asserts the configured error code is raised.
+- **`get_service_mock(mock_dependencies)`** - retrieves the primary service mock by `service_attr`.
+- **`test_not_found`** - auto test that configures `service.get()` to return `None` and asserts the configured error code is raised.
 
 ```python
 class TestGetError(ServiceEventTestBase):
@@ -359,13 +359,13 @@ def test_add_error_success(mock_error_service):
 `DomainEvent.handle()` and `DomainEvent.handle_async()` accept an optional `middleware` list that wraps event execution with cross-cutting concerns (logging, timing, tracing, retries) without modifying the event itself.
 
 Each middleware is a callable following the `(event, kwargs, next_fn)` convention:
-- `event` — the instantiated domain event.
-- `kwargs` — the merged execution keyword arguments.
-- `next_fn` — a zero-argument callable that invokes the remainder of the chain (the next middleware, or the event's `execute` when none remain).
+- `event` - the instantiated domain event.
+- `kwargs` - the merged execution keyword arguments.
+- `next_fn` - a zero-argument callable that invokes the remainder of the chain (the next middleware, or the event's `execute` when none remain).
 
 Middleware is composed **outermost-first**: the first entry in the list is the outermost wrapper (first to run on entry, last to run on exit).
 
-**Sync example** — compose the chain programmatically via `handle`:
+**Sync example** - compose the chain programmatically via `handle`:
 ```python
 result = DomainEvent.handle(
     GetError,
@@ -385,7 +385,7 @@ class LoggingMiddleware(MiddlewareService):
         return result
 ```
 
-**Async example** — `handle_async` composes the same chain for `AsyncDomainEvent` subclasses; async middleware must `await next_fn()`:
+**Async example** - `handle_async` composes the same chain for `AsyncDomainEvent` subclasses; async middleware must `await next_fn()`:
 ```python
 class AsyncAuditMiddleware(MiddlewareService):
 
@@ -403,21 +403,21 @@ For built-in middleware, the `MiddlewareService` interface, ordering, `config.ym
 
 Domain events are defined in `tiferet/events/`:
 
-- `core.py` – `DomainEvent` base class, `@parameters_required` decorator, and the static utility events (`ParseParameter`, `ImportDependency`).
-- `app.py` – `AppEvent` base + app interface management events.
-- `cli.py` – `CliEvent` base + CLI command management events.
-- `di.py` – `DIEvent` base + DI service registration events.
-- `error.py` – `ErrorEvent` base + error management events.
-- `feature.py` – `FeatureEvent` base + feature workflow management events.
-- `logging.py` – `LoggingEvent` base + logging configuration events.
-- `sqlite.py` – `SqliteEvent` base + SQLite management events.
-- `__init__.py` – Public exports (`DomainEvent`, `TiferetError`, `a`).
+- `core.py` - `DomainEvent` base class, `@parameters_required` decorator, and the static utility events (`ParseParameter`, `ImportDependency`).
+- `app.py` - `AppEvent` base + app interface management events.
+- `cli.py` - `CliEvent` base + CLI command management events.
+- `di.py` - `DIEvent` base + DI service registration events.
+- `error.py` - `ErrorEvent` base + error management events.
+- `feature.py` - `FeatureEvent` base + feature workflow management events.
+- `logging.py` - `LoggingEvent` base + logging configuration events.
+- `sqlite.py` - `SqliteEvent` base + SQLite management events.
+- `__init__.py` - Public exports (`DomainEvent`, `TiferetError`, `a`).
 
 The test harness lives in `tiferet/testing/`:
 
-- `tiferet/testing/mappers.py` – `AggregateTestBase`, `TransferObjectTestBase`, `MapperAssertions`.
-- `tiferet/testing/domain.py` – `DomainEventTestBase`, `ServiceEventTestBase`.
-- `tiferet/testing/hooks.py` – `register_mapper_hooks`, `register_event_hooks`.
+- `tiferet/testing/mappers.py` - `AggregateTestBase`, `TransferObjectTestBase`, `MapperAssertions`.
+- `tiferet/testing/domain.py` - `DomainEventTestBase`, `ServiceEventTestBase`.
+- `tiferet/testing/hooks.py` - `register_mapper_hooks`, `register_event_hooks`.
 - Per-module test suites live in `tests/events/` (e.g., `test_app.py`, `test_cli.py`, etc.).
 
 ## Conclusion

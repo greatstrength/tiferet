@@ -1,7 +1,7 @@
 <!--
-Utils-flavored (cookbook) guide template — Tiferet Framework
+Utils-flavored (cookbook) guide template - Tiferet Framework
 ===============================================================
-Use this template for a CONCRETE-CLASS cookbook guide — one or more
+Use this template for a CONCRETE-CLASS cookbook guide - one or more
 instantiable classes with real constructor/method behavior a developer
 reaches for directly. This genre is not limited to tiferet/utils/: any
 concrete engine class elsewhere in the framework (e.g. the DI concretes in
@@ -18,7 +18,7 @@ How to use this file:
   is X's API."
 - Delete this comment block from the copied file.
 -->
-# <Layer> – <ClassA>, <ClassB>
+# <Layer> - <ClassA>, <ClassB>
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -40,7 +40,7 @@ pattern they implement, if one exists, rather than repeating it. -->
 
 <!-- MANDATORY. -->
 
-- **<Term>** — <definition>.
+- **<Term>** - <definition>.
 
 ## When should you reach for which one?
 
@@ -73,7 +73,7 @@ pattern they implement, if one exists, rather than repeating it. -->
 
 ## Error Handling
 
-<!-- How this class's failures surface — ServiceError wrapping, specific
+<!-- How this class's failures surface - ServiceError wrapping, specific
 error codes, what does and doesn't get caught. -->
 
 ## Testing
@@ -87,9 +87,9 @@ error codes, what does and doesn't get caught. -->
 <!-- MANDATORY. -->
 
 **Inside this domain:** <the concrete class(es)' own construction and behavior>.
-**Outside this domain:** <the broader pattern/ABC these classes implement — link to its strategy guide>.
+**Outside this domain:** <the broader pattern/ABC these classes implement - link to its strategy guide>.
 
 ## Related Documentation
 
 - <link to the strategy guide for the broader pattern, if any>
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comments and formatting

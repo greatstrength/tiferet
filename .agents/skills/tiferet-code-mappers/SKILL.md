@@ -3,7 +3,7 @@ name: tiferet-code-mappers
 description: Apply mapper conventions when adding or modifying Aggregates or TransferObjects (ConfigObjects) in a Tiferet-family repo. Covers the Aggregate/TransferObject base classes, _ROLES serialization, aliasing, and the AggregateTestBase/TransferObjectTestBase harnesses.
 ---
 
-# Mappers Code Style – Tiferet
+# Mappers Code Style - Tiferet
 
 ## When to use
 - When adding or modifying an Aggregate or TransferObject in `tiferet/mappers/`.
@@ -37,30 +37,30 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion). Never import from `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, or `events`. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` supplied at runtime by a domain event or utility; it never imports either package. Repositories never supply callables for mapper or utility operational behavior.
+**Layer boundary - valid `# ** app` imports:** `domain` (the domain object being extended, plus `ModelError` for mutation-failure conversion). Never import from `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`, or `events`. Used by `events`, `interfaces`, `utils`, and `repos`. A mapper method may accept a `Callable` supplied at runtime by a domain event or utility; it never imports either package. Repositories never supply callables for mapper or utility operational behavior.
 
 **Naming:**
-- `<Domain>Aggregate` — mutable extension of a domain object (e.g. `ErrorAggregate`, `FeatureAggregate`).
-- `<Domain>TransferObject` — default name for a serialization transfer object when the backing medium is not known or is general-purpose.
+- `<Domain>Aggregate` - mutable extension of a domain object (e.g. `ErrorAggregate`, `FeatureAggregate`).
+- `<Domain>TransferObject` - default name for a serialization transfer object when the backing medium is not known or is general-purpose.
 - Use a precision suffix when the backing medium is specific: `<Domain>ConfigObject` (YAML/JSON config), `<Domain>SqliteObject` (SQLite). These replace `TransferObject` in the class name when the medium is known.
 
 **Aggregate:**
 - Combine the domain object + `Aggregate`: `class ErrorAggregate(Error, Aggregate)`.
 - Instantiate via direct Pydantic constructor: `ErrorAggregate(id='ERR', name='Error')`.
 - Add mutation methods; `validate_assignment=True` (inherited) triggers field validation on every `setattr`.
-- Use `set_attribute(attr, value)` for safe mutations; converts any resulting Pydantic `ValidationError` into a `ModelError` via `ModelError.raise_for_validation` (classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID` — never a `TiferetError`).
-- No `Aggregate.new()` factory — use the constructor directly.
-- `to_dict(role=None, **overrides)` — serialize an aggregate to a dict; mirrors `TransferObject.to_primitive` for consistent serialization without going through a transfer object.
+- Use `set_attribute(attr, value)` for safe mutations; converts any resulting Pydantic `ValidationError` into a `ModelError` via `ModelError.raise_for_validation` (classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID` - never a `TiferetError`).
+- No `Aggregate.new()` factory - use the constructor directly.
+- `to_dict(role=None, **overrides)` - serialize an aggregate to a dict; mirrors `TransferObject.to_primitive` for consistent serialization without going through a transfer object.
 
 **TransferObject (ConfigObject):**
 - Combine the domain object + `TransferObject`: `class ErrorConfigObject(Error, TransferObject)`.
 - Lenient config: `extra='ignore'`, `validate_assignment=False`.
 - Declare a `_ROLES: ClassVar[Dict[str, Dict[str, Any]]]` mapping role names to `model_dump` kwargs.
-  - `'to_model'` — for mapping to an aggregate (typically excludes nested child lists already mapped).
-  - `'to_data'` — for serializing back to configuration file format.
-- `to_primitive(role, **overrides)` — serializes with `model_dump` + role kwargs; defaults to `exclude_none=True`.
-- `TransferObject.map(target, **overrides)` — the base method serializes via the `to_model` role, applies overrides, then constructs the supplied aggregate type. A domain-specific ConfigObject normally overrides `map(**overrides)` to supply its aggregate type.
-- `from_model(cls, model, **overrides)` — `@classmethod` creating a ConfigObject from a domain model or aggregate.
+  - `'to_model'` - for mapping to an aggregate (typically excludes nested child lists already mapped).
+  - `'to_data'` - for serializing back to configuration file format.
+- `to_primitive(role, **overrides)` - serializes with `model_dump` + role kwargs; defaults to `exclude_none=True`.
+- `TransferObject.map(target, **overrides)` - the base method serializes via the `to_model` role, applies overrides, then constructs the supplied aggregate type. A domain-specific ConfigObject normally overrides `map(**overrides)` to supply its aggregate type.
+- `from_model(cls, model, **overrides)` - `@classmethod` creating a ConfigObject from a domain model or aggregate.
 - Attribute aliasing: `serialization_alias` for output aliasing, `validation_alias=AliasChoices(...)` for multiple input names.
 
 ## Example
@@ -162,7 +162,7 @@ class FeatureConfigObject(Feature, TransferObject):
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** Mapper class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/mappers.md#<anchor>` to `docs/guides/mappers.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** Mapper class docstrings open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/mappers.md#<anchor>` to `docs/guides/mappers.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md

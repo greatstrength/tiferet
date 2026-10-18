@@ -1,4 +1,4 @@
-# Blueprints – Strategies and Patterns
+# Blueprints - Strategies and Patterns
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -32,13 +32,13 @@ result = app.run('calc.add', data={'a': 5, 'b': 3})
 
 Key responsibilities:
 
-- **Service loading** — dynamic import of the app service (usually a repository)
-- **Default configuration** — seeding cache catalogs and merging session overrides
-- **Session resolution** — calling `GetAppSession` / cache-seeded defaults and validating the result
-- **Handler wiring** — injecting `build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, and `response_handler`
-- **Execution** — delegating to `AppSessionContext.run()` or `CliSessionContext.run()`
+- **Service loading** - dynamic import of the app service (usually a repository)
+- **Default configuration** - seeding cache catalogs and merging session overrides
+- **Session resolution** - calling `GetAppSession` / cache-seeded defaults and validating the result
+- **Handler wiring** - injecting `build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, and `response_handler`
+- **Execution** - delegating to `AppSessionContext.run()` or `CliSessionContext.run()`
 
-Blueprints are intentionally **thin** — they coordinate rather than implement business logic.
+Blueprints are intentionally **thin** - they coordinate rather than implement business logic.
 
 ## The build_app Blueprint
 
@@ -92,17 +92,17 @@ def build_app(interface_id, ...) -> AppSessionContext:
 
 ### Logging helpers
 
-- `merge_logging_settings(cache, formatters, handlers, loggers)` — pure merge of repository logging sections over cache-seeded defaults by `.id`.
-- `build_logger_handler(cache, get_dependency)` — returns a closure that caches loggers under `LOGGER_CACHE_PREFIX`, listing configs on miss, merging via `merge_logging_settings`, and building through `LoggingContext.from_domain(...).build_logger()`.
+- `merge_logging_settings(cache, formatters, handlers, loggers)` - pure merge of repository logging sections over cache-seeded defaults by `.id`.
+- `build_logger_handler(cache, get_dependency)` - returns a closure that caches loggers under `LOGGER_CACHE_PREFIX`, listing configs on miss, merging via `merge_logging_settings`, and building through `LoggingContext.from_domain(...).build_logger()`.
 
 ### Feature execution helpers
 
-- `create_feature_context(get_dependency, cache, feature_id) -> FeatureContext` — resolves the feature and returns a **domain-bound** context (not a `(Feature, FeatureContext)` tuple).
-- `execute_feature_handler(...)` — builds that context and calls `feature_context.execute_feature(request, *flags, **kwargs)` with **no** explicit `feature` argument.
+- `create_feature_context(get_dependency, cache, feature_id) -> FeatureContext` - resolves the feature and returns a **domain-bound** context (not a `(Feature, FeatureContext)` tuple).
+- `execute_feature_handler(...)` - builds that context and calls `feature_context.execute_feature(request, *flags, **kwargs)` with **no** explicit `feature` argument.
 
 ## The build_cli Blueprint
 
-The CLI blueprint is a thin entrypoint over a `CliSessionContext`. Argparse wiring lives behind an injected `parse_cli_args` closure; runtime execution reuses the hub's five handlers (including `build_logger_handler` — there is no standalone `LoggingContext` on the session).
+The CLI blueprint is a thin entrypoint over a `CliSessionContext`. Argparse wiring lives behind an injected `parse_cli_args` closure; runtime execution reuses the hub's five handlers (including `build_logger_handler` - there is no standalone `LoggingContext` on the session).
 
 ### Usage
 
@@ -138,12 +138,12 @@ response = admin.run('app.list')
 
 What it does:
 
-1. `admin.build_cache()` — core catalogs plus `ADMIN_DEFAULT_SERVICES`, `ADMIN_DEFAULT_CONSTANTS`, `ADMIN_DEFAULT_FEATURES`, and `ADMIN_DEFAULT_ERRORS`.
-2. `get_app_session(TIFERET_ADMIN_ID, cache)` — cache-seeded built-in session.
-3. `build_admin_service_resolver` — dual-container resolver:
+1. `admin.build_cache()` - core catalogs plus `ADMIN_DEFAULT_SERVICES`, `ADMIN_DEFAULT_CONSTANTS`, `ADMIN_DEFAULT_FEATURES`, and `ADMIN_DEFAULT_ERRORS`.
+2. `get_app_session(TIFERET_ADMIN_ID, cache)` - cache-seeded built-in session.
+3. `build_admin_service_resolver` - dual-container resolver:
    - app container under the `'app'` flag
    - admin container under `'admin'` **and** as the empty-flag default
-4. `build_admin_app_session_context` — same five handlers as core, but with the admin resolver so feature steps resolve admin-scoped services by default.
+4. `build_admin_app_session_context` - same five handlers as core, but with the admin resolver so feature steps resolve admin-scoped services by default.
 
 ```python
 resolver.add_container(app_container, 'app')
@@ -193,8 +193,8 @@ Cookbook (per-type algorithms, wrap-all, overlay): [docs/guides/blueprints/teste
 
 Create a new blueprint when you need a specialized entry point:
 
-- Web blueprint — for Flask/FastAPI integration
-- Domain-specific admin or tooling sessions — mirror `admin.py` / `admin_cli.py` (custom cache seeders + resolver + five-handler wiring)
+- Web blueprint - for Flask/FastAPI integration
+- Domain-specific admin or tooling sessions - mirror `admin.py` / `admin_cli.py` (custom cache seeders + resolver + five-handler wiring)
 
 Do not add a second test entrypoint that composes `AppSessionContext`. Unit tests use `@use_tester`.
 
@@ -231,7 +231,7 @@ Use framework constants and `TiferetError.raise_error()` for all domain-outcome 
 
 ### 3. Keep Blueprints Thin
 
-Blueprints should **not** contain domain logic — only orchestration, wiring, and delegation.
+Blueprints should **not** contain domain logic - only orchestration, wiring, and delegation.
 
 ### 4. Always Wire All Five Handlers
 
@@ -243,13 +243,13 @@ Use `create_feature_context` → `feature_context.execute_feature(request, ...)`
 
 ## Related Documentation
 
-- [docs/core/blueprints.md](../core/blueprints.md) — detailed blueprint implementation reference
-- [docs/guides/blueprints/tester.md](blueprints/tester.md) — `@use_tester` cookbook and per-type algorithms
-- [docs/core/testing.md](../core/testing.md) — v2.1.0 unit-test model
-- [docs/guides/admin.md](admin.md) — admin catalog domains and worked examples
-- [docs/core/contexts.md](../core/contexts.md) — five-handler context contract
-- [docs/guides/contexts.md](contexts.md) — context strategies and patterns
-- [docs/guides/domain/app.md](domain/app.md) — application-level configuration and runtime orchestration
-- [docs/guides/events/app.md](events/app.md) — app event usage in session resolution
-- [docs/core/di.md](../core/di.md) — dependency injection and service resolver architecture
-- [docs/core/code_style.md](../core/code_style.md) — artifact comments and formatting
+- [docs/core/blueprints.md](../core/blueprints.md) - detailed blueprint implementation reference
+- [docs/guides/blueprints/tester.md](blueprints/tester.md) - `@use_tester` cookbook and per-type algorithms
+- [docs/core/testing.md](../core/testing.md) - v2.1.0 unit-test model
+- [docs/guides/admin.md](admin.md) - admin catalog domains and worked examples
+- [docs/core/contexts.md](../core/contexts.md) - five-handler context contract
+- [docs/guides/contexts.md](contexts.md) - context strategies and patterns
+- [docs/guides/domain/app.md](domain/app.md) - application-level configuration and runtime orchestration
+- [docs/guides/events/app.md](events/app.md) - app event usage in session resolution
+- [docs/core/di.md](../core/di.md) - dependency injection and service resolver architecture
+- [docs/core/code_style.md](../core/code_style.md) - artifact comments and formatting

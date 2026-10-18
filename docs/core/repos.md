@@ -32,7 +32,7 @@ All concrete repositories inherit the shared `ConfigurationRepository` base (`ti
 - `.json` → `JsonLoader`
 - any other extension → raises `UNSUPPORTED_CONFIG_FILE_TYPE`
 
-It supplies three inherited attributes — `config_file`, `encoding`, and `default_role` (fixed to `'to_data'`) — and the inherited `_load` / `_save` helpers that concrete repositories call instead of instantiating a loader directly:
+It supplies three inherited attributes - `config_file`, `encoding`, and `default_role` (fixed to `'to_data'`) - and the inherited `_load` / `_save` helpers that concrete repositories call instead of instantiating a loader directly:
 
 ```python
 # tiferet/repos/core.py
@@ -65,18 +65,18 @@ Concrete repositories accept a domain-prefixed `<domain>_config` parameter and f
 
 Repository classes follow the standard Tiferet artifact comment structure:
 
-- `# *** repos` — top-level section for repository modules.
-- `# ** repo: <name>` — individual repository (snake_case).
-- `# * attribute: <name>` — instance attributes.
-- `# * init` — constructor.
-- `# * method: <name>` — methods implementing the Service interface.
+- `# *** repos` - top-level section for repository modules.
+- `# ** repo: <name>` - individual repository (snake_case).
+- `# * attribute: <name>` - instance attributes.
+- `# * init` - constructor.
+- `# * method: <name>` - methods implementing the Service interface.
 
 **Spacing rules:**
 - One empty line between `# *** repos` and first `# ** repo`.
 - One empty line between each `# *` section.
 - One empty line after docstrings and between code snippets within methods.
 
-**Example** — `tiferet/repos/error.py`:
+**Example** - `tiferet/repos/error.py`:
 ```python
 """Tiferet Error Configuration Repository"""
 
@@ -139,9 +139,9 @@ class ErrorConfigRepository(ErrorService, ConfigurationRepository):
 
 Every repository inherits three instance attributes from `ConfigurationRepository`:
 
-- **`config_file`** (`str`) — Path to the configuration file (`.yaml`/`.yml` or `.json`).
-- **`encoding`** (`str`) — File encoding, defaulting to `'utf-8'`.
-- **`default_role`** (`str`) — The TransferObject serialization role used for writes, fixed to `'to_data'`.
+- **`config_file`** (`str`) - Path to the configuration file (`.yaml`/`.yml` or `.json`).
+- **`encoding`** (`str`) - File encoding, defaulting to `'utf-8'`.
+- **`default_role`** (`str`) - The TransferObject serialization role used for writes, fixed to `'to_data'`.
 
 The constructor parameter follows the convention `<domain>_config` (e.g., `error_config`, `feature_config`, `cli_config`) and is forwarded to the base as `config_file`. This domain-prefixed naming enables clean DI wiring in `config.yml`.
 
@@ -175,7 +175,7 @@ The `# ** app` section imports three categories:
 2. The **transfer objects and aggregates** used for mapping (concrete classes only; no base-class imports needed).
 3. The **`ConfigurationRepository` base** that supplies format-dispatched file I/O.
 
-No `# ** infra` section is needed — repositories do not import third-party libraries directly; all external interaction flows through the inherited base and Tiferet utilities.
+No `# ** infra` section is needed - repositories do not import third-party libraries directly; all external interaction flows through the inherited base and Tiferet utilities.
 
 ## Method Patterns
 
@@ -226,7 +226,7 @@ self._save(full_data)
 
 ### Deleting: `delete`
 
-Delete operations are always **idempotent** — deleting a non-existent entry must not raise an error:
+Delete operations are always **idempotent** - deleting a non-existent entry must not raise an error:
 
 ```python
 # Load the full configuration file.
@@ -261,7 +261,7 @@ The `Config` suffix identifies the shared `ConfigurationRepository` base, which 
 - Forward the `<domain>_config` path to the `ConfigurationRepository` base in `__init__`.
 - Implement each Service method using the read/write patterns described above.
 
-**Example** — `CalculatorConfigRepository`:
+**Example** - `CalculatorConfigRepository`:
 ```python
 """Tiferet Calculator Configuration Repository"""
 
@@ -351,13 +351,13 @@ Create tests in `tests/repos/test_<domain>.py`. Seed YAML/JSON with `tmp_path` f
 Repository tests in `tests/repos/` are **file-backed integration tests**. They write real YAML/JSON via `tmp_path`, then construct the repository with `test_ctx.make_target(config_file=...)`. They do not mock the loader, and they do not drive CRUD through `session.run()`.
 
 **Structure** after preamble (`# *** imports` / `# *** constants`):
-- `# *** fixtures` / `# ** fixture: <name>` — `tmp_path` seed fixtures that write sample constants to a temp file. Do not construct the repository in a module-level `*_config_repo` fixture.
-- `# *** tests` / `# ** test: <name>` — leftover module-level functions only (omit if none). `tests/repos/test_core.py` keeps `pytest.raises(ServiceError)` for an unsupported extension here; `_get_loader` `isinstance` stays in `tests/` (contexts must not import `utils`).
-- `# *** testers` / `# ** tester: test_<snake>` — `class Test*` with `@use_tester(type='repo', target_cls=<Repo>, config_parameter='<domain>_config', ...)`. Members are `# * test:` / `# * fixture:`.
+- `# *** fixtures` / `# ** fixture: <name>` - `tmp_path` seed fixtures that write sample constants to a temp file. Do not construct the repository in a module-level `*_config_repo` fixture.
+- `# *** tests` / `# ** test: <name>` - leftover module-level functions only (omit if none). `tests/repos/test_core.py` keeps `pytest.raises(ServiceError)` for an unsupported extension here; `_get_loader` `isinstance` stays in `tests/` (contexts must not import `utils`).
+- `# *** testers` / `# ** tester: test_<snake>` - `class Test*` with `@use_tester(type='repo', target_cls=<Repo>, config_parameter='<domain>_config', ...)`. Members are `# * test:` / `# * fixture:`.
 
 CRUD cases live on the `TesterObject` (`exists_cases`, `get_cases`, `list_ids`, `delete_ids`, `aggregate_cls` / `aggregate_sample_data`). Methods call `test_ctx.assert_exists` / `assert_get` / `assert_list` / `assert_save` / `assert_delete` after `make_target`. Empty CRUD lists are no-ops (DI/logging binders). Domain-specific extras (feature `list(group_id=)`, CLI parent arguments) stay bespoke `# * test:` on the same class.
 
-**Example** — Error repository tester:
+**Example** - Error repository tester:
 ```python
 # ** fixture: error_yaml_file
 @pytest.fixture
@@ -398,19 +398,19 @@ See [docs/core/testing.md](testing.md) for `@use_tester` and [Test-Module Artifa
 
 Repositories are defined in `tiferet/repos/`:
 
-- `__init__.py` — Empty exports (repositories are never exported).
-- `core.py` — `ConfigurationRepository` (shared format-dispatch base).
-- `app.py` — `AppConfigRepository`.
-- `cli.py` — `CliConfigRepository`.
-- `di.py` — `DIConfigRepository`.
-- `error.py` — `ErrorConfigRepository`.
-- `feature.py` — `FeatureConfigRepository`.
-- `logging.py` — `LoggingConfigRepository`.
+- `__init__.py` - Empty exports (repositories are never exported).
+- `core.py` - `ConfigurationRepository` (shared format-dispatch base).
+- `app.py` - `AppConfigRepository`.
+- `cli.py` - `CliConfigRepository`.
+- `di.py` - `DIConfigRepository`.
+- `error.py` - `ErrorConfigRepository`.
+- `feature.py` - `FeatureConfigRepository`.
+- `logging.py` - `LoggingConfigRepository`.
 
 Tests live in `tests/repos/`.
 
 ## Conclusion
 
-Repositories provide the concrete data-access layer for the Tiferet framework, implementing Service interfaces with utility-backed persistence. Their structured design ensures consistency, testability, and clean DI resolution. Repositories are never exported directly — consuming code depends only on the abstract Service interface.
+Repositories provide the concrete data-access layer for the Tiferet framework, implementing Service interfaces with utility-backed persistence. Their structured design ensures consistency, testability, and clean DI resolution. Repositories are never exported directly - consuming code depends only on the abstract Service interface.
 
 Explore source in `tiferet/repos/` and tests in `tests/repos/` for implementation details.

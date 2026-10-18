@@ -3,7 +3,7 @@ name: tiferet-code-utils
 description: Apply utility conventions when adding or modifying infrastructure utilities in a Tiferet-family repo. Covers the FileLoader base, context manager protocol, static one-shot helpers, exported aliases, and computational vs physical infrastructure.
 ---
 
-# Utilities Code Style – Tiferet
+# Utilities Code Style - Tiferet
 
 ## When to use
 - When adding a new utility class or modifying an existing one in `tiferet/utils/`.
@@ -34,11 +34,11 @@ Util-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `interfaces` (to implement a Service contract; also the source of `ServiceError`); `mappers` (aggregates and transfer types); sibling utility modules (e.g. `.file` for `FileLoader`). Error codes are declared as local module constants (e.g. `tiferet/utils/toml.py::INVALID_TOML_FILE_ID`), not imported from `assets`. Never import from `domain`, `repos`, `di`, `contexts`, `blueprints`, or `events`.
+- **Layer boundary - valid `# ** app` imports:** `interfaces` (to implement a Service contract; also the source of `ServiceError`); `mappers` (aggregates and transfer types); sibling utility modules (e.g. `.file` for `FileLoader`). Error codes are declared as local module constants (e.g. `tiferet/utils/toml.py::INVALID_TOML_FILE_ID`), not imported from `assets`. Never import from `domain`, `repos`, `di`, `contexts`, `blueprints`, or `events`.
 - Implementing a **Service** contract from `tiferet/interfaces/` is **optional**. Add one when the capability is genuinely extensible and must be reachable through a declared feature step; a raw utility called directly by an event does not need a Service interface.
 - A side-effect-free algorithm that does not provide a domain-specific cohesive mechanism belongs in `# *** functions`, not `utils`.
 - A utility may supply a `Callable` to a mapper method as a valid semantic boundary. Mappers never import utilities, and repositories never supply operational callbacks to mappers or utilities.
-- Use `ServiceError.raise_for(self, error_code, ...)` from `tiferet/interfaces/core.py` for all error paths — never raise raw exceptions from utilities. `ServiceError` derives its `module_path`/`class_name`/`target_method` provenance from the failing service instance and the calling frame.
+- Use `ServiceError.raise_for(self, error_code, ...)` from `tiferet/interfaces/core.py` for all error paths - never raise raw exceptions from utilities. `ServiceError` derives its `module_path`/`class_name`/`target_method` provenance from the failing service instance and the calling frame.
 - **Resource-owning utilities** implement the context manager protocol: `__enter__` (open/connect) and `__exit__` (close/disconnect; commit or rollback on error).
 - **Static one-shot helpers** on utilities (e.g. `CsvLoader.load_rows(path)`) provide a convenience API that opens, reads, closes in a single call.
 - Export from `tiferet/utils/__init__.py` with both the full class name and a short alias (e.g. `FileLoader` / `File`, `YamlLoader` / `Yaml`).
@@ -55,9 +55,9 @@ Util-specific labels:
 | `CsvLoader` | `Csv` | (via `FileLoader`) |
 | `CsvDictLoader` | `CsvDict` | (via `FileLoader`) |
 | `SqliteClient` | `Sqlite` | `SqliteService`, `FileService` |
-| `LoggingMiddleware` | — | `MiddlewareService` |
-| `TimingMiddleware` | — | `MiddlewareService` |
-| `CacheMiddleware` | — | `MiddlewareService` |
+| `LoggingMiddleware` | - | `MiddlewareService` |
+| `TimingMiddleware` | - | `MiddlewareService` |
+| `CacheMiddleware` | - | `MiddlewareService` |
 
 ## Example
 
@@ -156,7 +156,7 @@ class TomlLoader(FileLoader):
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** Utility class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/utils.md#<anchor>` (strategy) or `@guides/utils/<module>.md#<anchor>` (cookbook detail) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** Utility class docstrings open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/utils.md#<anchor>` (strategy) or `@guides/utils/<module>.md#<anchor>` (cookbook detail) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md

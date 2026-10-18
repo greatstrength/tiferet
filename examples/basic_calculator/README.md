@@ -135,19 +135,19 @@ for how `create_calculator_fluent()`, `CalculatorFluentContext`, and the
 
 ## Features
 
-- **Addition** (`calc.add`) — Adds two numbers
-- **Subtraction** (`calc.subtract`) — Subtracts one number from another
-- **Multiplication** (`calc.multiply`) — Multiplies two numbers
-- **Division** (`calc.divide`) — Divides two numbers with zero-check
-- **Exponentiation** (`calc.exp`) — Raises a number to a power
-- **Square Root** (`calc.sqrt`) — Calculates square root (reuses exponentiation with `b=0.5`)
-- **Resolve Expression** (`calc.resolve`) — Resolves a fluent chain's fully-logged expression into its final value in one feature run
-- **Recent Calculations** (`calc.history`) — Lists the most recently executed calculations, persisted to `history.json` via the file loader
-- **Save Formula** (`formula.save`) — Saves a named, variablized formula to `formulas.yml`
-- **Get Formula** (`formula.get`) — Retrieves a saved formula by id
-- **List Formulas** (`formula.list`) — Lists all saved formulas
-- **Evaluate Formula** (`formula.eval`) — Evaluates a saved formula with concrete variable values
-- **Fluent Calculator** (`create_calculator_fluent()`) — A chainable `CalculatorFluentContext` exposing `add`/`add_to`, `subtract`/`subtract_from`, `multiply`/`multiply_by`, and `divide`/`divide_by`, plus `.pending` and `.reset()`. Every call just logs a term; calling `run()` -- the same verb the plain client uses to execute any feature -- collapses the whole chain into one `calc.resolve` run when a chain is active, resolving standard operator precedence (PEMDAS) via `Expression.resolve` and reusing the same arithmetic events (validation, division-by-zero handling) as the plain client.
+- **Addition** (`calc.add`) - Adds two numbers
+- **Subtraction** (`calc.subtract`) - Subtracts one number from another
+- **Multiplication** (`calc.multiply`) - Multiplies two numbers
+- **Division** (`calc.divide`) - Divides two numbers with zero-check
+- **Exponentiation** (`calc.exp`) - Raises a number to a power
+- **Square Root** (`calc.sqrt`) - Calculates square root (reuses exponentiation with `b=0.5`)
+- **Resolve Expression** (`calc.resolve`) - Resolves a fluent chain's fully-logged expression into its final value in one feature run
+- **Recent Calculations** (`calc.history`) - Lists the most recently executed calculations, persisted to `history.json` via the file loader
+- **Save Formula** (`formula.save`) - Saves a named, variablized formula to `formulas.yml`
+- **Get Formula** (`formula.get`) - Retrieves a saved formula by id
+- **List Formulas** (`formula.list`) - Lists all saved formulas
+- **Evaluate Formula** (`formula.eval`) - Evaluates a saved formula with concrete variable values
+- **Fluent Calculator** (`create_calculator_fluent()`) - A chainable `CalculatorFluentContext` exposing `add`/`add_to`, `subtract`/`subtract_from`, `multiply`/`multiply_by`, and `divide`/`divide_by`, plus `.pending` and `.reset()`. Every call just logs a term; calling `run()` -- the same verb the plain client uses to execute any feature -- collapses the whole chain into one `calc.resolve` run when a chain is active, resolving standard operator precedence (PEMDAS) via `Expression.resolve` and reusing the same arithmetic events (validation, division-by-zero handling) as the plain client.
 
 ## Tutorial
 

@@ -7,7 +7,7 @@ script and is implemented by the `build_admin_cli` blueprint
 (`tiferet/blueprints/admin_cli.py`, exported as `AdminCLI`).
 
 The CLI's command catalog and feature workflows are bootstrapped from framework
-asset modules — they are **not** read from your configuration file. Every CRUD
+asset modules - they are **not** read from your configuration file. Every CRUD
 operation, however, reads from and writes to the configuration file you supply.
 
 ## Installation
@@ -52,12 +52,12 @@ tiferet --config app/config.yml error remove INVALID_INPUT
 
 The built-in CLI exposes these command groups:
 
-- `feature` — manage feature workflows and their steps.
-- `error` — manage error definitions and localized messages.
-- `service` — manage feature-level DI service registrations.
-- `app` — manage application interface definitions and their service dependencies.
-- `cli` — manage CLI command definitions and arguments.
-- `logging` — manage logging formatters, handlers, and loggers.
+- `feature` - manage feature workflows and their steps.
+- `error` - manage error definitions and localized messages.
+- `service` - manage feature-level DI service registrations.
+- `app` - manage application interface definitions and their service dependencies.
+- `cli` - manage CLI command definitions and arguments.
+- `logging` - manage logging formatters, handlers, and loggers.
 
 Run a group with no command, or an unknown command, to see argparse usage for
 that group.
@@ -72,7 +72,7 @@ as `key=value` tokens rather than JSON strings, and are parsed by
 - `--constants`
 - `--additional-messages`
 
-Example — add a service registration with parameters:
+Example - add a service registration with parameters:
 
 ```bash
 tiferet --config app/config.yml service add my_svc \
@@ -93,10 +93,10 @@ record first, then use the granular follow-up commands (`app.set-service`,
 
 ## Exit Codes
 
-- `0` — success.
-- `1` — a `TiferetAPIError` was raised while executing the feature (the formatted
+- `0` - success.
+- `1` - a `TiferetAPIError` was raised while executing the feature (the formatted
   error message is printed to stderr).
-- `2` — argument parsing failed.
+- `2` - argument parsing failed.
 
 ## Programmatic Use
 

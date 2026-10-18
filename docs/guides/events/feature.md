@@ -1,4 +1,4 @@
-# Events – Feature Management
+# Events - Feature Management
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,15 +7,15 @@
 
 ## Overview
 
-The feature event module provides the full CRUD surface for `Feature` domain objects — the configuration-driven workflow definitions that power Tiferet's feature execution engine. Every event in this module extends the shared `FeatureEvent` base event (which holds the injected `FeatureService`) and operates on `Feature` domain objects through the `FeatureAggregate` mapper. **Vision:** see the `FeatureEvent` class docstring in `tiferet/events/feature.py` for the value statement this guide distills.
+The feature event module provides the full CRUD surface for `Feature` domain objects - the configuration-driven workflow definitions that power Tiferet's feature execution engine. Every event in this module extends the shared `FeatureEvent` base event (which holds the injected `FeatureService`) and operates on `Feature` domain objects through the `FeatureAggregate` mapper. **Vision:** see the `FeatureEvent` class docstring in `tiferet/events/feature.py` for the value statement this guide distills.
 
 Features are composed of ordered **steps** (`EventFeatureStep` instances), each referencing a `service_id` that maps to a service registration in the dependency injection container.
 
 ## Ubiquitous Language
 
-- **Feature** — a `Feature` domain object: a configuration-driven, ordered workflow of steps, identified by `group_id.feature_key`.
-- **Feature step** — an `EventFeatureStep` entry referencing a `service_id`; resolved and executed in order by `FeatureContext`.
-- **Position** — the zero-based index of a step within `Feature.steps`, used by `UpdateFeatureStep`/`RemoveFeatureStep`/`ReorderFeatureStep`.
+- **Feature** - a `Feature` domain object: a configuration-driven, ordered workflow of steps, identified by `group_id.feature_key`.
+- **Feature step** - an `EventFeatureStep` entry referencing a `service_id`; resolved and executed in order by `FeatureContext`.
+- **Position** - the zero-based index of a step within `Feature.steps`, used by `UpdateFeatureStep`/`RemoveFeatureStep`/`ReorderFeatureStep`.
 
 ## Events at a Glance
 
@@ -36,7 +36,7 @@ Features are composed of ordered **steps** (`EventFeatureStep` instances), each 
 <a id="featureevent"></a>
 All events extend the shared `FeatureEvent` base event, which declares the single injected dependency and its constructor. Concrete events (`AddFeature`, `GetFeature`, etc.) define only their `execute` method:
 
-- **`FeatureEvent(DomainEvent)`** — declares **`feature_service: FeatureService`** (the service interface for persisting and retrieving `Feature` objects) and the `__init__` that injects it.
+- **`FeatureEvent(DomainEvent)`** - declares **`feature_service: FeatureService`** (the service interface for persisting and retrieving `Feature` objects) and the `__init__` that injects it.
 
 > **Naming note:** The `FeatureEvent` base event reuses the name freed by the `FeatureEvent` → `EventFeatureStep` domain-object rename. A feature workflow step is now the `EventFeatureStep` domain object; `FeatureEvent` now denotes this module's base event.
 
@@ -101,7 +101,7 @@ Lists `Feature` objects, optionally filtered by `group_id`.
 |---|---|---|---|
 | `group_id` | `str` | `None` | Filter by group identifier |
 
-**Returns:** `List[Feature]` — the list of feature objects.
+**Returns:** `List[Feature]` - the list of feature objects.
 
 ```python
 # All features
@@ -124,7 +124,7 @@ Removes a feature by ID. Delegates to `FeatureService.delete()`, which is expect
 
 **Required:** `id`
 
-**Returns:** `str` — the feature ID.
+**Returns:** `str` - the feature ID.
 
 ```python
 DomainEvent.handle(
@@ -144,7 +144,7 @@ Updates basic metadata (`name` or `description`) on an existing feature.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `value` | `Any` | — | The new value for the attribute |
+| `value` | `Any` | - | The new value for the attribute |
 
 **Supported attributes:** `name`, `description`
 
@@ -180,7 +180,7 @@ Adds a step to an existing feature's workflow. Steps reference a `service_id` th
 | `pass_on_error` | `bool` | `False` | Whether to continue on error |
 | `position` | `int` | `None` | Insertion position (None to append) |
 
-**Returns:** `str` — the feature ID.
+**Returns:** `str` - the feature ID.
 
 **Errors:**
 - `FEATURE_NOT_FOUND` if the feature does not exist.
@@ -211,7 +211,7 @@ Updates an attribute on a feature step at a given position.
 
 **Supported attributes:** `name`, `service_id`, `data_key`, `pass_on_error`, `parameters`
 
-**Returns:** `str` — the feature ID.
+**Returns:** `str` - the feature ID.
 
 **Errors:**
 - `INVALID_FEATURE_COMMAND_ATTRIBUTE` if the attribute is not supported.
@@ -232,11 +232,11 @@ DomainEvent.handle(
 
 ### RemoveFeatureStep
 
-Removes a step from a feature by position. Idempotent — invalid positions result in a no-op.
+Removes a step from a feature by position. Idempotent - invalid positions result in a no-op.
 
 **Required:** `id`, `position`
 
-**Returns:** `str` — the feature ID.
+**Returns:** `str` - the feature ID.
 
 **Errors:**
 - `FEATURE_NOT_FOUND` if the feature does not exist.
@@ -256,7 +256,7 @@ Moves a feature step from one position to another. The target position is clampe
 
 **Required:** `id`, `start_position`, `end_position`
 
-**Returns:** `str` — the feature ID.
+**Returns:** `str` - the feature ID.
 
 **Errors:**
 - `FEATURE_NOT_FOUND` if the feature does not exist.
@@ -279,17 +279,17 @@ Most mutation events (`UpdateFeature`, `AddFeatureStep`, `UpdateFeatureStep`, `R
 
 ### Idempotent Deletes
 
-`RemoveFeature` and `RemoveFeatureStep` are idempotent — removing a non-existent feature or an invalid step position is a silent no-op rather than an error.
+`RemoveFeature` and `RemoveFeatureStep` are idempotent - removing a non-existent feature or an invalid step position is a silent no-op rather than an error.
 
 ## Boundaries
 
 **Inside this domain:** the CRUD operations for `Feature` workflow configurations and their steps.
-**Outside this domain:** the declared `Feature`/`EventFeatureStep`/`RequestSpecification` shape ([docs/guides/domain/feature.md](../domain/feature.md)); actually resolving and executing a step's domain event (`FeatureContext` — [docs/guides/contexts.md](../contexts.md)).
+**Outside this domain:** the declared `Feature`/`EventFeatureStep`/`RequestSpecification` shape ([docs/guides/domain/feature.md](../domain/feature.md)); actually resolving and executing a step's domain event (`FeatureContext` - [docs/guides/contexts.md](../contexts.md)).
 
 ## Related Documentation
 
-- [docs/guides/domain/feature.md](../domain/feature.md) — `Feature`/`EventFeatureStep` domain objects
-- [docs/guides/contexts.md](../contexts.md) — `FeatureContext`, which resolves and executes these steps
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
-- [docs/guides/mappers.md](../mappers.md) — Mapper strategies
+- [docs/guides/domain/feature.md](../domain/feature.md) - `Feature`/`EventFeatureStep` domain objects
+- [docs/guides/contexts.md](../contexts.md) - `FeatureContext`, which resolves and executes these steps
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service interface conventions
+- [docs/guides/mappers.md](../mappers.md) - Mapper strategies

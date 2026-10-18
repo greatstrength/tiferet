@@ -1,4 +1,4 @@
-# Utilities – JsonLoader (alias: Json)
+# Utilities - JsonLoader (alias: Json)
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -13,12 +13,12 @@ It extends `FileLoader` (`tiferet/utils/file.py`), inheriting full context-manag
 
 Use `JsonLoader` (or its alias `Json`) directly when you need to read or write JSON files inside domain events, scripts, or tests. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-`JsonLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+`JsonLoader` implements no configuration contract - it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
 
 ## Ubiquitous Language
 
-- **`start_node`/`data_factory`** — the two optional transformation callables `load()` applies in sequence, identical in spirit to `YamlLoader`'s.
-- **`parse_json_path`** — the dot-notation-with-array-index navigation helper unique to `JsonLoader` among the file-format loaders.
+- **`start_node`/`data_factory`** - the two optional transformation callables `load()` applies in sequence, identical in spirit to `YamlLoader`'s.
+- **`parse_json_path`** - the dot-notation-with-array-index navigation helper unique to `JsonLoader` among the file-format loaders.
 
 ## When to Use JsonLoader vs. Injected Service
 
@@ -68,10 +68,10 @@ name = JsonLoader.parse_json_path(data, 'users.1.name')  # returns 'Bob'
 
 Opens the file via the inherited context manager, parses JSON with `json.load`, and applies two optional transformation functions in sequence:
 
-1. **`start_node`** — first transformation on the raw parsed data (e.g., navigate to a sub-key).
-2. **`data_factory`** — final transformation on the result of `start_node` (e.g., cast to a list, build domain objects).
+1. **`start_node`** - first transformation on the raw parsed data (e.g., navigate to a sub-key).
+2. **`data_factory`** - final transformation on the result of `start_node` (e.g., cast to a list, build domain objects).
 
-Unlike `YamlLoader`, empty JSON files are not coerced to `{}` — they will raise `JSON_FILE_LOAD_ERROR_ID` since empty content is not valid JSON.
+Unlike `YamlLoader`, empty JSON files are not coerced to `{}` - they will raise `JSON_FILE_LOAD_ERROR_ID` since empty content is not valid JSON.
 
 ### `save(data, data_path=None, **kwargs) -> None`
 
@@ -95,9 +95,9 @@ Navigates nested JSON structures using dot-separated paths with array index supp
 
 `JsonLoader` follows a layered error strategy:
 
-- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
-- **`json.JSONDecodeError`** — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
-- **All other exceptions** during load/save — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` or `JSON_FILE_SAVE_ERROR_ID` respectively.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) - re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
+- **`json.JSONDecodeError`** - caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
+- **All other exceptions** during load/save - caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` or `JSON_FILE_SAVE_ERROR_ID` respectively.
 
 Every failure is a `ServiceError` (`tiferet.interfaces.core`), which is deliberately
 **not** a `TiferetError`: an infrastructural failure is not a domain outcome, so it
@@ -125,7 +125,7 @@ Inherited from `FileLoader` (`tiferet.utils.file`):
 - `INVALID_ENCODING_ID`
 - `FILE_ALREADY_OPEN_ID`
 
-## Example – Domain Event with Direct Usage
+## Example - Domain Event with Direct Usage
 
 ```python
 from tiferet.events import DomainEvent, a
@@ -149,13 +149,13 @@ class LoadJsonConfig(DomainEvent):
         return loader.load()
 ```
 
-## Example – Pre-Flight Validation with Fallback
+## Example - Pre-Flight Validation with Fallback
 
 ```python
 from pathlib import Path
 from tiferet.utils import Json, JsonLoader
 
-# Validate a path before opening — with fallback
+# Validate a path before opening - with fallback
 loader = JsonLoader(path='configs/app.conf', mode='r')
 default = Path('configs/app.json')
 
@@ -163,7 +163,7 @@ JsonLoader.verify_json_file(loader, default_path=default)
 # If 'app.conf' has an invalid extension but 'app.json' exists, validation passes.
 ```
 
-## Example – Round-Trip Save and Reload
+## Example - Round-Trip Save and Reload
 
 ```python
 from tiferet.utils import Json
@@ -179,7 +179,7 @@ result = Json('output/features.json', mode='r').load(
 assert 'calc.add' in result
 ```
 
-## Example – Navigating Nested JSON with parse_json_path
+## Example - Navigating Nested JSON with parse_json_path
 
 ```python
 from tiferet.utils import JsonLoader
@@ -233,18 +233,18 @@ def test_load_json_config_file_not_found(tmp_path):
 ## Deviations from YamlLoader
 
 - **No empty-file coercion**: `YamlLoader` returns `{}` for empty files; `JsonLoader` raises `JSON_FILE_LOAD_ERROR_ID` since empty content is not valid JSON per the specification.
-- **Additional static method**: `parse_json_path` is unique to `JsonLoader`, providing dot-notation navigation with array index support — a pattern common in JSON tooling but not applicable to YAML's typical use cases in Tiferet.
+- **Additional static method**: `parse_json_path` is unique to `JsonLoader`, providing dot-notation navigation with array index support - a pattern common in JSON tooling but not applicable to YAML's typical use cases in Tiferet.
 - **New error constants**: `JSON_FILE_NOT_FOUND_ID` and `INVALID_JSON_PATH_ID` were added to `constants.py` beyond the TRD's original error codes (`JSON_FILE_LOAD_ERROR_ID`, `JSON_FILE_SAVE_ERROR_ID`), aligning with the `YamlLoader` pattern of having a dedicated file-not-found error for the `verify_*_file` static method.
 
 ## Boundaries
 
 **Inside this domain:** JSON parsing/serialization and nested-path navigation (`parse_json_path`).
-**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); JSON-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); JSON-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` - [docs/guides/repos.md](../repos.md)).
 
 ## Related Documentation
 
-- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
-- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
-- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) - FileLoader guide (parent class)
+- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) - YamlLoader guide (sibling utility)
+- [docs/guides/utils.md](../utils.md) - Utils layer strategy guide
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

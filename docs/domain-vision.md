@@ -1,4 +1,4 @@
-# Domain Vision Statement — Tiferet Framework
+# Domain Vision Statement - Tiferet Framework
 
 **Status:** Draft · **Domain:** `tiferet` · **Code:** `tiferet/` · **Branch:** `docs-domain-vision-distillation`
 
@@ -7,12 +7,12 @@
 Most frameworks make you write your application's shape into code: which class
 handles which request, which implementation a piece of business logic talks
 to, what happens when something goes wrong. That shape is real, but it is
-invisible — the only way to see it is to read every file that expresses it,
+invisible - the only way to see it is to read every file that expresses it,
 and the only way to change it is to edit code and redeploy.
 
 Tiferet takes the opposite bet. An application's entry points, its business
-workflows, its error vocabulary, and its logging are all written down as data
-— a session here, a workflow there, an error message somewhere else — and the
+workflows, its error vocabulary, and its logging are all written down as data -
+a session here, a workflow there, an error message somewhere else - and the
 framework turns that declaration into a running system. The code you do write
 is deliberately small and single-purpose: one class that does one thing,
 resolved into the workflow by name rather than wired in by hand. Change the
@@ -24,7 +24,7 @@ move.
 **Tiferet is the Python framework that turns a declared configuration into a
 live application.** Give it a file describing what your app is called, what
 services it needs, and what steps each of its features should run, and it
-resolves every piece, wires it together, and executes requests against it —
+resolves every piece, wires it together, and executes requests against it -
 whether those requests arrive from a command line, a script, or (via a thin
 adapter) a web request. The framework owns the wiring and the execution loop;
 you own only the declaration and the small pieces of logic it points at.
@@ -32,8 +32,8 @@ you own only the declaration and the small pieces of logic it points at.
 ## What we get for it
 
 **Swap an implementation without touching a call site.** A feature step names
-a service by id, not by class. Point that id at a different module and class
-— or activate a different one per environment via a flag — and every caller
+a service by id, not by class. Point that id at a different module and class -
+or activate a different one per environment via a flag - and every caller
 of that service picks up the change automatically. Nothing that consumes the
 service has to change.
 
@@ -51,7 +51,7 @@ for exactly that condition.
 
 **Tests that don't need the real world.** Because every workflow step depends
 on an abstract contract rather than a concrete class, a test can hand it a
-fake and check what it was asked to do — no database, no filesystem, no
+fake and check what it was asked to do - no database, no filesystem, no
 network call required to prove the business logic is correct.
 
 **Change that doesn't require a code deploy.** Adding a step to a workflow,
@@ -68,14 +68,14 @@ Every Tiferet application goes through the same four-part journey:
 > ordered set of steps against those instances → **respond** with a result or
 > a catalogued, explainable error.
 
-The declaration can describe an arbitrarily large application — new entry
-points, new workflows, new dependencies — without the resolution and
+The declaration can describe an arbitrarily large application - new entry
+points, new workflows, new dependencies - without the resolution and
 execution machinery changing at all. So the design commitment underneath
 everything is: **one engine, any number of declared applications.** A single,
 fixed request-handling pipeline runs every workflow the same way; what
 differs from one Tiferet application to the next is never the engine, only
-what has been declared to it. Business logic itself — the actual rule a
-workflow step performs — is the one thing Tiferet deliberately leaves to the
+what has been declared to it. Business logic itself - the actual rule a
+workflow step performs - is the one thing Tiferet deliberately leaves to the
 application's own code, because that is the one part no framework should be
 allowed to declare on a team's behalf.
 
@@ -88,7 +88,7 @@ layer only; a consumer supplies whatever concrete infrastructure it needs
 contracts every other piece of business logic already depends on.
 
 It does not provide persistence beyond the plain configuration files
-(YAML or JSON) it uses for its own declarations — anything past that, an
+(YAML or JSON) it uses for its own declarations - anything past that, an
 application brings itself, written the same way as any other piece of
 swappable infrastructure.
 
@@ -100,6 +100,6 @@ answer rather than a leaked implementation detail.
 
 ---
 
-*Companion document:* `docs/core-domain-distillation.md` — the detailed
+*Companion document:* `docs/core-domain-distillation.md` - the detailed
 walkthrough of the framework's vocabulary, behaviors, and the relationships
 between its parts.

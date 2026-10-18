@@ -3,14 +3,14 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-A TRD is how trunk gets specific. [process.md](process.md) is the index. Prototype work uses an [RFP](rfp.md), which is a different genre on purpose. Docs and skills use a [Doc PR](doc.md) and do not get an issue or a TRD — if you are writing either for a README, stop.
+A TRD is how trunk gets specific. [process.md](process.md) is the index. Prototype work uses an [RFP](rfp.md), which is a different genre on purpose. Docs and skills use a [Doc PR](doc.md) and do not get an issue or a TRD - if you are writing either for a README, stop.
 
 The sections below are the contract: named artifacts, complete tables, binary acceptance criteria. The voice can be human. The tables still have to be complete.
 
 ## When a TRD is required
 
-- **Reconstruction** — rebuild a **frozen** RFP cluster on trunk. Cite the freeze id in §7. If there is no freeze id, do not write the TRD. Do not mint a freeze id yourself.
-- **Hotfix** — a small mechanical defect already understood on trunk. No freeze. Prototype is not consulted. Mark the header `**Type:** Hotfix` so nobody goes looking for a cluster.
+- **Reconstruction** - rebuild a **frozen** RFP cluster on trunk. Cite the freeze id in §7. If there is no freeze id, do not write the TRD. Do not mint a freeze id yourself.
+- **Hotfix** - a small mechanical defect already understood on trunk. No freeze. Prototype is not consulted. Mark the header `**Type:** Hotfix` so nobody goes looking for a cluster.
 
 Do not write a TRD that says "copy from proto." Do not put `Version: Request for Prototype` in the header. That version field was from a process we no longer run.
 
@@ -19,8 +19,8 @@ Do not write a TRD that says "copy from proto." Do not put `Version: Request for
 1. Kind: reconstruction (needs freeze id) or hotfix (does not).
 2. Size: [project_fields.md](project_fields.md).
 3. Path:
-   - **Standalone** — XL or below, or XL with no seam. One issue, one branch, one PR. Session record on that issue.
-   - **Super-TRD** — XL+ *and* a seam. Parent + children. Genre below. The branch is not one PR that children commit onto; see [process.md](process.md) and [main.md](main.md).
+   - **Standalone** - XL or below, or XL with no seam. One issue, one branch, one PR. Session record on that issue.
+   - **Super-TRD** - XL+ *and* a seam. Parent + children. Genre below. The branch is not one PR that children commit onto; see [process.md](process.md) and [main.md](main.md).
 
 ## General guidelines
 
@@ -38,7 +38,7 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 **Type:** Reconstruction | Hotfix     # omit Type on ordinary reconstruction if the freeze id in §7 is enough
 
 ## 1. Overview
-[3–6 sentences: motivation, the change, key outcomes.]
+[3-6 sentences: motivation, the change, key outcomes.]
 
 ## 2. Scope
 ### In Scope
@@ -49,7 +49,7 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 ## 3. Components Affected
 | Component | File/Path | Artifact action |
 |-----------|-----------|-----------------|
-| ... | ... | Add / Update / Remove — one-line summary |
+| ... | ... | Add / Update / Remove - one-line summary |
 
 ## 4. Detailed Requirements
 [Numbered subsections. Named artifacts. Informationally complete tables.]
@@ -64,29 +64,29 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 | Dependency | Status |
 |------------|--------|
 | Freeze `TIF2-FREEZE-001` (reconstruction only) | Frozen |
-| Reference prototype (reconstruction only) | `v2.0.0a17`–`v2.0.0a19` tags from the freeze, or `None` |
+| Reference prototype (reconstruction only) | `v2.0.0a17`-`v2.0.0a19` tags from the freeze, or `None` |
 | ... | ... |
 
 ## 8. Related Code Style Documentation
-- `tiferet-code-style` — always.
-- `tiferet-code-<component>` — each layer this story modifies.
-- `tiferet-code-architecture` — more than one component.
+- `tiferet-code-style` - always.
+- `tiferet-code-<component>` - each layer this story modifies.
+- `tiferet-code-architecture` - more than one component.
 ```
 
 ## Specific rules
 
-- **Title:** exact story title with Component/Assemblage and en-dash (`Domain – Naming Parity: ServiceRegistration`). Assemblage is the majority core package, or `Config`, `Tests`, or a domain assemblage.
+- **Title:** exact story title with Component/Assemblage and a spaced hyphen (`Domain - Naming Parity: ServiceRegistration`). Assemblage is the majority core package, or `Config`, `Tests`, or a domain assemblage.
 - **§3:** artifact action per module, not a vague "Changes" blurb.
 - **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`).
 - **§5:** target artifacts exist *and* retired ones are gone.
-- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included). External blockers of a Super-TRD child are wired on that child and on the parent issue ([process.md](process.md)). Before wiring a set, check for a cycle — two or more issues each naming the other's output as a prerequisite — and do not publish one ([process.md](process.md)).
+- **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included). External blockers of a Super-TRD child are wired on that child and on the parent issue ([process.md](process.md)). Before wiring a set, check for a cycle - two or more issues each naming the other's output as a prerequisite - and do not publish one ([process.md](process.md)).
 - **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the Release reviewer measures against, or `None` when no prototype exists. The reviewer also reads the prototype branch, read-only ([code_review.md](code_review.md)). The implementor does not read either.
 - **§7 hotfix:** no freeze row and no reference prototype row. Name the defect and why proto was not consulted.
 - **§8:** always `tiferet-code-style`; component skills as touched. Fallback: `docs/core/<component>.md`.
 
 ## Artifact-based requirements
 
-TRDs specify **artifacts to add, update, or remove** — never prose narratives or "copy from X." An artifact is any unit named by the structured code style: module, class, attribute, `# * method:`, `# ** <component>:`, `# *** <section>` (see [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
+TRDs specify **artifacts to add, update, or remove** - never prose narratives or "copy from X." An artifact is any unit named by the structured code style: module, class, attribute, `# * method:`, `# ** <component>:`, `# *** <section>` (see [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
 An implementor satisfies the TRD by acting on named artifacts. The Release reviewer verifies each one independently, not only the ones the AC names, against the reference prototype when one is recorded in §7, against the prototype branch read-only, and against the TRD alone when no prototype is recorded ([code_review.md](code_review.md)). The implementor must not be sent to the proto branch.
 
@@ -94,13 +94,13 @@ Because the TRD is the whole fidelity source when no prototype exists, name ever
 
 ## Operation-level artifact notation in §4
 
-Every §4 requirement is an **operation** (Add / Update / Remove) on an artifact type. Tables must be **informationally complete** — a row is enough to produce the artifact with no other source.
+Every §4 requirement is an **operation** (Add / Update / Remove) on an artifact type. Tables must be **informationally complete** - a row is enough to produce the artifact with no other source.
 
 ### Add Constant
 
 The operation, not the count, determines the form. Always a table.
 
-**Expression 1 — scalar or literal:**
+**Expression 1 - scalar or literal:**
 
 ```
 | Artifact label | Constant | Value |
@@ -108,7 +108,7 @@ The operation, not the count, determines the form. Always a table.
 | `# ** constant: tiferet_events_path` | `TIFERET_EVENTS_PATH` | `'events'` |
 ```
 
-**Expression 2 — factory-built object:**
+**Expression 2 - factory-built object:**
 
 State the shared factory once; table columns are the variable parameters.
 
@@ -132,7 +132,7 @@ Supplementary notes (ordering, naming conventions, optional-field rules) sit imm
 
 ### Section-mirroring
 
-Each `# *** constants (<subgroup>)` code section maps 1:1 to `#### Add/Update/Remove: # *** constants (<subgroup>)` in §4. Canonical subgroups: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`. A flat `# *** constants` block where subgroups apply is a defect — assert the structure in §5.
+Each `# *** constants (<subgroup>)` code section maps 1:1 to `#### Add/Update/Remove: # *** constants (<subgroup>)` in §4. Canonical subgroups: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`. A flat `# *** constants` block where subgroups apply is a defect - assert the structure in §5.
 
 ### Update Constant and Remove Constant
 
@@ -157,10 +157,10 @@ Required when size is XL (8) or above **and** a seam exists. If no seam, stay st
 
 - H1: `Super-TRD: <Story Title>`
 - Header: `**Type:** Super-TRD | N child TRDs`
-- §3 Child Stories (filename, Size, Est, Prereqs, sequencing) — replaces Components Affected
+- §3 Child Stories (filename, Size, Est, Prereqs, sequencing) - replaces Components Affected
 - §4 Story Sequencing (ASCII dependency diagram)
 - §5 Combined Acceptance Criteria (union of child ACs)
-- §6–8: NFR, Prerequisites (freeze id on reconstruction parents), Related Code Style Documentation
+- §6-8: NFR, Prerequisites (freeze id on reconstruction parents), Related Code Style Documentation
 
 ### Child
 
@@ -170,13 +170,13 @@ A child that unblocks siblings is **P0**. Other children inherit the parent's pr
 
 ### Child size cap
 
-One primary module, its tests, and at most 1–2 non-testable dependency touches. Maximum **Medium (3)**.
+One primary module, its tests, and at most 1-2 non-testable dependency touches. Maximum **Medium (3)**.
 
 | Scope | Size |
 |---|---|
 | Single file only | XS (1) |
 | Primary module + tests | S (2) |
-| Primary module + tests + 1–2 dependency touches | M (3) |
+| Primary module + tests + 1-2 dependency touches | M (3) |
 
 Exceeds M → split. Reference scoping: issues #935 and #939.
 

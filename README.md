@@ -1,4 +1,4 @@
-# Tiferet – Domain-Driven Design, beautifully balanced
+# Tiferet - Domain-Driven Design, beautifully balanced
 
 [![PyPI](https://img.shields.io/pypi/v/tiferet?style=flat-square&logo=python&logoColor=white&color=3775A9)](https://pypi.org/project/tiferet/)
 [![Python](https://img.shields.io/pypi/pyversions/tiferet?style=flat-square&logo=python&logoColor=white&color=3775A9)](https://pypi.org/project/tiferet/)
@@ -6,7 +6,7 @@
 
 **Tiferet** is a Python framework that brings **Domain-Driven Design** into focus with elegance and clarity.
 
-Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet helps you turn complex business logic into maintainable, configuration-driven applications — where purpose, structure, and execution feel naturally aligned.
+Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet helps you turn complex business logic into maintainable, configuration-driven applications - where purpose, structure, and execution feel naturally aligned.
 
 ### At a glance
 - Blueprints-first app entry point via `build_app` (exported as `App`)  
@@ -16,9 +16,9 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
 Current status: **2.2.0**
-Unit tests use `@use_tester`, and YAML test modules run through the `tiferet-tester` console script — see [Testing Harness](docs/core/testing.md).
+Unit tests use `@use_tester`, and YAML test modules run through the `tiferet-tester` console script - see [Testing Harness](docs/core/testing.md).
 
-## Quick Start – Add two numbers in ~3 minutes
+## Quick Start - Add two numbers in ~3 minutes
 
 ```bash
 # 1. Set up environment
@@ -86,7 +86,7 @@ features:
 ```
 
 **app/events/calc.py**  
-(the domain event itself – very minimal)
+(the domain event itself - very minimal)
 
 ```python
 # *** imports
@@ -139,11 +139,11 @@ You should see the default logger's line for the feature, then the sum:
 
 ## Why Tiferet?
 
-- **Configuration as code** — features, DI, errors, CLI all live in YAML  
-- **Domain logic stays pure** — focused events & aggregates  
-- **Infrastructure is injectable** — file/db/utils behind clean service contracts  
-- **Built for evolution** — today CLI, tomorrow FastAPI or TUI  
-- **Strong testability** — events are easy to invoke in isolation
+- **Configuration as code** - features, DI, errors, CLI all live in YAML  
+- **Domain logic stays pure** - focused events & aggregates  
+- **Infrastructure is injectable** - file/db/utils behind clean service contracts  
+- **Built for evolution** - today CLI, tomorrow FastAPI or TUI  
+- **Strong testability** - events are easy to invoke in isolation
 
 ## Documentation & Guides
 

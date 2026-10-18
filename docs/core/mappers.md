@@ -63,15 +63,15 @@ class Aggregate(DomainObject):
 Key characteristics:
 - Aggregates are instantiated directly via the Pydantic constructor: `ErrorAggregate(id='...', name='...')`.
 - **`set_attribute`** relies on `validate_assignment=True` (inherited from `DomainObject`) to trigger field validation on every `setattr`, and converts the resulting Pydantic `ValidationError` into a `ModelError` via `ModelError.raise_for_validation`.
-- Invalid attribute mutations (unknown field or invalid value) raise a `ModelError` — not a `TiferetError` — classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID`. See [docs/guides/errors.md](../guides/errors.md) for why `ModelError` is a deliberately uncatalogued, unrelated exception family.
+- Invalid attribute mutations (unknown field or invalid value) raise a `ModelError` - not a `TiferetError` - classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID`. See [docs/guides/errors.md](../guides/errors.md) for why `ModelError` is a deliberately uncatalogued, unrelated exception family.
 
 ## The TransferObject Base Class
 
 `TransferObject` extends `DomainObject` with a lenient config and provides:
 
-- **`to_primitive(role, **overrides)`** — Serializes via `model_dump`, applying role-specific kwargs from `_ROLES` and caller overrides.
-- **`map(target, **overrides)`** — Serializes via the `to_model` role, merges overrides, and constructs the target aggregate.
-- **`from_model(model, **overrides)`** — Classmethod that creates a transfer object from a domain model or aggregate via `model_dump` + `model_validate`.
+- **`to_primitive(role, **overrides)`** - Serializes via `model_dump`, applying role-specific kwargs from `_ROLES` and caller overrides.
+- **`map(target, **overrides)`** - Serializes via the `to_model` role, merges overrides, and constructs the target aggregate.
+- **`from_model(model, **overrides)`** - Classmethod that creates a transfer object from a domain model or aggregate via `model_dump` + `model_validate`.
 
 ### Role-Based Serialization
 
@@ -105,12 +105,12 @@ def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
 
 Mapper classes follow the standard Tiferet artifact comment structure:
 
-- `# *** mappers` — top-level section for mapper modules.
-- `# ** mapper: <name>` — individual mapper (snake_case).
-- `# * attribute: <name>` — instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
-- `# * init` — constructor, when the class has one.
-- `# * method: <name> (property)` — a descriptive `@property`, after `init` and before mutation or mapping methods. Getter only. No setter.
-- `# * method: <name>` — mutation methods on an aggregate, or `map` / `from_model` on a transfer object.
+- `# *** mappers` - top-level section for mapper modules.
+- `# ** mapper: <name>` - individual mapper (snake_case).
+- `# * attribute: <name>` - instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
+- `# * init` - constructor, when the class has one.
+- `# * method: <name> (property)` - a descriptive `@property`, after `init` and before mutation or mapping methods. Getter only. No setter.
+- `# * method: <name>` - mutation methods on an aggregate, or `map` / `from_model` on a transfer object.
 
 Use `# *** classes` in `core.py` for the base classes themselves.
 
@@ -126,7 +126,7 @@ Use `# *** classes` in `core.py` for the base classes themselves.
 - Add mutation methods under `# * method: <name>`.
 - Instantiate directly via the Pydantic constructor.
 
-**Example** – `FeatureAggregate`:
+**Example** - `FeatureAggregate`:
 ```python
 # *** mappers
 
@@ -150,7 +150,7 @@ class FeatureAggregate(Feature, Aggregate):
 - Override `map()` to specify the target aggregate and handle nested mapping.
 - Override `from_model()` as a `@classmethod` to handle nested conversions.
 
-**Example** – `FeatureConfigObject`:
+**Example** - `FeatureConfigObject`:
 ```python
 # ** mapper: feature_config_object
 class FeatureConfigObject(Feature, TransferObject):
@@ -232,53 +232,53 @@ Tests validate factory creation, mutation, mapping, serialization, and error han
 - `# *** tests`
 - `# ** test: <name>`
 
-**Example** – Aggregate tests cover constructor instantiation, `set_attribute` (success and invalid attribute error).
+**Example** - Aggregate tests cover constructor instantiation, `set_attribute` (success and invalid attribute error).
 
 #### `MapperAssertions` (mixin)
 Provides shared assertion helpers used by both base classes:
-- **`assert_model_matches(model, sample, equality_fields, field_normalizers)`** — Compares model attributes against a sample dict using configured fields. Per-field normalizers allow custom comparison logic for complex types.
-- **`assert_nested_list_matches(actual_list, expected_list, key_field, compare_fields)`** — Compares lists of domain objects by a key field (e.g., `service_id`, `flag`), useful for verifying nested collections through round-trips.
+- **`assert_model_matches(model, sample, equality_fields, field_normalizers)`** - Compares model attributes against a sample dict using configured fields. Per-field normalizers allow custom comparison logic for complex types.
+- **`assert_nested_list_matches(actual_list, expected_list, key_field, compare_fields)`** - Compares lists of domain objects by a key field (e.g., `service_id`, `flag`), useful for verifying nested collections through round-trips.
 
 #### `AggregateTestBase`
 Base class for testing Aggregate components. Subclasses define class attributes and inherit automatic tests.
 
 **Required class attributes:**
-- `aggregate_cls` — The Aggregate class under test.
-- `sample_data` — Dict of aggregate-format sample data.
-- `equality_fields` — List of field names to compare.
-- `set_attribute_params` — List of `(attr, value, expect_error_code | None)` tuples.
+- `aggregate_cls` - The Aggregate class under test.
+- `sample_data` - Dict of aggregate-format sample data.
+- `equality_fields` - List of field names to compare.
+- `set_attribute_params` - List of `(attr, value, expect_error_code | None)` tuples.
 
 **Optional class attributes:**
-- `field_normalizers` — Dict mapping field names to normalizer callables for complex comparisons.
+- `field_normalizers` - Dict mapping field names to normalizer callables for complex comparisons.
 
 **Inherited tests:**
-- `test_new` — Verifies direct constructor instantiation and field values.
-- `test_set_attribute` — Parametrized test for valid and invalid attribute mutations. Parametrization is driven by `conftest.pytest_generate_tests`.
+- `test_new` - Verifies direct constructor instantiation and field values.
+- `test_set_attribute` - Parametrized test for valid and invalid attribute mutations. Parametrization is driven by `conftest.pytest_generate_tests`.
 
 **Override hook:**
-- `make_aggregate(data=None)` — Override when the aggregate has a custom constructor signature. The default implementation uses the standard Pydantic constructor: `self.aggregate_cls(**data)`.
+- `make_aggregate(data=None)` - Override when the aggregate has a custom constructor signature. The default implementation uses the standard Pydantic constructor: `self.aggregate_cls(**data)`.
 
 #### `TransferObjectTestBase`
 Base class for testing TransferObject components.
 
 **Required class attributes:**
-- `transfer_cls` — The TransferObject class under test.
-- `aggregate_cls` — The target Aggregate class.
-- `sample_data` — Dict of YAML-format sample data (as it appears in configuration).
-- `aggregate_sample_data` — Dict of aggregate-format expected data (with defaults filled in, lists instead of dicts, etc.).
-- `equality_fields` — List of field names to compare.
+- `transfer_cls` - The TransferObject class under test.
+- `aggregate_cls` - The target Aggregate class.
+- `sample_data` - Dict of YAML-format sample data (as it appears in configuration).
+- `aggregate_sample_data` - Dict of aggregate-format expected data (with defaults filled in, lists instead of dicts, etc.).
+- `equality_fields` - List of field names to compare.
 
 **Optional class attributes:**
-- `field_normalizers` — Per-field normalizer callables.
-- `map_kwargs` — Extra kwargs to pass to `.map()`.
+- `field_normalizers` - Per-field normalizer callables.
+- `map_kwargs` - Extra kwargs to pass to `.map()`.
 
 **Inherited tests:**
-- `test_map` — Verifies `model_validate()` → `map()` produces a valid aggregate.
-- `test_from_model` — Verifies aggregate → TransferObject conversion via `from_model()` classmethod.
-- `test_round_trip` — Verifies aggregate → TransferObject → aggregate preserves data.
+- `test_map` - Verifies `model_validate()` → `map()` produces a valid aggregate.
+- `test_from_model` - Verifies aggregate → TransferObject conversion via `from_model()` classmethod.
+- `test_round_trip` - Verifies aggregate → TransferObject → aggregate preserves data.
 
 **Override hook:**
-- `make_aggregate(data=None)` — Same purpose as `AggregateTestBase`.
+- `make_aggregate(data=None)` - Same purpose as `AggregateTestBase`.
 
 #### `conftest.py` Hook
 The `pytest_generate_tests` hook dynamically parametrizes `test_set_attribute` for any `AggregateTestBase` subclass, reading from the class's `set_attribute_params` attribute.
@@ -409,14 +409,14 @@ Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject
 
 Mappers are defined in `tiferet/mappers/`:
 
-- `core.py` — `Aggregate` and `TransferObject` base classes + constants.
-- `app.py` — `AppSessionAggregate`, `AppSessionConfigObject`.
-- `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
-- `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
-- `error.py` — `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
-- `feature.py` — `FeatureAggregate`, `FeatureConfigObject`, `EventFeatureStepAggregate`, `EventFeatureStepConfigObject`.
-- `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
-- `__init__.py` — Public exports.
+- `core.py` - `Aggregate` and `TransferObject` base classes + constants.
+- `app.py` - `AppSessionAggregate`, `AppSessionConfigObject`.
+- `cli.py` - `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
+- `di.py` - `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
+- `error.py` - `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
+- `feature.py` - `FeatureAggregate`, `FeatureConfigObject`, `EventFeatureStepAggregate`, `EventFeatureStepConfigObject`.
+- `logging.py` - `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
+- `__init__.py` - Public exports.
 
 Tests live in `tests/mappers/`.
 

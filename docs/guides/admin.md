@@ -1,4 +1,4 @@
-# Admin Support – Strategies and Patterns
+# Admin Support - Strategies and Patterns
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -10,8 +10,8 @@
 The Tiferet framework provides a built-in admin support layer that allows application developers and operators to inspect, add, update, and remove configuration records directly in consumer `config.yml` files (and YAML/JSON repositories) without building custom management interfaces.
 
 The admin layer is exposed through two single-call entry points:
-- **`AdminApp`** / **`build_admin_app`** — Python entry point returning a fully wired `AppSessionContext` bound to the built-in `admin` session.
-- **`AdminCLI`** / **`build_admin_cli`** — Console entry point (`tiferet`) returning a `CliSessionContext` bound to the built-in `admin_cli` session.
+- **`AdminApp`** / **`build_admin_app`** - Python entry point returning a fully wired `AppSessionContext` bound to the built-in `admin` session.
+- **`AdminCLI`** / **`build_admin_cli`** - Console entry point (`tiferet`) returning a `CliSessionContext` bound to the built-in `admin_cli` session.
 
 Import both from the blueprints package (they are not re-exported from the package root):
 
@@ -200,7 +200,7 @@ Manages feature workflow definitions and steps.
 | --- | --- | --- |
 | `feature.list` | List all feature workflow definitions | `tiferet feature list [--group-id]` |
 | `feature.add` | Add a new feature workflow definition | `tiferet feature add <name> <group_id> [--feature-key] [--description]` |
-| `feature.get` | Retrieve a feature by ID | *(Python only — no CLI command)* |
+| `feature.get` | Retrieve a feature by ID | *(Python only - no CLI command)* |
 | `feature.update` | Update a metadata attribute on a feature | `tiferet feature update <id> <attribute> <value>` |
 | `feature.add_step` | Add a step to an existing feature workflow | `tiferet feature add-step <id> <name> <service_id> [--parameters] [--data-key] [--pass-on-error] [--position]` |
 | `feature.update_step` | Update an attribute on an existing feature step | `tiferet feature update-step <id> <position> <attribute> [--value]` |
@@ -320,13 +320,13 @@ tiferet logging list
 
 - **Inside this domain**: Invoking the built-in `admin` and `admin_cli` application sessions, resolving admin catalog features, executing CRUD management operations against consumer YAML/JSON configuration files, and utilizing flat-map key-value CLI options.
 - **Outside this domain**:
-  - Authoring new domain events, services, or features for a consumer's own domain logic — see [docs/core/blueprints.md](../core/blueprints.md) and component code-style skills (`tiferet-code-domain`, `tiferet-code-events`).
-  - Internal blueprint handler composition and context construction details — see [docs/core/blueprints.md](../core/blueprints.md) and [docs/core/contexts.md](../core/contexts.md).
+  - Authoring new domain events, services, or features for a consumer's own domain logic - see [docs/core/blueprints.md](../core/blueprints.md) and component code-style skills (`tiferet-code-domain`, `tiferet-code-events`).
+  - Internal blueprint handler composition and context construction details - see [docs/core/blueprints.md](../core/blueprints.md) and [docs/core/contexts.md](../core/contexts.md).
 
 ## Related Documentation
 
-- [docs/core/blueprints.md](../core/blueprints.md) — Blueprint architecture and single-call entry points
-- [docs/core/contexts.md](../core/contexts.md) — Runtime context hub architecture and handler wiring
-- [docs/guides/blueprints.md](blueprints.md) — Blueprint design strategies and patterns
-- [docs/guides/contexts.md](contexts.md) — Context strategies and runtime execution patterns
-- [docs/guides/domain/cli.md](domain/cli.md) — CLI domain models and argument parsing
+- [docs/core/blueprints.md](../core/blueprints.md) - Blueprint architecture and single-call entry points
+- [docs/core/contexts.md](../core/contexts.md) - Runtime context hub architecture and handler wiring
+- [docs/guides/blueprints.md](blueprints.md) - Blueprint design strategies and patterns
+- [docs/guides/contexts.md](contexts.md) - Context strategies and runtime execution patterns
+- [docs/guides/domain/cli.md](domain/cli.md) - CLI domain models and argument parsing

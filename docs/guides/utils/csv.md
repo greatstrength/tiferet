@@ -1,4 +1,4 @@
-# Utilities – CsvLoader (alias: Csv) & CsvDictLoader (alias: CsvDict)
+# Utilities - CsvLoader (alias: Csv) & CsvDictLoader (alias: CsvDict)
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -15,12 +15,12 @@ Both extend `FileLoader` (`tiferet/utils/file.py`), inheriting full context-mana
 
 Use `CsvLoader` (or its alias `Csv`) for positional row data and `CsvDictLoader` (or its alias `CsvDict`) for header-based dict data. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-Neither class implements a configuration contract — both declare only `FileLoader`. This is an intentional v2.0 design choice that keeps the utilities as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+Neither class implements a configuration contract - both declare only `FileLoader`. This is an intentional v2.0 design choice that keeps the utilities as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
 
 ## Ubiquitous Language
 
-- **Reader/writer (lazy)** — the underlying `csv.reader`/`csv.writer` (or `DictReader`/`DictWriter`) objects, built on first use rather than at construction, so a file opened `r+` can serve both roles.
-- **Row** — a `List[str]` (`CsvLoader`) or `Dict[str, Any]` (`CsvDictLoader`) representing one CSV line.
+- **Reader/writer (lazy)** - the underlying `csv.reader`/`csv.writer` (or `DictReader`/`DictWriter`) objects, built on first use rather than at construction, so a file opened `r+` can serve both roles.
+- **Row** - a `List[str]` (`CsvLoader`) or `Dict[str, Any]` (`CsvDictLoader`) representing one CSV line.
 
 ## When to Use CsvLoader vs. CsvDictLoader vs. Injected Service
 
@@ -32,7 +32,7 @@ Neither class implements a configuration contract — both declare only `FileLoa
 | One-shot bulk save                              | `CsvLoader.save_rows(path, data)`  | Static helper, supports both list and dict datasets                    |
 | Domain object CRUD (features, errors, etc.)     | Inject corresponding `*Service`     | Keeps domain events decoupled from concrete file paths & formats       |
 
-## CsvLoader – Basic Usage
+## CsvLoader - Basic Usage
 
 ```python
 from tiferet.utils import Csv, CsvLoader    # both names are exported
@@ -62,7 +62,7 @@ with Csv('data/large.csv', mode='r') as loader:
         process(row)
 ```
 
-## CsvDictLoader – Basic Usage
+## CsvDictLoader - Basic Usage
 
 ```python
 from tiferet.utils import CsvDict, CsvDictLoader    # both names are exported
@@ -116,7 +116,7 @@ Write a single row.
 Write multiple rows.
 
 ### `yield_rows(start_line=None, end_line=None) -> Generator`
-Yield rows with optional 1-based line-range filtering. Efficient for large files — rows are not materialized into memory.
+Yield rows with optional 1-based line-range filtering. Efficient for large files - rows are not materialized into memory.
 
 ### `load_rows(csv_file, **kwargs) -> List[List[str]]` (static)
 One-shot load of all rows from a CSV file.
@@ -171,10 +171,10 @@ CSV utilities follow a layered error strategy. Every failure is a `ServiceError`
 infrastructural failure is not a domain outcome, so it is never resolved through
 the error catalog or formatted into an API response.
 
-- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is.
-- **`CSV_INVALID_READ_MODE_ID`** — raised when `build_reader()` is called in a non-readable mode.
-- **`CSV_INVALID_WRITE_MODE_ID`** — raised when `build_writer()` is called in a non-writable mode.
-- **`CSV_FIELDNAMES_REQUIRED_ID`** — raised when writing dicts without providing `fieldnames`.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) - propagated as-is.
+- **`CSV_INVALID_READ_MODE_ID`** - raised when `build_reader()` is called in a non-readable mode.
+- **`CSV_INVALID_WRITE_MODE_ID`** - raised when `build_writer()` is called in a non-writable mode.
+- **`CSV_FIELDNAMES_REQUIRED_ID`** - raised when writing dicts without providing `fieldnames`.
 
 Codes are hosted by the module that raises them, not by the error catalog. Because
 these three messages take no placeholders and repeat across raise sites, each has a
@@ -195,7 +195,7 @@ Inherited from `FileLoader` (`tiferet.utils.file`):
 - `INVALID_ENCODING_ID`
 - `FILE_ALREADY_OPEN_ID`
 
-## Example – Domain Event with Direct Usage
+## Example - Domain Event with Direct Usage
 
 ```python
 from tiferet.events import DomainEvent, a
@@ -218,7 +218,7 @@ class ImportCsvRecords(DomainEvent):
         return CsvDict.load_rows(csv_path)
 ```
 
-## Example – Round-Trip Save and Reload
+## Example - Round-Trip Save and Reload
 
 ```python
 from tiferet.utils import Csv, CsvDict
@@ -231,7 +231,7 @@ records = CsvDict.load_rows('output/scores.csv')
 assert records[0] == {'name': 'Alice', 'score': '95'}
 ```
 
-## Example – Appending and Streaming
+## Example - Appending and Streaming
 
 ```python
 from tiferet.utils import Csv
@@ -286,13 +286,13 @@ def test_import_csv_records_file_not_found(tmp_path):
 ## Boundaries
 
 **Inside this domain:** CSV row-level parsing/serialization, both positional (`CsvLoader`) and header-based (`CsvDictLoader`).
-**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); CSV-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); CSV-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` - [docs/guides/repos.md](../repos.md)).
 
 ## Related Documentation
 
-- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
-- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
-- [docs/guides/utils/json.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/json.md) — JsonLoader guide (sibling utility)
-- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) - FileLoader guide (parent class)
+- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) - YamlLoader guide (sibling utility)
+- [docs/guides/utils/json.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/json.md) - JsonLoader guide (sibling utility)
+- [docs/guides/utils.md](../utils.md) - Utils layer strategy guide
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

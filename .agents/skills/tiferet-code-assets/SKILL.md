@@ -3,13 +3,13 @@ name: tiferet-code-assets
 description: Apply assets layer conventions when adding or modifying constants, exceptions, or bootstrap defaults in a Tiferet-family repo. Covers the five permitted artifact kinds, SCREAMING_SNAKE_CASE constants, factory functions, standalone classes, and the exports pattern.
 ---
 
-# Assets Code Style – Tiferet
+# Assets Code Style - Tiferet
 
 ## When to use
 - When adding a new error-code constant, default error definition, or bootstrap constant in `tiferet/assets/`.
 - When adding or modifying an exception class (`TiferetError`, `TiferetAPIError`).
 - When adding a stateless helper function to the assets layer.
-- Do NOT use for domain objects, events, services, mappers, or any component that depends on other Tiferet layers — assets must remain dependency-light.
+- Do NOT use for domain objects, events, services, mappers, or any component that depends on other Tiferet layers - assets must remain dependency-light.
 
 ## Artifact comment structure
 
@@ -29,7 +29,7 @@ Artifact labels:
 # ** class: <snake_case_name>       ← individual class
 ```
 
-**Sub-groups** — partition a large `# *** constants` section with a parenthetical qualifier. The framework convention (e.g. `assets/error.py`) uses three correlated sub-group layers:
+**Sub-groups** - partition a large `# *** constants` section with a parenthetical qualifier. The framework convention (e.g. `assets/error.py`) uses three correlated sub-group layers:
 ```python
 # *** constants (ids)               ← raw error-code identifier strings (core group)
 # ** constant: feature_not_found_id
@@ -46,7 +46,7 @@ CORE_DEFAULT_ERRORS = {
 }
 ```
 
-**Multi-group catalogs** — when a module defines additional capability groups (e.g., `admin`, `sqlite`, `csv`), each group name is a shared key across all three layers: `(ids_<group>)`, `(models_<group>)`, and a named dict entry in `(groups)`. Adding an entry to a capability group always requires touching all three locations:
+**Multi-group catalogs** - when a module defines additional capability groups (e.g., `admin`, `sqlite`, `csv`), each group name is a shared key across all three layers: `(ids_<group>)`, `(models_<group>)`, and a named dict entry in `(groups)`. Adding an entry to a capability group always requires touching all three locations:
 ```python
 # *** constants (ids_sqlite)
 # ** constant: sqlite_conn_failed_id
@@ -71,15 +71,15 @@ The plain `(ids)` / `(models)` sub-groups (no suffix) hold the core/baseline gro
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** none. `assets` is the root layer; it has no framework imports. Only `# ** core` (stdlib) and `# ** infra` (minimal third-party, e.g. `json`) are valid. Never import from any other framework layer.
-- **Constants:** `SCREAMING_SNAKE_CASE`. Each constant has its own `# ** constant: <snake_case>` label. Do not group multiple constants under a single `# ** constants: <group>` mid-level label — use a top-level sub-group instead.
+- **Layer boundary - valid `# ** app` imports:** none. `assets` is the root layer; it has no framework imports. Only `# ** core` (stdlib) and `# ** infra` (minimal third-party, e.g. `json`) are valid. Never import from any other framework layer.
+- **Constants:** `SCREAMING_SNAKE_CASE`. Each constant has its own `# ** constant: <snake_case>` label. Do not group multiple constants under a single `# ** constants: <group>` mid-level label - use a top-level sub-group instead.
 - **Structured defaults:** Build structured default data from a factory function (e.g. `create_default_error`), not inline dicts. Define each entry as a named constant, then assemble the catalog dict as a separate constant.
-- **Constant declaration style:** All list- and dictionary-typed constants use the multi-line hanging-indent style with a trailing comma everywhere. This is especially important in `assets/` modules: unlike `# *** events`, `# *** mappers`, and other construct groups, the assets layer has no unique construct-level section designation — it is a pure repository of constants, functions, and classes, making constant formatting the primary quality signal. Never `{ **OTHER_DICT }` inline — always expand to multi-line.
+- **Constant declaration style:** All list- and dictionary-typed constants use the multi-line hanging-indent style with a trailing comma everywhere. This is especially important in `assets/` modules: unlike `# *** events`, `# *** mappers`, and other construct groups, the assets layer has no unique construct-level section designation - it is a pure repository of constants, functions, and classes, making constant formatting the primary quality signal. Never `{ **OTHER_DICT }` inline - always expand to multi-line.
 - **Factory function constants:** Constants whose value is a factory function call (e.g. `create_default_error`, `create_app_service_dependency`) must list each argument on its own line with hanging indent and a trailing comma. Never collapse a factory call to a single line.
 - **Optional parameters in factory calls:** must always be passed as keyword arguments. Required positional parameters may be passed positionally. See `tiferet-code-style` for the general keyword-argument rule and example.
 - **Functions:** Small, stateless, no framework dependencies. Use RST docstrings.
 - **Classes:** Plain standalone classes (exception types, data primitives). Use `# *** classes` / `# ** class: <name>`, `# * attribute: <name>`, `# * init`.
-- **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import feature as feat`). `assets.__all__` does not export `tester` — `CORE_DEFAULT_TESTERS` is a cache catalog (`assets/tester.py`, factory `create_default_tester_data` on `assets/core.py`), not YAML.
+- **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import feature as feat`). `assets.__all__` does not export `tester` - `CORE_DEFAULT_TESTERS` is a cache catalog (`assets/tester.py`, factory `create_default_tester_data` on `assets/core.py`), not YAML.
 
 ## Example
 
@@ -176,7 +176,7 @@ class TiferetError(Exception):
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** Standalone class docstrings (e.g. `TiferetError`) open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/assets.md#<anchor>` to `docs/guides/assets.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** Standalone class docstrings (e.g. `TiferetError`) open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/assets.md#<anchor>` to `docs/guides/assets.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md

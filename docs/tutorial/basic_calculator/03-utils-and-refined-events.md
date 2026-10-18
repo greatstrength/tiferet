@@ -1,7 +1,7 @@
 # Step 3: Utilities & Refined Events
 
 Now that our events can do the math, let's make them a lot safer and cleaner.  
-Right now they blindly trust whatever numbers get passed in — not great for a real calculator.  
+Right now they blindly trust whatever numbers get passed in - not great for a real calculator.  
 We want to validate inputs properly (convert strings to numbers, catch junk input, prevent division by zero, etc.).
 
 Instead of repeating validation code inside every event, we'll create a small **utility** class.  
@@ -33,7 +33,7 @@ app/
 from tiferet import TiferetError
 
 class CalcUtil:
-    """Reusable calculator utilities – mostly number validation for now."""
+    """Reusable calculator utilities - mostly number validation for now."""
 
     @staticmethod
     def verify_number(value) -> float:
@@ -108,10 +108,10 @@ class Exponentiate(DomainEvent):
 ### 3.4 What changed & why it matters
 
 - Events now safely convert and validate inputs using the shared utility
-- Validation logic lives in one place (`CalcUtil`) — easy to update or extend
+- Validation logic lives in one place (`CalcUtil`) - easy to update or extend
 - We added a zero-division check right in `DivideNumber` (a domain rule!)
 - `TiferetError.raise_error` is imported and used directly for the division-by-zero case
-- Still pure domain logic — no config or YAML awareness here
+- Still pure domain logic - no config or YAML awareness here
 
 This is classic Tiferet separation:  
 - Events = business rules + orchestration  

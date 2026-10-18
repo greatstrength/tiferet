@@ -1,4 +1,4 @@
-# Domain – Error: ErrorMessage and Error
+# Domain - Error: ErrorMessage and Error
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -21,8 +21,8 @@ Represents a single localized error message.
 
 | Attribute | Type         | Required | Default | Description                         |
 |-----------|--------------|----------|---------|-------------------------------------|
-| `lang`    | `str`        | Yes      | —       | The language of the error message.   |
-| `text`    | `str`        | Yes      | —       | The error message text (may contain format placeholders). |
+| `lang`    | `str`        | Yes      | - | The language of the error message.   |
+| `text`    | `str`        | Yes      | - | The error message text (may contain format placeholders). |
 
 #### Methods
 
@@ -42,11 +42,11 @@ Represents a named error definition with multilingual message support.
 
 | Attribute    | Type                              | Required | Default | Description                                   |
 |--------------|-----------------------------------|----------|---------|-----------------------------------------------|
-| `id`         | `str`                             | Yes      | —       | The unique identifier of the error.            |
-| `name`       | `str`                             | Yes      | —       | The name of the error.                         |
+| `id`         | `str`                             | Yes      | - | The unique identifier of the error.            |
+| `name`       | `str`                             | Yes      | - | The name of the error.                         |
 | `description`| `str \| None`                     | No       | `None`  | The description of the error.                  |
-| `error_code` | `str \| None`                     | No       | —       | The unique code of the error (derived from id via `@model_validator`).|
-| `message`    | `List[ErrorMessage]`              | Yes      | —       | The error message translations.                |
+| `error_code` | `str \| None`                     | No       | - | The unique code of the error (derived from id via `@model_validator`).|
+| `message`    | `List[ErrorMessage]`              | Yes      | - | The error message translations.                |
 
 #### Methods
 
@@ -77,17 +77,17 @@ The error formatting flow in Tiferet follows this path:
 4. The handler resolves the `Error` domain object by `error_code` (checking the shared cache first, falling back to the `get_error_evt`/`ErrorService` event on a miss and caching the result), then calls `ErrorContext.format_response(error, exception)` to produce the structured response.
 5. The response is wrapped in `TiferetAPIError` and returned to the caller (API response, CLI output, etc.).
 
-Note that this flow always re-resolves the raised error through the catalog, even when a `TiferetAPIError` is raised directly — there is no pass-through special case for an already-formatted error.
+Note that this flow always re-resolves the raised error through the catalog, even when a `TiferetAPIError` is raised directly - there is no pass-through special case for an already-formatted error.
 
 ## Built-In Defaults
 
 Tiferet provides built-in error definitions in `assets/constants.py::DEFAULT_ERRORS`. These cover framework-level errors such as:
 
-- `COMMAND_PARAMETER_REQUIRED` — missing required parameters
-- `FEATURE_NOT_FOUND` — unknown feature ID
-- `REQUEST_VALIDATION_FAILED` — request data that fails a feature's `params_schema`
+- `COMMAND_PARAMETER_REQUIRED` - missing required parameters
+- `FEATURE_NOT_FOUND` - unknown feature ID
+- `REQUEST_VALIDATION_FAILED` - request data that fails a feature's `params_schema`
 
-`INVALID_MODEL_ATTRIBUTE` is **not** in this catalog — it is a `ModelError` code (see [docs/guides/domain/core.md](core.md)), not a catalogued `TiferetError`.
+`INVALID_MODEL_ATTRIBUTE` is **not** in this catalog - it is a `ModelError` code (see [docs/guides/domain/core.md](core.md)), not a catalogued `TiferetError`.
 
 Application-specific errors are defined in the `errors` section of the configuration file (typically `config.yml`, though per-file configs such as `error.yml` are also supported) and loaded via `ErrorService`.
 
@@ -164,11 +164,11 @@ error = Error(
 
 ## Related Documentation
 
-- [docs/guides/errors.md](../errors.md) — The three unrelated exception families (`TiferetError`, `ServiceError`, `ModelError`) and when each applies
-- [docs/guides/domain/core.md](core.md) — `ModelError`, deliberately excluded from this catalog
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
-- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/errors.md](../errors.md) - The three unrelated exception families (`TiferetError`, `ServiceError`, `ModelError`) and when each applies
+- [docs/guides/domain/core.md](core.md) - `ModelError`, deliberately excluded from this catalog
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - Domain model conventions
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) - App domain guide
+- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) - DI domain guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

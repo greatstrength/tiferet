@@ -26,15 +26,15 @@ This design keeps application code simple while maintaining full extensibility a
 
 Tiferet currently defines these public blueprints:
 
-- **App blueprint**: `build_app` — used for general script and custom interfaces. Exposed globally as `App`.
-- **CLI blueprint**: `build_cli` — a thin entrypoint that resolves and realizes a CLI session (which must point at `CliSessionContext`) and delegates `sys.argv` translation and feature dispatch to `CliSessionContext.run`. Exposed globally as `CLI`.
-- **Admin App blueprint**: `build_admin_app` — builds the built-in management session (`admin`) with admin-scoped service resolution. Exposed globally as `AdminApp`.
-- **Admin CLI blueprint**: `build_admin_cli` — builds the built-in management CLI (`admin_cli`) and powers the `tiferet` console script. Exposed globally as `AdminCLI`.
+- **App blueprint**: `build_app` - used for general script and custom interfaces. Exposed globally as `App`.
+- **CLI blueprint**: `build_cli` - a thin entrypoint that resolves and realizes a CLI session (which must point at `CliSessionContext`) and delegates `sys.argv` translation and feature dispatch to `CliSessionContext.run`. Exposed globally as `CLI`.
+- **Admin App blueprint**: `build_admin_app` - builds the built-in management session (`admin`) with admin-scoped service resolution. Exposed globally as `AdminApp`.
+- **Admin CLI blueprint**: `build_admin_cli` - builds the built-in management CLI (`admin_cli`) and powers the `tiferet` console script. Exposed globally as `AdminCLI`.
 - **Tester blueprints**: `use_tester`, `build_tester_context`, `build_test_session`, and a tester-scoped `build_cache` in `tiferet/blueprints/tester.py`. `use_tester` is exported from `tiferet` and `tiferet.blueprints`. This is **not** a mini-App: it does not call `get_app_session` or wire five handlers. Tester-scoped `build_cache` wraps `core.build_cache`; do not stack `add_default_testers` on `core.py`. Cookbook: [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md).
 
 Future specialized blueprints may include:
 
-- Web blueprint — for web framework integration (Flask, FastAPI, etc.)
+- Web blueprint - for web framework integration (Flask, FastAPI, etc.)
 
 ### CLI Blueprint Build Procedure
 
@@ -53,7 +53,7 @@ Blueprints follow Tiferet's standard artifact comment structure.
 
 Blueprints are organized under the `# *** blueprints` top-level comment, with individual blueprints under `# ** blueprint: <snake_case_name>`. Each blueprint function uses standard RST docstrings and code snippet conventions.
 
-Side-effect-free helpers (pure input→output transforms with no I/O, instantiation, or error raising) belong in a `# *** functions` section above `# *** blueprints`, with individual helpers under `# ** function: <snake_case_name>`. In `tiferet/blueprints/core.py`, `resolve_collaborators` and `merge_logging_settings` are grouped this way — small pure helpers consumed by the orchestration functions below them. Reserve `# *** blueprints` for the orchestration entry points reused by other blueprints or clients (e.g. `core.build_app`, `core.build_app_session_context`, `core.build_logger_handler`).
+Side-effect-free helpers (pure input→output transforms with no I/O, instantiation, or error raising) belong in a `# *** functions` section above `# *** blueprints`, with individual helpers under `# ** function: <snake_case_name>`. In `tiferet/blueprints/core.py`, `resolve_collaborators` and `merge_logging_settings` are grouped this way - small pure helpers consumed by the orchestration functions below them. Reserve `# *** blueprints` for the orchestration entry points reused by other blueprints or clients (e.g. `core.build_app`, `core.build_app_session_context`, `core.build_logger_handler`).
 
 **Spacing rules:**
 
@@ -127,7 +127,7 @@ def execute_feature_handler(get_dependency, cache) -> Callable:
     return handler
 ```
 
-`create_feature_context` returns only the bound `FeatureContext`. The inner call is `feature_context.execute_feature(request, ...)` — there is no `feature` parameter on the context method.
+`create_feature_context` returns only the bound `FeatureContext`. The inner call is `feature_context.execute_feature(request, ...)` - there is no `feature` parameter on the context method.
 
 #### Five-handler wiring in `build_app_session_context`
 
@@ -196,15 +196,15 @@ Full catalog reference: [docs/guides/admin.md](../guides/admin.md).
 1. Place the function under `# *** blueprints` in an appropriate module (for example, `tiferet/blueprints/core.py`).
 2. Use `# ** blueprint: <snake_case_name>`.
 3. Reuse the core composition functions (`tiferet/blueprints/core.py`):
-   - `build_cache` — build the shared cache pre-seeded with default errors, services, and constants
-   - `create_app_service` — compose the app service via a single-use dynamic container
-   - `get_app_session` — resolve the app session via the `GetAppSession` event
-   - `build_app_service_container` — build the singleton app service container from cache defaults merged with the session's overrides
-   - `build_service_resolver` — compose the feature-level `ServiceResolver`, caching the app container under the `app` flag
-   - `merge_logging_settings` / `build_logger_handler` — logger construction for the fifth handler slot
-   - `create_feature_context` / `execute_feature_handler` — domain-bound feature execution
-   - `build_app_session_context` — import/construct the context class with all five handlers
-   - `build_app` — high-level single-call entry point chaining the above
+   - `build_cache` - build the shared cache pre-seeded with default errors, services, and constants
+   - `create_app_service` - compose the app service via a single-use dynamic container
+   - `get_app_session` - resolve the app session via the `GetAppSession` event
+   - `build_app_service_container` - build the singleton app service container from cache defaults merged with the session's overrides
+   - `build_service_resolver` - compose the feature-level `ServiceResolver`, caching the app container under the `app` flag
+   - `merge_logging_settings` / `build_logger_handler` - logger construction for the fifth handler slot
+   - `create_feature_context` / `execute_feature_handler` - domain-bound feature execution
+   - `build_app_session_context` - import/construct the context class with all five handlers
+   - `build_app` - high-level single-call entry point chaining the above
 
 ### Key Patterns
 
@@ -238,7 +238,7 @@ Always pass `build_logger_handler` (never a long-lived `logging_context` constru
 
 ## Testing Blueprints
 
-Unit tests of a named component use `@use_tester` — see [docs/core/testing.md](testing.md). Blueprint composition tests (cache, session, five-handler wiring) use `pytest` with `unittest.mock`. Focus on:
+Unit tests of a named component use `@use_tester` - see [docs/core/testing.md](testing.md). Blueprint composition tests (cache, session, five-handler wiring) use `pytest` with `unittest.mock`. Focus on:
 
 - Correct composition of the app service and app session (`create_app_service` / `get_app_session`)
 - Cache defaults merged with session overrides in `build_app_service_container`
@@ -248,7 +248,7 @@ Unit tests of a named component use `@use_tester` — see [docs/core/testing.md]
 
 ## Best Practices
 
-- Keep blueprints **thin** — they should orchestrate, not implement domain logic.
+- Keep blueprints **thin** - they should orchestrate, not implement domain logic.
 - Always validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in the single-call entry points.
 - Use `TiferetError.raise_error()` for all domain-outcome error paths with proper constants.
 - Inject the `ServiceResolver`'s `get_dependency` handler into the context so contexts remain decoupled from the DI engine.
@@ -262,12 +262,12 @@ Explore source in `tiferet/blueprints/` and blueprint tests in the top-level `te
 
 ## Related Documentation
 
-- [docs/guides/blueprints.md](../guides/blueprints.md) — blueprint strategies and patterns
-- [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md) — `@use_tester` cookbook
-- [docs/core/testing.md](testing.md) — v2.1.0 unit-test model
-- [docs/guides/admin.md](../guides/admin.md) — admin application and CLI catalog
-- [docs/core/contexts.md](contexts.md) — five-handler context contract
-- [docs/core/di.md](di.md) — dependency injection and service provider design
-- [docs/core/events.md](events.md) — domain event design and usage
-- [docs/guides/domain/app.md](../guides/domain/app.md) — application session and service registration guide
-- [docs/core/code_style.md](code_style.md) — artifact comments and formatting
+- [docs/guides/blueprints.md](../guides/blueprints.md) - blueprint strategies and patterns
+- [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md) - `@use_tester` cookbook
+- [docs/core/testing.md](testing.md) - v2.1.0 unit-test model
+- [docs/guides/admin.md](../guides/admin.md) - admin application and CLI catalog
+- [docs/core/contexts.md](contexts.md) - five-handler context contract
+- [docs/core/di.md](di.md) - dependency injection and service provider design
+- [docs/core/events.md](events.md) - domain event design and usage
+- [docs/guides/domain/app.md](../guides/domain/app.md) - application session and service registration guide
+- [docs/core/code_style.md](code_style.md) - artifact comments and formatting

@@ -1,4 +1,4 @@
-# Mappers – Strategies and Patterns
+# Mappers - Strategies and Patterns
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -11,15 +11,15 @@ The mappers layer bridges persistent configuration (YAML, JSON) and runtime doma
 
 ## Ubiquitous Language
 
-- **Aggregate** — a mutable extension of a domain object (`extra='forbid'`, `validate_assignment=True`, inherited from `DomainObject`); mutation goes through dedicated methods or the base `set_attribute`, which converts a Pydantic `ValidationError` into a `ModelError`.
-- **ConfigObject** — the framework's own `TransferObject` specialization for YAML/JSON-backed configuration (lenient `extra='ignore'`, `validate_assignment=False`); other backing media would earn their own suffix (e.g. a hypothetical `SqliteObject`).
-- **`_ROLES`** — a `ClassVar[Dict[str, Dict[str, Any]]]` on a `TransferObject` mapping role names to `model_dump` kwargs; `to_model` and `to_data` are the two standard roles every `ConfigObject` declares.
-- **The map/exclude handshake** — the rule that whatever a `_ROLES['to_model']` entry excludes, the class's own `map()` override must supply explicitly (see below).
+- **Aggregate** - a mutable extension of a domain object (`extra='forbid'`, `validate_assignment=True`, inherited from `DomainObject`); mutation goes through dedicated methods or the base `set_attribute`, which converts a Pydantic `ValidationError` into a `ModelError`.
+- **ConfigObject** - the framework's own `TransferObject` specialization for YAML/JSON-backed configuration (lenient `extra='ignore'`, `validate_assignment=False`); other backing media would earn their own suffix (e.g. a hypothetical `SqliteObject`).
+- **`_ROLES`** - a `ClassVar[Dict[str, Dict[str, Any]]]` on a `TransferObject` mapping role names to `model_dump` kwargs; `to_model` and `to_data` are the two standard roles every `ConfigObject` declares.
+- **The map/exclude handshake** - the rule that whatever a `_ROLES['to_model']` entry excludes, the class's own `map()` override must supply explicitly (see below).
 
 <a id="aggregate"></a>
 ## When to Create an Aggregate
 
-An aggregate is warranted when the domain object needs **mutation methods** beyond simple attribute assignment — methods that enforce invariants, compose nested objects, or coordinate multi-field updates.
+An aggregate is warranted when the domain object needs **mutation methods** beyond simple attribute assignment - methods that enforce invariants, compose nested objects, or coordinate multi-field updates.
 
 If a domain object is only ever used as a **nested sub-object** inside a parent aggregate, and its fields map 1:1 with no special mutation logic, skip the aggregate. The parent aggregate owns the mutation responsibility, and the raw domain object is used directly.
 
@@ -93,10 +93,10 @@ self.services = list(self.services) + [dependency]
 The transfer object is responsible for any structural differences between the configuration format and the domain model. The most common pattern is **dict↔list conversion**, where YAML stores sub-objects as a dictionary keyed by an identifier, but the domain model stores them as a list with that identifier as a field.
 
 ```python
-# AppSessionConfigObject.map — dict keys become service_id fields
+# AppSessionConfigObject.map - dict keys become service_id fields
 services=[dep.map(service_id=dep_id) for dep_id, dep in (self.services or {}).items()]
 
-# AppSessionConfigObject.from_model — list items become dict entries
+# AppSessionConfigObject.from_model - list items become dict entries
 services={
     dep.service_id: AppServiceDependencyConfigObject.from_model(dep)
     for dep in app_session.services
@@ -157,7 +157,7 @@ This pattern ensures the transfer object's role controls what gets auto-serializ
 
 ## Attribute Aliasing
 
-Transfer objects support `serialization_alias` and `validation_alias=AliasChoices(...)` for mapping between YAML/JSON field names and domain attribute names. Domain objects must **not** use aliasing — only transfer objects.
+Transfer objects support `serialization_alias` and `validation_alias=AliasChoices(...)` for mapping between YAML/JSON field names and domain attribute names. Domain objects must **not** use aliasing - only transfer objects.
 
 Common aliases:
 
@@ -237,7 +237,7 @@ When the transfer object performs structural transformations (dict↔list), both
 
 ## Composite Transfer Objects
 
-Some transfer objects don't extend a domain object — they compose multiple domain objects into a single configuration structure. `LoggingSettingsConfigObject` (`mappers/logging.py`) is the canonical example: it extends `TransferObject` directly and holds dicts of `FormatterConfigObject`, `HandlerConfigObject`, and `LoggerConfigObject`, representing the entire `logging` configuration section.
+Some transfer objects don't extend a domain object - they compose multiple domain objects into a single configuration structure. `LoggingSettingsConfigObject` (`mappers/logging.py`) is the canonical example: it extends `TransferObject` directly and holds dicts of `FormatterConfigObject`, `HandlerConfigObject`, and `LoggerConfigObject`, representing the entire `logging` configuration section.
 
 These composite transfer objects use a `from_data` classmethod that threads each section's dict key onto the contained config objects as `id` before validating:
 
@@ -257,17 +257,17 @@ Use this pattern when a config file section contains multiple related sub-sectio
 
 ## Aliasing Beyond the Field Level
 
-Most transfer objects only need `serialization_alias`/`validation_alias` per field (see Attribute Aliasing above). `CliCommandConfigObject.arguments` is a representative example: `validation_alias=AliasChoices('args', 'arguments')` accepts either input key, and `serialization_alias='args'` controls the canonical output key — no `to_primitive` override is needed for this case, since the alias mechanism alone is sufficient.
+Most transfer objects only need `serialization_alias`/`validation_alias` per field (see Attribute Aliasing above). `CliCommandConfigObject.arguments` is a representative example: `validation_alias=AliasChoices('args', 'arguments')` accepts either input key, and `serialization_alias='args'` controls the canonical output key - no `to_primitive` override is needed for this case, since the alias mechanism alone is sufficient.
 
 ## Boundaries
 
 **Inside this domain:** the Aggregate/TransferObject split, role-based serialization (`_ROLES`, `to_primitive`/`to_dict`), the `map`/`from_model` round trip, and the dict↔list nested-object transformation pattern.
-**Outside this domain:** the declared domain object shapes mappers extend (`docs/guides/domain/*.md`); persisting a `ConfigObject` to disk (`ConfigurationRepository` — [docs/guides/repos.md](repos.md)); the model-defect vocabulary (`ModelError`, raised by `set_attribute`/`raise_for_validation` — [docs/guides/errors.md](errors.md)).
+**Outside this domain:** the declared domain object shapes mappers extend (`docs/guides/domain/*.md`); persisting a `ConfigObject` to disk (`ConfigurationRepository` - [docs/guides/repos.md](repos.md)); the model-defect vocabulary (`ModelError`, raised by `set_attribute`/`raise_for_validation` - [docs/guides/errors.md](errors.md)).
 
 ## Related Documentation
 
-- [docs/core/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md) — Aggregate and TransferObject base class reference
-- [docs/guides/repos.md](repos.md) — `ConfigurationRepository`, which persists `ConfigObject` instances
-- [docs/guides/errors.md](errors.md) — `ModelError`, raised by aggregate mutation failures
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and conventions
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting
+- [docs/core/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md) - Aggregate and TransferObject base class reference
+- [docs/guides/repos.md](repos.md) - `ConfigurationRepository`, which persists `ConfigObject` instances
+- [docs/guides/errors.md](errors.md) - `ModelError`, raised by aggregate mutation failures
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - DomainObject base class and conventions
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comments and formatting

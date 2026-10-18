@@ -3,12 +3,12 @@ name: tiferet-code-repos
 description: Apply repository conventions when adding or modifying configuration repositories in a Tiferet-family repo. Covers ConfigurationRepository base, naming, read/write patterns, DI registration, and integration testing.
 ---
 
-# Repositories Code Style – Tiferet
+# Repositories Code Style - Tiferet
 
 ## When to use
 - When adding a new repository or modifying an existing one in `tiferet/repos/`.
 - When implementing persistence for a domain concept backed by YAML or JSON config files.
-- Do NOT export repositories from `__init__.py` — they are DI-resolved at runtime.
+- Do NOT export repositories from `__init__.py` - they are DI-resolved at runtime.
 
 ## Artifact comment structure
 
@@ -33,11 +33,11 @@ Repo-specific labels:
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `interfaces` (the Service to implement, and the source of `ServiceError`), `mappers` (transfer objects and aggregates), `utils` (loader utilities). Never import from `domain` directly (use `mappers` instead), `assets`, `events`, `di`, `contexts`, or `blueprints`. Repositories only absorb those three packages; they are never exported and never pass operational `Callable` parameters to mappers or utilities.
+**Layer boundary - valid `# ** app` imports:** `interfaces` (the Service to implement, and the source of `ServiceError`), `mappers` (transfer objects and aggregates), `utils` (loader utilities). Never import from `domain` directly (use `mappers` instead), `assets`, `events`, `di`, `contexts`, or `blueprints`. Repositories only absorb those three packages; they are never exported and never pass operational `Callable` parameters to mappers or utilities.
 
 **Naming:**
-- `<Domain>ConfigRepository` — for YAML/JSON config-backed repos (e.g. `ErrorConfigRepository`, `FeatureConfigRepository`). Both formats are handled by `ConfigurationRepository`.
-- `<Domain>SqliteRepository` — for SQLite-backed repos (e.g. `OrderSqliteRepository`). The suffix reflects the backing connector (`SqliteClient`) rather than the file format.
+- `<Domain>ConfigRepository` - for YAML/JSON config-backed repos (e.g. `ErrorConfigRepository`, `FeatureConfigRepository`). Both formats are handled by `ConfigurationRepository`.
+- `<Domain>SqliteRepository` - for SQLite-backed repos (e.g. `OrderSqliteRepository`). The suffix reflects the backing connector (`SqliteClient`) rather than the file format.
 
 **Class declaration:** Extend the Service interface **and** `ConfigurationRepository`:
 ```python
@@ -52,8 +52,8 @@ def __init__(self, error_config: str, encoding: str = 'utf-8') -> None:
 
 **`ConfigurationRepository` base** (inherited from `tiferet/repos/core.py`):
 - `config_file`, `encoding`, `default_role` (fixed to `'to_data'`)
-- `_load(start_node=..., data_factory=...)` — format-dispatched read (YAML or JSON based on file extension)
-- `_save(data)` — format-dispatched write
+- `_load(start_node=..., data_factory=...)` - format-dispatched read (YAML or JSON based on file extension)
+- `_save(data)` - format-dispatched write
 
 **Read pattern** (`exists`, `get`, `list`): use `_load` with a `start_node` lambda:
 ```python
@@ -69,13 +69,13 @@ full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.defa
 self._save(full_data)
 ```
 
-**Delete pattern**: always idempotent — use `.pop(id, None)`:
+**Delete pattern**: always idempotent - use `.pop(id, None)`:
 ```python
 full_data.get('errors', {}).pop(id, None)
 self._save(full_data)
 ```
 
-**Testing:** File-backed tests in `tests/repos/` — `tmp_path` seed fixtures write real YAML/JSON; `@use_tester(type='repo', target_cls=<Repo>, config_parameter='<domain>_config')` constructs with `test_ctx.make_target(config_file=...)` and calls `assert_exists` / `assert_get` / `assert_list` / `assert_save` / `assert_delete`. Do not add a module-level `*_config_repo` fixture. Do not use `session.run()` for CRUD. Leftover free functions stay under `# *** tests` (e.g. `pytest.raises(ServiceError)` for an unsupported extension). Grammar: `# *** fixtures` → `# *** tests` (omit if none) → `# *** testers` / `# ** tester: test_<snake>` / `# * test:`.
+**Testing:** File-backed tests in `tests/repos/` - `tmp_path` seed fixtures write real YAML/JSON; `@use_tester(type='repo', target_cls=<Repo>, config_parameter='<domain>_config')` constructs with `test_ctx.make_target(config_file=...)` and calls `assert_exists` / `assert_get` / `assert_list` / `assert_save` / `assert_delete`. Do not add a module-level `*_config_repo` fixture. Do not use `session.run()` for CRUD. Leftover free functions stay under `# *** tests` (e.g. `pytest.raises(ServiceError)` for an unsupported extension). Grammar: `# *** fixtures` → `# *** tests` (omit if none) → `# *** testers` / `# ** tester: test_<snake>` / `# * test:`.
 
 ## Example
 
@@ -178,7 +178,7 @@ class ErrorConfigRepository(ErrorService, ConfigurationRepository):
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** Repository class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/repos.md#<anchor>` to `docs/guides/repos.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** Repository class docstrings open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/repos.md#<anchor>` to `docs/guides/repos.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md

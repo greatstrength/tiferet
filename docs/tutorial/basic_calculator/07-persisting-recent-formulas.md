@@ -1,6 +1,6 @@
 # Step 7: Persisting Recent Formulas with the File Loader
 
-Our calculator works great — but the moment it finishes, every calculation vanishes.
+Our calculator works great - but the moment it finishes, every calculation vanishes.
 Let's give it a little memory by saving the **most recently executed formulas** to a file.
 
 This is the perfect excuse to meet one of Tiferet's handy infrastructure helpers: the **file loader**.
@@ -9,11 +9,11 @@ This is the perfect excuse to meet one of Tiferet's handy infrastructure helpers
 
 Tiferet ships small, reusable utilities for reading and writing files. They all build on a base `FileLoader` that manages the open/close lifecycle for you, plus format-specific loaders on top:
 
-- `File` / `FileLoader` — raw stream handling
-- `Json` / `JsonLoader` — read/write JSON (what we'll use here)
-- `Yaml`, `Csv`, `Sqlite`, … — more of the same idea
+- `File` / `FileLoader` - raw stream handling
+- `Json` / `JsonLoader` - read/write JSON (what we'll use here)
+- `Yaml`, `Csv`, `Sqlite`, … - more of the same idea
 
-Because `Json` builds on `FileLoader`, we get safe, structured reads and writes in one line — no manual `open()`/`close()` juggling.
+Because `Json` builds on `FileLoader`, we get safe, structured reads and writes in one line - no manual `open()`/`close()` juggling.
 
 ### 7.2 Add the history events
 
@@ -63,7 +63,7 @@ class ListRecentFormulas(DomainEvent):
         return '\n'.join(f"{e['expression']} = {e['result']}" for e in entries)
 ```
 
-Notice `RecordCalculation` **returns `result` unchanged** — that's important, and we'll see why in a second.
+Notice `RecordCalculation` **returns `result` unchanged** - that's important, and we'll see why in a second.
 
 ### 7.3 Wire it up in config.yml
 
@@ -106,7 +106,7 @@ We use `float` (not `int`) here, even though `a`/`b` arrive as whole numbers tod
 How it flows:
 
 - The compute step stores its result under `data_key: result`, so it lands in the request data instead of becoming the final response.
-- The record step has **no** `data_key`, so *its* return value becomes what `app.run(...)` gives back. Since `RecordCalculation` returns `result` unchanged, the feature still returns the number — we just persisted a history entry along the way.
+- The record step has **no** `data_key`, so *its* return value becomes what `app.run(...)` gives back. Since `RecordCalculation` returns `result` unchanged, the feature still returns the number - we just persisted a history entry along the way.
 - The record step reads `a`, `b`, and `result` straight from the request data; `operator` is a literal step param.
 
 Add the same compute-then-record pair to `subtract`, `multiply`, `divide`, `exp`, and `sqrt` (use operators `-`, `*`, `/`, `**`, and `√`).
@@ -122,7 +122,7 @@ Finally, add a feature to read the history back:
           name: List recent calculations
 ```
 
-> **Tip:** `params_schema` validates and coerces request data before any step runs — that's why `a` and `b` arrive as real numbers.
+> **Tip:** `params_schema` validates and coerces request data before any step runs - that's why `a` and `b` arrive as real numbers.
 
 ### 7.4 Add a CLI command (optional)
 
@@ -164,7 +164,7 @@ python calc_cli.py calc history
 
 ### 7.6 Why this is nice
 
-- Persistence with zero boilerplate — the file loader handles the file lifecycle.
+- Persistence with zero boilerplate - the file loader handles the file lifecycle.
 - The compute-then-record pattern shows how `data_key` lets steps share data without changing the feature's return value.
 - Failed calculations (like divide-by-zero) raise before the record step, so they never pollute the history.
 

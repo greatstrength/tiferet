@@ -1,4 +1,4 @@
-# Domain – Logging: Formatter, Handler, Logger, and LoggingSettings
+# Domain - Logging: Formatter, Handler, Logger, and LoggingSettings
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,7 +7,7 @@
 
 ## Overview
 
-The Logging domain defines the structural foundation for observability and logging configuration in Tiferet. Logging configuration is expressed as three composable domain objects — `Formatter`, `Handler`, and `Logger` — that together describe how log messages are formatted, where they are sent, and which loggers are active at what level.
+The Logging domain defines the structural foundation for observability and logging configuration in Tiferet. Logging configuration is expressed as three composable domain objects - `Formatter`, `Handler`, and `Logger` - that together describe how log messages are formatted, where they are sent, and which loggers are active at what level.
 
 All domain objects in this module are **immutable value objects**: they carry no mutation methods and expose only read-only queries via `format_config()`. All state changes (renaming, adding/removing handlers, etc.) occur exclusively through Aggregates in the mappers layer.
 
@@ -35,10 +35,10 @@ Immutable value object representing a logging formatter configuration.
 
 | Attribute     | Type            | Required | Default | Description                          |
 |---------------|-----------------|----------|---------|--------------------------------------|
-| `id`          | `str`           | Yes      | —       | The unique identifier of the formatter. |
-| `name`        | `str`           | Yes      | —       | The name of the formatter.           |
+| `id`          | `str`           | Yes      | - | The unique identifier of the formatter. |
+| `name`        | `str`           | Yes      | - | The name of the formatter.           |
 | `description` | `str \| None`   | No       | `None`  | The description of the formatter.    |
-| `format`      | `str`           | Yes      | —       | The format string for log messages.  |
+| `format`      | `str`           | Yes      | - | The format string for log messages.  |
 | `datefmt`     | `str \| None`   | No       | `None`  | The date format for log timestamps.  |
 
 #### Methods
@@ -62,13 +62,13 @@ Immutable value object representing a logging handler configuration.
 
 | Attribute     | Type            | Required | Default | Description                                              |
 |---------------|-----------------|----------|---------|----------------------------------------------------------|
-| `id`          | `str`           | Yes      | —       | The unique identifier of the handler.                    |
-| `name`        | `str`           | Yes      | —       | The name of the handler.                                 |
+| `id`          | `str`           | Yes      | - | The unique identifier of the handler.                    |
+| `name`        | `str`           | Yes      | - | The name of the handler.                                 |
 | `description` | `str \| None`   | No       | `None`  | The description of the handler.                          |
-| `module_path` | `str`           | Yes      | —       | The module path for the handler class.                   |
-| `class_name`  | `str`           | Yes      | —       | The class name of the handler.                           |
-| `level`       | `str`           | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `formatter`   | `str`           | Yes      | —       | The ID of the formatter to use.                          |
+| `module_path` | `str`           | Yes      | - | The module path for the handler class.                   |
+| `class_name`  | `str`           | Yes      | - | The class name of the handler.                           |
+| `level`       | `str`           | Yes      | - | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `formatter`   | `str`           | Yes      | - | The ID of the formatter to use.                          |
 | `stream`      | `str \| None`   | No       | `None`  | The stream for StreamHandler (e.g., `ext://sys.stdout`). |
 | `filename`    | `str \| None`   | No       | `None`  | The file path for FileHandler (e.g., `app.log`).         |
 
@@ -92,10 +92,10 @@ Immutable value object representing a logger configuration.
 
 | Attribute     | Type             | Required | Default | Description                                              |
 |---------------|------------------|----------|---------|----------------------------------------------------------|
-| `id`          | `str`            | Yes      | —       | The unique identifier of the logger.                     |
-| `name`        | `str`            | Yes      | —       | The name of the logger.                                  |
+| `id`          | `str`            | Yes      | - | The unique identifier of the logger.                     |
+| `name`        | `str`            | Yes      | - | The name of the logger.                                  |
 | `description` | `str \| None`    | No       | `None`  | The description of the logger.                           |
-| `level`       | `str`            | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `level`       | `str`            | Yes      | - | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
 | `handlers`    | `List[str]`      | No       | `[]`    | List of handler IDs for the logger.                      |
 | `propagate`   | `bool`           | No       | `False` | Whether to propagate messages to parent loggers.         |
 | `is_root`     | `bool`           | No       | `False` | Whether this is the root logger.                         |
@@ -115,7 +115,7 @@ logger.format_config()
 
 ### LoggingSettings
 
-Runtime value object that bundles the formatter, handler, and logger configurations and owns the whole-system `dictConfig` assembly. It is runtime-only — there is no Aggregate or TransferObject counterpart — and is intentionally logger-agnostic (the final `getLogger` call and its `logger_id` stay with `LoggingContext`).
+Runtime value object that bundles the formatter, handler, and logger configurations and owns the whole-system `dictConfig` assembly. It is runtime-only - there is no Aggregate or TransferObject counterpart - and is intentionally logger-agnostic (the final `getLogger` call and its `logger_id` stay with `LoggingContext`).
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -146,7 +146,7 @@ Tiferet provides built-in logging defaults in `assets/logging.py`. These define 
 
 The Logging domain objects participate in runtime configuration through the following flow:
 
-1. The session hub calls `AppSessionContext.build_logger()`, which delegates to the injected `build_logger_handler` (required fifth handler — there is no long-lived `logging_context` constructor keyword on the hub).
+1. The session hub calls `AppSessionContext.build_logger()`, which delegates to the injected `build_logger_handler` (required fifth handler - there is no long-lived `logging_context` constructor keyword on the hub).
 2. `blueprints/core.py::build_logger_handler` checks the shared cache under `LOGGER_CACHE_PREFIX` (`('logging', 'loggers')`) for a previously built logger id.
 3. On a miss, `logging_list_all_evt` loads repository `Formatter` / `Handler` / `Logger` objects; `merge_logging_settings` merges them over cache-seeded defaults by `.id`.
 4. `LoggingContext.from_domain(settings, logger_id=...)` binds the merged `LoggingSettings`; `LoggingContext.build_logger` calls `LoggingSettings.format_config()` and `create_logger`.
@@ -217,7 +217,7 @@ Concrete implementations (e.g., `LoggingYamlRepository`) satisfy this interface.
 
 - **App:** Logger construction is a first-class hub template method (`build_logger` / `build_logger_handler`). Every application session can select its own `logger_id` and logging configuration.
 - **Blueprints:** `merge_logging_settings` and `build_logger_handler` in `tiferet/blueprints/core.py` own the list → merge → cache path; `LoggingContext` remains the ephemeral assembler.
-- **Admin:** Logging CRUD is one of the six admin catalog domains — see [docs/guides/admin.md](../admin.md).
+- **Admin:** Logging CRUD is one of the six admin catalog domains - see [docs/guides/admin.md](../admin.md).
 - **All Contexts:** Once configured, the Python logging system is available globally to all contexts, domain events, and services throughout the application lifecycle.
 
 ## Instantiation
@@ -257,12 +257,12 @@ lgr = Logger(
 
 ## Related Documentation
 
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
-- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error domain guide
-- [docs/guides/domain/feature.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/feature.md) — Feature domain guide
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) — Admin Logging CRUD domain
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — `build_logger_handler` five-handler slot
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - Domain model conventions
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) - App domain guide
+- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) - Error domain guide
+- [docs/guides/domain/feature.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/feature.md) - Feature domain guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing
+- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) - Admin Logging CRUD domain
+- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) - `build_logger_handler` five-handler slot
