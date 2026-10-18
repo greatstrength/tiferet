@@ -1,4 +1,4 @@
-# Blueprints – Tester: use_tester, build_cache, build_tester_context
+# Blueprints - Tester: use_tester, build_cache, build_tester_context
 
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
@@ -16,11 +16,11 @@ Strategy (when to wrap, cache seeding as a pattern): [docs/guides/blueprints.md]
 
 ## Ubiquitous Language
 
-- **Wrap-all** — every own-namespace class member whose signature declares `test_ctx` or `session` is wrapped, including helpers not named `test_*`.
-- **Signature strip** — the wrapper drops `test_ctx` and `session` from `__signature__` so pytest does not treat them as fixtures.
-- **Master context** — one `TesterContext` built at decoration time and reused across calls.
-- **Fresh session** — a new `TestSessionContext` per call.
-- **Tester-scoped cache** — `tiferet.blueprints.tester.build_cache`, wrapping `core.build_cache` with `add_default_testers` / `add_default_app_sessions`.
+- **Wrap-all** - every own-namespace class member whose signature declares `test_ctx` or `session` is wrapped, including helpers not named `test_*`.
+- **Signature strip** - the wrapper drops `test_ctx` and `session` from `__signature__` so pytest does not treat them as fixtures.
+- **Master context** - one `TesterContext` built at decoration time and reused across calls.
+- **Fresh session** - a new `TestSessionContext` per call.
+- **Tester-scoped cache** - `tiferet.blueprints.tester.build_cache`, wrapping `core.build_cache` with `add_default_testers` / `add_default_app_sessions`.
 
 ## When should you reach for which one?
 
@@ -137,7 +137,7 @@ Constructs `TestSessionContext(tester_ctx, **request_fields)`. Request fields in
 
 ## Per-type algorithms
 
-These are sections on the same `type` discriminator — not new type keys.
+These are sections on the same `type` discriminator - not new type keys.
 
 ### domain
 
@@ -174,7 +174,7 @@ Fluent verbs `given` / `invoke` / `verify` / `run` are on `TestSessionContext`, 
 
 ### context
 
-`make_target` binds via `get_target_type().from_domain(get_domain_type()(**sample_data))`. The `data` argument is unused — context construction does not overlay request data. `assert_from_domain` constructs the domain object from each case's `data` and binds through the **target class** `from_domain`, not the registry. `assert_domain_type` checks own-namespace declaration (`'domain_type' in target_cls.__dict__`) versus omission. `assert_for_domain` asserts `BaseContext.for_domain(domain_cls) is context_cls`; `CONTEXT_NOT_FOUND` propagates.
+`make_target` binds via `get_target_type().from_domain(get_domain_type()(**sample_data))`. The `data` argument is unused - context construction does not overlay request data. `assert_from_domain` constructs the domain object from each case's `data` and binds through the **target class** `from_domain`, not the registry. `assert_domain_type` checks own-namespace declaration (`'domain_type' in target_cls.__dict__`) versus omission. `assert_for_domain` asserts `BaseContext.for_domain(domain_cls) is context_cls`; `CONTEXT_NOT_FOUND` propagates.
 
 ## Overlay never writes sample_data
 
@@ -198,8 +198,8 @@ The harness tests its own blueprints in `tests/blueprints/test_tester.py` using 
 
 ## Related Documentation
 
-- [docs/guides/blueprints.md](../blueprints.md) — Blueprint strategies, including tester-scoped cache wrapping
-- [docs/core/testing.md](../../core/testing.md) — Unit-test model index
-- [docs/guides/domain/tester.md](../domain/tester.md) — `TesterObject` and `Verification`
-- [docs/guides/contexts.md](../contexts.md) — Tester context registry and `TestSessionContext`
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments
+- [docs/guides/blueprints.md](../blueprints.md) - Blueprint strategies, including tester-scoped cache wrapping
+- [docs/core/testing.md](../../core/testing.md) - Unit-test model index
+- [docs/guides/domain/tester.md](../domain/tester.md) - `TesterObject` and `Verification`
+- [docs/guides/contexts.md](../contexts.md) - Tester context registry and `TestSessionContext`
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comments

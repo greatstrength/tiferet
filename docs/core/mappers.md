@@ -63,15 +63,15 @@ class Aggregate(DomainObject):
 Key characteristics:
 - Aggregates are instantiated directly via the Pydantic constructor: `ErrorAggregate(id='...', name='...')`.
 - **`set_attribute`** relies on `validate_assignment=True` (inherited from `DomainObject`) to trigger field validation on every `setattr`, and converts the resulting Pydantic `ValidationError` into a `ModelError` via `ModelError.raise_for_validation`.
-- Invalid attribute mutations (unknown field or invalid value) raise a `ModelError` — not a `TiferetError` — classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID`. See [docs/guides/errors.md](../guides/errors.md) for why `ModelError` is a deliberately uncatalogued, unrelated exception family.
+- Invalid attribute mutations (unknown field or invalid value) raise a `ModelError` - not a `TiferetError` - classified as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID`. See [docs/guides/errors.md](../guides/errors.md) for why `ModelError` is a deliberately uncatalogued, unrelated exception family.
 
 ## The TransferObject Base Class
 
 `TransferObject` extends `DomainObject` with a lenient config and provides:
 
-- **`to_primitive(role, **overrides)`** — Serializes via `model_dump`, applying role-specific kwargs from `_ROLES` and caller overrides.
-- **`map(target, **overrides)`** — Serializes via the `to_model` role, merges overrides, and constructs the target aggregate.
-- **`from_model(model, **overrides)`** — Classmethod that creates a transfer object from a domain model or aggregate via `model_dump` + `model_validate`.
+- **`to_primitive(role, **overrides)`** - Serializes via `model_dump`, applying role-specific kwargs from `_ROLES` and caller overrides.
+- **`map(target, **overrides)`** - Serializes via the `to_model` role, merges overrides, and constructs the target aggregate.
+- **`from_model(model, **overrides)`** - Classmethod that creates a transfer object from a domain model or aggregate via `model_dump` + `model_validate`.
 
 ### Role-Based Serialization
 
@@ -105,12 +105,12 @@ def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
 
 Mapper classes follow the standard Tiferet artifact comment structure:
 
-- `# *** mappers` — top-level section for mapper modules.
-- `# ** mapper: <name>` — individual mapper (snake_case).
-- `# * attribute: <name>` — instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
-- `# * init` — constructor, when the class has one.
-- `# * method: <name> (property)` — a descriptive `@property`, after `init` and before mutation or mapping methods. Getter only. No setter.
-- `# * method: <name>` — mutation methods on an aggregate, or `map` / `from_model` on a transfer object.
+- `# *** mappers` - top-level section for mapper modules.
+- `# ** mapper: <name>` - individual mapper (snake_case).
+- `# * attribute: <name>` - instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
+- `# * init` - constructor, when the class has one.
+- `# * method: <name> (property)` - a descriptive `@property`, after `init` and before mutation or mapping methods. Getter only. No setter.
+- `# * method: <name>` - mutation methods on an aggregate, or `map` / `from_model` on a transfer object.
 
 Use `# *** classes` in `core.py` for the base classes themselves.
 
@@ -126,7 +126,7 @@ Use `# *** classes` in `core.py` for the base classes themselves.
 - Add mutation methods under `# * method: <name>`.
 - Instantiate directly via the Pydantic constructor.
 
-**Example** – `FeatureAggregate`:
+**Example** - `FeatureAggregate`:
 ```python
 # *** mappers
 
@@ -150,7 +150,7 @@ class FeatureAggregate(Feature, Aggregate):
 - Override `map()` to specify the target aggregate and handle nested mapping.
 - Override `from_model()` as a `@classmethod` to handle nested conversions.
 
-**Example** – `FeatureConfigObject`:
+**Example** - `FeatureConfigObject`:
 ```python
 # ** mapper: feature_config_object
 class FeatureConfigObject(Feature, TransferObject):
@@ -390,14 +390,14 @@ Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject
 
 Mappers are defined in `tiferet/mappers/`:
 
-- `core.py` — `Aggregate` and `TransferObject` base classes + constants.
-- `app.py` — `AppSessionAggregate`, `AppSessionConfigObject`.
-- `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
-- `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
-- `error.py` — `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
-- `feature.py` — `FeatureAggregate`, `FeatureConfigObject`, `EventFeatureStepAggregate`, `EventFeatureStepConfigObject`.
-- `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
-- `__init__.py` — Public exports.
+- `core.py` - `Aggregate` and `TransferObject` base classes + constants.
+- `app.py` - `AppSessionAggregate`, `AppSessionConfigObject`.
+- `cli.py` - `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
+- `di.py` - `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
+- `error.py` - `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
+- `feature.py` - `FeatureAggregate`, `FeatureConfigObject`, `EventFeatureStepAggregate`, `EventFeatureStepConfigObject`.
+- `logging.py` - `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
+- `__init__.py` - Public exports.
 
 Tests live in `tests/mappers/`.
 

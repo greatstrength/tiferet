@@ -1,4 +1,4 @@
-# Domain – DI: ServiceRegistration and FlaggedDependency
+# Domain - DI: ServiceRegistration and FlaggedDependency
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -25,9 +25,9 @@ Represents one flag-qualified implementation override for a service.
 
 | Attribute      | Type                   | Required | Default | Description                                   |
 |----------------|------------------------|----------|---------|-----------------------------------------------|
-| `module_path`  | `str`                  | Yes      | —       | The module path.                               |
-| `class_name`   | `str`                  | Yes      | —       | The class name.                                |
-| `flag`         | `str`                  | Yes      | —       | The flag for the container dependency.          |
+| `module_path`  | `str`                  | Yes      | - | The module path.                               |
+| `class_name`   | `str`                  | Yes      | - | The class name.                                |
+| `flag`         | `str`                  | Yes      | - | The flag for the container dependency.          |
 | `parameters`   | `Dict[str, str]`       | No       | `{}`    | The container dependency parameters.            |
 
 No methods. Pure data structure.
@@ -38,7 +38,7 @@ Represents a single injectable service entry in the DI registry.
 
 | Attribute       | Type                                  | Required | Default | Description                                       |
 |-----------------|---------------------------------------|----------|---------|---------------------------------------------------|
-| `id`            | `str`                                 | Yes      | —       | The unique identifier for the service registration. |
+| `id`            | `str`                                 | Yes      | - | The unique identifier for the service registration. |
 | `name`          | `str \| None`                         | No       | `None`  | The name of the service registration.             |
 | `module_path`   | `str \| None`                         | No       | `None`  | The default module path for the dependency class.  |
 | `class_name`    | `str \| None`                         | No       | `None`  | The default class name for the dependency class.   |
@@ -63,9 +63,9 @@ dep = config.get_dependency('sqlite', 'yaml')
 
 Flags flow into the DI container from multiple sources:
 
-1. **`AppSession.flags`** — session-level flags set in `app/configs/app.yml` (e.g., `['yaml']`, `['sqlite', 'yaml']`).
-2. **`Feature.flags`** — feature-level flag overrides defined in the `features` section of `config.yml`.
-3. **`EventFeatureStep.flags`** — step-level flag overrides within a feature workflow.
+1. **`AppSession.flags`** - session-level flags set in `app/configs/app.yml` (e.g., `['yaml']`, `['sqlite', 'yaml']`).
+2. **`Feature.flags`** - feature-level flag overrides defined in the `features` section of `config.yml`.
+3. **`EventFeatureStep.flags`** - step-level flag overrides within a feature workflow.
 
 At resolution time, `DIContext` merges these flag sources and calls `ServiceRegistration.get_dependency(*merged_flags)` to select the correct concrete implementation for each service.
 
@@ -163,8 +163,8 @@ config = ServiceRegistration(
 
 ## Related Documentation
 
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (AppSession, flags)
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - Domain model conventions
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) - App domain guide (AppSession, flags)
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

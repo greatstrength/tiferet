@@ -69,7 +69,7 @@ gh pr list --repo greatstrength/tiferet
 
 ## Milestone Management
 
-**Tool availability:** **`gh` CLI only** — no MCP equivalent.
+**Tool availability:** **`gh` CLI only** - no MCP equivalent.
 
 ```bash
 # Create a milestone
@@ -89,7 +89,7 @@ gh api repos/greatstrength/tiferet/milestones/<number> \
 
 ## Project Status Updates
 
-**Tool availability:** **`gh` CLI only** — no MCP equivalent.
+**Tool availability:** **`gh` CLI only** - no MCP equivalent.
 
 ```bash
 # List project fields (to find the Status field ID and option IDs)
@@ -113,21 +113,21 @@ gh project item-edit \
 
 ## Project Field Updates
 
-**Tool availability:** **`gh` CLI only** — no MCP equivalent. See [project_fields.md](project_fields.md) for the semantics of each field (Priority, Size, Estimate/points, dates) and the cross-project strategy.
+**Tool availability:** **`gh` CLI only** - no MCP equivalent. See [project_fields.md](project_fields.md) for the semantics of each field (Priority, Size, Estimate/points, dates) and the cross-project strategy.
 
 **Project #2 (Tiferet Framework) node id:** `PVT_kwDOCKXjws4A7Y85`
 
 **Field IDs and single-select options** for project #2:
 
-- Status: `PVTSSF_lADOCKXjws4A7Y85zgvs_j4` — Backlog `f75ad846`, Ready `08afe404`, In progress `47fc9ee4`, In review `4cc61d42`, Done `98236657`
-- Priority: `PVTSSF_lADOCKXjws4A7Y85zgvs_no` — P0 `79628723`, P1 `0a877460`, P2 `da944a9c`
-- Size: `PVTSSF_lADOCKXjws4A7Y85zgvs_ns` — XS `eff732af`, S `9592a5a3`, M `9728cbdc`, L `c53df028`, XL `7b141a16`
+- Status: `PVTSSF_lADOCKXjws4A7Y85zgvs_j4` - Backlog `f75ad846`, Ready `08afe404`, In progress `47fc9ee4`, In review `4cc61d42`, Done `98236657`
+- Priority: `PVTSSF_lADOCKXjws4A7Y85zgvs_no` - P0 `79628723`, P1 `0a877460`, P2 `da944a9c`
+- Size: `PVTSSF_lADOCKXjws4A7Y85zgvs_ns` - XS `eff732af`, S `9592a5a3`, M `9728cbdc`, L `c53df028`, XL `7b141a16`
 - Estimate (number / story points): `PVTF_lADOCKXjws4A7Y85zgvs_nw`
 - Start date: `PVTF_lADOCKXjws4A7Y85zgvs_n4`
 - End date: `PVTF_lADOCKXjws4A7Y85zgvs_n8`
 
 ```bash
-# Resolve the project item id for an issue (item-add is idempotent — returns the existing id)
+# Resolve the project item id for an issue (item-add is idempotent - returns the existing id)
 gh project item-add 2 --owner greatstrength --url <issue-url> --format json --jq '.id'
 
 # Set a single-select field (Status / Priority / Size)
@@ -157,7 +157,7 @@ gh api repos/greatstrength/tiferet/issues/<issue>/dependencies/blocked_by \
 
 Do not publish a blocked-by cycle: two or more issues each naming the other's output as a prerequisite. Stop and report. See [process.md](process.md).
 
-External blockers of a Super-TRD child (a standalone TRD, or any work outside the parent branch) are wired on the child and on the parent issue. After every such blocker is squash-merged to `main`, the maintainer — never an agent — updates the Super-TRD branch with a merge commit, not a rebase:
+External blockers of a Super-TRD child (a standalone TRD, or any work outside the parent branch) are wired on the child and on the parent issue. After every such blocker is squash-merged to `main`, the maintainer - never an agent - updates the Super-TRD branch with a merge commit, not a rebase:
 
 ```bash
 git checkout <parent-issue>-<slug>
@@ -176,7 +176,7 @@ Do not put the PR on a milestone. Assign the **issue** to a milestone if a revie
 # Create a release with tag
 gh release create v2.1.0 \
   --repo greatstrength/tiferet \
-  --title "Tiferet v2.1.0 – Release Title" \
+  --title "Tiferet v2.1.0 - Release Title" \
   --notes-file release-notes.md
 
 # Individuals do not publish releases. Beta closeout is a pre-release;
@@ -200,8 +200,8 @@ gh release list --repo greatstrength/tiferet --limit 5
 # Alpha grouping closeout (orientation only):
 git tag -a v2.1.0a1 -m "v2.1.0a1"
 
-# Trunk release tag (vX.Y.Z — do not use bN on new trunk tags)
-git tag -a v2.0.1 -m "v2.0.1 – release notes"
+# Trunk release tag (vX.Y.Z - do not use bN on new trunk tags)
+git tag -a v2.0.1 -m "v2.0.1 - release notes"
 
 # Push tags to remote
 git push origin --tags

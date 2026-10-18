@@ -62,7 +62,7 @@ tiferet --config custom_config.yml <group> <command> [args...]
 
 ### Key-value dict syntax
 
-Every flat-map/dict-typed argument on the Admin CLI accepts `key=value` pairs directly on the command line — raw JSON strings are **never** required for dict args (only for the few `type: json` args such as `cli.add_argument --name-or-flags`).
+Every flat-map/dict-typed argument on the Admin CLI accepts `key=value` pairs directly on the command line - raw JSON strings are **never** required for dict args (only for the few `type: json` args such as `cli.add_argument --name-or-flags`).
 
 ```bash
 # Correct: positional id/name/message; flat-map additional messages
@@ -75,8 +75,8 @@ tiferet feature add-step user.create "Validate User" validate_user_evt --paramet
 ## Catalog source of truth
 
 Landed IDs come from:
-- `ADMIN_DEFAULT_FEATURES` — `tiferet/assets/feature.py` (41 features)
-- `ADMIN_DEFAULT_COMMANDS` — `tiferet/assets/cli.py` (40 commands; `feature.get` is Python-only)
+- `ADMIN_DEFAULT_FEATURES` - `tiferet/assets/feature.py` (41 features)
+- `ADMIN_DEFAULT_COMMANDS` - `tiferet/assets/cli.py` (40 commands; `feature.get` is Python-only)
 
 Do **not** invent verbs such as `app.add_session`, `list-sessions`, `list-errors`, `list-features`, or `delete_*`. Use the pairs below.
 
@@ -211,7 +211,7 @@ Manages feature workflow definitions and steps.
 | --- | --- | --- |
 | `feature.list` | List all feature workflow definitions | `tiferet feature list [--group-id]` |
 | `feature.add` | Add a new feature workflow definition | `tiferet feature add <name> <group_id> [--feature-key] [--description]` |
-| `feature.get` | Retrieve a feature by ID | *(Python only — no CLI command)* |
+| `feature.get` | Retrieve a feature by ID | *(Python only - no CLI command)* |
 | `feature.update` | Update a metadata attribute on a feature | `tiferet feature update <id> <attribute> <value>` |
 | `feature.add_step` | Add a step to an existing feature workflow | `tiferet feature add-step <id> <name> <service_id> [--parameters] [--data-key] [--pass-on-error] [--position]` |
 | `feature.update_step` | Update an attribute on an existing feature step | `tiferet feature update-step <id> <position> <attribute> [--value]` |
@@ -416,5 +416,5 @@ admin.run(
 ## Canonical Source
 
 For full architectural details, resolver flag routing, and detailed blueprint specs, see:
-- [docs/guides/admin.md](../../../docs/guides/admin.md) — Admin Support Strategies and Patterns
-- [docs/core/blueprints.md](../../../docs/core/blueprints.md) — Blueprint Architecture and Entry Points
+- [docs/guides/admin.md](../../../docs/guides/admin.md) - Admin Support Strategies and Patterns
+- [docs/core/blueprints.md](../../../docs/core/blueprints.md) - Blueprint Architecture and Entry Points

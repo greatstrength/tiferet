@@ -127,9 +127,9 @@ Export: `from tiferet import use_tester` and `from tiferet.blueprints import use
 
 Fixtures, tests, and testers are **sibling** artifact kinds. Testers compose the other two; they do not replace them. After preamble, order is `# *** fixtures` → `# *** tests` → `# *** testers` (omit empty). Keep all three kinds.
 
-- `# *** fixtures` / `# ** fixture: <snake>` — module-level pytest fixtures.
-- `# *** tests` / `# ** test: <snake>` — module-level test **functions** only.
-- `# *** testers` / `# ** tester: test_<snake>` — tester **classes** (`class Test*`), last.
+- `# *** fixtures` / `# ** fixture: <snake>` - module-level pytest fixtures.
+- `# *** tests` / `# ** test: <snake>` - module-level test **functions** only.
+- `# *** testers` / `# ** tester: test_<snake>` - tester **classes** (`class Test*`), last.
 
 Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected tests). Class-form `@use_tester` injects `test_ctx` / `session` into members that list them, including `# * fixture:` methods.
 
@@ -177,11 +177,11 @@ Parametrized cases that the hooks used to inject (`set_attribute_params`, `requi
 
 ## Related Documentation
 
-- [docs/guides/domain/tester.md](../guides/domain/tester.md) — `TesterObject` and `Verification`
-- [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md) — `@use_tester` cookbook and per-type algorithms
-- [docs/guides/contexts.md](../guides/contexts.md) — tester context registry and `TestSessionContext`
-- [docs/guides/blueprints.md](../guides/blueprints.md) — tester-scoped `build_cache`
-- [docs/guides/assets.md](../guides/assets.md) — `CORE_DEFAULT_TESTERS` catalog pattern
-- [docs/core/code_style.md](code_style.md) — Test-module artifact grammar (`# *** fixtures` / `# *** tests` / `# *** testers`)
-- [docs/core/mappers.md](mappers.md) — Aggregate and TransferObject conventions
-- [docs/core/events.md](events.md) — Domain event patterns
+- [docs/guides/domain/tester.md](../guides/domain/tester.md) - `TesterObject` and `Verification`
+- [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md) - `@use_tester` cookbook and per-type algorithms
+- [docs/guides/contexts.md](../guides/contexts.md) - tester context registry and `TestSessionContext`
+- [docs/guides/blueprints.md](../guides/blueprints.md) - tester-scoped `build_cache`
+- [docs/guides/assets.md](../guides/assets.md) - `CORE_DEFAULT_TESTERS` catalog pattern
+- [docs/core/code_style.md](code_style.md) - Test-module artifact grammar (`# *** fixtures` / `# *** tests` / `# *** testers`)
+- [docs/core/mappers.md](mappers.md) - Aggregate and TransferObject conventions
+- [docs/core/events.md](events.md) - Domain event patterns

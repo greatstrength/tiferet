@@ -1,4 +1,4 @@
-# Events – CLI Command Management
+# Events - CLI Command Management
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,14 +7,14 @@
 
 ## Overview
 
-The CLI event module provides domain events for managing `CliCommand` configurations — the definitions that drive Tiferet's command-line interface. Every event extends the shared `CliEvent` base event (which injects `CliService`) and operates on `CliCommand` domain objects through the `CliCommandAggregate` mapper. **Vision:** see the `CliEvent` class docstring in `tiferet/events/cli.py` for the value statement this guide distills.
+The CLI event module provides domain events for managing `CliCommand` configurations - the definitions that drive Tiferet's command-line interface. Every event extends the shared `CliEvent` base event (which injects `CliService`) and operates on `CliCommand` domain objects through the `CliCommandAggregate` mapper. **Vision:** see the `CliEvent` class docstring in `tiferet/events/cli.py` for the value statement this guide distills.
 
 These events are consumed by CLI management tooling and by contexts that need to inspect or modify the CLI command tree at runtime.
 
 ## Ubiquitous Language
 
-- **CLI command** — a `CliCommand` domain object: a composite-id (`group_key.key`) terminal entry point mapped 1:1 to a feature id.
-- **Parent argument** — an argument shared across every command in a group, retrieved via `GetParentArguments` rather than declared per-command.
+- **CLI command** - a `CliCommand` domain object: a composite-id (`group_key.key`) terminal entry point mapped 1:1 to a feature id.
+- **Parent argument** - an argument shared across every command in a group, retrieved via `GetParentArguments` rather than declared per-command.
 
 ## Events at a Glance
 
@@ -30,7 +30,7 @@ These events are consumed by CLI management tooling and by contexts that need to
 <a id="clievent"></a>
 All events inject a single dependency:
 
-- **`cli_service: CliService`** — the service interface for persisting, retrieving, and querying `CliCommand` configurations.
+- **`cli_service: CliService`** - the service interface for persisting, retrieving, and querying `CliCommand` configurations.
 
 ## Event Details
 
@@ -44,9 +44,9 @@ Creates a new `CliCommand` and persists it via `CliService.save()`. Verifies the
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `str` | — | The command name |
-| `key` | `str` | — | The command key (used in CLI parsing) |
-| `group_key` | `str` | — | The group key for command grouping |
+| `name` | `str` | - | The command name |
+| `key` | `str` | - | The command key (used in CLI parsing) |
+| `group_key` | `str` | - | The group key for command grouping |
 | `description` | `str \| None` | `None` | Human-readable description |
 | `arguments` | `list` | `[]` | Initial list of argument definitions |
 
@@ -92,12 +92,12 @@ Adds an argument to an existing CLI command. Retrieves the command, delegates to
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name_or_flags` | `list` | — | The argument name or flags (e.g., `['a']` or `['-v', '--verbose']`) |
+| `name_or_flags` | `list` | - | The argument name or flags (e.g., `['a']` or `['-v', '--verbose']`) |
 | `description` | `str \| None` | `None` | Argument description |
 
 Additional kwargs (`type`, `required`, `default`, `choices`, `nargs`, `action`) are forwarded to `CliCommandAggregate.add_argument()`.
 
-**Returns:** `str` — the command ID.
+**Returns:** `str` - the command ID.
 
 **Errors:**
 - `CLI_COMMAND_NOT_FOUND` if the command does not exist.
@@ -118,7 +118,7 @@ DomainEvent.handle(
 
 Lists all configured CLI commands. No required parameters.
 
-**Returns:** `List[CliCommand]` — may be empty.
+**Returns:** `List[CliCommand]` - may be empty.
 
 ```python
 commands = DomainEvent.handle(
@@ -129,9 +129,9 @@ commands = DomainEvent.handle(
 
 ### GetParentArguments
 
-Retrieves parent-level CLI arguments — arguments that apply globally across all commands (e.g., `--verbose`, `--config`). Delegates to `CliService.get_parent_arguments()`.
+Retrieves parent-level CLI arguments - arguments that apply globally across all commands (e.g., `--verbose`, `--config`). Delegates to `CliService.get_parent_arguments()`.
 
-**Returns:** `List` — list of `CliArgument` instances; may be empty.
+**Returns:** `List` - list of `CliArgument` instances; may be empty.
 
 ```python
 parent_args = DomainEvent.handle(
@@ -157,12 +157,12 @@ parent_args = DomainEvent.handle(
 ## Boundaries
 
 **Inside this domain:** the CRUD operations for `CliCommand` configurations, including parent-argument retrieval.
-**Outside this domain:** the declared `CliCommand`/`CliArgument` shape and argparse-kwarg translation ([docs/guides/domain/cli.md](../domain/cli.md)); actually building the argparse parser (`build_argument_parser` in `tiferet/blueprints/cli.py`) and dispatching a parsed request (`CliSessionContext` — [docs/guides/contexts.md](../contexts.md)).
+**Outside this domain:** the declared `CliCommand`/`CliArgument` shape and argparse-kwarg translation ([docs/guides/domain/cli.md](../domain/cli.md)); actually building the argparse parser (`build_argument_parser` in `tiferet/blueprints/cli.py`) and dispatching a parsed request (`CliSessionContext` - [docs/guides/contexts.md](../contexts.md)).
 
 ## Related Documentation
 
-- [docs/guides/domain/cli.md](../domain/cli.md) — CLI domain objects
-- [docs/guides/contexts.md](../contexts.md) — `CliSessionContext`, which parses argv through the injected `parse_cli_args` handler and dispatches
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
-- [docs/guides/events/app.md](app.md) — App event guide
+- [docs/guides/domain/cli.md](../domain/cli.md) - CLI domain objects
+- [docs/guides/contexts.md](../contexts.md) - `CliSessionContext`, which parses argv through the injected `parse_cli_args` handler and dispatches
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service interface conventions
+- [docs/guides/events/app.md](app.md) - App event guide

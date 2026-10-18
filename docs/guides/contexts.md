@@ -1,4 +1,4 @@
-# Contexts – Strategies and Patterns
+# Contexts - Strategies and Patterns
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,12 +7,12 @@
 
 ## Overview
 
-Contexts form the runtime "body" of a Tiferet application. They encapsulate interaction surfaces, orchestration, and supporting services behind clean, injectable classes. While blueprints (`tiferet/blueprints/`) own the application lifecycle and wiring, contexts own the per-session runtime shape — how requests are built, features are executed, errors are handled, loggers are constructed, and responses are returned.
+Contexts form the runtime "body" of a Tiferet application. They encapsulate interaction surfaces, orchestration, and supporting services behind clean, injectable classes. While blueprints (`tiferet/blueprints/`) own the application lifecycle and wiring, contexts own the per-session runtime shape - how requests are built, features are executed, errors are handled, loggers are constructed, and responses are returned.
 
 Tiferet distinguishes between two categories of contexts:
 
-- **High-level contexts** — extend `AppSessionContext` and expose the session's runtime entry point (e.g., a CLI session or a web API). They implement the five required template-method handlers and delegate low-level work through those slots.
-- **Low-level contexts** — single-purpose orchestrators that back the high-level context (e.g., `FeatureContext`, `RequestContext`, `ErrorContext`, `LoggingContext`, `CacheContext`).
+- **High-level contexts** - extend `AppSessionContext` and expose the session's runtime entry point (e.g., a CLI session or a web API). They implement the five required template-method handlers and delegate low-level work through those slots.
+- **Low-level contexts** - single-purpose orchestrators that back the high-level context (e.g., `FeatureContext`, `RequestContext`, `ErrorContext`, `LoggingContext`, `CacheContext`).
 
 This guide covers cross-cutting strategies for using, extending, and composing contexts. For artifact-level structure and code style, see [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md).
 
@@ -32,7 +32,7 @@ Every context in `tiferet/contexts/` has a single, well-defined responsibility:
 | `TesterContext` | Master unit-test context bound to one `TesterObject`. Declares `domain_type = TesterObject`. |
 | `TestSessionContext` | The test session *is* the request: a `RequestContext` with fluent `given` / `invoke` / `verify` / `run`. Omits `domain_type` so `Request` stays mapped to `RequestContext`. |
 
-Contexts are consumed by blueprints and by `AppSessionContext` (and its subclasses) — not by domain events. Domain events only receive injected **services**, never contexts.
+Contexts are consumed by blueprints and by `AppSessionContext` (and its subclasses) - not by domain events. Domain events only receive injected **services**, never contexts.
 
 ## The AppSessionContext Five-Handler Pattern
 
@@ -64,7 +64,7 @@ def run(self, feature_id, headers=None, data=None, **kwargs):
 | `handle_error` | `raise_error_handler` | Re-raise `TiferetAPIError` verbatim; otherwise unwired → `raise_unwired_handler_error` |
 | `build_response` | `response_handler` | `raise_unwired_handler_error('response_handler', ...)` |
 
-There are **no** truthiness-guarded inline fallbacks. Blueprints must wire every slot. Constructing a hub with a `logging_context` constructor keyword keyword is no longer supported — use `build_logger_handler=`:
+There are **no** truthiness-guarded inline fallbacks. Blueprints must wire every slot. Constructing a hub with a `logging_context` constructor keyword keyword is no longer supported - use `build_logger_handler=`:
 
 ```python
 context = AppSessionContext.from_domain(
@@ -144,7 +144,7 @@ There is no separate `AsyncFeatureContext` class and no hub-level `get_feature_h
 
 ### Conditional Step Execution
 
-`EventFeatureStep` supports an optional `condition` field — a boolean expression string evaluated against request data before the step executes. The `$r.` prefix references values from `request.data` (e.g., `$r.b != 0`, `$r.mode == 'advanced'`).
+`EventFeatureStep` supports an optional `condition` field - a boolean expression string evaluated against request data before the step executes. The `$r.` prefix references values from `request.data` (e.g., `$r.b != 0`, `$r.mode == 'advanced'`).
 
 - When `condition` is `None` or empty, the step always executes (backward compatible).
 - When `condition` evaluates to `False`, the step is silently skipped (no error raised).
@@ -172,7 +172,7 @@ features:
 
 ### TesterContext registry and session overlay
 
-`TesterContext` is the only tester class that declares `domain_type`. Variants (`DomainTesterContext`, `AggregateTesterContext`, `TransferObjectTesterContext`, `DomainEventTesterContext`, `ServiceEventTesterContext`, `GenericTesterContext`, `RepoTesterContext`, `ContextTesterContext`) inherit construction helpers and **omit** `domain_type` — the `CliSessionContext` analog — so they do not clobber `TesterObject` → `TesterContext`. They also must not declare `domain_type = Request` or `domain_type = AppSession`.
+`TesterContext` is the only tester class that declares `domain_type`. Variants (`DomainTesterContext`, `AggregateTesterContext`, `TransferObjectTesterContext`, `DomainEventTesterContext`, `ServiceEventTesterContext`, `GenericTesterContext`, `RepoTesterContext`, `ContextTesterContext`) inherit construction helpers and **omit** `domain_type` - the `CliSessionContext` analog - so they do not clobber `TesterObject` → `TesterContext`. They also must not declare `domain_type = Request` or `domain_type = AppSession`.
 
 Fluent verbs live on `TestSessionContext`:
 
@@ -195,7 +195,7 @@ Neither context is stored on `AppSessionContext`. Do not pass `logging_context` 
 
 ### CacheContext
 
-A simple keyed in-memory cache used by blueprints and contexts for loaded features, errors, loggers, and bootstrap catalogs. Treat it as a per-session cache — it is not shared across sessions.
+A simple keyed in-memory cache used by blueprints and contexts for loaded features, errors, loggers, and bootstrap catalogs. Treat it as a per-session cache - it is not shared across sessions.
 
 ## Composition in the Application Graph
 
@@ -221,11 +221,11 @@ Context tests use `pytest` with `unittest.mock`. Focus on behavior, not implemen
 
 ### Patterns
 
-- **Mock all five handlers** — use `mock.Mock()` for each slot; leave a slot `None` only to assert `raise_unwired_handler_error`.
-- **Test each template method in isolation** — `build_logger`, `build_request`, `execute_feature`, `handle_error`, `build_response`, and `run`.
-- **Verify handler interactions** — assert that handler calls occur with expected arguments.
-- **Exercise both success and error paths** — especially for `AppSessionContext.run`, which has distinct branches for successful completion and `TiferetError` recovery.
-- **FeatureContext tests bind a domain** — construct via `FeatureContext.from_domain(feature, ...)` and call `execute_feature(request)` without a `feature=` argument.
+- **Mock all five handlers** - use `mock.Mock()` for each slot; leave a slot `None` only to assert `raise_unwired_handler_error`.
+- **Test each template method in isolation** - `build_logger`, `build_request`, `execute_feature`, `handle_error`, `build_response`, and `run`.
+- **Verify handler interactions** - assert that handler calls occur with expected arguments.
+- **Exercise both success and error paths** - especially for `AppSessionContext.run`, which has distinct branches for successful completion and `TiferetError` recovery.
+- **FeatureContext tests bind a domain** - construct via `FeatureContext.from_domain(feature, ...)` and call `execute_feature(request)` without a `feature=` argument.
 
 ### Example
 
@@ -274,7 +274,7 @@ Never leave a hub handler slot unset in production wiring. Prefer blueprint help
 
 ### 3. Delegate to Services, Not Other Contexts (Where Possible)
 
-Low-level contexts should depend on services — not on each other — except where composition is intrinsic (e.g., `FeatureContext` sharing a `CacheContext`). This keeps the dependency graph shallow.
+Low-level contexts should depend on services - not on each other - except where composition is intrinsic (e.g., `FeatureContext` sharing a `CacheContext`). This keeps the dependency graph shallow.
 
 ### 4. Prefer `super()` Over Reimplementation
 
@@ -286,7 +286,7 @@ Domain events depend on **services**, not contexts. Passing a context into an ev
 
 ### 6. Use Structured Errors at the Source
 
-Contexts and blueprints must raise structured `TiferetError` instances with framework error codes — never raw exceptions where a domain outcome is known. Prefer `TiferetError.raise_error(...)` at the source; `handle_error` formats what escapes.
+Contexts and blueprints must raise structured `TiferetError` instances with framework error codes - never raw exceptions where a domain outcome is known. Prefer `TiferetError.raise_error(...)` at the source; `handle_error` formats what escapes.
 
 ### 7. Treat CacheContext as Per-Session
 
@@ -294,13 +294,13 @@ Do not share a single `CacheContext` instance across sessions. Each `AppSessionC
 
 ## Related Documentation
 
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context base classes, five-handler contract, artifact comments, and code style reference
-- [docs/core/testing.md](../core/testing.md) — v2.1.0 unit-test model (`TesterContext`, `TestSessionContext`)
-- [docs/guides/domain/tester.md](domain/tester.md) — `TesterObject` and `Verification`
-- [docs/guides/blueprints/tester.md](blueprints/tester.md) — `@use_tester` cookbook and per-type algorithms
-- [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — Blueprint design (`build_app`, `build_cli`, `build_admin_app`, `build_admin_cli`)
-- [docs/guides/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/blueprints.md) — Blueprint strategies and patterns
-- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) — Admin application and CLI catalog
-- [docs/core/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md) — Dependency injection and service resolver architecture
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and usage
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting rules
+- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) - Context base classes, five-handler contract, artifact comments, and code style reference
+- [docs/core/testing.md](../core/testing.md) - v2.1.0 unit-test model (`TesterContext`, `TestSessionContext`)
+- [docs/guides/domain/tester.md](domain/tester.md) - `TesterObject` and `Verification`
+- [docs/guides/blueprints/tester.md](blueprints/tester.md) - `@use_tester` cookbook and per-type algorithms
+- [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) - Blueprint design (`build_app`, `build_cli`, `build_admin_app`, `build_admin_cli`)
+- [docs/guides/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/blueprints.md) - Blueprint strategies and patterns
+- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) - Admin application and CLI catalog
+- [docs/core/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md) - Dependency injection and service resolver architecture
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns and usage
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comments and formatting rules

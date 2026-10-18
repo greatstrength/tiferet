@@ -1,6 +1,6 @@
 # Step 6: CLI Interface & Commands
 
-We've got a working calculator through the script runner — now let's make it feel like a real tool people can use from the terminal.  
+We've got a working calculator through the script runner - now let's make it feel like a real tool people can use from the terminal.  
 Enter the command-line interface (CLI): fast, scriptable, and perfect for quick calculations.
 
 ### 6.1 Add the CLI config section
@@ -87,7 +87,7 @@ cli:
             description: The number to take the square root of
 ```
 
-Each command needs `group_key`, `key`, and `name` — Tiferet uses these to build the argument parser and map commands to features.  
+Each command needs `group_key`, `key`, and `name` - Tiferet uses these to build the argument parser and map commands to features.  
 The `args` list defines the positional arguments that get passed as `data` to your events.
 
 ### 6.2 Update config.yml to add the CLI interface
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     CLI("calc_cli", app_config="config.yml")
 ```
 
-That's it — super short!  
+That's it - super short!  
 `CLI("calc_cli", ...)` composes the `CliSessionContext` for the `calc_cli` session in root `config.yml` (which also holds the CLI command definitions) and delegates `sys.argv` parsing and feature dispatch to `CliSessionContext.run(argv)`.
 
 ### 6.4 Run and play with it
@@ -172,7 +172,7 @@ Want to run it as just `calc add 19 23` instead of `python calc_cli.py ...`?
 
 ### 6.6 Why this feels so good
 
-- No extra code for argument parsing — YAML does it
+- No extra code for argument parsing - YAML does it
 - Same events power both script and CLI
 - Errors are consistent and friendly across interfaces
 - Easy to extend: add more commands by editing `config.yml`
@@ -180,6 +180,6 @@ Want to run it as just `calc add 19 23` instead of `python calc_cli.py ...`?
 You've now got a complete, dual-mode calculator: script for automation/testing, CLI for everyday use.
 
 → And that's a wrap on the basic calculator!  
-Feel free to experiment — add more operations, tweak errors, or build a web version next.
+Feel free to experiment - add more operations, tweak errors, or build a web version next.
 
-Thanks for building this with me — hope it was as fun to make as it was to guide! 🚀
+Thanks for building this with me - hope it was as fun to make as it was to guide! 🚀

@@ -1,4 +1,4 @@
-# Domain – CLI: CliArgument and CliCommand
+# Domain - CLI: CliArgument and CliCommand
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -9,8 +9,8 @@
 
 The CLI domain defines the structural configuration for command-line interface commands in Tiferet. CLI commands serve as the **terminal-to-feature bridge**: each `CliCommand` has a composite identifier (`group_key.key`) that maps directly to a feature ID in the `features` section of `config.yml`, enabling seamless execution of domain features via `argparse`-driven command-line input.
 
-- `CliArgument` — represents a single command-line argument or flag, mapping to `argparse.add_argument()` parameters.
-- `CliCommand` — represents a CLI command with a composite ID, a custom `new()` factory for ID derivation, and a `has_argument()` query method.
+- `CliArgument` - represents a single command-line argument or flag, mapping to `argparse.add_argument()` parameters.
+- `CliCommand` - represents a CLI command with a composite ID, a custom `new()` factory for ID derivation, and a `has_argument()` query method.
 
 Both domain objects are **immutable value objects**: they carry no mutation methods and expose only read-only queries. All state changes (adding/removing arguments, renaming commands) occur exclusively through Aggregates in the mappers layer.
 
@@ -24,7 +24,7 @@ Represents a single command-line argument or flag.
 
 | Attribute       | Type                   | Required | Default | Description                                                                      |
 |-----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
-| `name_or_flags` | `List[str]`            | Yes      | —       | The name or flags of the argument (e.g., `["-f", "--flag"]`).                     |
+| `name_or_flags` | `List[str]`            | Yes      | - | The name or flags of the argument (e.g., `["-f", "--flag"]`).                     |
 | `description`   | `str \| None`          | No       | `None`  | A brief description of the argument.                                              |
 | `type`          | `str \| None`          | No       | `'str'` | The type: `"str"`, `"int"`, `"float"`, `"bool"`, `"list"`, `"dict"`, etc.          |
 | `required`      | `bool \| None`         | No       | `None`  | Whether the argument is required.                                                 |
@@ -97,11 +97,11 @@ Represents a CLI command with a composite identifier.
 
 | Attribute    | Type                              | Required | Default | Description                                                  |
 |--------------|-----------------------------------|----------|---------|--------------------------------------------------------------|
-| `id`         | `str`                             | Yes      | —       | The unique identifier, formatted as `"group_key.key"`.        |
-| `name`       | `str`                             | Yes      | —       | The name of the command.                                      |
+| `id`         | `str`                             | Yes      | - | The unique identifier, formatted as `"group_key.key"`.        |
+| `name`       | `str`                             | Yes      | - | The name of the command.                                      |
 | `description`| `str \| None`                     | No       | `None`  | A brief description of the command.                           |
-| `key`        | `str`                             | Yes      | —       | The unique key for the command.                               |
-| `group_key`  | `str`                             | Yes      | —       | The group key the command belongs to.                         |
+| `key`        | `str`                             | Yes      | - | The unique key for the command.                               |
+| `group_key`  | `str`                             | Yes      | - | The group key the command belongs to.                         |
 | `arguments`  | `List[CliArgument]`               | No       | `[]`    | A list of arguments for the command.                          |
 
 #### Methods
@@ -142,9 +142,9 @@ This 1:1 mapping ensures CLI commands are thin entry points that delegate all bu
 The `build_cli` blueprint (`tiferet/blueprints/cli.py`) and the admin sibling `build_admin_cli` / `AdminCLI` (`tiferet/blueprints/admin_cli.py`) are the primary consumers of the CLI domain at runtime:
 
 1. The blueprint wires a `CliSessionContext` with the five required handlers (including `build_logger_handler`) and an injected `parse_cli_args` closure.
-2. **`parse_cli_args`** resolves `CliCommand` entries (repository + cache-seeded defaults), builds the argparse parser from each command's `CliArgument` attributes (`name_or_flags`, `type`, `required`, `default`, `choices`, `nargs`, `action` — including `'dict'` converters), and derives `(feature_id, headers, data)`.
+2. **`parse_cli_args`** resolves `CliCommand` entries (repository + cache-seeded defaults), builds the argparse parser from each command's `CliArgument` attributes (`name_or_flags`, `type`, `required`, `default`, `choices`, `nargs`, `action` - including `'dict'` converters), and derives `(feature_id, headers, data)`.
 3. **`CliSessionContext.run(argv)`** dispatches through the hub `run` path.
-4. A domain-bound **`FeatureContext`** executes the corresponding feature with the parsed data (`execute_feature(request)` — no explicit `feature` argument).
+4. A domain-bound **`FeatureContext`** executes the corresponding feature with the parsed data (`execute_feature(request)` - no explicit `feature` argument).
 
 Admin CLI additionally re-seeds every `*_config` constant to the consumer `--config` path so management commands edit the target file.
 
@@ -224,7 +224,7 @@ arg = CliArgument(
     required=True,
 )
 
-# Create a command — id is derived automatically via @model_validator
+# Create a command - id is derived automatically via @model_validator
 cmd = CliCommand(
     group_key='calc',
     key='add',
@@ -237,8 +237,8 @@ cmd = CliCommand(
 
 ## Related Documentation
 
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (interface configuration)
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - Domain model conventions
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) - App domain guide (interface configuration)
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

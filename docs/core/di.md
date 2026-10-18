@@ -7,8 +7,8 @@
 
 The `tiferet/di/` package provides the dependency-injection layer for the Tiferet framework. It is structured across two modules, re-exported from `tiferet/di/__init__.py` (`ServiceContainer`, `ServiceResolver`, `DIAppServiceContainer`, `DIDynamicServiceContainer`, `DIDynamicServiceResolver`, `injectable_parameter_names`, `normalize_flags`):
 
-- **`tiferet/di/core.py`** — the abstract, domain-only core: the `ServiceContainer` and `ServiceResolver` ABCs plus the pure module functions `injectable_parameter_names` and `normalize_flags`. It imports only the standard library and `..domain` (`ServiceDependency`).
-- **`tiferet/di/dependency_injector.py`** — the concrete implementations backed by `dependency_injector`: `DIDynamicServiceContainer` (feature-level, `Factory` scope), `DIAppServiceContainer` (app-level, `Singleton` scope), and `DIDynamicServiceResolver` (per-flag feature resolver). It may additionally import `..interfaces.di` (`DIService`) and `..interfaces.core` (`ServiceError`).
+- **`tiferet/di/core.py`** - the abstract, domain-only core: the `ServiceContainer` and `ServiceResolver` ABCs plus the pure module functions `injectable_parameter_names` and `normalize_flags`. It imports only the standard library and `..domain` (`ServiceDependency`).
+- **`tiferet/di/dependency_injector.py`** - the concrete implementations backed by `dependency_injector`: `DIDynamicServiceContainer` (feature-level, `Factory` scope), `DIAppServiceContainer` (app-level, `Singleton` scope), and `DIDynamicServiceResolver` (per-flag feature resolver). It may additionally import `..interfaces.di` (`DIService`) and `..interfaces.core` (`ServiceError`).
 
 The DI layer is deliberately **event-free and asset-free**: it imports only the standard library, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di` (`DIService`) and `..interfaces.core` (`ServiceError`). It assumes best-case inputs. An unregistered id raises `ServiceError` with `DI_DEPENDENCY_NOT_REGISTERED_ID` (`'DI_DEPENDENCY_NOT_REGISTERED'`, a module constant in `dependency_injector.py`), not a `TiferetError`; a provider that fails while constructing surfaces its raw exception, leaving structured error handling to callers that have event access. Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports the blueprint helper (`tiferet/blueprints/core.py::parse_parameter`) itself.
 
@@ -20,30 +20,30 @@ This document describes the structure, design principles, and best practices for
 
 The DI package exposes pure, side-effect-free helpers under `# *** functions`:
 
-- **`injectable_parameter_names(service_type)`** (`di/core.py`) — Returns a service type's injectable constructor parameter names, excluding `self` and variadic parameters. Used by every container's `build_factory` / `build_singleton`.
-- **`normalize_flags(*flags)`** (`di/core.py`) — Flattens a mixed sequence of strings, lists, and tuples into a flat list of strings. Re-exported from `tiferet/di/__init__.py`.
+- **`injectable_parameter_names(service_type)`** (`di/core.py`) - Returns a service type's injectable constructor parameter names, excluding `self` and variadic parameters. Used by every container's `build_factory` / `build_singleton`.
+- **`normalize_flags(*flags)`** (`di/core.py`) - Flattens a mixed sequence of strings, lists, and tuples into a flat list of strings. Re-exported from `tiferet/di/__init__.py`.
 
 ## Abstract DI Contract (`di/core.py`)
 
-`di/core.py` defines the framework's abstract DI contract. It is **domain-only** — it imports the standard library and `..domain` (`ServiceDependency`) and nothing from `..interfaces` — so the abstract layer never depends on service interfaces or events.
+`di/core.py` defines the framework's abstract DI contract. It is **domain-only** - it imports the standard library and `..domain` (`ServiceDependency`) and nothing from `..interfaces` - so the abstract layer never depends on service interfaces or events.
 
 ### `ServiceContainer` (ABC)
 
 The `ServiceContainer` ABC is the container contract that concrete engines implement. Its methods are keyed on the core `ServiceDependency` domain model:
 
-- **`add_service(service_id, service: ServiceDependency)`** — Register a service dependency. Implementations register the dependency's declared `parameters` as constants (taking precedence) before registering the service.
-- **`add_constant(constant_id, value)`** — Register a single constant value.
-- **`get_dependency(dependency_id)`** — Resolve a registered service or constant by id.
-- **`remove_dependency(dependency_id)`** — Remove a registered dependency (idempotent).
-- **`load_container(services, constants)`** — Bulk-load the container from service dependencies and constants (constants first so factories can wire to them).
+- **`add_service(service_id, service: ServiceDependency)`** - Register a service dependency. Implementations register the dependency's declared `parameters` as constants (taking precedence) before registering the service.
+- **`add_constant(constant_id, value)`** - Register a single constant value.
+- **`get_dependency(dependency_id)`** - Resolve a registered service or constant by id.
+- **`remove_dependency(dependency_id)`** - Remove a registered dependency (idempotent).
+- **`load_container(services, constants)`** - Bulk-load the container from service dependencies and constants (constants first so factories can wire to them).
 
 ### `ServiceResolver` (ABC)
 
 The `ServiceResolver` ABC owns a per-flag `ServiceContainer` cache and a concrete **template-method** `get_dependency`; only `build_container` is abstract. Subclasses implement `build_container(flags)` and inherit the caching/resolution flow for free:
 
-- **`add_container(container, *flags)` / `get_container(*flags)`** — Cache and retrieve containers keyed by the normalized flag tuple (`tuple(normalize_flags(*flags))`).
-- **`build_container(flags)`** (abstract) — Build a `ServiceContainer` for a flag set.
-- **`get_dependency(service_id, *flags)`** (template) — Normalize flags, retrieve the cached container (building and caching one on a miss), then delegate to `container.get_dependency(service_id)`.
+- **`add_container(container, *flags)` / `get_container(*flags)`** - Cache and retrieve containers keyed by the normalized flag tuple (`tuple(normalize_flags(*flags))`).
+- **`build_container(flags)`** (abstract) - Build a `ServiceContainer` for a flag set.
+- **`get_dependency(service_id, *flags)`** (template) - Normalize flags, retrieve the cached container (building and caching one on a miss), then delegate to `container.get_dependency(service_id)`.
 
 ```python
 # tiferet/di/core.py (excerpt)
@@ -166,9 +166,9 @@ This keeps the contexts decoupled from the DI engine: any callable with the `get
 
 The standard path is `build_app` in `tiferet/blueprints/app.py`. It does not use a declarative wiring registry; instead it composes the DI layer from two composition functions in `tiferet/blueprints/core.py`:
 
-1. `build_app_service_container(cache, app_session)` — merges the cache-seeded framework defaults (`CORE_DEFAULT_SERVICES`, `CORE_DEFAULT_CONSTANTS`) with the session's own services and constants (session wins) and constructs a `DIAppServiceContainer`. App-level services resolve as Singletons.
-2. `build_service_resolver(app_container)` — wraps the app container in a `DIDynamicServiceResolver`, caching it under the `app` flag so feature-step resolution inherits the app-level singletons.
-3. `build_app_session_context(app_session, cache)` (`app.py`) — runs the two steps above, then hands off to `core.compose_session_context`, which resolves the context's collaborators, wires the handlers, and constructs the context via `BaseContext.from_domain`, injecting `resolver.get_dependency`.
+1. `build_app_service_container(cache, app_session)` - merges the cache-seeded framework defaults (`CORE_DEFAULT_SERVICES`, `CORE_DEFAULT_CONSTANTS`) with the session's own services and constants (session wins) and constructs a `DIAppServiceContainer`. App-level services resolve as Singletons.
+2. `build_service_resolver(app_container)` - wraps the app container in a `DIDynamicServiceResolver`, caching it under the `app` flag so feature-step resolution inherits the app-level singletons.
+3. `build_app_session_context(app_session, cache)` (`app.py`) - runs the two steps above, then hands off to `core.compose_session_context`, which resolves the context's collaborators, wires the handlers, and constructs the context via `BaseContext.from_domain`, injecting `resolver.get_dependency`.
 
 ```python
 # tiferet/blueprints/core.py (excerpt)
@@ -189,12 +189,12 @@ The `di/` package uses `# *** classes` / `# ** class:` artifact comments, consis
 
 ### Artifact Comments
 
-- `# *** classes` — top-level section for the module.
-- `# ** class: <snake_case_name>` — individual class definition.
-- `# * attribute: <name>` — instance attributes (type hints only, no assignment).
-- `# * init` — constructor.
-- `# * method: <name>` — instance methods.
-- `# * method: <name> (static)` — static methods.
+- `# *** classes` - top-level section for the module.
+- `# ** class: <snake_case_name>` - individual class definition.
+- `# * attribute: <name>` - instance attributes (type hints only, no assignment).
+- `# * init` - constructor.
+- `# * method: <name>` - instance methods.
+- `# * method: <name> (static)` - static methods.
 
 **Spacing rules** follow `code_style.md`: one empty line between `# ***` and the first `# **`, one empty line between each `# *` section, one empty line after docstrings, and one empty line between code snippets.
 
@@ -254,10 +254,10 @@ Tests live in `tests/di/test_core.py` (ABC contract, resolver template, pure fun
 
 ### Key Patterns
 
-- Test container registration and resolution — register a `ServiceDependency` or constant and assert `get_dependency` returns the expected instance or value.
-- Test `get_dependency` on an unregistered id — assert `ServiceError` with `error_code == 'DI_DEPENDENCY_NOT_REGISTERED'` (DI raises no `TiferetError`).
-- Test `remove_dependency` — assert the dependency is gone, and that removing an unknown id raises nothing.
-- Test `ServiceResolver.get_dependency` — assert per-flag containers are built once, cached, and delegated to.
+- Test container registration and resolution - register a `ServiceDependency` or constant and assert `get_dependency` returns the expected instance or value.
+- Test `get_dependency` on an unregistered id - assert `ServiceError` with `error_code == 'DI_DEPENDENCY_NOT_REGISTERED'` (DI raises no `TiferetError`).
+- Test `remove_dependency` - assert the dependency is gone, and that removing an unknown id raises nothing.
+- Test `ServiceResolver.get_dependency` - assert per-flag containers are built once, cached, and delegated to.
 
 ```python
 # *** tests
@@ -285,20 +285,20 @@ def test_add_service_resolves(simple_dependency: ServiceDependency):
 
 ```
 tiferet/di/
-├── __init__.py                — Exports: ServiceContainer, ServiceResolver,
+├── __init__.py - Exports: ServiceContainer, ServiceResolver,
 │                                DIAppServiceContainer, DIDynamicServiceContainer,
 │                                DIDynamicServiceResolver, injectable_parameter_names,
 │                                normalize_flags
-├── core.py                    — # *** functions (injectable_parameter_names,
+├── core.py - # *** functions (injectable_parameter_names,
 │                                normalize_flags) + ServiceContainer (ABC)
 │                                + ServiceResolver (ABC, template get_dependency)
-└── dependency_injector.py     — DIDynamicServiceContainer (Factory),
+└── dependency_injector.py - DIDynamicServiceContainer (Factory),
                                  DIAppServiceContainer (Singleton),
                                  DIDynamicServiceResolver (per-flag)
 
 tests/di/
-├── test_core.py                  — ABC contract + resolver template + normalize_flags
-└── test_dependency_injector.py   — DIDynamic/DIApp container + resolver tests
+├── test_core.py - ABC contract + resolver template + normalize_flags
+└── test_dependency_injector.py - DIDynamic/DIApp container + resolver tests
 ```
 
 ## Conclusion
