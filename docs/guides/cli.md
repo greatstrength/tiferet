@@ -6,9 +6,11 @@ interfaces, CLI commands, and logging). It is installed as the `tiferet` console
 script and is implemented by the `build_admin_cli` blueprint
 (`tiferet/blueprints/admin_cli.py`, exported as `AdminCLI`).
 
-The CLI's command catalog and feature workflows are bootstrapped from framework
-asset modules — they are **not** read from your configuration file. Every CRUD
-operation, however, reads from and writes to the configuration file you supply.
+The CLI's command catalog and feature workflows are intended to be bootstrapped
+from framework asset modules rather than read from your configuration file.
+Every CRUD operation reads from and writes to the configuration file you supply.
+
+> **Known issue (v2.2.0):** the `tiferet` admin CLI currently builds its command list from the `cli` section of the file passed to `--config`, not from the built-in admin catalog. If that file has no `cli:` section (or `cli: {}`), no command groups are available: every invocation, including the examples on this page, exits `2` with `invalid choice: '<group>' (choose from )`. If the file does define `cli.cmds`, those consumer commands replace the admin groups. A code fix is pending as a separate hotfix.
 
 ## Installation
 

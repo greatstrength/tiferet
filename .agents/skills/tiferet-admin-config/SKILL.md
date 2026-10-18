@@ -58,6 +58,8 @@ tiferet <group> <command> [args...]
 tiferet --config custom_config.yml <group> <command> [args...]
 ```
 
+**Known issue (v2.2.0):** the admin CLI currently reads its command list from the target file's `cli` section, not the built-in admin catalog. Without a `cli:` section every command exits `2` with `invalid choice`. A code fix is pending as a separate hotfix. Do not treat that failure as a config error you caused; report it.
+
 ### Key-value dict syntax
 
 Every flat-map/dict-typed argument on the Admin CLI accepts `key=value` pairs directly on the command line — raw JSON strings are **never** required for dict args (only for the few `type: json` args such as `cli.add_argument --name-or-flags`).

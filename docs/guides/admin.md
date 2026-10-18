@@ -76,6 +76,8 @@ tiferet app list
 tiferet --config custom_config.yml error list
 ```
 
+> **Known issue (v2.2.0):** the admin CLI currently reads its command list from the target file's `cli` section instead of the built-in admin catalog, so a config without `cli:` exposes no commands (exit `2`, `invalid choice`). This affects every `tiferet …` example in this guide. A code fix is pending as a separate hotfix; see [cli.md](cli.md).
+
 Programmatically, `build_admin_cli` re-seeds the resolved session's constants so every config-file repository points directly at the consumer-supplied configuration file:
 
 ```python
