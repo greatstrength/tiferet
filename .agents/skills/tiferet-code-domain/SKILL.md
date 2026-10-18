@@ -34,7 +34,7 @@ Model-specific labels:
 # * method: _<verb>_<name> (model validator)
 ```
 
-Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app` (framework).
+Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic; also `tiferet` itself in a downstream repo), `# ** app` (this package's own modules: relative imports inside tiferet, or the downstream app's own layers).
 
 ## Key conventions
 
@@ -68,6 +68,8 @@ Name and label validators for their action: `_normalize_<field>` for field norma
 
 ## Example
 
+A downstream application's domain module, so `tiferet` is an `# ** infra` import:
+
 ```python
 # *** imports
 
@@ -76,8 +78,6 @@ from typing import Any
 
 # ** infra
 from pydantic import Field, field_validator
-
-# ** app
 from tiferet.domain.core import DomainObject
 
 # *** models
