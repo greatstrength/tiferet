@@ -15,8 +15,8 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.1.1**
-Unit tests use `@use_tester` — see [Testing Harness](docs/core/testing.md).
+Current status: **2.2.0**
+Unit tests use `@use_tester`, and YAML test modules run through the `tiferet-tester` console script — see [Testing Harness](docs/core/testing.md).
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -30,22 +30,43 @@ Create these files in your project folder:
 
 **demo.py**
 ```python
+"""Basic Calculator Quick Start"""
+
+# *** imports
+
+# ** infra
 from tiferet import App
-app = App(
-    'basic_calc',
-    app_yaml_file='config.yml',
-)                               # App is the build_app alias
 
-result = app.run(
-    feature_id='calc.add',
-    data={'a': 19, 'b': 23},
-)
+# *** blueprints
 
-print(f"19 + 23 = {result}")    # → 42
+# ** blueprint: main
+def main() -> None:
+    '''
+    Add two numbers through the calc.add feature and print the result.
+    '''
+
+    # Build the basic_calc session from config.yml (App is the build_app alias).
+    app = App(
+        'basic_calc',
+        app_config='config.yml',
+    )
+
+    # Run the calc.add feature with two operands.
+    result = app.run(
+        feature_id='calc.add',
+        data={'a': 19, 'b': 23},
+    )
+
+    # Print the sum (42).
+    print(f'19 + 23 = {result}')
+
+# Run the quick start when executed as a script.
+if __name__ == '__main__':
+    main()
 ```
 **config.yml**
 ```yaml
-interfaces:
+sessions:
   basic_calc:
     name: Basic Calculator
     description: Basic calculator interface
@@ -59,18 +80,44 @@ features:
   calc:
     add:
       name: Add Numbers
-      commands:
+      steps:
         - service_id: add_number_event
+          name: Add a and b
 ```
 
 **app/events/calc.py**  
 (the domain event itself – very minimal)
 
 ```python
+# *** imports
+
+# ** infra
 from tiferet.events import DomainEvent
 
+# *** events
+
+# ** event: add_number
 class AddNumber(DomainEvent):
+    '''
+    A domain event that adds two numbers.
+    '''
+
+    # * method: execute
     def execute(self, a: int, b: int, **kwargs) -> int:
+        '''
+        Add a and b.
+
+        :param a: The first operand.
+        :type a: int
+        :param b: The second operand.
+        :type b: int
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The sum of a and b.
+        :rtype: int
+        '''
+
+        # Return the sum of a and b.
         return a + b
 ```
 
@@ -80,9 +127,10 @@ Run:
 python demo.py
 ```
 
-You should see:
+You should see the default logger's line for the feature, then the sum:
 
 ```
+<timestamp> - default - INFO - Executed Feature - calc.add (3ms)
 19 + 23 = 42
 ```
 
@@ -107,9 +155,9 @@ You should see:
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
 - [Service Interfaces](docs/core/interfaces.md)  
-- [Dependency Injection (ServiceProvider)](docs/core/di.md)  
+- [Dependency Injection (ServiceContainer & ServiceResolver)](docs/core/di.md)  
 - [Repositories](docs/core/repos.md)  
-- [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)
+- [Utilities (File/Yaml/Json/Toml/Csv/Sqlite)](docs/core/utils.md)
 
 ### Practical Guides 
 **Domain Guides**  
@@ -134,6 +182,7 @@ You should see:
 - [File Loader](docs/guides/utils/file.md)  
 - [YAML Loader](docs/guides/utils/yaml.md)  
 - [JSON Loader](docs/guides/utils/json.md)  
+- [TOML Loader](docs/guides/utils/toml.md)  
 - [CSV Loader](docs/guides/utils/csv.md)  
 - [Sqlite Connector](docs/guides/utils/sqlite.md)
 
@@ -150,7 +199,14 @@ You should see:
 
 We welcome bug reports, documentation improvements, feature ideas, and early adopters.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (issues → TRD → feature branch → PR).
+To work on Tiferet itself, install it in development mode with the `test` extra, then run the suite:
+
+```bash
+pip install -e '.[test]'
+pytest
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow: an RFP for prototype work, a TRD for trunk reconstruction or a hotfix, and a Doc PR for docs and skills.
 
 Questions, feedback, or just want to say hi?  
 Open an issue or reach out via email: andrew@greatstrength.me

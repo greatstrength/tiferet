@@ -8,7 +8,7 @@ While contexts define the runtime shape and behavior of an individual session, b
 
 A blueprint in Tiferet is a module-level function that encapsulates the initialization and orchestration logic required to prepare and run an application session. Blueprints are intentionally thin: they focus on service loading, default configuration injection, dependency wiring, handler composition, and delegation to the appropriate `AppSessionContext` or `CliSessionContext`.
 
-The canonical implementation is `build_app` in `tiferet/blueprints/core.py` (exported as `App`), which chains the composition functions `build_cache` → `get_app_session` → `build_app_session_context`. The CLI entrypoint (`build_cli` / `CLI`) and the admin entry points (`build_admin_app` / `AdminApp`, `build_admin_cli` / `AdminCLI`) reuse the same core composition helpers with session-specific cache seeding and resolver wiring.
+The canonical implementation is `build_app` in `tiferet/blueprints/app.py` (exported as `App`), which chains `build_cache` → `core.get_app_session` → `build_app_session_context`, using the shared composition functions in `tiferet/blueprints/core.py`. The CLI entrypoint (`build_cli` / `CLI`) and the admin entry points (`build_admin_app` / `AdminApp`, `build_admin_cli` / `AdminCLI`) reuse the same core composition helpers with session-specific cache seeding and resolver wiring.
 
 ### Role in the Architecture
 

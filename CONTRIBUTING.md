@@ -6,13 +6,21 @@ Thank you for wanting to contribute. This page is the front door. The map of how
 
 1. Fork the repository and clone your fork.
 2. Cut a branch from the right base (proto for an RFP, `main` for a standalone trunk TRD or docs, the already-pushed Super-TRD branch for a Super-TRD child).
-3. Set up a virtual environment and install in development mode:
+3. Set up a virtual environment and install in development mode with the `test` extra:
 
 ```bash
 python3.10 -m venv venv
 source venv/bin/activate
-pip install -e .
+pip install -e '.[test]'
 ```
+
+4. Confirm the suite passes before you change anything:
+
+```bash
+pytest
+```
+
+The `test` extra in `pyproject.toml` brings `pytest`, `pytest_env`, and `pytest-asyncio`. A plain `pip install -e .` leaves them out, and the async tests fail.
 
 ## How work is authorized
 
@@ -22,7 +30,7 @@ Trunk and prototype are two independent histories of the same version family. Wh
 |---|---|---|---|
 | Test a domain theory | an **RFP** (public contributors welcome if it follows the genre) | the proto branch | [rfp.md](docs/collab/rfp.md) |
 | Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
-| Change docs or agent skills | a **Doc PR** — no TRD | `main` | [doc.md](docs/collab/doc.md) |
+| Change docs or agent skills | a **Doc PR** — no issue, no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
 As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child whose Super-TRD branch is already pushed)**. You do not plan a release, mint a freeze, cut a Super-TRD branch, or tag a version. The reviewer assigns the issue to a milestone.
 
@@ -32,7 +40,7 @@ Commands used across all of that: [docs/collab/commands.md](docs/collab/commands
 
 ### Issues
 
-An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A Doc/skills PR may skip the issue if there is nothing to discuss first.
+An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A Doc/skills PR has no issue: no milestone, no project-board item, no `Closes #N`. It goes straight from a `docs-<context>` branch to a PR to `main`.
 
 Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when you publish the issue.
 
@@ -48,23 +56,23 @@ Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when y
 - Read **`tiferet-code-style`** before you write code. If the skill is missing, [docs/core/code_style.md](docs/core/code_style.md) is the fallback.
 - Read the **`tiferet-code-<component>`** skill for each layer you touch. More than one layer: also `tiferet-code-architecture`.
 - Docstrings and `docs/guides/`: **`tiferet-guide-docs`**.
-- Tests: `pytest`.
+- Tests: `pytest`, after `pip install -e '.[test]'`.
 
 ### Commit hygiene
 
-Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, add `Co-Authored-By: <name> <email>`. Never commit or merge unless someone asked you to.
+Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, it attributes itself in its own name — never another agent's. On a shared bot account it signs `— <agent>@<platform> via <account>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit unless someone asked you to. AI agents never merge, tag, bump the version, mint a freeze, or create or close a milestone — see [Agent guardrails](docs/collab/process.md#agent-guardrails).
 
 When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local and remote branch, and every temp file. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
 
 ### Pull requests
 
-RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue. A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
+RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue (a Doc PR has none). A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
 
-The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
+The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**; on a Doc PR, which has no issue, they stay on the PR. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
 
 ### Review
 
-Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD and, read-only, against the prototype branch, or against the TRD alone when there is no prototype. The first line of the review is `Verdict: Approve` or `Verdict: Changes requested`. A human squash-merges a PR that targets `main`, unless the human explicitly delegates that PR. A Release reviewer may squash-merge a sub-TRD PR into the Super-TRD branch when [code_review.md](docs/collab/code_review.md) says so. That does not extend to `main`.
+Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. A **Prototype reviewer** then checks the RFP's content against the vision and the distillation sections it cites. A **Release reviewer** then checks artifact fidelity against the reference prototype recorded in the TRD and, read-only, against the prototype branch, or against the TRD alone when there is no prototype. The first line of the review is `Verdict: Approve` or `Verdict: Changes requested`. Only the maintainer, a human, squash-merges — to `main`, to proto, and a sub-TRD PR into its Super-TRD branch alike. A reviewer never merges ([code_review.md](docs/collab/code_review.md#verdict-and-merge)).
 
 ### Collaboration Report
 
@@ -80,7 +88,7 @@ Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in t
 - `tiferet-rfp-session` — implement one published RFP on proto; link the PR to that issue; close the issue after squash.
 - `tiferet-author-trd` — one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
 - `tiferet-implement-trd` — implement one published TRD, or one Super-TRD child on a PR to the already-pushed Super-TRD branch. Never `main` for a child.
-- `tiferet-pr-code-review` — one consolidated review, verdict line first. Never merges to `main` unless the human delegates that PR. May squash-merge a sub-TRD PR into the Super-TRD branch when the base and verdict hold.
+- `tiferet-pr-code-review` — one consolidated review, verdict line first. Never merges; the maintainer does.
 - `tiferet-collab-report` — standalone TRD closeout on the issue.
 
 **Docs:** `tiferet-guide-docs`.

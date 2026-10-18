@@ -5,7 +5,7 @@
 
 ## Purpose
 
-This document defines the canonical GitHub Project field set used across Tiferet-family projects. Status and assignment follow [main.md](main.md) (trunk) and [rfp.md](rfp.md) (prototype). Field/option **ids** live in [binding.md](binding.md); example commands in [commands.md](commands.md). The goal is a single, consistent triage model — Priority, Size, story points, and dates — that an agent or human can apply identically on every project.
+This document defines the canonical GitHub Project field set used across Tiferet-family projects. Status and assignment follow [main.md](main.md) (trunk) and [rfp.md](rfp.md) (prototype). Doc PRs have no issue and no board item ([doc.md](doc.md)). Field/option **ids** live in [binding.md](binding.md); example commands in [commands.md](commands.md). The goal is a single, consistent triage model — Priority, Size, story points, and dates — that an agent or human can apply identically on every project.
 
 ## Field Set
 

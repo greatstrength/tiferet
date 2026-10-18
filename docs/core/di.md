@@ -287,11 +287,11 @@ This keeps the contexts decoupled from the DI engine: any callable with the `get
 
 ## Blueprint Wiring
 
-The standard path is `core.build_app` in `tiferet/blueprints/core.py`. It does not use a declarative wiring registry; instead it composes the DI layer from two composition functions:
+The standard path is `build_app` in `tiferet/blueprints/app.py`. It does not use a declarative wiring registry; instead it composes the DI layer from two composition functions in `tiferet/blueprints/core.py`:
 
 1. `build_app_service_container(cache, app_session)` — merges the cache-seeded framework defaults (`CORE_DEFAULT_SERVICES`, `CORE_DEFAULT_CONSTANTS`) with the session's own services and constants (session wins) and constructs a `DIAppServiceContainer`. App-level services resolve as Singletons.
 2. `build_service_resolver(app_container)` — wraps the app container in a `DIDynamicServiceResolver`, caching it under the `app` flag so feature-step resolution inherits the app-level singletons.
-3. `build_app_session_context(app_session, cache)` — imports the declared context class, resolves its event collaborators from the app container, and constructs the context via `BaseContext.from_domain`, injecting `resolver.get_dependency`.
+3. `build_app_session_context(app_session, cache)` (`app.py`) — runs the two steps above, then hands off to `core.compose_session_context`, which resolves the context's collaborators, wires the handlers, and constructs the context via `BaseContext.from_domain`, injecting `resolver.get_dependency`.
 
 ```python
 # tiferet/blueprints/core.py (excerpt)
@@ -304,7 +304,7 @@ return context_cls.from_domain(
 )
 ```
 
-The older declarative-wiring path (`wire_services`, `load_app_instance`, `CreateServiceResolver`) survives module-private inside `tiferet/blueprints/tiferet_cli.py` for the built-in `tiferet_cli` session, which the core compose path cannot yet replace. Consumer applications always use the core path.
+The older declarative-wiring path (`wire_services`, `load_app_instance`, `CreateServiceResolver`) has been removed. Every blueprint, the built-in admin and tester sessions included, composes its context through `core.compose_session_context`.
 
 ## Structured Code Design
 

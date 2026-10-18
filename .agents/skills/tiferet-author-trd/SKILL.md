@@ -15,7 +15,7 @@ description: >
 ## When not to use
 
 - Prototype / RFP — `tiferet-author-rfp`.
-- Docs/skills — no TRD; open a Doc PR.
+- Docs/skills — no issue, no TRD; open a Doc PR.
 - Implementing an already-authored TRD — `tiferet-implement-trd`.
 - Minting a freeze id or opening a trunk milestone.
 
@@ -54,3 +54,4 @@ Kind (reconstruction | hotfix). For reconstruction: freeze id (must already exis
 - Never publish a blocked-by cycle.
 - Doc/skills changes do not get a TRD.
 - Do not mint freeze ids. Do not open milestones.
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).

@@ -430,9 +430,9 @@ either a result or a catalogued, formatted error.
   against the framework's `Service` contracts.
 - Turning a captured application's structure back into generated source code,
   or verifying that hand-written source conforms to the framework's
-  structural conventions — that is the Tiferet Takwin platform's concern
-  (its compiler and composer domains), which treats Tiferet applications as
-  the material it operates on rather than the engine that runs them.
+  structural conventions — that belongs to separate tooling outside the
+  framework, which treats Tiferet applications as the material it operates
+  on rather than the engine that runs them.
 
 ## 10. Where this leads
 

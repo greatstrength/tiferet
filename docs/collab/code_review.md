@@ -5,7 +5,7 @@
 
 [process.md](process.md) is the index. A pull request is where we argue about the diff. An issue is where we remember the work item. Mixing those two jobs makes both worse.
 
-There are two reviewer types: the **Prototype reviewer** (an RFP PR to proto) and the **Release reviewer** (a trunk PR to `main`, or a sub-TRD PR to its Super-TRD branch). They share one standard and differ in what they weigh next. Merge to `main` is the same for both. A sub-TRD merge into the Super-TRD branch is the exception below.
+There are two reviewer types: the **Prototype reviewer** (an RFP PR to proto) and the **Release reviewer** (a trunk PR to `main`, or a sub-TRD PR to its Super-TRD branch). They share one standard and differ in what they weigh next. Neither one merges. The maintainer does ([Verdict and merge](#verdict-and-merge)).
 
 ## Shared review standards
 
@@ -49,7 +49,7 @@ Review topology for a Super-TRD:
 
 - One **fresh** reviewer per sub-TRD PR. The context is that child only. Do not carry findings or confidence forward from an earlier child's merge. If you have already reviewed another child of this Super-TRD, you are not the fresh reviewer — stop and say so.
 - Re-review after changes is that same reviewer, messaged again. Do not start a second reviewer for the same PR.
-- After every child has merged into the Super-TRD branch, one **fresh final** reviewer — someone who has not reviewed a child of this Super-TRD — reviews the Super-TRD PR (that branch to `main`) against the parent TRD, the proto baseline, and cross-child consistency. Verdict only. No standing merge authority. The human squash-merges to `main`.
+- After every child has merged into the Super-TRD branch, one **fresh final** reviewer — someone who has not reviewed a child of this Super-TRD — reviews the Super-TRD PR (that branch to `main`) against the parent TRD, the proto baseline, and cross-child consistency. Verdict only. The maintainer squash-merges to `main`.
 
 A sub-TRD review checks that child's artifacts and AC. The final review checks each child TRD's artifacts and AC against the combined diff, plus cross-child consistency.
 
@@ -75,7 +75,7 @@ Confirm the link and the base:
 
 ## Doc and skills PRs
 
-A Doc or skills PR has no TRD and no RFP. Review the diff against the intent in the PR and the vocabulary in [process.md](process.md). Code examples inside docs and skills are held to the shared floor like any other code.
+A Doc or skills PR has no issue, no TRD, and no RFP. It is not linked to an issue, not on a milestone, not on the project board, and has no `Closes #N`. Do not flag any of those as missing. Review the diff against the intent in the PR body and the vocabulary in [process.md](process.md). Post the review's short status on the PR, since there is no issue. Code examples inside docs and skills are held to the shared floor like any other code.
 
 ## How to leave a diff comment
 
@@ -93,33 +93,28 @@ A Doc or skills PR has no TRD and no RFP. Review the diff against the intent in 
    - **Out of scope** — leave it alone.
 4. A comment about a line goes on that line, and the line has to be in the PR diff. A comment about a missing file or a whole package goes in the review body.
 5. Tell the human what you found and wait for a go-ahead before you post anything to GitHub. That wait is for posting the review. It is not a merge approval.
-6. Post **one consolidated review** (`path` + `position`, not `line`). The first line of the review body is exactly `Verdict: Approve` or `Verdict: Changes requested`. Then the findings summary, then `Co-Authored-By: Warp <agent@warp.dev>`. Do not post a stream of separate comments. When the reviewer and the author share a GitHub token, GitHub rejects `--approve` and `--request-changes`. Post the review as a comment in that case. The verdict line is the signal either way; do not treat a rejected API event as a failed review. After opening a PR, and after addressing PR feedback, the author posts a short status on the issue.
+6. Post **one consolidated review** (`path` + `position`, not `line`). The first line of the review body is exactly `Verdict: Approve` or `Verdict: Changes requested`. Then the findings summary, then the reviewing agent's own attribution ([process.md](process.md#attribution)). Do not post a stream of separate comments. When the reviewer and the author share a GitHub token, GitHub rejects `--approve` and `--request-changes`. Post the review as a comment in that case. The verdict line is the signal either way; do not treat a rejected API event as a failed review. After opening a PR, and after addressing PR feedback, the author posts a short status on the issue.
 
 Do not put Collaboration Reports or session notes on the PR. That is what the issue is for.
 
 ## Verdict and merge
 
-Merge to `main` is the same for both reviewer types. A sub-TRD PR is the second exception below.
-
 The review ends with one verdict line, the first line of the review: `Verdict: Approve` or `Verdict: Changes requested`. Approve only when:
 
 - no blocking finding remains and no diff comment is unresolved;
-- the PR is GitHub-linked to its authorizing issue (the RFP, the standalone TRD, the Super-TRD parent, or — for a sub-TRD PR — the child and the parent) and is not on a milestone;
+- the PR is GitHub-linked to its authorizing issue (the RFP, the standalone TRD, the Super-TRD parent, or — for a sub-TRD PR — the child and the parent) and is not on a milestone. A Doc PR has no issue; that is not a finding;
 - the PR body's AC checkboxes are checked;
 - no tag or version bump rides on the PR;
 - a sub-TRD PR's base is the Super-TRD branch, and a PR that should land on `main` has base `main`.
 
-A **human squash-merges** every PR that targets `main`. The reviewer never merges to `main` by default.
+**Only the maintainer, a human, merges.** That holds for every base: a PR to `main`, an RFP PR to proto, and a sub-TRD PR into its Super-TRD branch. The reviewer's work ends at the verdict and the status on the issue. No agent merges, even after `Verdict: Approve` ([process.md § Agent guardrails](process.md#agent-guardrails)).
 
-Two exceptions, and only these:
+Before a sub-TRD PR is squash-merged into the Super-TRD branch, all of these hold, checked immediately before the merge, not from memory of an earlier look: `gh pr view <N> --json baseRefName` is the Super-TRD branch; the verdict line is `Verdict: Approve`; the review is clean (code style, every AC, artifact fidelity, tests) and no blocking finding is unresolved; the PR-body AC checkboxes are checked. The squash commit message must not contain `Closes`, `Fixes`, or `Resolves`.
 
-1. **Human-delegated merge of a specific PR.** When the human explicitly relinquishes the squash-merge for that PR, the reviewer may squash-merge it, and only after `Verdict: Approve`. This is situational, most often a correction follow-up, and never universal. It is the only way a reviewer merges to `main`. The final Super-TRD reviewer has no standing merge authority; this exception still applies if the human names that PR.
-2. **Sub-TRD PR into the Super-TRD branch.** A Release reviewer may squash-merge that PR without a further human approval when all of these hold, checked immediately before the merge, not from memory of an earlier look: `gh pr view <N> --json baseRefName` is the Super-TRD branch; the verdict line is `Verdict: Approve`; the review is clean (code style, every AC, artifact fidelity, tests) and no blocking finding is unresolved; the PR-body AC checkboxes are checked. The squash commit message must not contain `Closes`, `Fixes`, or `Resolves`. This permission never extends to `main`.
-
-Delegated merge — either exception — keys off the verdict line plus those AC checkboxes. It does not key off a GitHub `--approve` event, which a shared token cannot submit.
+Merge readiness keys off the verdict line plus those AC checkboxes. It does not key off a GitHub `--approve` event, which a shared token cannot submit.
 
 What follows a merge to `main` is unchanged. A proto PR does not honor `Closes`, so the implementing agent closes the RFP issue by hand. A standalone trunk PR closes its TRD through `Closes`. The Super-TRD PR closes the parent through `Closes #<parent>` only. A sub-TRD merge does not close the child. Children stay In Review until that parent PR is squash-merged; closing them is closeout. The standalone TRD gets its Collaboration Report.
 
 ## Guardrails
 
-A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto → trunk git, including checkout or copy. Release reviewers never tell an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit as part of a review. Never merge to `main` unless the human has explicitly relinquished that specific PR. Never squash-merge a sub-TRD PR without a fresh base check. Never review a second child of the same Super-TRD; re-review only the PR you already have.
+A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto → trunk git, including checkout or copy. Release reviewers never tell an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit as part of a review. Never merge a PR, on any base; the maintainer merges. Never review a second child of the same Super-TRD; re-review only the PR you already have.

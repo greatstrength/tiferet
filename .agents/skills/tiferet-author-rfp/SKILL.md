@@ -15,7 +15,7 @@ description: >
 ## When not to use
 
 - Trunk reconstruction or hotfix — `tiferet-author-trd`.
-- Docs/skills — no specification document; open a Doc PR.
+- Docs/skills — no issue, no specification document; open a Doc PR.
 - Implementing an already-published RFP — `tiferet-rfp-session`.
 - Planning a prerelease or opening a milestone.
 
@@ -51,3 +51,4 @@ Binding file (proto branch, RFP prefix). Distillation sections to cite. Optional
 - Do not write a TRD. Do not set `Version: Request for Prototype` on anything.
 - Never proto → trunk git.
 - Do not tag. Do not bump the package version.
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).
