@@ -1,6 +1,6 @@
 ---
 name: tiferet-code-testing
-description: Apply Tiferet test harness conventions when writing or extending tests in a Tiferet-family repo. Covers @use_tester, TesterObject types, test_ctx+session injection, and the leftover tiferet.testing bases.
+description: Apply Tiferet test harness conventions when writing or extending tests in a Tiferet-family repo. Covers @use_tester, TesterObject types, test_ctx+session injection, and the tiferet-tester test-module surface.
 ---
 
 # Testing Harness Code Style – Tiferet
@@ -8,7 +8,6 @@ description: Apply Tiferet test harness conventions when writing or extending te
 ## When to use
 - When adding or modifying unit tests for a named Tiferet component.
 - Pair with the component skill for the production artifact (`tiferet-code-domain`, `tiferet-code-events`, …).
-- Do **not** migrate leftover `tests/events` or `tests/mappers` harness subclasses in this cycle.
 
 ## Artifact comment structure
 
@@ -35,7 +34,7 @@ Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected 
 
 **Per type (summary):** specialized `assert_*` / `handle`; generic `get_target` + `assert_contract` + `session.run(target=fn)`; repo `make_target(config_file=)` CRUD (not `session.run`); context `from_domain` / own-namespace `domain_type` / `for_domain`.
 
-**Leftover:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) still exists until a later freeze. Leave it. Do not delete `tiferet/testing/`.
+**Retired:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) was removed in v2.1.2 (#1226). Do not import it or reintroduce it. Every unit test under `tests/` uses `@use_tester`. YAML test modules (e.g. `tiferet_tests/`) run through the separate `tiferet-tester` console script (`tiferet.blueprints.tester_cli:main`).
 
 ## Example
 

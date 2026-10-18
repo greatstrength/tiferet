@@ -306,11 +306,11 @@ Applications are configured in a consolidated root `config.yml` file:
 - **Install:** `pip install -e '.[test]'`. The `test` extra brings `pytest`, `pytest_env`, and `pytest-asyncio`; without it the async tests fail.
 - **Run tests:** `pytest` from the project root (with the venv activated). `pyproject.toml` sets `testpaths` to `tests` and `tests_int`.
 - **Unit tests:** `@use_tester` (`tiferet.blueprints.tester`, exported from `tiferet`). One `TesterObject`; `TesterContext` plus omitting-`domain_type` variants; `TestSessionContext` is a `RequestContext`. Inject `test_ctx` and `session` by parameter name. Types: `domain` | `aggregate` | `transfer_object` | `domain_event` | `service_event` | `generic` | `repo` | `context`. Test-module artifacts are three sibling kinds after preamble: `# *** fixtures` / `# *** tests` / `# *** testers` (omit empty). Testers compose fixtures and tests; they do not replace them.
-- **Leftover:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) still exists. Do not delete it. Do not migrate `tests/events` or `tests/mappers` in this cycle.
+- **Retired:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) was removed in v2.1.2 (#1226). Every unit test, including `tests/events` and `tests/mappers`, uses `@use_tester`. Do not reintroduce the bases.
 - **Test modules (v2.2.0):** Test-module documents live in `domain/tester_module.py` (`TestModuleDocument`, `TestModuleAddress`). Tester phases live in `domain/tester_phase.py` (`Test`, `Execution`, `ExecutionTarget`, `Assertion`, `ArrangedMock`, `Conditions`, `PhaseRuntime`). Test modules run through the `tiferet-tester` console script (`tiferet.blueprints.tester_cli:main`, exported from `tiferet.blueprints` as `build_tester_cli` / `TesterCLI`). `tiferet-tester` is separate from the `tiferet` admin script. `use_tester` remains the only tester export from the top package.
 - **Guide:** [docs/core/testing.md](docs/core/testing.md).
 - **Mocking:** Use `unittest.mock`. Mock injected services. Verify calls and return values.
-- **Event testing:** `DomainEventTesterContext.handle` (or leftover `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`).
+- **Event testing:** `@use_tester(type='domain_event' | 'service_event', ...)` and `test_ctx.handle(...)` (`DomainEventTesterContext`); direct `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` stays valid in module-level tests.
 
 ## Utilities
 

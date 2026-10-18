@@ -1,6 +1,6 @@
 ---
 name: tiferet-code-mappers
-description: Apply mapper conventions when adding or modifying Aggregates or TransferObjects (ConfigObjects) in a Tiferet-family repo. Covers the Aggregate/TransferObject base classes, _ROLES serialization, aliasing, and the AggregateTestBase/TransferObjectTestBase harnesses.
+description: Apply mapper conventions when adding or modifying Aggregates or TransferObjects (ConfigObjects) in a Tiferet-family repo. Covers the Aggregate/TransferObject base classes, _ROLES serialization, aliasing, and the @use_tester aggregate / transfer_object testers.
 ---
 
 # Mappers Code Style – Tiferet
