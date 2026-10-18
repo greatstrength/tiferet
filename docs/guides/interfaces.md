@@ -72,7 +72,7 @@ def list(self, group_id: Optional[str] = None) -> List[FeatureAggregate]: ...
 
 ### CliService — Extra Query Method
 
-`CliService` adds `get_parent_arguments()` beyond the standard five methods. This method returns all top-level `CliArgumentAggregate` objects — arguments that apply to the CLI root rather than to any specific command. It is not part of the CRUD contract but serves a specific runtime need of `CliContext`.
+`CliService` adds `get_parent_arguments()` beyond the standard five methods. This method returns all top-level `CliArgumentAggregate` objects — arguments that apply to the CLI root rather than to any specific command. It is not part of the CRUD contract but serves a specific runtime need of `CliSessionContext` (through `get_parent_args_handler` in `tiferet/blueprints/cli.py`).
 
 ```python
 def get_parent_arguments(self) -> List[CliArgumentAggregate]: ...

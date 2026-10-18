@@ -19,7 +19,7 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── blueprints/           # build_app, build_cli, admin and tester entry points, shared core composition
-├── contexts/             # Runtime orchestration: BaseContext registry + AppSessionContext hub (Feature, Error, Logging) + CliContext
+├── contexts/             # Runtime orchestration: BaseContext registry + AppSessionContext hub (Feature, Error, Logging) + CliSessionContext
 ├── di/                   # DI: core.py ABCs + dependency_injector.py impls (DIAppServiceContainer, DIDynamicServiceResolver)
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
