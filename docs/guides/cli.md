@@ -8,9 +8,9 @@ script and is implemented by the `build_admin_cli` blueprint
 
 The CLI's command catalog and feature workflows are intended to be bootstrapped
 from framework asset modules rather than read from your configuration file.
-Every CRUD operation reads from and writes to the configuration file you supply.
+Every CRUD operation is intended to read from and write to the configuration file you supply (see the known issue below).
 
-> **Known issue (v2.2.0):** the `tiferet` admin CLI currently builds its command list from the `cli` section of the file passed to `--config`, not from the built-in admin catalog. If that file has no `cli:` section (or `cli: {}`), no command groups are available: every invocation, including the examples on this page, exits `2` with `invalid choice: '<group>' (choose from )`. If the file does define `cli.cmds`, those consumer commands replace the admin groups. A code fix is pending as a separate hotfix.
+> **Known issue (v2.2.0):** the `tiferet` admin CLI currently builds its command list from the `cli` section of the file passed to `--config`, not from the built-in admin catalog. If that file has no `cli:` section (or `cli: {}`), no command groups are available: every invocation, including the examples on this page, exits `2` with `invalid choice: '<group>' (choose from )`. If the file does define `cli.cmds`, those consumer commands replace the admin groups. Separately, `--config` does not yet redirect writes: the admin repositories are wired from the built-in admin constants, so CRUD commands read from and write to `./config.yml` in the current directory rather than the file you pass. A code fix for both is pending as a separate hotfix.
 
 ## Installation
 
@@ -32,8 +32,9 @@ This registers the `tiferet` entry point (declared under `[project.scripts]` in
 tiferet --config <file> <group> <command> [args]
 ```
 
-- `--config <file>` selects the configuration file all commands read from and
-  write to. It defaults to `config.yml` in the current directory when omitted.
+- `--config <file>` is meant to select the configuration file all commands read
+  from and write to (today writes still go to `./config.yml`; see the known issue
+  above). It defaults to `config.yml` in the current directory when omitted.
 - `<group>` and `<command>` select the operation; together they map to a feature
   id (`<group>.<command>`, with hyphens normalized to underscores).
 
