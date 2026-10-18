@@ -29,7 +29,7 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 
 ## Inputs
 
-TRD issue number. For a Super-TRD child: parent issue number and the already-pushed Super-TRD branch `<parent-issue>-<slug>`. Binding. The PR base, named in the dispatch prompt (standalone: `main`; child: the Super-TRD branch).
+TRD issue number. For a Super-TRD child: parent issue number and the already-pushed Super-TRD branch `<parent-issue>-<slug>`. Binding. The PR base, named in the task (standalone: `main`; child: the Super-TRD branch the maintainer pushed).
 
 ## Procedure
 

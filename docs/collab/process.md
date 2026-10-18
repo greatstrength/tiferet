@@ -115,9 +115,9 @@ A sub-TRD PR is squash-merged into its Super-TRD branch only when all of these h
 
 ## Safeguards
 
-These checks keep a fan-out off the wrong base. They are stated as checks.
+These checks keep a fan-out off the wrong base.
 
-- The maintainer runs every fan-out. Before one, the maintainer validates the dispatch branch and PR-base rules against `tiferet-implement-trd`. Every implementer prompt states the PR base explicitly.
+- The maintainer runs every fan-out. Before one, the maintainer validates the pushed Super-TRD branch and the PR-base rules against `tiferet-implement-trd`. Every implementer task states the PR base explicitly.
 - After opening a PR, the implementer verifies `gh pr view <N> --json baseRefName` and stops if it is wrong.
 - The reviewer verifies that base before posting a verdict, and the maintainer verifies it again immediately before the merge.
 - Freeze authoring (the maintainer's step) and TRD authoring (`tiferet-author-trd`) check the issue set for a blocked-by cycle before wiring edges. A cycle is two or more issues each naming the other's output as a prerequisite. Do not publish it. A child stuck on a cycle stops and reports.
