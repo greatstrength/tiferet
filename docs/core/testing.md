@@ -9,7 +9,7 @@
 
 v2.1.0 unit tests name a component with one `TesterObject`, bind it to a `TesterContext` (or a type-specific variant that omits `domain_type`), and drive checks through a `TestSessionContext` that *is* a `RequestContext`. The public decorator is `@use_tester`. It injects `test_ctx` and `session` by parameter name and strips those names from the wrapper signature so pytest does not treat them as fixtures.
 
-Every unit test under `tests/` uses this model. The former `tiferet.testing` package (`AggregateTestBase`, `DomainEventTestBase`, and related bases) was retired on trunk in v2.1.2 (#1226). It is not in the tree; do not reintroduce it. See [Retired: `tiferet.testing`](#retired-tiferettesting).
+No test imports `tiferet.testing`. Component tests use this model (`@use_tester`); module-level pytest tests remain where no tester type fits. The former `tiferet.testing` package (`AggregateTestBase`, `DomainEventTestBase`, and related bases) was retired on trunk in v2.1.2 (#1226). It is not in the tree; do not reintroduce it. See [Retired: `tiferet.testing`](#retired-tiferettesting).
 
 **Modules:** `tiferet/domain/tester.py`, `tiferet/contexts/tester.py`, `tiferet/blueprints/tester.py`, `tiferet/assets/tester.py`
 

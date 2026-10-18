@@ -111,7 +111,7 @@ class GetError(ErrorEvent):
         return self.error_service.get(id)
 ```
 
-The framework defines seven base events, one per single-service event module:
+The framework defines nine base events, one per single-service event module:
 
 - `ErrorEvent` (`error_service`) — `tiferet/events/error.py`
 - `FeatureEvent` (`feature_service`) — `tiferet/events/feature.py`
@@ -120,6 +120,10 @@ The framework defines seven base events, one per single-service event module:
 - `DIEvent` (`di_service`) — `tiferet/events/di.py`
 - `LoggingEvent` (`logging_service`) — `tiferet/events/logging.py`
 - `SqliteEvent` (`sqlite_service`) — `tiferet/events/sqlite.py`
+- `YamlEvent` (`yaml_service`) — `tiferet/events/yaml.py`
+- `CheckEvent` (`check_service`) — `tiferet/events/tester_phase.py`
+
+`TestModuleEvent` (`tiferet/events/tester_module.py`) is also a shared base, but it holds no service; it supplies the `verify_defect` helper to the test-module events.
 
 An event that takes no injected service extends `DomainEvent` (or `AsyncDomainEvent`) directly and uses no base event. The former static events (`ParseParameter`, `ImportDependency`) are gone; parameter parsing is `tiferet/blueprints/core.py::parse_parameter`.
 
@@ -236,6 +240,19 @@ Event tests use the `@use_tester` harness ([testing.md](testing.md)). Two tester
 Parametrized cases are fields on the tester object, not conftest hooks. Override `mock_dependencies` as a `# * fixture:` member when a test needs a pre-configured service mock.
 
 ```python
+# *** imports
+
+# ** core
+from unittest import mock
+
+# ** infra
+import pytest
+
+# ** app
+from tiferet.events.error import AddError
+from tiferet.interfaces import ErrorService
+from tiferet.blueprints.tester import use_tester
+
 # *** testers
 
 # ** tester: test_add_error
@@ -299,7 +316,7 @@ class TestAddError:
 The full module is `tests/events/test_error.py`. Module-level `# *** tests` functions that call `DomainEvent.handle` directly remain valid for edge cases.
 
 ### Best Practices
-- Use `@use_tester` with `type='domain_event'` or `type='service_event'` for every event test.
+- Use `@use_tester` with `type='domain_event'` or `type='service_event'` for event component tests; keep module-level pytest tests for cases no tester type fits.
 - Mock injected services; avoid real I/O in unit tests.
 - Test success, validation failures, and not-found cases.
 - Verify service calls and return values.
