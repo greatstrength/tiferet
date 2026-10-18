@@ -2,10 +2,10 @@
 
 Three-section catalog for the built-in Tiferet CLI feature workflows.
 Each section follows the pattern established by ``assets/error.py``:
-- ``constants (ids)`` — 41 individually named feature ID string constants.
-- ``constants (features)`` — 41 individually named feature definition dicts,
+- ``constants (ids)`` - 41 individually named feature ID string constants.
+- ``constants (features)`` - 41 individually named feature definition dicts,
   each built via ``create_default_feature_data``.
-- ``constants (groups)`` — the ``ADMIN_DEFAULT_FEATURES`` catalog dict
+- ``constants (groups)`` - the ``ADMIN_DEFAULT_FEATURES`` catalog dict
   keyed by ID constants.
 """
 

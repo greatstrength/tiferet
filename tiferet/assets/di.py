@@ -2,10 +2,10 @@
 
 Three-section catalog for the built-in Tiferet CLI service registrations.
 Each section follows the pattern established by ``assets/error.py``:
-- ``constants (ids)`` — 37 individually named service ID string constants.
-- ``constants (services)`` — 37 individually named service registration
+- ``constants (ids)`` - 37 individually named service ID string constants.
+- ``constants (services)`` - 37 individually named service registration
   dicts, each built via ``create_service_registration_data``.
-- ``constants (groups)`` — the ``ADMIN_DEFAULT_SERVICES`` catalog dict
+- ``constants (groups)`` - the ``ADMIN_DEFAULT_SERVICES`` catalog dict
   keyed by ID constants.
 """
 

@@ -336,7 +336,7 @@ def test_file_loader_verify_extension_success(tmp_path):
     file_path = tmp_path / 'data.ext'
     file_path.write_text('content', encoding='utf-8')
 
-    # Verify — should not raise.
+    # Verify - should not raise.
     loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
     FileLoader.verify_extension(
         loader,

@@ -595,7 +595,7 @@ def raise_unwired_handler_error(handler_name: str,
 # >> see: @guides/errors.md#tiferet-error
 class TiferetError(Exception):
     '''
-    The base exception for every catalogued, resolvable domain outcome — the
+    The base exception for every catalogued, resolvable domain outcome - the
     contract that lets a business-rule failure be resolved back into a
     localized, user-facing message instead of leaking as raw exception state.
     '''
@@ -654,7 +654,7 @@ class TiferetError(Exception):
 class TiferetAPIError(TiferetError):
     '''
     The catalogued domain outcome in its already-formatted, consumer-facing
-    shape — the representation raised back to the caller once an error code
+    shape - the representation raised back to the caller once an error code
     has been resolved through the error catalog.
     '''
 
