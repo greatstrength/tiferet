@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-A TRD is how trunk gets specific. [process.md](process.md) is the index. Prototype work uses an [RFP](rfp.md), which is a different genre on purpose. Docs and skills use a [Doc PR](doc.md) and do not get a TRD — if you are writing one for a README, stop.
+A TRD is how trunk gets specific. [process.md](process.md) is the index. Prototype work uses an [RFP](rfp.md), which is a different genre on purpose. Docs and skills use a [Doc PR](doc.md) and do not get an issue or a TRD — if you are writing either for a README, stop.
 
 The sections below are the contract: named artifacts, complete tables, binary acceptance criteria. The voice can be human. The tables still have to be complete.
 

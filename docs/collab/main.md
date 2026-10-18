@@ -11,7 +11,7 @@ Three things, and only three:
 
 - **Reconstruction TRDs** that implement a **frozen** catalog. They name artifacts. They do not say "copy from proto," and they do not send you to the proto branch. They cite an existing freeze id in §7.
 - **Hotfix TRDs** for small mechanical defects already understood on trunk. Prototype is not consulted. There is no freeze id.
-- **Doc / skills PRs** — see [doc.md](doc.md). No TRD.
+- **Doc / skills PRs** — see [doc.md](doc.md). No issue, no TRD.
 
 Nothing from prototype lands on trunk as git. If you find yourself reaching for a merge from proto, stop. The catalog is how that work crosses.
 
@@ -28,7 +28,7 @@ Patch versions are welcome. New trunk milestones do **not** use `bN`. Older titl
 
 A reviewer may assign your issue to a milestone. You do not close the milestone or publish the GitHub Release.
 
-Every issue goes on the **Tiferet Framework** project. What the fields mean is in [project_fields.md](project_fields.md). The ids for *this* repo are in [binding.md](binding.md).
+Every issue goes on the **Tiferet Framework** project. A Doc PR has no issue, so it has no board item. What the fields mean is in [project_fields.md](project_fields.md). The ids for *this* repo are in [binding.md](binding.md).
 
 ## Issue titles
 

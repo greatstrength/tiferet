@@ -15,7 +15,7 @@ description: >
 ## When not to use
 
 - Trunk reconstruction or hotfix — `tiferet-author-trd`.
-- Docs/skills — no specification document; open a Doc PR.
+- Docs/skills — no issue, no specification document; open a Doc PR.
 - Implementing an already-published RFP — `tiferet-rfp-session`.
 - Planning a prerelease or opening a milestone.
 

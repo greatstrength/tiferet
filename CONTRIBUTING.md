@@ -30,7 +30,7 @@ Trunk and prototype are two independent histories of the same version family. Wh
 |---|---|---|---|
 | Test a domain theory | an **RFP** (public contributors welcome if it follows the genre) | the proto branch | [rfp.md](docs/collab/rfp.md) |
 | Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
-| Change docs or agent skills | a **Doc PR** — no TRD | `main` | [doc.md](docs/collab/doc.md) |
+| Change docs or agent skills | a **Doc PR** — no issue, no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
 As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child whose Super-TRD branch is already pushed)**. You do not plan a release, mint a freeze, cut a Super-TRD branch, or tag a version. The reviewer assigns the issue to a milestone.
 
@@ -40,7 +40,7 @@ Commands used across all of that: [docs/collab/commands.md](docs/collab/commands
 
 ### Issues
 
-An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A Doc/skills PR may skip the issue if there is nothing to discuss first.
+An RFP always has an issue. A reconstruction or hotfix always has a TRD issue. A Doc/skills PR has no issue: no milestone, no project-board item, no `Closes #N`. It goes straight from a `docs-<context>` branch to a PR to `main`.
 
 Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when you publish the issue.
 
@@ -66,9 +66,9 @@ When a PR is squash-merged, clean up after yourself: remove the worktree and its
 
 ### Pull requests
 
-RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue. A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
+RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue (a Doc PR has none). A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
 
-The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
+The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**; on a Doc PR, which has no issue, they stay on the PR. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
 
 ### Review
 

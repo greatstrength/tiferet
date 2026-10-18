@@ -18,7 +18,7 @@ An RFP is not a sloppy TRD. A TRD is not "the RFP, but for `main`." A Doc PR is 
 - An **RFP** asks: is this the right language? Anyone may submit one, as long as it follows [rfp.md](rfp.md). Opening a proto PR with no RFP is out of process.
 - A **reconstruction TRD** asks: can we rebuild a frozen catalog on trunk, artifact by artifact? It names those artifacts. It never says "copy from proto." It cites a freeze id in §7. If there is no freeze id, do not write the TRD.
 - A **hotfix TRD** asks: can we fix this small, already-understood defect on trunk? Prototype is not consulted. There is no freeze id.
-- A **Doc / skills** change needs **no TRD**. Cut `docs-<context>` from trunk. See [doc.md](doc.md).
+- A **Doc / skills** change needs **no issue and no TRD**. Cut `docs-<context>` from `main` and open a PR to `main` titled `Docs – <Title>`: no issue, no TRD, no milestone, no project-board item, and no `Closes #N`. See [doc.md](doc.md).
 
 The long forms: [rfp.md](rfp.md), [main.md](main.md), [doc.md](doc.md). The TRD genre is [tech_requirements.md](tech_requirements.md).
 
@@ -44,7 +44,7 @@ Git *may* flow the other way — trunk → prototype — when proto has not yet 
 
 **A reconstruction already specified.** If a TRD issue exists, implement that issue. A standalone PR targets `main` and links that TRD. A Super-TRD child targets the Super-TRD branch, not `main`, and links the child and the parent. See [Super-TRD branch](#super-trd-branch).
 
-**Docs or skills.** Open a Doc PR. No issue unless the discussion needs a home first.
+**Docs or skills.** Open a Doc PR. No issue, no milestone, no project-board item.
 
 ## Issues, PRs, and blocking
 
@@ -96,7 +96,7 @@ A blocker between children of the same parent is satisfied when the blocking chi
 
 ## Where the conversation lives
 
-- **On the PR:** what changed, AC checkboxes, the link to the issue, and review comments that point at a line.
+- **On the PR:** what changed, AC checkboxes, the link to the issue, and review comments that point at a line. A Doc PR has no issue, so its short status notes stay on the PR too.
 - **On an RFP issue:** the RFP body, blocked-by, a short status after the PR opens and after you address feedback.
 - **On a standalone TRD issue:** the TRD body, blocked-by, short status, and — when the work is done — a [Collaboration Report](collab_report.md).
 - **On a Super-TRD child:** short status only. The child stays In Review until the Super-TRD PR to `main` is squash-merged. Do not post a Collaboration Report on the child; that artifact belongs on a standalone TRD issue, or on the parent at round closeout.

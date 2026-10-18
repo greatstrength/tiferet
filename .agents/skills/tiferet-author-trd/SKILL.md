@@ -15,7 +15,7 @@ description: >
 ## When not to use
 
 - Prototype / RFP — `tiferet-author-rfp`.
-- Docs/skills — no TRD; open a Doc PR.
+- Docs/skills — no issue, no TRD; open a Doc PR.
 - Implementing an already-authored TRD — `tiferet-implement-trd`.
 - Minting a freeze id or opening a trunk milestone.
 

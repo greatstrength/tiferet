@@ -546,7 +546,7 @@ The v2.0.0b1 release completed the migration from `schematics` to Pydantic v2. K
 
 See `CONTRIBUTING.md` and `docs/collab/process.md` for the full workflow:
 
-1. Prototype work is an RFP on the proto branch. Trunk reconstruction is a TRD that cites a catalog freeze. Hotfixes are trunk TRDs. Docs/skills PRs need no TRD.
+1. Prototype work is an RFP on the proto branch. Trunk reconstruction is a TRD that cites a catalog freeze. Hotfixes are trunk TRDs. Docs/skills PRs need no issue and no TRD: a `docs-<context>` branch from `main` and a `Docs – <Title>` PR, with no milestone and no project-board item.
 2. Implement following structured code style and the `tiferet-code-*` skills in `.agents/skills/` (fallback: `docs/core/`).
 3. Separate functional changes from docs/config in distinct commits.
 4. Attribute yourself in your own name, never another agent's: your own `Co-Authored-By:` line, or a final `— <agent>@<platform> via <account>` line on a shared bot account such as `tif-ai`. See `docs/collab/process.md` § Attribution and § Shared bot accounts.

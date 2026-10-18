@@ -15,7 +15,7 @@ Applies to all Tiferet-family repositories (greatstrength/tiferet, and any tifer
 
 Source of truth: CONTRIBUTING.md → docs/collab/process.md. Inside tiferet use local paths; from another repo use https://github.com/greatstrength/tiferet/blob/main/docs/collab/process.md and that repo's docs/collab/binding.md if present.
 
-Strands: prototype is authorized by an RFP; trunk reconstruction is authorized by a TRD that cites an existing catalog freeze id; hotfixes are TRDs on trunk with no freeze; docs/skills PRs need no TRD. Never merge proto into trunk. Never implement trunk work by copying proto. Never tag or bump the package version on an individual PR.
+Strands: prototype is authorized by an RFP; trunk reconstruction is authorized by a TRD that cites an existing catalog freeze id; hotfixes are TRDs on trunk with no freeze; docs/skills PRs need no issue and no TRD (a `docs-<context>` branch and a `Docs – <Title>` PR to main; no milestone, no project-board item, no `Closes`). Never merge proto into trunk. Never implement trunk work by copying proto. Never tag or bump the package version on an individual PR.
 
 Navigation:
 - Implementation: AGENTS.md → tiferet-code-style (every session) → tiferet-code-<component>. Multi-component: tiferet-code-architecture.
