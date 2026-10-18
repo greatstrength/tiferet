@@ -30,8 +30,8 @@ git push origin --delete <branch-name>
 git pull origin main
 
 # Super-TRD branch. Policy: docs/collab/process.md.
-# The orchestrator or the human cuts this from main before any child starts.
-# A child agent does not.
+# The maintainer cuts and pushes this from main before any child starts.
+# No agent does (process.md § Agent guardrails).
 git checkout -b <parent-issue>-<slug> main
 git push -u origin <parent-issue>-<slug>
 
@@ -157,7 +157,7 @@ gh api repos/greatstrength/tiferet/issues/<issue>/dependencies/blocked_by \
 
 Do not publish a blocked-by cycle: two or more issues each naming the other's output as a prerequisite. Stop and report. See [process.md](process.md).
 
-External blockers of a Super-TRD child (a standalone TRD, or any work outside the parent branch) are wired on the child and on the parent issue. After every such blocker is squash-merged to `main`, the orchestrator or the human — not the child — updates the Super-TRD branch with a merge commit, not a rebase:
+External blockers of a Super-TRD child (a standalone TRD, or any work outside the parent branch) are wired on the child and on the parent issue. After every such blocker is squash-merged to `main`, the maintainer — never an agent — updates the Super-TRD branch with a merge commit, not a rebase:
 
 ```bash
 git checkout <parent-issue>-<slug>

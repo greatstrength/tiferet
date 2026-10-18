@@ -230,7 +230,7 @@ Use the REST API (`gh api`), not `gh issue create --milestone` (silently fails o
 
 Standalone and hotfix: `<issue-number>-<lowercase-hyphenated-title>`, cut from and targeting `main`.
 
-Super-TRD branch: `<parent-issue>-<slug>`, cut from `main` at the freeze base (trunk as it stands for this reconstruction, not proto) and pushed before any child starts. The orchestrator or the human cuts it. A child does not.
+Super-TRD branch: `<parent-issue>-<slug>`, cut from `main` at the freeze base (trunk as it stands for this reconstruction, not proto) and pushed before any child starts. The maintainer cuts it. No agent does.
 
 Child: `<child-issue>-<slug>`, cut from the Super-TRD branch tip. The PR targets that branch, never `main`.
 
