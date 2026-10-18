@@ -5,7 +5,7 @@
 
 ## Overview
 
-Domain objects are the structural core of the Tiferet framework. Every domain concept — errors, features, containers, app interfaces, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.core`.
+Domain objects are the structural core of the Tiferet framework. Every domain concept - errors, features, containers, app interfaces, CLI commands, and logging configurations - is expressed as a class extending `DomainObject` from `tiferet.domain.core`.
 
 Domain objects serve a **dual role**:
 
@@ -79,13 +79,13 @@ Key characteristics:
 
 Domain objects follow a strict artifact comment structure for consistency and AI/human readability:
 
-- `# *** models` – top-level section for domain object modules.
-- `# ** model: <name>` – individual domain object (snake_case).
-- `# * attribute: <name>` – instance attributes (Pydantic `Field(...)` annotations).
-- `# * init` – constructor, when the class has one.
-- `# * method: <name> (property)` – a descriptive `@property`, after attributes and `init`, before every other method. Getter only. No setter. A write is an ordinary method.
-- `# * method: <name>` – other domain methods.
-- `# * method: _derive_* (validator)` – optional `@model_validator` for derivation logic.
+- `# *** models` - top-level section for domain object modules.
+- `# ** model: <name>` - individual domain object (snake_case).
+- `# * attribute: <name>` - instance attributes (Pydantic `Field(...)` annotations).
+- `# * init` - constructor, when the class has one.
+- `# * method: <name> (property)` - a descriptive `@property`, after attributes and `init`, before every other method. Getter only. No setter. A write is an ordinary method.
+- `# * method: <name>` - other domain methods.
+- `# * method: _derive_* (validator)` - optional `@model_validator` for derivation logic.
 
 **Spacing rules:**
 - One empty line between `# *** models` and first `# ** model`.
@@ -100,7 +100,7 @@ Domain objects follow a strict artifact comment structure for consistency and AI
 - Instantiate directly via the constructor or `model_validate()`.
 - Use `@model_validator(mode='before')` for domain-specific derivation logic.
 
-**Example** – `CalculatorResult` (a downstream application module, so `tiferet` is imported under `# ** infra`):
+**Example** - `CalculatorResult` (a downstream application module, so `tiferet` is imported under `# ** infra`):
 ```python
 # *** imports
 
@@ -146,23 +146,23 @@ Domain objects are extended in the mappers layer as Aggregates (with mutation me
 
 ## Testing Domain Objects
 
-Unit tests of a named domain object use `@use_tester` (`type='domain'`) with `# *** testers` / `# ** tester:` — see [docs/core/testing.md](testing.md). Standalone pytest modules may still use `# *** fixtures` / `# *** tests`.
+Unit tests of a named domain object use `@use_tester` (`type='domain'`) with `# *** testers` / `# ** tester:` - see [docs/core/testing.md](testing.md). Standalone pytest modules may still use `# *** fixtures` / `# *** tests`.
 
-**Example** – Error domain object tests cover constructor instantiation, `format_message`, and multilingual support (structured response assembly is tested in `ErrorContext`).
+**Example** - Error domain object tests cover constructor instantiation, `format_message`, and multilingual support (structured response assembly is tested in `ErrorContext`).
 
 ## Package Layout
 
 Domain objects are defined in `tiferet/domain/`:
 
-- `core.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`) and the shared `ServiceDependency` core model.
-- `app.py` – `AppSession`, `AppServiceDependency`.
-- `cli.py` – `CliCommand`, `CliArgument`.
-- `di.py` – `ServiceRegistration`, `FlaggedDependency`.
-- `error.py` – `Error`, `ErrorMessage`.
-- `feature.py` – `Feature`, `FeatureStep`, `EventFeatureStep`.
-- `logging.py` – `Formatter`, `Handler`, `Logger`, `LoggingSettings`.
-- `tester.py` – `TesterObject`, `Verification` (unit-test identity; no Aggregate/TransferObject pair). See [docs/guides/domain/tester.md](../guides/domain/tester.md).
-- `__init__.py` – Public exports for all domain objects.
+- `core.py` - `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`) and the shared `ServiceDependency` core model.
+- `app.py` - `AppSession`, `AppServiceDependency`.
+- `cli.py` - `CliCommand`, `CliArgument`.
+- `di.py` - `ServiceRegistration`, `FlaggedDependency`.
+- `error.py` - `Error`, `ErrorMessage`.
+- `feature.py` - `Feature`, `FeatureStep`, `EventFeatureStep`.
+- `logging.py` - `Formatter`, `Handler`, `Logger`, `LoggingSettings`.
+- `tester.py` - `TesterObject`, `Verification` (unit-test identity; no Aggregate/TransferObject pair). See [docs/guides/domain/tester.md](../guides/domain/tester.md).
+- `__init__.py` - Public exports for all domain objects.
 
 Tests live in `tests/domain/`.
 
