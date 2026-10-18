@@ -198,7 +198,7 @@ def test_record_visit_creates_table_and_row(tmp_path):
 
 ## Related reading
 
-- [FileLoader guide](../file.md) – the parent class everyone inherits from  
+- [FileLoader guide](file.md) – the parent class everyone inherits from  
 - [docs/guides/utils.md](../utils.md) – Utils layer strategy guide  
 - [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) – full utilities architecture  
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) – `SqliteService` contract  

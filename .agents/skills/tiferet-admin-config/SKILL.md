@@ -414,5 +414,5 @@ admin.run(
 ## Canonical Source
 
 For full architectural details, resolver flag routing, and detailed blueprint specs, see:
-- [docs/guides/admin.md](../../../guides/admin.md) — Admin Support Strategies and Patterns
-- [docs/core/blueprints.md](../../../core/blueprints.md) — Blueprint Architecture and Entry Points
+- [docs/guides/admin.md](../../../docs/guides/admin.md) — Admin Support Strategies and Patterns
+- [docs/core/blueprints.md](../../../docs/core/blueprints.md) — Blueprint Architecture and Entry Points
