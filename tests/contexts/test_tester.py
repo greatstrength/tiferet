@@ -21,6 +21,7 @@ from tiferet.contexts.tester import (
     DomainEventTesterContext,
     DomainTesterContext,
     GenericTesterContext,
+    ModuleRunContext,
     RepoTesterContext,
     ServiceEventTesterContext,
     TESTER_CACHE_PREFIX,
@@ -40,7 +41,7 @@ from tiferet.domain import (
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.domain.error import ErrorMessage
 from tiferet.events.error import GetError
-from tiferet.interfaces import ErrorService
+from tiferet.interfaces import ErrorService, ServiceError
 from tiferet.mappers.error import (
     ErrorAggregate,
     ErrorConfigObject,
@@ -705,6 +706,45 @@ def test_repo_tester_context_empty_cases_are_noops() -> None:
     test_ctx.assert_list(None)
     test_ctx.assert_save(None)
     test_ctx.assert_delete(None)
+
+# ** test: service_error_is_recorded_as_failed
+def test_service_error_is_recorded_as_failed() -> None:
+    '''
+    Assert a service error is recorded as FAILED with its type in the message.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # A prior pass stays in the pool beside the recorded service error.
+    module_run = ModuleRunContext(lambda *args, **kwargs: None)
+    module_run.note('node.pass')
+    error = ServiceError('LOST', message='lost')
+    printable = module_run.note('node.lost', error=error)
+    assert printable is error
+    assert len(module_run.outcomes) == 2
+    assert module_run.failures == [module_run.outcomes[1]]
+    assert module_run.outcomes[1]['status'] == 'FAILED'
+    assert module_run.outcomes[1]['message'] == f'ServiceError: {error}'
+
+# ** test: base_exception_propagates
+def test_base_exception_propagates() -> None:
+    '''
+    Assert a base exception that is not an Exception still propagates.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # A KeyboardInterrupt is raised and nothing is appended.
+    module_run = ModuleRunContext(lambda *args, **kwargs: None)
+    module_run.note('node.pass')
+    interrupt = KeyboardInterrupt()
+    with pytest.raises(KeyboardInterrupt) as caught:
+        module_run.note('node.stop', error=interrupt)
+    assert caught.value is interrupt
+    assert len(module_run.outcomes) == 1
+    assert module_run.failures == []
 
 # *** testers
 
