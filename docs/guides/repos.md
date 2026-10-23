@@ -1,4 +1,4 @@
-# Repos – Strategies and Patterns
+# Repos - Strategies and Patterns
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,7 +7,7 @@
 
 ## Overview
 
-Repositories are the concrete data-access layer in Tiferet. Each repository implements a Service interface and inherits the shared `ConfigurationRepository` base, which handles format-specific file I/O for the domain's transfer objects and aggregates. Repositories are highly situational — their functionality is shaped by the specific structural requirements of the configuration format they manage.
+Repositories are the concrete data-access layer in Tiferet. Each repository implements a Service interface and inherits the shared `ConfigurationRepository` base, which handles format-specific file I/O for the domain's transfer objects and aggregates. Repositories are highly situational - their functionality is shaped by the specific structural requirements of the configuration format they manage.
 
 This guide covers the cross-cutting strategies and design decisions that apply to all repository modules, rather than any single domain.
 
@@ -28,7 +28,7 @@ The naming convention is `<Domain>ConfigRepository`. All repositories inherit `C
 
 ## No Package Exports
 
-Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service registration (`config.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. This keeps the dependency graph clean — consuming code depends only on the abstract Service interface, never on a concrete repository.
+Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service registration (`config.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. This keeps the dependency graph clean - consuming code depends only on the abstract Service interface, never on a concrete repository.
 
 ## Inherited Configuration Foundation
 
@@ -45,9 +45,9 @@ encoding: str
 default_role: str
 ```
 
-- **`config_file`** — path to the configuration file (`.yaml`/`.yml` or `.json`).
-- **`encoding`** — file encoding (default `'utf-8'`).
-- **`default_role`** — the TransferObject serialization role used for writes (`'to_data'`).
+- **`config_file`** - path to the configuration file (`.yaml`/`.yml` or `.json`).
+- **`encoding`** - file encoding (default `'utf-8'`).
+- **`default_role`** - the TransferObject serialization role used for writes (`'to_data'`).
 
 The constructor parameter follows the convention `<domain>_config` (e.g., `error_config`, `feature_config`) and is forwarded to the base as `config_file`.
 
@@ -93,7 +93,7 @@ Use `data_factory` when the configuration file contains **multiple sibling secti
 
 ### ID derivation from configuration keys
 
-Configuration files store entries as dictionaries keyed by identifier. The ID is not stored inside the value — it is derived from the key and injected during mapping:
+Configuration files store entries as dictionaries keyed by identifier. The ID is not stored inside the value - it is derived from the key and injected during mapping:
 
 ```python
 return ErrorConfigObject.model_validate(
@@ -129,7 +129,7 @@ The `setdefault` call ensures the section exists even on a fresh file.
 
 ### Delete: load section → pop → persist
 
-Deletes are always **idempotent** — deleting a non-existent entry is a no-op:
+Deletes are always **idempotent** - deleting a non-existent entry is a no-op:
 
 ```python
 # Load the section.
@@ -148,7 +148,7 @@ self._save(full_data)
 
 ## Grouped YAML Structures
 
-Some domains use **nested grouping** where entries are organized under a parent key. Features are the canonical example — each feature has a composite ID (`group_id.feature_key`) and is stored under its group:
+Some domains use **nested grouping** where entries are organized under a parent key. Features are the canonical example - each feature has a composite ID (`group_id.feature_key`) and is stored under its group:
 
 ```yaml
 features:
@@ -200,7 +200,7 @@ Each section is parsed independently within the `data_factory`.
 
 ### Composite transfer object (logging)
 
-The logging repository uses `LoggingSettingsConfigObject` — a transfer object that composes `FormatterConfigObject`, `HandlerConfigObject`, and `LoggerConfigObject` into a single object representing the entire file:
+The logging repository uses `LoggingSettingsConfigObject` - a transfer object that composes `FormatterConfigObject`, `HandlerConfigObject`, and `LoggerConfigObject` into a single object representing the entire file:
 
 ```python
 data = self._load(
@@ -261,12 +261,12 @@ Full grammar and worked tree: [docs/core/repos.md](../core/repos.md#testing-repo
    - Forward the `<domain>_config` path to the `ConfigurationRepository` base in `__init__`.
    - Implement each method using the read/write patterns above.
 3. **Write tests** in `tests/repos/test_<domain>.py`: `tmp_path` seed fixtures plus `@use_tester(type='repo')`.
-4. **Register via DI** — add the repository to the DI configuration file with `module_path` and `class_name`. No `__init__.py` export needed.
+4. **Register via DI** - add the repository to the DI configuration file with `module_path` and `class_name`. No `__init__.py` export needed.
 
 ## Related Documentation
 
-- [docs/core/repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md) — Repository base patterns and structured code design
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
-- [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) — Aggregate and TransferObject patterns
-- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader utility guide
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting
+- [docs/core/repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md) - Repository base patterns and structured code design
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service interface conventions
+- [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) - Aggregate and TransferObject patterns
+- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) - YamlLoader utility guide
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comments and formatting

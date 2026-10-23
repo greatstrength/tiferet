@@ -47,9 +47,9 @@ The authorizing document is the TRD. The first question is its acceptance criter
 
 Review topology for a Super-TRD:
 
-- One **fresh** reviewer per sub-TRD PR. The context is that child only. Do not carry findings or confidence forward from an earlier child's merge. If you have already reviewed another child of this Super-TRD, you are not the fresh reviewer — stop and say so.
+- One **fresh** reviewer per sub-TRD PR. The context is that child only. Do not carry findings or confidence forward from an earlier child's merge. If you have already reviewed another child of this Super-TRD, you are not the fresh reviewer - stop and say so.
 - Re-review after changes is that same reviewer, messaged again. Do not start a second reviewer for the same PR.
-- After every child has merged into the Super-TRD branch, one **fresh final** reviewer — someone who has not reviewed a child of this Super-TRD — reviews the Super-TRD PR (that branch to `main`) against the parent TRD, the proto baseline, and cross-child consistency. Verdict only. The maintainer squash-merges to `main`.
+- After every child has merged into the Super-TRD branch, one **fresh final** reviewer - someone who has not reviewed a child of this Super-TRD - reviews the Super-TRD PR (that branch to `main`) against the parent TRD, the proto baseline, and cross-child consistency. Verdict only. The maintainer squash-merges to `main`.
 
 A sub-TRD review checks that child's artifacts and AC. The final review checks each child TRD's artifacts and AC against the combined diff, plus cross-child consistency.
 
@@ -63,7 +63,7 @@ The source of fidelity, in order:
 
 A deviation that is a real improvement does not stay on trunk quietly. The Release reviewer sends it through a TRD amendment: update the TRD and the issue body before merge. If it changes the shape of a frozen RFP, it thaws the freeze ([process.md](process.md)), and the proto side takes it up as an RFP amendment.
 
-A hotfix is reviewed against the hotfix TRD only. It has no reference prototype, and proto — tags or branch — is not consulted.
+A hotfix is reviewed against the hotfix TRD only. It has no reference prototype, and proto - tags or branch - is not consulted.
 
 The reviewer is the only role that reads proto during a release. The implementor works from the TRD and is never sent to proto ([tech_requirements.md](tech_requirements.md)). Reading proto is `git fetch` plus `git show` / `git diff` of that ref. It is not a checkout into the trunk worktree, not a copy, and not a git flow. A finding names the artifact and the reference it deviates from. It never asks anyone to merge, rebase, cherry-pick, check out, or copy proto onto trunk.
 
@@ -82,15 +82,15 @@ A Doc or skills PR has no issue, no TRD, and no RFP. It is not linked to an issu
 1. `gh pr view <n> --json number,headRefName,baseRefName,files` so you know what you are looking at.
 2. Reconstruction with a recorded reference prototype: `git fetch origin <proto-branch> --tags` using the branch in [binding.md](binding.md). Do not check that branch out. For each file the TRD's §3 names, measure the freeze-point reference with `git diff <reference-tag>..HEAD -- <path>` and `git show <reference-tag>:<path>`, and measure the branch with `git diff origin/<proto-branch>..HEAD -- <path>` and `git show origin/<proto-branch>:<path>`. Prototype review, hotfix review, and a reconstruction whose §7 reference is `None` never run this step.
 3. Sort what you see:
-   - **Style violation** — blocking, always. Includes spacing and ordering.
-   - **Wrong PR base** — blocking. A sub-TRD PR whose base is not the Super-TRD branch, or a Super-TRD PR whose base is not `main`.
-   - **AC fail** — say so, naming the artifact.
-   - **Test defect** — wrong unit, wrong tester, assertion gap, duplicate.
-   - **Superfluous** — remove it.
-   - **Artifact deviation from the reference** — release only, blocking. Name the artifact and the reference (freeze-point tag or prototype branch).
-   - **Concept deviation** from the RFP, vision, or distillation — prototype only, blocking.
-   - **Name or placement note** — prototype only, non-blocking, when the concept holds.
-   - **Out of scope** — leave it alone.
+   - **Style violation** - blocking, always. Includes spacing and ordering.
+   - **Wrong PR base** - blocking. A sub-TRD PR whose base is not the Super-TRD branch, or a Super-TRD PR whose base is not `main`.
+   - **AC fail** - say so, naming the artifact.
+   - **Test defect** - wrong unit, wrong tester, assertion gap, duplicate.
+   - **Superfluous** - remove it.
+   - **Artifact deviation from the reference** - release only, blocking. Name the artifact and the reference (freeze-point tag or prototype branch).
+   - **Concept deviation** from the RFP, vision, or distillation - prototype only, blocking.
+   - **Name or placement note** - prototype only, non-blocking, when the concept holds.
+   - **Out of scope** - leave it alone.
 4. A comment about a line goes on that line, and the line has to be in the PR diff. A comment about a missing file or a whole package goes in the review body.
 5. Tell the human what you found and wait for a go-ahead before you post anything to GitHub. That wait is for posting the review. It is not a merge approval.
 6. Post **one consolidated review** (`path` + `position`, not `line`). The first line of the review body is exactly `Verdict: Approve` or `Verdict: Changes requested`. Then the findings summary, then the reviewing agent's own attribution ([process.md](process.md#attribution)). Do not post a stream of separate comments. When the reviewer and the author share a GitHub token, GitHub rejects `--approve` and `--request-changes`. Post the review as a comment in that case. The verdict line is the signal either way; do not treat a rejected API event as a failed review. After opening a PR, and after addressing PR feedback, the author posts a short status on the issue.
@@ -102,7 +102,7 @@ Do not put Collaboration Reports or session notes on the PR. That is what the is
 The review ends with one verdict line, the first line of the review: `Verdict: Approve` or `Verdict: Changes requested`. Approve only when:
 
 - no blocking finding remains and no diff comment is unresolved;
-- the PR is GitHub-linked to its authorizing issue (the RFP, the standalone TRD, the Super-TRD parent, or — for a sub-TRD PR — the child and the parent) and is not on a milestone. A Doc PR has no issue; that is not a finding;
+- the PR is GitHub-linked to its authorizing issue (the RFP, the standalone TRD, the Super-TRD parent, or - for a sub-TRD PR - the child and the parent) and is not on a milestone. A Doc PR has no issue; that is not a finding;
 - the PR body's AC checkboxes are checked;
 - no tag or version bump rides on the PR;
 - a sub-TRD PR's base is the Super-TRD branch, and a PR that should land on `main` has base `main`.

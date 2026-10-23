@@ -1,4 +1,4 @@
-"""Tests for DI Assets — admin catalog reconciliation."""
+"""Tests for DI Assets - admin catalog reconciliation."""
 
 # *** imports
 

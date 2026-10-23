@@ -1,4 +1,4 @@
-# Assets – The Catalog and Factory Pattern
+# Assets - The Catalog and Factory Pattern
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,21 +7,21 @@
 
 ## Overview
 
-`tiferet/assets/` is the dependency-light foundation every other layer builds on: it never imports from `domain`, `events`, `mappers`, `interfaces`, `repos`, `contexts`, or `blueprints`. This guide distills the pattern that recurs across every default catalog in the layer — error definitions, app service dependencies, feature workflows, app sessions, logging configuration, CLI commands — regardless of which domain the catalog eventually reconstitutes. For the two exception classes the layer also hosts (`TiferetError`, `TiferetAPIError`), see [docs/guides/errors.md](errors.md) instead — this guide is scoped to the constant/factory/catalog pattern, not the exception vocabulary.
+`tiferet/assets/` is the dependency-light foundation every other layer builds on: it never imports from `domain`, `events`, `mappers`, `interfaces`, `repos`, `contexts`, or `blueprints`. This guide distills the pattern that recurs across every default catalog in the layer - error definitions, app service dependencies, feature workflows, app sessions, logging configuration, CLI commands - regardless of which domain the catalog eventually reconstitutes. For the two exception classes the layer also hosts (`TiferetError`, `TiferetAPIError`), see [docs/guides/errors.md](errors.md) instead - this guide is scoped to the constant/factory/catalog pattern, not the exception vocabulary.
 
 **Vision:** See `docs/core/assets.md` for the layer's code-style role and artifact-kind constraints; this guide covers the cross-cutting catalog *pattern* those artifacts are built from.
 
 ## Ubiquitous Language
 
-- **ID constant** — a `SCREAMING_SNAKE_CASE` string constant naming one catalog entry (e.g. `FEATURE_NOT_FOUND_ID`). Always the sole source of an entry's identifier.
-- **Data constant** — the entry's definition, built by a `create_default_*` factory and **never** carrying its own id — the id lives only on the ID constant that keys it in the group dict.
-- **Group dict** — the `CORE_DEFAULT_*` / `ADMIN_DEFAULT_*` mapping from ID constant to data constant that a bootstrap decorator iterates over.
-- **Default-entry workflow** — the three-step sequence (ID constant → data constant via factory → group dict entry) used to add any new default catalog row.
-- **Cache seeding** — the process by which a bootstrap `add_default_*` decorator (`tiferet/contexts/`) reconstitutes each group-dict entry into a domain object and stores it in the shared `CacheContext` under a dedicated prefix, re-injecting the id the data constant deliberately omitted.
+- **ID constant** - a `SCREAMING_SNAKE_CASE` string constant naming one catalog entry (e.g. `FEATURE_NOT_FOUND_ID`). Always the sole source of an entry's identifier.
+- **Data constant** - the entry's definition, built by a `create_default_*` factory and **never** carrying its own id - the id lives only on the ID constant that keys it in the group dict.
+- **Group dict** - the `CORE_DEFAULT_*` / `ADMIN_DEFAULT_*` mapping from ID constant to data constant that a bootstrap decorator iterates over.
+- **Default-entry workflow** - the three-step sequence (ID constant → data constant via factory → group dict entry) used to add any new default catalog row.
+- **Cache seeding** - the process by which a bootstrap `add_default_*` decorator (`tiferet/contexts/`) reconstitutes each group-dict entry into a domain object and stores it in the shared `CacheContext` under a dedicated prefix, re-injecting the id the data constant deliberately omitted.
 
 ## The ids / data / groups Catalog Pattern
 
-Every default catalog in `assets/` — `assets/error.py`'s `CORE_DEFAULT_ERRORS`, `assets/app.py`'s `CORE_DEFAULT_SERVICES`/`CORE_DEFAULT_CONSTANTS`, `assets/feature.py`'s default features, `assets/logging.py`'s formatters/handlers/loggers, `assets/cli.py`'s default commands, `assets/tester.py`'s `CORE_DEFAULT_TESTERS` — follows the same three-section shape:
+Every default catalog in `assets/` - `assets/error.py`'s `CORE_DEFAULT_ERRORS`, `assets/app.py`'s `CORE_DEFAULT_SERVICES`/`CORE_DEFAULT_CONSTANTS`, `assets/feature.py`'s default features, `assets/logging.py`'s formatters/handlers/loggers, `assets/cli.py`'s default commands, `assets/tester.py`'s `CORE_DEFAULT_TESTERS` - follows the same three-section shape:
 
 ```python
 # *** constants (ids)
@@ -39,9 +39,9 @@ CORE_DEFAULT_ERRORS = {
 }
 ```
 
-**The id is never duplicated.** Every `create_default_*` factory deliberately omits an `id`/`service_id`/`key` parameter — the definition is always stored under its owning `*_ID` constant as the group-dict key, so the consuming `add_default_*` decorator re-injects the id from that key when it reconstitutes the domain object. Restating the id inside the data constant would create two sources of truth for the same value.
+**The id is never duplicated.** Every `create_default_*` factory deliberately omits an `id`/`service_id`/`key` parameter - the definition is always stored under its owning `*_ID` constant as the group-dict key, so the consuming `add_default_*` decorator re-injects the id from that key when it reconstitutes the domain object. Restating the id inside the data constant would create two sources of truth for the same value.
 
-**Admin/core layering:** an admin-scoped catalog (e.g. `ADMIN_DEFAULT_SERVICES`) extends the core one with `{**CORE_DEFAULT_SERVICES, ...}` — always in the mandatory multi-line hanging-indent form, even for a pure spread with no additional entries (see [code_style.md § Constant declaration style](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
+**Admin/core layering:** an admin-scoped catalog (e.g. `ADMIN_DEFAULT_SERVICES`) extends the core one with `{**CORE_DEFAULT_SERVICES, ...}` - always in the mandatory multi-line hanging-indent form, even for a pure spread with no additional entries (see [code_style.md § Constant declaration style](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
 ## The `create_default_*_data` Factory Family
 
@@ -65,30 +65,30 @@ Optional fields follow a uniform pattern: a factory parameter defaulting to `Non
 
 ## Adding a New Default Entry
 
-1. **ID constant** — add a `# ** constant: <name>_id` under `# *** constants (ids)`, value `'SCREAMING_SNAKE_NAME'`.
-2. **Data constant** — add a `# ** constant: <name>_data` under `# *** constants (data)`, built via the matching `create_default_*` factory. Never pass an id/key to the factory.
-3. **Group dict entry** — add `<NAME>_ID: <NAME>_DATA` to the relevant `CORE_DEFAULT_*` dict under `# *** constants (groups)`, in the multi-line hanging-indent form.
-4. **Bootstrap wiring** (outside `assets/`) — confirm an `add_default_*` decorator in the corresponding `contexts/` module already consumes that group dict; if the catalog is new, that decorator (and its `get_default_*` accessor) needs to exist too.
+1. **ID constant** - add a `# ** constant: <name>_id` under `# *** constants (ids)`, value `'SCREAMING_SNAKE_NAME'`.
+2. **Data constant** - add a `# ** constant: <name>_data` under `# *** constants (data)`, built via the matching `create_default_*` factory. Never pass an id/key to the factory.
+3. **Group dict entry** - add `<NAME>_ID: <NAME>_DATA` to the relevant `CORE_DEFAULT_*` dict under `# *** constants (groups)`, in the multi-line hanging-indent form.
+4. **Bootstrap wiring** (outside `assets/`) - confirm an `add_default_*` decorator in the corresponding `contexts/` module already consumes that group dict; if the catalog is new, that decorator (and its `get_default_*` accessor) needs to exist too.
 
 ## Cache Seeding via `add_default_*` Decorators
 
-`CORE_DEFAULT_TESTERS` is a cache declaration, not a `testers:` YAML section. `add_default_testers` (`contexts/tester.py`) reconstitutes rows under `TESTER_CACHE_PREFIX = ('app', 'testers')`. `tiferet/assets/__init__.py` `__all__` does not export the tester module — import `tiferet.assets.tester` (or `create_default_tester_data` from `tiferet.assets.core`) directly.
+`CORE_DEFAULT_TESTERS` is a cache declaration, not a `testers:` YAML section. `add_default_testers` (`contexts/tester.py`) reconstitutes rows under `TESTER_CACHE_PREFIX = ('app', 'testers')`. `tiferet/assets/__init__.py` `__all__` does not export the tester module - import `tiferet.assets.tester` (or `create_default_tester_data` from `tiferet.assets.core`) directly.
 
-The catalog itself only produces plain dicts — reconstitution into domain objects happens outside `assets/`, in `contexts/`. Each `add_default_*` decorator (e.g. `add_default_app_services`, `add_default_app_sessions`, `add_default_errors`, `add_default_testers`) wraps a cache-builder callable: after the wrapped builder constructs the `CacheContext`, the decorator iterates the group dict, calls `<DomainObject>.model_validate({**data, 'id_field': id})` to re-inject the id, and stores the result under a dedicated cache-key prefix (e.g. `APP_SERVICE_CACHE_PREFIX = ('app', 'services')`, `TESTER_CACHE_PREFIX = ('app', 'testers')`). The blueprint layer reads that prefix straight back out via `cache.get_by_prefix(...)` or `cache.get(id, *prefix)` — no `get_default_*` counterpart exists for the app, admin, or tester catalogs; `get_default_cli_commands` (`contexts/cli.py`) remains the one shared-getter case, kept because it has multiple production callers across blueprint modules. This indirection is why a data constant never carries its own id: the cache key *is* the id, and the decorator is the single place that reunites them.
+The catalog itself only produces plain dicts - reconstitution into domain objects happens outside `assets/`, in `contexts/`. Each `add_default_*` decorator (e.g. `add_default_app_services`, `add_default_app_sessions`, `add_default_errors`, `add_default_testers`) wraps a cache-builder callable: after the wrapped builder constructs the `CacheContext`, the decorator iterates the group dict, calls `<DomainObject>.model_validate({**data, 'id_field': id})` to re-inject the id, and stores the result under a dedicated cache-key prefix (e.g. `APP_SERVICE_CACHE_PREFIX = ('app', 'services')`, `TESTER_CACHE_PREFIX = ('app', 'testers')`). The blueprint layer reads that prefix straight back out via `cache.get_by_prefix(...)` or `cache.get(id, *prefix)` - no `get_default_*` counterpart exists for the app, admin, or tester catalogs; `get_default_cli_commands` (`contexts/cli.py`) remains the one shared-getter case, kept because it has multiple production callers across blueprint modules. This indirection is why a data constant never carries its own id: the cache key *is* the id, and the decorator is the single place that reunites them.
 
 ## When to Deviate
 
-A catalog that only ever has one entry (no meaningful "many rows" shape) does not need the full ids/data/groups three-way split — a single well-named constant is enough. Introduce the split only once a module has more than a handful of related default entries that benefit from a uniform shape.
+A catalog that only ever has one entry (no meaningful "many rows" shape) does not need the full ids/data/groups three-way split - a single well-named constant is enough. Introduce the split only once a module has more than a handful of related default entries that benefit from a uniform shape.
 
 ## Boundaries
 
 **Inside this domain:** the id/data/groups catalog shape, the `create_default_*` factory family, and the default-entry workflow for adding a new catalog row.
-**Outside this domain:** the two exception classes (`TiferetError`/`TiferetAPIError`) also hosted in `assets/core.py` — see [docs/guides/errors.md](errors.md); reconstituting a group dict into cached domain objects via `add_default_*` decorators — that orchestration lives in `contexts/`, not `assets/`; the artifact-comment/spacing conventions governing how these constants are labeled — see `docs/core/assets.md` and `docs/core/code_style.md`.
+**Outside this domain:** the two exception classes (`TiferetError`/`TiferetAPIError`) also hosted in `assets/core.py` - see [docs/guides/errors.md](errors.md); reconstituting a group dict into cached domain objects via `add_default_*` decorators - that orchestration lives in `contexts/`, not `assets/`; the artifact-comment/spacing conventions governing how these constants are labeled - see `docs/core/assets.md` and `docs/core/code_style.md`.
 
 ## Related Documentation
 
-- [docs/guides/errors.md](errors.md) — `TiferetError`/`TiferetAPIError`, the other artifact kind this layer hosts
-- [docs/guides/domain/tester.md](domain/tester.md) — `TesterObject` catalog rows vs decorator-supplied fields
-- [docs/core/testing.md](../core/testing.md) — v2.1.0 unit-test model
-- [docs/core/assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md) — assets layer artifact kinds and code-style conventions
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — constant declaration style and artifact comments
+- [docs/guides/errors.md](errors.md) - `TiferetError`/`TiferetAPIError`, the other artifact kind this layer hosts
+- [docs/guides/domain/tester.md](domain/tester.md) - `TesterObject` catalog rows vs decorator-supplied fields
+- [docs/core/testing.md](../core/testing.md) - v2.1.0 unit-test model
+- [docs/core/assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md) - assets layer artifact kinds and code-style conventions
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - constant declaration style and artifact comments

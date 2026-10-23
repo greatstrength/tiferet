@@ -14,9 +14,9 @@ description: >
 
 ## When not to use
 
-- Trunk reconstruction or hotfix — `tiferet-author-trd`.
-- Docs/skills — no issue, no specification document; open a Doc PR.
-- Implementing an already-published RFP — `tiferet-rfp-session`.
+- Trunk reconstruction or hotfix - `tiferet-author-trd`.
+- Docs/skills - no issue, no specification document; open a Doc PR.
+- Implementing an already-published RFP - `tiferet-rfp-session`.
 - Planning a prerelease or opening a milestone.
 
 ## Canonical source
@@ -35,7 +35,7 @@ Binding file (proto branch, RFP prefix). Distillation sections to cite. Optional
 1. Read binding.md. Prefix example: `TIF2`. Proto branch example: `v2.x-proto`.
 2. Draft `.rfp/<prefix-lower>-rfp-<nnn>-<kebab>.md` with the genre in rfp.md: header (Status, Domain, Branch, Issue, Related, **Depends on**, **Blocks**) then Summary, Motivation, Current state, Proposal, Out of scope, Risks (resolved vs open), Acceptance criteria, Suggested TRD slicing.
 3. Amendments: Status = Amended, add Amendment note, keep the same issue. Do not open a new number.
-4. Publish or refresh the GitHub issue body from that file. Title: `RFP-00N — <Plain Title>`.
+4. Publish or refresh the GitHub issue body from that file. Title: `RFP-00N - <Plain Title>`.
 5. Wire GitHub blocked-by to match `Depends on` / `Blocks` (`docs/collab/commands.md`). A reviewer assigns any milestone; do not invent one.
 6. If this amendment changes shape of a **frozen** RFP, say so. Do not keep reconstructing the old catalog.
 
@@ -51,4 +51,4 @@ Binding file (proto branch, RFP prefix). Distillation sections to cite. Optional
 - Do not write a TRD. Do not set `Version: Request for Prototype` on anything.
 - Never proto → trunk git.
 - Do not tag. Do not bump the package version.
-- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `- <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).

@@ -1,4 +1,4 @@
-# Utilities – YamlLoader (alias: Yaml)
+# Utilities - YamlLoader (alias: Yaml)
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -13,12 +13,12 @@ It extends `FileLoader` (`tiferet/utils/file.py`), inheriting full context-manag
 
 Use `YamlLoader` (or its alias `Yaml`) directly when you need to read or write YAML files inside domain events, scripts, or tests. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-`YamlLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+`YamlLoader` implements no configuration contract - it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
 
 ## Ubiquitous Language
 
-- **`start_node`/`data_factory`** — the two optional transformation callables `load()` applies in sequence: navigate to a sub-key, then reshape the navigated result.
-- **Empty-file coercion** — `YamlLoader`'s choice to return `{}` for an empty file rather than `None` or an error, distinguishing it from `JsonLoader`'s stricter behavior.
+- **`start_node`/`data_factory`** - the two optional transformation callables `load()` applies in sequence: navigate to a sub-key, then reshape the navigated result.
+- **Empty-file coercion** - `YamlLoader`'s choice to return `{}` for an empty file rather than `None` or an error, distinguishing it from `JsonLoader`'s stricter behavior.
 
 ## When to Use YamlLoader vs. Injected Service
 
@@ -63,8 +63,8 @@ saver.save({'status': 'complete', 'items': [1, 2, 3]})
 
 Opens the file via the inherited context manager, parses YAML with `safe_load`, and applies two optional transformation functions in sequence:
 
-1. **`start_node`** — first transformation on the raw parsed dict (e.g., navigate to a sub-key).
-2. **`data_factory`** — final transformation on the result of `start_node` (e.g., cast to a list, build domain objects).
+1. **`start_node`** - first transformation on the raw parsed dict (e.g., navigate to a sub-key).
+2. **`data_factory`** - final transformation on the result of `start_node` (e.g., cast to a list, build domain objects).
 
 Empty files return `{}` (not `None`).
 
@@ -85,9 +85,9 @@ Pre-flight validation that checks:
 infrastructural failure is not a domain outcome, so it is never resolved through
 the error catalog or formatted into an API response.
 
-- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
-- **`yaml.YAMLError`** — caught and wrapped as `YAML_FILE_LOAD_ERROR_ID`, with the parser exception preserved as `__cause__` so its line and column marks survive.
-- **All other exceptions** during load/save — caught and wrapped as `YAML_FILE_LOAD_ERROR_ID` or `YAML_FILE_SAVE_ERROR_ID` respectively.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) - re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
+- **`yaml.YAMLError`** - caught and wrapped as `YAML_FILE_LOAD_ERROR_ID`, with the parser exception preserved as `__cause__` so its line and column marks survive.
+- **All other exceptions** during load/save - caught and wrapped as `YAML_FILE_LOAD_ERROR_ID` or `YAML_FILE_SAVE_ERROR_ID` respectively.
 
 Codes are hosted by the module that raises them, not by the error catalog. Import
 them from the utility module:
@@ -108,11 +108,11 @@ Inherited from `FileLoader` (`tiferet.utils.file`):
 - `INVALID_ENCODING_ID`
 - `FILE_ALREADY_OPEN_ID`
 
-Each error also carries the provenance of the failing service — `module_path`,
-`class_name`, and `target_method` — naming the instance and the method that
+Each error also carries the provenance of the failing service - `module_path`,
+`class_name`, and `target_method` - naming the instance and the method that
 failed.
 
-## Example – Domain Event with Direct Usage
+## Example - Domain Event with Direct Usage
 
 ```python
 from tiferet.events import DomainEvent, a
@@ -136,13 +136,13 @@ class LoadAppConfig(DomainEvent):
         return loader.load()
 ```
 
-## Example – Pre-Flight Validation with Fallback
+## Example - Pre-Flight Validation with Fallback
 
 ```python
 from pathlib import Path
 from tiferet.utils import Yaml, YamlLoader
 
-# Validate a path before opening — with fallback
+# Validate a path before opening - with fallback
 loader = YamlLoader(path='configs/app.conf', mode='r')
 default = Path('configs/app.yaml')
 
@@ -150,7 +150,7 @@ YamlLoader.verify_yaml_file(loader, default_path=default)
 # If 'app.conf' has an invalid extension but 'app.yaml' exists, validation passes.
 ```
 
-## Example – Round-Trip Save and Reload
+## Example - Round-Trip Save and Reload
 
 ```python
 from tiferet.utils import Yaml
@@ -201,13 +201,13 @@ a missing file as a no-op must catch the `ServiceError` and return `None` itself
 ## Boundaries
 
 **Inside this domain:** YAML parsing/serialization (`safe_load`/`safe_dump`) and pre-flight file validation.
-**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); YAML-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); YAML-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` - [docs/guides/repos.md](../repos.md)).
 
 ## Related Documentation
 
-- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
-- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
-- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) - FileLoader guide (parent class)
+- [docs/guides/utils.md](../utils.md) - Utils layer strategy guide
+- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) - Full utilities architecture and style guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service contract definitions
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

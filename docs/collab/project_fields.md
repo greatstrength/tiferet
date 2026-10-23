@@ -1,21 +1,21 @@
-# Project Fields — Tiferet Projects
+# Project Fields - Tiferet Projects
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet
 
 ## Purpose
 
-This document defines the canonical GitHub Project field set used across Tiferet-family projects. Status and assignment follow [main.md](main.md) (trunk) and [rfp.md](rfp.md) (prototype). Doc PRs have no issue and no board item ([doc.md](doc.md)). Field/option **ids** live in [binding.md](binding.md); example commands in [commands.md](commands.md). The goal is a single, consistent triage model — Priority, Size, story points, and dates — that an agent or human can apply identically on every project.
+This document defines the canonical GitHub Project field set used across Tiferet-family projects. Status and assignment follow [main.md](main.md) (trunk) and [rfp.md](rfp.md) (prototype). Doc PRs have no issue and no board item ([doc.md](doc.md)). Field/option **ids** live in [binding.md](binding.md); example commands in [commands.md](commands.md). The goal is a single, consistent triage model - Priority, Size, story points, and dates - that an agent or human can apply identically on every project.
 
 ## Field Set
 
 ### Triage fields (set at triage / during the workflow)
 
-- **Status** — workflow state: Ready → In progress → In review → Done (see [main.md](main.md)). All new issues start at **Ready**; use blocked-by relationships for dependency ordering rather than Backlog.
-- **Priority** — `P0`/`P1`/`P2`; sequence and criticality.
-- **Size** — `XS`–`XL`; fast t-shirt judgment.
-- **Estimate** — numeric story points on a Fibonacci scale; the additive rollup/velocity metric. Kept under GitHub's built-in **Estimate** field name (it stores the point value).
-- **Start date** / **End date** — actual cycle-time bounds.
+- **Status** - workflow state: Ready → In progress → In review → Done (see [main.md](main.md)). All new issues start at **Ready**; use blocked-by relationships for dependency ordering rather than Backlog.
+- **Priority** - `P0`/`P1`/`P2`; sequence and criticality.
+- **Size** - `XS`-`XL`; fast t-shirt judgment.
+- **Estimate** - numeric story points on a Fibonacci scale; the additive rollup/velocity metric. Kept under GitHub's built-in **Estimate** field name (it stores the point value).
+- **Start date** / **End date** - actual cycle-time bounds.
 
 ### Automatic / contextual (no policy required)
 
@@ -23,26 +23,26 @@ Milestone, Labels, Repository, Linked pull requests, Assignees, Reviewers, Creat
 
 ### Deferred
 
-- **Iteration** — not used at this time. Agent-driven throughput is not bound to fixed, recurring human sprint capacity, and the **Milestone** already serves as the scope boundary while Priority + dependency order sequence the work. Keep the field defined (hidden) for future human-team adoption; if a cadence is ever required, treat the Milestone as the iteration rather than adding a parallel time-box.
+- **Iteration** - not used at this time. Agent-driven throughput is not bound to fixed, recurring human sprint capacity, and the **Milestone** already serves as the scope boundary while Priority + dependency order sequence the work. Keep the field defined (hidden) for future human-team adoption; if a cadence is ever required, treat the Milestone as the iteration rather than adding a parallel time-box.
 
 ## Status Workflow
 
 Status tracks each issue through its lifecycle. Transitions are driven by branch, PR, and merge events and mirror the Per-Issue Workflow in [main.md](main.md):
 
-1. **Ready** — issue created and ready to implement. Set **Priority**, **Size**, and **Estimate** at creation.
-2. **In progress** — work has started / the feature branch is cut. Set the **Start date**.
-3. **In review** — the PR is opened (standalone trunk → `main`, Super-TRD child → the Super-TRD branch, proto → the proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
-4. **Done** — for an RFP, the proto PR is merged and the issue is closed by hand (proto does not honor `Closes`); for a standalone trunk TRD, the Collaboration Report is posted. Set the **End date** and close the issue. Super-TRD children stay In Review until the Super-TRD PR to `main` is squash-merged; closing them is closeout. They are not Done when the sub-TRD PR merges, and they do not each get a Collaboration Report.
+1. **Ready** - issue created and ready to implement. Set **Priority**, **Size**, and **Estimate** at creation.
+2. **In progress** - work has started / the feature branch is cut. Set the **Start date**.
+3. **In review** - the PR is opened (standalone trunk → `main`, Super-TRD child → the Super-TRD branch, proto → the proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
+4. **Done** - for an RFP, the proto PR is merged and the issue is closed by hand (proto does not honor `Closes`); for a standalone trunk TRD, the Collaboration Report is posted. Set the **End date** and close the issue. Super-TRD children stay In Review until the Super-TRD PR to `main` is squash-merged; closing them is closeout. They are not Done when the sub-TRD PR merges, and they do not each get a Collaboration Report.
 
-In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged to the branch that closes the issue → **Done** + issue closed (close RFP issues yourself after a proto squash). A Super-TRD child is not Done when its sub-TRD PR merges. **Backlog** is available but not used for new issues — blocked-by relationships communicate dependency ordering without reflecting it in Status.
+In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged to the branch that closes the issue → **Done** + issue closed (close RFP issues yourself after a proto squash). A Super-TRD child is not Done when its sub-TRD PR merges. **Backlog** is available but not used for new issues - blocked-by relationships communicate dependency ordering without reflecting it in Status.
 
 ## Priority
 
 Priority is read off the TRD **Prerequisites** table rather than guessed:
 
-- **P0** — critical path; the issue appears as a prerequisite for other issues (root/unblocker).
-- **P1** — required for the milestone, independently workable, blocks little.
-- **P2** — trailing or externally gated (tests, docs, companion-coupled work).
+- **P0** - critical path; the issue appears as a prerequisite for other issues (root/unblocker).
+- **P1** - required for the milestone, independently workable, blocks little.
+- **P2** - trailing or externally gated (tests, docs, companion-coupled work).
 
 For feature releases (as opposed to parity/tracking milestones), Priority may also fold in user/business value.
 
@@ -72,15 +72,15 @@ Rename-only or few files → XS/S; net-new logic or a wide blast radius → L; c
 
 ### Splitting rules
 
-- **XXL (≥ 13) — must split.** No single issue may exceed XL/8 points; break it into multiple TRDs/issues. This matches Agile guidance to decompose oversized stories and reinforces one-TRD-per-issue granularity.
-- **XL (8) — consider splitting.** Treat XL as a soft warning rather than a hard stop: it is a gray area, so split when a natural seam exists and the pieces stand on their own; otherwise proceed as a single issue.
+- **XXL (≥ 13) - must split.** No single issue may exceed XL/8 points; break it into multiple TRDs/issues. This matches Agile guidance to decompose oversized stories and reinforces one-TRD-per-issue granularity.
+- **XL (8) - consider splitting.** Treat XL as a soft warning rather than a hard stop: it is a gray area, so split when a natural seam exists and the pieces stand on their own; otherwise proceed as a single issue.
 
 ## Start / End Date
 
-- **Start date** — set when Status → In progress (feature branch cut).
-- **End date** — set when Status → Done (PR merged).
+- **Start date** - set when Status → In progress (feature branch cut).
+- **End date** - set when Status → Done (PR merged).
 
-Together these give per-issue and per-milestone cycle time; the automatic **Created**/**Closed** timestamps serve as an audit backup. Agents set these as part of the per-issue workflow in [main.md](main.md) — two field writes, at the In progress and Done transitions.
+Together these give per-issue and per-milestone cycle time; the automatic **Created**/**Closed** timestamps serve as an audit backup. Agents set these as part of the per-issue workflow in [main.md](main.md) - two field writes, at the In progress and Done transitions.
 
 ## Cross-Project Standardization
 
@@ -97,7 +97,7 @@ GitHub Milestone is the scope boundary. Title shapes ([binding.md](binding.md)):
 
 Priority, Size, and Estimate apply to issues on both strands. Reconstruction issues also cite a freeze id in the TRD; that is not a project field.
 
-## Worked Example — Milestone 1 (#28)
+## Worked Example - Milestone 1 (#28)
 
 Applied values for the Domain Infrastructure milestone (≈ 34 points total):
 

@@ -1,6 +1,6 @@
 # Interfaces in Tiferet
 
-Interfaces are a core component of the Tiferet framework, defining service contracts that specify the anticipated structure and behavior of services used by commands and domain events, aligning with Domain-Driven Design (DDD) principles. In the current evolution of Tiferet, **Services** serve as the **unified vertical contracts** — abstract base classes that act as the primary interface for all domain-specific orchestration, data access, configuration management, middleware, and utility behavior.
+Interfaces are a core component of the Tiferet framework, defining service contracts that specify the anticipated structure and behavior of services used by commands and domain events, aligning with Domain-Driven Design (DDD) principles. In the current evolution of Tiferet, **Services** serve as the **unified vertical contracts** - abstract base classes that act as the primary interface for all domain-specific orchestration, data access, configuration management, middleware, and utility behavior.
 
 This document focuses exclusively on **Services** as the vertical contracts.
 
@@ -37,12 +37,12 @@ Services follow Tiferet's structured code style using artifact comments for orga
 
 Services are organized under the `# *** interfaces` top-level comment, with individual Services under `# ** interface: <snake_case_name>`. Within each Service:
 
-- `# * attribute: <name>` — Declares expected instance attributes (type hints only).
-- `# * method: <name>` — Defines abstract methods marked with `@abstractmethod`.
+- `# * attribute: <name>` - Declares expected instance attributes (type hints only).
+- `# * method: <name>` - Defines abstract methods marked with `@abstractmethod`.
 
 No `# * method: new` is used, as Services are interfaces.
 
-**Example** – `tiferet/interfaces/error.py`:
+**Example** - `tiferet/interfaces/error.py`:
 ```python
 # *** interfaces
 
@@ -93,7 +93,7 @@ class ErrorService(Service):
         raise NotImplementedError()
 ```
 
-**Example** – `tiferet/interfaces/config.py` (configuration):
+**Example** - `tiferet/interfaces/config.py` (configuration):
 ```python
 # ** interface: configuration_service
 class ConfigurationService(Service):
@@ -118,7 +118,7 @@ class ConfigurationService(Service):
         raise NotImplementedError()
 ```
 
-**Example** – `tiferet/interfaces/file.py` (low-level middleware/utility):
+**Example** - `tiferet/interfaces/file.py` (low-level middleware/utility):
 ```python
 # ** interface: file_service
 class FileService(Service):
@@ -164,12 +164,12 @@ class FileService(Service):
 - Define methods with clear RST docstrings, type hints, and domain intent.
 - Use `@abstractmethod` to enforce implementation.
 - Keep services focused but composable (layer via inheritance or decoration).
-- Depend on Service contracts in commands and events — never hard-code concrete classes.
+- Depend on Service contracts in commands and events - never hard-code concrete classes.
 - Maintain one empty line between sections, comments, and code blocks.
 
 ## MiddlewareService
 
-`MiddlewareService` (`tiferet/interfaces/middleware.py`) is the abstract contract for domain event middleware — a cross-cutting concern that wraps the execution of a domain event. Middleware is composed into an ordered chain, where each one may run logic before and after delegating to the next, letting concerns such as validation, logging, or timing layer around an event without changing the event itself.
+`MiddlewareService` (`tiferet/interfaces/middleware.py`) is the abstract contract for domain event middleware - a cross-cutting concern that wraps the execution of a domain event. Middleware is composed into an ordered chain, where each one may run logic before and after delegating to the next, letting concerns such as validation, logging, or timing layer around an event without changing the event itself.
 
 ```python
 # *** interfaces

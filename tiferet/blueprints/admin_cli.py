@@ -1,4 +1,4 @@
-"""Tiferet Admin CLI Blueprint — Built-in CLI Management Interface"""
+"""Tiferet Admin CLI Blueprint - Built-in CLI Management Interface"""
 
 # *** imports
 

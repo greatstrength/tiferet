@@ -9,7 +9,7 @@ result = calc_app.add(1, 3).subtract_from(5).multiply_by(2).run()   # -6.0
 
 ### 11.1 Splitting the client from the fluent surface
 
-`CalculatorAppContext` (Chapter 9) is the plain client: `run()`, plus `record_run`. The fluent surface — `add`/`add_to`, `.pending`, `.reset()`, and (as we'll get to) `run()` itself — is a distinct set of concerns layered on top, so it gets its own subclass rather than growing `CalculatorAppContext` indefinitely:
+`CalculatorAppContext` (Chapter 9) is the plain client: `run()`, plus `record_run`. The fluent surface - `add`/`add_to`, `.pending`, `.reset()`, and (as we'll get to) `run()` itself - is a distinct set of concerns layered on top, so it gets its own subclass rather than growing `CalculatorAppContext` indefinitely:
 
 **app/contexts/fluent.py**
 
@@ -48,7 +48,7 @@ def create_calculator_fluent(interface_id='calc_fluent', config_file='config.yml
 
 ### 11.2 A persistent request *is* the chain
 
-A fluent chain isn't several requests that need correlating — it's **one** request with many steps. `Request`/`RequestContext` already carry a `session_id`, auto-generated per call — so instead of inventing a parallel "expression id" and a cache-backed side object to hold pending state, we hold one `FluentRequestContext` in memory for the whole chain and let its own `session_id` uniquely identify it, for free.
+A fluent chain isn't several requests that need correlating - it's **one** request with many steps. `Request`/`RequestContext` already carry a `session_id`, auto-generated per call - so instead of inventing a parallel "expression id" and a cache-backed side object to hold pending state, we hold one `FluentRequestContext` in memory for the whole chain and let its own `session_id` uniquely identify it, for free.
 
 **app/contexts/fluent.py**
 
@@ -69,7 +69,7 @@ class FluentRequestContext(RequestContext):
         return list(self.data.get('values', [])), list(self.data.get('operators', []))
 ```
 
-Every operator gets two methods, exactly as before — a **starter** (two operands, begins a new expression: `add(a, b)`) and a **continuation** (one operand, folds into the active one: `add_to(x)`). Both just log a term; neither computes anything yet:
+Every operator gets two methods, exactly as before - a **starter** (two operands, begins a new expression: `add(a, b)`) and a **continuation** (one operand, folds into the active one: `add_to(x)`). Both just log a term; neither computes anything yet:
 
 ```python
 def _guard(expression, error_code, **kwargs):
@@ -103,11 +103,11 @@ class CalculatorFluentContext(CalculatorAppContext):
 
 `_guard` lives as a module-private, plain function in `app/contexts/fluent.py`, not a method on `CalculatorAppContext`: it's side-effect-free (it never touches `self`), and `CalculatorFluentContext` is its only caller -- a subdomain-specific check like this has no business being reachable from other modules, so there's no reason to carry it on the shared app session context or export it.
 
-No `self.run(...)` happens here — not for `.add()`, not for `.multiply_by()`. Every intermediate call is nothing more than a list append; nothing is dispatched, logged to a logger, or recorded until the chain finalizes.
+No `self.run(...)` happens here - not for `.add()`, not for `.multiply_by()`. Every intermediate call is nothing more than a list append; nothing is dispatched, logged to a logger, or recorded until the chain finalizes.
 
 ### 11.3 Resolving PEMDAS on the `Expression` domain object
 
-The old design reduced eagerly, one pairwise operation at a time, as each term arrived — a real "shunting yard" (the standard technique for precedence-aware parsing: hold pending values/operators on two stacks, and only reduce the top once you know nothing higher-precedence is coming to claim it first) running incrementally across the whole chain. Since nothing is dispatched until the chain finalizes now, there's no reason to reduce incrementally either: the entire scheduling pass can happen once, at the very end, over the complete, already-logged term list. That's exactly the kind of self-contained algorithm a domain object should own:
+The old design reduced eagerly, one pairwise operation at a time, as each term arrived - a real "shunting yard" (the standard technique for precedence-aware parsing: hold pending values/operators on two stacks, and only reduce the top once you know nothing higher-precedence is coming to claim it first) running incrementally across the whole chain. Since nothing is dispatched until the chain finalizes now, there's no reason to reduce incrementally either: the entire scheduling pass can happen once, at the very end, over the complete, already-logged term list. That's exactly the kind of self-contained algorithm a domain object should own:
 
 **app/domain/expression.py**
 
@@ -166,12 +166,12 @@ def run(self, feature_id=None, headers={}, data={}, **kwargs):
 
 Two cases, one method:
 
-- **No chain active** — every argument, `feature_id` included, passes straight through to the plain client unchanged. This is what lets a configured feature keep working exactly as before: `calc_app.run('calc.history', data={})` still runs `calc.history`, because at that point `self._pending_request` is `None`. If you forget `feature_id` here, there's no special guard for it — the framework's own feature lookup raises `FEATURE_NOT_FOUND` on its own, which is exactly the safeguard we want; `run()` doesn't need to reinvent it.
-- **A chain is active** — every argument is irrelevant, `feature_id` included. There's only one thing left to do, so `run()` does it: a single `super().run('calc.resolve', ...)` call (note the `super()` — calling `self.run(...)` here would just re-enter this same override and recurse). Passing an explicit `feature_id` while a chain happens to be active is simply ignored rather than specially guarded against; resolving the active chain is the only sensible thing left to do either way.
+- **No chain active** - every argument, `feature_id` included, passes straight through to the plain client unchanged. This is what lets a configured feature keep working exactly as before: `calc_app.run('calc.history', data={})` still runs `calc.history`, because at that point `self._pending_request` is `None`. If you forget `feature_id` here, there's no special guard for it - the framework's own feature lookup raises `FEATURE_NOT_FOUND` on its own, which is exactly the safeguard we want; `run()` doesn't need to reinvent it.
+- **A chain is active** - every argument is irrelevant, `feature_id` included. There's only one thing left to do, so `run()` does it: a single `super().run('calc.resolve', ...)` call (note the `super()` - calling `self.run(...)` here would just re-enter this same override and recurse). Passing an explicit `feature_id` while a chain happens to be active is simply ignored rather than specially guarded against; resolving the active chain is the only sensible thing left to do either way.
 
-`super().run('calc.resolve', ...)` is the *only* `run()` call the entire chain ever makes — one logger build, one `execute_feature`, and (via the `record_run` machinery from Chapter 9) exactly one history entry recording the whole expression, instead of one entry per pairwise reduction.
+`super().run('calc.resolve', ...)` is the *only* `run()` call the entire chain ever makes - one logger build, one `execute_feature`, and (via the `record_run` machinery from Chapter 9) exactly one history entry recording the whole expression, instead of one entry per pairwise reduction.
 
-`calc.resolve` is a single-step bounded-context default feature, registered the same way as `calc.add` and friends in Chapter 10. Its step's event, `ResolveExpression`, receives the logged `values`/`operators` straight from `request.data` and does the actual reduction — dispatching each pairwise operation through the calculator's own arithmetic events (constructor-injected as siblings from the same bounded-context service container), so validation and division-by-zero handling are reused completely unchanged:
+`calc.resolve` is a single-step bounded-context default feature, registered the same way as `calc.add` and friends in Chapter 10. Its step's event, `ResolveExpression`, receives the logged `values`/`operators` straight from `request.data` and does the actual reduction - dispatching each pairwise operation through the calculator's own arithmetic events (constructor-injected as siblings from the same bounded-context service container), so validation and division-by-zero handling are reused completely unchanged:
 
 **app/events/expression.py**
 
@@ -194,7 +194,7 @@ class ResolveExpression(DomainEvent):
         return self._operator_events[operator].execute(a=left, b=right)
 ```
 
-Because `add_number_event`, `subtract_number_event`, `multiply_number_event`, and `divide_number_event` are already registered by `CALC_DEFAULT_SERVICES` (Chapter 10) under exactly those ids, Tiferet's DI container wires them in as sibling providers automatically — `ResolveExpression` never has to look anything up itself beyond its own `_operator_events` map.
+Because `add_number_event`, `subtract_number_event`, `multiply_number_event`, and `divide_number_event` are already registered by `CALC_DEFAULT_SERVICES` (Chapter 10) under exactly those ids, Tiferet's DI container wires them in as sibling providers automatically - `ResolveExpression` never has to look anything up itself beyond its own `_operator_events` map.
 
 Finally, `RecordCalculation` (Chapter 9) needs to recognize this shape of run: a `calc.resolve` call carries `values`/`operators` in `request.data` instead of a single `a`/`b` pair, so it renders the whole logged expression via `Expression.display()` rather than deriving one from `feature_id`:
 
@@ -212,7 +212,7 @@ def execute(self, feature_id, a=None, b=None, values=None, operators=None, resul
     # ... read, append, trim, persist -- unchanged
 ```
 
-`subtract`/`multiply`/`divide` and their `_from`/`_by` continuations, plus `.reset()` and `.pending`, follow the exact same patterns — see `app/contexts/fluent.py` for the full set.
+`subtract`/`multiply`/`divide` and their `_from`/`_by` continuations, plus `.reset()` and `.pending`, follow the exact same patterns - see `app/contexts/fluent.py` for the full set.
 
 ### 11.5 See it work
 
@@ -255,15 +255,15 @@ Recent calculations:
 3.0 * 4.0 + 5.0 / 2.0 = 14.5
 ```
 
-Notice the history now shows one line **per chain**, not one per pairwise reduction as it would have with the old eager design — a direct, visible consequence of collapsing every chain into a single `calc.resolve` run.
+Notice the history now shows one line **per chain**, not one per pairwise reduction as it would have with the old eager design - a direct, visible consequence of collapsing every chain into a single `calc.resolve` run.
 
-Walk through the first chain by hand: `add(1, 3)` and `.subtract_from(5)` and `.multiply_by(2)` only ever append to the logged term list — `values=[1, 3, 5, 2]`, `operators=['+', '-', '*']`. Nothing is computed until `.run()` calls `super().run('calc.resolve', ...)`, which hands that exact list to `Expression.resolve`. It walks the list once: `'+'` then `'-'` (same precedence, so `1 + 3 = 4` reduces immediately once `'-'` arrives), then `'*'` arrives with *higher* precedence than the pending `'-'`, so it's pushed without reducing. Draining what's left afterward — lowest precedence last — gives `5 * 2 = 10`, then `4 - 10 = -6`.
+Walk through the first chain by hand: `add(1, 3)` and `.subtract_from(5)` and `.multiply_by(2)` only ever append to the logged term list - `values=[1, 3, 5, 2]`, `operators=['+', '-', '*']`. Nothing is computed until `.run()` calls `super().run('calc.resolve', ...)`, which hands that exact list to `Expression.resolve`. It walks the list once: `'+'` then `'-'` (same precedence, so `1 + 3 = 4` reduces immediately once `'-'` arrives), then `'*'` arrives with *higher* precedence than the pending `'-'`, so it's pushed without reducing. Draining what's left afterward - lowest precedence last - gives `5 * 2 = 10`, then `4 - 10 = -6`.
 
 ### 11.6 Recap
 
-Across eleven chapters you've now touched every layer Tiferet has: **domain** objects (`Formula`, `Expression`), **mappers** (`FormulaAggregate`/`FormulaConfigObject`), **interfaces** (`FormulaService`), **repos** (`FormulaConfigRepository`), **events** (arithmetic, history, formula, and `ResolveExpression`), **assets** (the calculator's own bounded-context defaults), **contexts** (`CalculatorAppContext`, `CalculatorFluentContext`), **blueprints** (`create_calculator_app`, `create_calculator_cli`, `create_calculator_fluent`), and, in one deliberate cameo (Chapter 10), **di** (`DIDynamicServiceContainer`, registered under the calculator's own `'calc'` flag via `register_calc_container`) — all wired together through one consolidated `config.yml`. That `di` appearance is the only one of its kind in the tutorial, and it required authoring nothing new in that layer: everywhere else, DI wiring happens through the higher-level `add_default_*`/`build_service_resolver` blueprint functions, never a raw container type directly.
+Across eleven chapters you've now touched every layer Tiferet has: **domain** objects (`Formula`, `Expression`), **mappers** (`FormulaAggregate`/`FormulaConfigObject`), **interfaces** (`FormulaService`), **repos** (`FormulaConfigRepository`), **events** (arithmetic, history, formula, and `ResolveExpression`), **assets** (the calculator's own bounded-context defaults), **contexts** (`CalculatorAppContext`, `CalculatorFluentContext`), **blueprints** (`create_calculator_app`, `create_calculator_cli`, `create_calculator_fluent`), and, in one deliberate cameo (Chapter 10), **di** (`DIDynamicServiceContainer`, registered under the calculator's own `'calc'` flag via `register_calc_container`) - all wired together through one consolidated `config.yml`. That `di` appearance is the only one of its kind in the tutorial, and it required authoring nothing new in that layer: everywhere else, DI wiring happens through the higher-level `add_default_*`/`build_service_resolver` blueprint functions, never a raw container type directly.
 
-The fluent context didn't require reinventing any arithmetic: it added a small scheduling layer on top of features you'd already built, and reused the framework's own request as the one thing a multi-call chain actually is — a single request with many steps — instead of inventing a parallel correlation mechanism. That's really the whole idea behind Tiferet's layering — each new capability should mostly be *composition*, not more special cases.
+The fluent context didn't require reinventing any arithmetic: it added a small scheduling layer on top of features you'd already built, and reused the framework's own request as the one thing a multi-call chain actually is - a single request with many steps - instead of inventing a parallel correlation mechanism. That's really the whole idea behind Tiferet's layering - each new capability should mostly be *composition*, not more special cases.
 
 From here, natural next steps: exponentiation in the chain (right-associative, so the reduction rule needs a small tweak), a `.pending` tour through the logged terms for a "show your work" mode, or swapping the in-memory chain for something that survives process restarts.
 

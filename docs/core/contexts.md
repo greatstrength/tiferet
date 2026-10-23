@@ -26,17 +26,17 @@ Tiferet enforces a structured code design for Contexts using **artifact comments
 
 Contexts are organized under the `# *** contexts` top-level comment, with individual Contexts under `# ** context: <snake_case_name>`. Within each Context:
 
-- `# * attribute: <name>` — instance attributes (with type hints).
-- `# * init` — constructor.
-- `# * method: <name> (property)` — a descriptive `@property`, after `init` and before other methods. Getter only. No setter.
-- `# * method: <name>` — other methods.
+- `# * attribute: <name>` - instance attributes (with type hints).
+- `# * init` - constructor.
+- `# * method: <name> (property)` - a descriptive `@property`, after `init` and before other methods. Getter only. No setter.
+- `# * method: <name>` - other methods.
 
 **Spacing**:
 - One empty line between `# *** contexts` and first `# ** context`.
 - One empty line between each `# *` section.
 - One empty line after docstrings and between code snippets.
 
-**Example** – `tiferet/contexts/app.py` (minimal hub with the five-handler contract):
+**Example** - `tiferet/contexts/app.py` (minimal hub with the five-handler contract):
 ```python
 # *** imports
 
@@ -143,7 +143,7 @@ Async dispatch is owned by `FeatureContext` itself via `Feature.is_async` and `E
 
 ### Cache Context and Default Catalogs
 
-The `CacheContext` (`tiferet/contexts/cache.py`) exposes `get`, `set`, `delete`, `clear`, and `get_by_prefix(prefix)` — the last returns all entries whose keys start with the given prefix as a `Dict[str, Any]`. This backs enumeration of the framework catalogs that `build_cache` seeds under namespaced key prefixes.
+The `CacheContext` (`tiferet/contexts/cache.py`) exposes `get`, `set`, `delete`, `clear`, and `get_by_prefix(prefix)` - the last returns all entries whose keys start with the given prefix as a `Dict[str, Any]`. This backs enumeration of the framework catalogs that `build_cache` seeds under namespaced key prefixes.
 
 The app-context module (`tiferet/contexts/app.py`) provides seeders for the bootstrap catalogs, plus the cache-key prefix constants each seeder writes under:
 
@@ -151,7 +151,7 @@ The app-context module (`tiferet/contexts/app.py`) provides seeders for the boot
 - `add_default_admin_services` / `add_default_admin_constants` seed the admin equivalents under `ADMIN_SERVICE_CACHE_PREFIX` / `ADMIN_CONSTANT_CACHE_PREFIX`.
 - `add_default_app_sessions` seeds default `AppSession` domain objects under `APP_SESSION_CACHE_PREFIX`.
 
-The seeders own reconstitution and prefix namespacing; there are no `get_default_*` counterparts for these catalogs. The blueprint layer reads a prefix straight off the cache — `cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)` in `build_app_service_container`, `cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX)` in `build_admin_service_resolver`, and so on — matching the idiom `blueprints/core.py` already uses for `get_error` and `get_feature`. Admin blueprints stack additional seeders (`add_default_admin_services`, `add_default_admin_constants`, `add_default_features(ADMIN_DEFAULT_FEATURES)`, `add_default_errors(ADMIN_DEFAULT_ERRORS)`, and for the admin CLI `add_default_cli_commands(ADMIN_DEFAULT_COMMANDS)`).
+The seeders own reconstitution and prefix namespacing; there are no `get_default_*` counterparts for these catalogs. The blueprint layer reads a prefix straight off the cache - `cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)` in `build_app_service_container`, `cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX)` in `build_admin_service_resolver`, and so on - matching the idiom `blueprints/core.py` already uses for `get_error` and `get_feature`. Admin blueprints stack additional seeders (`add_default_admin_services`, `add_default_admin_constants`, `add_default_features(ADMIN_DEFAULT_FEATURES)`, `add_default_errors(ADMIN_DEFAULT_ERRORS)`, and for the admin CLI `add_default_cli_commands(ADMIN_DEFAULT_COMMANDS)`).
 
 ### TesterContext (unit tests)
 
@@ -165,7 +165,7 @@ The seeders own reconstitution and prefix namespacing; there are no `get_default
 3. Use `# * attribute`, `# * init`, `# * method (property)`, then `# * method` comments.
 4. Follow spacing and docstring conventions.
 
-**Example** – High-level `FlaskApiContext`:
+**Example** - High-level `FlaskApiContext`:
 ```python
 # ** context: flask_api_context
 class FlaskApiContext(AppSessionContext):
@@ -197,9 +197,9 @@ class FlaskApiContext(AppSessionContext):
 
 ## Testing Contexts
 
-Hub and handler tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `# *** tests`. Unit tests of a named component use `@use_tester` (`# *** testers` / `# ** tester:`) — see [docs/core/testing.md](testing.md). Do not compose a mini-`AppSessionContext` to unit-test a domain object.
+Hub and handler tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `# *** tests`. Unit tests of a named component use `@use_tester` (`# *** testers` / `# ** tester:`) - see [docs/core/testing.md](testing.md). Do not compose a mini-`AppSessionContext` to unit-test a domain object.
 
-**Example** – `AppSessionContext` test:
+**Example** - `AppSessionContext` test:
 ```python
 # *** fixtures
 
@@ -243,9 +243,9 @@ Contexts define the runtime shape of Tiferet applications, orchestrating user in
 
 ## Related Documentation
 
-- [docs/guides/contexts.md](../guides/contexts.md) — Context strategies and runtime patterns, including TesterContext registry rules
-- [docs/core/testing.md](testing.md) — v2.1.0 unit-test model
-- [docs/core/blueprints.md](blueprints.md) — Blueprint composition and handler wiring
-- [docs/guides/blueprints.md](../guides/blueprints.md) — Blueprint strategies, including admin entry points
-- [docs/guides/admin.md](../guides/admin.md) — Admin application and CLI catalog
-- [docs/core/code_style.md](code_style.md) — Artifact comments and formatting rules
+- [docs/guides/contexts.md](../guides/contexts.md) - Context strategies and runtime patterns, including TesterContext registry rules
+- [docs/core/testing.md](testing.md) - v2.1.0 unit-test model
+- [docs/core/blueprints.md](blueprints.md) - Blueprint composition and handler wiring
+- [docs/guides/blueprints.md](../guides/blueprints.md) - Blueprint strategies, including admin entry points
+- [docs/guides/admin.md](../guides/admin.md) - Admin application and CLI catalog
+- [docs/core/code_style.md](code_style.md) - Artifact comments and formatting rules

@@ -3,12 +3,12 @@ name: tiferet-code-di
 description: Apply DI layer conventions when adding or modifying ServiceContainer, ServiceResolver, or pure DI helper functions in a Tiferet-family repo. Covers the event-free/asset-free design constraint, ABC inheritance requirements, Factory vs Singleton scope, and the injectable_parameter_names helper.
 ---
 
-# Dependency Injection Code Style – Tiferet
+# Dependency Injection Code Style - Tiferet
 
 ## When to use
 - When adding or modifying classes in `tiferet/di/` (container, resolver, or base ABCs).
 - When adding a pure DI helper function (`injectable_parameter_names`, `normalize_flags`).
-- Do NOT use for domain events or assets — the DI layer is deliberately event-free and asset-free.
+- Do NOT use for domain events or assets - the DI layer is deliberately event-free and asset-free.
 
 ## Artifact comment structure
 
@@ -37,17 +37,17 @@ DI-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces` (`DIService`, `ServiceError`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary - valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces` (`DIService`, `ServiceError`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
 - The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces`. Never import `TiferetError`, `a.error`, or any event.
 - A missing provider raises `ServiceError.raise_for(...)`. A registered provider that fails during construction still surfaces the underlying exception.
-- **All new DI components must extend either `ServiceContainer` or `ServiceResolver`** — there is no valid DI class that does not inherit from one of these two ABCs.
-- **DI inverts the domain event principle:** Domain events expose a minimal interface (`execute`) to serve unlimited domain use cases. DI components expose a richer interface to solve one highly specific concern — dependency resolution. Both are injection targets, but in opposite directions of interface breadth vs. domain breadth.
-- **`injectable_parameter_names(service_type)`** — returns constructor parameter names eligible for automatic wiring (excludes `self`, `*args`, `**kwargs`). Uninspectable types are treated as no-arg.
-- **`normalize_flags(*flags)`** — flattens mixed string/list/tuple input into a flat string list. Key for cache-key consistency.
+- **All new DI components must extend either `ServiceContainer` or `ServiceResolver`** - there is no valid DI class that does not inherit from one of these two ABCs.
+- **DI inverts the domain event principle:** Domain events expose a minimal interface (`execute`) to serve unlimited domain use cases. DI components expose a richer interface to solve one highly specific concern - dependency resolution. Both are injection targets, but in opposite directions of interface breadth vs. domain breadth.
+- **`injectable_parameter_names(service_type)`** - returns constructor parameter names eligible for automatic wiring (excludes `self`, `*args`, `**kwargs`). Uninspectable types are treated as no-arg.
+- **`normalize_flags(*flags)`** - flattens mixed string/list/tuple input into a flat string list. Key for cache-key consistency.
 - **`ServiceContainer`** (ABC engine): abstract contract for registering and resolving dependencies. Methods: `add_service`, `add_constant`, `get_dependency`, `has_dependency`, `remove_dependency`, `load_container`.
 - **`ServiceResolver`** (ABC provider): owns a per-flag `ServiceContainer` cache. Provides `add_container`, `get_container`, `get_dependency` (template method); leaves `build_container(flags)` abstract for subclasses.
-- **App-level:** `DIAppServiceContainer` uses `Singleton` scope — one shared instance per app. Created via `from_dependencies(services, constants)` classmethod.
-- **Feature-level:** `DIDynamicServiceResolver` uses `Factory` scope — a new instance per resolution. Built per flag set by `build_container`.
+- **App-level:** `DIAppServiceContainer` uses `Singleton` scope - one shared instance per app. Created via `from_dependencies(services, constants)` classmethod.
+- **Feature-level:** `DIDynamicServiceResolver` uses `Factory` scope - a new instance per resolution. Built per flag set by `build_container`.
 - Use `# *** di` as the construct group for all DI component classes. Use `# * method: <name> (class)` for `@classmethod` entries.
 
 ## Example
@@ -190,7 +190,7 @@ class ServiceContainer(ABC):
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** DI class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/di.md#<anchor>` (ABCs) or `@guides/di/dependency_injector.md#<anchor>` (concrete engines) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** DI class docstrings open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/di.md#<anchor>` (ABCs) or `@guides/di/dependency_injector.md#<anchor>` (concrete engines) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md

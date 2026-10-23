@@ -1,18 +1,18 @@
 # Step 9: The Calculator as a Client
 
-Every entry point so far has called the generic `App(...)` or `CLI(...)` and gotten back whatever context class the framework hands over. That's about to change: we're giving the calculator its **own** `AppSessionContext` subclass, so it can do one thing none of the built-in machinery does for us — remember every calculation it runs, without duplicating a "record it" step inside every single feature.
+Every entry point so far has called the generic `App(...)` or `CLI(...)` and gotten back whatever context class the framework hands over. That's about to change: we're giving the calculator its **own** `AppSessionContext` subclass, so it can do one thing none of the built-in machinery does for us - remember every calculation it runs, without duplicating a "record it" step inside every single feature.
 
 ### 9.1 Why a custom context needs its own blueprint
 
-It's tempting to assume that a session in `config.yml` declares a context type you can swap out. It doesn't: a session declares no context class at all, and `App(...)`'s composition chain builds a literal `AppSessionContext` — there's no dynamic class resolution on that path. (`CLI(...)` *looks* like it works this way, but it's actually its own dedicated, hardcoded composition chain, entirely separate from `App(...)`.)
+It's tempting to assume that a session in `config.yml` declares a context type you can swap out. It doesn't: a session declares no context class at all, and `App(...)`'s composition chain builds a literal `AppSessionContext` - there's no dynamic class resolution on that path. (`CLI(...)` *looks* like it works this way, but it's actually its own dedicated, hardcoded composition chain, entirely separate from `App(...)`.)
 
 So a custom `AppSessionContext` subclass needs its own blueprint. That's most of what this chapter builds.
 
 ### 9.2 From a per-feature step to a session-level concern
 
-Back in Chapter 7, every arithmetic feature grew a second step — `record_calculation_event` — so its calculation would land in `history.json`. It worked, but look at the cost: six features, six copies of the same `service_id: record_calculation_event` block, each passing its own `operator` literal by hand. Add a seventh operator and you'd copy it a seventh time.
+Back in Chapter 7, every arithmetic feature grew a second step - `record_calculation_event` - so its calculation would land in `history.json`. It worked, but look at the cost: six features, six copies of the same `service_id: record_calculation_event` block, each passing its own `operator` literal by hand. Add a seventh operator and you'd copy it a seventh time.
 
-Recording history isn't really part of *what* `calc.add` computes — it's something we want to happen after *any* feature succeeds. That's a session-level concern, not a per-feature one, and `AppSessionContext` already has a natural seam for it: `execute_feature`.
+Recording history isn't really part of *what* `calc.add` computes - it's something we want to happen after *any* feature succeeds. That's a session-level concern, not a per-feature one, and `AppSessionContext` already has a natural seam for it: `execute_feature`.
 
 **app/contexts/calc.py**
 
@@ -33,9 +33,9 @@ class CalculatorAppContext(AppSessionContext):
         self._record_run(feature_id, request)
 ```
 
-Because `AppSessionContext.run()` calls `execute_feature` inside a `try/except TiferetError` block, `record_run` only fires *after* a successful run — an exception from `super().execute_feature(...)` propagates straight past it, so a failed division never pollutes the history. That single override replaces six hand-duplicated steps.
+Because `AppSessionContext.run()` calls `execute_feature` inside a `try/except TiferetError` block, `record_run` only fires *after* a successful run - an exception from `super().execute_feature(...)` propagates straight past it, so a failed division never pollutes the history. That single override replaces six hand-duplicated steps.
 
-Now `record_calculation_event` can go — the arithmetic features in `config.yml` shrink back to one step each:
+Now `record_calculation_event` can go - the arithmetic features in `config.yml` shrink back to one step each:
 
 ```yaml
 add:
@@ -49,7 +49,7 @@ Delete the `record_calculation_event` service registration too; nothing declares
 
 ### 9.3 Deriving the operator instead of passing it in
 
-The old `record_calculation_event` step received its `operator` as a literal parameter (`params: {operator: '+'}`). Since `record_run` fires generically after *any* feature — arithmetic or not — `RecordCalculation` needs to figure out the operator itself, or gracefully do nothing when there isn't one:
+The old `record_calculation_event` step received its `operator` as a literal parameter (`params: {operator: '+'}`). Since `record_run` fires generically after *any* feature - arithmetic or not - `RecordCalculation` needs to figure out the operator itself, or gracefully do nothing when there isn't one:
 
 **app/events/history.py**
 
@@ -68,7 +68,7 @@ class RecordCalculation(DomainEvent):
         # ... read, append, trim, persist -- unchanged from Chapter 7
 ```
 
-`FEATURE_OPERATOR_MAP` (`calc.add` → `+`, `calc.subtract` → `-`, …) lives in `app/assets/core.py` — we'll build the rest of that module in Chapter 10.
+`FEATURE_OPERATOR_MAP` (`calc.add` → `+`, `calc.subtract` → `-`, …) lives in `app/assets/core.py` - we'll build the rest of that module in Chapter 10.
 
 ### 9.4 Wiring record_run into the blueprint
 
@@ -154,6 +154,6 @@ Recent calculations:
 
 ### 9.6 Recap
 
-`CalculatorAppContext` now owns one session-level concern — `record_run` — instead of every arithmetic feature owning a copy of it. Next, we'll give the arithmetic operators themselves the same treatment: instead of living in `config.yml`, they become defaults the calculator ships with, regardless of configuration.
+`CalculatorAppContext` now owns one session-level concern - `record_run` - instead of every arithmetic feature owning a copy of it. Next, we'll give the arithmetic operators themselves the same treatment: instead of living in `config.yml`, they become defaults the calculator ships with, regardless of configuration.
 
 → Head to **[Step 10: The Arithmetic Operators as a Bounded Context](10-the-arithmetic-operators-as-a-bounded-context.md)**

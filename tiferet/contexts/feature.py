@@ -652,7 +652,7 @@ class FeatureContext(BaseContext):
         Flags are **additive**: execution flags (from the caller) are combined
         with feature-level flags and step-level flags at resolution time so
         the service resolver receives the full combined flag set. No subset
-        validation is performed — the resolver is authoritative.
+        validation is performed - the resolver is authoritative.
 
         :param request: The request context for condition evaluation and parameter parsing.
         :type request: RequestContext
@@ -695,12 +695,12 @@ class FeatureContext(BaseContext):
 
         Handles three dispatch cases based on ``is_async`` flags:
 
-        1. ``feature.is_async=True`` — the entire step loop runs asynchronously
+        1. ``feature.is_async=True`` - the entire step loop runs asynchronously
            via ``run_coroutine(self._execute_async(...))``.
-        2. ``feature.is_async=False``, ``step.is_async=True`` — a per-step
+        2. ``feature.is_async=False``, ``step.is_async=True`` - a per-step
            ``run_coroutine(self._execute_step_async(...))`` drives individual
            async steps within an otherwise synchronous feature.
-        3. Both flags ``False`` — fully synchronous ``execute_step`` execution.
+        3. Both flags ``False`` - fully synchronous ``execute_step`` execution.
 
         The feature executed is ``self.domain``, populated by
         ``BaseContext.from_domain`` at construction time.
@@ -721,7 +721,7 @@ class FeatureContext(BaseContext):
         # failing fast before any step executes.
         validate_request(feature, request)
 
-        # Case 1: entire feature is async — drive the full loop via run_coroutine.
+        # Case 1: entire feature is async - drive the full loop via run_coroutine.
         if feature.is_async:
             run_coroutine(self._execute_async(request, *flags, **kwargs))
             return
@@ -739,7 +739,7 @@ class FeatureContext(BaseContext):
             # Build merged kwargs: context defaults < request data < step params < caller overrides.
             merged_kwargs = merge_step_kwargs(self.context_data, request.data, params, cache=self.cache, **kwargs)
 
-            # Case 2: individual step is async — drive it via run_coroutine.
+            # Case 2: individual step is async - drive it via run_coroutine.
             if step.is_async:
                 run_coroutine(self._execute_step_async(
                     event,

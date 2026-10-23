@@ -1,11 +1,11 @@
 # Step 5: Running the Script Runner
 
-Alright, we've wired up the events, added our validation utility, and connected everything with YAML configs — now it's showtime!  
+Alright, we've wired up the events, added our validation utility, and connected everything with YAML configs - now it's showtime!  
 Let's fire up `calc_client.py` and see the calculator in action.
 
 ### 5.1 The final calc_client.py script
 
-This is the simple test runner we looked at way back in Step 1 — now it should work perfectly with all the pieces in place.
+This is the simple test runner we looked at way back in Step 1 - now it should work perfectly with all the pieces in place.
 
 **calc_client.py**
 
@@ -66,7 +66,7 @@ Error: Invalid number: 'hello'
 
 - All math operations work smoothly (thanks to `CalcUtil.verify_number`)
 - Division by zero is caught cleanly
-- Square root is just exponentiation with 0.5 — no extra event needed
+- Square root is just exponentiation with 0.5 - no extra event needed
 - Bad input (like "hello") raises a nice, configured error
 
 ### 5.4 Quick troubleshooting tips
@@ -75,7 +75,7 @@ Error: Invalid number: 'hello'
 - Import error → make sure paths in `services:` section of `config.yml` point to `app.events.calc`
 - Validation not working → confirm `app/utils/calc.py` is importable (check the `__init__.py` files)
 
-If you see the output above (or very close), congratulations — your core calculator is fully functional!
+If you see the output above (or very close), congratulations - your core calculator is fully functional!
 
 You've gone from empty folder to a working, configuration-driven app. (We'll revisit this plain `App(...)` call in Chapter 9, once we give the calculator its own dedicated client.)  
 Now let's add the final polish: the command-line interface.

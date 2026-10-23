@@ -1,4 +1,4 @@
-# Tiferet Contribution Standards — Global Agent Rule
+# Tiferet Contribution Standards - Global Agent Rule
 
 A paste-able global rule for Tiferet-family repos. Keep it thin. The law lives in `docs/collab/process.md`; this file only points there so it cannot drift.
 
@@ -15,7 +15,7 @@ Applies to all Tiferet-family repositories (greatstrength/tiferet, and any tifer
 
 Source of truth: CONTRIBUTING.md → docs/collab/process.md. Inside tiferet use local paths; from another repo use https://github.com/greatstrength/tiferet/blob/main/docs/collab/process.md and that repo's docs/collab/binding.md if present.
 
-Strands: prototype is authorized by an RFP; trunk reconstruction is authorized by a TRD that cites an existing catalog freeze id; hotfixes are TRDs on trunk with no freeze; docs/skills PRs need no issue and no TRD (a `docs-<context>` branch and a `Docs – <Title>` PR to main; no milestone, no project-board item, no `Closes`). Never merge proto into trunk. Never implement trunk work by copying proto. Never tag or bump the package version on an individual PR.
+Strands: prototype is authorized by an RFP; trunk reconstruction is authorized by a TRD that cites an existing catalog freeze id; hotfixes are TRDs on trunk with no freeze; docs/skills PRs need no issue and no TRD (a `docs-<context>` branch and a `Docs - <Title>` PR to main; no milestone, no project-board item, no `Closes`). Never merge proto into trunk. Never implement trunk work by copying proto. Never tag or bump the package version on an individual PR.
 
 Navigation:
 - Implementation: AGENTS.md → tiferet-code-style (every session) → tiferet-code-<component>. Multi-component: tiferet-code-architecture.
@@ -23,7 +23,7 @@ Navigation:
 - Trunk: tiferet-author-trd (freeze id must already exist for reconstruction), tiferet-implement-trd, tiferet-collab-report (standalone TRD closeout on the issue).
 - Review: tiferet-pr-code-review. Style first. Verdict line first (`Verdict: Approve` or `Verdict: Changes requested`). Never merge a PR, on any base; only the maintainer merges. A Super-TRD child PR targets the Super-TRD branch and uses `Refs` for the child and the parent, never `Closes`. Wire blocked-by from RFP Depends on/Blocks and TRD §7. Do not wire a cycle.
 
-Always: read binding.md for owner/repo and proto branch; keep functional vs docs commits separate; an AI that collaborates attributes itself in its own name, never another agent's (process.md § Attribution; on a shared bot account sign `— <agent>@<platform> via <account>` — § Shared bot accounts); never commit unless asked. Never merge, push to main or proto, tag, release, bump the version, mint a freeze, create or close a milestone, or change settings — only the maintainer, a human, does those (process.md § Agent guardrails). At closeout remove everything the work created (worktree and registration, branches, pointers, temp files); never put temporary information on external or cloud storage unless the human explicitly authorizes it. Drop stale ~/.agents/skills/tiferet-* copies so they do not shadow the repo's .agents/skills/.
+Always: read binding.md for owner/repo and proto branch; keep functional vs docs commits separate; an AI that collaborates attributes itself in its own name, never another agent's (process.md § Attribution; on a shared bot account sign `- <agent>@<platform> via <account>` - § Shared bot accounts); never commit unless asked. Never merge, push to main or proto, tag, release, bump the version, mint a freeze, create or close a milestone, or change settings - only the maintainer, a human, does those (process.md § Agent guardrails). At closeout remove everything the work created (worktree and registration, branches, pointers, temp files); never put temporary information on external or cloud storage unless the human explicitly authorizes it. Drop stale ~/.agents/skills/tiferet-* copies so they do not shadow the repo's .agents/skills/.
 ```
 
 ## Companion skills
