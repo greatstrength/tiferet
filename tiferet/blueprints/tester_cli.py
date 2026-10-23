@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, Optional
 
 # ** app
@@ -19,6 +20,7 @@ from ..assets.tester_cli import (
     TESTER_CLI_SESSIONS,
     TESTER_DEFAULT_COMMANDS,
     TESTER_DEFAULT_FEATURES,
+    TESTER_DEFAULT_LOGGING_SETTINGS,
     TESTER_DEFAULT_PARENT_ARGUMENTS,
     TESTER_QUERY_EVENT_REGISTRATIONS,
     TESTER_WRITE_EVENT_REGISTRATIONS,
@@ -50,7 +52,7 @@ from ..di.dependency_injector import (
 
 # ** blueprint: build_cache
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
-@add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
+@add_default_logging_settings(TESTER_DEFAULT_LOGGING_SETTINGS)
 @add_default_app_sessions(TESTER_CLI_SESSIONS)
 @add_default_cli_commands(TESTER_DEFAULT_COMMANDS)
 @add_default_features(TESTER_DEFAULT_FEATURES)
@@ -249,19 +251,28 @@ def build_tester_cli(
     return cli_context.run(argv)
 
 # ** blueprint: main
-def main() -> None:
+def main() -> int:
     '''
     Entry point for the ``tiferet-tester`` console script.
 
     Delegates to :func:`build_tester_cli`. The catalog parent argument is
     parsed with the command.
 
-    :return: None
-    :rtype: None
+    :return: The exit status: 1 when the result is a module-run report with a
+        non-empty ``failures`` list, otherwise 0.
+    :rtype: int
     '''
 
     # The calculator entry is the shape. Do not build a second parser.
-    build_tester_cli()
+    result = build_tester_cli()
+
+    # A module-run report with failures exits 1.
+    failures = result.get('failures') if isinstance(result, Mapping) else None
+    if isinstance(failures, list) and failures:
+        return 1
+
+    # Every other completed run exits 0.
+    return 0
 
 # ** blueprint: tester_cli (alias)
 TesterCLI = build_tester_cli
