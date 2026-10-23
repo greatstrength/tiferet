@@ -47,7 +47,7 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 - `# ** core` is the Python standard library only. `abc`, `typing`, `re`, and `uuid` belong here.
 - `# ** infra` is third-party packages only. Examples: boto3 or other AWS libraries, Flask, FastAPI, Pydantic, pytest. Not the standard library. Not this application.
 - `# ** app` is this application's own imports only, including relative imports. Not the standard library. Not a third-party package.
-- `tiferet` is this application only inside the tiferet repository. In a downstream repository, `tiferet` is a third-party package: `from tiferet …` imports go under `# ** infra`, and `# ** app` holds only that repository's own (usually relative) imports.
+- `tiferet` is this application only inside the tiferet repository. In a downstream repository, `tiferet` is a third-party package: `from tiferet ...` imports go under `# ** infra`, and `# ** app` holds only that repository's own (usually relative) imports.
 
 Order stays core, then infra, then app. Omit an empty group. A misplaced import is a blocking style finding. An acceptance criterion does not waive it.
 
