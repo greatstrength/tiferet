@@ -133,7 +133,7 @@ testers:
         assert:
           - outcome: failed
             error_code: INVALID_MODEL_ATTRIBUTE
-      set_parameters_clears_when_none:
+      set_parameters_none_leaves_existing:
         conditions: {}
         execute:
           - target: self
@@ -149,9 +149,21 @@ testers:
             method: getattr
             args: [$r.built, parameters]
             as: parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.parameters]
+            as: parameter_keys
         assert:
           - outcome: parameters
-            equals: {}
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: parameter_keys
+            equals: [keep, override]
+          - outcome: parameters
+            equals: *dep_parameters
       set_parameters_merges_and_prunes_none_values:
         conditions: {}
         execute:

@@ -485,10 +485,10 @@ class TestSetServiceDependency:
         # The updated interface should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
-    # * test: parameters_none_clears_existing
-    def test_parameters_none_clears_existing(self, test_ctx, mock_dependencies, app_interface):
+    # * test: parameters_none_leaves_existing
+    def test_parameters_none_leaves_existing(self, test_ctx, mock_dependencies, app_interface):
         '''
-        Test that passing parameters=None clears existing parameters.
+        Test that passing parameters=None leaves the existing parameters unchanged.
         '''
 
         # Precondition: existing service has parameters.
@@ -507,9 +507,9 @@ class TestSetServiceDependency:
         # Command should return the interface id.
         assert result == app_interface.id
 
-        # Parameters should be cleared.
-        cleared_svc = app_interface.get_service('test_service')
-        assert cleared_svc.parameters == {}
+        # Parameters should be unchanged.
+        updated_svc = app_interface.get_service('test_service')
+        assert updated_svc.parameters == {'key': 'value'}
 
         # The updated interface should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)

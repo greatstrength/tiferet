@@ -48,10 +48,11 @@ class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
     # * method: set_parameters
     def set_parameters(self, parameters: Dict[str, Any] | None = None) -> None:
         '''
-        Merge new parameters into the existing parameters, preferring new
-        values and removing keys with ``None`` values.
+        Overlay new parameters onto the existing parameters. A new value
+        wins, a ``None`` value removes that key, and a ``None`` argument leaves
+        the mapping unchanged (no-op).
 
-        :param parameters: The new parameters to merge.
+        :param parameters: The parameter overlay, or None for a no-op.
         :type parameters: dict | None
         :return: None
         :rtype: None
