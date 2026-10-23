@@ -64,7 +64,7 @@ def build_admin_cli_session_context(app_session: AppSession,
 
     # Build the app service container and compose the admin service resolver.
     app_container = core.build_app_service_container(cache, app_session)
-    resolver = admin.build_admin_service_resolver(app_container, cache)
+    resolver = admin.build_admin_service_resolver(app_container, cache, session_constants=app_session.constants)
 
     # Build the CLI handlers without resolving events during construction.
     commands_handler = list_commands_handler(cache, resolver.get_dependency)
@@ -116,16 +116,7 @@ def build_admin_cli(app_config: str, argv: Optional[List[str]] = None) -> Any:
     )
 
     # Re-seed session constants so every config-file repository uses app_config.
-    session_constants = {
-        **(app_session.constants or {}),
-        'app_config': app_config,
-        'cli_config': app_config,
-        'di_config': app_config,
-        'error_config': app_config,
-        'feature_config': app_config,
-        'logging_config': app_config,
-    }
-    app_session.constants = session_constants
+    app_session.constants = admin.build_admin_session_constants(app_session.constants, app_config)
 
     # Compose the wired admin CLI session context.
     cli_context = build_admin_cli_session_context(app_session, cache)

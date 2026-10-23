@@ -4,6 +4,7 @@
 
 # ** infra
 import pytest
+import yaml
 from unittest import mock
 
 # ** app
@@ -14,6 +15,7 @@ from tiferet.blueprints.admin import (
     build_admin_app,
     build_admin_app_session_context,
     build_admin_service_resolver,
+    build_admin_session_constants,
     build_cache,
 )
 from tiferet.blueprints import core
@@ -21,6 +23,7 @@ from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.cache import CacheContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
 from tiferet.domain import AppServiceDependency, AppSession
+from tiferet.mappers import FeatureAggregate
 
 # *** tests
 
@@ -81,6 +84,125 @@ def test_build_admin_service_resolver_routes_by_flag():
     assert isinstance(resolver.get_dependency('flag_probe', 'admin'), CacheContext)
     assert isinstance(resolver.get_dependency('flag_probe'), CacheContext)
     assert resolver.get_container('admin') is resolver.get_container()
+
+# ** test: build_admin_session_constants_overlays_config_paths
+def test_build_admin_session_constants_overlays_config_paths():
+    '''
+    Test that build_admin_session_constants keeps existing entries, sets all six
+    config-file keys to app_config, and does not mutate its input.
+    '''
+
+    # Overlay a constants dict holding a stale config path and an unrelated key.
+    constants = {'cli_config': 'old.yml', 'keep': 'x'}
+    result = build_admin_session_constants(constants, 'other.yml')
+
+    # Assert the unrelated key is kept and every config-file key is overlaid.
+    assert result['keep'] == 'x'
+    for key in ('app_config', 'cli_config', 'di_config', 'error_config', 'feature_config', 'logging_config'):
+        assert result[key] == 'other.yml'
+
+    # Assert the input dict is unchanged.
+    assert constants == {'cli_config': 'old.yml', 'keep': 'x'}
+
+    # Assert a None input yields exactly the six config-file keys.
+    assert build_admin_session_constants(None, 'other.yml') == {
+        'app_config': 'other.yml',
+        'cli_config': 'other.yml',
+        'di_config': 'other.yml',
+        'error_config': 'other.yml',
+        'feature_config': 'other.yml',
+        'logging_config': 'other.yml',
+    }
+
+# ** test: build_admin_service_resolver_overlays_session_constants
+def test_build_admin_service_resolver_overlays_session_constants(tmp_path, monkeypatch):
+    '''
+    Test that session constants override the admin container defaults on both
+    the empty-flag default and the 'admin' flag.
+
+    :param tmp_path: A temporary working directory.
+    :type tmp_path: pathlib.Path
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Work in a directory holding both config files.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / 'config.yml').write_text('features: {}\n')
+    (tmp_path / 'other.yml').write_text('features: {}\n')
+
+    # Build the resolver with a feature_config session constant.
+    cache = build_cache()
+    app_container = core.build_app_service_container(cache, None)
+    resolver = build_admin_service_resolver(
+        app_container,
+        cache,
+        session_constants={'feature_config': 'other.yml'},
+    )
+
+    # Assert both admin registrations resolve the overlaid config path.
+    assert resolver.get_dependency('feature_service').config_file == 'other.yml'
+    assert resolver.get_dependency('feature_service', 'admin').config_file == 'other.yml'
+
+    # Assert a resolver built without session constants keeps the admin default.
+    default_resolver = build_admin_service_resolver(app_container, cache)
+    assert default_resolver.get_dependency('feature_service').config_file == 'config.yml'
+
+# ** test: build_admin_app_reseeds_app_config
+def test_build_admin_app_reseeds_app_config(tmp_path, monkeypatch):
+    '''
+    Test that build_admin_app re-seeds app_config onto both the default admin
+    container and the 'app' container.
+
+    :param tmp_path: A temporary working directory.
+    :type tmp_path: pathlib.Path
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Work in a directory holding both config files.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / 'config.yml').write_text('features: {}\n')
+    (tmp_path / 'other.yml').write_text('features: {}\n')
+
+    # Build the admin app against the supplied config file.
+    context = build_admin_app(app_config='other.yml')
+
+    # Assert both containers resolve the feature service against other.yml.
+    assert context.get_dependency('feature_service').config_file == 'other.yml'
+    assert context.get_dependency('feature_service', 'app').config_file == 'other.yml'
+
+# ** test: build_admin_app_writes_to_supplied_config
+def test_build_admin_app_writes_to_supplied_config(tmp_path, monkeypatch):
+    '''
+    Test that a feature write through build_admin_app lands in the supplied
+    config file and leaves ./config.yml unchanged.
+
+    :param tmp_path: A temporary working directory.
+    :type tmp_path: pathlib.Path
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Work in a directory holding both config files.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / 'config.yml').write_text('features: {}\n')
+    (tmp_path / 'other.yml').write_text('features: {}\n')
+
+    # Save a feature through the admin app built against other.yml.
+    context = build_admin_app(app_config='other.yml')
+    context.get_dependency('feature_service').save(FeatureAggregate(
+        id='demo.demo',
+        name='Demo',
+        group_id='demo',
+        feature_key='demo',
+        description='Demo',
+    ))
+
+    # Assert the feature landed in other.yml and config.yml is byte-for-byte unchanged.
+    written = yaml.safe_load((tmp_path / 'other.yml').read_text())
+    assert 'demo' in written['features']['demo']
+    assert (tmp_path / 'config.yml').read_bytes() == b'features: {}\n'
 
 # ** test: build_admin_app_session_context_wires_handlers
 def test_build_admin_app_session_context_wires_handlers():
