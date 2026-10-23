@@ -1,0 +1,277 @@
+fixtures:
+  new_feature:
+    module_path: tiferet.mappers.feature
+    class_name: FeatureAggregate
+    attributes:
+      id: new_group.new_feature
+      name: New Feature
+      description: A new test feature.
+
+testers:
+  test_feature_config_repository:
+    module_path: tiferet.repos.feature
+    class_name: FeatureConfigRepository
+    attributes:
+      feature_config: $r.config_path
+    tests:
+      test_exists:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args:
+              - test_feature.yaml
+              - &feature_seed |
+                features:
+                  test_group:
+                    test_feature:
+                      name: Test Feature
+                      description: A test feature with a command.
+                      commands:
+                        - name: Test Command
+                          service_id: test.attribute
+                          params:
+                            key: value
+                      log_params: {}
+                    another_feature:
+                      name: Another Feature
+                      description: Another test feature.
+                      commands: []
+                      log_params: {}
+                  other_group:
+                    other_feature:
+                      name: Other Group Feature
+                      description: A feature in another group.
+                      commands: []
+                      log_params: {}
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: exists
+            args: [test_group.test_feature]
+            as: test_feature_exists
+          - target: $r.repo
+            method: exists
+            args: [test_group.another_feature]
+            as: another_feature_exists
+          - target: $r.repo
+            method: exists
+            args: [other_group.other_feature]
+            as: other_feature_exists
+          - target: $r.repo
+            method: exists
+            args: [nonexistent.group.feature]
+            as: nonexistent_exists
+        assert:
+          - outcome: test_feature_exists
+            equals: true
+          - outcome: another_feature_exists
+            equals: true
+          - outcome: other_feature_exists
+            equals: true
+          - outcome: nonexistent_exists
+            equals: false
+
+      test_get:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_feature.yaml, *feature_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: get
+            args: [test_group.test_feature]
+            as: test_feature
+          - target: $r.repo
+            method: get
+            args: [test_group.another_feature]
+            as: another_feature
+          - target: $r.repo
+            method: get
+            args: [other_group.other_feature]
+            as: other_feature
+          - target: $r.repo
+            method: get
+            args: [missing.group.feature]
+            as: missing_feature
+        assert:
+          - outcome: test_feature
+            fields:
+              id: test_group.test_feature
+              name: Test Feature
+          - outcome: another_feature
+            fields:
+              id: test_group.another_feature
+              name: Another Feature
+          - outcome: other_feature
+            fields:
+              id: other_group.other_feature
+              name: Other Group Feature
+          - outcome: missing_feature
+            'null': true
+
+      test_list:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_feature.yaml, *feature_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: list
+            as: listed
+        assert:
+          - outcome: listed
+            fields:
+              key: id
+              items:
+                test_group.test_feature: {id: test_group.test_feature}
+                test_group.another_feature: {id: test_group.another_feature}
+                other_group.other_feature: {id: other_group.other_feature}
+
+      test_save:
+        conditions:
+          stage: true
+          fixtures: [new_feature]
+        execute:
+          - target: $stage
+            method: write
+            args: [test_feature.yaml, *feature_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: save
+            args: [$fixture.new_feature]
+          - target: $r.repo
+            method: get
+            args: [new_group.new_feature]
+            as: saved
+        assert:
+          - outcome: saved
+            fields:
+              id: new_group.new_feature
+              name: New Feature
+
+      test_delete:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_feature.yaml, *feature_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: delete
+            args: [test_group.another_feature]
+          - target: $r.repo
+            method: get
+            args: [test_group.another_feature]
+            as: deleted
+          - target: $r.repo
+            method: delete
+            args: [test_group.another_feature]
+        assert:
+          - outcome: deleted
+            'null': true
+
+      test_list_by_group:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_feature.yaml, *feature_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: list
+            kwargs:
+              group_id: test_group
+            as: grouped
+          - target: $r.repo
+            method: list
+            kwargs:
+              group_id: missing_group
+            as: missing_grouped
+        assert:
+          - outcome: grouped
+            fields:
+              key: id
+              items:
+                test_group.test_feature: {id: test_group.test_feature}
+                test_group.another_feature: {id: test_group.another_feature}
+          - outcome: missing_grouped
+            equals: []
+
+      test_params_schema_round_trip:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_feature.yaml, *feature_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target:
+              module_path: tiferet.mappers.feature
+              class_name: FeatureConfigObject
+            method: model_validate
+            args:
+              - id: schema_group.schema_feature
+                name: Schema Feature
+                description: A feature with a request schema.
+                commands: []
+                params_schema:
+                  a: int
+                  b:
+                    type: float
+                    required: false
+                    default: 1.0
+                log_params: {}
+            as: config_object
+          - target: $r.config_object
+            method: map
+            as: feature
+          - target: $r.repo
+            method: save
+            args: [$r.feature]
+          - target: $r.repo
+            method: get
+            args: [schema_group.schema_feature]
+            as: reloaded
+        assert:
+          - outcome: reloaded
+            fields:
+              params_schema:
+                parameters:
+                  key: name
+                  items:
+                    a:
+                      type: int
+                      required: true
+                      default: null
+                    b:
+                      type: float
+                      required: false
+                      default: 1.0
