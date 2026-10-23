@@ -13,6 +13,8 @@ Standalone documentation and agent-skill changes - collaboration guides, style d
 
 A Doc PR has no issue, no TRD, no milestone, no project-board item, and no `Closes #N`. Do not open an issue for it. Discussion lives on the PR. It is still a PR: agents never push to `main`, and only the maintainer merges ([process.md § Agent guardrails](process.md#agent-guardrails)).
 
+If a Doc PR body lists acceptance criteria, every box starts unchecked. The reviewer checks each one as it verifies it.
+
 ## The branch
 
 From `main`: `docs-<lowercase-hyphenated-context>`.

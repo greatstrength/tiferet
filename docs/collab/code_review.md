@@ -13,7 +13,7 @@ Every reviewer checks the following, in this order of precedence. A higher item 
 
 1. **Code style is sacrosanct.** The general style ([code_style.md](../core/code_style.md)) and the style of each component the PR touches (`docs/core/<component>.md`) are held above everything else, including exactly one empty line between artifacts. No acceptance criterion, reference prototype, or precedent waives a style rule. This applies to code examples in docs and skills too.
 2. **Ordering is preserved.** Artifact order is fixed, including class member bands: attribute, then init, then property methods, then other methods. When a declaration or initialization dependency appears to force an out-of-order artifact, the author introduces a mechanic that preserves the order ([Ordering and Declaration Constraints](../core/code_style.md#ordering-and-declaration-constraints)). Reordering to keep things easy is a blocking finding.
-3. **The acceptance criteria are met.** Each AC item is binary and names an artifact. Check each one.
+3. **The acceptance criteria are met.** Each AC item is binary and names an artifact. Check each one. The author opens the PR with every AC box unchecked; as you verify an item, check its box in the PR body (with the posting go-ahead), and leave a failing item unchecked.
 4. **The tests are relevant and accurate.** Every test exercises the unit its label names, with the right tester type and fixtures, and the catalog rows say what the test does. A test that asserts nothing, duplicates another, or targets the wrong unit is a finding.
 5. **Nothing is superfluous.** No unnecessary statements, declarations, imports, parameters, constants, or comments.
 
@@ -109,9 +109,9 @@ The review ends with one verdict line, the first line of the review: `Verdict: A
 
 **Only the maintainer, a human, merges.** That holds for every base: a PR to `main`, an RFP PR to proto, and a sub-TRD PR into its Super-TRD branch. The reviewer's work ends at the verdict and the status on the issue. No agent merges, even after `Verdict: Approve` ([process.md § Agent guardrails](process.md#agent-guardrails)).
 
-Before a sub-TRD PR is squash-merged into the Super-TRD branch, all of these hold, checked immediately before the merge, not from memory of an earlier look: `gh pr view <N> --json baseRefName` is the Super-TRD branch; the verdict line is `Verdict: Approve`; the review is clean (code style, every AC, artifact fidelity, tests) and no blocking finding is unresolved; the PR-body AC checkboxes are checked. The squash commit message must not contain `Closes`, `Fixes`, or `Resolves`.
+Before a sub-TRD PR is squash-merged into the Super-TRD branch, all of these hold, checked immediately before the merge, not from memory of an earlier look: `gh pr view <N> --json baseRefName` is the Super-TRD branch; the verdict line is `Verdict: Approve`; the review is clean (code style, every AC, artifact fidelity, tests) and no blocking finding is unresolved; the PR-body AC checkboxes are checked, each by the reviewer. The squash commit message must not contain `Closes`, `Fixes`, or `Resolves`.
 
-Merge readiness keys off the verdict line plus those AC checkboxes. It does not key off a GitHub `--approve` event, which a shared token cannot submit.
+Merge readiness keys off the verdict line plus those reviewer-checked AC checkboxes. It does not key off a GitHub `--approve` event, which a shared token cannot submit.
 
 What follows a merge to `main` is unchanged. A proto PR does not honor `Closes`, so the implementing agent closes the RFP issue by hand. A standalone trunk PR closes its TRD through `Closes`. The Super-TRD PR closes the parent through `Closes #<parent>` only. A sub-TRD merge does not close the child. Children stay In Review until that parent PR is squash-merged; closing them is closeout. The standalone TRD gets its Collaboration Report.
 

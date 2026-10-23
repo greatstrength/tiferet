@@ -73,6 +73,8 @@ When the design is wrong, amend **in place** on the same issue. You are not rewr
 
 Before the squash-merge, a **Prototype reviewer** reviews the PR ([code_review.md](code_review.md)). Code style comes first and is never waived. Then the RFP's content: that the proposal and acceptance criteria hold, and that the result aligns with the vision statement and the distillation sections you cited. Concept outranks artifact cataloging on this strand. The first line of the review is `Verdict: Approve` or `Verdict: Changes requested`. The maintainer squash-merges. No agent merges ([process.md § Agent guardrails](process.md#agent-guardrails)).
 
+The PR body lists the RFP's acceptance criteria as checkboxes, all unchecked. The Prototype reviewer checks each box as it verifies that item; the author never checks one.
+
 Suggested TRD slicing does not block the merge.
 
 ## What this strand will not do

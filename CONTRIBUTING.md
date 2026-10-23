@@ -68,7 +68,7 @@ When a PR is squash-merged, clean up after yourself: remove the worktree and its
 
 RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue (a Doc PR has none). A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues - close the RFP issue after squash.
 
-The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**; on a Doc PR, which has no issue, they stay on the PR. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
+The PR is a **review surface**: what changed, AC checkboxes (opened unchecked; the reviewer checks each one as it verifies it), comments that point at a line. Short status notes belong on the **issue**; on a Doc PR, which has no issue, they stay on the PR. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
 
 ### Review
 
