@@ -1,0 +1,257 @@
+testers:
+  test_di_config_repository:
+    module_path: tiferet.repos.di
+    class_name: DIConfigRepository
+    attributes:
+      di_config: $r.config_path
+    tests:
+      test_new:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args:
+              - test_di.yaml
+              - &di_seed |
+                services:
+                  di_service:
+                    name: DI Service
+                    module_path: tiferet.services.di
+                    class_name: DIServiceImpl
+                    params:
+                      config_file: app/configs/di.yml
+                    deps:
+                      yaml:
+                        module_path: tiferet.repos.di
+                        class_name: DIConfigRepository
+                        params:
+                          di_config: app/configs/di.yml
+                  another_service:
+                    name: Another Service
+                    module_path: tiferet.services.another
+                    class_name: AnotherServiceImpl
+                const:
+                  sample_const: sample_value
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+        assert:
+          - outcome: repo
+            type:
+              module_path: tiferet.repos.di
+              class_name: DIConfigRepository
+          - outcome: repo
+            fields:
+              default_role: to_data
+
+      test_format_dispatch:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [dispatch.yaml, "root: {}\n"]
+            as: yaml_path
+          - target: $stage
+            method: write
+            args: [dispatch.json, "{\"root\": {}}\n"]
+            as: json_path
+          - target:
+              module_path: tiferet.repos.di
+              attribute: DIConfigRepository
+            method: DIConfigRepository
+            kwargs:
+              di_config: $r.yaml_path
+            as: yaml_repo
+          - target: $r.yaml_repo
+            method: _save
+            args: [{root: {ok: true}}]
+          - target: $r.yaml_repo
+            method: _load
+            as: yaml_loaded
+          - target: $r.yaml_loaded
+            method: __eq__
+            args: [{root: {ok: true}}]
+            as: yaml_exact
+          - target:
+              module_path: tiferet.repos.di
+              attribute: DIConfigRepository
+            method: DIConfigRepository
+            kwargs:
+              di_config: $r.json_path
+            as: json_repo
+          - target: $r.json_repo
+            method: _save
+            args: [{root: {ok: true}}]
+          - target: $r.json_repo
+            method: _load
+            as: json_loaded
+          - target: $r.json_loaded
+            method: __eq__
+            args: [{root: {ok: true}}]
+            as: json_exact
+        assert:
+          - outcome: yaml_loaded
+            equals: {root: {ok: true}}
+          - outcome: yaml_exact
+            equals: true
+          - outcome: json_loaded
+            equals: {root: {ok: true}}
+          - outcome: json_exact
+            equals: true
+
+      test_registration_exists:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_di.yaml, *di_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: registration_exists
+            args: [di_service]
+            as: di_service_exists
+          - target: $r.repo
+            method: registration_exists
+            args: [another_service]
+            as: another_service_exists
+          - target: $r.repo
+            method: registration_exists
+            args: [missing_service]
+            as: missing_service_exists
+        assert:
+          - outcome: di_service_exists
+            equals: true
+          - outcome: another_service_exists
+            equals: true
+          - outcome: missing_service_exists
+            equals: false
+
+      test_get_registration:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_di.yaml, *di_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: get_registration
+            args: [di_service]
+            as: config
+          - target: $r.repo
+            method: get_registration
+            args: [another_service]
+            as: another_config
+        assert:
+          - outcome: config
+            fields:
+              id: di_service
+              name: DI Service
+              module_path: tiferet.services.di
+              class_name: DIServiceImpl
+              parameters:
+                config_file: app/configs/di.yml
+              dependencies:
+                key: flag
+                items:
+                  yaml: {flag: yaml}
+          - outcome: another_config
+            fields:
+              id: another_service
+              name: Another Service
+              module_path: tiferet.services.another
+              class_name: AnotherServiceImpl
+
+      test_get_registration_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_di.yaml, *di_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: get_registration
+            args: [missing_service]
+            as: config
+        assert:
+          - outcome: config
+            'null': true
+
+      test_save_registration:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_di.yaml, *di_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target:
+              module_path: tiferet.mappers.di
+              class_name: ServiceRegistrationConfigObject
+            method: model_validate
+            args:
+              - id: new_service
+                name: New Service
+                module_path: tiferet.services.new
+                class_name: NewServiceImpl
+            as: config_object
+          - target: $r.config_object
+            method: map
+            as: config
+          - target: $r.repo
+            method: save_registration
+            args: [$r.config]
+          - target: $r.repo
+            method: get_registration
+            args: [new_service]
+            as: new_config
+        assert:
+          - outcome: new_config
+            fields:
+              id: new_service
+              name: New Service
+              module_path: tiferet.services.new
+              class_name: NewServiceImpl
+
+      test_delete_registration:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_di.yaml, *di_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: delete_registration
+            args: [another_service]
+          - target: $r.repo
+            method: get_registration
+            args: [another_service]
+            as: deleted_config
+          - target: $r.repo
+            method: delete_registration
+            args: [missing_service]
+            raises: false
+        assert:
+          - outcome: deleted_config
+            'null': true
