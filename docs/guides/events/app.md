@@ -192,7 +192,7 @@ Adds or updates a service dependency on an app session. Uses PUT semantics — i
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `parameters` | `dict[str, Any] \| None` | `None` | Parameters for the service dependency. `None` clears existing parameters. Dict keys with `None` values are pruned. |
+| `parameters` | `dict[str, Any] \| None` | `None` | Parameter overlay for the service dependency. A new value wins, a key with a `None` value is removed, and `None` leaves existing parameters unchanged. A new dependency never stores a `None` value. |
 
 **Returns:** `str` — the session ID.
 
