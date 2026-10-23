@@ -1,0 +1,717 @@
+tests:
+  create_service_module_path_returns_dotted_path:
+    conditions: {}
+    execute:
+      - target:
+          module_path: &core_module tiferet.assets.core
+          attribute: create_service_module_path
+        method: create_service_module_path
+        kwargs:
+          app_base_path: tiferet
+          base_path: events
+          domain_path: feature
+        as: built
+    assert:
+      - outcome: built
+        equals: tiferet.events.feature
+  create_service_module_path_repos_path:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_service_module_path
+        method: create_service_module_path
+        kwargs:
+          app_base_path: tiferet
+          base_path: repos
+          domain_path: feature
+        as: built
+    assert:
+      - outcome: built
+        equals: tiferet.repos.feature
+  create_service_dependency_returns_expected_shape:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_service_dependency
+        method: create_service_dependency
+        kwargs:
+          module_path: tiferet.repos.app
+          class_name: AppConfigRepository
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          module_path: tiferet.repos.app
+          class_name: AppConfigRepository
+          parameters: {}
+  create_service_dependency_with_parameters:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_service_dependency
+        method: create_service_dependency
+        kwargs:
+          module_path: tiferet.repos.app
+          class_name: AppConfigRepository
+          parameters:
+            config_file: config.yml
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          module_path: tiferet.repos.app
+          class_name: AppConfigRepository
+          parameters:
+            config_file: config.yml
+  create_app_service_dependency_data_returns_expected_shape:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_app_service_dependency_data
+        method: create_app_service_dependency_data
+        kwargs:
+          module_path: tiferet.repos.error
+          class_name: ErrorConfigRepository
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          module_path: tiferet.repos.error
+          class_name: ErrorConfigRepository
+          parameters: {}
+      - outcome: built
+        absent:
+          - id
+  create_app_service_dependency_data_omitting_parameters_yields_empty_dict:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_app_service_dependency_data
+        method: create_app_service_dependency_data
+        kwargs:
+          module_path: tiferet.mod
+          class_name: Cls
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          module_path: tiferet.mod
+          class_name: Cls
+          parameters: {}
+      - outcome: built
+        absent:
+          - id
+  create_service_registration_data_returns_expected_shape:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_service_registration_data
+        method: create_service_registration_data
+        kwargs:
+          module_path: tiferet.events.feature
+          class_name: AddFeature
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          module_path: tiferet.events.feature
+          class_name: AddFeature
+          parameters: {}
+      - outcome: built
+        absent:
+          - id
+  create_service_registration_data_omitting_parameters_yields_empty_dict:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_service_registration_data
+        method: create_service_registration_data
+        kwargs:
+          module_path: tiferet.mod
+          class_name: Cls
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          module_path: tiferet.mod
+          class_name: Cls
+          parameters: {}
+      - outcome: built
+        absent:
+          - id
+  create_default_feature_data_returns_required_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_feature_data
+        method: create_default_feature_data
+        kwargs:
+          name: Get Feature
+          group_id: feature
+          feature_key: get
+          steps:
+            - service_id: get_feature_evt
+              name: Get feature
+        as: built
+      - target: $r.built
+        method: __getitem__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: __getitem__
+        args: [0]
+        as: step
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.step]
+        as: step_key_count
+    assert:
+      - outcome: built
+        fields:
+          name: Get Feature
+          group_id: feature
+          feature_key: get
+          steps:
+            - service_id: get_feature_evt
+              name: Get feature
+      - outcome: built
+        absent:
+          - id
+          - description
+          - params_schema
+      - outcome: step_key_count
+        equals: 2
+  create_default_feature_data_includes_optional_fields_when_provided:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_feature_data
+        method: create_default_feature_data
+        kwargs:
+          name: Get Feature
+          group_id: feature
+          feature_key: get
+          steps:
+            - service_id: get_feature_evt
+              name: Get feature
+          description: Retrieve a feature by ID.
+          params_schema:
+            id: str
+        as: built
+      - target: $r.built
+        method: __getitem__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: __getitem__
+        args: [0]
+        as: step
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.step]
+        as: step_key_count
+    assert:
+      - outcome: built
+        fields:
+          name: Get Feature
+          group_id: feature
+          feature_key: get
+          steps:
+            - service_id: get_feature_evt
+              name: Get feature
+          description: Retrieve a feature by ID.
+          params_schema:
+            id: str
+      - outcome: built
+        absent:
+          - id
+      - outcome: step_key_count
+        equals: 2
+  create_params_schema_returns_expected_dict:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_params_schema
+        method: create_params_schema
+        kwargs:
+          id: str
+          name: str
+          description:
+            type: str
+            required: false
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          id: str
+          name: str
+          description:
+            type: str
+            required: false
+      - outcome: built
+        absent:
+          - type
+          - required
+          - default
+  create_default_app_session_data_returns_required_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_app_session_data
+        method: create_default_app_session_data
+        kwargs:
+          name: Admin App
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          name: Admin App
+      - outcome: built
+        absent:
+          - id
+          - description
+          - services
+          - constants
+  create_default_app_session_data_includes_description_when_provided:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_app_session_data
+        method: create_default_app_session_data
+        kwargs:
+          name: Admin CLI
+          description: Built-in CLI for managing Tiferet application configurations
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          name: Admin CLI
+          description: Built-in CLI for managing Tiferet application configurations
+      - outcome: built
+        absent:
+          - id
+          - services
+          - constants
+  create_default_formatter_returns_required_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_formatter
+        method: create_default_formatter
+        kwargs:
+          id: default
+          name: Default Formatter
+          format: '%(asctime)s - %(levelname)s - %(message)s'
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          id: default
+          name: Default Formatter
+          format: '%(asctime)s - %(levelname)s - %(message)s'
+      - outcome: built
+        absent:
+          - description
+          - datefmt
+  create_default_formatter_includes_optional_fields_when_provided:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_formatter
+        method: create_default_formatter
+        kwargs:
+          id: default
+          name: Default Formatter
+          format: '%(asctime)s - %(levelname)s - %(message)s'
+          description: The default logging formatter.
+          datefmt: '%Y-%m-%d %H:%M:%S'
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          id: default
+          name: Default Formatter
+          format: '%(asctime)s - %(levelname)s - %(message)s'
+          description: The default logging formatter.
+          datefmt: '%Y-%m-%d %H:%M:%S'
+  create_default_handler_returns_required_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_handler
+        method: create_default_handler
+        kwargs:
+          id: default
+          name: Default Handler
+          module_path: logging
+          class_name: StreamHandler
+          level: INFO
+          formatter: default
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          id: default
+          name: Default Handler
+          module_path: logging
+          class_name: StreamHandler
+          level: INFO
+          formatter: default
+      - outcome: built
+        absent:
+          - description
+          - stream
+          - filename
+  create_default_handler_includes_optional_fields_when_provided:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_handler
+        method: create_default_handler
+        kwargs:
+          id: default
+          name: Default Handler
+          module_path: logging
+          class_name: StreamHandler
+          level: INFO
+          formatter: default
+          description: The default logging handler.
+          stream: ext://sys.stdout
+          filename: app.log
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          id: default
+          name: Default Handler
+          module_path: logging
+          class_name: StreamHandler
+          level: INFO
+          formatter: default
+          description: The default logging handler.
+          stream: ext://sys.stdout
+          filename: app.log
+  create_default_logger_returns_required_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_logger
+        method: create_default_logger
+        kwargs:
+          id: default
+          name: Default Logger
+          level: INFO
+          handlers:
+            - default
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          id: default
+          name: Default Logger
+          level: INFO
+          handlers:
+            - default
+          propagate: false
+          is_root: false
+      - outcome: built
+        absent:
+          - description
+  create_default_logger_includes_optional_fields_when_provided:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_logger
+        method: create_default_logger
+        kwargs:
+          id: root
+          name: Root Logger
+          level: WARNING
+          handlers:
+            - default_root
+          propagate: false
+          is_root: true
+          description: The root logger.
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          id: root
+          name: Root Logger
+          level: WARNING
+          handlers:
+            - default_root
+          propagate: false
+          is_root: true
+          description: The root logger.
+  create_default_cli_argument_returns_required_field:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_cli_argument
+        method: create_default_cli_argument
+        kwargs:
+          name_or_flags:
+            - --flag
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          name_or_flags:
+            - --flag
+      - outcome: built
+        absent:
+          - id
+          - description
+          - type
+          - default
+          - required
+          - nargs
+          - choices
+  create_default_cli_argument_includes_optional_fields_when_provided:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_cli_argument
+        method: create_default_cli_argument
+        kwargs:
+          name_or_flags:
+            - level
+          description: Logging level.
+          type: str
+          default: INFO
+          required: true
+          nargs: '?'
+          choices:
+            - DEBUG
+            - INFO
+            - WARNING
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          name_or_flags:
+            - level
+          description: Logging level.
+          type: str
+          default: INFO
+          required: true
+          nargs: '?'
+          choices:
+            - DEBUG
+            - INFO
+            - WARNING
+      - outcome: built
+        absent:
+          - id
+  create_default_cli_command_data_returns_required_fields:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_cli_command_data
+        method: create_default_cli_command_data
+        kwargs:
+          key: list
+          group_key: feature
+          name: List Features
+        as: built
+    assert:
+      - outcome: built
+        fields:
+          key: list
+          group_key: feature
+          name: List Features
+      - outcome: built
+        absent:
+          - id
+          - description
+          - arguments
+  create_default_cli_command_data_includes_optional_fields_when_provided:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          attribute: create_default_cli_argument
+        method: create_default_cli_argument
+        kwargs:
+          name_or_flags:
+            - id
+          description: The feature identifier.
+        as: argument
+      - target:
+          module_path: *core_module
+          attribute: create_default_cli_command_data
+        method: create_default_cli_command_data
+        kwargs:
+          key: get
+          group_key: feature
+          name: Get Feature
+          description: Retrieve a feature by ID.
+          arguments:
+            - $r.argument
+        as: built
+      - target: $r.built
+        method: __getitem__
+        args: [arguments]
+        as: arguments
+      - target: $r.arguments
+        method: __getitem__
+        args: [0]
+        as: first_argument
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.first_argument]
+        as: argument_key_count
+    assert:
+      - outcome: built
+        fields:
+          key: get
+          group_key: feature
+          name: Get Feature
+          description: Retrieve a feature by ID.
+          arguments:
+            - $r.argument
+      - outcome: built
+        absent:
+          - id
+      - outcome: argument_key_count
+        equals: 2
+  tiferet_error_raise_error_code_only:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          class_name: TiferetError
+        method: raise_error
+        kwargs:
+          error_code: BASIC_ERROR
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        type:
+          module_path: *core_module
+          class_name: TiferetError
+      - outcome: raised
+        error_code: BASIC_ERROR
+  tiferet_error_raise_error_with_message_and_kwargs:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          class_name: TiferetError
+        method: raise_error
+        kwargs:
+          error_code: ARG_ERROR
+          message: Something failed
+          detail: extra
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        type:
+          module_path: *core_module
+          class_name: TiferetError
+      - outcome: raised
+        error_code: ARG_ERROR
+      - outcome: raised
+        message: Something failed
+      - outcome: raised
+        fields:
+          kwargs:
+            detail: extra
+  tiferet_error_raise_error_kwargs_without_message:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          class_name: TiferetError
+        method: raise_error
+        kwargs:
+          error_code: NO_MSG_ERROR
+          reason: missing
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        type:
+          module_path: *core_module
+          class_name: TiferetError
+      - outcome: raised
+        error_code: NO_MSG_ERROR
+      - outcome: raised
+        fields:
+          kwargs:
+            reason: missing
+  tiferet_api_error_raise_error_dispatches_to_subclass:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *core_module
+          class_name: TiferetAPIError
+        method: raise_error
+        kwargs:
+          error_code: SOME_CODE
+        raises: true
+        as: raised
+    assert:
+      - outcome: raised
+        type:
+          module_path: *core_module
+          class_name: TiferetAPIError
+      - outcome: raised
+        error_code: SOME_CODE
+      - outcome: raised
+        fields:
+          name: SOME_CODE
+
+testers:
+  tiferet_api_error:
+    module_path: *core_module
+    class_name: TiferetAPIError
+    attributes:
+      error_code: SOME_CODE
+      message: Something went wrong.
+    tests:
+      positional_message_binds_to_message:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *core_module
+              class_name: TiferetAPIError
+          - outcome: built
+            fields:
+              message: Something went wrong.
+              name: SOME_CODE
