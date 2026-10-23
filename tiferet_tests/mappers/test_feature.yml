@@ -62,6 +62,15 @@ fixtures:
     attributes:
       name: *feature_name
       group_id: *feature_group
+  overlay_step: &overlay_step
+    module_path: *feature_mapper
+    class_name: EventFeatureStepAggregate
+    attributes:
+      name: Overlay Event
+      service_id: overlay_handler
+      parameters:
+        keep: original
+        override: old
 
 tests:
   feature_config_object_maps_params_schema:
@@ -197,6 +206,8 @@ testers:
     module_path: *feature_mapper
     class_name: EventFeatureStepAggregate
     attributes: *event_sample
+    fixtures:
+      overlay_step: *overlay_step
     tests:
       new:
         conditions: {}
@@ -349,6 +360,59 @@ testers:
             fields:
               parameters:
                 key: '10'
+      set_parameters_overlay_exact:
+        conditions:
+          fixtures: [overlay_step]
+        execute:
+          - target: overlay_step
+            method: set_parameters
+            kwargs:
+              parameters:
+                override: new
+                remove: null
+                add: added
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$fixture.overlay_step, parameters]
+            as: parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.parameters]
+            as: parameter_keys
+          - target: overlay_step
+            method: set_parameters
+            kwargs:
+              parameters: {}
+          - target: overlay_step
+            method: set_parameters
+            kwargs:
+              parameters: null
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$fixture.overlay_step, parameters]
+            as: unchanged
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.unchanged]
+            as: unchanged_keys
+        assert:
+          - outcome: parameter_keys
+            equals: [keep, override, add]
+          - outcome: parameters
+            equals:
+              keep: original
+              override: new
+              add: added
+          - outcome: unchanged_keys
+            equals: [keep, override, add]
       set_attribute_delegation:
         conditions: {}
         execute:

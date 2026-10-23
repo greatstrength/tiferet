@@ -122,6 +122,61 @@ fixtures:
       id: *session_id
       name: *session_name
       services: []
+  overlay_session: &overlay_session
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      services:
+        - service_id: first
+          module_path: mod.first
+          class_name: FirstClass
+          parameters:
+            keep: original
+            override: old
+        - service_id: second
+          module_path: mod.second
+          class_name: SecondClass
+          parameters:
+            p: second
+  repeat_session: &repeat_session
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      services:
+        - service_id: dup_svc
+          module_path: mod.dup
+          class_name: DupOne
+          parameters:
+            p: one
+        - service_id: other_svc
+          module_path: mod.other
+          class_name: OtherClass
+          parameters:
+            p: other
+        - service_id: dup_svc
+          module_path: mod.dup
+          class_name: DupTwo
+          parameters:
+            p: two
+  reversed_session: &reversed_session
+    module_path: *app_mapper
+    class_name: AppSessionAggregate
+    attributes:
+      id: *session_id
+      name: *session_name
+      services:
+        - service_id: logging
+          module_path: tiferet.utils.logging
+          class_name: LoggingService
+          parameters: {}
+        - service_id: *svc_test
+          module_path: *svc_test_module
+          class_name: *svc_test_class
+          parameters: *svc_test_params
 
 testers:
   test_app_session_aggregate:
@@ -161,6 +216,8 @@ testers:
       remove_last: *remove_last
       remove_missing: *remove_missing
       remove_empty: *remove_empty
+      overlay_session: *overlay_session
+      repeat_session: *repeat_session
     tests:
       new:
         conditions: {}
@@ -507,12 +564,307 @@ testers:
               parameters:
                 p1: v1
                 p2: '42'
+      add_service_existing_id_raises:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_service
+            args: [*svc_test, pkg.other.module, OtherService]
+            kwargs:
+              parameters:
+                other: value
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_VALUE
+          - outcome: failed
+            message: "Service dependency 'test_attribute' already exists"
+          - outcome: built
+            fields:
+              services:
+                - service_id: *svc_test
+                  module_path: *svc_test_module
+                  class_name: *svc_test_class
+                  parameters: *svc_test_params
+                - service_id: logging
+                  module_path: tiferet.utils.logging
+                  class_name: LoggingService
+      add_service_drops_none_values:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: add_service
+            args: [pruned_svc, pkg.pruned, PrunedService]
+            kwargs:
+              parameters:
+                p1: v1
+                gone: null
+          - target: $r.built
+            method: add_service
+            args: [null_svc, pkg.null, NullService]
+            kwargs:
+              parameters: null
+          - target: $r.built
+            method: get_service
+            args: [pruned_svc]
+            as: pruned
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.pruned, parameters]
+            as: pruned_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.pruned_parameters]
+            as: pruned_keys
+          - target: $r.built
+            method: get_service
+            args: [null_svc]
+            as: nulled
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.nulled, parameters]
+            as: null_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.null_parameters]
+            as: null_keys
+        assert:
+          - outcome: pruned_keys
+            equals: [p1]
+          - outcome: pruned_parameters
+            equals:
+              p1: v1
+          - outcome: null_parameters
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: null_keys
+            equals: []
+      set_service_existing_none_parameters_leaves_existing:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_service
+            kwargs:
+              service_id: *svc_test
+              module_path: new.mod.path
+              class_name: NewImplementation
+              parameters: null
+          - target: $r.built
+            method: get_service
+            args: [*svc_test]
+            as: updated
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.updated, parameters]
+            as: parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.parameters]
+            as: parameter_keys
+        assert:
+          - outcome: updated
+            fields:
+              module_path: new.mod.path
+              class_name: NewImplementation
+          - outcome: parameters
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: parameter_keys
+            equals: [test_param, debug]
+          - outcome: parameters
+            equals: *svc_test_params
+      set_service_existing_overlay_in_place:
+        conditions:
+          fixtures: [overlay_session]
+        execute:
+          - target: overlay_session
+            method: set_service
+            kwargs:
+              service_id: first
+              module_path: mod.first.updated
+              class_name: FirstUpdated
+              parameters:
+                override: new
+                remove: null
+                add: added
+          - target: overlay_session
+            method: set_service
+            kwargs:
+              service_id: second
+              module_path: mod.second
+              class_name: SecondClass
+              parameters: {}
+          - target: overlay_session
+            method: get_service
+            args: [first]
+            as: first
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.first, parameters]
+            as: first_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.first_parameters]
+            as: first_keys
+          - target: overlay_session
+            method: get_service
+            args: [second]
+            as: second
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.second, parameters]
+            as: second_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.second_parameters]
+            as: second_keys
+        assert:
+          - outcome: first_keys
+            equals: [keep, override, add]
+          - outcome: first_parameters
+            equals:
+              keep: original
+              override: new
+              add: added
+          - outcome: second_keys
+            equals: [p]
+          - outcome: second_parameters
+            equals:
+              p: second
+          - outcome: overlay_session
+            fields:
+              services:
+                - service_id: first
+                  module_path: mod.first.updated
+                  class_name: FirstUpdated
+                - service_id: second
+      set_service_create_drops_none_values:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_service
+            kwargs:
+              service_id: pruned_new
+              module_path: pkg.pruned
+              class_name: PrunedService
+              parameters:
+                p1: v1
+                gone: null
+          - target: $r.built
+            method: set_service
+            kwargs:
+              service_id: null_new
+              module_path: pkg.null
+              class_name: NullService
+              parameters: null
+          - target: $r.built
+            method: get_service
+            args: [pruned_new]
+            as: pruned
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.pruned, parameters]
+            as: pruned_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.pruned_parameters]
+            as: pruned_keys
+          - target: $r.built
+            method: get_service
+            args: [null_new]
+            as: nulled
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.nulled, parameters]
+            as: null_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.null_parameters]
+            as: null_keys
+        assert:
+          - outcome: pruned_keys
+            equals: [p1]
+          - outcome: null_parameters
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: null_keys
+            equals: []
+          - outcome: built
+            fields:
+              services:
+                - service_id: *svc_test
+                - service_id: logging
+                - service_id: pruned_new
+                - service_id: null_new
+      remove_service_drops_every_match:
+        conditions:
+          fixtures: [repeat_session]
+        execute:
+          - target: repeat_session
+            method: remove_service
+            args: [dup_svc]
+            as: removed
+        assert:
+          - outcome: removed
+            fields:
+              service_id: dup_svc
+              class_name: DupOne
+          - outcome: repeat_session
+            fields:
+              services:
+                - service_id: other_svc
   test_app_session_config_object:
     module_path: *app_mapper
     class_name: AppSessionConfigObject
     attributes: *transfer_sample
     fixtures:
       app_session_aggregate: *app_session_aggregate
+      repeat_session: *repeat_session
+      reversed_session: *reversed_session
     tests:
       map:
         conditions: {}
@@ -705,3 +1057,113 @@ testers:
                   module_path: tiferet.utils.logging
                   class_name: LoggingService
                   parameters: {}
+      from_model_key_order:
+        conditions:
+          fixtures: [app_session_aggregate, reversed_session]
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: from_model
+            args: [$fixture.app_session_aggregate]
+            as: copied
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.copied, services]
+            as: services
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.services]
+            as: service_keys
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: from_model
+            args: [$fixture.reversed_session]
+            as: reversed_copy
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.reversed_copy, services]
+            as: reversed_services
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.reversed_services]
+            as: reversed_keys
+        assert:
+          - outcome: service_keys
+            equals: [test_attribute, logging]
+          - outcome: reversed_keys
+            equals: [logging, test_attribute]
+      map_key_order:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: model_validate
+            args: [*transfer_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: model_validate
+            args:
+              - id: *session_id
+                name: *session_name
+                attrs:
+                  logging:
+                    module_path: tiferet.utils.logging
+                    class_name: LoggingService
+                  test_attribute:
+                    module_path: *svc_test_module
+                    class_name: *svc_test_class
+                    params: *svc_test_params
+            as: reversed_transfer
+          - target: $r.reversed_transfer
+            method: map
+            as: reversed_mapped
+        assert:
+          - outcome: mapped
+            fields:
+              services:
+                - service_id: test_attribute
+                - service_id: logging
+          - outcome: reversed_mapped
+            fields:
+              services:
+                - service_id: logging
+                - service_id: test_attribute
+                  parameters: *svc_test_params
+      from_model_repeated_service_id_raises:
+        conditions:
+          fixtures: [repeat_session]
+        execute:
+          - target:
+              module_path: *app_mapper
+              class_name: AppSessionConfigObject
+            method: from_model
+            args: [$fixture.repeat_session]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_VALUE
+          - outcome: failed
+            message: "Service dependency 'dup_svc' is repeated"
+          - outcome: repeat_session
+            fields:
+              services:
+                - service_id: dup_svc
+                - service_id: other_svc
+                - service_id: dup_svc
