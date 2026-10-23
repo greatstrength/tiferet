@@ -1528,7 +1528,7 @@ def test_stage_records_and_message():
         {'level': 'DEBUG', 'message': 'Executing SampleEvent', 'error': False, 'logger': 'root'},
         {'level': 'DEBUG', 'message': 'named record', 'error': False, 'logger': 'tiferet.stage_probe'},
         {'level': 'ERROR', 'message': 'Failed SampleEvent', 'error': True, 'logger': 'root'},
-        {'level': 'ERROR', 'message': 'No active exception', 'error': False, 'logger': 'root'},
+        {'level': 'ERROR', 'message': 'No active exception', 'error': True, 'logger': 'root'},
     ]
     assert runtime.session.data['line'] == 'Executing SampleEvent'
 

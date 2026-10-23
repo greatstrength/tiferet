@@ -149,10 +149,15 @@ testers:
           - outcome: line
             message: Executing
 
-      error_flag_needs_a_real_exception:
+      error_flag_is_exc_info_not_none:
         conditions:
           stage: true
         execute:
+          - target:
+              module_path: logging
+              attribute: error
+            method: error
+            args: [no exc_info]
           - target:
               module_path: logging
               attribute: error
@@ -174,12 +179,16 @@ testers:
           - outcome: records
             equals:
               - level: ERROR
-                message: exc_info false
+                message: no exc_info
                 error: false
                 logger: root
               - level: ERROR
+                message: exc_info false
+                error: true
+                logger: root
+              - level: ERROR
                 message: exc_info true without an exception
-                error: false
+                error: true
                 logger: root
 
       stage_in_args_is_rejected:

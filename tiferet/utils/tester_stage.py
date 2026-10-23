@@ -281,7 +281,7 @@ class Stage(StageService):
             {
                 'level': record.levelname,
                 'message': record.getMessage(),
-                'error': bool(record.exc_info) and record.exc_info[0] is not None,
+                'error': record.exc_info is not None,
                 'logger': record.name,
             }
             for record in list(self.handler.buffer)

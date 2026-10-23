@@ -135,25 +135,23 @@ def test_records_and_message(stage: Stage) -> None:
         with pytest.raises(ServiceError):
             stage.message(level, index)
 
-# ** test: error_flag_needs_a_real_exception
-def test_error_flag_needs_a_real_exception(stage: Stage) -> None:
-    '''error is true only when the record carries a real exception tuple.'''
+# ** test: error_flag_is_exc_info_not_none
+def test_error_flag_is_exc_info_not_none(stage: Stage) -> None:
+    '''error is record.exc_info is not None, the literal rule.'''
 
-    # exc_info False, and exc_info True with no active exception, carry no exception.
+    # No exc_info leaves the record's exc_info None. Any passed exc_info does not.
+    logging.error('no exc_info')
     logging.error('false', exc_info=False)
     logging.error('true without an exception', exc_info=True)
-
-    # An active exception, and an exception instance, carry a real tuple.
     try:
         raise ValueError('boom')
     except ValueError:
         logging.error('true with an exception', exc_info=True)
-    logging.error('instance', exc_info=ValueError('boom'))
     assert [(item['message'], item['error']) for item in stage.records()] == [
-        ('false', False),
-        ('true without an exception', False),
+        ('no exc_info', False),
+        ('false', True),
+        ('true without an exception', True),
         ('true with an exception', True),
-        ('instance', True),
     ]
 
 # ** test: close_restores_and_removes
