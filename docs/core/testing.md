@@ -15,6 +15,8 @@ No test imports `tiferet.testing`. Component tests use this model (`@use_tester`
 
 The console script is `tiferet-tester`, not `run_test_module`, and not the `tiferet` script. `tiferet-tester` is a separate console script.
 
+`tiferet-tester module run` exits 0 when every case passes, 1 when any case fails or the module cannot be loaded, and 2 on a usage error. Each failure and load error is written once as an `ERROR` record to stderr through the `tester` logger.
+
 **Test-module modules (v2.2.0):** `tiferet/domain/tester_phase.py`, `tiferet/domain/tester_module.py`, `tiferet/contexts/tester_phase.py`, `tiferet/contexts/tester_module.py`, `tiferet/contexts/tester_cli.py`, `tiferet/blueprints/tester_cli.py`, `tiferet/assets/tester_cli.py`
 
 ## Running the suite
