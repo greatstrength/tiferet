@@ -21,6 +21,35 @@ from ..di.dependency_injector import DIAppServiceContainer, DIDynamicServiceReso
 from ..di.core import ServiceResolver
 from .. import a
 
+# *** functions
+
+# ** function: build_admin_session_constants
+def build_admin_session_constants(constants: Dict[str, Any], app_config: str) -> Dict[str, Any]:
+    '''
+    Overlay every config-file session constant with the supplied config path.
+
+    Returns a new dict holding every entry of ``constants``, then ``app_config``
+    and each ``*_config`` key set to ``app_config``. The input is not mutated.
+
+    :param constants: The existing session constants, or None.
+    :type constants: Dict[str, Any]
+    :param app_config: Path to the consumer configuration file.
+    :type app_config: str
+    :return: A new constants dict whose config-file keys equal app_config.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Copy the existing constants, then set every config-file key to app_config.
+    return {
+        **(constants or {}),
+        'app_config': app_config,
+        'cli_config': app_config,
+        'di_config': app_config,
+        'error_config': app_config,
+        'feature_config': app_config,
+        'logging_config': app_config,
+    }
+
 # *** blueprints
 
 # ** blueprint: build_cache
@@ -62,6 +91,7 @@ def build_admin_service_resolver(
     app_container: DIAppServiceContainer,
     cache: CacheContext,
     parse_parameter: Callable = core.parse_parameter,
+    session_constants: Dict[str, Any] = None,
 ) -> ServiceResolver:
     '''
     Build the feature-level service resolver with admin services alongside the
@@ -82,6 +112,8 @@ def build_admin_service_resolver(
     :param parse_parameter: The parameter parser injected into the resolver;
         defaults to the blueprint parser.
     :type parse_parameter: Callable
+    :param session_constants: Optional app session constants overlaid on the admin container constants.
+    :type session_constants: Dict[str, Any] | None
     :return: The composed feature-level service resolver.
     :rtype: ServiceResolver
     '''
@@ -90,9 +122,11 @@ def build_admin_service_resolver(
     di_service = app_container.get_dependency('di_service')
 
     # Build the admin container from cache-seeded admin services and constants.
+    # Session constants override the admin defaults, including load_cache.
     admin_constants = {
         **cache.get_by_prefix(*a.app.ADMIN_CONSTANT_CACHE_PREFIX),
         'load_cache': core.load_cache(cache),
+        **(session_constants or {}),
     }
     admin_container = DIAppServiceContainer.from_dependencies(
         services=list(cache.get_by_prefix(*a.app.ADMIN_SERVICE_CACHE_PREFIX).values()),
@@ -147,7 +181,7 @@ def build_admin_app_session_context(
     app_container = core.build_app_service_container(cache, app_session)
 
     # Build the feature-level resolver using the admin resolver (adds admin container).
-    resolver = build_admin_service_resolver(app_container, cache)
+    resolver = build_admin_service_resolver(app_container, cache, session_constants=app_session.constants)
 
     # Delegate handler wiring and construction. Extra slots arrive as context_kwargs.
     return core.compose_session_context(
@@ -171,7 +205,8 @@ def build_admin_app(
     session — a parallel, not derived, counterpart to ``core.build_app`` that
     ships management capability without requiring a consumer config entry.
 
-    Build a fully wired admin app session context in a single call.
+    Build a fully wired admin app session context in a single call. When
+    ``app_config`` is supplied, every ``*_config`` session constant is set to it.
 
     Parallel to :func:`core.build_app` but uses the admin cache (seeded with
     the full admin catalog) and :func:`build_admin_app_session_context` so the
@@ -194,6 +229,13 @@ def build_admin_app(
 
     # Resolve the session; built-in sessions are cache-seeded so no fallback needed.
     app_session = core.get_app_session(interface_id, cache, **parameters)
+
+    # Re-seed session constants so every config-file repository uses app_config.
+    if 'app_config' in parameters:
+        app_session.constants = build_admin_session_constants(
+            app_session.constants,
+            parameters['app_config'],
+        )
 
     # Compose the wired admin app session context.
     app_session_context = build_admin_app_session_context(app_session, cache)
