@@ -548,6 +548,18 @@ def _registered_check():
     module = import_module(registration['module_path'])
     return getattr(module, registration['class_name'])()
 
+# ** function: registered_stage
+def _registered_stage():
+    '''Resolve the Stage class from registration data. Do not import the util.'''
+
+    # The same string shape as the check. The class is the per-test factory.
+    registration = {
+        'module_path': 'tiferet.utils.tester_stage',
+        'class_name': 'Stage',
+    }
+    module = import_module(registration['module_path'])
+    return getattr(module, registration['class_name'])
+
 # ** function: reporter_cache
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def _reporter_cache(cache: Dict[str, Any] = None) -> CacheContext:
@@ -680,6 +692,7 @@ def build_phase_runtime(
         value,
         session=session,
         check=_registered_check(),
+        stage_factory=_registered_stage(),
     )
 
 # ** blueprint: build_tester_context
