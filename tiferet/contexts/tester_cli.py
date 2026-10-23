@@ -3,13 +3,18 @@
 # *** imports
 
 # ** core
+import json
 import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 # ** app
-from ..assets import TiferetAPIError
-from ..assets.tester_cli import MODULE_RUN_ID, TESTER_WRITE_EVENT_REGISTRATIONS
+from ..assets import TiferetAPIError, TiferetError
+from ..assets.tester_cli import (
+    MODULE_RUN_ID,
+    TESTER_LOGGER_ID,
+    TESTER_WRITE_EVENT_REGISTRATIONS,
+)
 from ..events import DomainEvent
 from ..events.tester_module import ReadTestModuleDocument, WriteTestModuleDocument
 from .app import AppSessionContext, raise_unwired_handler_error
@@ -240,7 +245,9 @@ class TesterCliSessionContext(CliSessionContext):
         Parse argv and run the catalog command.
 
         A parse failure exits 2. The module-run id calls the injected runner.
-        Every other command rides the application session run.
+        A failed case or a load failure exits 1 through the ``tester`` logger,
+        which writes one ``ERROR`` record per failure. Every other command
+        rides the application session run.
 
         :param argv: The argument list; defaults to sys.argv[1:] when None.
         :type argv: List[str]
@@ -262,14 +269,32 @@ class TesterCliSessionContext(CliSessionContext):
             if self._run_test_module is None:
                 raise_unwired_handler_error('run_test_module', self.domain.id)
 
+            # Build the tester logger before the run.
+            logger = self._build_logger(TESTER_LOGGER_ID)
+            module_path = data.get('module_path')
+
+            # Run the module. A load failure is logged once and exits 1.
             try:
-                return self._run_test_module(
-                    data.get('module_path'),
+                result = self._run_test_module(
+                    module_path,
                     summary=bool(data.get('summary')),
                 )
             except TiferetAPIError as e:
                 print(e, file=sys.stderr)
                 sys.exit(1)
+            except Exception as error:
+                code = getattr(error, 'error_code', None) or type(error).__name__
+                message = str(error)
+                if isinstance(error, TiferetError):
+                    message = json.loads(message).get('message') or message
+                logger.error(f'Module run failed to load {module_path}: {code}: {message}')
+                sys.exit(1)
+
+            # Log one error record per failed case, then return the report.
+            failures = result.get('failures', []) if isinstance(result, dict) else []
+            for failure in failures:
+                logger.error(f"{failure['node_id']} FAILED: {failure['message']}")
+            return result
 
         # Every other command rides the application session run.
         try:
