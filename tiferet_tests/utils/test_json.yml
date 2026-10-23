@@ -1,0 +1,326 @@
+tests:
+  parse_json_path_dict:
+    conditions: {}
+    execute:
+      - target: &json_loader_class
+          module_path: &json_module tiferet.utils.json
+          class_name: JsonLoader
+        method: parse_json_path
+        args:
+          - &nested_data
+            users:
+              - name: Alice
+                age: 30
+              - name: Bob
+                age: 25
+            metadata:
+              total: 2
+              source: test
+          - metadata.total
+        as: result
+    assert:
+      - outcome: result
+        equals: 2
+
+  parse_json_path_list:
+    conditions: {}
+    execute:
+      - target: *json_loader_class
+        method: parse_json_path
+        args: [*nested_data, users.1.name]
+        as: result
+    assert:
+      - outcome: result
+        equals: Bob
+
+  parse_json_path_missing_key:
+    conditions: {}
+    execute:
+      - target: *json_loader_class
+        method: parse_json_path
+        args: [*nested_data, metadata.missing]
+        as: result
+    assert:
+      - outcome: result
+        'null': true
+
+  parse_json_path_invalid:
+    conditions: {}
+    execute:
+      - target: *json_loader_class
+        method: parse_json_path
+        args: [*nested_data, metadata.total.invalid]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: INVALID_JSON_PATH
+
+testers:
+  json_loader_read:
+    module_path: *json_module
+    class_name: JsonLoader
+    attributes:
+      path: $r.file_path
+      mode: r
+    tests:
+      load_success:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.json
+              text: &sample_json |
+                {
+                  "name": "test",
+                  "items": [
+                    "one",
+                    "two"
+                  ],
+                  "count": 3
+                }
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            as: result
+        assert:
+          - outcome: result
+            equals:
+              name: test
+              items: [one, two]
+              count: 3
+
+      load_file_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.json]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND
+
+      load_malformed_json:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: bad.json
+              text: '{"key": [unclosed bracket'
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: JSON_FILE_LOAD_ERROR
+          - outcome: failed
+            fields:
+              kwargs:
+                path: $r.file_path
+
+      verify_json_file_success:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.json
+              text: *sample_json
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *json_loader_class
+            method: verify_json_file
+            args: [$r.loader]
+            as: verified
+        assert:
+          - outcome: verified
+            'null': true
+
+      verify_json_file_invalid_extension:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: data.txt
+              text: '{"key": "value"}'
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *json_loader_class
+            method: verify_json_file
+            args: [$r.loader]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_FILE
+
+      verify_json_file_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.json]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *json_loader_class
+            method: verify_json_file
+            args: [$r.loader]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: JSON_FILE_NOT_FOUND
+          - outcome: failed
+            fields:
+              kwargs:
+                path: $r.file_path
+
+      verify_json_file_fallback:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [data.txt]
+            as: file_path
+          - target: $stage
+            method: write
+            kwargs:
+              name: fallback.json
+              text: '{}'
+            as: fallback_file_path
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.fallback_file_path]
+            as: default_path
+          - target: self
+            method: new
+            as: loader
+          - target: *json_loader_class
+            method: verify_json_file
+            args: [$r.loader]
+            kwargs:
+              default_path: $r.default_path
+            as: verified
+        assert:
+          - outcome: verified
+            'null': true
+
+      context_manager_closes_on_error:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: broken.json
+              text: '{invalid json'
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: loader
+            fields:
+              file: null
+
+  json_loader_write:
+    module_path: *json_module
+    class_name: JsonLoader
+    attributes:
+      path: $r.file_path
+      mode: w
+    tests:
+      save_and_reload:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [output.json]
+            as: file_path
+          - target: self
+            method: new
+            as: saver
+          - target: $r.saver
+            method: save
+            args:
+              - &saved_mapping
+                key: value
+                numbers: [1, 2, 3]
+          - target:
+              module_path: *json_module
+              attribute: JsonLoader
+            method: JsonLoader
+            kwargs:
+              path: $r.file_path
+              mode: r
+            as: loader
+          - target: $r.loader
+            method: load
+            as: result
+        assert:
+          - outcome: result
+            equals: *saved_mapping
+
+      save_write_failure:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [nonexistent_dir, output.json]
+            as: file_path
+          - target: self
+            method: new
+            as: saver
+          - target: $r.saver
+            method: save
+            args:
+              - key: value
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND

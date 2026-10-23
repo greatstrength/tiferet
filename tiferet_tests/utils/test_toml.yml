@@ -1,0 +1,141 @@
+testers:
+  toml_loader:
+    module_path: &toml_module tiferet.utils.toml
+    class_name: TomlLoader
+    attributes:
+      path: $r.file_path
+    tests:
+      load_basic:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: config.toml
+              text: |
+                [project]
+                name = "tiferet"
+                version = "2.0.0"
+
+                [project.options]
+                debug = true
+                count = 42
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            as: data
+        assert:
+          - outcome: data
+            equals:
+              project:
+                name: tiferet
+                version: '2.0.0'
+                options:
+                  debug: true
+                  count: 42
+
+      load_file_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.toml]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND
+
+      load_invalid_toml:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: bad.toml
+              text: "[invalid\nkey = ???"
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: TOML_FILE_LOAD_ERROR
+
+      verify_toml_file_wrong_extension:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: config.yaml
+              text: 'key: value'
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: &toml_loader_class
+              module_path: *toml_module
+              class_name: TomlLoader
+            method: verify_toml_file
+            args: [$r.loader]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_TOML_FILE
+
+      verify_toml_file_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.toml]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *toml_loader_class
+            method: verify_toml_file
+            args: [$r.loader]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: TOML_FILE_NOT_FOUND
+
+  toml_loader_literal:
+    module_path: *toml_module
+    class_name: TomlLoader
+    attributes:
+      path: /tmp/test.toml
+    tests:
+      defaults_to_binary_mode:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: loader
+        assert:
+          - outcome: loader
+            fields:
+              mode: rb
+              encoding: null
