@@ -3,6 +3,7 @@
 # *** imports
 
 # ** infra
+import yaml
 from unittest import mock
 
 # ** app
@@ -22,6 +23,7 @@ from tiferet.contexts.cli import (
     CliSessionContext,
 )
 from tiferet.domain import AppSession, CliCommand
+from tiferet.mappers import FeatureAggregate
 
 # *** tests
 
@@ -59,11 +61,11 @@ def test_build_admin_cli_session_context_uses_admin_resolver():
         fromlist=['build_admin_service_resolver'],
     ).build_admin_service_resolver
 
-    def capture_resolver(app_container, cache, parse_parameter=None):
+    def capture_resolver(app_container, cache, parse_parameter=None, session_constants=None):
         kwargs = {}
         if parse_parameter is not None:
             kwargs['parse_parameter'] = parse_parameter
-        resolver = real_build(app_container, cache, **kwargs)
+        resolver = real_build(app_container, cache, session_constants=session_constants, **kwargs)
         captured['resolver'] = resolver
         return resolver
 
@@ -173,6 +175,47 @@ def test_build_admin_cli_reseeds_app_config():
     assert mock_build_ctx.call_args.args[0] is app_session
     mock_context.run.assert_called_once_with(['cli', 'list-commands'])
     assert response == 'admin-cli-response'
+
+# ** test: build_admin_cli_writes_to_supplied_config
+def test_build_admin_cli_writes_to_supplied_config(tmp_path, monkeypatch):
+    '''
+    Test that a feature write through build_admin_cli lands in the supplied
+    config file and leaves ./config.yml unchanged.
+
+    :param tmp_path: A temporary working directory.
+    :type tmp_path: pathlib.Path
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Work in a directory holding both config files.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / 'config.yml').write_text('features: {}\n')
+    (tmp_path / 'other.yml').write_text('features: {}\n')
+
+    # Return the built context from run instead of parsing argv.
+    with mock.patch(
+        'tiferet.blueprints.admin_cli.CliSessionContext.run',
+        autospec=True,
+        side_effect=lambda self, argv=None: self,
+    ):
+        context = build_admin_cli(app_config='other.yml', argv=['feature', 'list'])
+
+    # Save a feature through the default admin container.
+    feature_service = context.get_dependency('feature_service')
+    feature_service.save(FeatureAggregate(
+        id='demo.demo',
+        name='Demo',
+        group_id='demo',
+        feature_key='demo',
+        description='Demo',
+    ))
+
+    # Assert the write targeted other.yml and config.yml is byte-for-byte unchanged.
+    assert feature_service.config_file == 'other.yml'
+    written = yaml.safe_load((tmp_path / 'other.yml').read_text())
+    assert 'demo' in written['features']['demo']
+    assert (tmp_path / 'config.yml').read_bytes() == b'features: {}\n'
 
 # ** test: build_admin_cli_alias
 def test_build_admin_cli_alias():

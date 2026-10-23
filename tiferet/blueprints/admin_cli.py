@@ -80,7 +80,7 @@ def build_admin_cli_session_context(
     app_container = core.build_app_service_container(cache, app_session)
 
     # Build the feature-level resolver using the admin resolver (adds admin container).
-    resolver = admin.build_admin_service_resolver(app_container, cache)
+    resolver = admin.build_admin_service_resolver(app_container, cache, session_constants=app_session.constants)
 
     # Build the command and parent-argument handlers. This builder does not
     # resolve those events by service id.
@@ -149,16 +149,7 @@ def build_admin_cli(
 
     # Re-seed the session constants so all config-file repos point to the
     # consumer's app_config file rather than the seeded 'config.yml' placeholders.
-    session_constants = {
-        **(app_session.constants or {}),
-        'app_config': app_config,
-        'cli_config': app_config,
-        'di_config': app_config,
-        'error_config': app_config,
-        'feature_config': app_config,
-        'logging_config': app_config,
-    }
-    app_session.constants = session_constants
+    app_session.constants = admin.build_admin_session_constants(app_session.constants, app_config)
 
     # Compose the wired admin CLI session context.
     cli_context = build_admin_cli_session_context(app_session, cache)
