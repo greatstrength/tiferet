@@ -9,12 +9,7 @@
 
 v2.1.0 unit tests name a component with one `TesterObject`, bind it to a `TesterContext` (or a type-specific variant that omits `domain_type`), and drive checks through a `TestSessionContext` that *is* a `RequestContext`. The public decorator is `@use_tester`. It injects `test_ctx` and `session` by parameter name and strips those names from the wrapper signature so pytest does not treat them as fixtures.
 
-This document has two parts:
-
-1. **The v2.1.0 unit-test model** — `TesterObject`, tester contexts, `TestSessionContext`, `@use_tester`, and the eight `type` values.
-2. **The leftover `tiferet.testing` harness** — `AggregateTestBase`, `DomainEventTestBase`, and related bases still in the tree until a later freeze deletes them.
-
-Do not delete `tiferet/testing/` in this cycle. Existing mapper and event tests that still subclass those bases are not a migration target here.
+No test imports `tiferet.testing`. Component tests use this model (`@use_tester`); module-level pytest tests remain where no tester type fits. The former `tiferet.testing` package (`AggregateTestBase`, `DomainEventTestBase`, and related bases) was retired on trunk in v2.1.2 (#1226). It is not in the tree; do not reintroduce it. See [Retired: `tiferet.testing`](#retired-tiferettesting).
 
 **Modules:** `tiferet/domain/tester.py`, `tiferet/contexts/tester.py`, `tiferet/blueprints/tester.py`, `tiferet/assets/tester.py`
 
@@ -33,7 +28,7 @@ pytest
 
 The extra brings `pytest`, `pytest_env`, and `pytest-asyncio`. Without `pytest-asyncio` the async tests fail. `pyproject.toml` sets `testpaths` to `tests` and `tests_int`.
 
-## Part 1 — The v2.1.0 unit-test model
+## The v2.1.0 unit-test model
 
 ### One TesterObject
 
@@ -132,9 +127,9 @@ Export: `from tiferet import use_tester` and `from tiferet.blueprints import use
 
 Fixtures, tests, and testers are **sibling** artifact kinds. Testers compose the other two; they do not replace them. After preamble, order is `# *** fixtures` → `# *** tests` → `# *** testers` (omit empty). Keep all three kinds.
 
-- `# *** fixtures` / `# ** fixture: <snake>` — module-level pytest fixtures.
-- `# *** tests` / `# ** test: <snake>` — module-level test **functions** only.
-- `# *** testers` / `# ** tester: test_<snake>` — tester **classes** (`class Test*`), last.
+- `# *** fixtures` / `# ** fixture: <snake>` - module-level pytest fixtures.
+- `# *** tests` / `# ** test: <snake>` - module-level test **functions** only.
+- `# *** testers` / `# ** tester: test_<snake>` - tester **classes** (`class Test*`), last.
 
 Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected tests). Class-form `@use_tester` injects `test_ctx` / `session` into members that list them, including `# * fixture:` methods.
 
@@ -167,57 +162,26 @@ See [docs/core/code_style.md § Test-Module Artifact Grammar](code_style.md#test
 
 Full walkthroughs: [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md).
 
-## Part 2 — Leftover `tiferet.testing` harness
+## Retired: `tiferet.testing`
 
-The `tiferet.testing` package is still in the tree. Mapper and event unit tests that subclass these bases continue to work. This section documents that leftover surface. It is not the v2.1.0 unit-test model, and this document does not ask you to migrate `tests/events` or `tests/mappers`.
+The `tiferet/testing/` package and its `conftest.py` hooks (`register_mapper_hooks`, `register_event_hooks`) were removed on trunk in v2.1.2 (#1226). Existing references in older tags or branches map onto `@use_tester` types:
 
-**Module:** `tiferet/testing/`
+| Retired base | `@use_tester` type |
+| --- | --- |
+| `AggregateTestBase` | `aggregate` |
+| `TransferObjectTestBase` | `transfer_object` |
+| `DomainEventTestBase` | `domain_event` |
+| `ServiceEventTestBase` | `service_event` |
 
-### Exports
-
-- `MapperAssertions` — mixin with shared assertion helpers for comparing domain objects.
-- `AggregateTestBase` — base class for Aggregate tests (instantiation, `set_attribute` validation).
-- `TransferObjectTestBase` — base class for TransferObject tests (`map`, `from_model`, round-trip).
-- `DomainEventTestBase` — base class for DomainEvent tests (auto-mocked dependencies, required param validation).
-- `ServiceEventTestBase` — extended base for events with service get/save/delete patterns.
-- `register_mapper_hooks` — conftest hook for parametrizing `AggregateTestBase.test_set_attribute`.
-- `register_event_hooks` — conftest hook for parametrizing `DomainEventTestBase.test_missing_required_params`.
-
-These modules import pytest. The v2.1.0 tester layer in `tiferet/blueprints/tester.py` and `tiferet/contexts/tester.py` does not.
-
-### Mapper leftover
-
-`AggregateTestBase` expects class attributes `aggregate_cls`, `sample_data`, `equality_fields`, `set_attribute_params` (optional `field_normalizers`) and provides `test_new` / `test_set_attribute`.
-
-`TransferObjectTestBase` expects `transfer_cls`, `aggregate_cls`, `sample_data`, `aggregate_sample_data`, `equality_fields` (optional `field_normalizers`, `map_kwargs`) and provides `test_map` / `test_from_model` / `test_round_trip`.
-
-Parametrization of `test_set_attribute` is driven by `register_mapper_hooks` in `conftest.py`.
-
-### Event leftover
-
-`DomainEventTestBase` expects `event_cls`, `dependencies`, `sample_kwargs`, `required_params`. Use `self.handle(mock_dependencies, **overrides)` to invoke `DomainEvent.handle`. `test_missing_required_params` is parametrized by `register_event_hooks`.
-
-`ServiceEventTestBase` adds `service_attr`, `not_found_error_code`, `not_found_kwargs`, and `test_not_found`.
-
-### Package layout
-
-```
-tiferet/testing/
-├── __init__.py    — Public exports
-├── mappers.py     — MapperAssertions, AggregateTestBase, TransferObjectTestBase
-├── domain.py      — DomainEventTestBase, ServiceEventTestBase
-└── hooks.py       — register_mapper_hooks, register_event_hooks
-```
-
-A later freeze deletes this package. Until then, leave it in place.
+Parametrized cases that the hooks used to inject (`set_attribute_params`, `required_params`) now live as fields on the `TesterObject` built by the decorator.
 
 ## Related Documentation
 
-- [docs/guides/domain/tester.md](../guides/domain/tester.md) — `TesterObject` and `Verification`
-- [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md) — `@use_tester` cookbook and per-type algorithms
-- [docs/guides/contexts.md](../guides/contexts.md) — tester context registry and `TestSessionContext`
-- [docs/guides/blueprints.md](../guides/blueprints.md) — tester-scoped `build_cache`
-- [docs/guides/assets.md](../guides/assets.md) — `CORE_DEFAULT_TESTERS` catalog pattern
-- [docs/core/code_style.md](code_style.md) — Test-module artifact grammar (`# *** fixtures` / `# *** tests` / `# *** testers`)
-- [docs/core/mappers.md](mappers.md) — Aggregate and TransferObject conventions
-- [docs/core/events.md](events.md) — Domain event patterns
+- [docs/guides/domain/tester.md](../guides/domain/tester.md) - `TesterObject` and `Verification`
+- [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md) - `@use_tester` cookbook and per-type algorithms
+- [docs/guides/contexts.md](../guides/contexts.md) - tester context registry and `TestSessionContext`
+- [docs/guides/blueprints.md](../guides/blueprints.md) - tester-scoped `build_cache`
+- [docs/guides/assets.md](../guides/assets.md) - `CORE_DEFAULT_TESTERS` catalog pattern
+- [docs/core/code_style.md](code_style.md) - Test-module artifact grammar (`# *** fixtures` / `# *** tests` / `# *** testers`)
+- [docs/core/mappers.md](mappers.md) - Aggregate and TransferObject conventions
+- [docs/core/events.md](events.md) - Domain event patterns

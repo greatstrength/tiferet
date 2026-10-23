@@ -1,10 +1,10 @@
 # Step 10: The Arithmetic Operators as a Bounded Context
 
-`calc.add`, `calc.subtract`, `calc.multiply`, `calc.divide`, `calc.exp`, and `calc.sqrt` have lived in `config.yml` since Chapter 4. That's fine for consumer-configurable behavior — but the arithmetic operators aren't really configuration. They're the calculator's own fixed, built-in vocabulary: no one integrating with this calculator should be able to accidentally delete `calc.add` from a YAML file and break addition. In DDD terms, they're a **bounded context** the calculator itself owns, and it should ship with default behavior at the interface level regardless of what `config.yml` says.
+`calc.add`, `calc.subtract`, `calc.multiply`, `calc.divide`, `calc.exp`, and `calc.sqrt` have lived in `config.yml` since Chapter 4. That's fine for consumer-configurable behavior - but the arithmetic operators aren't really configuration. They're the calculator's own fixed, built-in vocabulary: no one integrating with this calculator should be able to accidentally delete `calc.add` from a YAML file and break addition. In DDD terms, they're a **bounded context** the calculator itself owns, and it should ship with default behavior at the interface level regardless of what `config.yml` says.
 
 ### 10.1 The assets layer: naming the operators once, referencing services in their own module
 
-Assets are Tiferet's root layer — pure constants, no framework imports. `app/assets/core.py` captures every id the bounded context needs, once, so nothing downstream restates a literal string like `'calc.add'` a second time. The service dependency data those ids resolve to -- `*_EVT_DATA`, and the `CALC_DEFAULT_SERVICES` catalog grouping them -- gets its own domain-specific module, `app/assets/di.py`, rather than crowding into `core.py` alongside the shared operator/feature vocabulary.
+Assets are Tiferet's root layer - pure constants, no framework imports. `app/assets/core.py` captures every id the bounded context needs, once, so nothing downstream restates a literal string like `'calc.add'` a second time. The service dependency data those ids resolve to -- `*_EVT_DATA`, and the `CALC_DEFAULT_SERVICES` catalog grouping them -- gets its own domain-specific module, `app/assets/di.py`, rather than crowding into `core.py` alongside the shared operator/feature vocabulary.
 
 **app/assets/core.py** (the shape of it)
 
@@ -46,7 +46,7 @@ CALC_DEFAULT_SERVICES = {
 }
 ```
 
-`create_app_service_dependency_data`/`create_service_module_path` are the same factory helpers `tiferet.assets.core` uses to build its *own* default catalogs — we're reusing the framework's own pattern for the calculator's bounded context, not inventing a new one.
+`create_app_service_dependency_data`/`create_service_module_path` are the same factory helpers `tiferet.assets.core` uses to build its *own* default catalogs - we're reusing the framework's own pattern for the calculator's bounded context, not inventing a new one.
 
 **app/assets/feature.py** builds one `create_default_feature_data(...)` entry per operator, keyed by the ids from `core.py`:
 
@@ -153,7 +153,7 @@ def create_calculator_cli(interface_id='calc_cli', argv=None, config_file='confi
     return cli_context.run(argv)
 ```
 
-`CliContext` has no `record_run` override, so CLI runs get the arithmetic defaults but not history recording -- a small, accepted scope boundary; `calc_client.py` and `calc_fluent.py` (Chapter 11) are where history matters.
+`CliSessionContext` has no `record_run` override, so CLI runs get the arithmetic defaults but not history recording -- a small, accepted scope boundary; `calc_client.py` and `calc_fluent.py` (Chapter 11) are where history matters.
 
 **calc_cli.py** shrinks to one call:
 
@@ -166,7 +166,7 @@ if __name__ == '__main__':
 
 ### 10.5 config.yml shrinks
 
-Delete the `calc.add`/`subtract`/`multiply`/`divide`/`exp`/`sqrt` feature declarations and their `*_number_event` service registrations entirely — they're calculator-local defaults now, present regardless of configuration. `calc.safe_divide` stays; it has no CLI command and exists solely to demonstrate the `condition:` step field, so it stays a config-authoring example rather than folding into the default catalog.
+Delete the `calc.add`/`subtract`/`multiply`/`divide`/`exp`/`sqrt` feature declarations and their `*_number_event` service registrations entirely - they're calculator-local defaults now, present regardless of configuration. `calc.safe_divide` stays; it has no CLI command and exists solely to demonstrate the `condition:` step field, so it stays a config-authoring example rather than folding into the default catalog.
 
 ### 10.6 See it work
 
@@ -175,7 +175,7 @@ python calc_client.py
 python calc_cli.py calc add 19 23
 ```
 
-Both still produce exactly the output from Chapters 5 and 6 — but `config.yml` no longer declares a single arithmetic feature.
+Both still produce exactly the output from Chapters 5 and 6 - but `config.yml` no longer declares a single arithmetic feature.
 
 ### 10.7 Recap
 

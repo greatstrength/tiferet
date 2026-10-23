@@ -1,4 +1,4 @@
-# Domain – Tester: TesterObject and Verification
+# Domain - Tester: TesterObject and Verification
 
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
@@ -7,20 +7,20 @@
 
 ## Overview
 
-The tester domain names a specialized component under test and queues checks against a session outcome. One `TesterObject` carries identity, import coordinates, and optional assertion payloads. A `type` discriminator selects which payloads matter; there are no per-type subclass models (`DomainTesterObject`, `RepoTesterObject`, and the rest do not exist). `Verification` is a runtime value for one queued check — not a catalog row and not a tester type.
+The tester domain names a specialized component under test and queues checks against a session outcome. One `TesterObject` carries identity, import coordinates, and optional assertion payloads. A `type` discriminator selects which payloads matter; there are no per-type subclass models (`DomainTesterObject`, `RepoTesterObject`, and the rest do not exist). `Verification` is a runtime value for one queued check - not a catalog row and not a tester type.
 
 **Module:** `tiferet/domain/tester.py`
 **Vision:** See the `TesterObject` and `Verification` class docstrings in `tiferet/domain/tester.py` for the value statements this guide distills.
 
 ## Ubiquitous Language
 
-- **Tester object** — one domain object that names the component under test (`id`, `module_path`, `class_name`) plus optional assertion payloads.
-- **Type discriminator** — the `Literal` `type` field (`domain`, `aggregate`, `transfer_object`, `domain_event`, `service_event`, `generic`, `repo`, `context`). Defaults to `generic`.
-- **Target** — the live class, instance, callable, or attribute identified by `module_path` / `class_name`.
-- **Sample data** — declaration-time constructor payload. Overlay at run time goes on `TestSessionContext.data`, never back into this dict.
-- **Catalog row** — a `CORE_DEFAULT_TESTERS` dict built by `create_default_tester_data`, keyed by an id constant, with no `id` inside the value.
-- **Decorator-supplied fields** — the same model fields passed to `@use_tester(...)` at decoration time.
-- **Verification** — one queued predicate (or literal equality) evaluated against the session outcome.
+- **Tester object** - one domain object that names the component under test (`id`, `module_path`, `class_name`) plus optional assertion payloads.
+- **Type discriminator** - the `Literal` `type` field (`domain`, `aggregate`, `transfer_object`, `domain_event`, `service_event`, `generic`, `repo`, `context`). Defaults to `generic`.
+- **Target** - the live class, instance, callable, or attribute identified by `module_path` / `class_name`.
+- **Sample data** - declaration-time constructor payload. Overlay at run time goes on `TestSessionContext.data`, never back into this dict.
+- **Catalog row** - a `CORE_DEFAULT_TESTERS` dict built by `create_default_tester_data`, keyed by an id constant, with no `id` inside the value.
+- **Decorator-supplied fields** - the same model fields passed to `@use_tester(...)` at decoration time.
+- **Verification** - one queued predicate (or literal equality) evaluated against the session outcome.
 
 ## Domain Objects
 
@@ -30,9 +30,9 @@ A runtime value for one queued check against a session outcome. Built by `TestSe
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
-| <a id="verification-predicate"></a>`predicate` | `Callable[[Any], bool]` | Yes | — | Evaluated against the session outcome. |
+| <a id="verification-predicate"></a>`predicate` | `Callable[[Any], bool]` | Yes | - | Evaluated against the session outcome. |
 | <a id="verification-message"></a>`message` | `str \| None` | No | `None` | Optional failure label. |
-| <a id="verification-source"></a>`source` | `Any` | Yes | — | The original callable or literal the caller supplied. |
+| <a id="verification-source"></a>`source` | `Any` | Yes | - | The original callable or literal the caller supplied. |
 
 Literals are wrapped as equality predicates (`outcome == expected`) before construction. Callables are stored as-is.
 
@@ -45,9 +45,9 @@ One domain object for every tester type. Unused type-specific fields stay at the
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
 | <a id="testerobject-type"></a>`type` | `Literal[...]` | No | `'generic'` | Discriminator. Rejects unknown keys (there is no `'callable'` type). |
-| <a id="testerobject-id"></a>`id` | `str` | Yes | — | Unique tester identifier. Catalog rows omit this; the cache seeder re-injects the group-dict key. `@use_tester` derives `{type}.{class_name}` when omitted. |
-| <a id="testerobject-module-path"></a>`module_path` | `str` | Yes | — | Module path of the target. |
-| <a id="testerobject-class-name"></a>`class_name` | `str` | Yes | — | Target class, function, or attribute name. |
+| <a id="testerobject-id"></a>`id` | `str` | Yes | - | Unique tester identifier. Catalog rows omit this; the cache seeder re-injects the group-dict key. `@use_tester` derives `{type}.{class_name}` when omitted. |
+| <a id="testerobject-module-path"></a>`module_path` | `str` | Yes | - | Module path of the target. |
+| <a id="testerobject-class-name"></a>`class_name` | `str` | Yes | - | Target class, function, or attribute name. |
 
 #### Shared construction and comparison
 
@@ -163,7 +163,7 @@ These names are not in `tiferet/domain/tester.py`: `DomainTesterObject`, `Aggreg
 ## Boundaries
 
 **Inside this domain:** `TesterObject` (one model, type discriminator, import helpers) and `Verification` (queued check value).
-**Outside this domain:** tester context variants and fluent `given` / `invoke` / `verify` / `run` ([docs/guides/contexts.md](../contexts.md), [docs/guides/blueprints/tester.md](../blueprints/tester.md)); leftover `tiferet.testing` bases ([docs/core/testing.md](../../core/testing.md)); YAML configuration (there is no `testers:` section); a `tiferet/tester/` package (does not exist); feature E2E through tester sessions.
+**Outside this domain:** tester context variants and fluent `given` / `invoke` / `verify` / `run` ([docs/guides/contexts.md](../contexts.md), [docs/guides/blueprints/tester.md](../blueprints/tester.md)); the retired `tiferet.testing` bases ([docs/core/testing.md](../../core/testing.md#retired-tiferettesting)); YAML configuration (there is no `testers:` section); a `tiferet/tester/` package (does not exist); feature E2E through tester sessions.
 
 ## Instantiation
 
@@ -184,9 +184,9 @@ assert tester.expected_data == tester.sample_data
 
 ## Related Documentation
 
-- [docs/core/testing.md](../../core/testing.md) — v2.1.0 unit-test model and leftover `tiferet.testing`
-- [docs/guides/blueprints/tester.md](../blueprints/tester.md) — `@use_tester` and per-type algorithms
-- [docs/guides/contexts.md](../contexts.md) — `TesterContext` registry and `TestSessionContext`
-- [docs/guides/assets.md](../assets.md) — `CORE_DEFAULT_TESTERS` catalog pattern
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments
+- [docs/core/testing.md](../../core/testing.md) - v2.1.0 unit-test model and test-module surface
+- [docs/guides/blueprints/tester.md](../blueprints/tester.md) - `@use_tester` and per-type algorithms
+- [docs/guides/contexts.md](../contexts.md) - `TesterContext` registry and `TestSessionContext`
+- [docs/guides/assets.md](../assets.md) - `CORE_DEFAULT_TESTERS` catalog pattern
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - Domain model conventions
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comments

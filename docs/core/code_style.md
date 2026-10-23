@@ -12,12 +12,12 @@ Artifact comments provide a predictable, machine-readable structure that organiz
 Top-level comments denote major module sections, which fall into two kinds: **preamble groups** (available in every module) and **construct groups** (the module's primary body).
 
 **Preamble artifact section groups** are available in *any* module, regardless of its construct type (`# *** events`, `# *** utils`, etc.). There are four, and they appear in this order when present:
-- `# *** imports` — all import statements.
-- `# *** constants` — module-level constant definitions.
-- `# *** functions` — module-level, side-effect-free helper functions. A helper belongs here when it takes only its arguments and returns a plain value: no `self`, no injected services, and no domain-object returns. Prefer this over duplicating the same logic as a static method across classes.
-- `# *** classes` — generic or base classes not tied to a specific construct type (e.g., the base classes defined in a `settings.py`).
+- `# *** imports` - all import statements.
+- `# *** constants` - module-level constant definitions.
+- `# *** functions` - module-level, side-effect-free helper functions. A helper belongs here when it takes only its arguments and returns a plain value: no `self`, no injected services, and no domain-object returns. Prefer this over duplicating the same logic as a static method across classes.
+- `# *** classes` - generic or base classes not tied to a specific construct type (e.g., the base classes defined in a `settings.py`).
 
-**Construct groups** form the primary body of a module and are selected by what the module defines — for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. Test modules use three sibling construct groups after preamble — `# *** fixtures`, `# *** tests`, `# *** testers` — omit empty; testers compose fixtures and tests, they do not replace them. See [Test-Module Artifact Grammar](#test-module-artifact-grammar). The `# *** exports` group lists the public API and appears only in `__init__.py`.
+**Construct groups** form the primary body of a module and are selected by what the module defines - for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. Test modules use three sibling construct groups after preamble - `# *** fixtures`, `# *** tests`, `# *** testers` - omit empty; testers compose fixtures and tests, they do not replace them. See [Test-Module Artifact Grammar](#test-module-artifact-grammar). The `# *** exports` group lists the public API and appears only in `__init__.py`.
 
 A module combines its preamble groups with its construct group(s), ordered `imports` → `constants` → `functions`, then `classes` and/or the construct group(s). For example, a domain-event module that needs a pure helper is laid out as:
 ```python
@@ -51,7 +51,7 @@ def _is_valid_identifier(name: str) -> bool:
 **Spacing**: One empty line between top-level comment and first mid-level comment.
 
 ### Sub-Groups (`# *** <kind> (<sub-group>)`)
-A large section may be partitioned into **sub-groups** by adding a parenthetical qualifier to the top-level comment. The section/artifact kind is preserved — only the parenthetical names a partition within that kind. This reuses the same parenthetical-qualifier idea already applied to methods with `(static)`.
+A large section may be partitioned into **sub-groups** by adding a parenthetical qualifier to the top-level comment. The section/artifact kind is preserved - only the parenthetical names a partition within that kind. This reuses the same parenthetical-qualifier idea already applied to methods with `(static)`.
 
 Use a sub-group only when a single section grows large enough that partitioning aids navigation; small sections stay ungrouped. A module may therefore contain one plain section plus one or more sub-grouped sections of the same kind. For example, `constants.py` keeps language constants under `# *** constants` and error-id constants under `# *** constants (error)`:
 ```python
@@ -81,7 +81,7 @@ Tester **classes** belong under `# *** testers`, not under `# *** tests` sub-gro
 **Grammar rules:**
 - Preserve the kind: the word after `# ***` stays the normal section kind (`constants`, `tests`, ...); the parenthetical is only a label.
 - The parenthetical names the sub-group; keep it short and consistent within the module.
-- Sub-groups do not nest — use at most one parenthetical qualifier per top-level comment.
+- Sub-groups do not nest - use at most one parenthetical qualifier per top-level comment.
 - Order any plain (ungrouped) section of a kind before its sub-grouped variants.
 - Individual artifacts keep their standard mid-level label (`# ** constant:`, `# ** test:`); the sub-group never changes the `# **` line.
 
@@ -89,11 +89,11 @@ Tester **classes** belong under `# *** testers`, not under `# *** tests` sub-gro
 
 **Spacing**: One empty line between a sub-group comment and its first mid-level comment, the same as any top-level section.
 
-**Multi-group asset catalogs** — When an `assets/` module defines multiple capability groups (e.g., `admin`, `sqlite`, `csv`), apply a three-layer sub-group structure. Each capability group name is a shared key across all three layers:
+**Multi-group asset catalogs** - When an `assets/` module defines multiple capability groups (e.g., `admin`, `sqlite`, `csv`), apply a three-layer sub-group structure. Each capability group name is a shared key across all three layers:
 
-1. `# *** constants (ids_<group>)` — raw string ID constants for the group.
-2. `# *** constants (models_<group>)` — assembled model constants (e.g., via `create_default_error`) in the same order as the corresponding `(ids_<group>)` section.
-3. A named dict entry under `# *** constants (groups)` — aggregates the group's models.
+1. `# *** constants (ids_<group>)` - raw string ID constants for the group.
+2. `# *** constants (models_<group>)` - assembled model constants (e.g., via `create_default_error`) in the same order as the corresponding `(ids_<group>)` section.
+3. A named dict entry under `# *** constants (groups)` - aggregates the group's models.
 
 When adding an entry to a capability group, touch all three locations: `(ids_<group>)`, `(models_<group>)`, and the group dict in `(groups)`. See `tiferet/assets/error.py` for the canonical reference.
 
@@ -140,11 +140,11 @@ Order stays core, then infra, then app. Omit an empty group. A misplaced import 
 
 ### Low-Level (`# *`)
 Defines subcomponents within a class:
-- `# * attribute: <name>` — instance attributes.
-- `# * init` — constructor.
-- `# * method: <name> (property)` — a descriptive `@property`. After `init`, before every other method.
-- `# * method: <name>` — other instance methods.
-- `# * method: <name> (static)` — **static methods** (e.g., `ParseParameter.execute`).
+- `# * attribute: <name>` - instance attributes.
+- `# * init` - constructor.
+- `# * method: <name> (property)` - a descriptive `@property`. After `init`, before every other method.
+- `# * method: <name>` - other instance methods.
+- `# * method: <name> (static)` - **static methods** (e.g., `ParseParameter.execute`).
 
 These labels are an order, not a menu. See [Ordering and Declaration Constraints](#ordering-and-declaration-constraints).
 
@@ -175,14 +175,14 @@ def execute(self,
 When calling a function or factory that has optional parameters, those parameters **must** be passed as keyword arguments. Required positional parameters may continue to be passed positionally, as their role is unambiguous by position. Optional parameters passed positionally lose their self-documenting value and silently conflict with the optional-field-omission pattern.
 
 ```python
-# Correct — optional 'description' passed as keyword argument
+# Correct - optional 'description' passed as keyword argument
 DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
     TIFERET_ADMIN_ID,
     'Admin App',
     description='Default built-in admin application session',
 )
 
-# Incorrect — optional 'description' passed positionally; do not use
+# Incorrect - optional 'description' passed positionally; do not use
 DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
     TIFERET_ADMIN_ID,
     'Admin App',
@@ -192,7 +192,7 @@ DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
 
 ### Code Snippets
 - Each logical step is a separate snippet.
-- Precede with 1–2 comment lines describing intent.
+- Precede with 1-2 comment lines describing intent.
 - One empty line between snippets.
 
 **Example of code snippets within a method** (`FeatureContext.load_feature`):
@@ -233,7 +233,7 @@ Within a class, members appear in this order, and a later band never precedes an
 
 A property is descriptive, so it is read first among methods. The label is `# * method: <name> (property)`, and the method is decorated with `@property` and nothing else. It takes no caller argument beyond `self`. It does not assign. There is no `(setter)` qualifier and no recognized `@name.setter` member. A write is an ordinary method. This form is legal on a domain model, an aggregate, a transfer object, and a context. It is not legal on an event, an interface, a repository, a utility, a blueprint, or a DI class.
 
-A tester class does not use these bands. Its members are `# * fixture` then `# * test`, fixtures first. See [Test-Module Artifact Grammar](#test-module-artifact-grammar). A leftover harness class is not this member-band rule. It keeps the order that section already lists: `# * attribute`, then `# * fixture`, then `# * method`.
+A tester class does not use these bands. Its members are `# * fixture` then `# * test`, fixtures first. See [Test-Module Artifact Grammar](#test-module-artifact-grammar).
 
 When a dependency appears to force an out-of-order artifact, introduce a mechanic that preserves the order. Prefer, in this order:
 
@@ -245,10 +245,10 @@ When none of these fits, design a new mechanic that keeps the structure intact a
 
 ### Constant declaration style
 
-All list- and dictionary-typed constants must use the multi-line hanging-indent style with a trailing comma, wherever they appear in the codebase. Short constants are just as mandatory as long ones — uniformity eliminates line-length judgment calls and prevents drift as catalogs grow.
+All list- and dictionary-typed constants must use the multi-line hanging-indent style with a trailing comma, wherever they appear in the codebase. Short constants are just as mandatory as long ones - uniformity eliminates line-length judgment calls and prevents drift as catalogs grow.
 
 ```python
-# Correct — multi-line with trailing comma
+# Correct - multi-line with trailing comma
 ADMIN_DEFAULT_ERRORS = {
     **CORE_DEFAULT_ERRORS,
     CLI_COMMAND_ALREADY_EXISTS_ID: CLI_COMMAND_ALREADY_EXISTS,
@@ -259,13 +259,13 @@ ADMIN_DEFAULT_SERVICES = {
     **CORE_DEFAULT_SERVICES,
 }
 
-# Incorrect — never single-line
+# Incorrect - never single-line
 ADMIN_DEFAULT_SERVICES = {**CORE_DEFAULT_SERVICES}
 ```
 
 ## Annotation Artifacts
 
-Annotation artifacts are **transient lifecycle markers** — a fourth tier below the structural `# ***` / `# **` / `# *` hierarchy. Unlike structural comments, annotations describe *state* rather than *shape* and are expected to be resolved over time.
+Annotation artifacts are **transient lifecycle markers** - a fourth tier below the structural `# ***` / `# **` / `# *` hierarchy. Unlike structural comments, annotations describe *state* rather than *shape* and are expected to be resolved over time.
 
 Three annotation types are defined:
 
@@ -276,11 +276,11 @@ Signals deferred work attached to a specific artifact. The `++` prefix is semant
 Signals that an artifact is deprecated and slated for removal. The `--` prefix is semantic: *this is being reduced or removed*. Replaces the informal `# NOTE:` docstring approach with a single, consistently placed annotation line.
 
 ### `# >> see: <path>#<anchor>`
-Links a public class, method, or attribute to the distillation-tier guide content that documents it — the docstring↔guide convention (docstrings stay vision-tier; guides carry the distillation) that this annotation is part of. The `>>` prefix is semantic: *the fuller story lives elsewhere*. The docstring on the annotated artifact stays vision-tier (a class-level value statement, or the plain mechanical `:param`/`:return` contract for a method) — narrative depth, rationale, and cross-domain relationships live in the linked guide instead. The target is always a path plus an explicit anchor id, never a signature-derived anchor, so a renamed parameter never breaks the link. Apply it only to **public** artifacts that have corresponding guide coverage — do not add it preemptively to artifacts with no guide entry yet.
+Links a public class, method, or attribute to the distillation-tier guide content that documents it - the docstring↔guide convention (docstrings stay vision-tier; guides carry the distillation) that this annotation is part of. The `>>` prefix is semantic: *the fuller story lives elsewhere*. The docstring on the annotated artifact stays vision-tier (a class-level value statement, or the plain mechanical `:param`/`:return` contract for a method) - narrative depth, rationale, and cross-domain relationships live in the linked guide instead. The target is always a path plus an explicit anchor id, never a signature-derived anchor, so a renamed parameter never breaks the link. Apply it only to **public** artifacts that have corresponding guide coverage - do not add it preemptively to artifacts with no guide entry yet.
 
-**The `@guides/` shorthand** — since every `# >> see:` target is rooted at `docs/guides/`, write it as `@guides/<rest-of-path>#<anchor>` (e.g. `@guides/domain/error.md#error-format-message`) instead of spelling out `docs/guides/domain/error.md#error-format-message`. `@guides/` is a source-code-only shorthand for this annotation target — it is not a real path and must never appear in a clickable Markdown link; links between guide documents keep using normal relative paths (e.g. `[docs/guides/errors.md](../errors.md)`) so they render and navigate correctly on GitHub.
+**The `@guides/` shorthand** - since every `# >> see:` target is rooted at `docs/guides/`, write it as `@guides/<rest-of-path>#<anchor>` (e.g. `@guides/domain/error.md#error-format-message`) instead of spelling out `docs/guides/domain/error.md#error-format-message`. `@guides/` is a source-code-only shorthand for this annotation target - it is not a real path and must never appear in a clickable Markdown link; links between guide documents keep using normal relative paths (e.g. a guide under `docs/guides/domain/` links `[docs/guides/errors.md](../errors.md)`) so they render and navigate correctly on GitHub.
 
-**Placement grammar** — annotations appear immediately after the structural comment they annotate, on their own line, before the code body:
+**Placement grammar** - annotations appear immediately after the structural comment they annotate, on their own line, before the code body:
 
 ```python
 # * method: remove_service
@@ -303,9 +303,9 @@ class Error(DomainObject):
         ...
 ```
 
-Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo, obsolescence, or guide link applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment. Multiple annotations may stack on the same artifact (e.g. a `# >> see:` link on a method also carrying a `# ++ todo:`); order them in a fixed sequence — `# >> see:` first, then `# ++ todo:` / `# -- obsolete:` — for scannability.
+Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo, obsolescence, or guide link applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment. Multiple annotations may stack on the same artifact (e.g. a `# >> see:` link on a method also carrying a `# ++ todo:`); order them in a fixed sequence - `# >> see:` first, then `# ++ todo:` / `# -- obsolete:` - for scannability.
 
-**Label-level shorthand** — the `(obsolete)` parenthetical suffix on a `# *` or `# **` label remains valid shorthand when no further reason is needed:
+**Label-level shorthand** - the `(obsolete)` parenthetical suffix on a `# *` or `# **` label remains valid shorthand when no further reason is needed:
 
 ```python
 # * method: handle_command (obsolete)
@@ -314,12 +314,12 @@ Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comm
 When a reason or target version is meaningful, prefer `# -- obsolete:` on its own line.
 
 **Resolution expectations**
-- `# ++ todo:` annotations should be removed once the described work is complete. Reference the GitHub issue number in the message when the work is tracked (`# ++ todo: #123 — remove attribute_id once ...`).
+- `# ++ todo:` annotations should be removed once the described work is complete. Reference the GitHub issue number in the message when the work is tracked (`# ++ todo: #123 - remove attribute_id once ...`).
 - `# -- obsolete:` annotations should be removed together with the artifact they annotate. Verify no callers remain before deletion.
 - `# >> see:` annotations should be updated whenever the target guide's anchor id changes, and removed if the guide section they point to is deleted rather than left dangling.
 - All three types should be surfaced in Collaboration Reports when introduced or resolved during a session.
 
-**Agent scan procedure** — before beginning any implementation session, scan affected files for open annotations:
+**Agent scan procedure** - before beginning any implementation session, scan affected files for open annotations:
 
 ```bash
 grep -rn "# ++\|# --\|# >>" tiferet/
@@ -329,7 +329,7 @@ This gives an immediate picture of outstanding technical debt, deprecated code, 
 
 ## Example: Complete Class with Formatting
 
-**Domain Event Example** – `GetFeature`:
+**Domain Event Example** - `GetFeature`:
 ```python
 # *** imports
 
@@ -386,7 +386,7 @@ class GetFeature(DomainEvent):
 
 ## Brief Test Example with Formatting
 
-**Test Example** – `test_get_feature_success`:
+**Test Example** - `test_get_feature_success`:
 ```python
 # *** imports
 
@@ -446,18 +446,18 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
 
 ## Test-Module Artifact Grammar
 
-After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` — standalone helpers only, never a tester), test modules declare group-level sections in this order:
+After preamble groups (`# *** imports` / `# *** constants` / `# *** functions` / `# *** classes` - standalone helpers only, never a tester), test modules declare group-level sections in this order:
 
-1. `# *** fixtures` — module-level pytest fixtures. Mid-level: `# ** fixture: <snake_name>` matching `def <snake_name>`.
-2. `# *** tests` — module-level test **functions** only. Mid-level: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
-3. `# *** testers` — tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
+1. `# *** fixtures` - module-level pytest fixtures. Mid-level: `# ** fixture: <snake_name>` matching `def <snake_name>`.
+2. `# *** tests` - module-level test **functions** only. Mid-level: `# ** test: <snake_name>` matching `def test_<snake_name>` (or `def <snake_name>` as shipped).
+3. `# *** testers` - tester classes, last because they compose fixtures and tests. Mid-level: `# ** tester: <snake_name>` matching `class Test*` (prefix `Test` so pytest collects them; still tester classes). Example: `# ** tester: test_error_aggregate` → `class TestErrorAggregate`.
 
 Omit any empty group. Function-only modules omit `# *** testers`. Fixture-and-function modules omit `# *** testers`. Keep all three kinds; do not collapse fixtures or tests into testers.
 
 Under a tester class, members are, fixtures first:
 
-- `# * fixture: <name>` — a pytest fixture method; may request group-level fixtures by parameter name.
-- `# * test: <name>` — a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
+- `# * fixture: <name>` - a pytest fixture method; may request group-level fixtures by parameter name.
+- `# * test: <name>` - a pytest test method. This is the **only** place a class member is a test rather than `# * method:`.
 
 Fixture wiring is pytest parameter-name injection. Class-form `@use_tester` injects `test_ctx` / `session` into any member that lists them, including `# * fixture:` methods, and strips those names from the pytest signature. Do not label tester test methods `# * method:`.
 
@@ -485,101 +485,6 @@ class TestErrorMessage:
         test_ctx.assert_description()
 ```
 
-## Domain Event Test Harness Style
-
-This section documents leftover `tiferet.testing` subclasses (`DomainEventTestBase` / `ServiceEventTestBase`). Those classes now live under `# *** testers` with `# ** tester: test_<snake>` and `# * test:` members. **New** unit tests use [Test-Module Artifact Grammar](#test-module-artifact-grammar) and `@use_tester`, not these bases.
-
-Domain event tests that still use the leftover class-based harness follow these conventions.
-
-### Artifact Comments
-
-Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-level comment. Within each class, in this order:
-
-- `# * attribute: <name>` — class-level configuration attributes.
-- `# * fixture: <name>` — fixture overrides.
-- `# * method: <name>` — custom test methods.
-
-```python
-# *** tests
-
-# ** test: TestAddAppSession
-class TestAddAppSession(DomainEventTestBase):
-    '''
-    Tests for AddAppSession using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddAppSession
-
-    # * attribute: dependencies
-    dependencies = {'app_service': AppService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        id='test.interface',
-        name='Test Interface',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'name', 'module_path', 'class_name']
-
-    # * method: test_minimal_success
-    def test_minimal_success(self, mock_dependencies):
-        '''
-        Test creating a minimal app interface with only required parameters.
-        '''
-
-        # Execute via the harness handle helper.
-        interface = self.handle(mock_dependencies)
-
-        # Assert the result is an AppSession instance.
-        assert isinstance(interface, AppSession)
-
-        # Assert the interface is saved via the app service.
-        mock_dependencies['app_service'].save.assert_called_once_with(interface)
-```
-
-### Required Class Attributes
-
-Every harness test class must declare these attributes with `# * attribute:` comments:
-
-| Attribute | Base | Description |
-|---|---|---|
-| `event_cls` | `DomainEventTestBase` | The `DomainEvent` subclass under test |
-| `dependencies` | `DomainEventTestBase` | Dict of dependency name → type (auto-mocked) |
-| `sample_kwargs` | `DomainEventTestBase` | Default kwargs for a successful `execute()` |
-| `required_params` | `DomainEventTestBase` | List of param names for auto validation tests |
-| `service_attr` | `ServiceEventTestBase` | Dependency name for the primary service |
-| `not_found_error_code` | `ServiceEventTestBase` | Error code for the not-found auto-test |
-| `not_found_kwargs` | `ServiceEventTestBase` | Kwargs that trigger the not-found path |
-
-### Fixture Overrides
-
-When a test class needs a pre-configured service mock (e.g., `get()` returns a real aggregate), override `mock_dependencies` as a fixture within the class:
-
-```python
-    # * fixture: mock_dependencies
-    @pytest.fixture
-    def mock_dependencies(self, app_session):
-        '''
-        Override to provide a service mock pre-configured with an app_session.
-        '''
-
-        # Create a mock AppService that returns the app_session on get.
-        service = mock.Mock(spec=AppService)
-        service.get.return_value = app_session
-        return {'app_service': service}
-```
-
-### Spacing Rules
-
-Harness test classes follow the same spacing conventions as production code:
-- One empty line between each `# *` section.
-- One empty line after docstrings and between code snippets within methods.
-- One empty line between test classes.
-
 ## Best Practices Summary
 
 - Use artifact comments consistently.
@@ -591,7 +496,7 @@ Harness test classes follow the same spacing conventions as production code:
 - Maintain consistent spacing: exactly one empty line between artifacts, never two.
 - Preserve artifact ordering, including class member bands (attribute, then init, then property methods, then other methods). When a declaration dependency seems to force an exception, add an order-preserving mechanic (see [Ordering and Declaration Constraints](#ordering-and-declaration-constraints)) instead of breaking the order.
 - Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
-- Prefer `@use_tester` and the three test-module kinds (`fixtures` / `tests` / `testers`) for new unit tests. Leave leftover `tiferet.testing` subclasses in place until RFP-015 / #1121.
+- Write unit tests with `@use_tester` and the three test-module kinds (`fixtures` / `tests` / `testers`). The former `tiferet.testing` bases were retired in v2.1.2.
 
 These practices ensure Tiferet code remains consistent, maintainable, and AI-friendly. Explore source modules in `tiferet/` for implementation examples.
 
@@ -599,16 +504,16 @@ These practices ensure Tiferet code remains consistent, maintainable, and AI-fri
 
 The Tiferet framework maintains a suite of focused documentation in `docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
 
-For implementation agents, the **`tiferet-code-<component>` skills** (see `.agents/skills/`) are the preferred access path — they embed key conventions and a working example offline. Each entry below lists the companion skill alongside the full doc as the authoritative fallback.
+For implementation agents, the **`tiferet-code-<component>` skills** (see `.agents/skills/`) are the preferred access path - they embed key conventions and a working example offline. Each entry below lists the companion skill alongside the full doc as the authoritative fallback.
 
-- **`tiferet-code-assets`** / **[assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md)** – Assets layer conventions (imports, constants, functions, standalone classes, exports).
-- **`tiferet-code-blueprints`** / **[blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md)** – Blueprint orchestration conventions.
-- **`tiferet-code-contexts`** / **[contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md)** – Context conventions (high-level and low-level runtime shape).
-- **`tiferet-code-di`** / **[di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md)** – Dependency injection layer conventions.
-- **`tiferet-code-domain`** / **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain object conventions (dual role, factory methods, read-only design).
-- **`tiferet-code-events`** / **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event conventions (dependency injection, validation, test harness).
-- **`tiferet-code-interfaces`** / **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Service interface conventions.
-- **`tiferet-code-mappers`** / **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
-- **`tiferet-code-repos`** / **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** – Repository implementation conventions.
-- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Testing conventions (`@use_tester`, test-module `fixtures` / `tests` / `testers`, leftover `tiferet.testing`).
-- **`tiferet-code-utils`** / **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** – Utility and infrastructure conventions.
+- **`tiferet-code-assets`** / **[assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md)** - Assets layer conventions (imports, constants, functions, standalone classes, exports).
+- **`tiferet-code-blueprints`** / **[blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md)** - Blueprint orchestration conventions.
+- **`tiferet-code-contexts`** / **[contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md)** - Context conventions (high-level and low-level runtime shape).
+- **`tiferet-code-di`** / **[di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md)** - Dependency injection layer conventions.
+- **`tiferet-code-domain`** / **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** - Domain object conventions (dual role, factory methods, read-only design).
+- **`tiferet-code-events`** / **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** - Domain event conventions (dependency injection, validation, test harness).
+- **`tiferet-code-interfaces`** / **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** - Service interface conventions.
+- **`tiferet-code-mappers`** / **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** - Aggregate and TransferObject conventions.
+- **`tiferet-code-repos`** / **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** - Repository implementation conventions.
+- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** - Testing conventions (`@use_tester`, test-module `fixtures` / `tests` / `testers`).
+- **`tiferet-code-utils`** / **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** - Utility and infrastructure conventions.
