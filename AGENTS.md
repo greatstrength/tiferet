@@ -551,3 +551,4 @@ See `CONTRIBUTING.md` and `docs/collab/process.md` for the full workflow:
 3. Separate functional changes from docs/config in distinct commits.
 4. Attribute yourself in your own name, never another agent's: your own `Co-Authored-By:` line, or a final `- <agent>@<platform> via <account>` line on a shared bot account such as `tif-ai`. See `docs/collab/process.md` § Attribution and § Shared bot accounts.
 5. Publish a Collaboration Report on the **issue** (not the PR) when trunk TRD work completes.
+6. Open every PR with all acceptance-criteria boxes unchecked. The reviewer checks each one as it verifies it; the author never does (`docs/collab/process.md`, Agent guardrails).
