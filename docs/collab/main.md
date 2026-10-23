@@ -55,7 +55,7 @@ Use this when you are landing one hotfix or one standalone reconstruction.
 
 1. Write the TRD ([tech_requirements.md](tech_requirements.md)). Reconstruction cites an existing freeze id in §7. A hotfix says it is a hotfix and skips the freeze. Wire GitHub blocked-by from §7.
 2. Open the issue. Cut `<issue-number>-<lowercase-hyphenated-title>` from `main`.
-3. Implement and test. Open a PR targeting `main`, title `<Component/Assemblage> - <Plain Title> (#issue)`, **GitHub-linked** to that TRD. `Closes #<issue>` is allowed on trunk. Do not add the PR to the milestone.
+3. Implement and test. Open a PR targeting `main`, title `<Component/Assemblage> - <Plain Title> (#issue)`, **GitHub-linked** to that TRD. `Closes #<issue>` is allowed on trunk. The body lists the TRD's acceptance criteria as checkboxes, all unchecked. Do not add the PR to the milestone.
 4. After the PR opens, and again after you address PR feedback, post a short status on the **issue**.
 5. After the squash-merge: Collaboration Report on the issue, Status Done, End date. Rename the `.trd/` file to `.complete.md`. Port to proto only if a human asks.
 

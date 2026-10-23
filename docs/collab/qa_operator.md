@@ -23,8 +23,8 @@ An already-merged pull request is not reopened to redo this. The rule is for the
 
 The standard already written in [code_review.md](code_review.md). Style floor first, then acceptance criteria, then the lens for the PR:
 
-- **Prototype** — an RFP PR to proto. The RFP's content, the vision, and the distillation sections it cites. Not trunk.
-- **Release** — a trunk PR to `main`, or a sub-TRD PR to its Super-TRD branch. Artifact fidelity. On a Release review the operator is the only role that reads proto, and only as that page allows.
+- **Prototype** - an RFP PR to proto. The RFP's content, the vision, and the distillation sections it cites. Not trunk.
+- **Release** - a trunk PR to `main`, or a sub-TRD PR to its Super-TRD branch. Artifact fidelity. On a Release review the operator is the only role that reads proto, and only as that page allows.
 
 A Doc or skills PR is the same operator, held to that page's Doc section. There is no third standard.
 
@@ -34,7 +34,7 @@ The operator may assign an issue to a milestone. The author does not invent one.
 
 ## The snapshot
 
-Return 350–400 words to the orchestrator. Stay inside that range. The orchestrator summarizes that return to the human. The operator does not hand the orchestrator a verdict to post.
+Return 350-400 words to the orchestrator. Stay inside that range. The orchestrator summarizes that return to the human. The operator does not hand the orchestrator a verdict to post.
 
 Name:
 
@@ -44,7 +44,7 @@ Name:
 - comments of note: redundancies, inconsistencies, refactors, and cleanups;
 - a point of future inquiry, when the review found one.
 
-Ownership comes from the artifact comments and the docstrings, not from the PR blurb. Comments of note are observations. They do not become a new blocking class, and they do not waive the style floor. A blocking finding is still a blocking finding under [code_review.md](code_review.md). If there is nothing of note, say so in one sentence. If there is no future inquiry, do not manufacture one. Both ride inside the same 350–400 words.
+Ownership comes from the artifact comments and the docstrings, not from the PR blurb. Comments of note are observations. They do not become a new blocking class, and they do not waive the style floor. A blocking finding is still a blocking finding under [code_review.md](code_review.md). If there is nothing of note, say so in one sentence. If there is no future inquiry, do not manufacture one. Both ride inside the same 350-400 words.
 
 The snapshot is not the posted review. It is not a short status. It is not a [Collaboration Report](collab_report.md). Do not post it as a PR conversation comment.
 

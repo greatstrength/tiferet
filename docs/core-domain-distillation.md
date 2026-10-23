@@ -1,4 +1,4 @@
-# Core Domain Distillation — Tiferet Framework
+# Core Domain Distillation - Tiferet Framework
 
 **Status:** Draft · **Domain:** `tiferet` · **Code:** `tiferet/` · **Branch:** `docs-domain-vision-distillation`
 **Companion:** `docs/domain-vision.md`
@@ -25,8 +25,8 @@ running request-execution engine**, and then executing requests against it
 uniformly regardless of what the declaration describes.
 
 A Tiferet application is not a program in the ordinary sense. It is a
-configuration file — sessions, service registrations, feature workflows, a
-catalogued error vocabulary, CLI commands, logging — plus a small set of
+configuration file - sessions, service registrations, feature workflows, a
+catalogued error vocabulary, CLI commands, logging - plus a small set of
 single-purpose Python classes the configuration points to by name. Nothing in
 the framework hard-codes what a specific application does; the framework
 supplies the machinery that reads the declaration, resolves it into live
@@ -38,122 +38,122 @@ The domain has one fixed shape:
 
 and three axes of variation:
 
-1. **Service implementation** — which concrete class satisfies a declared
+1. **Service implementation** - which concrete class satisfies a declared
    service id, selectable per environment via DI flags
    (`tiferet/domain/di.py:124`, `resolve_service`).
-2. **Workflow** — which steps a feature runs, in what order, under what
+2. **Workflow** - which steps a feature runs, in what order, under what
    conditions, with what parameters and middleware
    (`tiferet/domain/feature.py:317`, `Feature`).
-3. **Entry point** — which concrete session-context subclass turns an
+3. **Entry point** - which concrete session-context subclass turns an
    external request (CLI argv, a script call, or, via a custom subclass, an
    HTTP request) into a `RequestContext` and back into a response.
 
-Everything else — resolving dependencies, validating and coercing request
+Everything else - resolving dependencies, validating and coercing request
 data, iterating a feature's steps, composing middleware, formatting a
-catalogued error — is identical no matter which application is declared or
+catalogued error - is identical no matter which application is declared or
 which of the three axes it varies. Section 8 treats the honest exceptions to
 that claim directly.
 
 ## 3. Ubiquitous language
 
-**AppSession** — the declared shape of one runnable entry point: its id,
+**AppSession** - the declared shape of one runnable entry point: its id,
 logger id, DI flags, service dependencies, and constants
 (`tiferet/domain/app.py:33`).
 
-**AppServiceDependency** — one named, injectable service binding an
+**AppServiceDependency** - one named, injectable service binding an
 `AppSession` declares (`tiferet/domain/app.py:18`).
 
-**Feature** — a complete, named workflow: an ordered list of steps plus an
+**Feature** - a complete, named workflow: an ordered list of steps plus an
 optional request schema, resolvable by a single id such as `calc.add`
 (`tiferet/domain/feature.py:317`).
 
-**EventFeatureStep** — one step in a feature's workflow: a service id to
+**EventFeatureStep** - one step in a feature's workflow: a service id to
 resolve, flags, parameters, result routing (`data_key`), an optional
 condition, middleware, and an error-handling policy (`pass_on_error`)
 (`tiferet/domain/feature.py:33`).
 
-**ParameterSpecification / RequestSpecification** — a feature's declared
+**ParameterSpecification / RequestSpecification** - a feature's declared
 request contract. `RequestSpecification` dynamically reconstitutes its
 `ParameterSpecification` entries into a throwaway Pydantic model so a
 request's data can be validated and coerced, with every violation aggregated
 into one failure, before any step executes (`tiferet/domain/feature.py:185`,
 `coerce` at `tiferet/domain/feature.py:271`).
 
-**Flags** — ordered strings attached to an `AppSession`, a `Feature`, or a
+**Flags** - ordered strings attached to an `AppSession`, a `Feature`, or a
 step, that select which implementation a service resolves to and are
 combined additively (execution flags, then feature flags, then step flags)
 at resolution time.
 
-**ServiceRegistration / FlaggedDependency** — one entry in the DI registry: a
+**ServiceRegistration / FlaggedDependency** - one entry in the DI registry: a
 default module/class binding plus zero or more flag-qualified overrides.
 `resolve_service` returns the effective binding for a flag set: a matching
 override first, else the default, else `None`
 (`tiferet/domain/di.py:33`, `tiferet/domain/di.py:18`,
 `tiferet/domain/di.py:124`).
 
-**ServiceContainer / ServiceResolver** — the resolution machinery. A
+**ServiceContainer / ServiceResolver** - the resolution machinery. A
 `ServiceContainer` (`tiferet/di/core.py:82`) registers and resolves concrete
 instances for one flag set; a `ServiceResolver` (`tiferet/di/core.py:186`) is
 the template that builds and caches one container per distinct flag set,
 delegating actual construction to `build_container`
 (`tiferet/di/core.py:254`).
 
-**DomainEvent** — the unit of business logic: one class with an `execute`
+**DomainEvent** - the unit of business logic: one class with an `execute`
 method, resolved by service id and invoked via the instantiate-then-execute
 pattern (`tiferet/events/core.py:17`, `execute` at
 `tiferet/events/core.py:23`, `handle` at `tiferet/events/core.py:224`).
 
-**Service (interface)** — an abstract contract (`tiferet/interfaces/core.py:163`)
-a `DomainEvent` depends on for any vertical concern — persistence,
-configuration, file I/O — so its logic never imports a concrete
+**Service (interface)** - an abstract contract (`tiferet/interfaces/core.py:163`)
+a `DomainEvent` depends on for any vertical concern - persistence,
+configuration, file I/O - so its logic never imports a concrete
 implementation.
 
-**Aggregate / TransferObject** — the mutation and serialization halves of the
+**Aggregate / TransferObject** - the mutation and serialization halves of the
 mapper layer. An `Aggregate` (`tiferet/mappers/core.py:25`) is a mutable,
 validated domain object; a `TransferObject` (`tiferet/mappers/core.py:90`,
 `ConfigObject` by convention) is its lenient, round-trippable configuration
 representation.
 
-**ConfigurationRepository** — the shared, format-agnostic base every
+**ConfigurationRepository** - the shared, format-agnostic base every
 concrete repository extends, dispatching reads and writes to a YAML or JSON
 loader by file extension (`tiferet/repos/core.py:21`).
 
-**BaseContext** — the shared runtime base every operational context extends,
+**BaseContext** - the shared runtime base every operational context extends,
 providing a metaclass registry from domain object type to context class
 (`ContextMeta`) and the `for_domain` / `from_domain` factory methods
 (`tiferet/contexts/core.py:58`, `tiferet/contexts/core.py:91`,
 `tiferet/contexts/core.py:117`).
 
-**AppSessionContext (the hub)** — the declaratively constructed runtime
+**AppSessionContext (the hub)** - the declaratively constructed runtime
 object bound to one loaded `AppSession`, driving every request through the
 same four-step `run` pipeline via five injected handler callables
 (`tiferet/contexts/app.py:354`, `run` at `tiferet/contexts/app.py:637`).
 
-**FeatureContext** — the context bound to one loaded `Feature`, resolving and
+**FeatureContext** - the context bound to one loaded `Feature`, resolving and
 executing its steps (`tiferet/contexts/feature.py:337`).
 
-**RequestContext** — the value carrier for one execution: headers, data, and
+**RequestContext** - the value carrier for one execution: headers, data, and
 the accumulated result.
 
-**CacheContext** — the in-memory cache every hub and feature context shares,
+**CacheContext** - the in-memory cache every hub and feature context shares,
 pre-seeded by `build_cache` with the framework's default errors, services,
 and constants so a repeated lookup does not repeat the DI or file-read path.
 
-**ErrorContext** — the context that formats a structured response dictionary
+**ErrorContext** - the context that formats a structured response dictionary
 from a loaded `Error` domain object and the raised exception's context
 (`tiferet/contexts/error.py:66`, `format_response` at
 `tiferet/contexts/error.py:76`).
 
-**Middleware** — an ordered, outermost-first chain of callables wrapping a
+**Middleware** - an ordered, outermost-first chain of callables wrapping a
 step's or a feature's execution for cross-cutting concerns (logging, timing),
 each required to call `next_fn()` to continue the chain.
 
-**TiferetError / TiferetAPIError** — the framework's catalogued-outcome
+**TiferetError / TiferetAPIError** - the framework's catalogued-outcome
 exception family: `TiferetError` names a domain outcome by code
 (`tiferet/assets/core.py:538`); `TiferetAPIError` is its formatted,
 consumer-facing representation (`tiferet/assets/core.py:598`).
 
-**ModelError / ServiceError** — the two non-catalogued exception families for
+**ModelError / ServiceError** - the two non-catalogued exception families for
 defects rather than outcomes: `ModelError` (`tiferet/domain/core.py:94`) names
 a bad mutation on a domain model; `ServiceError`
 (`tiferet/interfaces/core.py:14`) names an infrastructural failure inside a
@@ -176,7 +176,7 @@ Two conventions give the declaration its leverage:
 **Dotted feature identity.** A feature's id is derived from `group_id` and
 `feature_key` when not given directly (`tiferet/domain/feature.py`'s
 `derive_keys` validator), so `calc.add` is simultaneously an id, a lookup key,
-and — for the CLI — a command route.
+and - for the CLI - a command route.
 
 **Parameter prefixes.** A step's declared parameter value can be a literal, a
 `$env.`-prefixed reference resolved from the process environment
@@ -213,8 +213,8 @@ app-level DI container, composes the feature-level resolver, and constructs
 the hub. Produces: a wired `AppSessionContext` (or subclass) whose `run`
 method is ready to accept requests.
 
-**Verdict:** agnostic to the workflow axis — no feature-specific code runs
-here. **Variable, and currently under-realized, on the entry-point axis** —
+**Verdict:** agnostic to the workflow axis - no feature-specific code runs
+here. **Variable, and currently under-realized, on the entry-point axis** -
 see Section 8; a session declares no context class of its own on this path.
 
 ### 5.2 Dependency resolution
@@ -238,7 +238,7 @@ per process. Produces: a resolved service instance, or a raised
 `ServiceError` naming the unregistered id.
 
 **Verdict:** fully agnostic to the workflow and entry-point axes. This step
-*is* the service-implementation axis — it is the one mechanism that realizes
+*is* the service-implementation axis - it is the one mechanism that realizes
 it, for every declared application alike.
 
 ### 5.3 Request construction and validation
@@ -250,8 +250,8 @@ The hub's `build_request` delegates to an injected `create_request_handler`
 the interface id onto headers and seeds a `RequestContext` with the caller's
 data. Before any step runs, `FeatureContext.execute_feature`
 (`tiferet/contexts/feature.py:728`) calls `validate_request`
-(`tiferet/contexts/feature.py:300`), which — only when the feature declares a
-`params_schema` — coerces `request.data` against the feature's
+(`tiferet/contexts/feature.py:300`), which - only when the feature declares a
+`params_schema` - coerces `request.data` against the feature's
 `RequestSpecification` and raises a single `REQUEST_VALIDATION_FAILED` naming
 every violation on the first failure.
 
@@ -274,8 +274,8 @@ additively), and parses its declared parameters. `execute_feature`
 `run_coroutine`-driven async counterpart (`tiferet/contexts/feature.py:79`),
 composing any feature- and step-level middleware into one ordered chain
 per step before invoking `event.execute(**merged_kwargs)`. A step's
-`pass_on_error` flag lets a caught `TiferetError` — and only a
-`TiferetError`, never a `ModelError` or `ServiceError` — degrade to a `None`
+`pass_on_error` flag lets a caught `TiferetError` - and only a
+`TiferetError`, never a `ModelError` or `ServiceError` - degrade to a `None`
 result instead of propagating.
 
 **Verdict:** this is where the workflow axis lives; the loop, condition
@@ -301,17 +301,17 @@ converts the raw result into a typed, printable output model.
 
 **Verdict:** the failure-classification and formatting mechanism (`Error`
 lookup, `ErrorContext`, `TiferetAPIError`) is agnostic. Variable on the
-entry-point axis: what a *successful* response looks like — a plain value, a
-formatted CLI table, a JSON body — is owned entirely by which
+entry-point axis: what a *successful* response looks like - a plain value, a
+formatted CLI table, a JSON body - is owned entirely by which
 `response_handler` and `RequestContext` subclass the entry point wires in.
 
 ## 6. How the behaviors compose
 
 `build_app` composes 5.1 once per process invocation. Every subsequent
-`run(feature_id, ...)` call on the resulting hub drives 5.2–5.5 in fixed
+`run(feature_id, ...)` call on the resulting hub drives 5.2-5.5 in fixed
 order: build the request, validate it, execute its steps (each step itself
-invoking 5.2 to resolve its event and middleware), and — on success or
-caught failure alike — produce a uniform response.
+invoking 5.2 to resolve its event and middleware), and - on success or
+caught failure alike - produce a uniform response.
 
 ```mermaid
 flowchart LR
@@ -330,18 +330,18 @@ Tiferet arranges its own packages in three layers, and dependencies may only
 run downward: **Accessor** (`assets`, `contexts`, `blueprints`), **Actor**
 (`domain`, `events`, `di`), **Infrastructure** (`interfaces`, `mappers`,
 `utils`, `repos`). Judging whether an import is legal requires knowing which
-layer the importing package sits in — the same asymmetry the compiler-domain
+layer the importing package sits in - the same asymmetry the compiler-domain
 distillation documents for Tiferet's own dialect, applied here to the
 framework's actual source rather than to a dialect it defines.
 
-Concretely: `domain` depends on nothing else in the framework — it is pure
+Concretely: `domain` depends on nothing else in the framework - it is pure
 Pydantic definitions plus the model-error vocabulary
 (`tiferet/domain/core.py`). `assets` is the root everyone may draw on. `events`
 is the hub of the Actor layer, consuming `assets`, `domain`, `interfaces`,
 `mappers`, and `di`, but never `contexts` or `blueprints`. `mappers` depends
 only on `domain` and `events`. `di` is deliberately event-free and
 asset-free: `domain` and `interfaces.di` only. `utils` and `repos` sit at the
-bottom of Infrastructure, resolved into the graph only through DI — `contexts`
+bottom of Infrastructure, resolved into the graph only through DI - `contexts`
 and `blueprints` never import them directly. `contexts` consumes `assets`,
 `domain`, and `events`, and receives DI resolution only through an injected
 `get_dependency` callable. `blueprints` sits at the top: it composes contexts
@@ -355,7 +355,7 @@ with, so any object satisfying that one-method contract is a legal resolver.
 
 ## 8. The agnostic core and the variable edge
 
-**Agnostic — built once, shared by every declared application:**
+**Agnostic - built once, shared by every declared application:**
 - Domain object validation and the model-error vocabulary (`domain/core.py`).
 - The `DomainEvent` execution/validation/middleware machinery
   (`events/core.py`).
@@ -368,7 +368,7 @@ with, so any object satisfying that one-method contract is a legal resolver.
 - Catalogued error retrieval and response formatting (`contexts/error.py`,
   `TiferetError` / `TiferetAPIError`).
 
-**Variable — one definition per declared application:**
+**Variable - one definition per declared application:**
 - Which services exist and which class implementation (and per-flag
   override) each resolves to.
 - Which features exist, their steps, conditions, parameters, and middleware.
@@ -376,7 +376,7 @@ with, so any object satisfying that one-method contract is a legal resolver.
 - Which context subclass (and therefore request/response shape) fronts the
   shared engine.
 
-**Currently entangled — the honest inventory:**
+**Currently entangled - the honest inventory:**
 
 - **The entry-point axis is not actually driven by the declared session.**
   `build_app_session_context` builds a literal `AppSessionContext` directly,
@@ -408,7 +408,7 @@ with, so any object satisfying that one-method contract is a legal resolver.
   stage of the framework's own evolution rather than an error, but neither
   has been reconciled with the code a contributor will actually find.
 
-None of these is a defect in the request-execution engine itself — 5.1–5.5
+None of these is a defect in the request-execution engine itself - 5.1-5.5
 work as described. They are defects in the framework's own claim, in its
 configuration example and its documentation, about how much of its shape is
 actually declarative today. That gap is exactly what Section 10 scopes.
@@ -421,16 +421,16 @@ steps in order with validated inputs and composed middleware, and returning
 either a result or a catalogued, formatted error.
 
 **Outside the domain:**
-- The actual business logic inside a `DomainEvent`'s `execute` method — that
+- The actual business logic inside a `DomainEvent`'s `execute` method - that
   code, and whether it is correct, belongs to the consuming application, not
   the framework.
 - Any concrete infrastructure beyond the framework's own YAML/JSON
-  configuration repositories and file/CSV/SQLite utilities — a real database
-  client, a message queue, an HTTP server — is written by the consumer
+  configuration repositories and file/CSV/SQLite utilities - a real database
+  client, a message queue, an HTTP server - is written by the consumer
   against the framework's `Service` contracts.
 - Turning a captured application's structure back into generated source code,
   or verifying that hand-written source conforms to the framework's
-  structural conventions — that belongs to separate tooling outside the
+  structural conventions - that belongs to separate tooling outside the
   framework, which treats Tiferet applications as the material it operates
   on rather than the engine that runs them.
 

@@ -1,4 +1,4 @@
-# Domain – App: AppSession and AppServiceDependency
+# Domain - App: AppSession and AppServiceDependency
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,9 +7,9 @@
 
 ## Overview
 
-The App domain defines the structural foundation for application entry points in Tiferet. Every runnable session — whether a REST API, CLI, background worker, or custom context — is described by an `AppSession` domain object. Each session declares logging configuration, dependency-resolution flags, static constants, and a list of injectable service dependency bindings (`AppServiceDependency`). The context implementation used to run the session (e.g. the generic `AppSessionContext` or the CLI-oriented `CliSessionContext`) is selected by which blueprint entrypoint the caller invokes, not declared as an attribute on the session itself.
+The App domain defines the structural foundation for application entry points in Tiferet. Every runnable session - whether a REST API, CLI, background worker, or custom context - is described by an `AppSession` domain object. Each session declares logging configuration, dependency-resolution flags, static constants, and a list of injectable service dependency bindings (`AppServiceDependency`). The context implementation used to run the session (e.g. the generic `AppSessionContext` or the CLI-oriented `CliSessionContext`) is selected by which blueprint entrypoint the caller invokes, not declared as an attribute on the session itself.
 
-`AppSession` is a **read-only value object**: it exposes only the `get_service` query and carries no mutation methods. All state changes (adding/removing services, updating constants, renaming) occur exclusively through `AppSessionAggregate` in the mappers layer. The previous domain-level `apply_defaults` mutator has no replacement on the domain object — default service/constant merging now happens at the blueprint layer via `build_app_service_container`.
+`AppSession` is a **read-only value object**: it exposes only the `get_service` query and carries no mutation methods. All state changes (adding/removing services, updating constants, renaming) occur exclusively through `AppSessionAggregate` in the mappers layer. The previous domain-level `apply_defaults` mutator has no replacement on the domain object - default service/constant merging now happens at the blueprint layer via `build_app_service_container`.
 
 **Module:** `tiferet/domain/app.py`
 
@@ -21,9 +21,9 @@ Represents a single injectable service dependency binding for an application ses
 
 | Attribute      | Type                   | Required | Default | Description                                                                      |
 |----------------|------------------------|----------|---------|------------------------------------------------------------------------------------|
-| `module_path`  | `str`                  | Yes      | —       | The module path for the service dependency.                                       |
-| `class_name`   | `str`                  | Yes      | —       | The class name for the service dependency.                                        |
-| `service_id`   | `str`                  | Yes      | —       | The canonical service id for the application dependency.                          |
+| `module_path`  | `str`                  | Yes      | - | The module path for the service dependency.                                       |
+| `class_name`   | `str`                  | Yes      | - | The class name for the service dependency.                                        |
+| `service_id`   | `str`                  | Yes      | - | The canonical service id for the application dependency.                          |
 | `parameters`   | `Dict[str, str]`       | No       | `{}`    | The parameters for the service dependency.                                        |
 
 No methods. Pure data structure.
@@ -34,12 +34,12 @@ In v1.x, service dependency bindings were called `AppAttribute`. In v2.0, the cl
 
 ### AppSession
 
-Represents the complete configuration of an application session — the runtime entry point.
+Represents the complete configuration of an application session - the runtime entry point.
 
 | Attribute      | Type                                | Required | Default       | Description                                           |
 |----------------|-------------------------------------|----------|---------------|--------------------------------------------------------|
-| `id`           | `str`                               | Yes      | —             | The unique identifier for the application session.     |
-| `name`         | `str`                               | Yes      | —             | The name of the application session.                   |
+| `id`           | `str`                               | Yes      | - | The unique identifier for the application session.     |
+| `name`         | `str`                               | Yes      | - | The name of the application session.                   |
 | `description`  | `str \| None`                       | No       | `None`        | The description of the application session.            |
 | `logger_id`    | `str`                               | No       | `'default'`   | The logger ID for the application session.             |
 | `flags`        | `List[str]`                         | No       | `['default']` | The DI flags for the application session.              |
@@ -149,7 +149,7 @@ session = AppSession(
 
 ## Related Documentation
 
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - Domain model conventions
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing

@@ -25,12 +25,12 @@ class MiddlewareService(Service):
 
     Each middleware receives:
 
-    - ``event`` — the instantiated ``DomainEvent`` (or ``AsyncDomainEvent``) instance.
-    - ``kwargs`` — the merged execution kwargs dict passed to ``execute``.
-    - ``next_fn`` — a zero-argument callable that invokes the next middleware in
+    - ``event`` - the instantiated ``DomainEvent`` (or ``AsyncDomainEvent``) instance.
+    - ``kwargs`` - the merged execution kwargs dict passed to ``execute``.
+    - ``next_fn`` - a zero-argument callable that invokes the next middleware in
       the chain, or the event itself when no further middleware remains.
       In synchronous execution paths ``next_fn`` is a plain callable.
-      In asynchronous execution paths ``next_fn`` is a coroutine function —
+      In asynchronous execution paths ``next_fn`` is a coroutine function -
       middleware intended for async contexts must be implemented as
       ``async def __call__`` and must ``await next_fn()``.
 

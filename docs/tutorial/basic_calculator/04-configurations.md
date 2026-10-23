@@ -1,9 +1,9 @@
 # Step 4: Configurations
 
-We've got the math events and a nice validation utility — now it's time to make everything come alive through configuration.  
+We've got the math events and a nice validation utility - now it's time to make everything come alive through configuration.  
 In Tiferet v2.0.0, everything is consolidated into a single root `config.yml` file. This one file defines interfaces, dependency mappings, features, and errors.
 
-### 4.1 config.yml – The complete wiring diagram
+### 4.1 config.yml - The complete wiring diagram
 
 Create `config.yml` in your project root (next to `calc_client.py` and `calc_cli.py`).
 
@@ -100,14 +100,14 @@ errors:
 
 ### 4.2 Why a single config.yml?
 
-- **Simpler structure** — No more hunting through multiple files.
-- **Easier to manage** — Everything related to how the app behaves is in one place.
-- **Still fully flexible** — You can define multiple interfaces, complex features, and rich error handling.
+- **Simpler structure** - No more hunting through multiple files.
+- **Easier to manage** - Everything related to how the app behaves is in one place.
+- **Still fully flexible** - You can define multiple interfaces, complex features, and rich error handling.
 - Pass `app_config='config.yml'` when calling `App('calc_client', app_config='config.yml')`.
 
 ### 4.3 Conditional steps
 
-Notice `calc.safe_divide` — it uses a `condition` on the step. The expression `$r.b != 0` is evaluated against the request data at runtime. If `b` is zero, the step is silently skipped instead of raising a division-by-zero error. This enables declarative, configuration-driven conditional branching without writing custom flow-control events.
+Notice `calc.safe_divide` - it uses a `condition` on the step. The expression `$r.b != 0` is evaluated against the request data at runtime. If `b` is zero, the step is silently skipped instead of raising a division-by-zero error. This enables declarative, configuration-driven conditional branching without writing custom flow-control events.
 
 Conditions support `$r.<key>` references for any value in the request data and simple boolean comparisons (e.g., `$r.mode == 'advanced'`, `$r.x > 0`). When `condition` is omitted, the step always executes.
 
@@ -115,15 +115,15 @@ Conditions support `$r.<key>` references for any value in the request data and s
 
 In this single `config.yml` file we defined:
 
-- **Interfaces** (`calc_client`) — the entry point for our script runner
-- **Services** (`services`) — links friendly names like `add_event` to the actual Python classes in `app/events/calc.py`
-- **Features** (`calc.add`, `calc.sqrt`, `calc.safe_divide`, etc.) — defines the workflows and which event to run for each operation
-- **Conditional steps** — declarative `condition` expressions on feature steps for runtime branching
-- **Errors** — user-friendly, structured error messages with support for multiple languages
+- **Interfaces** (`calc_client`) - the entry point for our script runner
+- **Services** (`services`) - links friendly names like `add_event` to the actual Python classes in `app/events/calc.py`
+- **Features** (`calc.add`, `calc.sqrt`, `calc.safe_divide`, etc.) - defines the workflows and which event to run for each operation
+- **Conditional steps** - declarative `condition` expressions on feature steps for runtime branching
+- **Errors** - user-friendly, structured error messages with support for multiple languages
 
 When you run `app = App('calc_client', app_config='config.yml')`, Tiferet reads this file and wires everything together automatically.
 
-No code changes needed here — just this one YAML file.
+No code changes needed here - just this one YAML file.
 
 → Ready to see it all run?  
 Head to **[Step 5: Running the Script Runner](05-running-the-script.md)**

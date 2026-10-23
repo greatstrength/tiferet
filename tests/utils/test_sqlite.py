@@ -331,7 +331,7 @@ def test_sqlite_client_context_manager_rollback_on_exception(tmp_path: Path):
     with SqliteClient(path=db_path, mode='rwc', isolation_level='DEFERRED') as db:
         db.execute('CREATE TABLE test (val TEXT)')
 
-    # Attempt to insert then raise — should rollback.
+    # Attempt to insert then raise - should rollback.
     with pytest.raises(ValueError):
         with SqliteClient(path=db_path, mode='rw', isolation_level='DEFERRED') as db:
             db.execute('INSERT INTO test (val) VALUES (?)', ('rolled_back',))

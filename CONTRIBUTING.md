@@ -1,6 +1,6 @@
 # Contributing to Tiferet
 
-Thank you for wanting to contribute. This page is the front door. The map of how work actually moves is [docs/collab/process.md](docs/collab/process.md) — read that before you invent a branch name.
+Thank you for wanting to contribute. This page is the front door. The map of how work actually moves is [docs/collab/process.md](docs/collab/process.md) - read that before you invent a branch name.
 
 ## Getting started
 
@@ -30,7 +30,7 @@ Trunk and prototype are two independent histories of the same version family. Wh
 |---|---|---|---|
 | Test a domain theory | an **RFP** (public contributors welcome if it follows the genre) | the proto branch | [rfp.md](docs/collab/rfp.md) |
 | Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
-| Change docs or agent skills | a **Doc PR** — no issue, no TRD | `main` | [doc.md](docs/collab/doc.md) |
+| Change docs or agent skills | a **Doc PR** - no issue, no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
 As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child whose Super-TRD branch is already pushed)**. You do not plan a release, mint a freeze, cut a Super-TRD branch, or tag a version. You do not perform the review. The QA Operator assigns the issue to a milestone.
 
@@ -60,15 +60,15 @@ Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when y
 
 ### Commit hygiene
 
-Keep functional changes out of the same commit as docs, config, or packaging. Title by scope — `Events – AddFeature Event`, `Docs – Process and Skills`. When an AI agent collaborated, it attributes itself in its own name — never another agent's. On a shared bot account it signs `— <agent>@<platform> via <account>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit unless someone asked you to. Merge, tag, version bump, freeze, and milestone actions are [Agent guardrails](docs/collab/process.md#agent-guardrails). The only merge exception is the QA Operator.
+Keep functional changes out of the same commit as docs, config, or packaging. Title by scope - `Events - AddFeature Event`, `Docs - Process and Skills`. When an AI agent collaborated, it attributes itself in its own name - never another agent's. On a shared bot account it signs `- <agent>@<platform> via <account>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit unless someone asked you to. Merge, tag, version bump, freeze, and milestone actions are [Agent guardrails](docs/collab/process.md#agent-guardrails). The only merge exception is the QA Operator.
 
 When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local and remote branch, and every temp file. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
 
 ### Pull requests
 
-RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue (a Doc PR has none). A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues — close the RFP issue after squash.
+RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue (a Doc PR has none). A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues - close the RFP issue after squash.
 
-The PR is a **review surface**: what changed, AC checkboxes, comments that point at a line. Short status notes belong on the **issue**; on a Doc PR, which has no issue, they stay on the PR. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
+The PR is a **review surface**: what changed, AC checkboxes (opened unchecked; the reviewer checks each one as it verifies it), comments that point at a line. Short status notes belong on the **issue**; on a Doc PR, which has no issue, they stay on the PR. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
 
 ### Review
 
@@ -84,12 +84,12 @@ Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in t
 
 **Process**
 
-- `tiferet-author-rfp` — draft or amend one RFP; publish the issue; wire blocked-by.
-- `tiferet-rfp-session` — implement one published RFP on proto; link the PR to that issue; close the issue after squash.
-- `tiferet-author-trd` — one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
-- `tiferet-implement-trd` — implement one published TRD, or one Super-TRD child on a PR to the already-pushed Super-TRD branch. Never `main` for a child.
-- `tiferet-pr-code-review` — points a review at the Takwin QA Operator. Verdict line first. The operator returns a 350–400 word snapshot. Squash-merge only as [qa_operator.md](docs/collab/qa_operator.md) allows.
-- `tiferet-collab-report` — standalone TRD closeout on the issue.
+- `tiferet-author-rfp` - draft or amend one RFP; publish the issue; wire blocked-by.
+- `tiferet-rfp-session` - implement one published RFP on proto; link the PR to that issue; close the issue after squash.
+- `tiferet-author-trd` - one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
+- `tiferet-implement-trd` - implement one published TRD, or one Super-TRD child on a PR to the already-pushed Super-TRD branch. Never `main` for a child.
+- `tiferet-pr-code-review` - points a review at the Takwin QA Operator. Verdict line first. The operator returns a 350-400 word snapshot. Squash-merge only as [qa_operator.md](docs/collab/qa_operator.md) allows.
+- `tiferet-collab-report` - standalone TRD closeout on the issue.
 
 **Docs:** `tiferet-guide-docs`.
 

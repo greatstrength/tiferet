@@ -1,6 +1,6 @@
 # Step 8: Saving & Variablizing Formulas
 
-Recording recent calculations was fun — but what if we want to save a **reusable, named formula** like `width * height` and evaluate it later with different values?
+Recording recent calculations was fun - but what if we want to save a **reusable, named formula** like `width * height` and evaluate it later with different values?
 
 That's a real domain concept, so this time we'll use the full Tiferet stack: a **domain model**, a **mapper**, a **service interface**, a **repository**, and a few **domain events**. We'll persist everything to a `formulas.yml` file.
 
@@ -95,7 +95,7 @@ class FormulaConfigObject(Formula, TransferObject):
 
 ### 8.3 The service interface
 
-The contract our events depend on — five familiar operations:
+The contract our events depend on - five familiar operations:
 
 **app/interfaces/formula.py**
 
@@ -219,11 +219,11 @@ class EvaluateFormula(FormulaEvent):
                         f'Missing value for variable: {variable}', variable=variable)
             resolved[variable] = self.coerce_number(provided[variable])
 
-        # Evaluate with no builtins exposed — only the formula's variables.
+        # Evaluate with no builtins exposed - only the formula's variables.
         return eval(formula.expression, {'__builtins__': {}}, resolved)
 ```
 
-`GetFormula` returns the formula entity (which prints nicely thanks to `__str__`). `ListFormulas` is a **view** — it renders the saved formulas into a friendly string (`'\n'.join(f.display() for f in …)`) so the CLI prints clean lines instead of raw objects. `coerce_number` lives on the base event and turns inputs into ints/floats, raising `INVALID_INPUT` on junk.
+`GetFormula` returns the formula entity (which prints nicely thanks to `__str__`). `ListFormulas` is a **view** - it renders the saved formulas into a friendly string (`'\n'.join(f.display() for f in …)`) so the CLI prints clean lines instead of raw objects. `coerce_number` lives on the base event and turns inputs into ints/floats, raising `INVALID_INPUT` on junk.
 
 > **Heads up on `eval`:** this is tutorial-grade. We lock it down by exposing no builtins and only the formula's own variables. For untrusted input in production, prefer a real expression parser.
 

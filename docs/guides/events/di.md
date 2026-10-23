@@ -1,4 +1,4 @@
-# Events – DI Service Registration Management
+# Events - DI Service Registration Management
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,20 +7,20 @@
 
 ## Overview
 
-The DI event module provides the full CRUD surface for `ServiceRegistration` objects — the dependency injection blueprints that define how services are resolved and wired at runtime. Every event extends the shared `DIEvent` base event (which injects `DIService`) and operates on `ServiceRegistration` domain objects through the `ServiceRegistrationAggregate` mapper. **Vision:** see the `DIEvent` class docstring in `tiferet/events/di.py` for the value statement this guide distills.
+The DI event module provides the full CRUD surface for `ServiceRegistration` objects - the dependency injection blueprints that define how services are resolved and wired at runtime. Every event extends the shared `DIEvent` base event (which injects `DIService`) and operates on `ServiceRegistration` domain objects through the `ServiceRegistrationAggregate` mapper. **Vision:** see the `DIEvent` class docstring in `tiferet/events/di.py` for the value statement this guide distills.
 
 ## Ubiquitous Language
 
-- **Service registration** — a `ServiceRegistration` domain object: an id-keyed DI entry with an optional default type and zero or more flagged dependencies.
-- **Type source** — either a default type (`module_path` + `class_name`) or a flagged dependency; a registration must always retain at least one, enforced on create and on dependency removal.
-- **Flagged dependency** — a `FlaggedDependency` override keyed by `flag`, resolved in preference to the default type when that flag is active (see [docs/guides/domain/di.md](../domain/di.md)).
+- **Service registration** - a `ServiceRegistration` domain object: an id-keyed DI entry with an optional default type and zero or more flagged dependencies.
+- **Type source** - either a default type (`module_path` + `class_name`) or a flagged dependency; a registration must always retain at least one, enforced on create and on dependency removal.
+- **Flagged dependency** - a `FlaggedDependency` override keyed by `flag`, resolved in preference to the default type when that flag is active (see [docs/guides/domain/di.md](../domain/di.md)).
 
 ## Events at a Glance
 
 | Event | Operation | Required Parameters | Returns |
 |---|---|---|---|
 | `AddServiceRegistration` | Create | `id` | `ServiceRegistration` |
-| `SetDefaultServiceRegistration` | Update (default type) | *(none — `id` is positional)* | `ServiceRegistration` |
+| `SetDefaultServiceRegistration` | Update (default type) | *(none - `id` is positional)* | `ServiceRegistration` |
 | `SetServiceDependency` | Update (flagged dep) | `flag` | `str` (ID) |
 | `RemoveServiceDependency` | Delete (flagged dep) | `flag` | `str` (ID) |
 | `RemoveServiceRegistration` | Delete | `id` | `str` (ID) |
@@ -32,7 +32,7 @@ The DI event module provides the full CRUD surface for `ServiceRegistration` obj
 <a id="dievent"></a>
 All events inject a single dependency:
 
-- **`di_service: DIService`** — the service interface for persisting and retrieving `ServiceRegistration` objects and constants.
+- **`di_service: DIService`** - the service interface for persisting and retrieving `ServiceRegistration` objects and constants.
 
 ## Event Details
 
@@ -112,7 +112,7 @@ DomainEvent.handle(
 
 ### SetServiceDependency
 
-Adds or updates a flagged dependency on an existing service registration. Uses PUT semantics — if the flag already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
+Adds or updates a flagged dependency on an existing service registration. Uses PUT semantics - if the flag already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
 
 **Required:** `flag`
 
@@ -120,12 +120,12 @@ Adds or updates a flagged dependency on an existing service registration. Uses P
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | `str` | — | The service registration identifier |
-| `module_path` | `str` | — | The module path for the dependency |
-| `class_name` | `str` | — | The class name for the dependency |
+| `id` | `str` | - | The service registration identifier |
+| `module_path` | `str` | - | The module path for the dependency |
+| `class_name` | `str` | - | The class name for the dependency |
 | `parameters` | `Dict[str, Any]` | `{}` | Parameters for the dependency. Keys with `None` values are pruned during merge. |
 
-**Returns:** `str` — the service registration ID.
+**Returns:** `str` - the service registration ID.
 
 **Errors:**
 - `INVALID_FLAGGED_DEPENDENCY` if either `module_path` or `class_name` is empty.
@@ -145,7 +145,7 @@ DomainEvent.handle(
 
 ### RemoveServiceDependency
 
-Removes a flagged dependency from an existing service registration by flag. The removal is **idempotent** at the model level — removing a non-existent flag does not raise an error. However, post-removal validation ensures at least one type source remains.
+Removes a flagged dependency from an existing service registration by flag. The removal is **idempotent** at the model level - removing a non-existent flag does not raise an error. However, post-removal validation ensures at least one type source remains.
 
 **Required:** `flag`
 
@@ -153,9 +153,9 @@ Removes a flagged dependency from an existing service registration by flag. The 
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | `str` | — | The service registration identifier |
+| `id` | `str` | - | The service registration identifier |
 
-**Returns:** `str` — the service registration ID.
+**Returns:** `str` - the service registration ID.
 
 **Errors:**
 - `SERVICE_REGISTRATION_NOT_FOUND` if the registration does not exist.
@@ -172,11 +172,11 @@ DomainEvent.handle(
 
 ### RemoveServiceRegistration
 
-Deletes an entire service registration by ID. The operation is **idempotent** — the underlying service handles non-existent IDs gracefully.
+Deletes an entire service registration by ID. The operation is **idempotent** - the underlying service handles non-existent IDs gracefully.
 
 **Required:** `id`
 
-**Returns:** `str` — the removed registration ID.
+**Returns:** `str` - the removed registration ID.
 
 ```python
 DomainEvent.handle(
@@ -196,7 +196,7 @@ Sets, merges, or clears service-level constants. Constants are global key-value 
 |---|---|---|---|
 | `constants` | `Dict[str, Any] \| None` | `{}` | Constants to apply. `None` clears all. Dict keys with `None` values are removed; others are merged. |
 
-**Returns:** `Dict[str, Any]` — the updated constants dictionary.
+**Returns:** `Dict[str, Any]` - the updated constants dictionary.
 
 **Merge semantics:**
 - `constants=None` → clears all constants.
@@ -224,7 +224,7 @@ DomainEvent.handle(
 
 Lists all service registrations and constants. No required parameters.
 
-**Returns:** `Tuple[List[ServiceRegistration], Dict[str, Any]]` — the list of registrations and the constants dictionary.
+**Returns:** `Tuple[List[ServiceRegistration], Dict[str, Any]]` - the list of registrations and the constants dictionary.
 
 ```python
 registrations, constants = DomainEvent.handle(
@@ -246,21 +246,21 @@ Most mutation events (`SetDefaultServiceRegistration`, `SetServiceDependency`, `
 
 ### Type Source Invariant
 
-A service registration must always have at least one type source — either a default type (`module_path` + `class_name`) or at least one flagged dependency. This invariant is enforced during creation (`AddServiceRegistration`) and after dependency removal (`RemoveServiceDependency`).
+A service registration must always have at least one type source - either a default type (`module_path` + `class_name`) or at least one flagged dependency. This invariant is enforced during creation (`AddServiceRegistration`) and after dependency removal (`RemoveServiceDependency`).
 
 ### Idempotent Deletes
 
-Both `RemoveServiceDependency` (at the model level) and `RemoveServiceRegistration` are idempotent — they succeed silently if the target does not exist.
+Both `RemoveServiceDependency` (at the model level) and `RemoveServiceRegistration` are idempotent - they succeed silently if the target does not exist.
 
 ## Boundaries
 
 **Inside this domain:** the CRUD operations for `ServiceRegistration` objects and service-level constants.
-**Outside this domain:** the declared `ServiceRegistration`/`FlaggedDependency` shape and flag-resolution precedence ([docs/guides/domain/di.md](../domain/di.md)); actually resolving a registration to a live instance for a given flag set (`ServiceResolver`/`get_dependency` — [docs/guides/di.md](../di.md)).
+**Outside this domain:** the declared `ServiceRegistration`/`FlaggedDependency` shape and flag-resolution precedence ([docs/guides/domain/di.md](../domain/di.md)); actually resolving a registration to a live instance for a given flag set (`ServiceResolver`/`get_dependency` - [docs/guides/di.md](../di.md)).
 
 
 ## Related Documentation
 
-- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain objects
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
-- [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) — Mapper strategies
+- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) - DI domain objects
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service interface conventions
+- [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) - Mapper strategies

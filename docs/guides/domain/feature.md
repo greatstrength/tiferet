@@ -1,4 +1,4 @@
-# Domain – Feature: FeatureStep, EventFeatureStep, and Feature
+# Domain - Feature: FeatureStep, EventFeatureStep, and Feature
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,7 +7,7 @@
 
 ## Overview
 
-The Feature domain defines the structural foundation for workflow orchestration in Tiferet. A `Feature` represents a complete workflow definition — a named, identifiable unit composed of ordered steps that execute domain events from the dependency injection container. Each step is described by an `EventFeatureStep`, which carries container resolution metadata, flags, parameters, result routing, and error handling configuration.
+The Feature domain defines the structural foundation for workflow orchestration in Tiferet. A `Feature` represents a complete workflow definition - a named, identifiable unit composed of ordered steps that execute domain events from the dependency injection container. Each step is described by an `EventFeatureStep`, which carries container resolution metadata, flags, parameters, result routing, and error handling configuration.
 
 All domain objects in this module are **immutable value objects**: they carry no mutation methods and expose only read-only queries. All state changes (adding/removing steps, renaming, reordering) occur exclusively through Aggregates in the mappers layer.
 
@@ -26,7 +26,7 @@ Base class for steps in a feature workflow. Provides a `type` discriminator for 
 | Attribute | Type         | Required | Default   | Description                        |
 |-----------|--------------|----------|-----------|------------------------------------|
 | `type`    | `Literal['event']` | No | `'event'` | The type of the feature step.      |
-| `name`    | `str`        | Yes      | —         | The name of the feature step.      |
+| `name`    | `str`        | Yes      | - | The name of the feature step.      |
 
 Currently the only supported `type` value is `'event'`, constrained via `Literal['event']`.
 
@@ -36,7 +36,7 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 
 | Attribute        | Type                    | Required | Default | Description                                                        |
 |------------------|-------------------------|----------|---------|--------------------------------------------------------------------|
-| `service_id`     | `str`                   | Yes      | —       | The service registration ID for the feature event.                |
+| `service_id`     | `str`                   | Yes      | - | The service registration ID for the feature event.                |
 | `flags`          | `List[str]`             | No       | `[]`    | Feature flags that activate this event.                            |
 | `parameters`     | `Dict[str, str]`        | No       | `{}`    | Custom parameters for the event.                                   |
 | `return_to_data` | `bool`                  | No       | `False` | Whether to return the result to the feature data context (obsolete). |
@@ -52,8 +52,8 @@ Inherits `type` (defaults to `'event'`) and `name` from `FeatureStep`.
 
 Parameters support two value modes:
 
-- **Static values** — literal strings provided directly in configuration (e.g., `b: '0.5'`).
-- **Request-backed values** — prefixed with `$r.` to indicate the value is resolved from the incoming request data at runtime (e.g., `$r.user_id`).
+- **Static values** - literal strings provided directly in configuration (e.g., `b: '0.5'`).
+- **Request-backed values** - prefixed with `$r.` to indicate the value is resolved from the incoming request data at runtime (e.g., `$r.user_id`).
 
 #### Conditional Execution
 
@@ -65,12 +65,12 @@ Immutable value object representing a complete feature workflow definition.
 
 | Attribute      | Type                            | Required | Default | Description                                          |
 |----------------|---------------------------------|----------|---------|------------------------------------------------------|
-| `id`           | `str`                           | Yes      | —       | The unique identifier (`group_id.feature_key`).      |
-| `name`         | `str`                           | Yes      | —       | The name of the feature.                             |
+| `id`           | `str`                           | Yes      | - | The unique identifier (`group_id.feature_key`).      |
+| `name`         | `str`                           | Yes      | - | The name of the feature.                             |
 | `flags`        | `List[str]`                     | No       | `[]`    | Feature flags that activate this entire feature.     |
 | `description`  | `str \| None`                   | No       | `None`  | The description of the feature.                      |
-| `group_id`     | `str`                           | Yes      | —       | The context group identifier for the feature.        |
-| `feature_key`  | `str`                           | Yes      | —       | The key of the feature.                              |
+| `group_id`     | `str`                           | Yes      | - | The context group identifier for the feature.        |
+| `feature_key`  | `str`                           | Yes      | - | The key of the feature.                              |
 | `steps`        | `List[EventFeatureStep]`        | No       | `[]`    | The ordered step workflow for the feature.            |
 | `log_params`   | `Dict[str, str]`                | No       | `{}`    | Parameters to log for the feature.                   |
 | `is_async`     | `bool`                          | No       | `False` | When `True`, the entire step loop runs via `run_coroutine(self._execute_async(...))`. |
@@ -94,12 +94,12 @@ step = feature.get_step('x')  # None (invalid type)
 The Feature domain objects participate in runtime workflow execution through the following flow:
 
 1. The hub's `execute_feature_handler` resolves the `Feature` (cache-backed via `get_feature`) and constructs a domain-bound `FeatureContext` with `FeatureContext.from_domain(feature, get_dependency=..., cache=...)`.
-2. `FeatureContext.execute_feature(request, *flags, **kwargs)` takes **no** `feature` parameter — it reads `self.domain`. The same is true of `resolve_feature_steps(request, *execution_flags)` and the internal `_execute_async(request, ...)` path.
+2. `FeatureContext.execute_feature(request, *flags, **kwargs)` takes **no** `feature` parameter - it reads `self.domain`. The same is true of `resolve_feature_steps(request, *execution_flags)` and the internal `_execute_async(request, ...)` path.
 3. Request data is validated against the feature schema (`validate_request`) before any step runs.
 4. Async dispatch:
-   - `feature.is_async=True` — the entire step loop runs via `run_coroutine(self._execute_async(...))`.
+   - `feature.is_async=True` - the entire step loop runs via `run_coroutine(self._execute_async(...))`.
    - otherwise, each `step.is_async=True` step is driven individually via `run_coroutine(self._execute_step_async(...))`.
-   - both flags `False` — fully synchronous `execute_step`.
+   - both flags `False` - fully synchronous `execute_step`.
 5. For each yielded step from `resolve_feature_steps`, the context resolves `EventFeatureStep.service_id` from DI (execution + feature + step flags combined additively), parses parameters (including `$r.` request-backed values), evaluates `condition`, and executes through composed middleware.
 6. If `data_key` is set, the result is stored on the `RequestContext` for downstream steps. If `pass_on_error` is `True`, step errors are swallowed and the workflow continues.
 
@@ -158,7 +158,7 @@ Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
 ## Relationships to Other Domains
 
 - **App:** `FeatureContext` is constructed per feature run by the blueprint's `execute_feature_handler`, receiving `get_dependency` and a shared `CacheContext`.
-- **Admin:** `ADMIN_DEFAULT_FEATURES` seeds the six-domain management catalog used by `AdminApp` / `AdminCLI` — see [docs/guides/admin.md](../admin.md).
+- **Admin:** `ADMIN_DEFAULT_FEATURES` seeds the six-domain management catalog used by `AdminApp` / `AdminCLI` - see [docs/guides/admin.md](../admin.md).
 - **DI:** `EventFeatureStep.service_id` references a `ServiceRegistration` entry in the `services` section of the configuration, which is resolved at runtime by the DI container.
 - **Error:** Domain events use `verify()` and `raise_error()` to raise `TiferetError` when features are not found or parameters are invalid. These are resolved to `Error` domain objects for formatted responses.
 - **CLI:** CLI commands map to features via `group_key` and `key`, enabling command-line execution of feature workflows.
@@ -188,12 +188,12 @@ feature = Feature(
 
 ## Related Documentation
 
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
-- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error domain guide
-- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) — Admin feature catalog (`ADMIN_DEFAULT_FEATURES`)
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Domain-bound `FeatureContext` and five-handler hub
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) - Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) - Domain model conventions
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) - App domain guide
+- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) - Error domain guide
+- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) - DI domain guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns & testing
+- [docs/guides/admin.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/admin.md) - Admin feature catalog (`ADMIN_DEFAULT_FEATURES`)
+- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) - Domain-bound `FeatureContext` and five-handler hub

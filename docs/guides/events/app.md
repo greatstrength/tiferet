@@ -1,4 +1,4 @@
-# Events – App Session Management
+# Events - App Session Management
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,7 +7,7 @@
 
 ## Overview
 
-The app event module provides the full CRUD surface for `AppSession` configurations — the runtime entry-point definitions that describe how a Tiferet application session is assembled. Every event in this module depends on an injected `AppService` and operates on `AppSession` domain objects through the `AppSessionAggregate` mapper.
+The app event module provides the full CRUD surface for `AppSession` configurations - the runtime entry-point definitions that describe how a Tiferet application session is assembled. Every event in this module depends on an injected `AppService` and operates on `AppSession` domain objects through the `AppSessionAggregate` mapper.
 
 These events are consumed by the `build_app` blueprint chain during bootstrapping and by management tooling that creates, updates, and removes session configurations.
 
@@ -28,7 +28,7 @@ These events are consumed by the `build_app` blueprint chain during bootstrappin
 
 All events inject a single dependency:
 
-- **`app_service: AppService`** — the service interface for persisting and retrieving `AppSession` configurations.
+- **`app_service: AppService`** - the service interface for persisting and retrieving `AppSession` configurations.
 
 ## Event Details
 
@@ -124,7 +124,7 @@ DomainEvent.handle(
 
 Lists all configured application sessions. No required parameters.
 
-**Returns:** `List[AppSession]` — may be empty.
+**Returns:** `List[AppSession]` - may be empty.
 
 ```python
 app_sessions = DomainEvent.handle(
@@ -135,7 +135,7 @@ app_sessions = DomainEvent.handle(
 
 ### RemoveAppSession
 
-Removes an app session configuration by ID. The operation is **idempotent** — removing a non-existent session does not raise an error.
+Removes an app session configuration by ID. The operation is **idempotent** - removing a non-existent session does not raise an error.
 
 **Required:** `id`
 
@@ -161,7 +161,7 @@ Sets, merges, or clears constants on an app session.
 |---|---|---|---|
 | `constants` | `dict[str, Any] \| None` | `None` | Constants to apply. `None` clears all constants. Dict keys with `None` values are removed; others are merged. |
 
-**Returns:** `str` — the session ID.
+**Returns:** `str` - the session ID.
 
 **Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
@@ -190,7 +190,7 @@ DomainEvent.handle(
 
 ### SetServiceDependency
 
-Adds or updates a service dependency on an app session. Uses PUT semantics — if the `service_id` already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
+Adds or updates a service dependency on an app session. Uses PUT semantics - if the `service_id` already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
 
 **Required:** `id`, `service_id`, `module_path`, `class_name`
 
@@ -200,7 +200,7 @@ Adds or updates a service dependency on an app session. Uses PUT semantics — i
 |---|---|---|---|
 | `parameters` | `dict[str, Any] \| None` | `None` | Parameters for the service dependency. `None` clears existing parameters. Dict keys with `None` values are pruned. |
 
-**Returns:** `str` — the session ID.
+**Returns:** `str` - the session ID.
 
 **Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
@@ -218,11 +218,11 @@ DomainEvent.handle(
 
 ### RemoveServiceDependency
 
-Removes a service dependency from an app session by `service_id`. The operation is **idempotent** — removing a non-existent service does not raise an error.
+Removes a service dependency from an app session by `service_id`. The operation is **idempotent** - removing a non-existent service does not raise an error.
 
 **Required:** `id`, `service_id`
 
-**Returns:** `str` — the session ID.
+**Returns:** `str` - the session ID.
 
 **Error:** Raises `APP_SESSION_NOT_FOUND` if the session does not exist.
 
@@ -250,11 +250,11 @@ This pattern ensures that domain rules are enforced by the aggregate, not the ev
 
 ### Idempotent Deletes
 
-Both `RemoveServiceDependency` and `RemoveAppSession` are idempotent — they delegate to `AppService.delete()`/aggregate removal, which succeeds silently if the target does not exist. This simplifies orchestration workflows where deletions may be retried.
+Both `RemoveServiceDependency` and `RemoveAppSession` are idempotent - they delegate to `AppService.delete()`/aggregate removal, which succeeds silently if the target does not exist. This simplifies orchestration workflows where deletions may be retried.
 
 ## Related Documentation
 
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain objects
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and test harness
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
-- [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) — Mapper strategies
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) - App domain objects
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns and test harness
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - Service interface conventions
+- [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) - Mapper strategies

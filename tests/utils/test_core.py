@@ -58,7 +58,7 @@ def test_middleware_conformance():
     assert isinstance(timing_mw, MiddlewareService)
 
     # Assert the default logger_id resolves a logger named 'root'.
-    # NOTE: logging.getLogger('root') returns a named logger called 'root' — a child of
+    # NOTE: logging.getLogger('root') returns a named logger called 'root' - a child of
     # the true process root logger (logging.getLogger() with no name), not the root
     # logger itself; records still propagate to the root handlers.
     assert logging_mw.logger.name == 'root'

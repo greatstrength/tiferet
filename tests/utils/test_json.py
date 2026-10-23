@@ -310,7 +310,7 @@ def test_json_loader_verify_json_file_success(temp_json_file: Path):
     :type temp_json_file: pathlib.Path
     '''
 
-    # Create a loader and verify — should not raise.
+    # Create a loader and verify - should not raise.
     loader = JsonLoader(path=temp_json_file, mode='r')
     JsonLoader.verify_json_file(loader)
 

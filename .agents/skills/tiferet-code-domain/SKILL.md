@@ -3,13 +3,13 @@ name: tiferet-code-domain
 description: Apply domain object conventions when adding or modifying domain objects in a Tiferet-family repo. Covers the DomainObject base class, Pydantic field declarations, model validators, read-only design, and package layout.
 ---
 
-# Domain Objects Code Style – Tiferet
+# Domain Objects Code Style - Tiferet
 
 ## When to use
 - When adding a new domain object or modifying an existing one in `tiferet/domain/`.
 - When defining a new field, a derivation validator, or a read-only behavior method on a domain class.
 - When creating domain objects for a Tiferet-family application (e.g. a calculator result, an order item).
-- Do NOT use for mutation logic — that belongs in Aggregates (`tiferet-code-mappers`).
+- Do NOT use for mutation logic - that belongs in Aggregates (`tiferet-code-mappers`).
 
 ## Artifact comment structure
 
@@ -34,17 +34,17 @@ Model-specific labels:
 # * method: _<verb>_<name> (model validator)
 ```
 
-Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app` (framework).
+Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic; also `tiferet` itself in a downstream repo), `# ** app` (this package's own modules: relative imports inside tiferet, or the downstream app's own layers).
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `assets` sub-modules only (e.g. `from .. import assets as a`). Never import from `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary - valid `# ** app` imports:** `assets` sub-modules only (e.g. `from .. import assets as a`). Never import from `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
 - Extend `DomainObject` from `tiferet.domain.core` (which extends `pydantic.BaseModel`).
 - `DomainObject` config: `extra='forbid'`, `populate_by_name=True`, `validate_assignment=True`, `arbitrary_types_allowed=True`, `coerce_numbers_to_str=True`.
 - Declare all fields with `pydantic.Field(...)` including a `description` kwarg.
 - Instantiate via the Pydantic constructor: `Feature(id='calc.add', name='Add')`.
 - Use `model_validate(data_dict)` for external/untrusted data.
-- Domain objects are **read-only** at the domain layer — place all mutation in Aggregates.
+- Domain objects are **read-only** at the domain layer - place all mutation in Aggregates.
 - Place every `(property)` method after attributes and `init`, and before every other method. A property is descriptive, so it is read first.
 - Expose a domain object's **methods of description** without changing its state:
   - Use a getter-only `@property` when the description is deterministic from `self` and takes no caller input. Do not define a setter. Examples: `display_label`, `is_complete`, or a derived identifier.
@@ -68,6 +68,8 @@ Name and label validators for their action: `_normalize_<field>` for field norma
 
 ## Example
 
+A downstream application's domain module, so `tiferet` is an `# ** infra` import:
+
 ```python
 # *** imports
 
@@ -76,8 +78,6 @@ from typing import Any
 
 # ** infra
 from pydantic import Field, field_validator
-
-# ** app
 from tiferet.domain.core import DomainObject
 
 # *** models
@@ -169,7 +169,7 @@ def _derive_id(cls, data: Any) -> Any:
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** A domain class's docstring opens with a 1–2 sentence vision-tier value statement (why the concept exists), linked via a `# >> see: @guides/domain/<module>.md#<anchor>` tag to the corresponding `docs/guides/domain/*.md` entry, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** A domain class's docstring opens with a 1-2 sentence vision-tier value statement (why the concept exists), linked via a `# >> see: @guides/domain/<module>.md#<anchor>` tag to the corresponding `docs/guides/domain/*.md` entry, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md

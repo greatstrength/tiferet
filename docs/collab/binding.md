@@ -1,4 +1,4 @@
-# Binding — Tiferet Framework
+# Binding - Tiferet Framework
 
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet

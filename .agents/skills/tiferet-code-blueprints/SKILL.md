@@ -3,13 +3,13 @@ name: tiferet-code-blueprints
 description: Apply blueprint conventions when adding or modifying blueprint orchestration functions in a Tiferet-family repo. Covers the build_app composition chain, thin entrypoint design, functions vs blueprints sections, and the App/CLI export pattern.
 ---
 
-# Blueprints Code Style – Tiferet
+# Blueprints Code Style - Tiferet
 
 ## When to use
 - When adding a new blueprint entrypoint or modifying the application initialization flow in `tiferet/blueprints/`.
 - When creating a new interface type (e.g. a web blueprint wrapping Flask or FastAPI).
 - When adding a side-effect-free composition helper that feeds into a blueprint.
-- Do NOT use for domain logic — blueprints orchestrate, they do not implement.
+- Do NOT use for domain logic - blueprints orchestrate, they do not implement.
 
 ## Artifact comment structure
 
@@ -36,16 +36,16 @@ Both sections may appear in the same module. `# *** functions` must appear first
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `assets`, `contexts`, `di`, `events`. Events are for pre-DI bootstrap only (`DomainEvent.handle` or a direct event-class import). Domain types come from the context that owns them, never `from ..domain`. Service instances arrive from `di` (`get_dependency`); never import `interfaces`. Never import from `mappers`, `utils`, or `repos`.
+- **Layer boundary - valid `# ** app` imports:** `assets`, `contexts`, `di`, `events`. Events are for pre-DI bootstrap only (`DomainEvent.handle` or a direct event-class import). Domain types come from the context that owns them, never `from ..domain`. Service instances arrive from `di` (`get_dependency`); never import `interfaces`. Never import from `mappers`, `utils`, or `repos`.
 - Blueprints are **module-level functions**, not classes.
-- Blueprints are **thin orchestrators** — they wire and delegate; they do not implement domain logic.
+- Blueprints are **thin orchestrators** - they wire and delegate; they do not implement domain logic.
 - The canonical entry point is `build_app` in `tiferet/blueprints/core.py`, exported as `App`. The CLI entry point is `build_cli` in `tiferet/blueprints/cli.py`, exported as `CLI`.
 - Tester unit tests use `@use_tester` (`tiferet/blueprints/tester.py`, exported from `tiferet`). Tester-scoped `build_cache` wraps `core.build_cache`; do not stack `add_default_testers` on `core.py`. Not a mini-App: no `test_case`, `Tester()`, `resolve_tester`, `tester_config`, or testers YAML. `type` defaults to `'generic'`; `aggregate_cls` / `domain_cls` fill import coordinates.
 - The `core.build_app` composition chain:
-  1. `build_cache()` — build the `CacheContext` pre-seeded with default errors, app services, app constants, app sessions, and logging settings.
-  2. `get_app_session(interface_id, cache, ...)` — return a cache-seeded default session when available; otherwise compose the app service and resolve the session via `GetAppSession`.
-  3. `build_app_session_context(app_session, cache)` — build the app service container, compose the `ServiceResolver`, then delegate the context graph construction to `compose_session_context`.
-  4. `compose_session_context(...)` — wire the injected logger, feature-execution, request-construction, error, and response handlers before binding the app session to `AppSessionContext`.
+  1. `build_cache()` - build the `CacheContext` pre-seeded with default errors, app services, app constants, app sessions, and logging settings.
+  2. `get_app_session(interface_id, cache, ...)` - return a cache-seeded default session when available; otherwise compose the app service and resolve the session via `GetAppSession`.
+  3. `build_app_session_context(app_session, cache)` - build the app service container, compose the `ServiceResolver`, then delegate the context graph construction to `compose_session_context`.
+  4. `compose_session_context(...)` - wire the injected logger, feature-execution, request-construction, error, and response handlers before binding the app session to `AppSessionContext`.
 - `build_cli` builds the CLI cache, resolves the app session, constructs `CliSessionContext` with its CLI parser and runtime handlers, then delegates `argv` to `cli_context.run(argv)`.
 - Validate the resolved `AppSessionContext` type (`INVALID_APP_SESSION_TYPE`) in `build_app`.
 - Use `TiferetError.raise_error()` for domain-outcome error paths (e.g. `TiferetError.raise_error(a.error.INVALID_APP_SESSION_TYPE_ID, ...)`).
@@ -96,7 +96,7 @@ def build_cli(interface_id: str,
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** Blueprint docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/blueprints.md#<anchor>` to `docs/guides/blueprints.md`, which carries the composition-chain detail. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** Blueprint docstrings open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/blueprints.md#<anchor>` to `docs/guides/blueprints.md`, which carries the composition-chain detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md

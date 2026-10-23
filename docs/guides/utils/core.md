@@ -1,4 +1,4 @@
-# Utilities – LoggingMiddleware, CacheMiddleware, TimingMiddleware
+# Utilities - LoggingMiddleware, CacheMiddleware, TimingMiddleware
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,16 +7,16 @@
 
 ## Overview
 
-`tiferet/utils/core.py` ships three concrete `MiddlewareService` implementations — infrastructure-only callables that wrap domain event execution with a single cross-cutting concern (logging, cache injection, or timing) without touching the event itself. All three share the same `__call__(event, kwargs, next_fn)` contract; see [docs/guides/utils.md](../utils.md#the-middlewareservice-pattern) for the composition mechanics (ordering, sync vs. async, config.yml registration) that apply to any middleware, built-in or custom.
+`tiferet/utils/core.py` ships three concrete `MiddlewareService` implementations - infrastructure-only callables that wrap domain event execution with a single cross-cutting concern (logging, cache injection, or timing) without touching the event itself. All three share the same `__call__(event, kwargs, next_fn)` contract; see [docs/guides/utils.md](../utils.md#the-middlewareservice-pattern) for the composition mechanics (ordering, sync vs. async, config.yml registration) that apply to any middleware, built-in or custom.
 
 **Module:** `tiferet/utils/core.py`
 **Vision:** See each class's docstring in `tiferet/utils/core.py` for its value statement.
 
 ## Ubiquitous Language
 
-- **Chain** — the ordered sequence of middleware wrapping a single domain event's `execute` call.
-- **`next_fn`** — the zero-argument callable a middleware invokes to continue the chain; the innermost `next_fn` invokes the event's `execute`.
-- **Observe-and-reraise** — the required middleware discipline: react to success/failure (log, time, inject) without suppressing or transforming exceptions.
+- **Chain** - the ordered sequence of middleware wrapping a single domain event's `execute` call.
+- **`next_fn`** - the zero-argument callable a middleware invokes to continue the chain; the innermost `next_fn` invokes the event's `execute`.
+- **Observe-and-reraise** - the required middleware discipline: react to success/failure (log, time, inject) without suppressing or transforming exceptions.
 
 ## When should you reach for which one?
 
@@ -48,7 +48,7 @@ Emits a `DEBUG` record before and after the wrapped execution and an `ERROR` rec
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
-| <a id="loggingmiddleware-logger"></a>`logger` | `logging.Logger` | — | — | Resolved via `logging.getLogger(logger_id)` at construction. |
+| <a id="loggingmiddleware-logger"></a>`logger` | `logging.Logger` | - | - | Resolved via `logging.getLogger(logger_id)` at construction. |
 
 #### Methods
 
@@ -64,7 +64,7 @@ Logs `DEBUG` before and after a successful call; on exception, logs `ERROR` with
 
 ### CacheMiddleware
 
-Injects a cache snapshot into event kwargs, sourced from an injected `load_cache` callable rather than importing `CacheContext` directly — preserving the utils/contexts layer boundary (`utils` may not depend on `contexts`).
+Injects a cache snapshot into event kwargs, sourced from an injected `load_cache` callable rather than importing `CacheContext` directly - preserving the utils/contexts layer boundary (`utils` may not depend on `contexts`).
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -83,7 +83,7 @@ Measures elapsed wall-clock time with `time.perf_counter` and emits a single `DE
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
-| <a id="timingmiddleware-logger"></a>`logger` | `logging.Logger` | — | — | Resolved via `logging.getLogger(logger_id)` at construction. |
+| <a id="timingmiddleware-logger"></a>`logger` | `logging.Logger` | - | - | Resolved via `logging.getLogger(logger_id)` at construction. |
 
 #### Methods
 
@@ -113,7 +113,7 @@ services:
     class_name: TimingMiddleware
 ```
 
-Then reference the service id at feature level (wraps every step) or step level (wraps a single command) — see [docs/guides/utils.md](../utils.md#the-middlewareservice-pattern) for the combined-levels composition order.
+Then reference the service id at feature level (wraps every step) or step level (wraps a single command) - see [docs/guides/utils.md](../utils.md#the-middlewareservice-pattern) for the combined-levels composition order.
 
 ## Testing
 
@@ -137,11 +137,11 @@ For `CacheMiddleware`, assert on the `kwargs` dict passed to `next_fn` (via a `n
 ## Boundaries
 
 **Inside this domain:** the three built-in, infrastructure-only middleware implementations and their construction/behavior.
-**Outside this domain:** the `MiddlewareService` ABC contract and the chain-composition mechanics (ordering, sync/async, config.yml wiring) — see [docs/guides/utils.md](../utils.md#the-middlewareservice-pattern) and [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md#middleware-support). Writing custom middleware is also out of scope here — see `docs/core/interfaces.md`.
+**Outside this domain:** the `MiddlewareService` ABC contract and the chain-composition mechanics (ordering, sync/async, config.yml wiring) - see [docs/guides/utils.md](../utils.md#the-middlewareservice-pattern) and [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md#middleware-support). Writing custom middleware is also out of scope here - see `docs/core/interfaces.md`.
 
 ## Related Documentation
 
-- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide, including the MiddlewareService pattern
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns, `handle` / `handle_async`, and the Middleware Support section
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — `MiddlewareService` ABC
-- [docs/guides/domain/logging.md](../domain/logging.md) — Logging configuration consumed by `LoggingMiddleware`/`TimingMiddleware`
+- [docs/guides/utils.md](../utils.md) - Utils layer strategy guide, including the MiddlewareService pattern
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) - Domain event patterns, `handle` / `handle_async`, and the Middleware Support section
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) - `MiddlewareService` ABC
+- [docs/guides/domain/logging.md](../domain/logging.md) - Logging configuration consumed by `LoggingMiddleware`/`TimingMiddleware`

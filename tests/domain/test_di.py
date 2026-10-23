@@ -205,12 +205,12 @@ def test_service_registration_get_dependency_multiple_flags(
     :type service_registration_multiple_deps: ServiceRegistration
     '''
 
-    # Retrieve with test_alpha first — should return alpha.
+    # Retrieve with test_alpha first - should return alpha.
     dep_alpha_first = service_registration_multiple_deps.get_dependency('test_alpha', 'test_beta')
     assert dep_alpha_first.flag == 'test_alpha'
     assert dep_alpha_first.class_name == 'DummyDependencyAlpha'
 
-    # Retrieve with test_beta first — should return beta.
+    # Retrieve with test_beta first - should return beta.
     dep_beta_first = service_registration_multiple_deps.get_dependency('test_beta', 'test_alpha')
     assert dep_beta_first.flag == 'test_beta'
     assert dep_beta_first.class_name == 'DummyDependencyBeta'
@@ -227,7 +227,7 @@ def test_service_registration_get_service_type_default(
     :type service_registration: ServiceRegistration
     '''
 
-    # Resolve with no flags — should return the default DummyDependency.
+    # Resolve with no flags - should return the default DummyDependency.
     resolved = service_registration.get_service_type()
 
     # Assert the default type is returned.
@@ -245,7 +245,7 @@ def test_service_registration_get_service_type_flagged(
     :type service_registration: ServiceRegistration
     '''
 
-    # Resolve with the test_alpha flag — should return DummyDependencyAlpha.
+    # Resolve with the test_alpha flag - should return DummyDependencyAlpha.
     resolved = service_registration.get_service_type('test_alpha')
 
     # Assert the flagged type takes priority over the default.
@@ -263,7 +263,7 @@ def test_service_registration_get_service_type_no_match(
     :type service_registration_no_default_type: ServiceRegistration
     '''
 
-    # Resolve with an unknown flag and no default — should return None.
+    # Resolve with an unknown flag and no default - should return None.
     resolved = service_registration_no_default_type.get_service_type('unknown_flag')
 
     # Assert None is returned.
@@ -275,17 +275,17 @@ def test_service_registration_get_service_type_flag_priority(
         service_registration_multiple_deps: ServiceRegistration,
     ) -> None:
     '''
-    Test that get_service_type respects flag priority order — first matching flag wins.
+    Test that get_service_type respects flag priority order - first matching flag wins.
 
     :param service_registration_multiple_deps: ServiceRegistration with two flagged overrides.
     :type service_registration_multiple_deps: ServiceRegistration
     '''
 
-    # test_alpha first — should resolve alpha.
+    # test_alpha first - should resolve alpha.
     resolved = service_registration_multiple_deps.get_service_type('test_alpha', 'test_beta')
     assert resolved is DummyDependencyAlpha
 
-    # test_beta first — should resolve beta.
+    # test_beta first - should resolve beta.
     resolved = service_registration_multiple_deps.get_service_type('test_beta', 'test_alpha')
     assert resolved is DummyDependencyBeta
 

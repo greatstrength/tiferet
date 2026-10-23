@@ -3,12 +3,12 @@ name: tiferet-code-interfaces
 description: Apply service interface conventions when adding or modifying Service interfaces in a Tiferet-family repo. Covers the Service ABC, abstractmethod usage, MiddlewareService, and vertical contract design.
 ---
 
-# Interfaces (Services) Code Style – Tiferet
+# Interfaces (Services) Code Style - Tiferet
 
 ## When to use
 - When adding a new Service interface or modifying an existing one in `tiferet/interfaces/`.
 - When defining the abstract contract for a new domain concern (data access, middleware, computation).
-- Do NOT use for concrete implementations — those are repositories (`tiferet-code-repos`) or utilities (`tiferet-code-utils`).
+- Do NOT use for concrete implementations - those are repositories (`tiferet-code-repos`) or utilities (`tiferet-code-utils`).
 
 ## Artifact comment structure
 
@@ -32,14 +32,14 @@ Interface-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `mappers` (aggregates for domain-related inputs and outputs); sibling `interfaces` modules. Import domain types through their mappers, never directly from `domain`. Never import from `events`, `repos`, `utils`, `contexts`, or `blueprints`.
+- **Layer boundary - valid `# ** app` imports:** `mappers` (aggregates for domain-related inputs and outputs); sibling `interfaces` modules. Import domain types through their mappers, never directly from `domain`. Never import from `events`, `repos`, `utils`, `contexts`, or `blueprints`.
 - Extend `Service` from `tiferet.interfaces.core` (a minimal `ABC`).
 - Mark every method `@abstractmethod` and raise `NotImplementedError()` in the body.
 - Use RST docstrings with `:param`/`:type`/`:return`/`:rtype` on every method.
-- No `# * init` — services are abstract definitions, not instantiated directly.
+- No `# * init` - services are abstract definitions, not instantiated directly.
 - Keep methods focused on a single vertical concern (data access, file I/O, configuration, middleware).
 - Services are **unified vertical contracts**: data repositories, utility wrappers, and middleware all satisfy this same base.
-- **`MiddlewareService`** (`tiferet/interfaces/middleware.py`) is the special abstract contract for domain event middleware — implement `__call__(self, event, kwargs, next_fn)` (sync) or `async def __call__` (async); label with `# * method: __call__`.
+- **`MiddlewareService`** (`tiferet/interfaces/middleware.py`) is the special abstract contract for domain event middleware - implement `__call__(self, event, kwargs, next_fn)` (sync) or `async def __call__` (async); label with `# * method: __call__`.
 - When a domain event needs a vertical capability, depend on its Service interface rather than a concrete implementation. Contexts receive live dependencies through injected handlers rather than importing concrete classes.
 - **Exported interfaces:** `Service`, `ServiceError`, `AppService`, `CliService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `MiddlewareService`, `SqliteService`.
 
@@ -126,7 +126,7 @@ class ErrorService(Service):
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** Interface class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/interfaces.md#<anchor>` to `docs/guides/interfaces.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** Interface class docstrings open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/interfaces.md#<anchor>` to `docs/guides/interfaces.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md

@@ -1,7 +1,7 @@
 # Step 1: Setup & Entry Points
 
 Hey! 👋  
-Let's get the playground set up first and peek at what our finished calculator will actually *do* when we run it. This way you can see the goal right away — super motivating before we dive into the code.
+Let's get the playground set up first and peek at what our finished calculator will actually *do* when we run it. This way you can see the goal right away - super motivating before we dive into the code.
 
 ### 1.1 Quick environment setup
 
@@ -39,13 +39,13 @@ basic-calculator/
 ```
 In Tiferet v2.0.0, configuration is consolidated into a single root `config.yml` file, which replaces the older split `app/configs/*.yml` layout.
 
-Don't worry about filling everything yet — we'll get there step by step.
+Don't worry about filling everything yet - we'll get there step by step.
 
 ### 1.3 The two main entry points (what you'll run)
 
 These are the files people will actually use. Let's look at them now so you know what success looks like.
 
-**calc_client.py** — a simple script that runs a few test cases automatically
+**calc_client.py** - a simple script that runs a few test cases automatically
 
 ```python
 from tiferet import App, TiferetError
@@ -92,7 +92,7 @@ Error: Cannot divide by zero
 Error: Invalid number: 'hello'
 ```
 
-**calc_cli.py** — the interactive command-line version
+**calc_cli.py** - the interactive command-line version
 
 ```python
 from tiferet import CLI
@@ -114,10 +114,10 @@ python calc_cli.py calc divide 10 0
 # → Error: Cannot divide by zero
 ```
 
-Pretty neat, right? These two files are the "front door" — everything else we build (events, utils, and config.yml) is just to make these work beautifully.
+Pretty neat, right? These two files are the "front door" - everything else we build (events, utils, and config.yml) is just to make these work beautifully.
 
-No pressure — we're just looking ahead.  
+No pressure - we're just looking ahead.  
 In the next step we'll start writing the actual math operations.
 
 → Ready for the fun part?  
-Jump to **[Step 2: Domain Events – Initial Version](02-domain-events.md)**
+Jump to **[Step 2: Domain Events - Initial Version](02-domain-events.md)**

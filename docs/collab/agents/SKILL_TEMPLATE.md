@@ -1,6 +1,6 @@
-# Skill template — Tiferet family
+# Skill template - Tiferet family
 
-Every Tiferet-family skill — process, code-style, and domain — uses this shape. Agents must not invent a different outline.
+Every Tiferet-family skill - process, code-style, and domain - uses this shape. Agents must not invent a different outline.
 
 Canonical process: [process.md](../process.md). Repo-local facts: [binding.md](../binding.md).
 

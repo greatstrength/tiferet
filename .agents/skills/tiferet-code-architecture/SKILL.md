@@ -3,7 +3,7 @@ name: tiferet-code-architecture
 description: Understand the Tiferet v2 package architecture before starting any multi-component implementation. Read this when a task spans more than one package or when deciding where a new class belongs. Covers per-package import rules, reverse-shape principles, and the runtime execution flow.
 ---
 
-# Architecture – Tiferet v2
+# Architecture - Tiferet v2
 
 ## When to use
 - Before starting any implementation that touches more than one package.
@@ -67,7 +67,7 @@ App('interface_id')                               # blueprints/core.py: build_ap
 
 ## Docstrings & guides
 
-This skill documents the import law that every guide's `## Boundaries` section relies on — cross-reference it there rather than restating it. See `tiferet-guide-docs` for the vision-tier docstring / `# >> see:` convention.
+This skill documents the import law that every guide's `## Boundaries` section relies on - cross-reference it there rather than restating it. See `tiferet-guide-docs` for the vision-tier docstring / `# >> see:` convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/architecture.md

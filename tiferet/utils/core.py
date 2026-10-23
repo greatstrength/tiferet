@@ -89,7 +89,7 @@ class CacheMiddleware(MiddlewareService):
     The injection is additive: it never overwrites a ``'cache'`` value already
     present in kwargs, and it is a transparent no-op when no loader was
     supplied.  To preserve the utils/contexts layer boundary this middleware
-    does not import or reference ``CacheContext`` — the loader is created at
+    does not import or reference ``CacheContext`` - the loader is created at
     the blueprint layer where the cache context is accessible.
     '''
 

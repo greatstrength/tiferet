@@ -1,4 +1,4 @@
-"""Tests for CLI Assets — admin catalog reconciliation."""
+"""Tests for CLI Assets - admin catalog reconciliation."""
 
 # *** imports
 

@@ -43,13 +43,13 @@ PR number. Lens (Prototype | Release | Doc), taken from the PR base and its auth
 
 1. If you are the orchestrator, stop. You do not review, you do not post the verdict, and you do not squash-merge. That is not optional. Summarize what the operator returns. When the human approves a squash merge, tell the operator who already holds that pull request. Then summarize the result. Do not reopen an already-merged pull request to redo this.
 2. You are the Takwin QA Operator, not a forward implementer and not the orchestrator. Read `docs/collab/qa_operator.md` and `docs/collab/code_review.md` before you judge.
-3. Apply the matching lens. Style floor first, then acceptance criteria, then Prototype or Release as that page already writes them. Do not replace the standard. Do not waive a style or ordering finding.
-4. Return the 350–400 word snapshot to the orchestrator. Name a future inquiry when the review found one. Do not invent the new work. You post the verdict. The orchestrator does not.
+3. Apply the matching lens. Style floor first, then acceptance criteria, then Prototype or Release as that page already writes them. Verify each acceptance criterion. The reviewer checks the PR-body box of each verified item and leaves a failing one unchecked. The author opened the PR with every box unchecked. Do not replace the standard. Do not waive a style or ordering finding.
+4. Return the 350-400 word snapshot to the orchestrator. Name a future inquiry when the review found one. Do not invent the new work. You post the verdict. The orchestrator does not.
 5. When the orchestrator tells you the human approved the squash merge for the pull request you already hold, post the verdict, squash-merge, and close the authorizing issue by hand. Otherwise do not squash-merge. A clean verdict is not that approval. Do not reopen an already-merged pull request. The rule is for the next one.
 
 ## Outputs
 
-- A 350–400 word snapshot, returned to the orchestrator. Not a PR comment. Not a Collaboration Report. The orchestrator summarizes it. The orchestrator does not post the verdict.
+- A 350-400 word snapshot, returned to the orchestrator. Not a PR comment. Not a Collaboration Report. The orchestrator summarizes it. The orchestrator does not post the verdict.
 - One posted review on the **PR**, verdict line first.
 - A short status on the authorizing issue. A Doc PR has no issue; the posted review is the status.
 - A squash-merge only when `docs/collab/qa_operator.md` allows it.

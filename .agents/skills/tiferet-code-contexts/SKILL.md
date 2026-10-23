@@ -3,7 +3,7 @@ name: tiferet-code-contexts
 description: Apply context conventions when adding or modifying runtime contexts in a Tiferet-family repo. Covers BaseContext registry, AppSessionContext hub, high-level vs low-level contexts, domain_type, and from_domain construction.
 ---
 
-# Contexts Code Style – Tiferet
+# Contexts Code Style - Tiferet
 
 ## When to use
 - When adding a new context class or modifying an existing one in `tiferet/contexts/`.
@@ -35,18 +35,18 @@ Context-specific labels:
 
 ## Key conventions
 
-**Layer boundary — valid `# ** app` imports:** `assets`, `domain`, sibling contexts, `events`. Never import from `mappers`, `di`, `interfaces`, `repos`, `utils`, or `blueprints`. Prefer blueprint handler injection over constructing sibling contexts. Contexts may call events as a client surface after the blueprint has built them.
+**Layer boundary - valid `# ** app` imports:** `assets`, `domain`, sibling contexts, `events`. Never import from `mappers`, `di`, `interfaces`, `repos`, `utils`, or `blueprints`. Prefer blueprint handler injection over constructing sibling contexts. Contexts may call events as a client surface after the blueprint has built them.
 
 **Base class:** All contexts extend `BaseContext` from `tiferet/contexts/core.py`.
 - `BaseContext` provides a `ContextMeta` registry keyed by `domain_type`.
-- `BaseContext.for_domain(DomainType)` — resolves the registered context class.
-- `BaseContext.from_domain(domain_obj, **kwargs)` — constructs a context bound to a domain object; the object is exposed as `ctx.domain`.
-- Caching is NOT in the base — declare a `CacheContext` on contexts that need one.
+- `BaseContext.for_domain(DomainType)` - resolves the registered context class.
+- `BaseContext.from_domain(domain_obj, **kwargs)` - constructs a context bound to a domain object; the object is exposed as `ctx.domain`.
+- Caching is NOT in the base - declare a `CacheContext` on contexts that need one.
 
 **High-level contexts** (user-facing, e.g. `CliSessionContext`, `FlaskApiContext`):
 - Extend `AppSessionContext` (the minimal hub in `tiferet/contexts/app.py`).
 - `AppSessionContext` is a runtime-handler hub. The core app wires logger, feature-execution, request, error, and response handlers, plus `get_dependency` and `cache`; CLI adds `parse_cli_args`. Blueprints provide these handlers during app initialization.
-- The core handler set is an implementation baseline, not a ceiling. A subclass may declare an additional slot: store it privately, guard it with `raise_unwired_handler_error`, and have the paired blueprint build the closure alongside the core handlers. Context and blueprint always extend in lockstep — a new slot is two edits, never one.
+- The core handler set is an implementation baseline, not a ceiling. A subclass may declare an additional slot: store it privately, guard it with `raise_unwired_handler_error`, and have the paired blueprint build the closure alongside the core handlers. Context and blueprint always extend in lockstep - a new slot is two edits, never one.
 - Override only the methods your interface specializes (e.g. request parsing or response formatting).
 
 **Low-level contexts** (supporting any domain concern at the app-operation level):
@@ -55,7 +55,7 @@ Context-specific labels:
 - Not limited to the built-in trio (FeatureContext, ErrorContext, LoggingContext). Framework extensions introduce their own low-level contexts for domain-specific concerns; blueprints and handler injection are the mechanism for composing them alongside the built-in ones.
 
 **`domain_type` ClassVar:**
-- Declare on each context to register it in the `ContextMeta` registry. Own-namespace only — subclasses that omit `domain_type` do not clobber the parent.
+- Declare on each context to register it in the `ContextMeta` registry. Own-namespace only - subclasses that omit `domain_type` do not clobber the parent.
 - `AppSessionContext` declares `domain_type = AppSession`. `CliSessionContext` omits it so `AppSession` stays mapped to `AppSessionContext`.
 - `TesterContext` declares `domain_type = TesterObject`. Variants omit `domain_type`. `TestSessionContext` extends `RequestContext` and omits `domain_type` so `Request` stays mapped to `RequestContext`. Do not steal `Request` or `AppSession` registry entries. Overlay given-state onto `session.data`, never `sample_data`. Unit tests use `@use_tester`, not a mini-App.
 
@@ -111,7 +111,7 @@ class CliSessionContext(AppSessionContext):
 
 ## Docstrings & guides
 
-- **Docstrings & guides:** Context class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/contexts.md#<anchor>` to `docs/guides/contexts.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+- **Docstrings & guides:** Context class docstrings open with a 1-2 sentence vision-tier value statement, linked via `# >> see: @guides/contexts.md#<anchor>` to `docs/guides/contexts.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Canonical source
 https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md

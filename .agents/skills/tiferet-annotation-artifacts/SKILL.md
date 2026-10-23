@@ -7,7 +7,7 @@ description: Manage annotation artifacts (# ++ todo: and # -- obsolete:) in any 
 
 ## When to use
 Use this when:
-- Starting any implementation or code review session in a Tiferet-family repo — run the scan procedure before touching affected files.
+- Starting any implementation or code review session in a Tiferet-family repo - run the scan procedure before touching affected files.
 - Adding a `# ++ todo:` or `# -- obsolete:` annotation during implementation.
 - Resolving (removing) an annotation after the described work is complete.
 - Including annotation status in a Collaboration Report for TRD work.
@@ -22,7 +22,7 @@ https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md#annot
 ### `# ++ todo: <message>`
 - **Meaning**: deferred work attached to a specific artifact. `++` = *something to add or grow here*.
 - **Remove when**: the described work is done. Never leave a `# ++ todo:` after the work it describes is complete.
-- **Issue reference**: when the work is tracked in GitHub, include the issue number: `# ++ todo: #123 — remove attribute_id once tests are migrated`.
+- **Issue reference**: when the work is tracked in GitHub, include the issue number: `# ++ todo: #123 - remove attribute_id once tests are migrated`.
 
 ### `# -- obsolete: <reason or target version>`
 - **Meaning**: the annotated artifact is deprecated and slated for removal. `--` = *something to reduce or remove*.
@@ -86,15 +86,15 @@ Include the scan results (or a summary) when authoring a TRD to ensure the scope
 
 ## Collaboration report integration
 
-For TRD work, record annotation changes in the Collaboration Report (Section 2 — Code Components Touched or Section 3 — Deviations):
+For TRD work, record annotation changes in the Collaboration Report (Section 2 - Code Components Touched or Section 3 - Deviations):
 
 - Any `# ++ todo:` annotations introduced during the session (with the artifact and message).
 - Any `# ++ todo:` annotations resolved (with the artifact and what was done).
 - Any `# -- obsolete:` annotations introduced or retired (with the artifact and reason).
 
 Example log entry:
-> **AI** — Resolved `# ++ todo:` on `AppSessionAggregate.remove_service`: removed `attribute_id` parameter and updated all callers.
-> **AI** — Retired `# -- obsolete:` on `AppSessionAggregate.return_to_data`: deleted attribute, updated `AppSessionConfigObject` mapper, confirmed no remaining callers.
+> **AI** - Resolved `# ++ todo:` on `AppSessionAggregate.remove_service`: removed `attribute_id` parameter and updated all callers.
+> **AI** - Retired `# -- obsolete:` on `AppSessionAggregate.return_to_data`: deleted attribute, updated `AppSessionConfigObject` mapper, confirmed no remaining callers.
 
 ---
 
