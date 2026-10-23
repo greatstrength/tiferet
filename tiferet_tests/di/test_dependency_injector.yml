@@ -1,0 +1,469 @@
+fixtures:
+  simple_dependency:
+    module_path: &domain_module tiferet.domain
+    class_name: ServiceDependency
+    attributes:
+      module_path: &services_module tests.di.test_dependency_injector
+      class_name: SimpleService
+  configurable_dependency:
+    module_path: *domain_module
+    class_name: ServiceDependency
+    attributes:
+      module_path: *services_module
+      class_name: ConfigurableService
+  configurable_with_params_dependency:
+    module_path: *domain_module
+    class_name: ServiceDependency
+    attributes:
+      module_path: *services_module
+      class_name: ConfigurableService
+      parameters:
+        config_value: param_value
+  constants_first_container:
+    module_path: &injector_module tiferet.di.dependency_injector
+    class_name: DIDynamicServiceContainer
+    attributes:
+      services:
+        configurable_service: $fixture.configurable_dependency
+      constants:
+        config_value: test_config
+  delegating_container:
+    module_path: *injector_module
+    class_name: DIDynamicServiceContainer
+    attributes:
+      services:
+        simple_service: $fixture.simple_dependency
+      constants:
+        config_value: test_config
+  simple_app_dependency:
+    module_path: *domain_module
+    class_name: AppServiceDependency
+    attributes:
+      service_id: simple_service
+      module_path: *services_module
+      class_name: SimpleService
+  configurable_app_dependency:
+    module_path: *domain_module
+    class_name: AppServiceDependency
+    attributes:
+      service_id: configurable_service
+      module_path: *services_module
+      class_name: ConfigurableService
+  simple_registration:
+    module_path: *domain_module
+    class_name: ServiceRegistration
+    attributes:
+      id: simple_service
+      module_path: *services_module
+      class_name: SimpleService
+  flagged_registration:
+    module_path: *domain_module
+    class_name: ServiceRegistration
+    attributes:
+      id: flagged_service
+      module_path: *services_module
+      class_name: SimpleService
+      dependencies:
+        - module_path: *services_module
+          class_name: DependentService
+          flag: alt
+  configurable_registration:
+    module_path: *domain_module
+    class_name: ServiceRegistration
+    attributes:
+      id: configurable_service
+      module_path: *services_module
+      class_name: ConfigurableService
+      parameters:
+        config_value: default_value
+  no_type_registration:
+    module_path: *domain_module
+    class_name: ServiceRegistration
+    attributes:
+      id: no_type_service
+
+tests:
+  test_add_service_resolves:
+    conditions:
+      fixtures: [simple_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: add_service
+        args: [simple_service, $fixture.simple_dependency]
+      - target: $r.container
+        method: get_dependency
+        args: [simple_service]
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: SimpleService
+  test_add_constant_resolves:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: add_constant
+        args: [config_value, test_config]
+      - target: $r.container
+        method: get_dependency
+        args: [config_value]
+        as: value
+    assert:
+      - outcome: value
+        equals: test_config
+  test_add_constant_injected_into_service:
+    conditions:
+      fixtures: [configurable_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: add_constant
+        args: [config_value, test_config]
+      - target: $r.container
+        method: add_service
+        args: [configurable_service, $fixture.configurable_dependency]
+      - target: $r.container
+        method: get_dependency
+        args: [configurable_service]
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: ConfigurableService
+      - outcome: service
+        fields:
+          config_value: test_config
+  test_add_service_registers_parameters_as_constants:
+    conditions:
+      fixtures: [configurable_with_params_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: add_service
+        args: [configurable_service, $fixture.configurable_with_params_dependency]
+      - target: $r.container
+        method: get_dependency
+        args: [configurable_service]
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: ConfigurableService
+      - outcome: service
+        fields:
+          config_value: param_value
+  test_add_service_parameter_wins_over_constant:
+    conditions:
+      fixtures: [configurable_with_params_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: add_constant
+        args: [config_value, existing_value]
+      - target: $r.container
+        method: add_service
+        args: [configurable_service, $fixture.configurable_with_params_dependency]
+      - target: $r.container
+        method: get_dependency
+        args: [configurable_service]
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: ConfigurableService
+      - outcome: service
+        fields:
+          config_value: param_value
+  test_load_container_constants_before_services:
+    conditions:
+      fixtures: [configurable_dependency, constants_first_container]
+    execute:
+      - target: constants_first_container
+        method: get_dependency
+        args: [configurable_service]
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: ConfigurableService
+      - outcome: service
+        fields:
+          config_value: test_config
+  test_constructor_delegates_to_load_container:
+    conditions:
+      fixtures: [simple_dependency, delegating_container]
+    execute:
+      - target: delegating_container
+        method: get_dependency
+        args: [simple_service]
+        as: service
+      - target: delegating_container
+        method: get_dependency
+        args: [config_value]
+        as: value
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: SimpleService
+      - outcome: value
+        equals: test_config
+  test_has_dependency_present:
+    conditions:
+      fixtures: [simple_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: add_service
+        args: [simple_service, $fixture.simple_dependency]
+      - target: $r.container
+        method: has_dependency
+        args: [simple_service]
+        as: present
+    assert:
+      - outcome: present
+        equals: true
+  test_has_dependency_absent:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: has_dependency
+        args: [missing]
+        as: present
+    assert:
+      - outcome: present
+        equals: false
+  test_has_dependency_app_container:
+    conditions:
+      fixtures: [simple_app_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          class_name: DIAppServiceContainer
+        method: from_dependencies
+        kwargs:
+          services: [$fixture.simple_app_dependency]
+        as: container
+      - target: $r.container
+        method: has_dependency
+        args: [simple_service]
+        as: present
+      - target: $r.container
+        method: has_dependency
+        args: [not_registered]
+        as: absent
+    assert:
+      - outcome: present
+        equals: true
+      - outcome: absent
+        equals: false
+  test_get_dependency_missing_raises_service_error:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [missing_dependency]
+        raises: true
+        as: error
+    assert:
+      - outcome: error
+        type:
+          module_path: tiferet.interfaces.core
+          class_name: ServiceError
+      - outcome: error
+        error_code: DI_DEPENDENCY_NOT_REGISTERED
+      - outcome: error
+        fields:
+          kwargs:
+            dependency_id: missing_dependency
+      - outcome: error
+        type:
+          module_path: tiferet.assets
+          class_name: TiferetError
+        negate: true
+  test_remove_dependency_removes:
+    conditions:
+      fixtures: [simple_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceContainer
+        method: DIDynamicServiceContainer
+        as: container
+      - target: $r.container
+        method: add_service
+        args: [simple_service, $fixture.simple_dependency]
+      - target: $r.container
+        method: remove_dependency
+        args: [simple_service]
+      - target: $r.container
+        method: get_dependency
+        args: [simple_service]
+        raises: true
+        as: error
+    assert:
+      - outcome: error
+        type:
+          module_path: builtins
+          class_name: Exception
+  test_app_container_constants_before_services:
+    conditions:
+      fixtures: [configurable_app_dependency]
+    execute:
+      - target:
+          module_path: *injector_module
+          class_name: DIAppServiceContainer
+        method: from_dependencies
+        kwargs:
+          services: [$fixture.configurable_app_dependency]
+          constants:
+            config_value: shared
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [configurable_service]
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: ConfigurableService
+      - outcome: service
+        fields:
+          config_value: shared
+  test_resolver_build_container_default:
+    conditions:
+      fixtures: [simple_registration, flagged_registration, configurable_registration, no_type_registration]
+      mocks:
+        di_service: &di_service
+          module_path: tiferet.interfaces.di
+          class_name: DIService
+          return_value:
+            list_all:
+              - - $fixture.simple_registration
+                - $fixture.flagged_registration
+                - $fixture.configurable_registration
+                - $fixture.no_type_registration
+              - {}
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceResolver
+        method: DIDynamicServiceResolver
+        args: [$mock.di_service]
+        as: resolver
+      - target: $r.resolver
+        method: build_container
+        args: [[]]
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [simple_service]
+        as: service
+      - target: $r.container
+        method: get_dependency
+        args: [configurable_service]
+        as: configurable
+    assert:
+      - outcome: container
+        type:
+          module_path: *injector_module
+          class_name: DIDynamicServiceContainer
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: SimpleService
+      - outcome: configurable
+        type:
+          module_path: *services_module
+          class_name: ConfigurableService
+      - outcome: configurable
+        fields:
+          config_value: default_value
+  test_resolver_flagged_type_override:
+    conditions:
+      fixtures: [simple_registration, flagged_registration, configurable_registration, no_type_registration]
+      mocks:
+        di_service: *di_service
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceResolver
+        method: DIDynamicServiceResolver
+        args: [$mock.di_service]
+        as: resolver
+      - target: $r.resolver
+        method: get_dependency
+        args: [flagged_service, alt]
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: *services_module
+          class_name: DependentService
+  test_resolver_caches_container_per_flag:
+    conditions:
+      fixtures: [simple_registration, flagged_registration, configurable_registration, no_type_registration]
+      mocks:
+        di_service: *di_service
+    execute:
+      - target:
+          module_path: *injector_module
+          attribute: DIDynamicServiceResolver
+        method: DIDynamicServiceResolver
+        args: [$mock.di_service]
+        as: resolver
+      - target: $r.resolver
+        method: get_dependency
+        args: [simple_service]
+        as: first
+      - target: $r.resolver
+        method: get_dependency
+        args: [simple_service]
+        as: second
+    assert:
+      - mock: di_service
+        method: list_all
+        assert_called_once_with:
+          times: 1
