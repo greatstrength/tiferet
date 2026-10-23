@@ -1,0 +1,232 @@
+fixtures:
+  boom:
+    module_path: builtins
+    class_name: ValueError
+    attributes: {}
+
+testers:
+  test_stage_service:
+    module_path: &stage_interface tiferet.interfaces.tester_stage
+    class_name: StageService
+    tests:
+      contract:
+        conditions: {}
+        execute:
+          - target:
+              module_path: importlib
+              attribute: import_module
+            method: import_module
+            args: [*stage_interface]
+            as: loaded
+        assert:
+          - service_contract:
+              abstracts: [arrange, close, path, write, read, exists, records, message]
+              methods:
+                - name: arrange
+                  params: [self]
+                - name: close
+                  params: [self]
+                - name: path
+                  params: [self, parts]
+                - name: write
+                  params: [self, name, text]
+                - name: read
+                  params: [self, name]
+                - name: exists
+                  params: [self, name]
+                - name: records
+                  params: [self]
+                - name: message
+                  params: [self, level, index]
+
+  test_stage:
+    module_path: tiferet.utils.tester_stage
+    class_name: Stage
+    tests:
+      temp_path:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            as: directory
+          - target: $stage
+            method: path
+            args: [nonexistent_dir, file.txt]
+            as: nested
+          - target: $stage
+            method: exists
+            kwargs:
+              name: nonexistent_dir
+            as: parent_exists
+        assert:
+          - outcome: directory
+            type:
+              module_path: builtins
+              class_name: str
+          - outcome: nested
+            message: nonexistent_dir
+          - outcome: parent_exists
+            equals: false
+
+      write_read:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: exists
+            kwargs:
+              name: config.yaml
+            as: before
+          - target: $stage
+            method: write
+            kwargs:
+              name: config.yaml
+              text: "root: {}\n"
+            as: written
+          - target: $stage
+            method: write
+            kwargs:
+              name: dispatch.json
+              text: "{}\n"
+          - target: $stage
+            method: read
+            kwargs:
+              name: config.yaml
+            as: text
+          - target: $stage
+            method: exists
+            kwargs:
+              name: dispatch.json
+            as: second
+        assert:
+          - outcome: before
+            equals: false
+          - outcome: written
+            message: config.yaml
+          - outcome: text
+            equals: "root: {}\n"
+          - outcome: second
+            equals: true
+
+      log_capture:
+        conditions:
+          stage: true
+          fixtures: [boom]
+        execute:
+          - target:
+              module_path: logging
+              attribute: debug
+            method: debug
+            args: [Executing SampleEvent]
+          - target:
+              module_path: logging
+              attribute: error
+            method: error
+            args: [Failed SampleEvent]
+            kwargs:
+              exc_info: $fixture.boom
+          - target: $stage
+            method: records
+            as: records
+          - target: $stage
+            method: message
+            kwargs:
+              level: DEBUG
+              index: 0
+            as: line
+        assert:
+          - outcome: records
+            equals:
+              - level: DEBUG
+                message: Executing SampleEvent
+                error: false
+                logger: root
+              - level: ERROR
+                message: Failed SampleEvent
+                error: true
+                logger: root
+          - outcome: line
+            message: Executing
+
+      error_flag_is_exc_info_not_none:
+        conditions:
+          stage: true
+        execute:
+          - target:
+              module_path: logging
+              attribute: error
+            method: error
+            args: [no exc_info]
+          - target:
+              module_path: logging
+              attribute: error
+            method: error
+            args: [exc_info false]
+            kwargs:
+              exc_info: false
+          - target:
+              module_path: logging
+              attribute: error
+            method: error
+            args: [exc_info true without an exception]
+            kwargs:
+              exc_info: true
+          - target: $stage
+            method: records
+            as: records
+        assert:
+          - outcome: records
+            equals:
+              - level: ERROR
+                message: no exc_info
+                error: false
+                logger: root
+              - level: ERROR
+                message: exc_info false
+                error: true
+                logger: root
+              - level: ERROR
+                message: exc_info true without an exception
+                error: true
+                logger: root
+
+      stage_in_args_is_rejected:
+        conditions:
+          stage: true
+        execute:
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$stage, close]
+            raises: true
+            as: error
+          - target: $stage
+            method: exists
+            kwargs:
+              name: config.yaml
+            as: still_arranged
+        assert:
+          - outcome: error
+            error_code: PHASE_STEP_FAILED
+          - outcome: error
+            message: only an execute target
+          - outcome: still_arranged
+            equals: false
+
+      read_missing_fails_the_step:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: read
+            kwargs:
+              name: does_not_exist.txt
+            raises: true
+            as: error
+        assert:
+          - outcome: error
+            error_code: PHASE_STEP_FAILED
+          - outcome: error
+            message: does_not_exist.txt

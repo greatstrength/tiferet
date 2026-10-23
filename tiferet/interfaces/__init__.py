@@ -16,6 +16,7 @@ __all__ = [
     'LoggingService',
     'MiddlewareService',
     'CheckService',
+    'StageService',
 ]
 
 # ** app
@@ -31,3 +32,4 @@ from .feature import FeatureService
 from .logging import LoggingService
 from .middleware import MiddlewareService
 from .tester_check import CheckService
+from .tester_stage import StageService
