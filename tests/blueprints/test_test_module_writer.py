@@ -17,6 +17,7 @@ from tiferet.assets.feature import ADMIN_DEFAULT_FEATURES
 from tiferet.blueprints import tester as tester_blueprints
 from tiferet.blueprints.tester import (
     add_fixture,
+    add_test,
     attach_test,
     detach_test,
     get_fixture,
@@ -404,3 +405,25 @@ def test_no_writer_modules_are_added() -> None:
     assert 'TesterService' not in event_source
     assert 'yaml.safe_dump' not in event_source
     assert 'YamlLoader.save' not in event_source
+
+# ** test: add_test_keeps_stage_flag
+def test_add_test_keeps_stage_flag(tmp_path) -> None:
+    '''A test fragment with stage true is stored. The writer does not name phase fields.'''
+
+    fragment = '''conditions:
+  stage: true
+execute:
+  - target: $stage
+    method: path
+    as: directory
+assert:
+  - outcome: directory
+    message: tiferet
+'''
+    add_test('utils/test_staged', 'staged', fragment=fragment, base_dir=tmp_path)
+    path = tmp_path / 'tiferet_tests' / 'utils' / 'test_staged.yml'
+
+    # The stored document keeps the flag and the $stage target.
+    stored = yaml.safe_load(path.read_text())
+    assert stored['tests']['staged']['conditions'] == {'stage': True}
+    assert stored['tests']['staged']['execute'][0]['target'] == '$stage'

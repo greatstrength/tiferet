@@ -4,6 +4,8 @@
 
 # ** core
 import inspect
+import logging
+import tempfile
 from pathlib import Path
 
 # ** infra
@@ -24,6 +26,7 @@ from tiferet.contexts.tester import TestSessionContext
 from tiferet.domain import Feature, Request, Test, TesterObject
 from tiferet.domain.error import ErrorMessage
 from tiferet.interfaces.core import ServiceError
+from tiferet.utils.tester_stage import STAGE_PREFIX, Stage
 from tiferet.utils.yaml import YAML_FILE_NOT_FOUND_ID
 
 # *** constants
@@ -45,7 +48,69 @@ PASSED_LINES = (
     '6 passed',
 )
 
+# ** constant: staged_document
+STAGED_DOCUMENT = '''
+tests:
+  write_read:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: write
+        kwargs: {name: config.yaml, text: "root: {}\\n"}
+        as: written
+      - target: $stage
+        method: read
+        kwargs: {name: config.yaml}
+        as: text
+    assert:
+      - outcome: text
+        equals: "root: {}\\n"
+  log_capture:
+    conditions:
+      stage: true
+    execute:
+      - target: {module_path: logging, attribute: debug}
+        method: debug
+        args: [Executing SampleEvent]
+      - target: $stage
+        method: records
+        as: records
+    assert:
+      - outcome: records
+        equals:
+          - {level: DEBUG, message: Executing SampleEvent, error: false, logger: root}
+  missing_read:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: read
+        kwargs: {name: does_not_exist.txt}
+        raises: true
+        as: error
+    assert:
+      - outcome: error
+        error_code: PHASE_STEP_FAILED
+'''
+
 # *** functions
+
+# ** function: stage_directories
+def _stage_directories() -> set:
+    '''
+    Return the stage directories that exist under the temporary root.
+
+    :return: The directory names with the stage prefix.
+    :rtype: set
+    '''
+
+    # A leak is a stage directory that outlives its test.
+    return {
+        path.name
+        for path in Path(tempfile.gettempdir()).iterdir()
+        if path.name.startswith(STAGE_PREFIX)
+    }
 
 # ** function: write_pair
 def _write_pair(root: Path, relative: str, document: str) -> Path:
@@ -427,3 +492,124 @@ tests:
     assert captured[0]['sample'] is not captured[1]['sample']
     captured[0]['sample']['attributes']['text'] = 'changed'
     assert captured[1]['sample']['attributes']['text'] == 'kept'
+
+# ** test: staged_document_runs_green
+def test_staged_document_runs_green(tmp_path, capsys) -> None:
+    '''A staged document runs through the runner and leaves nothing behind.'''
+
+    # Snapshot the temporary root and the process-root logger.
+    root = logging.getLogger()
+    level = root.level
+    handlers = list(root.handlers)
+    before = _stage_directories()
+    python_path = _write_pair(tmp_path, 'utils/test_staged', STAGED_DOCUMENT)
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+
+    # Three passes, including the expected step failure. No leak.
+    assert [item['status'] for item in report['outcomes']] == ['PASSED'] * 3
+    assert printed.rstrip().endswith('3 passed')
+    assert _stage_directories() == before
+    assert root.handlers == handlers
+    assert root.level == level
+
+# ** test: stage_misuse_fails_without_aborting
+def test_stage_misuse_fails_without_aborting(tmp_path, capsys) -> None:
+    '''Stage misuse prints FAILED and the module continues to the next test.'''
+
+    document = '''
+fixtures:
+  staged:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: $stage
+tests:
+  in_fixture:
+    conditions:
+      stage: true
+      fixtures: [staged]
+    execute:
+      - target: $stage
+        method: path
+        as: directory
+    assert:
+      - outcome: directory
+        message: x
+  not_arranged:
+    conditions: {}
+    execute:
+      - target: $stage
+        method: path
+        as: directory
+    assert:
+      - outcome: directory
+        message: x
+  not_an_observation:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: close
+    assert:
+      - outcome: directory
+        message: x
+  null_stage:
+    conditions:
+      stage:
+    execute:
+      - target: $stage
+        method: path
+        as: directory
+    assert:
+      - outcome: directory
+        message: x
+  kept:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: exists
+        kwargs: {name: config.yaml}
+        as: present
+    assert:
+      - outcome: present
+        equals: false
+'''
+    before = _stage_directories()
+    python_path = _write_pair(tmp_path, 'utils/test_misuse', document)
+    report = run_test_module(str(python_path))
+    outcomes = report['outcomes']
+    printed = capsys.readouterr().out
+
+    # Three step failures, one model error, then a pass. No raw abort, no leak.
+    assert [item['status'] for item in outcomes] == ['FAILED'] * 4 + ['PASSED']
+    assert 'illegal in conditions' in outcomes[0]['message']
+    assert 'not arranged' in outcomes[1]['message']
+    assert 'close' in outcomes[2]['message']
+    assert 'stage is true or omitted' in outcomes[3]['message']
+    assert printed.rstrip().endswith('4 failed, 1 passed')
+    assert _stage_directories() == before
+
+# ** test: stage_cleanup_failure_is_recorded
+def test_stage_cleanup_failure_is_recorded(tmp_path, capsys, monkeypatch) -> None:
+    '''A cleanup error after a pass is a recorded failure, not an abort.'''
+
+    class FailingCloseStage(Stage):
+
+        def close(self) -> None:
+            super().close()
+            raise OSError('cleanup failed')
+
+    # The blueprint resolves the stage class. Swap it for one whose close fails.
+    monkeypatch.setattr(tester_blueprints, '_registered_stage', lambda: FailingCloseStage)
+    python_path = _write_pair(tmp_path, 'utils/test_cleanup', STAGED_DOCUMENT)
+    report = run_test_module(str(python_path))
+    outcomes = report['outcomes']
+    printed = capsys.readouterr().out
+
+    # Each staged test fails on cleanup and the module still finishes.
+    assert [item['status'] for item in outcomes] == ['FAILED'] * 3
+    assert all('cleanup failed' in item['message'] for item in outcomes)
+    assert printed.rstrip().endswith('3 failed')
