@@ -1,0 +1,617 @@
+testers:
+  invalid_mode:
+    module_path: tiferet.utils.sqlite
+    class_name: SqliteClient
+    attributes:
+      path: ':memory:'
+      mode: invalid
+    tests:
+      test_invalid_mode:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: client
+          - target: $r.client
+            method: open_file
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: &service_error
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: failed
+            error_code: SQLITE_INVALID_MODE
+
+  memory:
+    module_path: tiferet.utils.sqlite
+    class_name: SqliteClient
+    attributes:
+      path: ':memory:'
+      mode: rw
+    tests:
+      test_already_open:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: open_file
+            raises: true
+            as: failed
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_CONN_ALREADY_OPEN
+
+      test_execute_success:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: execute
+            args: ['CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, value REAL)']
+          - target: $r.db
+            method: execute
+            args:
+              - 'INSERT INTO items (name, value) VALUES (?, ?)'
+              - [widget, 9.99]
+            as: cursor
+          - target: $r.db
+            method: fetch_one
+            args: ['SELECT COUNT(*) FROM items']
+            as: count_row
+          - target: $r.count_row
+            method: __getitem__
+            args: [0]
+            as: count
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: cursor
+            type:
+              module_path: sqlite3
+              class_name: Cursor
+          - outcome: count
+            equals: 1
+
+      test_executemany_success:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: execute
+            args: ['CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, value REAL)']
+          - target: $r.db
+            method: executemany
+            args:
+              - 'INSERT INTO items (name, value) VALUES (?, ?)'
+              - [[alpha, 1.0], [beta, 2.0], [gamma, 3.0]]
+          - target: $r.db
+            method: fetch_one
+            args: ['SELECT COUNT(*) FROM items']
+            as: count_row
+          - target: $r.count_row
+            method: __getitem__
+            args: [0]
+            as: count
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: count
+            equals: 3
+
+      test_executescript_success:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: executescript
+            args:
+              - |
+                CREATE TABLE colors (id INTEGER PRIMARY KEY, name TEXT);
+                INSERT INTO colors (name) VALUES ('red');
+                INSERT INTO colors (name) VALUES ('blue');
+          - target: $r.db
+            method: fetch_one
+            args: ['SELECT COUNT(*) FROM colors']
+            as: count_row
+          - target: $r.count_row
+            method: __getitem__
+            args: [0]
+            as: count
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: count
+            equals: 2
+
+      test_fetch_one:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: execute
+            args: ['CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, value REAL)']
+          - target: $r.db
+            method: execute
+            args:
+              - 'INSERT INTO items (name, value) VALUES (?, ?)'
+              - [widget, 9.99]
+          - target: $r.db
+            method: fetch_one
+            args:
+              - 'SELECT name, value FROM items WHERE name = ?'
+              - [widget]
+            as: row
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args:
+              - [widget, 9.99]
+            as: expected_row
+          - target: $r.db
+            method: close_file
+          - target: self
+            method: new
+            as: empty_db
+          - target: $r.empty_db
+            method: open_file
+          - target: $r.empty_db
+            method: execute
+            args: ['CREATE TABLE empty (id INTEGER)']
+          - target: $r.empty_db
+            method: fetch_one
+            args: ['SELECT * FROM empty']
+            as: empty_row
+          - target: $r.empty_db
+            method: close_file
+        assert:
+          - outcome: row
+            equals: $r.expected_row
+          - outcome: empty_row
+            'null': true
+
+      test_fetch_all:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: execute
+            args: ['CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, value REAL)']
+          - target: $r.db
+            method: executemany
+            args:
+              - 'INSERT INTO items (name, value) VALUES (?, ?)'
+              - [[a, 1.0], [b, 2.0]]
+          - target: $r.db
+            method: fetch_all
+            args: ['SELECT name, value FROM items ORDER BY name']
+            as: rows
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args:
+              - [a, 1.0]
+            as: row_a
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args:
+              - [b, 2.0]
+            as: row_b
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: rows
+            equals: [$r.row_a, $r.row_b]
+
+      test_backup_not_initialized:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [backup_fail.db]
+            as: db_path
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: backup
+            args: [$r.db_path]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_CONN_NOT_INITIALIZED
+
+      test_execute_not_initialized:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: execute
+            args: ['SELECT 1']
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_CONN_NOT_INITIALIZED
+
+      test_commit_not_initialized:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: commit
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_CONN_NOT_INITIALIZED
+
+      test_execute_wraps_driver_error:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: execute
+            args: ['SELECT * FROM does_not_exist']
+            raises: true
+            as: failed
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+          - outcome: failed
+            fields:
+              class_name: SqliteClient
+              target_method: execute
+
+      test_executemany_wraps_driver_error:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: executemany
+            args:
+              - 'INSERT INTO does_not_exist VALUES (?)'
+              - [[1], [2]]
+            raises: true
+            as: failed
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+
+      test_executescript_wraps_driver_error:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: executescript
+            args: ['NOT VALID SQL;']
+            raises: true
+            as: failed
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+
+      test_fetch_all_wraps_driver_error:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: fetch_all
+            args: ['SELECT * FROM does_not_exist']
+            raises: true
+            as: failed
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+
+      test_fetch_one_wraps_driver_error:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: fetch_one
+            args: ['SELECT * FROM does_not_exist']
+            raises: true
+            as: failed
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_STATEMENT_FAILED
+
+      test_never_leaks_driver_exceptions:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: db
+          - target: $r.db
+            method: open_file
+          - target: $r.db
+            method: execute
+            args: ['CREATE TABLE unique_items (name TEXT UNIQUE)']
+          - target: $r.db
+            method: execute
+            args:
+              - 'INSERT INTO unique_items (name) VALUES (?)'
+              - [duplicate]
+          - target: $r.db
+            method: execute
+            args: ['SELECT * FROM does_not_exist']
+            raises: true
+            as: missing_table
+          - target: $r.db
+            method: execute
+            args:
+              - 'INSERT INTO unique_items (name) VALUES (?)'
+              - [duplicate]
+            raises: true
+            as: duplicate_row
+          - target: $r.db
+            method: executemany
+            args:
+              - 'INSERT INTO does_not_exist VALUES (?)'
+              - [[1]]
+            raises: true
+            as: many_missing_table
+          - target: $r.db
+            method: executescript
+            args: ['NOT VALID SQL;']
+            raises: true
+            as: invalid_script
+          - target: $r.db
+            method: fetch_one
+            args: ['SELECT * FROM does_not_exist']
+            raises: true
+            as: fetch_one_missing_table
+          - target: $r.db
+            method: fetch_all
+            args: ['SELECT * FROM does_not_exist']
+            raises: true
+            as: fetch_all_missing_table
+          - target: $r.db
+            method: close_file
+        assert:
+          - outcome: missing_table
+            type: *service_error
+          - outcome: duplicate_row
+            type: *service_error
+          - outcome: many_missing_table
+            type: *service_error
+          - outcome: invalid_script
+            type: *service_error
+          - outcome: fetch_one_missing_table
+            type: *service_error
+          - outcome: fetch_all_missing_table
+            type: *service_error
+
+  file_rw:
+    module_path: tiferet.utils.sqlite
+    class_name: SqliteClient
+    attributes:
+      path: $r.db_path
+      mode: rw
+    tests:
+      test_conn_failed:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [nonexistent.db]
+            as: db_path
+          - target: self
+            method: new
+            as: client
+          - target: $r.client
+            method: open_file
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *service_error
+          - outcome: failed
+            error_code: SQLITE_CONN_FAILED
+
+  file_rwc:
+    module_path: tiferet.utils.sqlite
+    class_name: SqliteClient
+    attributes:
+      path: $r.db_path
+      mode: rwc
+    tests:
+      test_context_manager_commit_on_success:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [commit_test.db]
+            as: db_path
+          - target: self
+            method: new
+            as: writer
+          - target: $r.writer
+            method: __enter__
+          - target: $r.writer
+            method: execute
+            args: ['CREATE TABLE test (val TEXT)']
+          - target: $r.writer
+            method: execute
+            args:
+              - 'INSERT INTO test (val) VALUES (?)'
+              - [committed]
+          - target: $r.writer
+            method: __exit__
+            args: [null, null, null]
+          - target:
+              module_path: tiferet.utils.sqlite
+              attribute: SqliteClient
+            method: SqliteClient
+            kwargs:
+              path: $r.db_path
+              mode: ro
+            as: reader
+          - target: $r.reader
+            method: open_file
+          - target: $r.reader
+            method: fetch_one
+            args: ['SELECT val FROM test']
+            as: row
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args:
+              - [committed]
+            as: expected
+          - target: $r.reader
+            method: close_file
+        assert:
+          - outcome: row
+            equals: $r.expected
+
+  file_ro:
+    module_path: tiferet.utils.sqlite
+    class_name: SqliteClient
+    attributes:
+      path: $r.db_path
+      mode: ro
+    tests:
+      test_backup_success:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [backup.db]
+            as: db_path
+          - target:
+              module_path: tiferet.utils.sqlite
+              attribute: SqliteClient
+            method: SqliteClient
+            kwargs:
+              path: ':memory:'
+              mode: rw
+            as: source
+          - target: $r.source
+            method: open_file
+          - target: $r.source
+            method: execute
+            args: ['CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, value REAL)']
+          - target: $r.source
+            method: execute
+            args:
+              - 'INSERT INTO items (name, value) VALUES (?, ?)'
+              - [backup_item, 42.0]
+          - target: $r.source
+            method: commit
+          - target: $r.source
+            method: backup
+            args: [$r.db_path]
+          - target: self
+            method: new
+            as: reader
+          - target: $r.reader
+            method: open_file
+          - target: $r.reader
+            method: fetch_one
+            args: ['SELECT name, value FROM items']
+            as: row
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args:
+              - [backup_item, 42.0]
+            as: expected
+          - target: $r.reader
+            method: close_file
+          - target: $r.source
+            method: close_file
+        assert:
+          - outcome: row
+            equals: $r.expected
