@@ -7,6 +7,18 @@
 
 Forward development stays forward: authoring an RFP, implementing on proto, reconstructing on trunk. Those skills do not perform the review, and they do not merge. QA and review orchestration sit at the rear. This page is that orchestration. The judgment stays in [code_review.md](code_review.md). Do not replace it, and do not copy it here.
 
+## Orchestrator and operator
+
+This split is not optional.
+
+The orchestrator does not review, does not post the verdict, and does not squash-merge. That work belongs to the QA Operator.
+
+The orchestrator's context is for communicating with the human and summarizing what the operator returns. The operator returns the snapshot to the orchestrator. The orchestrator summarizes it to the human. The orchestrator does not turn that summary into the posted review.
+
+When the human approves a squash merge, the orchestrator tells the operator who already holds that pull request. The operator posts the verdict, squash-merges, and closes the authorizing issue by hand. The orchestrator then summarizes the result.
+
+An already-merged pull request is not reopened to redo this. The rule is for the next one.
+
 ## What the operator judges by
 
 The standard already written in [code_review.md](code_review.md). Style floor first, then acceptance criteria, then the lens for the PR:
@@ -22,7 +34,7 @@ The operator may assign an issue to a milestone. The author does not invent one.
 
 ## The snapshot
 
-Return 350–400 words to the human who asked for the review. Stay inside that range.
+Return 350–400 words to the orchestrator. Stay inside that range. The orchestrator summarizes that return to the human. The operator does not hand the orchestrator a verdict to post.
 
 Name:
 
@@ -50,13 +62,15 @@ Perform the review, then post it as [code_review.md](code_review.md) already req
 
 The first line of the posted review remains exactly `Verdict: Approve` or `Verdict: Changes requested`. Then the findings summary. Then your own attribution ([process.md](process.md#attribution)).
 
-Show the findings and the proposed verdict to the human and wait for a go-ahead before you post. That wait is for posting. It is not a merge approval. A clean verdict is not approval to merge.
+The operator posts the verdict. The orchestrator does not. This is not optional. Return the snapshot to the orchestrator. Do not wait for the orchestrator to post the review. A clean verdict is not, by itself, approval to merge.
 
-On a Doc PR there is no issue. The posted review is the status. The snapshot is still returned to the human, not pasted onto the PR as a second note.
+When the orchestrator relays that the human approved the squash merge, the operator who already holds that pull request posts the verdict, squash-merges, and closes the authorizing issue by hand. Then the orchestrator summarizes the result.
+
+On a Doc PR there is no issue. The posted review is the status. The snapshot is still returned to the orchestrator, not pasted onto the PR as a second note.
 
 ## Squash-merge
 
-The operator may squash-merge only after the human says that issue or PR is approved for squash merge.
+The operator may squash-merge only after the human says that issue or PR is approved for squash merge. The orchestrator does not squash-merge, even after that approval. The orchestrator tells the operator who already holds the pull request. That operator squash-merges.
 
 The operator does not merge to `main` unless the human explicitly relinquished that specific PR.
 
@@ -66,11 +80,11 @@ There is no standing permission to squash-merge a sub-TRD PR without that human 
 
 Immediately before the merge, run `gh pr view <N> --json baseRefName` again. A sub-TRD PR whose base is not the Super-TRD branch is not merged. A PR that should land on `main` and does not have base `main` is not merged. The command is in [commands.md](commands.md).
 
-The squash message for a proto PR must not contain `Closes`, `Fixes`, or `Resolves`. The same ban holds for a sub-TRD PR. Proto does not honor those keywords. After a proto squash, close the RFP issue by hand if it is still open. The implementing session does the same at its closeout if the issue is still open. Neither puts a closing keyword on the proto PR.
+The squash message for a proto PR must not contain `Closes`, `Fixes`, or `Resolves`. The same ban holds for a sub-TRD PR. Proto does not honor those keywords. The operator closes the authorizing issue by hand. The implementing session does not close it in the operator's place. Neither puts a closing keyword on the proto PR.
 
 No tag. No version bump. Those stay on the [agent guardrails](process.md#agent-guardrails) list. This exception does not cover them.
 
-The maintainer, a human, may still squash-merge. Every other agent never merges ([process.md](process.md#agent-guardrails)).
+The maintainer, a human, may still squash-merge. The orchestrator does not. Every agent who is not the QA Operator, and not the maintainer, never merges ([process.md](process.md#agent-guardrails)).
 
 This exception is squash-merge only. It is not a merge commit, not a push to `main` or proto, and not a fan-out. Cutting a Super-TRD branch, opening the Super-TRD PR, and merge-committing `main` into that branch stay with the maintainer.
 
@@ -91,3 +105,5 @@ Round skills point here for review orchestration. They do not restate a differen
 - Never review a second child of the same Super-TRD.
 - Never commit as part of a review.
 - Never post the snapshot as a Collaboration Report or as a PR conversation comment.
+- The orchestrator never reviews, never posts the verdict, and never squash-merges. That work is the operator's. Not optional.
+- Never reopen an already-merged pull request to redo this split. The rule is for the next one.
