@@ -37,10 +37,16 @@ Follow this exact structure (pure Markdown — headers, tables, code blocks):
 | ... | ... | ... |
 
 ## 4. Detailed Requirements
-[Numbered subsections with signatures, behavior, validation, error cases, return values.]
+
+### 4.1 [Component]
+#### Implementation
+[Add, Update, or Remove. Labels, placement, parameters, constants, messages. No pytest. No YAML.]
+
+#### Tests
+[Add, Update, or Remove. One case per named test. Tester language only. Name the test module.]
 
 ## 5. Acceptance Criteria
-1. Numbered, verifiable outcomes.
+1. [Cite the test name. Do not restate the case.]
 
 ## 6. Non-Functional Requirements
 - Consistency with patterns, backward compatibility, maintainability.
@@ -66,12 +72,33 @@ Follow this exact structure (pure Markdown — headers, tables, code blocks):
 - **Related Code Style Documentation** (section 8) is mandatory: always include `tiferet-code-style`; include a `tiferet-code-<component>` skill for each component the story modifies. For multi-component stories, also include `tiferet-code-architecture`. If skills are not installed, fall back to repo-relative paths — available guides: `docs/core/code_style.md`, `docs/core/domain.md`, `docs/core/events.md`, `docs/core/mappers.md`, `docs/core/interfaces.md`, `docs/core/contexts.md`, `docs/core/repos.md`, `docs/core/assets.md`, `docs/core/blueprints.md`, `docs/core/utils.md`, `docs/core/di.md`, `docs/core/testing.md`.
 
 ## Artifact-based requirements
-Specify work as artifacts to **Add / Update / Remove** — modules, classes, `# * method:` / `# ** <component>:` labels / `# *** <section>` headers per the structured code style — not prose or "copy from X". In §3 give each module an artifact-action summary; in §4 enumerate the named artifacts, using a `From (current)` → `To (target)` delta table for renames/migrations with an Add/Update/Remove legend (factor the shared pattern once, list per-module exceptions). In §5 assert target artifacts exist and retired ones are gone. Make cross-layer prerequisites, artifact-label corrections, and behavioral shifts explicit.
+Specify work as artifacts to **Add / Update / Remove** — modules, classes, `# * method:` / `# ** <component>:` labels / `# *** <section>` headers per the structured code style — not prose or "copy from X". In §3 give each module an artifact-action summary; in §4 enumerate the named artifacts, using a `From (current)` → `To (target)` delta table for renames/migrations with an Add/Update/Remove legend (factor the shared pattern once, list per-module exceptions). In §5 assert target artifacts exist and retired ones are gone. A test line cites the test name and does not restate the case. Make cross-layer prerequisites, artifact-label corrections, and behavioral shifts explicit.
 
+## Component blocks in §4
+
+A numbered block in §4 is one idea, named as the component. It does not contain pytest. It does not contain YAML.
+
+The block has two subsections, in this order: **Implementation**, then **Tests**. Both use Add, Update, and Remove.
+
+Implementation states the code artifacts: labels, placement, parameters, constants, messages. The operation-level headings below sit under Implementation. They are not cases.
+
+Tests states the cases that replicate that implementation. Each case is an operation on a named test, not a second copy of the field table. The case names its test module. The TRD does not choose Python or YAML.
+
+A case uses tester language only: fixtures, a tester, a subject, conditions, an action, and an expectation. An expectation is an outcome equal to a value, an outcome that is null, fields equal to values, or an outcome that raises a named type whose message names a value. One name per test. That name is the name in both renderings.
+
+A function with no class subject is a root test in that same module. It is not a tester. The module boundary is what the skill parses. The tester boundary is what the case uses when the subject is a class.
+
+Python-only marks, written on the case, are only instance identity and a class's own-namespace declaration. A type check is a shared expectation.
+
+Until the rendering skill exists, the Python file is the acceptance gate. The YAML document under `tiferet_tests/` is the same cases, not a second spec, and is not a gate. These cases must not call `run_test_module`.
+
+§5 cites the test name. It does not restate the case.
+
+The worked example (six phase-error catalog codes, tester `test_core_default_errors`, one case `phase_fixture_not_found`) is in `docs/collab/tech_requirements.md` under Component Blocks in §4.
 
 ## Operation-level artifact notation in §4
 
-Every requirement in §4 is an **operation** (Add / Update / Remove) on a named artifact. Tables must be **informationally complete** — an agent reading a row must be able to produce the artifact without any other source. Each `# *** constants (<subgroup>)` section in the code maps 1:1 to a `#### Add/Update/Remove: # *** constants (<subgroup>)` heading in §4.
+Every Implementation requirement in §4 is an **operation** (Add / Update / Remove) on a named artifact. Tables must be **informationally complete** — an agent reading a row must be able to produce the artifact without any other source. Each `# *** constants (<subgroup>)` section in the code maps 1:1 to a `##### Add/Update/Remove: # *** constants (<subgroup>)` heading under Implementation. That table is not the test spec.
 
 For full notation syntax, scalar and factory-built table expressions, supplementary notes conventions, and the informational completeness requirement, see [`docs/collab/tech_requirements.md`](https://github.com/greatstrength/tiferet/blob/main/docs/collab/tech_requirements.md).
 
@@ -81,7 +108,7 @@ When a module contains many constants of a given type, organize them into named 
 
 Canonical subgroup labels: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`, etc.
 
-The section-mirroring rule extends to subgroup level: each `# *** constants (<subgroup>)` code section maps 1:1 to a `#### Add: # *** constants (<subgroup>)` heading in §4. A flat `# *** constants` block where subgroups apply is a defect — assert the correct section structure in §5.
+The section-mirroring rule extends to subgroup level: each `# *** constants (<subgroup>)` code section maps 1:1 to a `##### Add: # *** constants (<subgroup>)` heading under Implementation. A flat `# *** constants` block where subgroups apply is a defect — assert the correct section structure in §5. A test line cites the test name and does not restate the case.
 
 ### "Update Constant" and "Remove Constant"
 
@@ -97,7 +124,7 @@ For parity/migration work sourced from a prototype branch, keep the dev-facing T
 - **Doc:** `docs-<lowercase-hyphenated-context>`, from and targeting `main`.
 
 ## Before finalizing
-Verify: all sections present, tables well-formed, code blocks carry a language hint, acceptance criteria are verifiable, and no placeholder text remains. Keep it to ~1-3 pages.
+Verify: all sections present, tables well-formed, code blocks carry a language hint, acceptance criteria cite the test name and do not restate the case, §4 blocks contain neither pytest nor YAML, and no placeholder text remains. Keep it to ~1-3 pages.
 
 The TRD also feeds the issue's project fields: Components Affected, Acceptance Criteria, and Prerequisites drive **Size**/**Estimate**, and the Prerequisites table drives **Priority** — see [project_fields.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/project_fields.md).
 
@@ -123,8 +150,8 @@ The TRD also feeds the issue's project fields: Components Affected, Acceptance C
 - Super-TRDs are scoped around a **semantic concern** — a named domain problem — not around a file, layer label, or count of changes.
 - Children are divided by **semantic ownership**: each child owns a bounded domain area that can be read and verified independently.
 - Child TRD titles name the **actual artifacts delivered** (e.g. "Path Constants, Service Dependency Factory, and Module Path Factory"), not generic descriptions.
-- Every §4 requirement names a specific artifact (section header, constant name, factory function, count).
-- Every §5 AC line is a binary assertion on a named artifact — true or false given the code, no interpretation required.
+- Every §4 requirement names a specific artifact (section header, constant name, factory function, count) or a named test.
+- Every §5 AC line is a binary assertion on a named artifact, or cites a test name and does not restate the case — true or false given the code, no interpretation required.
 - §6 NFR states artifact comment requirements per entry (`# ** constant: <snake_case_name>` per named constant, etc.).
 
 **Child TRD size cap (hard constraint):**
