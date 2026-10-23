@@ -1,4 +1,4 @@
-# Main — Trunk Strand
+# Main - Trunk Strand
 
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
@@ -11,11 +11,11 @@ Three things, and only three:
 
 - **Reconstruction TRDs** that implement a **frozen** catalog. They name artifacts. They do not say "copy from proto," and they do not send you to the proto branch. They cite an existing freeze id in §7.
 - **Hotfix TRDs** for small mechanical defects already understood on trunk. Prototype is not consulted. There is no freeze id.
-- **Doc / skills PRs** — see [doc.md](doc.md). No issue, no TRD.
+- **Doc / skills PRs** - see [doc.md](doc.md). No issue, no TRD.
 
 Nothing from prototype lands on trunk as git. If you find yourself reaching for a merge from proto, stop. The catalog is how that work crosses.
 
-You do not open the trunk milestone or mint the freeze id. If a reconstruction TRD has no freeze id, do not implement it — the specification is incomplete.
+You do not open the trunk milestone or mint the freeze id. If a reconstruction TRD has no freeze id, do not implement it - the specification is incomplete.
 
 ## Milestones
 
@@ -33,19 +33,19 @@ Every issue goes on the **Tiferet Framework** project. A Doc PR has no issue, so
 ## Issue titles
 
 ```
-<Component/Assemblage> – <Brief Capitalized Title>
+<Component/Assemblage> - <Brief Capitalized Title>
 ```
 
 Component/Assemblage is the majority of the ten core packages (assets, blueprints, contexts, di, domain, events, interfaces, mappers, utils, repos), or `Config` when the change is configuration, or `Tests` when it is only tests, or a domain assemblage when one concept spans many packages.
 
-Five to eight words after the en-dash is about right. `Domain – Feature Model Condition Evaluation` and `Utils – SQLite Client Connection Lifecycle` are the tone.
+Five to eight words after the hyphen is about right. `Domain - Feature Model Condition Evaluation` and `Utils - SQLite Client Connection Lifecycle` are the tone.
 
 ## Status on the board
 
-- **Ready** — the issue exists and has been triaged (Priority, Size, Estimate).
-- **In Progress** — someone cut a branch or otherwise started. Set the Start date.
-- **In Review** — the PR is open. If a review comment needs code, come back to In Progress, then return to In Review when you push.
-- **Done** — merged, *and* for a standalone TRD the Collaboration Report is on the issue. Set the End date, then close.
+- **Ready** - the issue exists and has been triaged (Priority, Size, Estimate).
+- **In Progress** - someone cut a branch or otherwise started. Set the Start date.
+- **In Review** - the PR is open. If a review comment needs code, come back to In Progress, then return to In Review when you push.
+- **Done** - merged, *and* for a standalone TRD the Collaboration Report is on the issue. Set the End date, then close.
 
 New issues start at Ready. If one issue is waiting on another, use blocked-by. Do not park new work in Backlog just to show a dependency.
 
@@ -63,13 +63,13 @@ Use this when you are landing one hotfix or one standalone reconstruction.
 
 A Super-TRD is parent plus children, child size at most Medium. The TRD *genre* is in [tech_requirements.md](tech_requirements.md). The branch rule is in [process.md](process.md).
 
-The orchestrator or the human cuts `<parent-issue>-<slug>` from `main` and pushes it before any child starts. You do not cut that branch because you are the first child, and you do not commit onto it.
+The maintainer cuts `<parent-issue>-<slug>` from `main` and pushes it before any child starts. You do not cut that branch because you are the first child, and you do not commit onto it.
 
 If you are asked to implement **one child**: confirm the Super-TRD branch is already pushed, and that this child is not blocked by a standalone TRD or by work outside that branch. If it is, do not cut a branch and do not start. See [Cross-boundary blockers](process.md#cross-boundary-blockers). Otherwise cut `<child-issue>-<slug>` from the Super-TRD branch tip. Open a PR targeting that branch, never `main`. Body: `Refs #<child>` and `Refs #<parent>`. Never `Closes`, `Fixes`, or `Resolves`. Verify `gh pr view <N> --json baseRefName`. Set the child to In Review. Short status on the child issue. Do not write a Collaboration Report. Do not close the child. Do not open the Super-TRD PR to `main`. Do not merge `main` into the Super-TRD branch.
 
 If the Super-TRD branch does not exist yet, stop and report. Do not open a PR to `main` in its place.
 
-Running the fan-out, merging sub-TRD PRs, opening the Super-TRD PR, and closing children are not an individual contributor loop.
+Running the fan-out, merging sub-TRD PRs, merging `main` into the Super-TRD branch, opening the Super-TRD PR, and closing children are maintainer-only steps ([process.md § Agent guardrails](process.md#agent-guardrails)).
 
 ## Reviewing trunk
 

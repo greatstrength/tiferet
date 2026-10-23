@@ -234,7 +234,7 @@ Within a class, members appear in this order, and a later band never precedes an
 
 A property is descriptive, so it is read first among methods. The label is `# * method: <name> (property)`, and the method is decorated with `@property` and nothing else. It takes no caller argument beyond `self`. It does not assign. There is no `(setter)` qualifier and no recognized `@name.setter` member. A write is an ordinary method. This form is legal on a domain model, an aggregate, a transfer object, and a context. It is not legal on an event, an interface, a repository, a utility, a blueprint, or a DI class.
 
-A tester class does not use these bands. Its members are `# * fixture` then `# * test`, fixtures first. See [Test-Module Artifact Grammar](#test-module-artifact-grammar). A leftover harness class is not this member-band rule. It keeps the order that section already lists: `# * attribute`, then `# * fixture`, then `# * method`.
+A tester class does not use these bands. Its members are `# * fixture` then `# * test`, fixtures first. See [Test-Module Artifact Grammar](#test-module-artifact-grammar).
 
 When a dependency appears to force an out-of-order artifact, introduce a mechanic that preserves the order. Prefer, in this order:
 
@@ -279,7 +279,7 @@ Signals that an artifact is deprecated and slated for removal. The `--` prefix i
 ### `# >> see: <path>#<anchor>`
 Links a public class, method, or attribute to the distillation-tier guide content that documents it - the docstring↔guide convention (docstrings stay vision-tier; guides carry the distillation) that this annotation is part of. The `>>` prefix is semantic: *the fuller story lives elsewhere*. The docstring on the annotated artifact stays vision-tier (a class-level value statement, or the plain mechanical `:param`/`:return` contract for a method) - narrative depth, rationale, and cross-domain relationships live in the linked guide instead. The target is always a path plus an explicit anchor id, never a signature-derived anchor, so a renamed parameter never breaks the link. Apply it only to **public** artifacts that have corresponding guide coverage - do not add it preemptively to artifacts with no guide entry yet.
 
-**The `@guides/` shorthand** - since every `# >> see:` target is rooted at `docs/guides/`, write it as `@guides/<rest-of-path>#<anchor>` (e.g. `@guides/domain/error.md#error-format-message`) instead of spelling out `docs/guides/domain/error.md#error-format-message`. `@guides/` is a source-code-only shorthand for this annotation target - it is not a real path and must never appear in a clickable Markdown link; links between guide documents keep using normal relative paths (e.g. `[docs/guides/errors.md](../errors.md)`) so they render and navigate correctly on GitHub.
+**The `@guides/` shorthand** - since every `# >> see:` target is rooted at `docs/guides/`, write it as `@guides/<rest-of-path>#<anchor>` (e.g. `@guides/domain/error.md#error-format-message`) instead of spelling out `docs/guides/domain/error.md#error-format-message`. `@guides/` is a source-code-only shorthand for this annotation target - it is not a real path and must never appear in a clickable Markdown link; links between guide documents keep using normal relative paths (e.g. a guide under `docs/guides/domain/` links `[docs/guides/errors.md](../errors.md)`) so they render and navigate correctly on GitHub.
 
 **Placement grammar** - annotations appear immediately after the structural comment they annotate, on their own line, before the code body:
 
@@ -486,101 +486,6 @@ class TestErrorMessage:
         test_ctx.assert_description()
 ```
 
-## Domain Event Test Harness Style
-
-This section documents leftover `tiferet.testing` subclasses (`DomainEventTestBase` / `ServiceEventTestBase`). Those classes now live under `# *** testers` with `# ** tester: test_<snake>` and `# * test:` members. **New** unit tests use [Test-Module Artifact Grammar](#test-module-artifact-grammar) and `@use_tester`, not these bases.
-
-Domain event tests that still use the leftover class-based harness follow these conventions.
-
-### Artifact Comments
-
-Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-level comment. Within each class, in this order:
-
-- `# * attribute: <name>` - class-level configuration attributes.
-- `# * fixture: <name>` - fixture overrides.
-- `# * method: <name>` - custom test methods.
-
-```python
-# *** tests
-
-# ** test: TestAddAppSession
-class TestAddAppSession(DomainEventTestBase):
-    '''
-    Tests for AddAppSession using the domain event test harness.
-    '''
-
-    # * attribute: event_cls
-    event_cls = AddAppSession
-
-    # * attribute: dependencies
-    dependencies = {'app_service': AppService}
-
-    # * attribute: sample_kwargs
-    sample_kwargs = dict(
-        id='test.interface',
-        name='Test Interface',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
-    )
-
-    # * attribute: required_params
-    required_params = ['id', 'name', 'module_path', 'class_name']
-
-    # * method: test_minimal_success
-    def test_minimal_success(self, mock_dependencies):
-        '''
-        Test creating a minimal app interface with only required parameters.
-        '''
-
-        # Execute via the harness handle helper.
-        interface = self.handle(mock_dependencies)
-
-        # Assert the result is an AppSession instance.
-        assert isinstance(interface, AppSession)
-
-        # Assert the interface is saved via the app service.
-        mock_dependencies['app_service'].save.assert_called_once_with(interface)
-```
-
-### Required Class Attributes
-
-Every harness test class must declare these attributes with `# * attribute:` comments:
-
-| Attribute | Base | Description |
-|---|---|---|
-| `event_cls` | `DomainEventTestBase` | The `DomainEvent` subclass under test |
-| `dependencies` | `DomainEventTestBase` | Dict of dependency name → type (auto-mocked) |
-| `sample_kwargs` | `DomainEventTestBase` | Default kwargs for a successful `execute()` |
-| `required_params` | `DomainEventTestBase` | List of param names for auto validation tests |
-| `service_attr` | `ServiceEventTestBase` | Dependency name for the primary service |
-| `not_found_error_code` | `ServiceEventTestBase` | Error code for the not-found auto-test |
-| `not_found_kwargs` | `ServiceEventTestBase` | Kwargs that trigger the not-found path |
-
-### Fixture Overrides
-
-When a test class needs a pre-configured service mock (e.g., `get()` returns a real aggregate), override `mock_dependencies` as a fixture within the class:
-
-```python
-    # * fixture: mock_dependencies
-    @pytest.fixture
-    def mock_dependencies(self, app_session):
-        '''
-        Override to provide a service mock pre-configured with an app_session.
-        '''
-
-        # Create a mock AppService that returns the app_session on get.
-        service = mock.Mock(spec=AppService)
-        service.get.return_value = app_session
-        return {'app_service': service}
-```
-
-### Spacing Rules
-
-Harness test classes follow the same spacing conventions as production code:
-- One empty line between each `# *` section.
-- One empty line after docstrings and between code snippets within methods.
-- One empty line between test classes.
-
 ## Best Practices Summary
 
 - Use artifact comments consistently.
@@ -592,7 +497,7 @@ Harness test classes follow the same spacing conventions as production code:
 - Maintain consistent spacing: exactly one empty line between artifacts, never two.
 - Preserve artifact ordering, including class member bands (attribute, then init, then property methods, then other methods). When a declaration dependency seems to force an exception, add an order-preserving mechanic (see [Ordering and Declaration Constraints](#ordering-and-declaration-constraints)) instead of breaking the order.
 - Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
-- Prefer `@use_tester` and the three test-module kinds (`fixtures` / `tests` / `testers`) for new unit tests. Leave leftover `tiferet.testing` subclasses in place until RFP-015 / #1121.
+- Write unit tests with `@use_tester` and the three test-module kinds (`fixtures` / `tests` / `testers`). The former `tiferet.testing` bases were retired in v2.1.2.
 
 These practices ensure Tiferet code remains consistent, maintainable, and AI-friendly. Explore source modules in `tiferet/` for implementation examples.
 
@@ -611,5 +516,5 @@ For implementation agents, the **`tiferet-code-<component>` skills** (see `.agen
 - **`tiferet-code-interfaces`** / **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** - Service interface conventions.
 - **`tiferet-code-mappers`** / **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** - Aggregate and TransferObject conventions.
 - **`tiferet-code-repos`** / **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** - Repository implementation conventions.
-- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** - Testing conventions (`@use_tester`, test-module `fixtures` / `tests` / `testers`, leftover `tiferet.testing`).
+- **`tiferet-code-testing`** / **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** - Testing conventions (`@use_tester`, test-module `fixtures` / `tests` / `testers`).
 - **`tiferet-code-utils`** / **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** - Utility and infrastructure conventions.

@@ -12,10 +12,10 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 
 ## When not to use
 
-- Prototype / RFP — `tiferet-rfp-session`.
-- Authoring the TRD — `tiferet-author-trd`.
+- Prototype / RFP - `tiferet-rfp-session`.
+- Authoring the TRD - `tiferet-author-trd`.
 - Docs/skills.
-- Cutting the Super-TRD branch, opening the Super-TRD PR to `main`, or running a fan-out — the orchestrator or the maintainer (`docs/collab/process.md` § Super-TRD branch). Closing a milestone — the maintainer only (§ Agent guardrails).
+- Cutting or pushing the Super-TRD branch, opening the Super-TRD PR to `main`, merging `main` into the Super-TRD branch, or running a fan-out - the maintainer only. Closing a milestone - the maintainer only (`docs/collab/process.md` § Agent guardrails). Implement a child only from a Super-TRD branch the maintainer has already pushed.
 - A Super-TRD child whose parent branch is not pushed yet. Stop and report. Do not open a PR to `main` in its place.
 
 ## Canonical source
@@ -29,13 +29,13 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 
 ## Inputs
 
-TRD issue number. For a Super-TRD child: parent issue number and the already-pushed Super-TRD branch `<parent-issue>-<slug>`. Binding. The PR base, named in the dispatch prompt (standalone: `main`; child: the Super-TRD branch).
+TRD issue number. For a Super-TRD child: parent issue number and the already-pushed Super-TRD branch `<parent-issue>-<slug>`. Binding. The PR base, named in the task (standalone: `main`; child: the Super-TRD branch the maintainer pushed).
 
 ## Procedure
 
 **Standalone**
 
-1. Confirm the TRD. Reconstruction must cite an existing freeze id. If §7 and a blocker form a cycle — each names the other's output as a prerequisite — stop and report.
+1. Confirm the TRD. Reconstruction must cite an existing freeze id. If §7 and a blocker form a cycle - each names the other's output as a prerequisite - stop and report.
 2. Cut `<issue>-<slug>` from `main`. Status In Progress. Start date.
 3. Implement (`tiferet-code-style` + component skills). PR targeting `main`, title `<Component/Assemblage> - <Plain Title> (#issue)`, **GitHub-linked** to that TRD. `Closes #<issue>` is allowed. Do not add the PR to a milestone.
 4. Verify the base: `gh pr view <N> --json baseRefName`. It must be `main`. If it is not, stop and report. Do not request review.
@@ -74,4 +74,4 @@ Children stay **In Review** until the Super-TRD PR is squash-merged to `main`. C
 - Never close a Super-TRD child issue. Children stay In Review until the parent PR to `main` is squash-merged.
 - Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch you cut, and every temp file (`docs/collab/process.md`). Do not remove the Super-TRD branch. `.trd/` and `.rfp/` working copies are not temp.
 - Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
-- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `— <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).
+- Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `- <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).

@@ -80,65 +80,77 @@ A tester class is the exception: `# * fixture` then `# * test`, not these bands.
 
 ## Example
 
+Mirrors `tiferet/events/feature.py`: a per-module base event holds the shared service; the concrete event extends it and defines only `execute`.
+
 ```python
 # *** imports
 
 # ** core
-from typing import Any
+from typing import Dict
 
 # ** app
-from .core import DomainEvent, a
 from ..domain import Feature
 from ..interfaces import FeatureService
+from .core import DomainEvent, a
 
 # *** events
 
-# ** event: get_feature
-class GetFeature(DomainEvent):
+# ** event: feature_event
+class FeatureEvent(DomainEvent):
     '''
-    Domain event to retrieve a feature by its identifier.
+    Base event providing the shared FeatureService dependency for feature domain events.
     '''
 
     # * attribute: feature_service
     feature_service: FeatureService
 
     # * init
-    def __init__(self, feature_service: FeatureService) -> None:
+    def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the GetFeature event.
+        Initialize the feature event with its shared service dependency.
 
-        :param feature_service: The feature service.
+        :param feature_service: The feature service shared across feature events.
         :type feature_service: FeatureService
         '''
 
         # Set the feature service dependency.
         self.feature_service = feature_service
 
+# ** event: get_feature
+class GetFeature(FeatureEvent):
+    '''
+    Event to retrieve a feature by its identifier.
+    '''
+
     # * method: execute
     @DomainEvent.parameters_required(['id'])
-    def execute(self, id: str, **kwargs) -> Feature:
+    def execute(self, id: str, default_feature_index: Dict[str, Feature] = {}, **kwargs) -> Feature:
         '''
         Retrieve a feature by ID.
 
-        :param id: The feature ID.
+        :param id: The feature identifier.
         :type id: str
+        :param default_feature_index: Optional mapping of feature ID to a default Feature,
+            consulted when the repository lookup misses.
+        :type default_feature_index: Dict[str, Feature]
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The Feature domain object.
+        :return: The retrieved feature.
         :rtype: Feature
         '''
 
-        # Retrieve the feature from the service.
-        feature = self.feature_service.get(id)
+        # Retrieve the feature from the feature service, falling back to the
+        # supplied default feature index when the repository lookup misses.
+        feature = self.feature_service.get(id) or (default_feature_index or {}).get(id)
 
-        # Verify the feature exists; raise structured error if not.
+        # Verify that the feature exists; raise FEATURE_NOT_FOUND if it does not.
         self.verify(
             expression=feature is not None,
             error_code=a.error.FEATURE_NOT_FOUND_ID,
             feature_id=id,
         )
 
-        # Return the feature.
+        # Return the retrieved feature.
         return feature
 ```
 
