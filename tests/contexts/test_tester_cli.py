@@ -87,7 +87,10 @@ class TestTesterCliSessionContext:
             ),
             parse_cli_args=handlers.get('parse_cli_args'),
             cache=handlers.get('cache'),
-            build_logger_handler=handlers.get('build_logger_handler'),
+            build_logger_handler=handlers.get(
+                'build_logger_handler',
+                lambda logger_id: Mock(),
+            ),
             execute_feature_handler=handlers.get(
                 'execute_feature_handler',
                 lambda *args, **kwargs: None,
@@ -263,10 +266,10 @@ class TestTesterCliSessionContext:
         assert 'run_test_module' in str(error.value)
         assert 'tester_cli' in str(error.value)
 
-    # * test: module_run_value_error_propagates
-    def test_module_run_value_error_propagates(self) -> None:
+    # * test: module_run_value_error_exits_1
+    def test_module_run_value_error_exits_1(self) -> None:
         '''
-        Assert a ValueError from the injected runner propagates.
+        Assert a ValueError from the injected runner is logged once and exits 1.
 
         :return: None
         :rtype: None
@@ -279,15 +282,20 @@ class TestTesterCliSessionContext:
         def parse_cli_args(argv):
             return MODULE_RUN_ID, {}, {'module_path': 'missing'}
 
+        logger = Mock()
         context = self.bind_session(
             parse_cli_args=parse_cli_args,
             run_test_module=run_test_module,
+            build_logger_handler=lambda logger_id: logger,
         )
 
-        # Assert ValueError is not converted into an exit.
-        with pytest.raises(ValueError) as error:
+        # Assert the ValueError becomes one error record and exit 1.
+        with pytest.raises(SystemExit) as error:
             context.run(['module', 'run', 'missing'])
-        assert 'Not a Python test module: missing.' in str(error.value)
+        assert error.value.code == 1
+        logger.error.assert_called_once_with(
+            'Module run failed to load missing: ValueError: Not a Python test module: missing.',
+        )
 
     # * test: writer_build_request_supplies_the_document
     def test_writer_build_request_supplies_the_document(self) -> None:

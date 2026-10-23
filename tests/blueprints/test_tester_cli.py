@@ -3,16 +3,24 @@
 # *** imports
 
 # ** core
+import sys
 import unittest.mock as mock
+from pathlib import Path
+
+# ** infra
+import pytest
 
 # ** app
 import tiferet
 from tiferet import assets as a
-from tiferet.blueprints.core import build_app_service_container
+from tiferet.blueprints.core import build_app_service_container, create_logging_context
 from tiferet.assets.tester_cli import (
     MODULE_RUN_ID,
     TESTER_CLI_ID,
+    TESTER_DEFAULT_LOGGING_SETTINGS,
     TESTER_DEFAULT_PARENT_ARGUMENTS,
+    TESTER_ERROR_HANDLER_ID,
+    TESTER_LOGGER_ID,
     TESTER_QUERY_EVENT_REGISTRATIONS,
     TESTER_WRITE_EVENT_REGISTRATIONS,
 )
@@ -30,6 +38,106 @@ from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX
 from tiferet.contexts.cli import CLI_COMMAND_CACHE_PREFIX
 from tiferet.contexts import tester_cli as tester_cli_contexts
 from tiferet.contexts.feature import FEATURE_CACHE_PREFIX
+from tiferet.contexts.logging import get_default_logging_settings
+from tiferet.domain import LoggingSettings
+
+# *** constants
+
+# ** constant: tester_error_marker
+TESTER_ERROR_MARKER = ' - tester - ERROR - '
+
+# ** constant: two_case_module
+TWO_CASE_MODULE = '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  first:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  second:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: %s
+'''
+
+# *** functions
+
+# ** function: write_pair
+def write_pair(base: Path, rel: str, document: str = None) -> Path:
+    '''
+    Write a temporary Python module and, when given, its counterpart.
+
+    :param base: The temporary base directory.
+    :type base: Path
+    :param rel: The stem under tests/, without an extension.
+    :type rel: str
+    :param document: The counterpart text, or null to leave it missing.
+    :type document: str
+    :return: The Python path.
+    :rtype: Path
+    '''
+
+    # Write the Python module whose text is the docstring temporary.
+    python_path = base / 'tests' / f'{rel}.py'
+    python_path.parent.mkdir(parents=True, exist_ok=True)
+    python_path.write_text('"""temporary"""\n', encoding='utf-8')
+
+    # Write the counterpart beside tests/, unless it is meant to be missing.
+    if document is not None:
+        yaml_path = base / 'tiferet_tests' / f'{rel}.yml'
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        yaml_path.write_text(document, encoding='utf-8')
+    return python_path
+
+# ** function: run_main
+def run_main(python_path: Path) -> int:
+    '''
+    Run main with argv naming one module run.
+
+    :param python_path: The Python test module path.
+    :type python_path: Path
+    :return: The status main returns.
+    :rtype: int
+    '''
+
+    # Replace argv for the console entry and call main.
+    with mock.patch.object(
+        sys,
+        'argv',
+        ['tiferet-tester', 'module', 'run', str(python_path)],
+    ):
+        return main()
+
+# ** function: error_records
+def error_records(text: str) -> list:
+    '''
+    Return the error records the tester logger wrote to a stream.
+
+    :param text: The captured stream text.
+    :type text: str
+    :return: The lines that carry the tester error marker.
+    :rtype: list
+    '''
+
+    # One formatted record starts each marked line.
+    return [line for line in text.splitlines() if TESTER_ERROR_MARKER in line]
 
 # *** tests
 
@@ -263,11 +371,13 @@ def test_module_run_calls_the_injected_runner():
     stand_in.assert_called_once_with('tests/test_sample.py', summary=True)
     assert hub_run.call_count == 0
 
-# ** test: bad_python_path_propagates
-def test_bad_python_path_propagates():
+# ** test: bad_python_path_exits_one
+def test_bad_python_path_exits_one(capsys):
     '''
-    A ValueError from the injected runner propagates.
+    A ValueError from the injected runner is one error record and exit 1.
 
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
     :return: None
     :rtype: None
     '''
@@ -276,23 +386,25 @@ def test_bad_python_path_propagates():
     def runner(module_path, summary=False):
         raise ValueError('Not a Python test module: missing.')
 
-    raised = None
     with mock.patch(
         'tiferet.blueprints.tester_cli.run_test_module',
         runner,
-    ):
-        try:
-            build_tester_cli(argv=[
-                'module',
-                'run',
-                'missing.py',
-            ])
-        except ValueError as error:
-            raised = error
+    ), pytest.raises(SystemExit) as exit_info:
+        build_tester_cli(argv=[
+            'module',
+            'run',
+            'missing.py',
+        ])
+    captured = capsys.readouterr()
 
-    # Type check is the exception class name.
-    assert type(raised).__name__ == 'ValueError'
-    assert 'Not a Python test module' in str(raised)
+    # Assert exit 1, one tester error record naming the path and type, and no traceback.
+    assert exit_info.value.code == 1
+    records = error_records(captured.err)
+    assert len(records) == 1
+    assert 'missing.py' in records[0]
+    assert 'ValueError' in records[0]
+    assert 'Traceback' not in captured.err
+    assert error_records(captured.out) == []
 
 # ** test: unwired_runner_raises
 def test_unwired_runner_raises():
@@ -379,11 +491,187 @@ def test_main_calls_build_tester_cli():
     :rtype: None
     '''
 
-    # Replace build_tester_cli with a stand-in.
+    # Replace build_tester_cli with a stand-in that returns an empty report.
     with mock.patch(
         'tiferet.blueprints.tester_cli.build_tester_cli',
+        return_value={'outcomes': [], 'failures': []},
     ) as stand_in:
-        main()
+        status = main()
 
-    # Assert the stand-in was called once with no arguments.
+    # Assert the stand-in was called once with no arguments and main returns 0.
     stand_in.assert_called_once_with()
+    assert status == 0
+
+# ** test: main_returns_one_on_failures
+def test_main_returns_one_on_failures():
+    '''
+    main returns 1 for a report with failures and 0 for a non-mapping result.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # A report with one failure returns 1.
+    failure = {'node_id': 'node.fail', 'status': 'FAILED', 'message': 'failed'}
+    with mock.patch(
+        'tiferet.blueprints.tester_cli.build_tester_cli',
+        return_value={'outcomes': [failure], 'failures': [failure]},
+    ):
+        assert main() == 1
+
+    # A non-mapping result returns 0.
+    with mock.patch(
+        'tiferet.blueprints.tester_cli.build_tester_cli',
+        return_value='tiferet_tests/domain/test_error.yml',
+    ):
+        assert main() == 0
+
+# ** test: module_run_failure_exits_one_and_logs
+def test_module_run_failure_exits_one_and_logs(tmp_path, capsys):
+    '''
+    A failed case runs beside a passing case, exits 1, and logs one record.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The second case expects other, so it fails.
+    python_path = write_pair(tmp_path, 'domain/test_run', TWO_CASE_MODULE % 'other')
+    status = run_main(python_path)
+    captured = capsys.readouterr()
+    lines = captured.out.splitlines()
+
+    # Assert exit 1, unchanged case and count lines, and one tester error record.
+    assert status == 1
+    assert lines[0] == 'tiferet_tests/domain/test_run.yml::first PASSED'
+    assert lines[1] == 'tiferet_tests/domain/test_run.yml::second FAILED'
+    assert lines[-1] == '1 failed, 1 passed'
+    records = error_records(captured.err)
+    assert len(records) == 1
+    assert 'tiferet_tests/domain/test_run.yml::second FAILED: ' in records[0]
+    assert error_records(captured.out) == []
+    assert 'Traceback' not in captured.err
+
+# ** test: module_run_all_pass_exits_zero
+def test_module_run_all_pass_exits_zero(tmp_path, capsys):
+    '''
+    A module whose cases all pass exits 0 and logs nothing.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Both cases expect kept, so both pass.
+    python_path = write_pair(tmp_path, 'domain/test_run', TWO_CASE_MODULE % 'kept')
+    status = run_main(python_path)
+    captured = capsys.readouterr()
+
+    # Assert exit 0, the count line, and no tester error record.
+    assert status == 0
+    assert captured.out.splitlines()[-1] == '2 passed'
+    assert error_records(captured.err) == []
+    assert error_records(captured.out) == []
+
+# ** test: module_run_load_failures_exit_one
+@pytest.mark.parametrize('document, code', [
+    (None, 'YAML_FILE_NOT_FOUND'),
+    ('tests: [unclosed\n', 'TEST_MODULE_LOAD_FAILED'),
+    ('- one\n- two\n', 'ValueError'),
+    ('bogus: {}\n', 'ValueError'),
+])
+def test_module_run_load_failures_exit_one(tmp_path, capsys, document, code):
+    '''
+    A load failure prints no count line and no traceback, logs once, and exits 1.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :param document: The counterpart text, or null for a missing file.
+    :type document: str
+    :param code: The error code or type the record names.
+    :type code: str
+    :return: None
+    :rtype: None
+    '''
+
+    # Write the module pair with the failing counterpart.
+    python_path = write_pair(tmp_path, 'domain/test_run', document)
+    with pytest.raises(SystemExit) as exit_info:
+        run_main(python_path)
+    captured = capsys.readouterr()
+
+    # Assert exit 1, no count line, no traceback, and one record naming module and error.
+    assert exit_info.value.code == 1
+    assert ' passed' not in captured.out
+    assert ' failed' not in captured.out
+    assert 'Traceback' not in captured.err
+    records = error_records(captured.err)
+    assert len(records) == 1
+    assert f'Module run failed to load {python_path}: {code}: ' in records[0]
+
+# ** test: usage_error_exits_two
+def test_usage_error_exits_two(capsys):
+    '''
+    Module run with no module path exits 2.
+
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Parse argv without a module path.
+    with pytest.raises(SystemExit) as exit_info:
+        build_tester_cli(argv=['module', 'run'])
+
+    # Assert argparse's usage status.
+    assert exit_info.value.code == 2
+    assert 'usage' in capsys.readouterr().err
+
+# ** test: tester_logging_assets
+def test_tester_logging_assets(capsys):
+    '''
+    The tester logging assets validate and emit one error record on stderr.
+
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Validate the settings and read the tester handler and logger.
+    settings = LoggingSettings.model_validate(TESTER_DEFAULT_LOGGING_SETTINGS)
+    handler = next(item for item in settings.handlers if item.id == TESTER_ERROR_HANDLER_ID)
+    logger_config = next(item for item in settings.loggers if item.id == TESTER_LOGGER_ID)
+    assert handler.level == 'ERROR'
+    assert handler.stream == 'ext://sys.stderr'
+    assert handler.formatter == a.logging.DEFAULT_FORMATTER_ID
+    assert logger_config.handlers == [TESTER_ERROR_HANDLER_ID]
+    assert logger_config.propagate is False
+    assert len(settings.handlers) == len(a.logging.CORE_DEFAULT_LOGGING_SETTINGS['handlers']) + 1
+    assert len(settings.loggers) == len(a.logging.CORE_DEFAULT_LOGGING_SETTINGS['loggers']) + 1
+
+    # Assert the tester cache is seeded with the tester logging settings.
+    seeded = get_default_logging_settings(build_cache())
+    assert [item.id for item in seeded.loggers] == [item.id for item in settings.loggers]
+    assert [item.id for item in seeded.handlers] == [item.id for item in settings.handlers]
+
+    # Build the tester logger and emit one error record.
+    logger = create_logging_context(settings, logger_id=TESTER_LOGGER_ID).build_logger()
+    logger.error('probe failure')
+    captured = capsys.readouterr()
+
+    # Assert the record is written once, on stderr only.
+    assert len(error_records(captured.err)) == 1
+    assert 'probe failure' in captured.err
+    assert error_records(captured.out) == []
+    assert 'probe failure' not in captured.out
