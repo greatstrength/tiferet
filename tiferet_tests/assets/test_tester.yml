@@ -1,0 +1,112 @@
+testers:
+  error_message:
+    module_path: &message_module tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: An error occurred.
+    tests:
+      error_message_domain_tester:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *message_module
+              class_name: ErrorMessage
+          - outcome: built
+            fields:
+              lang: en_US
+              text: An error occurred.
+      error_message_description_tester:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format
+            as: text
+        assert:
+          - outcome: built
+            type:
+              module_path: *message_module
+              class_name: ErrorMessage
+          - outcome: built
+            fields:
+              lang: en_US
+              text: An error occurred.
+          - outcome: text
+            equals: An error occurred.
+  error_aggregate:
+    module_path: &aggregate_module tiferet.mappers.error
+    class_name: ErrorAggregate
+    attributes:
+      id: TEST_ERROR
+      name: Test Error
+      message:
+        - lang: en_US
+          text: An error occurred.
+    tests:
+      error_aggregate_tester:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+        assert:
+          - outcome: built
+            type:
+              module_path: *aggregate_module
+              class_name: ErrorAggregate
+          - outcome: built
+            fields:
+              id: TEST_ERROR
+              name: Test Error
+              error_code: TEST_ERROR
+      error_aggregate_set_attribute_tester:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: self
+            method: new
+            as: renamed
+          - target: $r.renamed
+            method: set_attribute
+            args:
+              - name
+              - Updated Error
+          - target: self
+            method: new
+            as: invalid
+          - target: $r.invalid
+            method: set_attribute
+            args:
+              - invalid_attribute
+              - value
+            raises: true
+            as: error
+        assert:
+          - outcome: built
+            type:
+              module_path: *aggregate_module
+              class_name: ErrorAggregate
+          - outcome: built
+            fields:
+              id: TEST_ERROR
+              name: Test Error
+              error_code: TEST_ERROR
+          - outcome: renamed
+            fields:
+              name: Updated Error
+          - outcome: error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: error
+            error_code: INVALID_MODEL_ATTRIBUTE

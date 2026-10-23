@@ -1,0 +1,12 @@
+tests:
+  test_normalize_flags_empty:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.di.core
+          attribute: normalize_flags
+        method: normalize_flags
+        as: flags
+    assert:
+      - outcome: flags
+        equals: []
