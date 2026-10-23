@@ -100,14 +100,12 @@ Domain objects follow a strict artifact comment structure for consistency and AI
 - Instantiate directly via the constructor or `model_validate()`.
 - Use `@model_validator(mode='before')` for domain-specific derivation logic.
 
-**Example** - `CalculatorResult`:
+**Example** - `CalculatorResult` (a downstream application module, so `tiferet` is imported under `# ** infra`):
 ```python
 # *** imports
 
 # ** infra
 from pydantic import Field
-
-# ** app
 from tiferet import DomainObject
 
 # *** models
