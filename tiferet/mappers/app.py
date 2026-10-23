@@ -61,6 +61,9 @@ class AppSessionAggregate(AppSession, Aggregate):
             ModelError.raise_error(
                 INVALID_MODEL_VALUE_ID,
                 message=f'Service dependency {service_id!r} already exists in app session {self.id!r}.',
+                model=self,
+                attribute='services',
+                service_id=service_id,
             )
 
         # Create a new AppServiceDependency object without None-valued parameters.
@@ -113,7 +116,9 @@ class AppSessionAggregate(AppSession, Aggregate):
         Set or update a service dependency by service_id (PUT semantics).
 
         An existing service_id is updated in place; an absent one is appended.
-        On an update, ``parameters`` is an overlay: A new value wins, a ``None`` value removes that key, and a ``None`` argument leaves the mapping unchanged.
+        On an update, ``parameters`` is an overlay: a new value wins, a
+        ``None`` value removes that key, and a ``None`` argument leaves the
+        mapping unchanged.
         On create, a ``None`` argument stores ``{}`` and ``None`` values are
         not stored.
 
@@ -302,7 +307,9 @@ class AppSessionConfigObject(AppSession, TransferObject):
     @classmethod
     def from_model(cls, app_session: AppSession, **overrides) -> 'AppSessionConfigObject':
         '''
-        Creates an AppSessionConfigObject from an AppSession model.
+        Creates an AppSessionConfigObject from an AppSession model. The
+        services list becomes a mapping keyed by service_id in list order. A
+        repeated service_id raises a model error instead of collapsing.
 
         :param app_session: The app session model.
         :type app_session: AppSession
@@ -319,6 +326,9 @@ class AppSessionConfigObject(AppSession, TransferObject):
                 ModelError.raise_error(
                     INVALID_MODEL_VALUE_ID,
                     message=f'Service dependency {dep.service_id!r} is repeated in app session {app_session.id!r}.',
+                    model=app_session,
+                    attribute='services',
+                    service_id=dep.service_id,
                 )
             seen.add(dep.service_id)
 

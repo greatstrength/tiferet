@@ -28,8 +28,9 @@ class FlaggedDependencyAggregate(FlaggedDependency, Aggregate):
     # * method: set_parameters
     def set_parameters(self, parameters: Dict[str, Any] | None = None) -> None:
         '''
-        Overlay the parameters dictionary for this flagged dependency.
-        A new value wins, a ``None`` value removes that key, and a ``None`` argument leaves the mapping unchanged.
+        Overlay the parameters dictionary for this flagged dependency. A new
+        value wins, a ``None`` value removes that key, and a ``None`` argument
+        leaves the mapping unchanged.
 
         :param parameters: The parameter overlay, or None to leave the parameters.
         :type parameters: Dict[str, Any] | None
@@ -274,6 +275,8 @@ class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
     def from_model(cls, service_registration: ServiceRegistration, **overrides) -> 'ServiceRegistrationConfigObject':
         '''
         Creates a ServiceRegistrationConfigObject from a ServiceRegistration model.
+        The dependencies list becomes a mapping keyed by flag in list order. A
+        repeated flag raises a model error instead of collapsing.
 
         :param service_registration: The service registration model to copy from.
         :type service_registration: ServiceRegistration
@@ -290,6 +293,9 @@ class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
                 ModelError.raise_error(
                     INVALID_MODEL_VALUE_ID,
                     message=f'Flagged dependency {dep.flag!r} is repeated in service registration {service_registration.id!r}.',
+                    model=service_registration,
+                    attribute='dependencies',
+                    flag=dep.flag,
                 )
             seen.add(dep.flag)
 
