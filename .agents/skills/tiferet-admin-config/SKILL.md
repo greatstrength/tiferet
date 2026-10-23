@@ -58,6 +58,8 @@ tiferet <group> <command> [args...]
 tiferet --config custom_config.yml <group> <command> [args...]
 ```
 
+**Known issue (v2.2.0):** the admin CLI currently reads its command list from the target file's `cli` section, not the built-in admin catalog. Without a `cli:` section every command exits `2` with `invalid choice`. Also, `--config` does not yet redirect writes: CRUD commands read from and write to `./config.yml` in the current directory, not the file you pass. A code fix for both is pending as a separate hotfix. Until it lands, check which file changed after a write, and do not treat these failures as config errors you caused; report them.
+
 ### Key-value dict syntax
 
 Every flat-map/dict-typed argument on the Admin CLI accepts `key=value` pairs directly on the command line - raw JSON strings are **never** required for dict args (only for the few `type: json` args such as `cli.add_argument --name-or-flags`).
@@ -414,5 +416,5 @@ admin.run(
 ## Canonical Source
 
 For full architectural details, resolver flag routing, and detailed blueprint specs, see:
-- [docs/guides/admin.md](../../../guides/admin.md) - Admin Support Strategies and Patterns
-- [docs/core/blueprints.md](../../../core/blueprints.md) - Blueprint Architecture and Entry Points
+- [docs/guides/admin.md](../../../docs/guides/admin.md) - Admin Support Strategies and Patterns
+- [docs/core/blueprints.md](../../../docs/core/blueprints.md) - Blueprint Architecture and Entry Points

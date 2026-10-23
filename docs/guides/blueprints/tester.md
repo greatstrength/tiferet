@@ -194,7 +194,7 @@ The harness tests its own blueprints in `tests/blueprints/test_tester.py` using 
 ## Boundaries
 
 **Inside this domain:** `@use_tester`, tester-scoped `build_cache`, `build_tester_context`, `build_test_session`, and the per-type exercise algorithms those functions dispatch.
-**Outside this domain:** `TesterObject` field semantics ([docs/guides/domain/tester.md](../domain/tester.md)); `ContextMeta` registry rules ([docs/guides/contexts.md](../contexts.md)); leftover `tiferet.testing` bases ([docs/core/testing.md](../../core/testing.md)); core `build_app` five-handler wiring; feature E2E via tester sessions.
+**Outside this domain:** `TesterObject` field semantics ([docs/guides/domain/tester.md](../domain/tester.md)); `ContextMeta` registry rules ([docs/guides/contexts.md](../contexts.md)); the retired `tiferet.testing` bases ([docs/core/testing.md](../../core/testing.md#retired-tiferettesting)); core `build_app` five-handler wiring; feature E2E via tester sessions.
 
 ## Related Documentation
 

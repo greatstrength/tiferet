@@ -19,7 +19,7 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── blueprints/           # build_app, build_cli, admin and tester entry points, shared core composition
-├── contexts/             # Runtime orchestration: BaseContext registry + AppSessionContext hub (Feature, Error, Logging) + CliContext
+├── contexts/             # Runtime orchestration: BaseContext registry + AppSessionContext hub (Feature, Error, Logging) + CliSessionContext
 ├── di/                   # DI: core.py ABCs + dependency_injector.py impls (DIAppServiceContainer, DIDynamicServiceResolver)
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
@@ -81,7 +81,7 @@ DI lives in two modules under `tiferet/di/`:
 - **`tiferet/di/core.py`** - the abstract, domain-only contract: the `ServiceContainer` and `ServiceResolver` ABCs plus the pure functions `injectable_parameter_names` and `normalize_flags`.
 - **`tiferet/di/dependency_injector.py`** - the concrete implementations backed by `dependency-injector`: `DIDynamicServiceContainer` (feature-level, `Factory` scope), `DIAppServiceContainer` (app-level, `Singleton` scope), and `DIDynamicServiceResolver` (per-flag feature resolver holding a `DIService` and an injected `parse_parameter`).
 
-All seven names are exported from `tiferet/di/__init__.py`. The DI layer is **event-free and asset-free**: it assumes best-case inputs, raises raw exceptions for callers with event access to convert, and receives parameter parsing as an injected callable. The resolver's bound `get_dependency(service_id, *flags)` is injected into `AppSessionContext` and forwarded to each `FeatureContext`. The previous `ServiceProvider` family and `tiferet/di/settings.py` are gone (see Migration Notes).
+All seven names are exported from `tiferet/di/__init__.py`. The DI layer is **event-free and asset-free**: it assumes best-case inputs, raises `ServiceError` (`DI_DEPENDENCY_NOT_REGISTERED`) for an unregistered id, lets a failing provider's raw exception surface for callers with event access to convert, and receives parameter parsing as an injected callable. The resolver's bound `get_dependency(service_id, *flags)` is injected into `AppSessionContext` and forwarded to each `FeatureContext`. The previous `ServiceProvider` family and `tiferet/di/settings.py` are gone (see Migration Notes).
 
 See [docs/core/di.md](docs/core/di.md).
 
@@ -306,11 +306,11 @@ Applications are configured in a consolidated root `config.yml` file:
 - **Install:** `pip install -e '.[test]'`. The `test` extra brings `pytest`, `pytest_env`, and `pytest-asyncio`; without it the async tests fail.
 - **Run tests:** `pytest` from the project root (with the venv activated). `pyproject.toml` sets `testpaths` to `tests` and `tests_int`.
 - **Unit tests:** `@use_tester` (`tiferet.blueprints.tester`, exported from `tiferet`). One `TesterObject`; `TesterContext` plus omitting-`domain_type` variants; `TestSessionContext` is a `RequestContext`. Inject `test_ctx` and `session` by parameter name. Types: `domain` | `aggregate` | `transfer_object` | `domain_event` | `service_event` | `generic` | `repo` | `context`. Test-module artifacts are three sibling kinds after preamble: `# *** fixtures` / `# *** tests` / `# *** testers` (omit empty). Testers compose fixtures and tests; they do not replace them.
-- **Leftover:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) still exists. Do not delete it. Do not migrate `tests/events` or `tests/mappers` in this cycle.
+- **Retired:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) was removed in v2.1.2 (#1226). No test imports `tiferet.testing`. Component tests use `@use_tester`; module-level pytest tests remain where no tester type fits. Do not reintroduce the bases.
 - **Test modules (v2.2.0):** Test-module documents live in `domain/tester_module.py` (`TestModuleDocument`, `TestModuleAddress`). Tester phases live in `domain/tester_phase.py` (`Test`, `Execution`, `ExecutionTarget`, `Assertion`, `ArrangedMock`, `Conditions`, `PhaseRuntime`). Test modules run through the `tiferet-tester` console script (`tiferet.blueprints.tester_cli:main`, exported from `tiferet.blueprints` as `build_tester_cli` / `TesterCLI`). `tiferet-tester` is separate from the `tiferet` admin script. `use_tester` remains the only tester export from the top package.
 - **Guide:** [docs/core/testing.md](docs/core/testing.md).
 - **Mocking:** Use `unittest.mock`. Mock injected services. Verify calls and return values.
-- **Event testing:** `DomainEventTesterContext.handle` (or leftover `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`).
+- **Event testing:** `@use_tester(type='domain_event' | 'service_event', ...)` and `test_ctx.handle(...)` (`DomainEventTesterContext`); direct `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` stays valid in module-level tests.
 
 ## Utilities
 

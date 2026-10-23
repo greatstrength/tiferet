@@ -163,7 +163,7 @@ These names are not in `tiferet/domain/tester.py`: `DomainTesterObject`, `Aggreg
 ## Boundaries
 
 **Inside this domain:** `TesterObject` (one model, type discriminator, import helpers) and `Verification` (queued check value).
-**Outside this domain:** tester context variants and fluent `given` / `invoke` / `verify` / `run` ([docs/guides/contexts.md](../contexts.md), [docs/guides/blueprints/tester.md](../blueprints/tester.md)); leftover `tiferet.testing` bases ([docs/core/testing.md](../../core/testing.md)); YAML configuration (there is no `testers:` section); a `tiferet/tester/` package (does not exist); feature E2E through tester sessions.
+**Outside this domain:** tester context variants and fluent `given` / `invoke` / `verify` / `run` ([docs/guides/contexts.md](../contexts.md), [docs/guides/blueprints/tester.md](../blueprints/tester.md)); the retired `tiferet.testing` bases ([docs/core/testing.md](../../core/testing.md#retired-tiferettesting)); YAML configuration (there is no `testers:` section); a `tiferet/tester/` package (does not exist); feature E2E through tester sessions.
 
 ## Instantiation
 
@@ -184,7 +184,7 @@ assert tester.expected_data == tester.sample_data
 
 ## Related Documentation
 
-- [docs/core/testing.md](../../core/testing.md) - v2.1.0 unit-test model and leftover `tiferet.testing`
+- [docs/core/testing.md](../../core/testing.md) - v2.1.0 unit-test model and test-module surface
 - [docs/guides/blueprints/tester.md](../blueprints/tester.md) - `@use_tester` and per-type algorithms
 - [docs/guides/contexts.md](../contexts.md) - `TesterContext` registry and `TestSessionContext`
 - [docs/guides/assets.md](../assets.md) - `CORE_DEFAULT_TESTERS` catalog pattern

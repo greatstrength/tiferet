@@ -118,12 +118,12 @@ interfaces:
 from tiferet import CLI
 
 if __name__ == "__main__":
-    # Realize the calc_cli interface (CliContext) and dispatch sys.argv.
+    # Compose the calc_cli session (CliSessionContext) and dispatch sys.argv.
     CLI("calc_cli", app_config="config.yml")
 ```
 
 That's it - super short!  
-`CLI("calc_cli", ...)` realizes the `CliContext` declared by `calc_cli` in root `config.yml` (which also holds the CLI command definitions) and delegates `sys.argv` parsing and feature dispatch to `CliContext.run_cli`.
+`CLI("calc_cli", ...)` composes the `CliSessionContext` for the `calc_cli` session in root `config.yml` (which also holds the CLI command definitions) and delegates `sys.argv` parsing and feature dispatch to `CliSessionContext.run(argv)`.
 
 ### 6.4 Run and play with it
 

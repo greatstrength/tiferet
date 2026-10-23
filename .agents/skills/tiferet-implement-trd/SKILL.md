@@ -15,7 +15,7 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 - Prototype / RFP - `tiferet-rfp-session`.
 - Authoring the TRD - `tiferet-author-trd`.
 - Docs/skills.
-- Cutting the Super-TRD branch, opening the Super-TRD PR to `main`, or running a fan-out - the orchestrator or the maintainer (`docs/collab/process.md` § Super-TRD branch). Closing a milestone - the maintainer only (§ Agent guardrails).
+- Cutting or pushing the Super-TRD branch, opening the Super-TRD PR to `main`, merging `main` into the Super-TRD branch, or running a fan-out - the maintainer only. Closing a milestone - the maintainer only (`docs/collab/process.md` § Agent guardrails). Implement a child only from a Super-TRD branch the maintainer has already pushed.
 - A Super-TRD child whose parent branch is not pushed yet. Stop and report. Do not open a PR to `main` in its place.
 
 ## Canonical source
@@ -29,7 +29,7 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 
 ## Inputs
 
-TRD issue number. For a Super-TRD child: parent issue number and the already-pushed Super-TRD branch `<parent-issue>-<slug>`. Binding. The PR base, named in the dispatch prompt (standalone: `main`; child: the Super-TRD branch).
+TRD issue number. For a Super-TRD child: parent issue number and the already-pushed Super-TRD branch `<parent-issue>-<slug>`. Binding. The PR base, named in the task (standalone: `main`; child: the Super-TRD branch the maintainer pushed).
 
 ## Procedure
 

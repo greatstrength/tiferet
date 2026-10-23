@@ -64,7 +64,7 @@ dep = config.get_dependency('sqlite', 'yaml')
 Flags flow into the DI container from multiple sources:
 
 1. **`AppSession.flags`** - session-level flags set in `app/configs/app.yml` (e.g., `['yaml']`, `['sqlite', 'yaml']`).
-2. **`Feature.flags`** - feature-level flag overrides defined in `feature.yml`.
+2. **`Feature.flags`** - feature-level flag overrides defined in the `features` section of `config.yml`.
 3. **`EventFeatureStep.flags`** - step-level flag overrides within a feature workflow.
 
 At resolution time, `DIContext` merges these flag sources and calls `ServiceRegistration.get_dependency(*merged_flags)` to select the correct concrete implementation for each service.

@@ -7,7 +7,7 @@
 
 ## Overview
 
-The CLI domain defines the structural configuration for command-line interface commands in Tiferet. CLI commands serve as the **terminal-to-feature bridge**: each `CliCommand` has a composite identifier (`group_key.key`) that maps directly to a feature ID in `feature.yml`, enabling seamless execution of domain features via `argparse`-driven command-line input.
+The CLI domain defines the structural configuration for command-line interface commands in Tiferet. CLI commands serve as the **terminal-to-feature bridge**: each `CliCommand` has a composite identifier (`group_key.key`) that maps directly to a feature ID in the `features` section of `config.yml`, enabling seamless execution of domain features via `argparse`-driven command-line input.
 
 - `CliArgument` - represents a single command-line argument or flag, mapping to `argparse.add_argument()` parameters.
 - `CliCommand` - represents a CLI command with a composite ID, a custom `new()` factory for ID derivation, and a `has_argument()` query method.
@@ -129,10 +129,10 @@ cmd.has_argument(['-z'])            # False if no match
 
 ## The CLI-to-Feature Bridge
 
-The CLI domain's key design pattern is the **CLI-to-Feature bridge**: every `CliCommand.id` corresponds exactly to a feature ID in `feature.yml`. When a user runs a CLI command, the `CliContext` maps the parsed command to a feature and executes it via `FeatureContext`.
+The CLI domain's key design pattern is the **CLI-to-Feature bridge**: every `CliCommand.id` corresponds exactly to a feature ID in the `features` section of `config.yml`. When a user runs a CLI command, `CliSessionContext` maps the parsed command to a feature and executes it via `FeatureContext`.
 
 For example:
-- CLI command `calc.add` → Feature `calc.add` (defined in `feature.yml`)
+- CLI command `calc.add` → Feature `calc.add` (defined under `features` in `config.yml`)
 - CLI command `calc.sqrt` → Feature `calc.sqrt`
 
 This 1:1 mapping ensures CLI commands are thin entry points that delegate all business logic to the feature layer.
@@ -206,7 +206,7 @@ Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **Feature:** `CliCommand.id` maps 1:1 to feature IDs in `feature.yml`. CLI commands are thin entry points that delegate to the feature layer.
+- **Feature:** `CliCommand.id` maps 1:1 to feature IDs in the `features` section of `config.yml`. CLI commands are thin entry points that delegate to the feature layer.
 - **App:** The CLI session in the configuration specifies `CliService` as a service dependency. The `build_cli` / `build_admin_cli` blueprints handle argparse wiring and dispatch to `CliSessionContext` / `AppSessionContext`.
 - **Error:** CLI error responses are formatted via the hub's `raise_error_handler` / `ErrorContext`, providing user-friendly messages for validation failures and domain errors.
 - **Admin:** Built-in management commands and `'dict'` flat-map arguments are documented in [docs/guides/admin.md](../admin.md).

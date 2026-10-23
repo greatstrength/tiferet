@@ -295,7 +295,7 @@ Do not share a single `CacheContext` instance across sessions. Each `AppSessionC
 ## Related Documentation
 
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) - Context base classes, five-handler contract, artifact comments, and code style reference
-- [docs/core/testing.md](../core/testing.md) - v2.1.0 unit-test model (`TesterContext`, `TestSessionContext`, leftover `tiferet.testing`)
+- [docs/core/testing.md](../core/testing.md) - v2.1.0 unit-test model (`TesterContext`, `TestSessionContext`)
 - [docs/guides/domain/tester.md](domain/tester.md) - `TesterObject` and `Verification`
 - [docs/guides/blueprints/tester.md](blueprints/tester.md) - `@use_tester` cookbook and per-type algorithms
 - [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) - Blueprint design (`build_app`, `build_cli`, `build_admin_app`, `build_admin_cli`)
