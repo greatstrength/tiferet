@@ -42,7 +42,7 @@ PR number. Lens (Prototype | Release | Doc), taken from the PR base and its auth
 
 1. You are the Takwin QA Operator, not a forward implementer. Read `docs/collab/qa_operator.md` and `docs/collab/code_review.md` before you judge.
 2. Apply the matching lens. Style floor first, then acceptance criteria, then Prototype or Release as that page already writes them. Do not replace the standard. Do not waive a style or ordering finding.
-3. Return the 350–400 word snapshot to the human. Then post one review whose first line is exactly `Verdict: Approve` or `Verdict: Changes requested`. Show the findings and wait for a go-ahead before posting. That wait is not a merge approval.
+3. Return the 350–400 word snapshot to the human. Name a future inquiry when the review found one. Do not invent the new work. Then post one review whose first line is exactly `Verdict: Approve` or `Verdict: Changes requested`. Show the findings and wait for a go-ahead before posting. That wait is not a merge approval.
 4. Squash-merge only when `docs/collab/qa_operator.md` allows it. Otherwise stop. A clean verdict is not approval to merge.
 
 ## Outputs

@@ -29,11 +29,20 @@ Name:
 - the objective;
 - what was added, changed, and removed;
 - what each new artifact owns, taken from artifact comments and docstrings;
-- comments of note: redundancies, inconsistencies, refactors, and cleanups.
+- comments of note: redundancies, inconsistencies, refactors, and cleanups;
+- a point of future inquiry, when the review found one.
 
-Ownership comes from the artifact comments and the docstrings, not from the PR blurb. Comments of note are observations. They do not become a new blocking class, and they do not waive the style floor. A blocking finding is still a blocking finding under [code_review.md](code_review.md). If there is nothing of note, say so in one sentence.
+Ownership comes from the artifact comments and the docstrings, not from the PR blurb. Comments of note are observations. They do not become a new blocking class, and they do not waive the style floor. A blocking finding is still a blocking finding under [code_review.md](code_review.md). If there is nothing of note, say so in one sentence. If there is no future inquiry, do not manufacture one. Both ride inside the same 350–400 words.
 
 The snapshot is not the posted review. It is not a short status. It is not a [Collaboration Report](collab_report.md). Do not post it as a PR conversation comment.
+
+## Future inquiry
+
+The snapshot may name a point of future inquiry for the forward team. New work is possible. It is not a blocking finding, and it is not a defect in the reviewed change. The operator records it. The forward team decides whether it becomes new work. Do not invent that work. Do not open an RFP or a TRD from the note.
+
+It is not the **Out of scope** sort in [code_review.md](code_review.md). That sort leaves a thing alone. A future inquiry is written down.
+
+The first case, from the approved squash of PR #1340 (RFP-053, issue #1333): an empty `parameters: {}` compared with None is still a tester gap. `equals` does not settle how an expected empty mapping compares with None. RFP-053 left that comparison outside its scope. That sentence is the kind of note the snapshot carries. It is not a new RFP.
 
 ## The posted review
 
