@@ -115,6 +115,39 @@ testers:
                 - lang: es_ES
                   text: Este es un nuevo error.
 
+      accepts_extra_kwargs:
+        conditions:
+          mocks:
+            error_service:
+              <<: *error_service
+              return_value:
+                exists: false
+        execute:
+          - target: self
+            method: handle
+            kwargs:
+              id: NEW_ERROR
+              name: New Error
+              message: This is a new error message.
+              lang: en_US
+              additional_messages: {}
+              group: error
+              command: add
+              cache: session-cache
+            as: created
+        assert:
+          - outcome: created
+            type:
+              module_path: tiferet.domain.error
+              class_name: Error
+          - outcome: created
+            fields:
+              id: NEW_ERROR
+          - mock: error_service
+            method: save
+            assert_called_once_with:
+              args: [$r.created]
+
       already_exists:
         conditions:
           mocks:
