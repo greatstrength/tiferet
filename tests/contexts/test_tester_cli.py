@@ -502,7 +502,7 @@ class TestTesterCliSessionContext:
     # * test: module_run_api_error_exits_1
     def test_module_run_api_error_exits_1(self) -> None:
         '''
-        Assert a TiferetAPIError from the injected runner exits 1.
+        Assert a TiferetAPIError from the injected runner is logged once and exits 1.
 
         :return: None
         :rtype: None
@@ -518,15 +518,20 @@ class TestTesterCliSessionContext:
         def parse_cli_args(argv):
             return MODULE_RUN_ID, {}, {'module_path': 'missing'}
 
+        logger = Mock()
         context = self.bind_session(
             parse_cli_args=parse_cli_args,
             run_test_module=run_test_module,
+            build_logger_handler=lambda logger_id: logger,
         )
 
-        # Assert the module run exits 1.
+        # Assert the module run exits 1 and writes one error record.
         with pytest.raises(SystemExit) as error:
             context.run(['module', 'run', 'missing'])
         assert '1' in str(error.value)
+        logger.error.assert_called_once_with(
+            'Module run failed to load missing: TEST_MODULE_NOT_FOUND: TEST_MODULE_NOT_FOUND',
+        )
 
     # * test: writer_command_api_error_exits_1
     def test_writer_command_api_error_exits_1(self) -> None:

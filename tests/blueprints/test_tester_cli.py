@@ -406,6 +406,45 @@ def test_bad_python_path_exits_one(capsys):
     assert 'Traceback' not in captured.err
     assert error_records(captured.out) == []
 
+# ** test: module_run_api_error_exits_one_and_logs
+def test_module_run_api_error_exits_one_and_logs(capsys):
+    '''
+    A TiferetAPIError from the injected runner keeps its print, exits 1, and is one error record.
+
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The injected runner raises a catalogued API error.
+    def runner(module_path, summary=False):
+        raise tiferet.TiferetAPIError(
+            'TEST_MODULE_NOT_FOUND',
+            message='Test module not found: missing.py.',
+        )
+
+    with mock.patch(
+        'tiferet.blueprints.tester_cli.run_test_module',
+        runner,
+    ), pytest.raises(SystemExit) as exit_info:
+        build_tester_cli(argv=[
+            'module',
+            'run',
+            'missing.py',
+        ])
+    captured = capsys.readouterr()
+
+    # Assert exit 1, the existing print, and one tester error record naming the path, code, and message.
+    assert exit_info.value.code == 1
+    records = error_records(captured.err)
+    assert len(records) == 1
+    assert 'Module run failed to load missing.py: TEST_MODULE_NOT_FOUND: Test module not found: missing.py.' in records[0]
+    printed = [line for line in captured.err.splitlines() if TESTER_ERROR_MARKER not in line]
+    assert any('TEST_MODULE_NOT_FOUND' in line for line in printed)
+    assert 'Traceback' not in captured.err
+    assert error_records(captured.out) == []
+
 # ** test: unwired_runner_raises
 def test_unwired_runner_raises():
     '''
