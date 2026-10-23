@@ -73,6 +73,60 @@ fixtures:
       flag: *dep_flag
       parameters:
         test_param2: test_value2
+  overlay_registration: &overlay_registration
+    module_path: *di_mapper
+    class_name: ServiceRegistrationAggregate
+    attributes:
+      id: *registration_id
+      module_path: *dep_module
+      class_name: DefaultTestRepoProxy
+      dependencies:
+        - module_path: *dep_module
+          class_name: *dep_class
+          flag: existing
+          parameters:
+            keep: original
+            override: old
+        - module_path: *dep_module
+          class_name: OtherRepoProxy
+          flag: other
+          parameters:
+            p: other
+  repeat_registration: &repeat_registration
+    module_path: *di_mapper
+    class_name: ServiceRegistrationAggregate
+    attributes:
+      id: *registration_id
+      module_path: *dep_module
+      class_name: DefaultTestRepoProxy
+      dependencies:
+        - module_path: *dep_module
+          class_name: DupOne
+          flag: dup_flag
+        - module_path: *dep_module
+          class_name: OtherRepoProxy
+          flag: other
+        - module_path: *dep_module
+          class_name: DupTwo
+          flag: dup_flag
+  reversed_registration: &reversed_registration
+    module_path: *di_mapper
+    class_name: ServiceRegistrationAggregate
+    attributes:
+      id: *registration_id
+      module_path: *dep_module
+      class_name: DefaultTestRepoProxy
+      dependencies:
+        - module_path: *dep_module
+          class_name: TestRepoProxy2
+          flag: test2
+          parameters:
+            param2: value2
+        - module_path: *dep_module
+          class_name: *dep_class
+          flag: test
+          parameters:
+            test_param: test_value
 
 testers:
   test_flagged_dependency_aggregate:
@@ -133,7 +187,7 @@ testers:
         assert:
           - outcome: failed
             error_code: INVALID_MODEL_ATTRIBUTE
-      set_parameters_clears_when_none:
+      set_parameters_none_leaves_existing:
         conditions: {}
         execute:
           - target: self
@@ -149,9 +203,21 @@ testers:
             method: getattr
             args: [$r.built, parameters]
             as: parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.parameters]
+            as: parameter_keys
         assert:
           - outcome: parameters
-            equals: {}
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: parameter_keys
+            equals: [keep, override]
+          - outcome: parameters
+            equals: *dep_parameters
       set_parameters_merges_and_prunes_none_values:
         conditions: {}
         execute:
@@ -177,12 +243,70 @@ testers:
               keep: original
               override: new
               add: added
+      set_parameters_overlay_exact:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_parameters
+            kwargs:
+              parameters:
+                override: new
+                remove: null
+                add: added
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.built, parameters]
+            as: parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.parameters]
+            as: parameter_keys
+          - target: self
+            method: new
+            as: emptied
+          - target: $r.emptied
+            method: set_parameters
+            kwargs:
+              parameters: {}
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.emptied, parameters]
+            as: empty_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.empty_parameters]
+            as: empty_keys
+        assert:
+          - outcome: parameter_keys
+            equals: [keep, override, add]
+          - outcome: parameters
+            equals:
+              keep: original
+              override: new
+              add: added
+          - outcome: empty_keys
+            equals: [keep, override]
+          - outcome: empty_parameters
+            equals: *dep_parameters
   test_service_registration_aggregate:
     module_path: *di_mapper
     class_name: ServiceRegistrationAggregate
     attributes: *registration_sample
     fixtures:
       service_registration_aggregate: *service_registration_aggregate
+      overlay_registration: *overlay_registration
+      repeat_registration: *repeat_registration
     tests:
       new:
         conditions: {}
@@ -414,12 +538,206 @@ testers:
             fields:
               dependencies:
                 - flag: existing
+      set_dependency_none_parameters_leaves_existing:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_dependency
+            kwargs:
+              flag: existing
+              module_path: tests.repos.updated
+              class_name: UpdatedRepoProxy
+              parameters: null
+          - target: $r.built
+            method: get_dependency
+            args: [existing]
+            as: updated
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.updated, parameters]
+            as: parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.parameters]
+            as: parameter_keys
+        assert:
+          - outcome: updated
+            fields:
+              module_path: tests.repos.updated
+              class_name: UpdatedRepoProxy
+          - outcome: parameter_keys
+            equals: [param1]
+          - outcome: parameters
+            equals:
+              param1: value1
+      set_dependency_overlay_in_place:
+        conditions:
+          fixtures: [overlay_registration]
+        execute:
+          - target: overlay_registration
+            method: set_dependency
+            kwargs:
+              flag: existing
+              module_path: tests.repos.updated
+              class_name: UpdatedRepoProxy
+              parameters:
+                override: new
+                remove: null
+                add: added
+          - target: overlay_registration
+            method: set_dependency
+            kwargs:
+              flag: other
+              module_path: *dep_module
+              class_name: OtherRepoProxy
+              parameters: {}
+          - target: overlay_registration
+            method: get_dependency
+            args: [existing]
+            as: existing
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.existing, parameters]
+            as: existing_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.existing_parameters]
+            as: existing_keys
+          - target: overlay_registration
+            method: get_dependency
+            args: [other]
+            as: other
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.other, parameters]
+            as: other_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.other_parameters]
+            as: other_keys
+        assert:
+          - outcome: existing_keys
+            equals: [keep, override, add]
+          - outcome: existing_parameters
+            equals:
+              keep: original
+              override: new
+              add: added
+          - outcome: other_keys
+            equals: [p]
+          - outcome: overlay_registration
+            fields:
+              dependencies:
+                - flag: existing
+                  class_name: UpdatedRepoProxy
+                - flag: other
+      set_dependency_create_drops_none_values:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: set_dependency
+            kwargs:
+              flag: pruned_flag
+              module_path: *dep_module
+              class_name: PrunedRepoProxy
+              parameters:
+                p1: v1
+                gone: null
+          - target: $r.built
+            method: set_dependency
+            kwargs:
+              flag: null_flag
+              module_path: *dep_module
+              class_name: NullRepoProxy
+              parameters: null
+          - target: $r.built
+            method: get_dependency
+            args: [pruned_flag]
+            as: pruned
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.pruned, parameters]
+            as: pruned_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.pruned_parameters]
+            as: pruned_keys
+          - target: $r.built
+            method: get_dependency
+            args: [null_flag]
+            as: nulled
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.nulled, parameters]
+            as: null_parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.null_parameters]
+            as: null_keys
+        assert:
+          - outcome: pruned_keys
+            equals: [p1]
+          - outcome: null_parameters
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: null_keys
+            equals: []
+          - outcome: built
+            fields:
+              dependencies:
+                - flag: existing
+                - flag: pruned_flag
+                - flag: null_flag
+      remove_dependency_drops_every_match:
+        conditions:
+          fixtures: [repeat_registration]
+        execute:
+          - target: repeat_registration
+            method: remove_dependency
+            args: [dup_flag]
+            as: removed
+        assert:
+          - outcome: removed
+            'null': true
+          - outcome: repeat_registration
+            fields:
+              dependencies:
+                - flag: other
   test_service_registration_config_object:
     module_path: *di_mapper
     class_name: ServiceRegistrationConfigObject
     attributes: *transfer_sample
     fixtures:
       registration_for_transfer: *registration_for_transfer
+      repeat_registration: *repeat_registration
+      reversed_registration: *reversed_registration
     tests:
       map:
         conditions: {}
@@ -791,3 +1109,114 @@ testers:
                   class_name: TestRepoProxy2
                   parameters:
                     param2: value2
+      from_model_key_order:
+        conditions:
+          fixtures: [registration_for_transfer, reversed_registration]
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: from_model
+            args: [$fixture.registration_for_transfer]
+            as: copied
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.copied, dependencies]
+            as: dependencies
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.dependencies]
+            as: flag_keys
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: from_model
+            args: [$fixture.reversed_registration]
+            as: reversed_copy
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.reversed_copy, dependencies]
+            as: reversed_dependencies
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.reversed_dependencies]
+            as: reversed_keys
+        assert:
+          - outcome: flag_keys
+            equals: [test, test2]
+          - outcome: reversed_keys
+            equals: [test2, test]
+      map_key_order:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: model_validate
+            args: [*transfer_sample]
+            as: transfer
+          - target: $r.transfer
+            method: map
+            as: mapped
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: model_validate
+            args:
+              - id: *registration_id
+                module_path: *dep_module
+                class_name: DefaultTestRepoProxy
+                deps:
+                  test2:
+                    module_path: *dep_module
+                    class_name: TestRepoProxy2
+                  test:
+                    module_path: *dep_module
+                    class_name: *dep_class
+            as: reversed_transfer
+          - target: $r.reversed_transfer
+            method: map
+            as: reversed_mapped
+        assert:
+          - outcome: mapped
+            fields:
+              dependencies:
+                - flag: test
+                - flag: test2
+          - outcome: reversed_mapped
+            fields:
+              dependencies:
+                - flag: test2
+                  class_name: TestRepoProxy2
+                - flag: test
+                  class_name: *dep_class
+      from_model_repeated_flag_raises:
+        conditions:
+          fixtures: [repeat_registration]
+        execute:
+          - target:
+              module_path: *di_mapper
+              class_name: ServiceRegistrationConfigObject
+            method: from_model
+            args: [$fixture.repeat_registration]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_MODEL_VALUE
+          - outcome: failed
+            message: "Flagged dependency 'dup_flag' is repeated"
+          - outcome: repeat_registration
+            fields:
+              dependencies:
+                - flag: dup_flag
+                - flag: other
+                - flag: dup_flag
