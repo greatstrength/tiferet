@@ -51,6 +51,7 @@ class AddError(ErrorEvent):
             message: str,
             lang: str = 'en_US',
             additional_messages: Dict[str, str] = {},
+            **kwargs,
         ) -> None:
         '''
         Add a new Error to the app.
@@ -65,6 +66,8 @@ class AddError(ErrorEvent):
         :type lang: str
         :param additional_messages: A language-code to message-text mapping of additional messages beyond the primary one.
         :type additional_messages: Dict[str, str]
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
         '''
 
         # Check if an error with the same ID already exists.
