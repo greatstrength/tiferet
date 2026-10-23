@@ -21,6 +21,35 @@ from ..di.core import ServiceResolver
 from . import app, core
 from .core import add_default_catalog
 
+# *** functions
+
+# ** function: build_admin_session_constants
+def build_admin_session_constants(constants: Dict[str, Any], app_config: str) -> Dict[str, Any]:
+    '''
+    Overlay every config-file session constant with the supplied config path.
+
+    Returns a new dict holding every entry of ``constants``, then ``app_config``
+    and each ``*_config`` key set to ``app_config``. The input is not mutated.
+
+    :param constants: The existing session constants, or None.
+    :type constants: Dict[str, Any]
+    :param app_config: Path to the consumer configuration file.
+    :type app_config: str
+    :return: A new constants dict whose config-file keys equal app_config.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Copy the existing constants, then set every config-file key to app_config.
+    return {
+        **(constants or {}),
+        'app_config': app_config,
+        'cli_config': app_config,
+        'di_config': app_config,
+        'error_config': app_config,
+        'feature_config': app_config,
+        'logging_config': app_config,
+    }
+
 # *** blueprints
 
 # ** blueprint: build_cache
@@ -56,7 +85,8 @@ def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
 # ** blueprint: build_admin_service_resolver
 def build_admin_service_resolver(app_container: DIAppServiceContainer,
         cache: CacheContext,
-        parse_parameter: Callable = core.parse_parameter) -> ServiceResolver:
+        parse_parameter: Callable = core.parse_parameter,
+        session_constants: Dict[str, Any] = None) -> ServiceResolver:
     '''
     Compose the admin feature-level service resolver.
 
@@ -70,6 +100,8 @@ def build_admin_service_resolver(app_container: DIAppServiceContainer,
     :type cache: CacheContext
     :param parse_parameter: The parameter-parsing callable injected into the resolver.
     :type parse_parameter: Callable
+    :param session_constants: Optional app session constants overlaid on the admin container constants.
+    :type session_constants: Dict[str, Any] | None
     :return: The composed admin service resolver.
     :rtype: ServiceResolver
     '''
@@ -78,11 +110,13 @@ def build_admin_service_resolver(app_container: DIAppServiceContainer,
     di_service = app_container.get_dependency('di_service')
 
     # Build the admin container from cache-seeded admin services and constants.
+    # Session constants override the admin defaults, including load_cache.
     admin_container = DIAppServiceContainer.from_dependencies(
         services=list(cache.get_by_prefix(*a.app.ADMIN_SERVICE_CACHE_PREFIX).values()),
         constants={
             **cache.get_by_prefix(*a.app.ADMIN_CONSTANT_CACHE_PREFIX),
             'load_cache': core.load_cache(cache),
+            **(session_constants or {}),
         },
     )
 
@@ -124,7 +158,7 @@ def build_admin_app_session_context(app_session: AppSession,
 
     # Build the app service container and compose the admin service resolver.
     app_container = core.build_app_service_container(cache, app_session)
-    resolver = build_admin_service_resolver(app_container, cache)
+    resolver = build_admin_service_resolver(app_container, cache, session_constants=app_session.constants)
 
     # Delegate handler wiring, collaborator resolution, and construction.
     return core.compose_session_context(
@@ -145,7 +179,8 @@ def build_admin_app(interface_id: str = a.app.TIFERET_ADMIN_ID,
     Build a fully resolved admin application session context in a single call.
 
     The built-in admin session is cache-seeded by CORE_DEFAULT_APP_SESSIONS, so
-    no consumer config entry is required for the default interface id.
+    no consumer config entry is required for the default interface id. When
+    ``app_config`` is supplied, every ``*_config`` session constant is set to it.
 
     :param interface_id: The interface identifier to load; defaults to the admin session id.
     :type interface_id: str
@@ -160,6 +195,13 @@ def build_admin_app(interface_id: str = a.app.TIFERET_ADMIN_ID,
 
     # Resolve the app session, preferring a cache-seeded default.
     app_session = core.get_app_session(interface_id, cache, **parameters)
+
+    # Re-seed session constants so every config-file repository uses app_config.
+    if 'app_config' in parameters:
+        app_session.constants = build_admin_session_constants(
+            app_session.constants,
+            parameters['app_config'],
+        )
 
     # Build the fully wired admin app session context.
     app_session_context = build_admin_app_session_context(app_session, cache)
