@@ -294,7 +294,7 @@ def create_params_schema(**params: Any) -> Dict[str, Any]:
     either a plain type string (``'str'``, ``'int'``, ``'bool'``, ``'float'``,
     ``'list'``, ``'dict'``) for a required parameter, or a parameter-spec dict
     with keys ``type``, ``required``, ``default``, and any additional
-    constraints recognised by ``RequestSpecification``.
+    constraints recognised by ``ParameterSpecification``.
 
     :param params: Mapping of parameter names to type strings or spec dicts.
     :type params: Any
