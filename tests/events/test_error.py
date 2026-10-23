@@ -165,6 +165,32 @@ class TestAddError:
         assert any(msg.text == 'This is a new error message.' and msg.lang == 'en_US' for msg in result.message)
         assert any(msg.text == 'Este es un nuevo error.' and msg.lang == 'es_ES' for msg in result.message)
 
+    # * test: accepts_extra_kwargs
+    def test_accepts_extra_kwargs(self, test_ctx, mock_dependencies):
+        '''
+        Test that AddError accepts and ignores extra execution keyword arguments (CLI group/command, session cache).
+
+        :param test_ctx: The bound domain-event tester context.
+        :type test_ctx: DomainEventTesterContext
+        :param mock_dependencies: The mocked event dependencies.
+        :type mock_dependencies: dict
+        '''
+
+        # Execute with the extra keys feature execution passes; no TypeError is raised.
+        result = test_ctx.handle(
+            mock_dependencies,
+            group='error',
+            command='add',
+            cache=object(),
+        )
+
+        # Assert the error was created from the sample kwargs.
+        assert isinstance(result, Error)
+        assert result.id == 'NEW_ERROR'
+
+        # Assert the new error was saved.
+        mock_dependencies['error_service'].save.assert_called_once_with(result)
+
     # * test: already_exists
     def test_already_exists(self, test_ctx, mock_dependencies):
         '''
