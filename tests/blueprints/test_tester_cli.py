@@ -40,6 +40,7 @@ from tiferet.contexts import tester_cli as tester_cli_contexts
 from tiferet.contexts.feature import FEATURE_CACHE_PREFIX
 from tiferet.contexts.logging import get_default_logging_settings
 from tiferet.domain import LoggingSettings
+from tiferet.interfaces import ServiceError
 
 # *** constants
 
@@ -444,6 +445,77 @@ def test_module_run_api_error_exits_one_and_logs(capsys):
     assert any('TEST_MODULE_NOT_FOUND' in line for line in printed)
     assert 'Traceback' not in captured.err
     assert error_records(captured.out) == []
+
+# ** test: module_run_service_error_record_has_the_plain_message
+def test_module_run_service_error_record_has_the_plain_message(capsys):
+    '''
+    A ServiceError load failure writes its plain message, not its JSON string.
+
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The injected runner raises the YAML not-found service error.
+    def runner(module_path, summary=False):
+        raise ServiceError(
+            'YAML_FILE_NOT_FOUND',
+            message='File not found: tiferet_tests/missing.yml',
+            module_path='tiferet.utils.yaml',
+            class_name='YamlLoader',
+        )
+
+    with mock.patch(
+        'tiferet.blueprints.tester_cli.run_test_module',
+        runner,
+    ), pytest.raises(SystemExit) as exit_info:
+        build_tester_cli(argv=['module', 'run', 'tests/missing.py'])
+    captured = capsys.readouterr()
+
+    # Assert exit 1 and the exact record text.
+    assert exit_info.value.code == 1
+    records = error_records(captured.err)
+    assert len(records) == 1
+    assert records[0].split(TESTER_ERROR_MARKER, 1)[1] == (
+        'Module run failed to load tests/missing.py: '
+        'YAML_FILE_NOT_FOUND: File not found: tiferet_tests/missing.yml'
+    )
+
+# ** test: module_run_tiferet_error_record_has_the_plain_message
+def test_module_run_tiferet_error_record_has_the_plain_message(capsys):
+    '''
+    A TiferetError load failure writes the message from its JSON string.
+
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The injected runner raises the module load error.
+    def runner(module_path, summary=False):
+        raise tiferet.TiferetError(
+            'TEST_MODULE_LOAD_FAILED',
+            message='Test module could not be loaded.',
+            module_path='tests/broken.py',
+        )
+
+    with mock.patch(
+        'tiferet.blueprints.tester_cli.run_test_module',
+        runner,
+    ), pytest.raises(SystemExit) as exit_info:
+        build_tester_cli(argv=['module', 'run', 'tests/broken.py'])
+    captured = capsys.readouterr()
+
+    # Assert exit 1 and the exact record text.
+    assert exit_info.value.code == 1
+    records = error_records(captured.err)
+    assert len(records) == 1
+    assert records[0].split(TESTER_ERROR_MARKER, 1)[1] == (
+        'Module run failed to load tests/broken.py: '
+        'TEST_MODULE_LOAD_FAILED: Test module could not be loaded.'
+    )
 
 # ** test: unwired_runner_raises
 def test_unwired_runner_raises():
