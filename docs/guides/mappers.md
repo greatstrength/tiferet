@@ -200,7 +200,7 @@ The gate raises `ATTRIBUTE_NOT_SETTABLE_ID`, not `INVALID_MODEL_ATTRIBUTE_ID`: t
 
 ## Parameter Merge-and-Prune Pattern
 
-Several aggregates manage `parameters` dictionaries with merge semantics: new values override existing ones, and keys set to `None` are removed. This pattern appears in `set_constants`, `set_service`, `set_parameters`, and `set_default_type`.
+Several aggregates manage `parameters` dictionaries with merge semantics: new values override existing ones, and keys set to `None` are removed. This pattern appears in `set_constants`, `set_service`, `set_parameters`, and `set_default_type`. `set_constants` and `set_default_type` clear on a `None` argument; `set_service` and `set_parameters` treat a `None` argument as no change and never store a `None` value on create.
 
 ```python
 def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
@@ -212,7 +212,7 @@ def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
 ```
 
 The convention is:
-- `None` argument → clear all.
+- `None` argument → clear all (`set_constants`, `set_default_type`); leave the mapping unchanged (`set_service`, `set_parameters`).
 - Dict argument → merge, then prune `None`-valued keys.
 
 ## Round-Trip Mapping
