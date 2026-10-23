@@ -274,6 +274,8 @@ class TesterCliSessionContext(CliSessionContext):
                 )
             except TiferetAPIError as error:
                 print(error, file=sys.stderr)
+                message = error.message or ''
+                logger.error(f'Module run failed to load {module_path}: {error.error_code}: {message}')
                 sys.exit(1)
             except Exception as error:
                 code = getattr(error, 'error_code', None) or type(error).__name__
