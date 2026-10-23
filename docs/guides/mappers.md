@@ -103,7 +103,7 @@ services={
 }
 ```
 
-This pattern appears in every domain that nests sub-objects: services in app sessions, dependencies in service registrations, messages in errors, steps in features.
+This pattern applies to two collections: app-session services, keyed by `service_id`, and flagged dependencies in service registrations, keyed by `flag`. The key is the identity, so it is unique and `to_data` excludes it from each value. `map` walks the mapping in key order, and `from_model` keeps list order and raises a `ModelError` (`INVALID_MODEL_VALUE`) on a repeated identity instead of collapsing it. Error messages and feature steps are lists on both faces, so they are not this conversion.
 
 <a id="transferobject"></a>
 ## Transfer Object Role Strategy
