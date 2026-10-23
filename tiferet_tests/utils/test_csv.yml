@@ -1,0 +1,844 @@
+testers:
+  csv_loader_read:
+    module_path: &csv_module tiferet.utils.csv
+    class_name: CsvLoader
+    attributes:
+      path: $r.file_path
+      mode: r
+    tests:
+      read_all:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.csv
+              text: &sample_csv |
+                name,age,city
+                Alice,30,New York
+                Bob,25,London
+                Charlie,35,Paris
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: read_all
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: &exit_args [null, null, null]
+        assert:
+          - outcome: result
+            equals: &sample_rows
+              - [name, age, city]
+              - [Alice, '30', New York]
+              - [Bob, '25', London]
+              - [Charlie, '35', Paris]
+
+      read_row:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.csv
+              text: *sample_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: read_row
+            as: first
+          - target: $r.loader
+            method: read_row
+            as: second
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: first
+            equals: [name, age, city]
+          - outcome: second
+            equals: [Alice, '30', New York]
+
+      read_row_eof:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: empty.csv
+              text: ''
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: read_row
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: []
+
+      yield_rows:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.csv
+              text: *sample_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: yield_rows
+            as: generator
+          - target: &list_call
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.generator]
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: *sample_rows
+
+      yield_rows_with_range:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.csv
+              text: *sample_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: yield_rows
+            kwargs:
+              start_line: 2
+              end_line: 3
+            as: generator
+          - target: *list_call
+            method: list
+            args: [$r.generator]
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals:
+              - [Alice, '30', New York]
+              - [Bob, '25', London]
+
+      invalid_write_mode:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.csv
+              text: *sample_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: build_writer
+            raises: true
+            as: failed
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: failed
+            error_code: CSV_INVALID_WRITE_MODE
+
+      file_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.csv]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND
+
+      empty_file:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: empty.csv
+              text: ''
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: read_all
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: []
+
+      context_manager_resets_state:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.csv
+              text: *sample_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: read_all
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: loader
+            fields:
+              reader: null
+              writer: null
+              file: null
+
+  csv_loader_write:
+    module_path: *csv_module
+    class_name: CsvLoader
+    attributes:
+      path: $r.file_path
+      mode: w
+    tests:
+      write_row:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [output.csv]
+            as: file_path
+          - target: self
+            method: new
+            as: writer
+          - target: $r.writer
+            method: __enter__
+          - target: $r.writer
+            method: write_row
+            args: [[name, age]]
+          - target: $r.writer
+            method: __exit__
+            args: *exit_args
+          - target: &csv_loader_call
+              module_path: *csv_module
+              attribute: CsvLoader
+            method: CsvLoader
+            kwargs:
+              path: $r.file_path
+              mode: r
+            as: reader
+          - target: $r.reader
+            method: __enter__
+          - target: $r.reader
+            method: read_all
+            as: rows
+          - target: $r.reader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: rows
+            equals: [[name, age]]
+
+      write_all:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [output.csv]
+            as: file_path
+          - target: self
+            method: new
+            as: writer
+          - target: $r.writer
+            method: __enter__
+          - target: $r.writer
+            method: write_all
+            args:
+              - &written_rows
+                - [a, b]
+                - ['1', '2']
+                - ['3', '4']
+          - target: $r.writer
+            method: __exit__
+            args: *exit_args
+          - target: *csv_loader_call
+            method: CsvLoader
+            kwargs:
+              path: $r.file_path
+              mode: r
+            as: reader
+          - target: $r.reader
+            method: __enter__
+          - target: $r.reader
+            method: read_all
+            as: result
+          - target: $r.reader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: *written_rows
+
+      invalid_read_mode:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [write_only.csv]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: build_reader
+            raises: true
+            as: failed
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: failed
+            error_code: CSV_INVALID_READ_MODE
+
+  csv_loader:
+    module_path: *csv_module
+    class_name: CsvLoader
+    tests:
+      save_and_reload:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [roundtrip.csv]
+            as: file_path
+          - target: &csv_loader_class
+              module_path: *csv_module
+              class_name: CsvLoader
+            method: save_rows
+            args:
+              - $r.file_path
+              - &roundtrip_rows
+                - [x, y]
+                - ['10', '20']
+                - ['30', '40']
+          - target: *csv_loader_class
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals: *roundtrip_rows
+
+      load_rows_static:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.csv
+              text: *sample_csv
+            as: file_path
+          - target: *csv_loader_class
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals: *sample_rows
+
+      save_rows_static_list:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [list_output.csv]
+            as: file_path
+          - target: *csv_loader_class
+            method: save_rows
+            args:
+              - $r.file_path
+              - &list_rows
+                - [col1, col2]
+                - [a, b]
+          - target: *csv_loader_class
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals: *list_rows
+
+      save_rows_dict_mode:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [dict_output.csv]
+            as: file_path
+          - target: *csv_loader_class
+            method: save_rows
+            args:
+              - $r.file_path
+              - - name: Alice
+                  age: '30'
+                - name: Bob
+                  age: '25'
+            kwargs:
+              fieldnames: [name, age]
+          - target: *csv_loader_class
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals:
+              - [name, age]
+              - [Alice, '30']
+              - [Bob, '25']
+
+      save_rows_dict_no_fieldnames:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [dict_no_fields.csv]
+            as: file_path
+          - target: *csv_loader_class
+            method: save_rows
+            args:
+              - $r.file_path
+              - - name: Alice
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: CSV_FIELDNAMES_REQUIRED
+
+      append_row_static:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [append.csv]
+            as: file_path
+          - target: *csv_loader_class
+            method: save_rows
+            args:
+              - $r.file_path
+              - - [header1, header2]
+                - [a, b]
+          - target: *csv_loader_class
+            method: append_row
+            args: [$r.file_path, [c, d]]
+          - target: *csv_loader_class
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals:
+              - [header1, header2]
+              - [a, b]
+              - [c, d]
+
+  csv_dict_read:
+    module_path: *csv_module
+    class_name: CsvDictLoader
+    attributes:
+      path: $r.file_path
+      mode: r
+    tests:
+      read_all:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: dict_test.csv
+              text: &sample_dict_csv |
+                name,age,city
+                Alice,30,New York
+                Bob,25,London
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: read_all
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: &sample_dict_rows
+              - &alice_row
+                name: Alice
+                age: '30'
+                city: New York
+              - &bob_row
+                name: Bob
+                age: '25'
+                city: London
+
+      read_row:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: dict_test.csv
+              text: *sample_dict_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: read_row
+            as: first
+          - target: $r.loader
+            method: read_row
+            as: second
+          - target: $r.loader
+            method: read_row
+            as: eof
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+          - target: &len_call
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.eof]
+            as: eof_length
+        assert:
+          - outcome: first
+            equals: *alice_row
+          - outcome: second
+            equals: *bob_row
+          - outcome: eof_length
+            equals: 0
+          - outcome: eof
+            type:
+              module_path: builtins
+              class_name: dict
+
+      yield_rows:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: dict_test.csv
+              text: *sample_dict_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: yield_rows
+            as: generator
+          - target: *list_call
+            method: list
+            args: [$r.generator]
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: *sample_dict_rows
+
+      yield_rows_with_range:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: dict_test.csv
+              text: *sample_dict_csv
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: yield_rows
+            kwargs:
+              start_line: 2
+              end_line: 2
+            as: generator
+          - target: *list_call
+            method: list
+            args: [$r.generator]
+            as: result
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: [*bob_row]
+
+  csv_dict_write:
+    module_path: *csv_module
+    class_name: CsvDictLoader
+    attributes:
+      path: $r.file_path
+      mode: w
+      fieldnames: [name, score]
+    tests:
+      write_and_reload:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [dict_roundtrip.csv]
+            as: file_path
+          - target: self
+            method: new
+            as: writer
+          - target: $r.writer
+            method: __enter__
+          - target: $r.writer
+            method: write_header
+          - target: $r.writer
+            method: write_all
+            args:
+              - &score_rows
+                - name: X
+                  score: '100'
+                - name: Y
+                  score: '200'
+          - target: $r.writer
+            method: __exit__
+            args: *exit_args
+          - target: &csv_dict_loader_call
+              module_path: *csv_module
+              attribute: CsvDictLoader
+            method: CsvDictLoader
+            kwargs:
+              path: $r.file_path
+              mode: r
+            as: reader
+          - target: $r.reader
+            method: __enter__
+          - target: $r.reader
+            method: read_all
+            as: result
+          - target: $r.reader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: result
+            equals: *score_rows
+
+  csv_dict_write_plain:
+    module_path: *csv_module
+    class_name: CsvDictLoader
+    attributes:
+      path: $r.file_path
+      mode: w
+    tests:
+      fieldnames_required_on_build_writer:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [no_fieldnames.csv]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+          - target: $r.loader
+            method: build_writer
+            raises: true
+            as: failed
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: failed
+            error_code: CSV_FIELDNAMES_REQUIRED
+
+  csv_dict_loader:
+    module_path: *csv_module
+    class_name: CsvDictLoader
+    tests:
+      load_rows_static:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: dict_test.csv
+              text: *sample_dict_csv
+            as: file_path
+          - target: &csv_dict_loader_class
+              module_path: *csv_module
+              class_name: CsvDictLoader
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals: *sample_dict_rows
+
+      save_rows_static:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [dict_save.csv]
+            as: file_path
+          - target: *csv_dict_loader_class
+            method: save_rows
+            args:
+              - $r.file_path
+              - &ab_rows
+                - a: '1'
+                  b: '2'
+                - a: '3'
+                  b: '4'
+            kwargs:
+              fieldnames: [a, b]
+          - target: *csv_dict_loader_class
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals: *ab_rows
+
+      save_rows_no_fieldnames:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [no_fields.csv]
+            as: file_path
+          - target: *csv_dict_loader_class
+            method: save_rows
+            args:
+              - $r.file_path
+              - - a: '1'
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: CSV_FIELDNAMES_REQUIRED
+
+      save_rows_no_header:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [no_header.csv]
+            as: file_path
+          - target: *csv_dict_loader_class
+            method: save_rows
+            args:
+              - $r.file_path
+              - - name: Alice
+                  age: '30'
+            kwargs:
+              fieldnames: [name, age]
+              include_header: false
+          - target: *csv_loader_class
+            method: load_rows
+            args: [$r.file_path]
+            as: result
+        assert:
+          - outcome: result
+            equals: [[Alice, '30']]

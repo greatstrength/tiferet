@@ -1,0 +1,317 @@
+testers:
+  yaml_loader_read:
+    module_path: &yaml_module tiferet.utils.yaml
+    class_name: YamlLoader
+    attributes:
+      path: $r.file_path
+      mode: r
+    tests:
+      load_success:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.yaml
+              text: &sample_yaml |
+                name: test
+                items:
+                  - one
+                  - two
+                count: 3
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            as: result
+        assert:
+          - outcome: result
+            equals: &sample_mapping
+              name: test
+              items: [one, two]
+              count: 3
+
+      load_yml_extension:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.yml
+              text: *sample_yaml
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            as: result
+        assert:
+          - outcome: result
+            equals: *sample_mapping
+
+      load_empty_file:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: empty.yaml
+              text: ''
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            as: result
+          - target:
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.result]
+            as: result_length
+        assert:
+          - outcome: result_length
+            equals: 0
+          - outcome: result
+            type:
+              module_path: builtins
+              class_name: dict
+
+      load_file_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.yaml]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND
+
+      load_malformed_yaml:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: bad.yaml
+              text: 'key: [unclosed bracket'
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_FILE_LOAD_ERROR
+          - outcome: failed
+            fields:
+              kwargs:
+                path: $r.file_path
+
+      verify_yaml_file_success:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.yaml
+              text: *sample_yaml
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: &yaml_loader_class
+              module_path: *yaml_module
+              class_name: YamlLoader
+            method: verify_yaml_file
+            args: [$r.loader]
+            as: verified
+        assert:
+          - outcome: verified
+            'null': true
+
+      verify_yaml_file_invalid_extension:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: data.txt
+              text: &key_value 'key: value'
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *yaml_loader_class
+            method: verify_yaml_file
+            args: [$r.loader]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_FILE
+
+      verify_yaml_file_fallback:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [data.txt]
+            as: file_path
+          - target: $stage
+            method: write
+            kwargs:
+              name: fallback.yaml
+              text: *key_value
+            as: fallback_file_path
+          - target:
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.fallback_file_path]
+            as: default_path
+          - target: self
+            method: new
+            as: loader
+          - target: *yaml_loader_class
+            method: verify_yaml_file
+            args: [$r.loader]
+            kwargs:
+              default_path: $r.default_path
+            as: verified
+        assert:
+          - outcome: verified
+            'null': true
+
+      verify_yaml_file_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.yaml]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *yaml_loader_class
+            method: verify_yaml_file
+            args: [$r.loader]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: YAML_FILE_NOT_FOUND
+          - outcome: failed
+            fields:
+              kwargs:
+                path: $r.file_path
+
+      context_manager_closes_on_error:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: broken.yaml
+              text: ": :\n  - [invalid"
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: load
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type:
+              module_path: tiferet.interfaces.core
+              class_name: ServiceError
+          - outcome: loader
+            fields:
+              file: null
+
+  yaml_loader_write:
+    module_path: *yaml_module
+    class_name: YamlLoader
+    attributes:
+      path: $r.file_path
+      mode: w
+    tests:
+      save_and_reload:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [output.yaml]
+            as: file_path
+          - target: self
+            method: new
+            as: saver
+          - target: $r.saver
+            method: save
+            args:
+              - &saved_mapping
+                key: value
+                numbers: [1, 2, 3]
+          - target:
+              module_path: *yaml_module
+              attribute: YamlLoader
+            method: YamlLoader
+            kwargs:
+              path: $r.file_path
+              mode: r
+            as: loader
+          - target: $r.loader
+            method: load
+            as: result
+        assert:
+          - outcome: result
+            equals: *saved_mapping
+
+      save_write_failure:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [nonexistent_dir, output.yaml]
+            as: file_path
+          - target: self
+            method: new
+            as: saver
+          - target: $r.saver
+            method: save
+            args:
+              - key: value
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND

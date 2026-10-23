@@ -1,0 +1,524 @@
+testers:
+  file_loader_read:
+    module_path: &file_module tiferet.utils.file
+    class_name: FileLoader
+    attributes:
+      path: $r.file_path
+      mode: r
+      encoding: utf-8
+    tests:
+      open_read_close_cycle:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: &sample_content Sample content
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: open_file
+            as: stream
+          - target: $r.stream
+            method: read
+            as: content
+          - target: $r.loader
+            method: close_file
+        assert:
+          - outcome: content
+            equals: *sample_content
+          - outcome: loader
+            fields:
+              file: null
+
+      context_manager_read:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: *sample_content
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+            as: stream
+          - target: $r.stream
+            method: read
+            as: content
+          - target: $r.loader
+            method: __exit__
+            args: &exit_args [null, null, null]
+        assert:
+          - outcome: content
+            equals: *sample_content
+          - outcome: loader
+            fields:
+              file: null
+
+      already_open:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: *sample_content
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+            as: stream
+          - target: $r.loader
+            method: open_file
+            raises: true
+            as: failed
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: failed
+            error_code: FILE_ALREADY_OPEN
+          - outcome: failed
+            fields:
+              kwargs:
+                path: $r.file_path
+
+      file_not_found_read:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [does_not_exist.txt]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: open_file
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND
+          - outcome: failed
+            fields:
+              kwargs:
+                path: $r.file_path
+
+      close_when_not_open:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: *sample_content
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: close_file
+        assert:
+          - outcome: loader
+            fields:
+              file: null
+
+      verify_extension_success:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: config.yaml
+              text: &key_value 'key: value'
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: &file_loader_class
+              module_path: *file_module
+              class_name: FileLoader
+            method: verify_extension
+            kwargs:
+              loader: $r.loader
+              allowed_extensions: &allowed_extensions ['.yaml', '.yml']
+              invalid_error_id: &invalid_error_id INVALID_TEST_EXT
+              invalid_message: &invalid_message Invalid extension.
+              not_found_error_id: &not_found_error_id TEST_NOT_FOUND
+              format_name: &format_name TEST
+            as: verified
+        assert:
+          - outcome: verified
+            'null': true
+
+      verify_extension_invalid_no_fallback:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: config.txt
+              text: *key_value
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *file_loader_class
+            method: verify_extension
+            kwargs:
+              loader: $r.loader
+              allowed_extensions: *allowed_extensions
+              invalid_error_id: *invalid_error_id
+              invalid_message: *invalid_message
+              not_found_error_id: *not_found_error_id
+              format_name: *format_name
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_TEST_EXT
+          - outcome: failed
+            fields:
+              message: *invalid_message
+
+      verify_extension_invalid_with_valid_fallback:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: config.txt
+              text: *key_value
+            as: file_path
+          - target: $stage
+            method: write
+            kwargs:
+              name: default.yaml
+              text: *key_value
+            as: default_file_path
+          - target: &path_call
+              module_path: pathlib
+              attribute: Path
+            method: Path
+            args: [$r.default_file_path]
+            as: default_path
+          - target: self
+            method: new
+            as: loader
+          - target: *file_loader_class
+            method: verify_extension
+            kwargs:
+              loader: $r.loader
+              allowed_extensions: *allowed_extensions
+              invalid_error_id: *invalid_error_id
+              invalid_message: *invalid_message
+              not_found_error_id: *not_found_error_id
+              format_name: *format_name
+              default_path: $r.default_path
+            as: verified
+        assert:
+          - outcome: verified
+            'null': true
+
+      verify_extension_not_found:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [missing.yaml]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: *file_loader_class
+            method: verify_extension
+            kwargs:
+              loader: $r.loader
+              allowed_extensions: *allowed_extensions
+              invalid_error_id: *invalid_error_id
+              invalid_message: *invalid_message
+              not_found_error_id: *not_found_error_id
+              format_name: *format_name
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: TEST_NOT_FOUND
+          - outcome: failed
+            fields:
+              kwargs:
+                path: $r.file_path
+
+  file_loader_write:
+    module_path: *file_module
+    class_name: FileLoader
+    attributes:
+      path: $r.file_path
+      mode: w
+      encoding: utf-8
+    tests:
+      context_manager_write:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: *sample_content
+            as: file_path
+          - target: self
+            method: new
+            as: writer
+          - target: $r.writer
+            method: __enter__
+            as: write_stream
+          - target: $r.write_stream
+            method: write
+            args: [New content]
+          - target: $r.writer
+            method: __exit__
+            args: *exit_args
+          - target: &file_loader_call
+              module_path: *file_module
+              attribute: FileLoader
+            method: FileLoader
+            kwargs:
+              path: $r.file_path
+              mode: r
+              encoding: utf-8
+            as: reader
+          - target: $r.reader
+            method: __enter__
+            as: read_stream
+          - target: $r.read_stream
+            method: read
+            as: content
+          - target: $r.reader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: content
+            equals: New content
+
+      missing_parent_dir_write:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [nonexistent_dir, file.txt]
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: open_file
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: FILE_NOT_FOUND
+
+      write_creates_new_file:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: path
+            args: [new_file.txt]
+            as: file_path
+          - target: $stage
+            method: exists
+            kwargs:
+              name: new_file.txt
+            as: before
+          - target: self
+            method: new
+            as: writer
+          - target: $r.writer
+            method: __enter__
+            as: stream
+          - target: $r.stream
+            method: write
+            args: [Created content]
+          - target: $r.writer
+            method: __exit__
+            args: *exit_args
+          - target: $stage
+            method: exists
+            kwargs:
+              name: new_file.txt
+            as: after
+          - target: $stage
+            method: read
+            kwargs:
+              name: new_file.txt
+            as: content
+        assert:
+          - outcome: before
+            equals: false
+          - outcome: after
+            equals: true
+          - outcome: content
+            equals: Created content
+
+  file_loader_invalid_mode:
+    module_path: *file_module
+    class_name: FileLoader
+    attributes:
+      path: $r.file_path
+      mode: z
+      encoding: utf-8
+    tests:
+      invalid_mode:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: *sample_content
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: open_file
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_FILE_MODE
+          - outcome: failed
+            fields:
+              kwargs:
+                mode: z
+
+  file_loader_no_encoding:
+    module_path: *file_module
+    class_name: FileLoader
+    attributes:
+      path: $r.file_path
+      mode: r
+      encoding: null
+    tests:
+      missing_encoding_text_mode:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: *sample_content
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: open_file
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            error_code: INVALID_ENCODING
+
+  file_loader_binary:
+    module_path: *file_module
+    class_name: FileLoader
+    attributes:
+      path: $r.file_path
+      mode: rb
+      encoding: null
+    tests:
+      binary_mode_no_encoding:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: test.txt
+              text: *sample_content
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+            as: stream
+          - target: $r.stream
+            method: read
+            as: content
+          - target: $r.content
+            method: decode
+            as: decoded
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: content
+            type:
+              module_path: builtins
+              class_name: bytes
+          - outcome: decoded
+            equals: *sample_content
+          - outcome: loader
+            fields:
+              file: null
+
+  file_loader_newline:
+    module_path: *file_module
+    class_name: FileLoader
+    attributes:
+      path: $r.file_path
+      mode: r
+      encoding: utf-8
+      newline: "\n"
+    tests:
+      newline_preservation:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            kwargs:
+              name: newline_test.txt
+              text: "Line 1\nLine 2\nLine 3\n"
+            as: file_path
+          - target: self
+            method: new
+            as: loader
+          - target: $r.loader
+            method: __enter__
+            as: stream
+          - target: $r.stream
+            method: readlines
+            as: lines
+          - target: $r.loader
+            method: __exit__
+            args: *exit_args
+        assert:
+          - outcome: lines
+            equals: ["Line 1\n", "Line 2\n", "Line 3\n"]
