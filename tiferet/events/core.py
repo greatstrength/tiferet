@@ -117,6 +117,7 @@ class DomainEvent(object):
             DomainEvent.raise_error(
                 a.error.COMMAND_PARAMETER_REQUIRED_ID,
                 message=f'Required parameters missing for {instance.__class__.__name__}.',
+                parameter=', '.join(missing),
                 parameters=missing,
                 command=instance.__class__.__name__,
             )
