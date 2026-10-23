@@ -286,8 +286,8 @@ class TesterCliSessionContext(CliSessionContext):
                 sys.exit(1)
             except Exception as error:
                 code = getattr(error, 'error_code', None) or type(error).__name__
-                message = str(error)
-                if isinstance(error, TiferetError):
+                message = getattr(error, 'message', None) or str(error)
+                if isinstance(error, TiferetError) and message == str(error):
                     message = json.loads(message).get('message') or message
                 logger.error(f'Module run failed to load {module_path}: {code}: {message}')
                 sys.exit(1)
