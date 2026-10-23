@@ -111,7 +111,10 @@ def test_records_and_message(stage: Stage) -> None:
     # A root record, a propagating named record, an error, and an unnamed level.
     logging.debug('Executing SampleEvent')
     logging.getLogger('tiferet.stage_probe').debug('named')
-    logging.error('Failed SampleEvent', exc_info=True)
+    try:
+        raise ValueError('boom')
+    except ValueError:
+        logging.error('Failed SampleEvent', exc_info=True)
     logging.log(25, 'custom')
     stored = stage.records()
     assert stored == [
@@ -131,6 +134,27 @@ def test_records_and_message(stage: Stage) -> None:
     for level, index in (('TRACE', 0), ('DEBUG', -1), ('DEBUG', True), ('ERROR', 1)):
         with pytest.raises(ServiceError):
             stage.message(level, index)
+
+# ** test: error_flag_needs_a_real_exception
+def test_error_flag_needs_a_real_exception(stage: Stage) -> None:
+    '''error is true only when the record carries a real exception tuple.'''
+
+    # exc_info False, and exc_info True with no active exception, carry no exception.
+    logging.error('false', exc_info=False)
+    logging.error('true without an exception', exc_info=True)
+
+    # An active exception, and an exception instance, carry a real tuple.
+    try:
+        raise ValueError('boom')
+    except ValueError:
+        logging.error('true with an exception', exc_info=True)
+    logging.error('instance', exc_info=ValueError('boom'))
+    assert [(item['message'], item['error']) for item in stage.records()] == [
+        ('false', False),
+        ('true without an exception', False),
+        ('true with an exception', True),
+        ('instance', True),
+    ]
 
 # ** test: close_restores_and_removes
 def test_close_restores_and_removes() -> None:

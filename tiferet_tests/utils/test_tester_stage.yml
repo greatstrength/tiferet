@@ -1,3 +1,9 @@
+fixtures:
+  boom:
+    module_path: builtins
+    class_name: ValueError
+    attributes: {}
+
 testers:
   test_stage_service:
     module_path: &stage_interface tiferet.interfaces.tester_stage
@@ -106,6 +112,7 @@ testers:
       log_capture:
         conditions:
           stage: true
+          fixtures: [boom]
         execute:
           - target:
               module_path: logging
@@ -118,7 +125,7 @@ testers:
             method: error
             args: [Failed SampleEvent]
             kwargs:
-              exc_info: true
+              exc_info: $fixture.boom
           - target: $stage
             method: records
             as: records
@@ -141,6 +148,63 @@ testers:
                 logger: root
           - outcome: line
             message: Executing
+
+      error_flag_needs_a_real_exception:
+        conditions:
+          stage: true
+        execute:
+          - target:
+              module_path: logging
+              attribute: error
+            method: error
+            args: [exc_info false]
+            kwargs:
+              exc_info: false
+          - target:
+              module_path: logging
+              attribute: error
+            method: error
+            args: [exc_info true without an exception]
+            kwargs:
+              exc_info: true
+          - target: $stage
+            method: records
+            as: records
+        assert:
+          - outcome: records
+            equals:
+              - level: ERROR
+                message: exc_info false
+                error: false
+                logger: root
+              - level: ERROR
+                message: exc_info true without an exception
+                error: false
+                logger: root
+
+      stage_in_args_is_rejected:
+        conditions:
+          stage: true
+        execute:
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$stage, close]
+            raises: true
+            as: error
+          - target: $stage
+            method: exists
+            kwargs:
+              name: config.yaml
+            as: still_arranged
+        assert:
+          - outcome: error
+            error_code: PHASE_STEP_FAILED
+          - outcome: error
+            message: only an execute target
+          - outcome: still_arranged
+            equals: false
 
       read_missing_fails_the_step:
         conditions:

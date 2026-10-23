@@ -679,19 +679,17 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: Any
         '''
 
-        # $stage is the whole scalar. It is illegal in conditions, like $r.
+        # $stage is only a whole execute target. It is illegal in conditions, args, kwargs, and checks.
         if value == STAGE_REF and not allow_request:
             TiferetError.raise_error(
                 a.error.PHASE_STEP_FAILED_ID,
                 detail='$stage is illegal in conditions.',
             )
         if value == STAGE_REF:
-            if self.stage is None:
-                TiferetError.raise_error(
-                    a.error.PHASE_STEP_FAILED_ID,
-                    detail='$stage is not arranged. The test does not set conditions.stage.',
-                )
-            return self.stage
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='$stage is illegal here. It is only an execute target.',
+            )
 
         # $r. is illegal in conditions, including as a path.
         if value.startswith(REQUEST_REF_PREFIX) and not allow_request:
@@ -934,9 +932,10 @@ class PhaseRuntimeContext(BaseContext):
             return self._require_named(target.module_path, target.attribute)
         if target == 'self':
             return 'self'
+        if target == STAGE_REF:
+            return self._resolve_stage()
         if isinstance(target, str) and (
-            target == STAGE_REF
-            or target.startswith(FIXTURE_REF_PREFIX)
+            target.startswith(FIXTURE_REF_PREFIX)
             or target.startswith(MOCK_REF_PREFIX)
             or target.startswith(REQUEST_REF_PREFIX)
         ):
@@ -949,6 +948,23 @@ class PhaseRuntimeContext(BaseContext):
                 detail=f'Target {target} is not a fixture. A bare name is not a prior as key.',
             )
         return self.fixtures[target]
+
+    # * method: resolve_stage
+    def _resolve_stage(self) -> Any:
+        '''
+        Resolve the $stage target to the arranged stage.
+
+        :return: The arranged stage.
+        :rtype: Any
+        '''
+
+        # $stage without conditions.stage is a step failure.
+        if self.stage is None:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='$stage is not arranged. The test does not set conditions.stage.',
+            )
+        return self.stage
 
     # * method: store
     def _store(self, data_key: str, result: Any) -> None:

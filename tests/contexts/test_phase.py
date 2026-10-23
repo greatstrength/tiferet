@@ -1347,7 +1347,7 @@ def test_stage_cleanup_error_rules():
 # ** test: stage_ref_rules
 def test_stage_ref_rules():
     '''
-    $stage is a whole scalar, illegal in conditions, limited to six methods, and unwired without a factory.
+    $stage is a whole execute target, illegal elsewhere, limited to six methods, and unwired without a factory.
     '''
 
     # $stage in a fixture attribute is a step failure that names $stage.
@@ -1397,6 +1397,49 @@ def test_stage_ref_rules():
         with pytest.raises(TiferetError) as caught:
             runtime.handle_execution(execution)
         assert caught.value.error_code == 'PHASE_STEP_FAILED'
+    runtime.close_stage()
+
+    # $stage is only a target. In args, kwargs, or a nested list it is a step failure.
+    runtime = _runtime(ErrorMessage.__module__, ErrorMessage.__name__)
+    runtime.handle_conditions(Conditions(stage=True))
+    for execution in (
+        Execution(
+            target={'module_path': 'builtins', 'attribute': 'getattr'},
+            method='getattr',
+            args=['$stage', 'close'],
+        ),
+        Execution(
+            target={'module_path': 'tests.contexts.test_phase', 'attribute': 'echo'},
+            method='echo',
+            kwargs={'value': '$stage'},
+        ),
+        Execution(
+            target={'module_path': 'tests.contexts.test_phase', 'attribute': 'echo'},
+            method='echo',
+            args=[['$stage']],
+        ),
+    ):
+        with pytest.raises(TiferetError) as caught:
+            runtime.handle_execution(execution)
+        assert caught.value.error_code == 'PHASE_STEP_FAILED'
+        assert 'only an execute target' in str(caught.value)
+
+    # The rejected step did not close the stage. The target still works.
+    runtime.handle_execution(_stage_step('exists', 'present', name='config.yaml'))
+    assert runtime.session.data['present'] is False
+
+    # $stage in an equals or fields check is the same step failure.
+    runtime.handle_execution(_stage_step('path', 'directory'))
+    for assertion in (
+        Assertion(check='equals', outcome='directory', equals='$stage'),
+        Assertion(check='equals', outcome='directory', equals=['$stage']),
+        Assertion(check='fields', outcome='directory', fields={'real': '$stage'}),
+    ):
+        with pytest.raises(TiferetError) as caught:
+            runtime.handle_assertion(assertion)
+        assert caught.value.error_code == 'PHASE_STEP_FAILED'
+        assert 'only an execute target' in str(caught.value)
+    assert Path(runtime.stage.path()).is_dir()
     runtime.close_stage()
 
     # A missing factory is the unwired-handler error.
@@ -1462,6 +1505,12 @@ def test_stage_records_and_message():
                 target={'module_path': 'logging', 'attribute': 'error'},
                 method='error',
                 args=['Failed SampleEvent'],
+                kwargs={'exc_info': ValueError('boom')},
+            ),
+            Execution(
+                target={'module_path': 'logging', 'attribute': 'error'},
+                method='error',
+                args=['No active exception'],
                 kwargs={'exc_info': True},
             ),
             _stage_step('records', 'records'),
@@ -1479,6 +1528,7 @@ def test_stage_records_and_message():
         {'level': 'DEBUG', 'message': 'Executing SampleEvent', 'error': False, 'logger': 'root'},
         {'level': 'DEBUG', 'message': 'named record', 'error': False, 'logger': 'tiferet.stage_probe'},
         {'level': 'ERROR', 'message': 'Failed SampleEvent', 'error': True, 'logger': 'root'},
+        {'level': 'ERROR', 'message': 'No active exception', 'error': False, 'logger': 'root'},
     ]
     assert runtime.session.data['line'] == 'Executing SampleEvent'
 
