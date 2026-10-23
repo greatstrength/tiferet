@@ -36,7 +36,7 @@ Binding file (proto branch, RFP prefix). Distillation sections to cite. Optional
 2. Draft `.rfp/<prefix-lower>-rfp-<nnn>-<kebab>.md` with the genre in rfp.md: header (Status, Domain, Branch, Issue, Related, **Depends on**, **Blocks**) then Summary, Motivation, Current state, Proposal, Out of scope, Risks (resolved vs open), Acceptance criteria, Suggested TRD slicing.
 3. Amendments: Status = Amended, add Amendment note, keep the same issue. Do not open a new number.
 4. Publish or refresh the GitHub issue body from that file. Title: `RFP-00N — <Plain Title>`.
-5. Wire GitHub blocked-by to match `Depends on` / `Blocks` (`docs/collab/commands.md`). A reviewer assigns any milestone; do not invent one.
+5. Wire GitHub blocked-by to match `Depends on` / `Blocks` (`docs/collab/commands.md`). The QA Operator assigns any milestone; do not invent one.
 6. If this amendment changes shape of a **frozen** RFP, say so. Do not keep reconstructing the old catalog.
 
 ## Outputs

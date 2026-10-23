@@ -23,6 +23,7 @@ description: >
 
 - `docs/collab/rfp.md`
 - `docs/collab/process.md`
+- `docs/collab/qa_operator.md`
 - `docs/collab/binding.md`
 - `docs/collab/commands.md`
 
@@ -37,9 +38,9 @@ RFP issue number. Binding (proto branch, prefix).
 3. Implement and test. Read `tiferet-code-style` and the component skills you touch.
 4. Self-check against the shared review standards in `docs/collab/code_review.md` before asking for review: code style first (exactly one empty line between artifacts, artifact order preserved with an order-preserving mechanic if a dependency seems to force an exception), then the RFP's content, then alignment with the vision statement and the cited distillation sections, then relevant and accurate tests and nothing superfluous.
 5. Commit. Stop before push if the human has not approved opening the PR.
-6. PR title: `RFP-00N — <Plain Title> (#issue)`. **GitHub-link** the PR to the RFP issue. Do not add the PR to a milestone. Body links `#issue` and does **not** use `Closes`.
-7. After the PR opens, post a short status on the **RFP issue**. A Prototype reviewer (`tiferet-pr-code-review`) reviews and the maintainer squash-merges. After addressing PR feedback, post another status.
-8. After squash-merge: close the RFP issue by hand. Rename the local `.rfp/` working copy to `.complete.md`. Run the closeout cleanup in `docs/collab/process.md` (worktree and its registration, local and remote branch, temp files). Do not tag. Do not bump the package version.
+6. PR title: `RFP-00N — <Plain Title> (#issue)`. **GitHub-link** the PR to the RFP issue. Do not add the PR to a milestone. Body links `#issue` and does **not** use `Closes`, `Fixes`, or `Resolves`.
+7. After the PR opens, post a short status on the **RFP issue**. Do not review and do not merge. The QA Operator does that (`docs/collab/qa_operator.md`). After addressing PR feedback, post another status.
+8. After squash-merge: close the RFP issue by hand if it is still open. Rename the local `.rfp/` working copy to `.complete.md`. Run the closeout cleanup in `docs/collab/process.md` (worktree and its registration, local and remote branch, temp files). Do not tag. Do not bump the package version.
 
 ## Outputs
 
@@ -51,7 +52,7 @@ RFP issue number. Binding (proto branch, prefix).
 
 - No TRD.
 - Never proto → trunk git.
-- Never merge. The maintainer squash-merges.
+- Never review. Never merge. Those are the QA Operator's steps (`docs/collab/qa_operator.md`), not this skill.
 - Never tag or bump version on this PR.
 - Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch, and every temp file (`docs/collab/process.md`).
 - Never put temporary information on external or cloud storage unless the human explicitly authorizes it.

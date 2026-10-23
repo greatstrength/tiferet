@@ -26,7 +26,7 @@ The title is the version number. Nothing else.
 
 Patch versions are welcome. New trunk milestones do **not** use `bN`. Older titles such as `v2.0.0b3` mean what they meant when they were created; we are not going back to rename them.
 
-A reviewer may assign your issue to a milestone. You do not close the milestone or publish the GitHub Release.
+The QA Operator may assign your issue to a milestone. You do not close the milestone or publish the GitHub Release.
 
 Every issue goes on the **Tiferet Framework** project. A Doc PR has no issue, so it has no board item. What the fields mean is in [project_fields.md](project_fields.md). The ids for *this* repo are in [binding.md](binding.md).
 
@@ -69,12 +69,12 @@ If you are asked to implement **one child**: confirm the Super-TRD branch is alr
 
 If the Super-TRD branch does not exist yet, stop and report. Do not open a PR to `main` in its place.
 
-Running the fan-out, merging sub-TRD PRs, merging `main` into the Super-TRD branch, opening the Super-TRD PR, and closing children are maintainer-only steps ([process.md § Agent guardrails](process.md#agent-guardrails)).
+Running the fan-out, merging `main` into the Super-TRD branch, opening the Super-TRD PR, and closing children are maintainer-only steps ([process.md § Agent guardrails](process.md#agent-guardrails)). Squash-merge of a reviewed PR is [qa_operator.md](qa_operator.md). The maintainer may still squash-merge.
 
 ## Reviewing trunk
 
-A trunk PR gets a **Release reviewer**. Code style comes first and is never waived. Then artifact fidelity: every artifact the TRD names in §3 and §4 is measured against the reference prototype recorded in §7, and read-only against the prototype branch, or against the TRD alone when there is no prototype. A deviation on a named artifact is a finding even when trunk looks cleaner. A real improvement goes through a TRD amendment before merge. Only the reviewer reads proto; the implementor works from the TRD. Reading proto is `git show` / `git diff` of a fetched ref, never a checkout, copy, or merge.
+A trunk PR gets the QA Operator on the Release lens. Code style comes first and is never waived. Then artifact fidelity: every artifact the TRD names in §3 and §4 is measured against the reference prototype recorded in §7, and read-only against the prototype branch, or against the TRD alone when there is no prototype. A deviation on a named artifact is a finding even when trunk looks cleaner. A real improvement goes through a TRD amendment before merge. Only the operator reads proto; the implementor works from the TRD. Reading proto is `git show` / `git diff` of a fetched ref, never a checkout, copy, or merge.
 
 A hotfix is reviewed against the hotfix TRD. Proto has nothing to say about it.
 
-The reviewer approves and reports. The maintainer squash-merges every PR, a sub-TRD PR into the Super-TRD branch included, once the conditions in [code_review.md](code_review.md) hold. No agent merges ([process.md § Agent guardrails](process.md#agent-guardrails)). The first line of the review is `Verdict: Approve` or `Verdict: Changes requested`. Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) and [process.md](process.md) are the longer versions of that sentence.
+The operator reviews and returns the snapshot in [qa_operator.md](qa_operator.md). The first line of the posted review is `Verdict: Approve` or `Verdict: Changes requested`. Squash-merge is that page, not this one. The implementer does not merge. Anything that points at a diff stays on the PR. Short status stays on the issue. [code_review.md](code_review.md) is the standard.

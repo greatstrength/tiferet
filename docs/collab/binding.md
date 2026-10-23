@@ -40,4 +40,4 @@ Field and option ids are unique per GitHub Project. Resolve them on another proj
 - Proto grouping: `vX.Y.0aN` (git tag when that milestone closes) or `vX.Y.0bN` (GitHub Release marked pre-release when that milestone closes)
 - Trunk release: `vX.Y.Z`
 
-Individuals do not close milestones or cut tags. A reviewer may assign your issue to a milestone.
+Individuals do not close milestones or cut tags. The QA Operator may assign your issue to a milestone.
