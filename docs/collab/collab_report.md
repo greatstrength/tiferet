@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework
 **Repository:** https://github.com/greatstrength/tiferet
 
-This is the closeout diary for a **standalone** trunk TRD, not the review. It always lives on that **issue**. [process.md](process.md) is the index if you are not sure which issue.
+This is the closeout diary for a **standalone** trunk TRD, not the review. It always lives on that **issue**. [process.md](process.md) is the index if you are not sure which issue. The QA Operator's snapshot is not this report ([qa_operator.md](qa_operator.md)).
 
 ## When to write one
 

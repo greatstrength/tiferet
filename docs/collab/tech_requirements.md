@@ -80,7 +80,7 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 - **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`).
 - **§5:** target artifacts exist *and* retired ones are gone.
 - **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included). External blockers of a Super-TRD child are wired on that child and on the parent issue ([process.md](process.md)). Before wiring a set, check for a cycle - two or more issues each naming the other's output as a prerequisite - and do not publish one ([process.md](process.md)).
-- **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the Release reviewer measures against, or `None` when no prototype exists. The reviewer also reads the prototype branch, read-only ([code_review.md](code_review.md)). The implementor does not read either.
+- **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the QA Operator measures on a Release review, or `None` when no prototype exists. The operator also reads the prototype branch, read-only ([code_review.md](code_review.md)). The implementor does not read either.
 - **§7 hotfix:** no freeze row and no reference prototype row. Name the defect and why proto was not consulted.
 - **§8:** always `tiferet-code-style`; component skills as touched. Fallback: `docs/core/<component>.md`.
 
@@ -88,7 +88,7 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 
 TRDs specify **artifacts to add, update, or remove** - never prose narratives or "copy from X." An artifact is any unit named by the structured code style: module, class, attribute, `# * method:`, `# ** <component>:`, `# *** <section>` (see [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
-An implementor satisfies the TRD by acting on named artifacts. The Release reviewer verifies each one independently, not only the ones the AC names, against the reference prototype when one is recorded in §7, against the prototype branch read-only, and against the TRD alone when no prototype is recorded ([code_review.md](code_review.md)). The implementor must not be sent to the proto branch.
+An implementor satisfies the TRD by acting on named artifacts. The QA Operator, on a Release review, verifies each one independently, not only the ones the AC names, against the reference prototype when one is recorded in §7, against the prototype branch read-only, and against the TRD alone when no prototype is recorded ([code_review.md](code_review.md)). The implementor must not be sent to the proto branch.
 
 Because the TRD is the whole fidelity source when no prototype exists, name every artifact completely: exact labels, names, section and sub-group placement, parameters, and test catalog rows.
 
@@ -145,7 +145,7 @@ The TRD is written in the **target ubiquitous language** extracted from the free
 
 - Do not tell the implementor to read, diff, or copy proto.
 - Name classes, methods, parameters, mappers, roles, error codes.
-- Proto comparison is the Release reviewer's required measurement of every artifact §3 and §4 name, when a reference prototype is recorded in §7, plus a read-only check of the prototype branch ([code_review.md](code_review.md)). It is review measurement, never authoring or implementation. The reviewer does not check proto out, merge it, cherry-pick it, or copy it.
+- Proto comparison is the QA Operator's required measurement, on a Release review, of every artifact §3 and §4 name, when a reference prototype is recorded in §7, plus a read-only check of the prototype branch ([code_review.md](code_review.md)). It is review measurement, never authoring or implementation. The operator does not check proto out, merge it, cherry-pick it, or copy it.
 
 ## Super-TRD format
 

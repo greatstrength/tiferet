@@ -11,7 +11,7 @@ Standalone documentation and agent-skill changes - collaboration guides, style d
 
 **You do not need an issue or a TRD.** You do not need a milestone, a project-board item, or a release. The pull request *is* the authorizing document. Docs evolve with the situation, so they go straight to a branch and a PR. Write the title and body in the language of this process - trunk, prototype, catalog, freeze, RFP, TRD, issue versus PR - so someone six months from now can tell what you did without a specification sitting next to it.
 
-A Doc PR has no issue, no TRD, no milestone, no project-board item, and no `Closes #N`. Do not open an issue for it. Discussion lives on the PR. It is still a PR: agents never push to `main`, and only the maintainer merges ([process.md § Agent guardrails](process.md#agent-guardrails)).
+A Doc PR has no issue, no TRD, no milestone, no project-board item, and no `Closes #N`. Do not open an issue for it. Discussion lives on the PR. It is still a PR: agents never push to `main`. Squash-merge is [qa_operator.md](qa_operator.md) or the maintainer ([process.md § Agent guardrails](process.md#agent-guardrails)).
 
 If a Doc PR body lists acceptance criteria, every box starts unchecked. The reviewer checks each one as it verifies it.
 

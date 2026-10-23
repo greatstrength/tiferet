@@ -24,6 +24,7 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 - `docs/collab/tech_requirements.md`
 - `docs/collab/process.md`
 - `docs/collab/code_review.md`
+- `docs/collab/qa_operator.md`
 - `docs/collab/binding.md`
 - `docs/collab/commands.md`
 
@@ -39,8 +40,8 @@ TRD issue number. For a Super-TRD child: parent issue number and the already-pus
 2. Cut `<issue>-<slug>` from `main`. Status In Progress. Start date.
 3. Implement (`tiferet-code-style` + component skills). PR targeting `main`, title `<Component/Assemblage> - <Plain Title> (#issue)`, **GitHub-linked** to that TRD. `Closes #<issue>` is allowed. Body: the TRD's AC as checkboxes, all unchecked. Do not add the PR to a milestone.
 4. Verify the base: `gh pr view <N> --json baseRefName`. It must be `main`. If it is not, stop and report. Do not request review.
-5. Short status on the **issue** after the PR opens, and again after addressing PR feedback. Re-review goes back to the same reviewer.
-6. Before asking for review, self-check against the shared review standards in `docs/collab/code_review.md`: code style first (exactly one empty line between artifacts, artifact order preserved with an order-preserving mechanic if a dependency seems to force an exception), then every AC, then fidelity to every artifact TRD §3 and §4 name, then relevant and accurate tests and nothing superfluous. Work from the TRD only; do not read proto. A Release reviewer (`tiferet-pr-code-review`) reviews. The maintainer squash-merges.
+5. Short status on the **issue** after the PR opens, and again after addressing PR feedback. Re-review goes back to the same QA Operator.
+6. Before asking for review, self-check against the shared review standards in `docs/collab/code_review.md`: code style first (exactly one empty line between artifacts, artifact order preserved with an order-preserving mechanic if a dependency seems to force an exception), then every AC, then fidelity to every artifact TRD §3 and §4 name, then relevant and accurate tests and nothing superfluous. Work from the TRD only; do not read proto. Do not review and do not merge. The QA Operator reviews (`docs/collab/qa_operator.md`).
 7. After squash-merge: `tiferet-collab-report` on the issue. Status Done. End date. `.trd/` → `.complete.md`. Run the closeout cleanup in `docs/collab/process.md`. Trunk→proto git only if the human asks.
 
 **Super-TRD child**
@@ -68,7 +69,7 @@ Children stay **In Review** until the Super-TRD PR is squash-merged to `main`. C
 ## Guardrails
 
 - Never proto → trunk git. Never read proto to copy code. Never check out proto into the trunk worktree.
-- Never merge. Every squash-merge, sub-TRD PRs included, is the maintainer's step. Never merge `main` into the Super-TRD branch. Never rebase that branch. Never start a child blocked outside it.
+- Never review. Never merge from this skill. Squash-merge is the QA Operator's step (`docs/collab/qa_operator.md`), not yours. Never merge `main` into the Super-TRD branch. Never rebase that branch. Never start a child blocked outside it.
 - Never tag or bump version on this PR.
 - Never check an AC box on your own PR. The reviewer checks each one as it verifies it.
 - Never `Closes` / `Fixes` / `Resolves` on a Super-TRD child PR.

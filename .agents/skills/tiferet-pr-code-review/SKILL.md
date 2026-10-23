@@ -1,64 +1,69 @@
 ---
 name: tiferet-pr-code-review
-description: Review one pull request as the Prototype reviewer (RFP PR to proto) or the Release reviewer (trunk PR to main, or a sub-TRD PR to its Super-TRD branch). Code style is held above everything else. Prototype review weighs RFP content, vision, and distillation; release review weighs artifact fidelity against the reference prototype and, read-only, the prototype branch. One consolidated review. The first line is the verdict. The reviewer never merges, on any base; the maintainer does.
+description: >
+  Point a review at the Takwin QA Operator. Not a Tiferet implementation
+  role, and not the orchestrator. The orchestrator does not review, does
+  not post the verdict, and does not squash-merge. The operator does that
+  work. Judge by docs/collab/code_review.md. Squash-merge only as
+  docs/collab/qa_operator.md allows.
 ---
 
-# Review a pull request (diff surface)
+# Review as the Takwin QA Operator
 
 ## When to use
 
-- The user asks you to review one PR.
-- Prototype mode: the PR targets proto and is linked to an RFP issue.
-- Release mode: the PR targets `main` and is linked to a standalone TRD or a Super-TRD parent, or the PR targets a Super-TRD branch and is one child's sub-TRD PR.
-- Doc mode: a `Docs - <Title>` PR from a `docs-<context>` branch to `main`. It has no issue, no TRD, no milestone, and no project-board item; do not flag their absence (`docs/collab/code_review.md` § Doc and skills PRs).
+- The user asks to review a PR, or a round dispatches a reviewer for one PR.
+- Prototype: the PR targets proto and is linked to an RFP issue.
+- Release: the PR targets `main` and is linked to a standalone TRD or a Super-TRD parent, or the PR targets a Super-TRD branch and is one child's sub-TRD PR.
+- Doc: a docs or skills PR to `main`. It has no issue. Do not flag that absence.
 
 ## When not to use
 
-- Session notes, status, or Collaboration Reports - those go on the **issue**.
-- Implementing or fixing the PR - the author does that.
-- Merging a PR, on any base. Only the maintainer merges.
+- Implementing or fixing the PR. The author does that.
+- Authoring an RFP or a TRD.
+- A Collaboration Report, or posting the snapshot as one.
 - Reviewing a second child of the same Super-TRD. Re-review only the PR you already reviewed.
 - Promoting proto onto trunk.
+- You are the orchestrator. Stop. Do not review, do not post the verdict, and do not squash-merge. Summarize what the operator returns. When the human approves a squash merge, tell the operator who already holds that pull request.
 
 ## Canonical source
 
+- `docs/collab/qa_operator.md`
 - `docs/collab/code_review.md`
 - `docs/collab/process.md`
-- `docs/core/code_style.md`
 - `docs/collab/binding.md`
+
+Do not duplicate the standard here. Point, then do only the operator steps.
 
 ## Inputs
 
-PR number. Mode (Prototype | Release | Doc). Prototype: the RFP issue and its cited distillation sections. Release: the TRD (§3, §4, §5), and the reference prototype from its §7 row (tags or pre-release, or `None`). For a sub-TRD PR: the child TRD only. For the final Super-TRD review: the parent TRD and the child set. Binding for the proto branch name. The expected PR base (`main`, proto, or the Super-TRD branch).
+PR number. Lens (Prototype | Release | Doc), taken from the PR base and its authorizing document. Prototype: the RFP issue and its cited distillation sections. Release: the TRD (§3, §4, §5) and the reference prototype from its §7 row, or `None`. A sub-TRD review is that child only. The final Super-TRD review is the parent TRD and the child set. Binding for the proto branch name.
 
 ## Procedure
 
-1. `gh pr view <n> --json number,headRefName,baseRefName,files` for head, base, and files. Confirm the PR is GitHub-linked to its authorizing issue and is not on a milestone. A Doc PR has no authorizing issue; a missing issue, board item, or `Closes` on it is not a finding. A sub-TRD PR whose base is not the Super-TRD branch is a blocking finding: do not review it as the parent PR, and do not merge it. A Super-TRD PR whose base is not `main` is the same kind of finding.
-2. Read the style guide and the `tiferet-code-<component>` skill for each component the PR touches. Style is checked first and is never waived: exactly one empty line between artifacts, artifact order preserved (an out-of-order artifact needs an order-preserving mechanic, never a reorder), including code examples in docs and skills. Import groups are part of that floor. `# ** core` is the Python standard library only (`abc`, `typing`, `re`, `uuid`). `# ** infra` is third-party packages only (boto3 or other AWS libraries, Flask, FastAPI, Pydantic, pytest) - not the standard library, not this application. `# ** app` is this application's own imports only, including relative imports. Order stays core, then infra, then app. Omit an empty group. A misplaced import is a blocking style finding. An acceptance criterion does not waive it.
-3. Check the rest of the shared floor in order: every AC met (verify each one; you check its PR-body box in step 9), tests relevant and accurate to their unit, nothing superfluous.
-4. **Prototype mode:** check the RFP content (every proposal item and AC realized as written), then alignment with the vision statement and the cited distillation sections (an amendment rides in the same PR). Concept outranks artifact cataloging. Do not compare to `main`. Skip Suggested TRD slicing.
-5. **Release mode:** artifact fidelity is the primary lens. Law: `docs/collab/code_review.md`. For every artifact TRD §3 and §4 name, when §7 records a reference prototype, compare against that freeze-point tag and, read-only, against the prototype branch: `git fetch origin <proto-branch> --tags`, then `git diff <reference-tag>..HEAD -- <path>`, `git show <reference-tag>:<path>`, `git diff origin/<proto-branch>..HEAD -- <path>`, and `git show origin/<proto-branch>:<path>`. Do not check the branch out, merge it, cherry-pick it, or copy files from it. With §7 `None`, §3 and §4 are the specification; do not browse proto to fill a blank. A hotfix is the hotfix TRD only. A deviation on a named artifact is a finding even when trunk looks cleaner; a real improvement goes through a TRD amendment. A sub-TRD review is that child only. The final Super-TRD review is the combined diff to `main`, the parent TRD, the proto baseline, and cross-child consistency. Verdict only on that PR.
-6. Sort findings: style violation (blocking), wrong PR base (blocking), AC fail, test defect, superfluous, artifact deviation (release, blocking), concept deviation (prototype, blocking), name or placement note (prototype, non-blocking), out of scope.
-7. Show the findings and a proposed verdict to the human. Wait for the go-ahead before posting. That go-ahead is for posting, never for merging. Posting needs the go-ahead of the project administrator or the orchestrator.
-8. Post **one** consolidated review (`path` + `position`). The first line is exactly `Verdict: Approve` or `Verdict: Changes requested`. Then the findings summary, then your own attribution per `docs/collab/process.md` § Attribution (your own `Co-Authored-By`, or `- <agent>@<platform> via <account>` on a shared bot account). Never another agent's identity. Line comments only on lines in the PR diff; whole-file or whole-package comments go in the body. When you share the author's GitHub token, GitHub rejects `--approve` and `--request-changes`. Post the review as a comment. Do not treat a rejected API event as a failed review. The verdict line is the signal.
-9. Check the PR-body box of each AC you verified; leave a failing AC unchecked. The author opened the PR with every box unchecked. Then post a short status on the authorizing issue. Doc PR: there is no issue, so the review on the PR is the status. Sub-TRD review: the child issue. Final Super-TRD review: the parent. A child's AC failure is noted on that child issue.
-10. Stop. Do not merge. The maintainer squash-merges every PR, a sub-TRD PR into its Super-TRD branch included (`docs/collab/code_review.md` § Verdict and merge). For a sub-TRD PR, say in the issue status whether the merge preconditions hold: the base is the Super-TRD branch, the verdict line is `Verdict: Approve`, no blocking finding is unresolved, and the PR-body AC checkboxes are checked. Merge readiness keys off the verdict line plus the AC checkboxes, not off `--approve`.
+1. If you are the orchestrator, stop. You do not review, you do not post the verdict, and you do not squash-merge. That is not optional. Summarize what the operator returns. When the human approves a squash merge, tell the operator who already holds that pull request. Then summarize the result. Do not reopen an already-merged pull request to redo this.
+2. You are the Takwin QA Operator, not a forward implementer and not the orchestrator. Read `docs/collab/qa_operator.md` and `docs/collab/code_review.md` before you judge.
+3. Apply the matching lens. Style floor first, then acceptance criteria, then Prototype or Release as that page already writes them. Verify each acceptance criterion. The reviewer checks the PR-body box of each verified item and leaves a failing one unchecked. The author opened the PR with every box unchecked. Do not replace the standard. Do not waive a style or ordering finding.
+4. Return the 350-400 word snapshot to the orchestrator. Name a future inquiry when the review found one. Do not invent the new work. You post the verdict. The orchestrator does not.
+5. When the orchestrator tells you the human approved the squash merge for the pull request you already hold, post the verdict, squash-merge, and close the authorizing issue by hand. Otherwise do not squash-merge. A clean verdict is not that approval. Do not reopen an already-merged pull request. The rule is for the next one.
 
 ## Outputs
 
-- One PR review (diff comments + body + verdict line) on the **PR**.
-- A short status on the **issue**. Nothing else on the PR.
-- No merge. The maintainer merges.
+- A 350-400 word snapshot, returned to the orchestrator. Not a PR comment. Not a Collaboration Report. The orchestrator summarizes it. The orchestrator does not post the verdict.
+- One posted review on the **PR**, verdict line first.
+- A short status on the authorizing issue. A Doc PR has no issue; the posted review is the status.
+- A squash-merge only when `docs/collab/qa_operator.md` allows it.
 
 ## Guardrails
 
-- Never merge, on any base. Never tag, bump the version, mint a freeze, or create or close a milestone (`docs/collab/process.md` § Agent guardrails).
-- Never lower a style or ordering finding to keep a review moving.
-- Never proto → trunk git. Never check proto out or copy it. In release mode, only the reviewer reads proto; never tell an implementor to read it.
-- Never review a prototype PR against trunk.
-- Never review a second child of the same Super-TRD. Re-review messages the same reviewer.
-- Check the code before claiming a behavior.
+- Never merge to `main` unless the human explicitly relinquished that specific PR.
+- Never squash-merge unless the human said that issue or PR is approved for squash merge.
+- Never tag, bump the version, mint a freeze, or create or close a milestone (`docs/collab/process.md` § Agent guardrails).
+- Never use `Closes`, `Fixes`, or `Resolves` on a proto PR, including the squash message. Never use them on a sub-TRD PR.
+- Never lower a style or ordering finding.
+- Never proto → trunk git. Never send an implementer to proto. On a Release review, only this role reads proto, and only as `docs/collab/code_review.md` allows.
+- Never review a second child of the same Super-TRD.
 - Never commit as part of a review.
-- Leave nothing behind: remove temp files, fetched artifacts, and any worktree you created (`docs/collab/process.md`). Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
-- Read `docs/collab/binding.md` in this repo for owner/repo and proto branch.
-- On a shared bot account (`docs/collab/process.md` § Shared bot accounts), end the review with `- <agent>@<platform> via <account>`.
+- The orchestrator never reviews, never posts the verdict, and never squash-merges. The operator who holds the pull request does. Not optional.
+- Never reopen an already-merged pull request to redo this. The rule is for the next one.
+- Attribute yourself in your own name (`docs/collab/process.md` § Attribution). On a shared bot account, end the review with `- <agent>@<platform> via <account>`.
