@@ -161,6 +161,20 @@ tests:
             - service_id: get_feature_evt
               name: Get feature
         as: built
+      - target: $r.built
+        method: __getitem__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: __getitem__
+        args: [0]
+        as: step
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.step]
+        as: step_key_count
     assert:
       - outcome: built
         fields:
@@ -175,6 +189,8 @@ tests:
           - id
           - description
           - params_schema
+      - outcome: step_key_count
+        equals: 2
   create_default_feature_data_includes_optional_fields_when_provided:
     conditions: {}
     execute:
@@ -193,6 +209,20 @@ tests:
           params_schema:
             id: str
         as: built
+      - target: $r.built
+        method: __getitem__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: __getitem__
+        args: [0]
+        as: step
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.step]
+        as: step_key_count
     assert:
       - outcome: built
         fields:
@@ -208,6 +238,8 @@ tests:
       - outcome: built
         absent:
           - id
+      - outcome: step_key_count
+        equals: 2
   create_params_schema_returns_expected_dict:
     conditions: {}
     execute:
@@ -230,6 +262,11 @@ tests:
           description:
             type: str
             required: false
+      - outcome: built
+        absent:
+          - type
+          - required
+          - default
   create_default_app_session_data_returns_required_fields:
     conditions: {}
     execute:
@@ -447,6 +484,7 @@ tests:
             - --flag
       - outcome: built
         absent:
+          - id
           - description
           - type
           - default
@@ -487,6 +525,9 @@ tests:
             - DEBUG
             - INFO
             - WARNING
+      - outcome: built
+        absent:
+          - id
   create_default_cli_command_data_returns_required_fields:
     conditions: {}
     execute:
@@ -534,6 +575,20 @@ tests:
           arguments:
             - $r.argument
         as: built
+      - target: $r.built
+        method: __getitem__
+        args: [arguments]
+        as: arguments
+      - target: $r.arguments
+        method: __getitem__
+        args: [0]
+        as: first_argument
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.first_argument]
+        as: argument_key_count
     assert:
       - outcome: built
         fields:
@@ -546,6 +601,8 @@ tests:
       - outcome: built
         absent:
           - id
+      - outcome: argument_key_count
+        equals: 2
   tiferet_error_raise_error_code_only:
     conditions: {}
     execute:
