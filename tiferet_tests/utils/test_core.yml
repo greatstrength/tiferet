@@ -1,0 +1,91 @@
+testers:
+  logging_middleware:
+    module_path: &utils_core tiferet.utils.core
+    class_name: LoggingMiddleware
+    tests:
+      conformance:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: middleware
+        assert:
+          - outcome: middleware
+            type: &middleware_service
+              module_path: tiferet.interfaces.middleware
+              class_name: MiddlewareService
+          - outcome: middleware
+            fields:
+              logger:
+                name: root
+
+  logging_middleware_named:
+    module_path: *utils_core
+    class_name: LoggingMiddleware
+    attributes:
+      logger_id: tiferet.test
+    tests:
+      resolves_named_logger:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: middleware
+        assert:
+          - outcome: middleware
+            fields:
+              logger:
+                name: tiferet.test
+
+  timing_middleware:
+    module_path: *utils_core
+    class_name: TimingMiddleware
+    tests:
+      conformance:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: middleware
+        assert:
+          - outcome: middleware
+            type: *middleware_service
+          - outcome: middleware
+            fields:
+              logger:
+                name: root
+
+  timing_middleware_named:
+    module_path: *utils_core
+    class_name: TimingMiddleware
+    attributes:
+      logger_id: tiferet.test
+    tests:
+      resolves_named_logger:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: middleware
+        assert:
+          - outcome: middleware
+            fields:
+              logger:
+                name: tiferet.test
+
+  cache_middleware:
+    module_path: *utils_core
+    class_name: CacheMiddleware
+    tests:
+      conformance:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: middleware
+        assert:
+          - outcome: middleware
+            type: *middleware_service
+          - outcome: middleware
+            fields:
+              load_cache: null
