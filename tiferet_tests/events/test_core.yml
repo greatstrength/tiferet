@@ -7,6 +7,10 @@ fixtures:
     module_path: *events_core
     class_name: AsyncDomainEvent
     attributes: {}
+  error_context:
+    module_path: tiferet.contexts.error
+    class_name: ErrorContext
+    attributes: {}
 
 tests:
   execute_not_implemented:
@@ -165,6 +169,148 @@ tests:
     assert:
       - parameters_required:
           names: [id, name, value, a, b, c, d]
+
+  parameters_required_message:
+    conditions:
+      fixtures: [event, error_context]
+    execute:
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: parameters_required
+        args: [[text]]
+        as: decorator
+      - target: event
+        method: __getattribute__
+        args: [execute]
+        as: execute_fn
+      - target: $r.decorator
+        method: __call__
+        args: [$r.execute_fn]
+        as: wrapped
+      - target: $r.wrapped
+        method: __call__
+        args: [$fixture.event]
+        kwargs: {text: null}
+        raises: true
+        as: failed
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.assets.error]
+        as: catalog
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.catalog, COMMAND_PARAMETER_REQUIRED_DATA]
+        as: error_data
+      - target:
+          module_path: builtins
+          attribute: dict
+        method: dict
+        args: [$r.error_data]
+        kwargs:
+          id: COMMAND_PARAMETER_REQUIRED
+        as: error_entry
+      - target:
+          module_path: tiferet.domain.error
+          class_name: Error
+        method: model_validate
+        args: [$r.error_entry]
+        as: error
+      - target: error_context
+        method: format_response
+        args: [$r.error, $r.failed]
+        as: response
+    assert:
+      - outcome: failed
+        error_code: COMMAND_PARAMETER_REQUIRED
+      - outcome: failed
+        fields:
+          kwargs:
+            parameter: text
+            parameters: [text]
+            command: DomainEvent
+      - outcome: response
+        fields:
+          error_code: COMMAND_PARAMETER_REQUIRED
+          message: The required parameter text for command DomainEvent is missing.
+          parameter: text
+          parameters: [text]
+          command: DomainEvent
+
+  parameters_required_message_multiple:
+    conditions:
+      fixtures: [event, error_context]
+    execute:
+      - target:
+          module_path: *events_core
+          class_name: *domain_event
+        method: parameters_required
+        args: [[id, name]]
+        as: decorator
+      - target: event
+        method: __getattribute__
+        args: [execute]
+        as: execute_fn
+      - target: $r.decorator
+        method: __call__
+        args: [$r.execute_fn]
+        as: wrapped
+      - target: $r.wrapped
+        method: __call__
+        args: [$fixture.event]
+        kwargs: {id: null, name: "  "}
+        raises: true
+        as: failed
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.assets.error]
+        as: catalog
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.catalog, COMMAND_PARAMETER_REQUIRED_DATA]
+        as: error_data
+      - target:
+          module_path: builtins
+          attribute: dict
+        method: dict
+        args: [$r.error_data]
+        kwargs:
+          id: COMMAND_PARAMETER_REQUIRED
+        as: error_entry
+      - target:
+          module_path: tiferet.domain.error
+          class_name: Error
+        method: model_validate
+        args: [$r.error_entry]
+        as: error
+      - target: error_context
+        method: format_response
+        args: [$r.error, $r.failed]
+        as: response
+    assert:
+      - outcome: failed
+        error_code: COMMAND_PARAMETER_REQUIRED
+      - outcome: failed
+        fields:
+          kwargs:
+            parameter: id, name
+            parameters: [id, name]
+            command: DomainEvent
+      - outcome: response
+        fields:
+          error_code: COMMAND_PARAMETER_REQUIRED
+          message: The required parameter id, name for command DomainEvent is missing.
+          parameter: id, name
+          parameters: [id, name]
+          command: DomainEvent
 
   async_domain_event_is_subclass:
     conditions:
