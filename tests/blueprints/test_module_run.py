@@ -351,6 +351,127 @@ tests:
     assert outcomes[1]['status'] == 'PASSED'
     assert printed.rstrip().endswith('1 failed, 1 passed')
 
+# ** test: attribute_error_does_not_abort_the_other_test
+def test_attribute_error_does_not_abort_the_other_test(tmp_path, capsys) -> None:
+    '''
+    Run a renamed method beside a passing format case.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The broken test calls formatt, which the subject does not have.
+    python_path = _write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  broken:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: formatt
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    lines = capsys.readouterr().out.splitlines()
+
+    # The attribute error is that test's failure and does not abort the second test.
+    assert lines[0] == 'tiferet_tests/domain/test_run.yml::broken FAILED'
+    assert lines[1].startswith('AttributeError: ')
+    assert 'formatt' in lines[1]
+    assert lines[2] == 'tiferet_tests/domain/test_run.yml::kept PASSED'
+    assert lines[-1] == '1 failed, 1 passed'
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert report['outcomes'][0]['message'].startswith('AttributeError: ')
+    assert report['outcomes'][1]['status'] == 'PASSED'
+    assert report['failures'] == [report['outcomes'][0]]
+
+# ** test: validation_error_does_not_abort_the_other_test
+def test_validation_error_does_not_abort_the_other_test(tmp_path, capsys) -> None:
+    '''
+    Run an execute step with no method beside a passing format case.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The broken test names a target and no method.
+    python_path = _write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  broken:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+    lines = printed.splitlines()
+
+    # The validation error is that test's failure and does not abort the second test.
+    assert lines[0] == 'tiferet_tests/domain/test_run.yml::broken FAILED'
+    assert lines[1].startswith('ValidationError: ')
+    assert 'tiferet_tests/domain/test_run.yml::kept PASSED' in lines
+    assert lines[-1] == '1 failed, 1 passed'
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert report['outcomes'][0]['message'].startswith('ValidationError: ')
+    assert report['outcomes'][1]['status'] == 'PASSED'
+    assert report['failures'] == [report['outcomes'][0]]
+
 # ** test: failed_assert_does_not_raise
 def test_failed_assert_does_not_raise(tmp_path, capsys) -> None:
     '''A failed check prints FAILED, the exception text, and the count.'''

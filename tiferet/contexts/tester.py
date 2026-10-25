@@ -733,7 +733,9 @@ class ModuleRunContext(AppSessionContext):
             test_session: TestSessionContext = None,
         ) -> BaseException | None:
         '''
-        Record one test. A catalogued error is formatted. A model error is not.
+        Record one test. One failure does not clear the pool. A model error,
+        a catalogued error, or any other exception is recorded as ``FAILED``;
+        a base exception that is not an ``Exception`` propagates.
 
         :param node_id: The YAML node id.
         :type node_id: str
@@ -760,6 +762,14 @@ class ModuleRunContext(AppSessionContext):
             except TiferetAPIError as api_error:
                 message = api_error.message or ''
                 printable = api_error
+
+        # Any other exception is that test's failure, with its type in the message.
+        elif isinstance(error, Exception):
+            status = 'FAILED'
+            message = f'{type(error).__name__}: {error}'
+            printable = error
+
+        # A base exception that is not an exception still propagates.
         elif error is not None:
             raise error
 

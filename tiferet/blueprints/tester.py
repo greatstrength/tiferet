@@ -14,9 +14,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
 
+# ** infra
+from pydantic import ValidationError
+
 # ** app
 from .. import a
-from ..assets import TiferetError
+from ..assets import TiferetAPIError, TiferetError
 from ..assets.tester import (
     CORE_DEFAULT_TESTERS,
     CORE_DEFAULT_TESTER_SESSIONS,
@@ -519,10 +522,10 @@ def _run_one_test(test_key: str, test_mapping: Any, coordinates: Dict[str, Any])
     :rtype: Any
     '''
 
-    # An illegal test mapping raises before that test is printed PASSED.
+    # A model or validation error from the build returns the error and a null session.
     try:
         test_ctx = _build_module_test(test_key, test_mapping, coordinates)
-    except ModelError as error:
+    except (ModelError, ValidationError) as error:
         return error, None
 
     # Pass means execute_feature returned. Fail means the run raised.
@@ -534,6 +537,10 @@ def _run_one_test(test_key: str, test_mapping: Any, coordinates: Dict[str, Any])
         return error, session
     except TiferetError as error:
         return error, session
+    except Exception as error:
+        return error, session
+
+    # A returned run is a pass. Any other exception is that test's error.
     return None, session
 
 # ** function: registered_check
@@ -1186,7 +1193,10 @@ def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
         failed += 1
         if not summary:
             print(f'{node_id} FAILED')
-            print(printable)
+            if isinstance(printable, (ModelError, TiferetAPIError)):
+                print(printable)
+            else:
+                print(f'{type(printable).__name__}: {printable}')
 
     # The count is the same run. Printing changes. Execution does not.
     print(_count_line(passed, failed))

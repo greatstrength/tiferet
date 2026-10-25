@@ -15,11 +15,14 @@ from .core import (
     create_default_cli_argument,
     create_default_cli_command_data,
     create_default_feature_data,
+    create_default_handler,
+    create_default_logger,
     create_params_schema,
     create_default_app_session_data,
     create_service_registration_data,
     create_service_module_path,
 )
+from .logging import CORE_DEFAULT_LOGGING_SETTINGS, DEFAULT_FORMATTER_ID
 
 # *** constants (ids)
 
@@ -79,6 +82,12 @@ TESTER_DETACH_ID = 'tester.detach'
 
 # ** constant: module_run_id
 MODULE_RUN_ID = 'module.run'
+
+# ** constant: tester_error_handler_id
+TESTER_ERROR_HANDLER_ID = 'tester_error'
+
+# ** constant: tester_logger_id
+TESTER_LOGGER_ID = 'tester'
 
 # ** constant: get_fixture_evt_id
 GET_FIXTURE_EVT_ID = 'get_fixture_evt'
@@ -1091,6 +1100,33 @@ TESTER_CLI_SESSION_DATA = create_default_app_session_data(
     description='Built-in CLI for the tester writer and module run.',
 )
 
+# *** constants (handlers)
+
+# ** constant: tester_error_handler
+TESTER_ERROR_HANDLER = create_default_handler(
+    TESTER_ERROR_HANDLER_ID,
+    'Tester Error Handler',
+    'logging',
+    'StreamHandler',
+    'ERROR',
+    DEFAULT_FORMATTER_ID,
+    description='Writes tester module-run errors to stderr.',
+    stream='ext://sys.stderr',
+)
+
+# *** constants (loggers)
+
+# ** constant: tester_logger
+TESTER_LOGGER = create_default_logger(
+    TESTER_LOGGER_ID,
+    'Tester Logger',
+    'ERROR',
+    [TESTER_ERROR_HANDLER_ID],
+    propagate=False,
+    is_root=False,
+    description='Logs tester module-run failures and load errors.',
+)
+
 # *** constants (groups)
 
 # ** constant: tester_default_commands
@@ -1165,4 +1201,11 @@ TESTER_WRITE_EVENT_REGISTRATIONS: Dict[str, Dict[str, Any]] = {
 # ** constant: tester_cli_sessions
 TESTER_CLI_SESSIONS: Dict[str, Dict[str, Any]] = {
     TESTER_CLI_ID: TESTER_CLI_SESSION_DATA,
+}
+
+# ** constant: tester_default_logging_settings
+TESTER_DEFAULT_LOGGING_SETTINGS: Dict[str, Any] = {
+    'formatters': [*CORE_DEFAULT_LOGGING_SETTINGS['formatters']],
+    'handlers': [*CORE_DEFAULT_LOGGING_SETTINGS['handlers'], TESTER_ERROR_HANDLER],
+    'loggers': [*CORE_DEFAULT_LOGGING_SETTINGS['loggers'], TESTER_LOGGER],
 }
