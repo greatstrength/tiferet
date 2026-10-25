@@ -49,6 +49,7 @@ Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when y
 - Prototype: the RFP genre in [rfp.md](docs/collab/rfp.md). No TRD.
 - Trunk reconstruction: a TRD that cites a **freeze id**. Written in the target language. Never "copy from proto."
 - Trunk hotfix: a TRD marked hotfix. No freeze.
+- In a TRD's Detailed Requirements, each numbered block is one component: Implementation, then Tests. Tests are cases in tester language. Do not paste pytest or YAML. Acceptance Criteria cite the test name and do not restate the case. See [tech_requirements.md](docs/collab/tech_requirements.md).
 - Docs and skills: the PR body, using the words in process.md.
 
 ### Implement

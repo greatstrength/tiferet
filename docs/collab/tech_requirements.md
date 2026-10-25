@@ -52,10 +52,16 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 | ... | ... | Add / Update / Remove - one-line summary |
 
 ## 4. Detailed Requirements
-[Numbered subsections. Named artifacts. Informationally complete tables.]
+
+### 4.1 [Component]
+#### Implementation
+[Add, Update, or Remove. Labels, placement, parameters, constants, messages. No pytest. No YAML.]
+
+#### Tests
+[Add, Update, or Remove. One case per named test. Tester language only. Name the test module.]
 
 ## 5. Acceptance Criteria
-1. Binary, named-artifact assertions.
+1. Binary, named-artifact assertions. A test line cites the test name and does not restate the case.
 
 ## 6. Non-Functional Requirements
 - Pattern consistency, compatibility, maintainability.
@@ -77,8 +83,8 @@ Write like a careful colleague. Precise, active voice, no throat-clearing. Pure 
 
 - **Title:** exact story title with Component/Assemblage and a spaced hyphen (`Domain - Naming Parity: ServiceRegistration`). Assemblage is the majority core package, or `Config`, `Tests`, or a domain assemblage.
 - **§3:** artifact action per module, not a vague "Changes" blurb.
-- **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`).
-- **§5:** target artifacts exist *and* retired ones are gone.
+- **§4:** Add / Update / Remove on named artifacts. Delta tables for renames (`From (current)` / `To (target)`). One numbered block per component: Implementation, then Tests. No pytest and no YAML in the block. See [Component blocks in section 4](#component-blocks-in-section-4).
+- **§5:** target artifacts exist *and* retired ones are gone. A test line cites the test name and does not restate the case.
 - **§7 reconstruction:** freeze id is mandatory. Also list not-yet-satisfied trunk dependencies. When the issue is published, wire those rows as GitHub blocked-by (parent/child and sibling sequence included). External blockers of a Super-TRD child are wired on that child and on the parent issue ([process.md](process.md)). Before wiring a set, check for a cycle - two or more issues each naming the other's output as a prerequisite - and do not publish one ([process.md](process.md)).
 - **§7 reconstruction, reference prototype:** record the proto tags or pre-release from the freeze that the QA Operator measures on a Release review, or `None` when no prototype exists. The operator also reads the prototype branch, read-only ([code_review.md](code_review.md)). The implementor does not read either.
 - **§7 hotfix:** no freeze row and no reference prototype row. Name the defect and why proto was not consulted.
@@ -92,9 +98,67 @@ An implementor satisfies the TRD by acting on named artifacts. The QA Operator, 
 
 Because the TRD is the whole fidelity source when no prototype exists, name every artifact completely: exact labels, names, section and sub-group placement, parameters, and test catalog rows.
 
+## Component blocks in section 4
+
+A numbered block in section 4 is one idea, named as the component. It does not contain pytest. It does not contain YAML.
+
+The block has two subsections, in this order: **Implementation**, then **Tests**. Both use Add, Update, and Remove.
+
+**Implementation** states the code artifacts of that component: labels, placement, parameters, constants, messages. The operation-level headings in the next section sit under Implementation. They are not a third subsection, and they are not cases.
+
+**Tests** states the cases that replicate that implementation. Each case is an operation on a named test, not a second copy of the field table. The case names its test module, so a later skill can parse one module out and render either Python or YAML. The TRD does not choose the rendering.
+
+A case uses tester language only: fixtures, a tester, a subject, conditions, an action, and an expectation. An expectation is one of:
+
+- an outcome equal to a value
+- an outcome that is null
+- fields equal to values
+- an outcome that raises a named type whose message names a value
+
+One name per test. That name is the name in both renderings.
+
+A function with no class subject is a root test in that same module. It is not a tester. The module boundary is what the skill parses. The tester boundary is what the case uses when the subject is a class.
+
+Python-only marks, written on the case, are only instance identity and a class's own-namespace declaration. A type check is a shared expectation.
+
+Until the rendering skill exists, the Python file is the acceptance gate. The YAML document under `tiferet_tests/` is the same cases, not a second spec, and is not a gate. These cases must not call `run_test_module`.
+
+Section 5 cites the test name. It does not restate the case.
+
+### Worked example
+
+Phase errors: six catalog codes. The example shows Add. Update and Remove use the same two subsections.
+
+```markdown
+### 4.1 Phase errors
+
+#### Implementation
+
+Add six catalog codes in `tiferet/assets/error.py`.
+
+- Labels: `# ** constant: phase_fixture_not_found_id` and the matching `*_data` label, and the same pair for each code below.
+- Placement: ids in `# *** constants (ids)`; messages in `# *** constants (models)`; keys on `CORE_DEFAULT_ERRORS` in `# *** constants (groups)`.
+- Constants: `PHASE_FIXTURE_NOT_FOUND_ID`, `PHASE_NAME_COLLISION_ID`, `PHASE_REFERENCE_NOT_FOUND_ID`, `PHASE_HANDLER_MISMATCH_ID`, `PHASE_STEP_FAILED_ID`, `PHASE_CHECK_FAILED_ID`.
+- Names: Phase Fixture Not Found; Phase Name Collision; Phase Reference Not Found; Phase Handler Mismatch; Phase Step Failed; Phase Check Failed.
+- Messages: `Fixture {name} was not found.`; `Mock and fixture names collide: {names}.`; `Missing runtime reference {reference}.`; `Phase handler received {received}, not {expected}.`; `Phase step failed: {detail}.`; `Phase check {check} failed: {detail}.`
+
+#### Tests
+
+Add `phase_fixture_not_found` in module `tests/assets/test_error`.
+
+- Fixtures: none
+- Tester: `test_core_default_errors`
+- Subject: `CORE_DEFAULT_ERRORS`
+- Conditions: none
+- Action: read the `PHASE_FIXTURE_NOT_FOUND` entry
+- Expectation: fields equal to the declared name and the message that names `{name}`
+```
+
+The matching section 5 line cites the name only: `phase_fixture_not_found`.
+
 ## Operation-level artifact notation in §4
 
-Every §4 requirement is an **operation** (Add / Update / Remove) on an artifact type. Tables must be **informationally complete** - a row is enough to produce the artifact with no other source.
+Every Implementation requirement in §4 is an **operation** (Add / Update / Remove) on an artifact type. Tables must be **informationally complete** - a row is enough to produce the artifact with no other source.
 
 ### Add Constant
 
@@ -120,7 +184,7 @@ Each constant uses `create_service_registration(ID_CONST, create_service_module_
 | `ADD_FEATURE_EVT` | `ADD_FEATURE_EVT_ID` | `TIFERET_EVENTS_PATH` | `FEATURE_DOMAIN_PATH` | `'AddFeature'` |
 ```
 
-When a section mixes scalar ids and factory objects, produce two tables under the same `####` heading. The second table references constant *names* from the first.
+When a section mixes scalar ids and factory objects, produce two tables under the same Implementation operation heading. The second table references constant *names* from the first.
 
 Supplementary notes (ordering, naming conventions, optional-field rules) sit immediately before or after the table they govern.
 
@@ -130,9 +194,11 @@ Supplementary notes (ordering, naming conventions, optional-field rules) sit imm
 - Factory-built: every argument, prior constants by name (`ROOT_LOGGER_ID`), never by raw string (`'root'`).
 - Optional fields: the omit condition is resolvable from the table (blank cell = omitted).
 
+The Implementation table is the specification of those code artifacts, not a summary of them. It is not the test spec. Cases are stated under Tests, and they are not a second copy of the field table.
+
 ### Section-mirroring
 
-Each `# *** constants (<subgroup>)` code section maps 1:1 to `#### Add/Update/Remove: # *** constants (<subgroup>)` in §4. Canonical subgroups: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`. A flat `# *** constants` block where subgroups apply is a defect - assert the structure in §5.
+Each `# *** constants (<subgroup>)` code section maps 1:1 to `##### Add/Update/Remove: # *** constants (<subgroup>)` under Implementation in §4. Canonical subgroups: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`. A flat `# *** constants` block where subgroups apply is a defect - assert the structure in §5.
 
 ### Update Constant and Remove Constant
 
@@ -192,6 +258,9 @@ A Super-TRD child does not get a Collaboration Report. Short status on the child
 - [ ] Requirements are Add / Update / Remove, not "copy from X."
 - [ ] Reconstruction cites a freeze id and a reference prototype (or `None`) in §7; hotfix cites neither.
 - [ ] Path chosen: standalone vs Super-TRD.
+- [ ] Each section 4 block is one component, with Implementation then Tests, and contains neither pytest nor YAML.
+- [ ] Each case is an operation on one named test, in tester language, names its module, and is not a second copy of the field table.
+- [ ] Section 5 cites the test name and does not restate the case.
 
 ## Related code style documentation (§8)
 
