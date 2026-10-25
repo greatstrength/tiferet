@@ -53,7 +53,7 @@ Review topology for a Super-TRD:
 
 A sub-TRD review checks that child's artifacts and AC. The final review checks each child TRD's artifacts and AC against the combined diff, plus cross-child consistency.
 
-After the shared floor, **artifact fidelity is the primary lens**, and proper artifact cataloging outranks conceptual content. Every artifact the TRD names in §3 and §4 is checked, not only the ones the AC names: exact labels, names, section and sub-group placement, ordering, constant tables, parameters and keyword-argument style, test catalog rows, and file paths.
+After the shared floor, **artifact fidelity is the primary lens**, and proper artifact cataloging outranks conceptual content. Every artifact the TRD names in §3 and §4 is checked, not only the ones the AC names: exact labels, names, section and sub-group placement, ordering, constant tables, parameters and keyword-argument style, named test cases, and file paths.
 
 The source of fidelity, in order:
 

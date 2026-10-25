@@ -96,7 +96,7 @@ TRDs specify **artifacts to add, update, or remove** - never prose narratives or
 
 An implementor satisfies the TRD by acting on named artifacts. The QA Operator, on a Release review, verifies each one independently, not only the ones the AC names, against the reference prototype when one is recorded in §7, against the prototype branch read-only, and against the TRD alone when no prototype is recorded ([code_review.md](code_review.md)). The implementor must not be sent to the proto branch.
 
-Because the TRD is the whole fidelity source when no prototype exists, name every artifact completely: exact labels, names, section and sub-group placement, parameters, and test catalog rows.
+Because the TRD is the whole fidelity source when no prototype exists, name every artifact completely: exact labels, names, section and sub-group placement, parameters, and the named test cases under Tests.
 
 ## Component blocks in section 4
 
@@ -150,8 +150,9 @@ Add `phase_fixture_not_found` in module `tests/assets/test_error`.
 - Tester: `test_core_default_errors`
 - Subject: `CORE_DEFAULT_ERRORS`
 - Conditions: none
-- Action: read the `PHASE_FIXTURE_NOT_FOUND` entry
-- Expectation: fields equal to the declared name and the message that names `{name}`
+- Action: read the entry at `PHASE_FIXTURE_NOT_FOUND_ID`
+- Expectation: `PHASE_FIXTURE_NOT_FOUND_ID` equals `PHASE_FIXTURE_NOT_FOUND`; fields equal to the declared name and the `en_US` message that names `{name}`
+- Python-only mark: the entry is `PHASE_FIXTURE_NOT_FOUND_DATA` (instance identity)
 ```
 
 The matching section 5 line cites the name only: `phase_fixture_not_found`.
@@ -258,8 +259,8 @@ A Super-TRD child does not get a Collaboration Report. Short status on the child
 - [ ] Requirements are Add / Update / Remove, not "copy from X."
 - [ ] Reconstruction cites a freeze id and a reference prototype (or `None`) in §7; hotfix cites neither.
 - [ ] Path chosen: standalone vs Super-TRD.
-- [ ] Each section 4 block is one component, with Implementation then Tests, and contains neither pytest nor YAML.
-- [ ] Each case is an operation on one named test, in tester language, names its module, and is not a second copy of the field table.
+- [ ] Standalone or Super-TRD child: each section 4 block is one component, with Implementation then Tests, and contains neither pytest nor YAML.
+- [ ] Standalone or Super-TRD child: each case is an operation on one named test, in tester language, names its module, and is not a second copy of the field table.
 - [ ] Section 5 cites the test name and does not restate the case.
 
 ## Related code style documentation (§8)
