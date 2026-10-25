@@ -121,7 +121,7 @@ A function with no class subject is a root test in that same module. It is not a
 
 Python-only marks, written on the case, are only instance identity and a class's own-namespace declaration. A type check is a shared expectation.
 
-Until the rendering skill exists, the Python file is the acceptance gate. The YAML document under `tiferet_tests/` is the same cases, not a second spec, and is not a gate. These cases must not call `run_test_module`.
+Until the rendering skill exists, the Python file is the acceptance gate. The YAML document under `tiferet_tests/` is the same cases, not a second spec, and is not a gate. A case may call `run_test_module` when the test needs it.
 
 Section 5 cites the test name. It does not restate the case.
 
