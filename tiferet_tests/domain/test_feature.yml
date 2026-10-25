@@ -432,6 +432,27 @@ testers:
               parameters:
                 - name: a
                 - name: b
+      params_schema_bad_value_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: Feature
+            method: model_validate
+            args:
+              - id: calc.add
+                name: Add
+                params_schema:
+                  a: 5
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: error
+            error_code: INVALID_MODEL_VALUE
 
   test_parameter_specification:
     module_path: *feature_module
@@ -567,6 +588,611 @@ testers:
           - outcome: field
             fields:
               default: 1.0
+      from_config_entry_shorthand:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args: [a, int]
+            as: param
+          - target: $r.param
+            method: to_config_value
+            as: value
+        assert:
+          - outcome: param
+            type:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+          - outcome: param
+            fields:
+              name: a
+              type: int
+              required: true
+              default: null
+          - outcome: value
+            type:
+              module_path: builtins
+              class_name: str
+          - outcome: value
+            equals: int
+      from_config_entry_expanded:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - b
+              - type: float
+                required: false
+                default: 1.0
+            as: param
+          - target: $r.param
+            method: to_config_value
+            as: value
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.value]
+            as: value_keys
+        assert:
+          - outcome: param
+            fields:
+              name: b
+              type: float
+              required: false
+              default: 1.0
+          - outcome: value
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: value
+            fields:
+              type: float
+              default: 1.0
+              required: false
+          - outcome: value_keys
+            equals: [type, default, required]
+      to_config_value_key_order:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - c
+              - choices: [x, y]
+                pattern: '^[xy]$'
+                max_length: 1
+                min_length: 1
+                maximum: 9
+                minimum: 1
+                description: Pick one.
+                required: false
+                default: x
+                type: str
+            as: param
+          - target: $r.param
+            method: to_config_value
+            as: value
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.value]
+            as: value_keys
+        assert:
+          - outcome: value
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: value_keys
+            equals: [type, default, required, description, minimum, maximum, min_length, max_length, pattern, choices]
+          - outcome: value
+            fields:
+              type: str
+              default: x
+              required: false
+              description: Pick one.
+              minimum: 1.0
+              maximum: 9.0
+              min_length: 1
+              max_length: 1
+              pattern: '^[xy]$'
+              choices: [x, y]
+      to_config_value_falsy_defaults:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - n
+              - type: int
+                default: 0
+            as: zero_param
+          - target: $r.zero_param
+            method: to_config_value
+            as: zero_value
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.zero_value]
+            as: zero_keys
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - f
+              - type: bool
+                default: false
+            as: false_param
+          - target: $r.false_param
+            method: to_config_value
+            as: false_value
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.false_value]
+            as: false_keys
+        assert:
+          - outcome: zero_value
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: zero_keys
+            equals: [type, default]
+          - outcome: zero_value
+            fields:
+              type: int
+              default: 0
+          - outcome: false_value
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: false_keys
+            equals: [type, default]
+          - outcome: false_value
+            fields:
+              type: bool
+              default: false
+      to_config_value_shorthand_rule:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - a
+              - type: int
+                required: true
+                default: null
+            as: plain_param
+          - target: $r.plain_param
+            method: to_config_value
+            as: plain_value
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - d
+              - description: Described.
+            as: described_param
+          - target: $r.described_param
+            method: to_config_value
+            as: described_value
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.described_value]
+            as: described_keys
+        assert:
+          - outcome: plain_value
+            type:
+              module_path: builtins
+              class_name: str
+          - outcome: plain_value
+            equals: int
+          - outcome: described_value
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: described_keys
+            equals: [type, description]
+          - outcome: described_value
+            fields:
+              type: str
+              description: Described.
+      from_config_entry_drops_equal_name:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - a
+              - name: a
+                type: int
+            as: param
+          - target: $r.param
+            method: to_config_value
+            as: value
+        assert:
+          - outcome: param
+            fields:
+              name: a
+              type: int
+              required: true
+          - outcome: value
+            equals: int
+      from_config_entry_name_mismatch_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args: 
+              - a
+              - name: b
+                type: int
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: error
+            error_code: INVALID_MODEL_VALUE
+      from_config_entry_bad_value_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args: [a, 5]
+            as: number_error
+            raises: true
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args: [a, [int]]
+            as: list_error
+            raises: true
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args: [a, null]
+            as: none_error
+            raises: true
+        assert:
+          - outcome: number_error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: number_error
+            error_code: INVALID_MODEL_VALUE
+          - outcome: list_error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: list_error
+            error_code: INVALID_MODEL_VALUE
+          - outcome: none_error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: none_error
+            error_code: INVALID_MODEL_VALUE
+      from_config_entry_unknown_type_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args: [a, decimal]
+            as: shorthand_error
+            raises: true
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_entry
+            args:
+              - a
+              - type: decimal
+            as: expanded_error
+            raises: true
+        assert:
+          - outcome: shorthand_error
+            type:
+              module_path: pydantic
+              class_name: ValidationError
+          - outcome: expanded_error
+            type:
+              module_path: pydantic
+              class_name: ValidationError
+      from_config_map_order:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_map
+            args:
+              - z: int
+                a:
+                  type: str
+                  required: false
+                parameters: bool
+            as: params
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: get0
+          - target: $r.get0
+            method: __call__
+            args: [$r.params]
+            as: first
+        assert:
+          - outcome: first
+            type:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+          - outcome: params
+            equals:
+              - name: z
+                type: int
+                required: true
+              - name: a
+                type: str
+                required: false
+              - name: parameters
+                type: bool
+                required: true
+      from_config_map_non_mapping_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_map
+            args: 
+              - - name: a
+                  type: int
+            as: list_error
+            raises: true
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: from_config_map
+            args: [int]
+            as: str_error
+            raises: true
+        assert:
+          - outcome: list_error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: list_error
+            error_code: INVALID_MODEL_VALUE
+          - outcome: str_error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: str_error
+            error_code: INVALID_MODEL_VALUE
+      to_config_map_order:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: to_config_map
+            args:
+              - - name: z
+                  type: int
+                - name: b
+                  type: float
+                  required: false
+                  default: 1.0
+            as: config
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.config]
+            as: config_keys
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [b]
+            as: get_b
+          - target: $r.get_b
+            method: __call__
+            args: [$r.config]
+            as: b_value
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.b_value]
+            as: b_keys
+        assert:
+          - outcome: config
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: config_keys
+            equals: [z, b]
+          - outcome: config
+            fields:
+              z: int
+              b:
+                type: float
+                default: 1.0
+                required: false
+          - outcome: b_keys
+            equals: [type, default, required]
+      to_config_map_empty:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: to_config_map
+            args: [[]]
+            as: config
+          - target:
+              module_path: operator
+              attribute: eq
+            method: eq
+            args: [$r.config, {}]
+            as: is_empty_mapping
+        assert:
+          - outcome: config
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: is_empty_mapping
+            equals: true
+      keyed_by_name_order:
+        conditions:
+          fixtures: [optional_parameter]
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: keyed_by_name
+            args:
+              - - $fixture.optional_parameter
+                - name: a
+                  type: int
+            as: params
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [0]
+            as: get0
+          - target: $r.get0
+            method: __call__
+            args: [$r.params]
+            as: first
+          - target:
+              module_path: operator
+              attribute: itemgetter
+            method: itemgetter
+            args: [1]
+            as: get1
+          - target: $r.get1
+            method: __call__
+            args: [$r.params]
+            as: second
+          - target:
+              module_path: operator
+              attribute: is_
+            method: is_
+            args: [$r.first, $fixture.optional_parameter]
+            as: same_first
+        assert:
+          - outcome: same_first
+            equals: true
+          - outcome: second
+            type:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+          - outcome: params
+            equals:
+              - name: b
+                type: float
+                required: false
+                default: 1.0
+              - name: a
+                type: int
+                required: true
+      keyed_by_name_repeated_name_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: keyed_by_name
+            args: 
+              - - name: a
+                - name: a
+                  type: int
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: error
+            error_code: INVALID_MODEL_VALUE
+      keyed_by_name_dict_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: ParameterSpecification
+            method: keyed_by_name
+            args: 
+              - a: int
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: error
+            error_code: INVALID_MODEL_VALUE
+          - outcome: error
+            message: must be a list
+      field_definition_is_pair:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: field_definition
+            as: definition
+          - target:
+              module_path: builtins
+              attribute: len
+            method: len
+            args: [$r.definition]
+            as: size
+        assert:
+          - outcome: definition
+            type:
+              module_path: builtins
+              class_name: tuple
+          - outcome: size
+            equals: 2
 
   test_request_specification:
     module_path: *feature_module
@@ -773,3 +1399,137 @@ testers:
             equals: true
           - outcome: unsatisfied
             equals: false
+      normalizes_key_named_parameters:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - parameters: int
+            as: spec
+        assert:
+          - outcome: spec
+            fields:
+              parameters:
+                - name: parameters
+                  type: int
+                  required: true
+      normalizes_canonical:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - parameters:
+                  - name: a
+                    type: int
+                  - name: b
+                    type: float
+                    required: false
+            as: spec
+        assert:
+          - outcome: spec
+            fields:
+              parameters:
+                - name: a
+                  type: int
+                  required: true
+                - name: b
+                  type: float
+                  required: false
+      normalizes_canonical_keeps_extra_key:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args:
+              - parameters:
+                  - name: a
+                extra: 1
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: pydantic
+              class_name: ValidationError
+          - outcome: error
+            message: extra
+      normalizes_bad_value_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args: 
+              - a: 5
+            as: number_error
+            raises: true
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args: 
+              - a: [int]
+            as: list_error
+            raises: true
+        assert:
+          - outcome: number_error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: number_error
+            error_code: INVALID_MODEL_VALUE
+          - outcome: list_error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: list_error
+            error_code: INVALID_MODEL_VALUE
+      normalizes_name_mismatch_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args: 
+              - a:
+                  name: b
+                  type: int
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: error
+            error_code: INVALID_MODEL_VALUE
+      normalizes_repeated_canonical_name_raises:
+        conditions: {}
+        execute:
+          - target:
+              module_path: *feature_module
+              class_name: RequestSpecification
+            method: model_validate
+            args: 
+              - parameters:
+                  - name: a
+                  - name: a
+            as: error
+            raises: true
+        assert:
+          - outcome: error
+            type:
+              module_path: tiferet.domain.core
+              class_name: ModelError
+          - outcome: error
+            error_code: INVALID_MODEL_VALUE

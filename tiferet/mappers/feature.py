@@ -13,6 +13,7 @@ from ..domain import (
     Feature,
     FeatureStep,
     EventFeatureStep,
+    ParameterSpecification,
 )
 from .core import (
     Aggregate,
@@ -343,9 +344,9 @@ class FeatureConfigObject(Feature, TransferObject):
     @field_serializer('params_schema')
     def serialize_params_schema(self, value: Any, _info: Any) -> Any:
         '''
-        Serialize ``params_schema`` into the ergonomic keyed mapping used in
-        configuration files, emitting shorthand ``name: type`` when a parameter
-        has no extra constraints and the expanded mapping otherwise.
+        Serialize ``params_schema`` into the name-keyed config map used in
+        configuration files. ``ParameterSpecification`` decides shorthand
+        ``name: type`` versus the expanded mapping for each parameter.
 
         :param value: The request specification to serialize.
         :type value: Any
@@ -359,39 +360,8 @@ class FeatureConfigObject(Feature, TransferObject):
         if value is None:
             return None
 
-        # Build a keyed mapping of parameter name to its specification.
-        result: Dict[str, Any] = {}
-        for param in value.parameters:
-
-            # Collect non-default constraint fields beyond name and type.
-            extras: Dict[str, Any] = {}
-            if param.default is not None:
-                extras['default'] = param.default
-            if not param.required:
-                extras['required'] = param.required
-            if param.description is not None:
-                extras['description'] = param.description
-            if param.minimum is not None:
-                extras['minimum'] = param.minimum
-            if param.maximum is not None:
-                extras['maximum'] = param.maximum
-            if param.min_length is not None:
-                extras['min_length'] = param.min_length
-            if param.max_length is not None:
-                extras['max_length'] = param.max_length
-            if param.pattern is not None:
-                extras['pattern'] = param.pattern
-            if param.choices is not None:
-                extras['choices'] = param.choices
-
-            # Use shorthand when only the type is meaningful, else the expanded form.
-            if not extras:
-                result[param.name] = param.type
-            else:
-                result[param.name] = {'type': param.type, **extras}
-
-        # Return the keyed parameter mapping.
-        return result
+        # Write the runtime list as the name-keyed config map.
+        return ParameterSpecification.to_config_map(value.parameters)
 
     # * method: map
     def map(self, **overrides) -> FeatureAggregate:
