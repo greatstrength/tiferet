@@ -53,7 +53,7 @@ Pull requests are for reviewing code. Issues are for remembering the work item.
 - **The issue** may sit on a milestone. **The PR does not.** Do not add the PR to the milestone.
 - Every implementation PR is **GitHub-linked** to its authorizing issue (not a title mention alone): proto PR to the RFP issue; standalone trunk PR to that TRD; sub-TRD PR to the child and the parent.
 - Proto PRs do not honor `Closes`, `Fixes`, or `Resolves`. Link `#issue` in the body. Proto PRs do not close their issue on merge; the issue is closed after squash-merge.
-- A standalone trunk PR may use `Closes #<issue>`. A sub-TRD PR uses `Closes #<child>` and `Refs #<parent>`, so the child closes on merge. It never puts `Closes`, `Fixes`, or `Resolves` on the parent - not in the body, and not in the squash commit. `Refs` does not close the parent. The parent issue closes after its final review, once every child issue is closed.
+- A standalone trunk PR may use `Closes #<issue>`. A sub-TRD PR uses `Closes #<child>` and `Refs #<parent>`, so the child closes on merge. It never puts `Closes`, `Fixes`, or `Resolves` on the parent - not in the body, and not in the squash commit. The squash commit keeps `Closes #<child>` and `Refs #<parent>`, so the child closes through that keyword. `Refs` does not close the parent. The parent has no PR, so the project administrator closes the parent issue after its final review, once every child issue is closed.
 - RFP headers include `Depends on` / `Blocks`. When you publish the issue, wire the same edges as GitHub blocked-by. TRD §7 does the same. Before wiring a freeze's issue set, check for a blocked-by cycle. Do not publish one. See [Safeguards](#safeguards).
 
 ## Versioning (what an individual must not do)
@@ -80,7 +80,7 @@ Each child follows the normal trunk procedure from `main` to Done. An unblocked 
 
 When the child issues allow concurrency, an agent may run a fan-out: one implementer per ready child, each on its own branch from `main`.
 
-Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole: the parent TRD and cross-child consistency ([code_review.md](code_review.md)). After that review passes, the parent goes Done. The parent issue closes after its final review, once every child issue is closed.
+Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole: the parent TRD and cross-child consistency ([code_review.md](code_review.md)). After that review passes, the parent goes Done. The parent has no PR, so the project administrator closes the parent issue after its final review, once every child issue is closed.
 
 ## Cross-boundary blockers
 
@@ -157,7 +157,8 @@ No AI agent acting on its own, on any account, ever:
 - mints a catalog freeze;
 - creates, closes, or renames a milestone;
 - changes repository or organization settings;
-- checks an acceptance-criteria box on a PR it authored. Every PR opens with all AC boxes unchecked, and only the reviewer checks one, as it verifies that item.
+- checks an acceptance-criteria box on a PR it authored. Every PR opens with all AC boxes unchecked, and only the reviewer checks one, as it verifies that item;
+- closes a Super-TRD parent issue. The parent has no PR, so the project administrator closes it after its final review, once every child issue is closed.
 
 An agent acting on its own never takes these actions, and they never become options during its work. The exception is an agent acting under the supervision of a named project administrator, for that administrator: it may take one of these actions when the administrator grants it, either directly (naming the action, for that action only) or through standard procedure the administrator has approved (the project's binding or process docs, or an approved RFP or TRD). The project's own docs name the administrator and any standing grants. This exception never passes to a shared bot account such as `tif-ai`.
 

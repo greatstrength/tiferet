@@ -59,7 +59,7 @@ The parent has no branch and no PR of its own. Children do not commit onto a sha
 
 9. After squash-merge: the child closes through `Closes #<child>`. Status Done. End date. No Collaboration Report. Rename `.trd/` to `.complete.md` and run the closeout cleanup in `docs/collab/process.md`.
 
-Once every child is Done, the parent goes In Review for its final review. The parent issue closes after its final review, once every child issue is closed. Neither step is part of this skill.
+Once every child is Done, the parent goes In Review for its final review. The parent has no PR, so the project administrator closes the parent issue after its final review, once every child issue is closed. Neither step is part of this skill.
 
 ## Outputs
 

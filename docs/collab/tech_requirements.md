@@ -249,7 +249,7 @@ Exceeds M → split. Reference scoping: issues #935 and #939.
 
 ### Closing
 
-A Super-TRD child does not get a Collaboration Report, and neither does the parent. Short status on the child issue is enough. A sub-TRD PR uses `Closes #<child>` and `Refs #<parent>`, so the child closes when its PR is squash-merged to `main`. It never puts a closing keyword on the parent. Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole. The parent issue closes after its final review, once every child issue is closed. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
+A Super-TRD child does not get a Collaboration Report, and neither does the parent. Short status on the child issue is enough. A sub-TRD PR uses `Closes #<child>` and `Refs #<parent>`, so the child closes when its PR is squash-merged to `main`. It never puts a closing keyword on the parent. Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole. The parent has no PR, so the project administrator closes the parent issue after its final review, once every child issue is closed. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
 
 ## Review checklist (author)
 

@@ -67,7 +67,7 @@ The parent is a grouping and a blocking gate. It has no branch and no PR of its 
 
 If you are asked to implement **one child**: confirm that the parent is In Progress and that every blocker of this child, a sibling, a standalone TRD, or other outside work, is already squash-merged to `main`. If not, do not cut a branch and do not start. See [Cross-boundary blockers](process.md#cross-boundary-blockers). Otherwise cut `<child-issue>-<slug>` from `main`. Open a PR targeting `main`. Body: `Closes #<child>` and `Refs #<parent>`. Never put `Closes`, `Fixes`, or `Resolves` on the parent. Verify `gh pr view <N> --json baseRefName`. Set the child to In Review. Short status on the child issue. Do not write a Collaboration Report. The child closes when its PR is squash-merged to `main`, and its Status goes to Done.
 
-Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole. After it passes, the parent goes Done. The parent issue closes after its final review, once every child issue is closed. The parent gets no Collaboration Report.
+Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole. After it passes, the parent goes Done. The parent has no PR, so the project administrator closes the parent issue after its final review, once every child issue is closed. The parent gets no Collaboration Report.
 
 When the child issues allow concurrency, an agent may run the fan-out. Review and squash-merge are outside these contribution guidelines.
 
