@@ -23,6 +23,7 @@ This file is the local phone book, not the process. Skills should read `docs/col
 | Owner / repo | `greatstrength/tiferet` |
 | Project | Tiferet Framework (#2) |
 | Project node id | `PVT_kwDOCKXjws4A7Y85` |
+| Project administrator | `ashatz` |
 
 ## Project field ids (project #2)
 
