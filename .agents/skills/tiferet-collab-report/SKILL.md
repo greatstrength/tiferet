@@ -2,7 +2,8 @@
 name: tiferet-collab-report
 description: >
   Write a Collaboration Report for a standalone trunk TRD on the GitHub
-  issue (never as a PR comment). Not for RFP issues or Super-TRD children.
+  issue (never as a PR comment). Not for RFP issues or Super-TRD parents
+  or children.
 ---
 
 # Collaboration Report (standalone TRD)
@@ -14,7 +15,7 @@ description: >
 ## When not to use
 
 - RFP / proto work.
-- Super-TRD child issues.
+- Super-TRD parent or child issues.
 - PR review comments.
 - A review or a review summary. Review is outside these contribution guidelines.
 

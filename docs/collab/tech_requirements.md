@@ -20,7 +20,7 @@ Do not write a TRD that says "copy from proto." Do not put `Version: Request for
 2. Size: [project_fields.md](project_fields.md).
 3. Path:
    - **Standalone** - XL or below, or XL with no seam. One issue, one branch, one PR. Session record on that issue.
-   - **Super-TRD** - XL+ *and* a seam. Parent + children. Genre below. The branch is not one PR that children commit onto; see [process.md](process.md) and [main.md](main.md).
+   - **Super-TRD** - XL+ *and* a seam. Parent + children. Genre below. The parent has no branch of its own; each child is its own PR to `main`. See [process.md](process.md#super-trd) and [main.md](main.md).
 
 ## General guidelines
 
@@ -249,7 +249,7 @@ Exceeds M → split. Reference scoping: issues #935 and #939.
 
 ### Closing
 
-A Super-TRD child does not get a Collaboration Report. Short status on the child issue is enough. The child stays In Review until the Super-TRD PR to `main` is squash-merged; closing children is closeout. A sub-TRD PR uses `Refs #<child>` and `Refs #<parent>` and never a closing keyword. The Super-TRD PR uses `Closes #<parent>` only. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
+A Super-TRD child does not get a Collaboration Report, and neither does the parent. Short status on the child issue is enough. A sub-TRD PR uses `Closes #<child>` and `Refs #<parent>`, so the child closes when its PR is squash-merged to `main`. It never puts a closing keyword on the parent. Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole. The parent has no PR, so the project administrator closes the parent issue after its final review, once every child issue is closed. Standalone TRDs get a Collaboration Report on that issue ([collab_report.md](collab_report.md)).
 
 ## Review checklist (author)
 
@@ -292,7 +292,7 @@ Milestone description payloads live in `.milestones/m<N>_<kebab-title>.md` if yo
 
 ## Creating GitHub issues
 
-Impact-check merged PRs **and** in-flight branches before creating issues from TRDs. For a later Super-TRD child, current state is the Super-TRD branch after earlier children have merged into it, not `main`, and not a branch that children commit onto together.
+Impact-check merged PRs **and** in-flight branches before creating issues from TRDs. For a later Super-TRD child, current state is `main` after earlier children have been squash-merged to it, not a branch that children commit onto together.
 
 Use the REST API (`gh api`), not `gh issue create --milestone` (silently fails on en-dashes). After create, rename the TRD file to insert `m<N>_` and the issue number. Set Status=Ready. Wire blocked-by and Super-TRD sub-issues with the commands in [commands.md](commands.md).
 
@@ -300,8 +300,4 @@ Use the REST API (`gh api`), not `gh issue create --milestone` (silently fails o
 
 Standalone and hotfix: `<issue-number>-<lowercase-hyphenated-title>`, cut from and targeting `main`.
 
-Super-TRD branch: `<parent-issue>-<slug>`, cut from `main` at the freeze base (trunk as it stands for this reconstruction, not proto) and pushed before any child starts. The maintainer cuts it. No agent does.
-
-Child: `<child-issue>-<slug>`, cut from the Super-TRD branch tip. The PR targets that branch, never `main`.
-
-The Super-TRD PR is that branch targeting `main`, opened after the child PRs have merged. See [process.md](process.md). Prototype branches are specified in [rfp.md](rfp.md), not here.
+Super-TRD child: `<child-issue>-<slug>`, cut from and targeting `main`. A Super-TRD has no branch of its own. See [process.md](process.md#super-trd). Prototype branches are specified in [rfp.md](rfp.md), not here.

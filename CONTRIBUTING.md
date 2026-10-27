@@ -5,7 +5,7 @@ Thank you for wanting to contribute. This page is the front door. The map of how
 ## Getting started
 
 1. Fork the repository and clone your fork.
-2. Cut a branch from the right base (proto for an RFP, `main` for a standalone trunk TRD or docs, the already-pushed Super-TRD branch for a Super-TRD child).
+2. Cut a branch from the right base (proto for an RFP, `main` for a standalone trunk TRD, a Super-TRD child, or docs).
 3. Set up a virtual environment and install in development mode with the `test` extra:
 
 ```bash
@@ -32,7 +32,7 @@ Trunk and prototype are two independent histories of the same version family. Wh
 | Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
 | Change docs or agent skills | a **Doc PR** - no issue, no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
-As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child whose Super-TRD branch is already pushed)**. You do not plan a release, mint a freeze, cut a Super-TRD branch, or tag a version. You do not perform the review, and you do not assign a milestone.
+As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child)**. You do not plan a release, mint a freeze, or tag a version. You do not perform the review, and you do not assign a milestone.
 
 Commands used across all of that: [docs/collab/commands.md](docs/collab/commands.md). Facts that belong only to this repo: [docs/collab/binding.md](docs/collab/binding.md).
 
@@ -67,7 +67,7 @@ When a PR is squash-merged, clean up after yourself: remove the worktree and its
 
 ### Pull requests
 
-RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets the already-pushed Super-TRD branch; the Super-TRD PR (that branch to `main`) is not the child's PR. GitHub-link the PR to the authorizing issue (a Doc PR has none). A child PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves`. Do not put the PR on a milestone. Proto PRs do not auto-close issues - close the RFP issue after squash.
+RFPs target proto. Standalone trunk and Doc target `main`. A Super-TRD child targets `main` too; the parent has no branch or PR of its own. GitHub-link the PR to the authorizing issue (a Doc PR has none). A child PR uses `Closes #<child>` and `Refs #<parent>`, and never puts `Closes`, `Fixes`, or `Resolves` on the parent. Do not put the PR on a milestone. Proto PRs do not auto-close issues - close the RFP issue after squash.
 
 The PR is a **review surface**: what changed, AC checkboxes (opened unchecked; the reviewer checks each one as it verifies it), comments that point at a line. Short status notes belong on the **issue**; on a Doc PR, which has no issue, they stay on the PR. A Collaboration Report is a standalone trunk TRD closeout and also belongs on that issue.
 
@@ -88,7 +88,7 @@ Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in t
 - `tiferet-author-rfp` - draft or amend one RFP; publish the issue; wire blocked-by.
 - `tiferet-rfp-session` - implement one published RFP on proto; link the PR to that issue; close the issue after squash.
 - `tiferet-author-trd` - one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
-- `tiferet-implement-trd` - implement one published TRD, or one Super-TRD child on a PR to the already-pushed Super-TRD branch. Never `main` for a child.
+- `tiferet-implement-trd` - implement one published TRD, or one Super-TRD child on a PR to `main`.
 - `tiferet-collab-report` - standalone TRD closeout on the issue.
 
 **Docs:** `tiferet-guide-docs`.
