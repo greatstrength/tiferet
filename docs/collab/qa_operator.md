@@ -5,6 +5,8 @@
 
 [process.md](process.md) is the index. This page is a **Takwin role**. It is not a Tiferet implementation role, and it is not a second review standard.
 
+This review process does not abide by the agent guardrails in [process.md](process.md). Those guidelines govern an agent acting on its own, and an agent under a project administrator's grant. Squash-merge on this page is not an exception inside those guidelines. A stop there is not a stop here.
+
 Forward development stays forward: authoring an RFP, implementing on proto, reconstructing on trunk. Those skills do not perform the review, and they do not merge. QA and review orchestration sit at the rear. This page is that orchestration. The judgment stays in [code_review.md](code_review.md). Do not replace it, and do not copy it here.
 
 ## Orchestrator and operator
@@ -82,11 +84,11 @@ Immediately before the merge, run `gh pr view <N> --json baseRefName` again. A s
 
 The squash message for a proto PR must not contain `Closes`, `Fixes`, or `Resolves`. The same ban holds for a sub-TRD PR. Proto does not honor those keywords. The operator closes the authorizing issue by hand. The implementing session does not close it in the operator's place. Neither puts a closing keyword on the proto PR.
 
-No tag. No version bump. Those stay on the [agent guardrails](process.md#agent-guardrails) list. This exception does not cover them.
+No tag. No version bump. Those stay with the maintainer.
 
-The maintainer, a human, may still squash-merge. The orchestrator does not. Every agent who is not the QA Operator, and not the maintainer, never merges ([process.md](process.md#agent-guardrails)).
+The maintainer, a human, may still squash-merge. The orchestrator does not. An agent who is not acting on this page never merges.
 
-This exception is squash-merge only. It is not a merge commit, not a push to `main` or proto, and not a fan-out. Cutting a Super-TRD branch, opening the Super-TRD PR, and merge-committing `main` into that branch stay with the maintainer.
+Squash-merge on this page is not a merge commit, not a push to `main` or proto, and not a fan-out. Cutting a Super-TRD branch, opening the Super-TRD PR, and merge-committing `main` into that branch stay with the maintainer.
 
 ## What stays forward
 
