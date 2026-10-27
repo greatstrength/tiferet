@@ -69,11 +69,11 @@ If you are asked to implement **one child**: confirm the Super-TRD branch is alr
 
 If the Super-TRD branch does not exist yet, stop and report. Do not open a PR to `main` in its place.
 
-Running the fan-out, merging `main` into the Super-TRD branch, opening the Super-TRD PR, and closing children are maintainer-only steps ([process.md § Agent guardrails](process.md#agent-guardrails)). Review and squash-merge are outside these contribution guidelines.
+Running the fan-out, merging `main` into the Super-TRD branch, opening the Super-TRD PR, and closing children are maintainer-only steps ([process.md, Agent guardrails](process.md#agent-guardrails)). Review and squash-merge are outside these contribution guidelines.
 
 ## Reviewing trunk
 
-A trunk PR is reviewed on the Release lens. Code style comes first and is never waived. Then artifact fidelity: every artifact the TRD names in §3 and §4 is measured against the reference prototype recorded in §7, and read-only against the prototype branch, or against the TRD alone when there is no prototype. A deviation on a named artifact is a finding even when trunk looks cleaner. A real improvement goes through a TRD amendment before merge. Only the review reads proto; the implementor works from the TRD. Reading proto is `git show` / `git diff` of a fetched ref, never a checkout, copy, or merge.
+A trunk PR is reviewed on the Release lens. Code style comes first and is never waived. Then artifact fidelity: every artifact the TRD names in section 3 and section 4 is measured against the reference prototype recorded in section 7, and read-only against the prototype branch, or against the TRD alone when there is no prototype. A deviation on a named artifact is a finding even when trunk looks cleaner. A real improvement goes through a TRD amendment before merge. Only the review reads proto; the implementor works from the TRD. Reading proto is `git show` / `git diff` of a fetched ref, never a checkout, copy, or merge.
 
 A hotfix is reviewed against the hotfix TRD. Proto has nothing to say about it.
 

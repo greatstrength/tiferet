@@ -115,4 +115,4 @@ What follows a merge to `main` is unchanged. A proto PR does not honor `Closes`,
 
 ## Guardrails
 
-A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto → trunk git, including checkout or copy. A reviewer never tells an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit as part of a review. This page grants no merge. Never review a second child of the same Super-TRD; re-review only the PR you already have.
+A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto to trunk git, including checkout or copy. A reviewer never tells an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit as part of a review. This page grants no merge. Never review a second child of the same Super-TRD; re-review only the PR you already have.
