@@ -40,8 +40,6 @@ git checkout -b <child-issue>-<slug> <parent-issue>-<slug>
 gh pr create --repo greatstrength/tiferet --base <parent-issue>-<slug> --head <child-issue>-<slug> --title "<title>" --body "<body>"
 
 # After open, and again immediately before any merge, confirm the base.
-# The QA Operator does this before a squash-merge. The maintainer does it
-# when the maintainer is the one merging. Policy: docs/collab/qa_operator.md.
 gh pr view <pr-number> --repo greatstrength/tiferet --json baseRefName
 ```
 
@@ -168,18 +166,7 @@ git merge --no-ff main -m "Merge main into <parent-issue>-<slug>"
 
 Only then is the blocked child's branch cut from that tip. See [process.md](process.md#cross-boundary-blockers).
 
-Do not put the PR on a milestone. Assign the **issue** to a milestone if the QA Operator asked you to; otherwise leave milestone assignment to the QA Operator.
-
-## Review and squash-merge
-
-Policy: [qa_operator.md](qa_operator.md). Judgment: [code_review.md](code_review.md).
-
-The QA Operator may squash-merge only after the human says that issue or PR is approved for squash merge. A PR targeting `main` also needs the human to have explicitly relinquished that specific PR. Confirm the base immediately before the merge. A proto squash message, and a sub-TRD squash message, must not contain `Closes`, `Fixes`, or `Resolves`. No tag. No version bump. Other agents do not run the merge. The maintainer may still squash-merge.
-
-```bash
-gh pr view <pr-number> --repo greatstrength/tiferet --json baseRefName
-gh pr merge <pr-number> --repo greatstrength/tiferet --squash
-```
+Do not put the PR on a milestone, and do not assign the issue to one.
 
 ## Release Publishing
 

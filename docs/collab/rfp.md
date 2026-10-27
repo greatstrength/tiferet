@@ -58,20 +58,20 @@ Keep a local copy at `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.md`. That fold
 5. **Proposal** - numbered design items. Resolve the questions here. Name the alternatives you considered and set down.
 6. **Out of scope** - named, and either handed to a later RFP or explicitly deferred. "We'll see" is not a section.
 7. **Risks and open questions** - mark each one **resolved** or still open. A resolved item that still looks open will be relitigated.
-8. **Acceptance criteria** - binary assertions. A proto implementor and the QA Operator should be able to check them without taste.
+8. **Acceptance criteria** - binary assertions. A proto implementor and a reviewer should be able to check them without taste.
 9. **Suggested TRD slicing** - reconstruction debt, not a gate. Re-read this list at freeze time. The first draft is almost never the backlog you actually want.
 
 When the design is wrong, amend **in place** on the same issue. You are not rewriting the past; you are saying what the next implementation replaces.
 
 ## Implementing on proto
 
-1. Publish the RFP as a GitHub issue. Wire blocked-by. The QA Operator assigns the milestone; you do not invent one.
+1. Publish the RFP as a GitHub issue. Wire blocked-by. You do not assign or invent a milestone.
 2. Cut a branch from the proto branch in [binding.md](binding.md). The PR targets proto, not `main`.
 3. Implement against the proposal, the acceptance criteria, and the distillation sections you cited. Review is against those. Nobody should be asking whether this matches trunk.
 4. Title the PR `RFP-00N - <Plain Title> (#issue)`. GitHub-link the PR to the RFP issue. Do not add the PR to a milestone. The body links `#issue` and does **not** use `Closes`, `Fixes`, or `Resolves` (proto will not honor them).
 5. After squash-merge: close the RFP issue yourself. Rename your local `.rfp/` working copy to `.rfp/<prefix-lower>-rfp-<nnn>-<kebab-title>.complete.md`. Do not tag. Do not bump the package version.
 
-Before the squash-merge, the QA Operator reviews the PR on the Prototype lens ([code_review.md](code_review.md)). Orchestration is [qa_operator.md](qa_operator.md). Code style comes first and is never waived. Then the RFP's content: that the proposal and acceptance criteria hold, and that the result aligns with the vision statement and the distillation sections you cited. Concept outranks artifact cataloging on this strand. The first line of the posted review is `Verdict: Approve` or `Verdict: Changes requested`. The implementing session does not review and does not merge. Proto PRs do not use `Closes`, `Fixes`, or `Resolves`. After the squash, close the RFP issue by hand.
+Before the squash-merge, the PR is reviewed on the Prototype lens ([code_review.md](code_review.md)). Review and merge are outside these contribution guidelines. Code style comes first and is never waived. Then the RFP's content: that the proposal and acceptance criteria hold, and that the result aligns with the vision statement and the distillation sections you cited. Concept outranks artifact cataloging on this strand. The first line of the posted review is `Verdict: Approve` or `Verdict: Changes requested`. The implementing session does not review and does not merge. Proto PRs do not use `Closes`, `Fixes`, or `Resolves`. Proto PRs do not close their issue on merge; the RFP issue is closed after squash-merge.
 
 The PR body lists the RFP's acceptance criteria as checkboxes, all unchecked. The Prototype reviewer checks each box as it verifies that item; the author never checks one.
 

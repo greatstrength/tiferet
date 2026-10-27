@@ -5,7 +5,7 @@
 
 [process.md](process.md) is the index. A pull request is where we argue about the diff. An issue is where we remember the work item. Mixing those two jobs makes both worse.
 
-The **QA Operator** performs this review ([qa_operator.md](qa_operator.md)). It is a Takwin role, not a Tiferet implementation role. Forward work does not review and does not merge. The operator judges with two lenses, not two jobs: the **Prototype reviewer** (an RFP PR to proto) and the **Release reviewer** (a trunk PR to `main`, or a sub-TRD PR to its Super-TRD branch). They share one standard and differ in what they weigh next. Squash-merge is not decided on this page. It is [qa_operator.md](qa_operator.md).
+This page is the review standard. Who performs a review, and who merges, is outside these contribution guidelines. Forward work does not review and does not merge; it self-checks against this page. A review judges with two lenses, not two jobs: the **Prototype reviewer** (an RFP PR to proto) and the **Release reviewer** (a trunk PR to `main`, or a sub-TRD PR to its Super-TRD branch). They share one standard and differ in what they weigh next. Squash-merge is not decided on this page.
 
 ## Shared review standards
 
@@ -29,7 +29,7 @@ After that floor, each lens applies its own priorities.
 
 ## Prototype reviewer
 
-This is a lens, not a role. The QA Operator applies it. The authorizing document is the RFP. Read it. Review the proposal items, the acceptance criteria, and the distillation sections it cites. Do not review it against trunk. Do not ask the author to make proto look like `main`. That is the opposite of what this strand is for.
+This is a lens, not a role. The authorizing document is the RFP. Read it. Review the proposal items, the acceptance criteria, and the distillation sections it cites. Do not review it against trunk. Do not ask the author to make proto look like `main`. That is the opposite of what this strand is for.
 
 After the shared floor, in order:
 
@@ -43,13 +43,13 @@ Confirm the PR is GitHub-linked to the RFP issue and is not on the milestone.
 
 ## Release reviewer
 
-This is a lens, not a role. The QA Operator applies it. The authorizing document is the TRD. The first question is its acceptance criteria.
+This is a lens, not a role. The authorizing document is the TRD. The first question is its acceptance criteria.
 
 Review topology for a Super-TRD:
 
-- One **fresh** QA Operator per sub-TRD PR. The context is that child only. Do not carry findings or confidence forward from an earlier child's merge. If you have already reviewed another child of this Super-TRD, you are not the fresh operator - stop and say so.
-- Re-review after changes is that same operator, messaged again. Do not start a second operator for the same PR.
-- After every child has merged into the Super-TRD branch, one **fresh final** operator - someone who has not reviewed a child of this Super-TRD - reviews the Super-TRD PR (that branch to `main`) against the parent TRD, the proto baseline, and cross-child consistency. Verdict only. Squash-merge of that PR is [qa_operator.md](qa_operator.md). A verdict on a PR to `main` is not a merge to `main`.
+- One **fresh** reviewer per sub-TRD PR. The context is that child only. Do not carry findings or confidence forward from an earlier child's merge. If you have already reviewed another child of this Super-TRD, you are not the fresh reviewer - stop and say so.
+- Re-review after changes is that same reviewer, messaged again. Do not start a second reviewer for the same PR.
+- After every child has merged into the Super-TRD branch, one **fresh final** reviewer - someone who has not reviewed a child of this Super-TRD - reviews the Super-TRD PR (that branch to `main`) against the parent TRD, the proto baseline, and cross-child consistency. Verdict only. A verdict on a PR to `main` is not a merge to `main`.
 
 A sub-TRD review checks that child's artifacts and AC. The final review checks each child TRD's artifacts and AC against the combined diff, plus cross-child consistency.
 
@@ -61,11 +61,11 @@ The source of fidelity, in order:
 2. **The reference prototype branch**, on every reconstruction review that records a reference prototype. The branch name is in [binding.md](binding.md) (for this repo, `v2.x-proto`). Read it only through a fetched ref. Drift between the freeze-point reference and the branch is a finding to report, not a port. This check does not replace the §7 row. A §7 row of `None` means §3 and §4 are the specification; do not fill a blank by browsing proto.
 3. **The TRD itself**, when there is no reference prototype. §3 and §4 are the whole specification.
 
-A deviation that is a real improvement does not stay on trunk quietly. The QA Operator sends it through a TRD amendment: update the TRD and the issue body before merge. If it changes the shape of a frozen RFP, it thaws the freeze ([process.md](process.md)), and the proto side takes it up as an RFP amendment.
+A deviation that is a real improvement does not stay on trunk quietly. The reviewer sends it through a TRD amendment: update the TRD and the issue body before merge. If it changes the shape of a frozen RFP, it thaws the freeze ([process.md](process.md)), and the proto side takes it up as an RFP amendment.
 
 A hotfix is reviewed against the hotfix TRD only. It has no reference prototype, and proto - tags or branch - is not consulted.
 
-The QA Operator is the only role that reads proto during a release. The implementor works from the TRD and is never sent to proto ([tech_requirements.md](tech_requirements.md)). Reading proto is `git fetch` plus `git show` / `git diff` of that ref. It is not a checkout into the trunk worktree, not a copy, and not a git flow. A finding names the artifact and the reference it deviates from. It never asks anyone to merge, rebase, cherry-pick, check out, or copy proto onto trunk.
+The reviewer is the only role that reads proto during a release. The implementor works from the TRD and is never sent to proto ([tech_requirements.md](tech_requirements.md)). Reading proto is `git fetch` plus `git show` / `git diff` of that ref. It is not a checkout into the trunk worktree, not a copy, and not a git flow. A finding names the artifact and the reference it deviates from. It never asks anyone to merge, rebase, cherry-pick, check out, or copy proto onto trunk.
 
 Confirm the link and the base:
 
@@ -93,7 +93,7 @@ A Doc or skills PR has no issue, no TRD, and no RFP. It is not linked to an issu
    - **Out of scope** - leave it alone.
 4. A comment about a line goes on that line, and the line has to be in the PR diff. A comment about a missing file or a whole package goes in the review body.
 5. Tell the human what you found and wait for a go-ahead before you post anything to GitHub. That wait is for posting the review. It is not a merge approval.
-6. Post **one consolidated review** (`path` + `position`, not `line`). The first line of the review body is exactly `Verdict: Approve` or `Verdict: Changes requested`. Then the findings summary, then the reviewing agent's own attribution ([process.md](process.md#attribution)). Do not post a stream of separate comments. When the operator and the author share a GitHub token, GitHub rejects `--approve` and `--request-changes`. Post the review as a comment in that case. The verdict line is the signal either way; do not treat a rejected API event as a failed review. The snapshot in [qa_operator.md](qa_operator.md) is returned to the human. It does not replace this verdict line, and it is not posted as a PR conversation comment. After opening a PR, and after addressing PR feedback, the author posts a short status on the issue.
+6. Post **one consolidated review** (`path` + `position`, not `line`). The first line of the review body is exactly `Verdict: Approve` or `Verdict: Changes requested`. Then the findings summary, then the reviewing agent's own attribution ([process.md](process.md#attribution)). Do not post a stream of separate comments. When the reviewer and the author share a GitHub token, GitHub rejects `--approve` and `--request-changes`. Post the review as a comment in that case. The verdict line is the signal either way; do not treat a rejected API event as a failed review. After opening a PR, and after addressing PR feedback, the author posts a short status on the issue.
 
 Do not put Collaboration Reports or session notes on the PR. That is what the issue is for.
 
@@ -107,12 +107,12 @@ The review ends with one verdict line, the first line of the review: `Verdict: A
 - no tag or version bump rides on the PR;
 - a sub-TRD PR's base is the Super-TRD branch, and a PR that should land on `main` has base `main`.
 
-Who may squash-merge is [qa_operator.md](qa_operator.md), not this page. A clean verdict is not approval to merge. Merge readiness still keys off the verdict line plus those reviewer-checked AC checkboxes, not off a GitHub `--approve` event, which a shared token cannot submit. A sub-TRD squash message must not contain `Closes`, `Fixes`, or `Resolves`. A proto squash message must not either.
+Who may squash-merge is not decided on this page. A clean verdict is not approval to merge. Merge readiness still keys off the verdict line plus those reviewer-checked AC checkboxes, not off a GitHub `--approve` event, which a shared token cannot submit. A sub-TRD squash message must not contain `Closes`, `Fixes`, or `Resolves`. A proto squash message must not either.
 
-Before a sub-TRD PR is squash-merged into the Super-TRD branch, all of these hold, checked immediately before the merge, not from memory of an earlier look: `gh pr view <N> --json baseRefName` is the Super-TRD branch; the verdict line is `Verdict: Approve`; the review is clean (code style, every AC, artifact fidelity, tests) and no blocking finding is unresolved; the PR-body AC checkboxes are checked, each by the reviewer. The squash commit message must not contain `Closes`, `Fixes`, or `Resolves`. Who may perform that squash is [qa_operator.md](qa_operator.md).
+Before a sub-TRD PR is squash-merged into the Super-TRD branch, all of these hold, checked immediately before the merge, not from memory of an earlier look: `gh pr view <N> --json baseRefName` is the Super-TRD branch; the verdict line is `Verdict: Approve`; the review is clean (code style, every AC, artifact fidelity, tests) and no blocking finding is unresolved; the PR-body AC checkboxes are checked, each by the reviewer. The squash commit message must not contain `Closes`, `Fixes`, or `Resolves`.
 
-What follows a merge to `main` is unchanged. A proto PR does not honor `Closes`, `Fixes`, or `Resolves`, so the RFP issue is closed by hand ([qa_operator.md](qa_operator.md)). A standalone trunk PR closes its TRD through `Closes`. The Super-TRD PR closes the parent through `Closes #<parent>` only. A sub-TRD merge does not close the child. Children stay In Review until that parent PR is squash-merged; closing them is closeout. The standalone TRD gets its Collaboration Report.
+What follows a merge to `main` is unchanged. A proto PR does not honor `Closes`, `Fixes`, or `Resolves`, so the RFP issue is closed after squash-merge. A standalone trunk PR closes its TRD through `Closes`. The Super-TRD PR closes the parent through `Closes #<parent>` only. A sub-TRD merge does not close the child. Children stay In Review until that parent PR is squash-merged; closing them is closeout. The standalone TRD gets its Collaboration Report.
 
 ## Guardrails
 
-A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto → trunk git, including checkout or copy. The QA Operator never tells an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit as part of a review. Never squash-merge except as [qa_operator.md](qa_operator.md) allows. Every other role never merges. Never review a second child of the same Super-TRD; re-review only the PR you already have.
+A short, accurate review is kinder than a long one. Check the code before you claim a behavior. Never recommend proto to trunk git, including checkout or copy. A reviewer never tells an implementor to read proto. Never lower a style or ordering finding to keep a review moving. Never commit as part of a review. This page grants no merge. Never review a second child of the same Super-TRD; re-review only the PR you already have.

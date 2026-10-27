@@ -32,7 +32,7 @@ Trunk and prototype are two independent histories of the same version family. Wh
 | Rebuild a frozen catalog, or hotfix a mechanical defect | a **TRD** | `main` | [main.md](docs/collab/main.md), [tech_requirements.md](docs/collab/tech_requirements.md) |
 | Change docs or agent skills | a **Doc PR** - no issue, no TRD | `main` | [doc.md](docs/collab/doc.md) |
 
-As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child whose Super-TRD branch is already pushed)**. You do not plan a release, mint a freeze, cut a Super-TRD branch, or tag a version. You do not perform the review. The QA Operator assigns the issue to a milestone.
+As an individual contributor you typically do one of three things: **write and/or implement one RFP**, **propose a hotfix or standalone TRD**, or **implement one published TRD (or one Super-TRD child whose Super-TRD branch is already pushed)**. You do not plan a release, mint a freeze, cut a Super-TRD branch, or tag a version. You do not perform the review, and you do not assign a milestone.
 
 Commands used across all of that: [docs/collab/commands.md](docs/collab/commands.md). Facts that belong only to this repo: [docs/collab/binding.md](docs/collab/binding.md).
 
@@ -61,7 +61,7 @@ Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when y
 
 ### Commit hygiene
 
-Keep functional changes out of the same commit as docs, config, or packaging. Title by scope - `Events - AddFeature Event`, `Docs - Process and Skills`. When an AI agent collaborated, it attributes itself in its own name - never another agent's. On a shared bot account it signs `- <agent>@<platform> via <account>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit unless someone asked you to. Merge, tag, version bump, freeze, and milestone actions are [Agent guardrails](docs/collab/process.md#agent-guardrails). The only merge exception is the QA Operator.
+Keep functional changes out of the same commit as docs, config, or packaging. Title by scope - `Events - AddFeature Event`, `Docs - Process and Skills`. When an AI agent collaborated, it attributes itself in its own name - never another agent's. On a shared bot account it signs `- <agent>@<platform> via <account>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit unless someone asked you to. Merge, tag, version bump, freeze, and milestone actions are [Agent guardrails](docs/collab/process.md#agent-guardrails). Review and merge are outside these contribution guidelines.
 
 When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local and remote branch, and every temp file. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
 
@@ -73,7 +73,7 @@ The PR is a **review surface**: what changed, AC checkboxes (opened unchecked; t
 
 ### Review
 
-Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. The QA Operator then applies the Prototype lens (the RFP's content against the vision and the distillation sections it cites) or the Release lens (artifact fidelity against the reference prototype recorded in the TRD and, read-only, against the prototype branch, or against the TRD alone when there is no prototype). The first line of the posted review is `Verdict: Approve` or `Verdict: Changes requested`. Squash-merge is [qa_operator.md](docs/collab/qa_operator.md). The judgment is [code_review.md](docs/collab/code_review.md). Forward work does not review and does not merge.
+Diff comments stay on the PR. Every review holds code style first, including one empty line between artifacts and fixed artifact ordering. Review then applies the Prototype lens (the RFP's content against the vision and the distillation sections it cites) or the Release lens (artifact fidelity against the reference prototype recorded in the TRD and, read-only, against the prototype branch, or against the TRD alone when there is no prototype). The first line of the posted review is `Verdict: Approve` or `Verdict: Changes requested`. The judgment is [code_review.md](docs/collab/code_review.md). Review and merge are outside these contribution guidelines. Forward work does not review and does not merge.
 
 ### Collaboration Report
 
@@ -89,7 +89,6 @@ Skills live at [`.agents/skills/`](.agents/skills/) and are auto-discovered in t
 - `tiferet-rfp-session` - implement one published RFP on proto; link the PR to that issue; close the issue after squash.
 - `tiferet-author-trd` - one hotfix or standalone reconstruction TRD (reconstruction needs an existing freeze id).
 - `tiferet-implement-trd` - implement one published TRD, or one Super-TRD child on a PR to the already-pushed Super-TRD branch. Never `main` for a child.
-- `tiferet-pr-code-review` - points a review at the Takwin QA Operator. Verdict line first. The operator returns a 350-400 word snapshot. Squash-merge only as [qa_operator.md](docs/collab/qa_operator.md) allows.
 - `tiferet-collab-report` - standalone TRD closeout on the issue.
 
 **Docs:** `tiferet-guide-docs`.

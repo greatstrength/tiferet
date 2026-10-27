@@ -16,7 +16,7 @@ description: >
 - RFP / proto work.
 - Super-TRD child issues.
 - PR review comments.
-- The QA Operator's review snapshot (`docs/collab/qa_operator.md`).
+- A review or a review summary. Review is outside these contribution guidelines.
 
 ## Canonical source
 

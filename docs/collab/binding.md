@@ -23,6 +23,7 @@ This file is the local phone book, not the process. Skills should read `docs/col
 | Owner / repo | `greatstrength/tiferet` |
 | Project | Tiferet Framework (#2) |
 | Project node id | `PVT_kwDOCKXjws4A7Y85` |
+| Project administrator | `ashatz` |
 
 ## Project field ids (project #2)
 
@@ -40,4 +41,4 @@ Field and option ids are unique per GitHub Project. Resolve them on another proj
 - Proto grouping: `vX.Y.0aN` (git tag when that milestone closes) or `vX.Y.0bN` (GitHub Release marked pre-release when that milestone closes)
 - Trunk release: `vX.Y.Z`
 
-Individuals do not close milestones or cut tags. The QA Operator may assign your issue to a milestone.
+Individuals do not create, assign, or close milestones, and do not cut tags.
