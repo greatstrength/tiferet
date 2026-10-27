@@ -47,7 +47,7 @@ Five to eight words after the hyphen is about right. `Domain - Feature Model Con
 - **In Review** - the PR is open. If a review comment needs code, come back to In Progress, then return to In Review when you push.
 - **Done** - merged, *and* for a standalone TRD the Collaboration Report is on the issue. Set the End date, then close.
 
-New issues start at Ready. If one issue is waiting on another, use blocked-by. Do not park new work in Backlog just to show a dependency.
+New issues start at Ready. If one issue is waiting on another, use blocked-by. Do not park new work in Backlog just to show a dependency. A Super-TRD parent is the exception: it starts at Backlog, then moves Ready, In Progress, In Review, and Done ([process.md](process.md#super-trd)).
 
 ## Individual path: one TRD
 
@@ -61,15 +61,15 @@ Use this when you are landing one hotfix or one standalone reconstruction.
 
 ## Super-TRD as a shape
 
-A Super-TRD is parent plus children, child size at most Medium. The TRD *genre* is in [tech_requirements.md](tech_requirements.md). The branch rule is in [process.md](process.md).
+A Super-TRD is parent plus children, child size at most Medium. The TRD *genre* is in [tech_requirements.md](tech_requirements.md). The branch rule is in [process.md](process.md#super-trd).
 
-The maintainer cuts `<parent-issue>-<slug>` from `main` and pushes it before any child starts. You do not cut that branch because you are the first child, and you do not commit onto it.
+The parent is a grouping and a blocking gate. It has no branch and no PR of its own. Each child is its own PR, cut from `main` and targeting `main`. A child cannot be started until the parent is In Progress.
 
-If you are asked to implement **one child**: confirm the Super-TRD branch is already pushed, and that this child is not blocked by a standalone TRD or by work outside that branch. If it is, do not cut a branch and do not start. See [Cross-boundary blockers](process.md#cross-boundary-blockers). Otherwise cut `<child-issue>-<slug>` from the Super-TRD branch tip. Open a PR targeting that branch, never `main`. Body: `Refs #<child>` and `Refs #<parent>`. Never `Closes`, `Fixes`, or `Resolves`. Verify `gh pr view <N> --json baseRefName`. Set the child to In Review. Short status on the child issue. Do not write a Collaboration Report. Do not close the child. Do not open the Super-TRD PR to `main`. Do not merge `main` into the Super-TRD branch.
+If you are asked to implement **one child**: confirm that the parent is In Progress and that every blocker of this child, a sibling, a standalone TRD, or other outside work, is already squash-merged to `main`. If not, do not cut a branch and do not start. See [Cross-boundary blockers](process.md#cross-boundary-blockers). Otherwise cut `<child-issue>-<slug>` from `main`. Open a PR targeting `main`. Body: `Closes #<child>` and `Refs #<parent>`. Never put `Closes`, `Fixes`, or `Resolves` on the parent. Verify `gh pr view <N> --json baseRefName`. Set the child to In Review. Short status on the child issue. Do not write a Collaboration Report. The child closes when its PR is squash-merged to `main`, and its Status goes to Done.
 
-If the Super-TRD branch does not exist yet, stop and report. Do not open a PR to `main` in its place.
+Once every child is Done, the parent goes In Review for a final review of the Super-TRD as a whole. After it passes, the parent goes Done. The parent issue closes after its final review, once every child issue is closed. The parent gets no Collaboration Report.
 
-Running the fan-out, merging `main` into the Super-TRD branch, opening the Super-TRD PR, and closing children are maintainer-only steps ([process.md, Agent guardrails](process.md#agent-guardrails)). Review and squash-merge are outside these contribution guidelines.
+When the child issues allow concurrency, an agent may run the fan-out. Review and squash-merge are outside these contribution guidelines.
 
 ## Reviewing trunk
 

@@ -11,7 +11,7 @@ This document defines the canonical GitHub Project field set used across Tiferet
 
 ### Triage fields (set at triage / during the workflow)
 
-- **Status** - workflow state: Ready → In progress → In review → Done (see [main.md](main.md)). All new issues start at **Ready**; use blocked-by relationships for dependency ordering rather than Backlog.
+- **Status** - workflow state: Ready, then In progress, In review, Done (see [main.md](main.md)). All new issues start at **Ready**, except a Super-TRD parent, which starts at **Backlog**; use blocked-by relationships for dependency ordering rather than Backlog.
 - **Priority** - `P0`/`P1`/`P2`; sequence and criticality.
 - **Size** - `XS`-`XL`; fast t-shirt judgment.
 - **Estimate** - numeric story points on a Fibonacci scale; the additive rollup/velocity metric. Kept under GitHub's built-in **Estimate** field name (it stores the point value).
@@ -31,10 +31,10 @@ Status tracks each issue through its lifecycle. Transitions are driven by branch
 
 1. **Ready** - issue created and ready to implement. Set **Priority**, **Size**, and **Estimate** at creation.
 2. **In progress** - work has started / the feature branch is cut. Set the **Start date**.
-3. **In review** - the PR is opened (standalone trunk → `main`, Super-TRD child → the Super-TRD branch, proto → the proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
-4. **Done** - for an RFP, the proto PR is merged and the issue is closed by hand (proto does not honor `Closes`); for a standalone trunk TRD, the Collaboration Report is posted. Set the **End date** and close the issue. Super-TRD children stay In Review until the Super-TRD PR to `main` is squash-merged; closing them is closeout. They are not Done when the sub-TRD PR merges, and they do not each get a Collaboration Report.
+3. **In review** - the PR is opened (standalone trunk or Super-TRD child to `main`, proto to the proto branch). Diff comments that require code send status back to **In progress**, then return to **In review**.
+4. **Done** - for an RFP, the proto PR is merged and the issue is closed by hand (proto does not honor `Closes`); for a standalone trunk TRD, the Collaboration Report is posted. Set the **End date** and close the issue. A Super-TRD child is Done and closes when its sub-TRD PR is squash-merged to `main`, through `Closes #<child>`. Neither the children nor the parent get a Collaboration Report. The parent goes In Review once every child is Done, for a final review of the Super-TRD as a whole, then Done. The parent issue closes after its final review, once every child issue is closed.
 
-In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged to the branch that closes the issue → **Done** + issue closed (close RFP issues yourself after a proto squash). A Super-TRD child is not Done when its sub-TRD PR merges. **Backlog** is available but not used for new issues - blocked-by relationships communicate dependency ordering without reflecting it in Status.
+In short: all new issues start at **Ready**; starting an issue moves it to **In progress**; PR opened, **In review**; PR merged to the branch that closes the issue, **Done** and issue closed (close RFP issues yourself after a proto squash). A Super-TRD parent starts at **Backlog**, and a child cannot be started until the parent is **In progress**. Otherwise **Backlog** is available but not used for new issues - blocked-by relationships communicate dependency ordering without reflecting it in Status.
 
 ## Priority
 

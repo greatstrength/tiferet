@@ -29,15 +29,10 @@ git push origin --delete <branch-name>
 # Pull latest from a branch
 git pull origin main
 
-# Super-TRD branch. Policy: docs/collab/process.md.
-# The maintainer cuts and pushes this from main before any child starts.
-# No agent does (process.md § Agent guardrails).
-git checkout -b <parent-issue>-<slug> main
-git push -u origin <parent-issue>-<slug>
-
-# Child branch, cut from the Super-TRD branch tip. PR base is that branch, never main.
-git checkout -b <child-issue>-<slug> <parent-issue>-<slug>
-gh pr create --repo greatstrength/tiferet --base <parent-issue>-<slug> --head <child-issue>-<slug> --title "<title>" --body "<body>"
+# Super-TRD child branch. Policy: docs/collab/process.md.
+# A Super-TRD has no branch of its own. Each child is cut from main and targets main.
+git checkout -b <child-issue>-<slug> main
+gh pr create --repo greatstrength/tiferet --base main --head <child-issue>-<slug> --title "<title>" --body "<body>"
 
 # After open, and again immediately before any merge, confirm the base.
 gh pr view <pr-number> --repo greatstrength/tiferet --json baseRefName
@@ -157,14 +152,7 @@ gh api repos/greatstrength/tiferet/issues/<issue>/dependencies/blocked_by \
 
 Do not publish a blocked-by cycle: two or more issues each naming the other's output as a prerequisite. Stop and report. See [process.md](process.md).
 
-External blockers of a Super-TRD child (a standalone TRD, or any work outside the parent branch) are wired on the child and on the parent issue. After every such blocker is squash-merged to `main`, the maintainer - never an agent - updates the Super-TRD branch with a merge commit, not a rebase:
-
-```bash
-git checkout <parent-issue>-<slug>
-git merge --no-ff main -m "Merge main into <parent-issue>-<slug>"
-```
-
-Only then is the blocked child's branch cut from that tip. See [process.md](process.md#cross-boundary-blockers).
+External blockers of a Super-TRD child (a standalone TRD, or any other work outside the parent) are wired on the child and on the parent issue. The blocked child's branch is cut from `main` only after every such blocker is squash-merged to `main`. See [process.md](process.md#cross-boundary-blockers).
 
 Do not put the PR on a milestone, and do not assign the issue to one.
 

@@ -9,9 +9,7 @@ This is the closeout diary for a **standalone** trunk TRD, not the review. It al
 
 Write it when the human says the standalone TRD is done / merged, on **that issue**.
 
-Do not write one on an RFP issue. Do not write one on a Super-TRD child. Do not post it as a PR conversation comment.
-
-A Super-TRD parent closeout (grouped stream, timings, named agents) is not this page's job.
+Do not write one on an RFP issue. Do not write one on a Super-TRD child or a Super-TRD parent. Do not post it as a PR conversation comment.
 
 ## The shape
 
