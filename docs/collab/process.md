@@ -32,7 +32,7 @@ They do not become each other.
 
 Nothing from prototype lands on trunk as git. Not a merge, not a rebase, not a cherry-pick, not a checkout of proto into the trunk tree, and not a copy of proto files. What crosses the gap is a **catalog**: settled language, later written as TRDs an implementor can execute without opening the proto branch.
 
-A Release review may read the reference prototype to measure a trunk PR's named artifacts against it ([code_review.md](code_review.md)): the freeze-point tags or pre-release, and the prototype branch in [binding.md](binding.md), through `git show` / `git diff` of a fetched ref. That is measurement, not a git flow. The implementor never reads proto.
+The implementor never reads proto.
 
 Git *may* flow the other way - trunk → prototype - when proto has not yet absorbed a mechanical fix that already shipped on trunk. That is allowed. It is not a habit. Skills do not cherry-pick unless a human asks. Treat a port as a translation, not as `git cherry-pick` and a shrug.
 
@@ -52,7 +52,7 @@ Pull requests are for reviewing code. Issues are for remembering the work item.
 
 - **The issue** may sit on a milestone. **The PR does not.** Do not add the PR to the milestone.
 - Every implementation PR is **GitHub-linked** to its authorizing issue (not a title mention alone): proto PR → the RFP issue; standalone trunk PR → that TRD; Super-TRD PR (Super-TRD branch → `main`) → the parent; sub-TRD PR → the child and the parent.
-- Proto PRs do not honor `Closes`, `Fixes`, or `Resolves`. Link `#issue` in the body. After squash-merge, **close the issue by hand**.
+- Proto PRs do not honor `Closes`, `Fixes`, or `Resolves`. Link `#issue` in the body. Proto PRs do not close their issue on merge; the issue is closed after squash-merge.
 - A standalone trunk PR may use `Closes #<issue>`. The Super-TRD PR to `main` uses `Closes #<parent>` only. A sub-TRD PR uses `Refs #<child>` and `Refs #<parent>` and never `Closes`, `Fixes`, or `Resolves` - not in the body, and not in the squash commit. Never `Closes` a child from the Super-TRD PR.
 - RFP headers include `Depends on` / `Blocks`. When you publish the issue, wire the same edges as GitHub blocked-by. TRD §7 does the same. Before wiring a freeze's issue set, check for a blocked-by cycle. Do not publish one. See [Safeguards](#safeguards).
 
@@ -113,7 +113,6 @@ These checks keep a fan-out off the wrong base.
 
 - The maintainer runs every fan-out. Before one, the maintainer validates the pushed Super-TRD branch and the PR-base rules against `tiferet-implement-trd`. Every implementer task states the PR base explicitly.
 - After opening a PR, the implementer verifies `gh pr view <N> --json baseRefName` and stops if it is wrong.
-- The reviewer verifies that base before posting a verdict, and again immediately before any squash-merge. The maintainer verifies it again when the maintainer is the one merging.
 - Freeze authoring (the maintainer's step) and TRD authoring (`tiferet-author-trd`) check the issue set for a blocked-by cycle before wiring edges. A cycle is two or more issues each naming the other's output as a prerequisite. Do not publish it. A child stuck on a cycle stops and reports.
 
 ## Closeout leaves nothing behind
@@ -144,7 +143,6 @@ Several agents may work through one shared GitHub machine account. Today that ac
 
 - **Sign everything.** Every PR body, issue, review, and comment ends with a final line `- <agent>@<platform> via <account>`, for example `- major@grokbot via tif-ai` or `- batou@grokbot via tif-ai`. That line is the attribution: who wrote it, on what platform, through which account. Do not add a `Co-Authored-By` trailer to the commit or the text.
 - **One agent, one working copy.** Each agent works in its own clone or worktree. Never commit onto another agent's branch.
-- **Verdict by comment.** GitHub rejects `--approve` and `--request-changes` from the token that opened the PR. Post the review as a comment whose first line is the `Verdict:` line. The verdict line is the signal ([code_review.md](code_review.md)).
 - **No standing authority.** A shared-account agent is bound by [Agent guardrails](#agent-guardrails), like every agent. Sharing an account grants nothing more.
 
 ## Agent guardrails
