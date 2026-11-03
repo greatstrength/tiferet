@@ -16,7 +16,7 @@ description: Implement one published trunk TRD or one Super-TRD child. A child c
 - Authoring the TRD - `tiferet-author-trd`.
 - Docs/skills.
 - Closing a milestone - the maintainer only (`docs/collab/process.md`, Agent guardrails).
-- A Super-TRD child whose parent is not In Progress yet. Stop and report.
+- A Super-TRD child whose parent is not In Progress yet, unless you are the first mover (see step 1). Otherwise stop and report.
 - A Super-TRD child with a blocker not yet squash-merged to `main`. Stop and report.
 
 ## Canonical source
@@ -48,7 +48,7 @@ TRD issue number. For a Super-TRD child: parent issue number. Binding. The PR ba
 
 The parent has no branch and no PR of its own. Children do not commit onto a shared branch. Every child uses this procedure, from `main` to Done. When the child issues allow concurrency, an agent may run a fan-out with one implementer per ready child. Law: `docs/collab/process.md`, Super-TRD.
 
-1. Confirm the parent issue and this child, and that the parent is In Progress. If it is not, stop and report.
+1. Confirm the parent issue and this child, and that the parent is In Progress. If it is not: when you are the first mover (you run the fan-out, or no fan-out is running and no sibling has started), set the parent to In Progress before cutting any branch; otherwise stop and report. Later children only confirm.
 2. If this child is on a blocked-by cycle, stop and report. Do not pick an order.
 3. If this child is blocked by a standalone TRD or by any other work outside its parent, do not branch, assign, or implement until those blockers are squash-merged to `main`. Do not start speculatively. Do not rebase later. A sibling blocker is satisfied only when that sibling's PR is squash-merged to `main`; cut from `main` after that, not from the sibling's branch. Law: `docs/collab/process.md`, Cross-boundary blockers.
 4. Cut `<child-issue>-<slug>` from `main`. Status In Progress. Start date on this child.
