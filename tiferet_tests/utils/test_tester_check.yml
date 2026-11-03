@@ -1,0 +1,244 @@
+fixtures:
+  flag_one:
+    module_path: types
+    class_name: SimpleNamespace
+    attributes:
+      flag: 1
+
+testers:
+  test_check:
+    module_path: tiferet.utils.tester_check
+    class_name: Check
+    tests:
+      bool_true_rejects_int:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [1, true]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '1 (int) != True (bool).'
+
+      bool_false_rejects_int:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [0, false]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '0 (int) != False (bool).'
+
+      bool_true_matches_bool:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [true, true]
+            as: detail
+        assert:
+          - outcome: detail
+            'null': true
+
+      int_rejects_float:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [1.0, 1]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '1.0 (float) != 1 (int).'
+
+      int_rejects_bool:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [true, 1]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: 'True (bool) != 1 (int).'
+
+      float_rejects_int:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [1, 1.0]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '1 (int) != 1.0 (float).'
+
+      float_matches_float:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [1.0, 1.0]
+            as: detail
+        assert:
+          - outcome: detail
+            'null': true
+
+      fields_scalar_rejects_int_for_bool:
+        conditions:
+          fixtures: [flag_one]
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [$fixture.flag_one, {flag: true}]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '1 (int) != True (bool).'
+
+      equals_mapping_scalar_rejects_int_for_bool:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [{flag: 1}, {flag: true}]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '1 (int) != True (bool).'
+
+      equals_list_scalar_rejects_float_for_int:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [[1.0], [1]]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '1.0 (float) != 1 (int).'
+
+      str_keeps_today_detail:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [x, true]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: "'x' != True."
+
+      str_matches_str:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [x, x]
+            as: detail
+        assert:
+          - outcome: detail
+            'null': true
+
+      str_enum_matches_string:
+        conditions: {}
+        execute:
+          - target:
+              module_path: pstats
+              attribute: SortKey
+            method: SortKey
+            args: [cumulative]
+            as: member
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [$r.member, cumulative]
+            as: detail
+        assert:
+          - outcome: detail
+            'null': true
+
+      int_enum_matches_int:
+        conditions: {}
+        execute:
+          - target:
+              module_path: http
+              attribute: HTTPStatus
+            method: HTTPStatus
+            args: [200]
+            as: member
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [$r.member, 200]
+            as: detail
+        assert:
+          - outcome: detail
+            'null': true
+
+      has_dependency_one_fails_equals_true:
+        conditions:
+          mocks:
+            container:
+              module_path: tiferet.di.core
+              class_name: ServiceContainer
+              return_value:
+                has_dependency: 1
+        execute:
+          - target: $mock.container
+            method: has_dependency
+            args: [simple_service]
+            as: present
+          - target: self
+            method: new
+            as: check
+          - target: $r.check
+            method: equal
+            args: [$r.present, true]
+            as: detail
+        assert:
+          - outcome: detail
+            equals: '1 (int) != True (bool).'
