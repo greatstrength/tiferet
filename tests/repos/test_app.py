@@ -78,7 +78,7 @@ def app_config_file(tmp_path) -> str:
     aggregate_sample_data={
         'id': 'new.app',
         'name': 'New App',
-        'description': 'A new test app session.',
+        'description': 'A new test app interface.',
         'constants': {},
     },
     exists_cases=[

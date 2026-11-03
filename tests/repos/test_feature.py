@@ -10,7 +10,7 @@ import pytest, yaml
 
 # ** app
 from tiferet import use_tester
-from tiferet.mappers import FeatureAggregate
+from tiferet.mappers import FeatureAggregate, FeatureConfigObject
 from tiferet.repos.feature import FeatureConfigRepository
 
 # *** constants
@@ -291,3 +291,51 @@ class TestFeatureConfigRepository:
         # Check that the group is gone.
         remaining_features = repo.list(group_id='test_group')
         assert remaining_features == []
+
+    # * test: params_schema_round_trip
+    def test_params_schema_round_trip(self, test_ctx, feature_yaml_file: str) -> None:
+        '''
+        Test that a feature params schema survives a save and reload.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param feature_yaml_file: The feature YAML configuration file path.
+        :type feature_yaml_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=feature_yaml_file)
+
+        # Map a feature with a request schema and save it.
+        feature = FeatureConfigObject.model_validate({
+            'id': 'schema_group.schema_feature',
+            'name': 'Schema Feature',
+            'description': 'A feature with a request schema.',
+            'commands': [],
+            'params_schema': {
+                'a': 'int',
+                'b': {
+                    'type': 'float',
+                    'required': False,
+                    'default': 1.0,
+                },
+            },
+            'log_params': {},
+        }).map()
+        repo.save(feature)
+
+        # Reload the feature and key its schema parameters by name.
+        reloaded = repo.get('schema_group.schema_feature')
+        parameters = {
+            parameter.name: parameter
+            for parameter in reloaded.params_schema.parameters
+        }
+
+        # Check the reloaded schema parameters.
+        assert set(parameters) == {'a', 'b'}
+        assert parameters['a'].type == 'int'
+        assert parameters['a'].required is True
+        assert parameters['a'].default is None
+        assert parameters['b'].type == 'float'
+        assert parameters['b'].required is False
+        assert parameters['b'].default == 1.0

@@ -137,6 +137,11 @@ def cli_yaml_file(tmp_path) -> str:
             },
         ],
     },
+    exists_cases=[
+        (TEST_CMD_ADD_ID, True),
+        (TEST_CMD_SUBTRACT_ID, True),
+        ('calc.missing', False),
+    ],
     get_cases=[
         (TEST_CMD_ADD_ID, {
             'id': TEST_CMD_ADD_ID,
@@ -160,6 +165,23 @@ class TestCliConfigRepository:
     '''
     Tests for CliConfigRepository using the repo tester.
     '''
+
+    # * test: exists
+    def test_exists(self, test_ctx, cli_yaml_file: str) -> None:
+        '''
+        Test the exists method of the CliConfigRepository.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param cli_yaml_file: The CLI YAML configuration file path.
+        :type cli_yaml_file: str
+        '''
+
+        # Construct the repository against the seeded config file.
+        repo = test_ctx.make_target(config_file=cli_yaml_file)
+
+        # Assert exists cases against the seeded ids.
+        test_ctx.assert_exists(repo)
 
     # * test: get
     def test_get(self, test_ctx, cli_yaml_file: str) -> None:
