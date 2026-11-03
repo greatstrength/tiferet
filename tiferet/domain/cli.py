@@ -36,7 +36,6 @@ class CliRecord(DomainObject):
         description='Ordered attribute-to-string-value pairs extracted from the raw result.',
     )
 
-
 # ** model: cli_table
 # >> see: @guides/domain/cli.md#clitable
 class CliTable(DomainObject):
@@ -141,7 +140,6 @@ class CliTable(DomainObject):
             separator=separator,
             rows=rows,
         )
-
 
 # ** model: cli_output_lines
 # >> see: @guides/domain/cli.md#clioutputlines
@@ -260,7 +258,7 @@ class CliOutputRecord(DomainObject):
         '''
 
         # Return an empty string when there are no lines.
-        output = self.output_lines(indent)
+        output = self.output_lines(indent=indent)
         if output is None:
             return ''
 
