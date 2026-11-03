@@ -895,6 +895,7 @@ def test_uncatalogued_tiferet_error_is_recorded_as_failed() -> None:
     module_run, calls = _unwired_module_run()
     printable = module_run.note('node.app', error=TiferetError('APP_SPECIFIC_ERR', 'boom'))
     assert printable is not None
+    assert isinstance(printable, TiferetAPIError)
     assert 'APP_SPECIFIC_ERR' in str(printable)
     assert module_run.outcomes == [{'node_id': 'node.app', 'status': 'FAILED', 'message': 'APP_SPECIFIC_ERR: boom'}]
     assert module_run.failures == module_run.outcomes
