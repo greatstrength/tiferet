@@ -107,7 +107,7 @@ testers:
           - outcome: json_exact
             equals: true
 
-      test_list_all:
+      list_all:
         conditions:
           stage: true
         execute:
@@ -205,7 +205,7 @@ testers:
               level: DEBUG
               handlers: [test_handler]
 
-      test_save_formatter:
+      save_formatter:
         conditions:
           stage: true
         execute:
@@ -251,7 +251,7 @@ testers:
                   name: New Test Formatter
                   format: '%(levelname)s - %(message)s'
 
-      test_save_handler:
+      save_handler:
         conditions:
           stage: true
         execute:
@@ -301,7 +301,7 @@ testers:
                   level: ERROR
                   class_name: FileHandler
 
-      test_save_logger:
+      save_logger:
         conditions:
           stage: true
         execute:
@@ -350,7 +350,7 @@ testers:
                   level: WARNING
                   propagate: true
 
-      test_delete_formatter:
+      delete_formatter:
         conditions:
           stage: true
         execute:
@@ -375,7 +375,7 @@ testers:
           - outcome: formatters
             equals: []
 
-      test_delete_handler:
+      delete_handler:
         conditions:
           stage: true
         execute:
@@ -400,7 +400,7 @@ testers:
           - outcome: handlers
             equals: []
 
-      test_delete_logger:
+      delete_logger:
         conditions:
           stage: true
         execute:
@@ -425,7 +425,7 @@ testers:
           - outcome: loggers
             equals: []
 
-      test_empty_sections:
+      empty_sections:
         conditions:
           stage: true
         execute:

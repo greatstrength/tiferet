@@ -203,7 +203,7 @@ testers:
           - outcome: deleted
             'null': true
 
-      test_get_parent_arguments:
+      get_parent_arguments:
         conditions:
           stage: true
         execute:
@@ -239,7 +239,7 @@ testers:
             fields:
               name_or_flags: ['--config', '-c']
 
-      test_save_parent_arguments:
+      save_parent_arguments:
         conditions:
           stage: true
           fixtures: [debug_arg, output_arg]

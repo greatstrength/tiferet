@@ -256,7 +256,7 @@ testers:
           - outcome: deleted_config
             'null': true
 
-      test_list_all:
+      list_all:
         conditions:
           stage: true
         execute:
@@ -288,7 +288,7 @@ testers:
           - outcome: constants
             equals: {sample_const: sample_value}
 
-      test_save_constants:
+      save_constants:
         conditions:
           stage: true
         execute:
