@@ -1552,6 +1552,27 @@ def test_stage_records_and_message():
         ))
     assert caught.value.error_code == 'PHASE_STEP_FAILED'
 
+# ** test: stage_rearrange_closes_the_live_stage
+def test_stage_rearrange_closes_the_live_stage():
+    '''
+    A second arrange closes the live stage first, so no directory leaks.
+    '''
+
+    # Record the stage directories and arrange the first stage.
+    before = _stage_directories()
+    runtime = _runtime(ErrorMessage.__module__, ErrorMessage.__name__)
+    runtime.handle_conditions(Conditions(stage=True))
+    first = runtime.stage.path()
+
+    # Arrange again; the first directory is gone.
+    runtime.handle_conditions(Conditions(stage=True))
+    assert not Path(first).exists()
+
+    # Close the second stage; nothing is left behind.
+    runtime.close_stage()
+    assert runtime.stage is None
+    assert _stage_directories() == before
+
 # ** test: conditions_stage_round_trips_to_data
 def test_conditions_stage_round_trips_to_data():
     '''
