@@ -8,6 +8,7 @@ import copy
 import functools
 import inspect
 import os
+import sys
 from importlib import import_module
 import tempfile
 from pathlib import Path
@@ -1152,52 +1153,62 @@ def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
 
     # One address. The event raises when the YAML file is absent.
     rel, base_dir = _yaml_counterpart(path)
-    address = TestModuleContext._address(rel, base_dir)
-    document = DomainEvent.handle(
-        ReadTestModuleDocument,
-        address=address,
-        text=_read_test_module_text(address.path),
-        required=True,
-    )
 
-    # The illegal-root check reads the plain mapping. It does not load.
-    mapping = document.mapping
-    if not isinstance(mapping, dict):
-        raise ValueError('A test module document must be a mapping.')
-    illegal = [
-        key
-        for key in mapping
-        if key not in ('fixtures', 'tests', 'testers')
-    ]
-    if illegal:
-        raise ValueError(f'Illegal test-module root: {illegal[0]}.')
+    # The project root is on sys.path for this run. Remove only an entry this run added.
+    root = str(Path(base_dir).resolve())
+    added = root not in sys.path
+    if added:
+        sys.path.insert(0, root)
+    try:
+        address = TestModuleContext._address(rel, base_dir)
+        document = DomainEvent.handle(
+            ReadTestModuleDocument,
+            address=address,
+            text=_read_test_module_text(address.path),
+            required=True,
+        )
 
-    # The session pools. This function still walks the document.
-    session = _module_run_session()
-    node_root = f'tiferet_tests/{rel}.yml'
-    passed = 0
-    failed = 0
-    for node_id, test_key, test_mapping, coordinates in _iter_document_tests(
-        mapping,
-        node_root,
-    ):
-        error, test_session = _run_one_test(test_key, test_mapping, coordinates)
-        printable = session.note(node_id, error, test_session)
-        if printable is None:
-            passed += 1
+        # The illegal-root check reads the plain mapping. It does not load.
+        mapping = document.mapping
+        if not isinstance(mapping, dict):
+            raise ValueError('A test module document must be a mapping.')
+        illegal = [
+            key
+            for key in mapping
+            if key not in ('fixtures', 'tests', 'testers')
+        ]
+        if illegal:
+            raise ValueError(f'Illegal test-module root: {illegal[0]}.')
+
+        # The session pools. This function still walks the document.
+        session = _module_run_session()
+        node_root = f'tiferet_tests/{rel}.yml'
+        passed = 0
+        failed = 0
+        for node_id, test_key, test_mapping, coordinates in _iter_document_tests(
+            mapping,
+            node_root,
+        ):
+            error, test_session = _run_one_test(test_key, test_mapping, coordinates)
+            printable = session.note(node_id, error, test_session)
+            if printable is None:
+                passed += 1
+                if not summary:
+                    print(f'{node_id} PASSED')
+                continue
+
+            # One failure does not abort the module and does not change the lines.
+            failed += 1
             if not summary:
-                print(f'{node_id} PASSED')
-            continue
+                print(f'{node_id} FAILED')
+                if isinstance(printable, (ModelError, TiferetAPIError)):
+                    print(printable)
+                else:
+                    print(f'{type(printable).__name__}: {printable}')
 
-        # One failure does not abort the module and does not change the lines.
-        failed += 1
-        if not summary:
-            print(f'{node_id} FAILED')
-            if isinstance(printable, (ModelError, TiferetAPIError)):
-                print(printable)
-            else:
-                print(f'{type(printable).__name__}: {printable}')
-
-    # The count is the same run. Printing changes. Execution does not.
-    print(_count_line(passed, failed))
-    return session.report()
+        # The count is the same run. Printing changes. Execution does not.
+        print(_count_line(passed, failed))
+        return session.report()
+    finally:
+        if added and root in sys.path:
+            sys.path.remove(root)

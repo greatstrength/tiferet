@@ -4,6 +4,7 @@
 
 # ** core
 import inspect
+import sys
 import logging
 import tempfile
 from pathlib import Path
@@ -734,3 +735,164 @@ def test_stage_cleanup_failure_is_recorded(tmp_path, capsys, monkeypatch) -> Non
     assert [item['status'] for item in outcomes] == ['FAILED'] * 3
     assert all('cleanup failed' in item['message'] for item in outcomes)
     assert printed.rstrip().endswith('3 failed')
+
+# ** function: write_project_package
+def _write_project_package(root: Path, name: str) -> None:
+    '''
+    Write a package under the project root that the subject imports.
+
+    :param root: The project root, which holds tests/.
+    :type root: Path
+    :param name: A package name unique to the calling test.
+    :type name: str
+    :return: None
+    :rtype: None
+    '''
+
+    # The package is importable only when the project root is on sys.path.
+    package = root / name
+    package.mkdir()
+    (package / '__init__.py').write_text('', encoding='utf-8')
+    (package / 'subject.py').write_text(
+        'class Subject:\n    def value(self):\n        return "kept"\n',
+        encoding='utf-8',
+    )
+
+# ** function: project_document
+def _project_document(name: str) -> str:
+    '''
+    Return a document whose fixture lives in the project package.
+
+    :param name: The project package name.
+    :type name: str
+    :return: The YAML document.
+    :rtype: str
+    '''
+
+    return f'''fixtures:
+  subject:
+    module_path: {name}.subject
+    class_name: Subject
+    attributes: {{}}
+tests:
+  project_import:
+    conditions:
+      fixtures: [subject]
+    execute:
+      - target: subject
+        method: value
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+'''
+
+# ** test: project_root_on_path_for_the_run
+def test_project_root_on_path_for_the_run(tmp_path, capsys, monkeypatch) -> None:
+    '''A relative module path from the project root imports a project package.'''
+
+    name = 'rfp057_relative_pkg'
+    _write_project_package(tmp_path, name)
+    _write_pair(tmp_path, 'domain/test_project', _project_document(name))
+    monkeypatch.chdir(tmp_path)
+    report = run_test_module('tests/domain/test_project.py')
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == 'tiferet_tests/domain/test_project.yml::project_import PASSED'
+    assert lines[-1] == '1 passed'
+    assert report['failures'] == []
+
+# ** test: absolute_path_from_another_cwd
+def test_absolute_path_from_another_cwd(tmp_path, capsys, monkeypatch) -> None:
+    '''An absolute module path from an unrelated directory resolves the same way.'''
+
+    root = tmp_path / 'project'
+    root.mkdir()
+    elsewhere = tmp_path / 'elsewhere'
+    elsewhere.mkdir()
+    name = 'rfp057_absolute_pkg'
+    _write_project_package(root, name)
+    python_path = _write_pair(root, 'domain/test_project', _project_document(name))
+    monkeypatch.chdir(elsewhere)
+    report = run_test_module(str(python_path))
+    assert capsys.readouterr().out.splitlines()[-1] == '1 passed'
+    assert report['failures'] == []
+
+# ** test: sys_path_restored_after_run
+def test_sys_path_restored_after_run(tmp_path, capsys) -> None:
+    '''sys.path equals its value before the call after a completed run.'''
+
+    python_path = _write_pair(tmp_path, 'domain/test_project', _project_document('rfp057_restore_pkg'))
+    _write_project_package(tmp_path, 'rfp057_restore_pkg')
+    before = list(sys.path)
+    run_test_module(str(python_path))
+    capsys.readouterr()
+    assert sys.path == before
+
+# ** test: sys_path_restored_after_raise
+def test_sys_path_restored_after_raise(tmp_path, capsys) -> None:
+    '''sys.path equals its value before the call when the run raises.'''
+
+    python_path = tmp_path / 'tests' / 'domain' / 'test_absent.py'
+    python_path.parent.mkdir(parents=True)
+    python_path.write_text('"""temporary"""\n', encoding='utf-8')
+    before = list(sys.path)
+    with pytest.raises(ServiceError):
+        run_test_module(str(python_path))
+    assert sys.path == before
+    assert capsys.readouterr().out == ''
+
+# ** test: existing_entry_is_kept
+def test_existing_entry_is_kept(tmp_path, capsys, monkeypatch) -> None:
+    '''A caller's own project-root entry is used and left in place.'''
+
+    name = 'rfp057_existing_pkg'
+    _write_project_package(tmp_path, name)
+    python_path = _write_pair(tmp_path, 'domain/test_project', _project_document(name))
+    root = str(tmp_path.resolve())
+    monkeypatch.setattr(sys, 'path', [root] + list(sys.path))
+    before = list(sys.path)
+    report = run_test_module(str(python_path))
+    capsys.readouterr()
+    assert report['failures'] == []
+    assert sys.path == before
+    assert sys.path.count(root) == 1
+
+# ** test: import_miss_and_attribute_miss_are_distinct
+def test_import_miss_and_attribute_miss_are_distinct(tmp_path, capsys) -> None:
+    '''An unimportable fixture module names the import; a missing class keeps has no.'''
+
+    python_path = _write_pair(
+        tmp_path,
+        'domain/test_miss',
+        '''fixtures:
+  missing_module:
+    module_path: rfp057_no_such_module
+    class_name: Subject
+    attributes: {}
+  missing_class:
+    module_path: tiferet.domain.error
+    class_name: NoSuchClass
+    attributes: {}
+tests:
+  import_miss:
+    conditions:
+      fixtures: [missing_module]
+    execute: []
+    assert: []
+  attribute_miss:
+    conditions:
+      fixtures: [missing_class]
+    execute: []
+    assert: []
+''',
+    )
+    report = run_test_module(str(python_path))
+    out = capsys.readouterr().out
+    first, second = report['outcomes']
+    assert first['status'] == 'FAILED'
+    assert 'PHASE_STEP_FAILED' in out
+    assert "Could not import module rfp057_no_such_module: No module named 'rfp057_no_such_module'" in first['message']
+    assert second['status'] == 'FAILED'
+    assert 'tiferet.domain.error has no NoSuchClass.' in second['message']
+    assert 'Could not import module' not in second['message']
+    assert out.splitlines()[-1] == '2 failed'
