@@ -1641,6 +1641,28 @@ class TestPhaseRuntimeContext:
             ))
         assert raised.value.error_code == 'PHASE_STEP_FAILED'
 
+    # * test: stage_rearrange_closes_the_live_stage
+    def test_stage_rearrange_closes_the_live_stage(self):
+        '''
+        Assert a second staged conditions phase closes the live stage first.
+        '''
+
+        # Record stage directories.
+        before = _stage_directories()
+
+        # Arrange twice, holding the first stage, then close.
+        ctx = _runtime()
+        ctx.handle_conditions(Conditions(stage=True))
+        first = ctx.stage
+        directory = first.path()
+        ctx.handle_conditions(Conditions(stage=True))
+        ctx.close_stage()
+
+        # Assert the first directory is gone and nothing leaked.
+        assert Path(directory).exists() is False
+        assert ctx.stage is None
+        assert _stage_directories() == before
+
     # * test: staged_test_compiles_one_conditions_step
     def test_staged_test_compiles_one_conditions_step(self):
         '''
