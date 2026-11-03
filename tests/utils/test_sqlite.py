@@ -13,6 +13,7 @@ import pytest
 # ** app
 from tiferet.utils.sqlite import (
     SqliteClient,
+    VALID_SQLITE_MODES,
     SQLITE_INVALID_MODE_ID,
     SQLITE_CONN_ALREADY_OPEN_ID,
     SQLITE_CONN_NOT_INITIALIZED_ID,
@@ -127,6 +128,12 @@ def test_sqlite_client_invalid_mode():
     # Assert the failure is a ServiceError with the invalid mode error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_INVALID_MODE_ID
+    assert failed.value.message == (
+        'Invalid SQLite mode: invalid. Supported: '
+        + ', '.join(VALID_SQLITE_MODES)
+        + ' (or None for default auto-create).'
+    )
+    assert VALID_SQLITE_MODES == ('ro', 'rw', 'rwc')
 
 # ** test: sqlite_client_already_open
 def test_sqlite_client_already_open():
@@ -148,6 +155,9 @@ def test_sqlite_client_already_open():
     # Assert the failure is a ServiceError with the already-open error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_ALREADY_OPEN_ID
+    assert failed.value.message == (
+        f'Connection already open for path: {db.path}.'
+    )
 
 # ** test: sqlite_client_execute_success
 def test_sqlite_client_execute_success():
@@ -446,6 +456,9 @@ def test_sqlite_client_backup_not_initialized(tmp_path: Path):
     # Assert the failure is a ServiceError with the not-initialized error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+    assert failed.value.message == (
+        'SQLite connection not initialized. Must be used within a "with" block.'
+    )
 
 # ** test: sqlite_client_execute_not_initialized
 def test_sqlite_client_execute_not_initialized():
@@ -463,6 +476,9 @@ def test_sqlite_client_execute_not_initialized():
     # Assert the failure is a ServiceError with the not-initialized error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+    assert failed.value.message == (
+        'SQLite connection not initialized. Must be used within a "with" block.'
+    )
 
 # ** test: sqlite_client_commit_not_initialized
 def test_sqlite_client_commit_not_initialized():
@@ -480,6 +496,9 @@ def test_sqlite_client_commit_not_initialized():
     # Assert the failure is a ServiceError with the not-initialized error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+    assert failed.value.message == (
+        'SQLite connection not initialized. Must be used within a "with" block.'
+    )
 
 # ** test: sqlite_client_execute_wraps_driver_error
 def test_sqlite_client_execute_wraps_driver_error():
@@ -655,6 +674,10 @@ def test_sqlite_client_conn_failed(tmp_path: Path):
     # Assert the failure is a ServiceError with the connection error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_FAILED_ID
+    assert failed.value.message == (
+        f'Failed to connect to SQLite database at {client.path}: {failed.value.__cause__}'
+    )
+    assert isinstance(failed.value.__cause__, sqlite3.Error)
 
 # ** test: sqlite_client_statement_failures
 def test_sqlite_client_statement_failures(memory_client: SqliteClient):
