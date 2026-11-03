@@ -764,9 +764,13 @@ def test_stage_cleanup_failure_is_recorded(tmp_path, capsys, monkeypatch) -> Non
         A stage whose close removes the directory, then raises.
         '''
 
+        # * method: close
         def close(self) -> None:
             '''
             Close the stage, then raise a cleanup error.
+
+            :return: None
+            :rtype: None
             '''
 
             # Close the stage, then raise.
