@@ -498,6 +498,9 @@ class PhaseRuntimeContext(BaseContext):
                 error_code=a.error.APP_ERROR_ID,
             )
 
+        # Close a live stage before arranging a new one, so no directory leaks.
+        self.close_stage(failed=True)
+
         # Hold the stage before arranging, so a partial arrange is still closed.
         self.stage = self.stage_factory()
         try:
