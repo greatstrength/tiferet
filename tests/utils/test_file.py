@@ -15,6 +15,7 @@ from tiferet.utils.file import (
     FILE_NOT_FOUND_ID,
     INVALID_ENCODING_ID,
     INVALID_FILE_MODE_ID,
+    VALID_FILE_MODES,
 )
 from tiferet.interfaces.core import ServiceError
 
@@ -114,6 +115,8 @@ def test_file_loader_invalid_mode(tmp_path):
     # Assert the case expectations.
     assert failed.error_code == INVALID_FILE_MODE_ID
     assert failed.kwargs['mode'] == 'z'
+    assert failed.kwargs['modes'] == list(VALID_FILE_MODES)
+    assert failed.message == 'Invalid file mode: z. Valid modes include ' + ', '.join(VALID_FILE_MODES) + '.'
 
 # ** test: file_loader_missing_encoding_text_mode
 def test_file_loader_missing_encoding_text_mode(tmp_path):
@@ -229,6 +232,7 @@ def test_file_loader_binary_mode_no_encoding(tmp_path):
     assert isinstance(content, bytes)
     assert decoded == 'Sample content'
     assert loader.file is None
+    assert content == b'Sample content'
 
 # ** test: file_loader_newline_preservation
 def test_file_loader_newline_preservation(tmp_path):

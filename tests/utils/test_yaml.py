@@ -1011,6 +1011,8 @@ class TestYamlLoader:
 
         # Assert the case expectations.
         assert failed.error_code == FILE_NOT_FOUND_ID
+        assert 'File not found' in failed.message
+        assert 'missing.yaml' in failed.message
 
     # * test: load_malformed_yaml
     def test_load_malformed_yaml(self, tmp_path):
@@ -1034,6 +1036,8 @@ class TestYamlLoader:
         # Assert the case expectations.
         assert failed.error_code == YAML_FILE_LOAD_ERROR_ID
         assert failed.kwargs['path'] == file_path
+        assert 'Failed to parse YAML file' in failed.message
+        assert 'bad.yaml' in failed.message
 
     # * test: save_write_failure
     def test_save_write_failure(self, tmp_path):
@@ -1055,6 +1059,7 @@ class TestYamlLoader:
 
         # Assert the case expectations.
         assert failed.error_code == FILE_NOT_FOUND_ID
+        assert 'File not found' in failed.message
 
     # * test: verify_yaml_file_success
     def test_verify_yaml_file_success(self, tmp_path):
@@ -1097,6 +1102,7 @@ class TestYamlLoader:
 
         # Assert the case expectations.
         assert failed.error_code == INVALID_FILE_ID
+        assert '.yaml' in failed.message
 
     # * test: verify_yaml_file_fallback
     def test_verify_yaml_file_fallback(self, tmp_path):
@@ -1141,6 +1147,8 @@ class TestYamlLoader:
         # Assert the case expectations.
         assert failed.error_code == YAML_FILE_NOT_FOUND_ID
         assert failed.kwargs['path'] == file_path
+        assert 'could not be found' in failed.message
+        assert 'missing.yaml' in failed.message
 
     # * test: closes_on_error
     def test_closes_on_error(self, tmp_path):
