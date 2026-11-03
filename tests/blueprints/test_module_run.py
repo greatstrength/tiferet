@@ -3,6 +3,9 @@
 # *** imports
 
 # ** core
+import logging
+import os
+import tempfile
 from pathlib import Path
 
 # ** infra
@@ -26,8 +29,76 @@ from tiferet.domain.feature import Feature
 from tiferet.domain.request import Request
 from tiferet.domain.tester_phase import Test
 from tiferet.interfaces.core import ServiceError
+from tiferet.utils.tester_stage import STAGE_PREFIX, Stage
+
+# *** constants
+
+# ** constant: staged_document
+STAGED_DOCUMENT = '''tests:
+  write_read:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: write
+        args: [config.yaml, "root: {}\\n"]
+      - target: $stage
+        method: read
+        args: [config.yaml]
+        as: text
+    assert:
+      - outcome: text
+        equals: "root: {}\\n"
+  log_capture:
+    conditions:
+      stage: true
+    execute:
+      - target:
+          module_path: logging
+          attribute: debug
+        method: debug
+        args: [Executing SampleEvent]
+      - target: $stage
+        method: records
+        as: records
+    assert:
+      - outcome: records
+        equals:
+          - level: DEBUG
+            message: Executing SampleEvent
+            error: false
+            logger: root
+  missing_read:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: read
+        args: [does_not_exist.txt]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: PHASE_STEP_FAILED
+'''
 
 # *** functions
+
+# ** function: stage_directories
+def _stage_directories() -> set:
+    '''
+    Return the stage directory names under the temporary root.
+
+    :return: The names that start with the stage prefix.
+    :rtype: set
+    '''
+
+    # List the temporary root and keep the stage names.
+    return {
+        name
+        for name in os.listdir(tempfile.gettempdir())
+        if name.startswith(STAGE_PREFIX)
+    }
 
 # ** function: write_pair
 def write_pair(base: Path, rel: str, document: str) -> Path:
@@ -533,3 +604,194 @@ tests:
     assert first['sample'] is not second['sample']
     first['sample']['attributes']['text'] = 'changed'
     assert second['sample']['attributes']['text'] == 'kept'
+
+# ** test: staged_document_runs_green
+def test_staged_document_runs_green(tmp_path, capsys) -> None:
+    '''
+    Run the staged document through the module runner.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Write the staged document and record the root level, root handlers, and stage directories.
+    python_path = write_pair(tmp_path, 'utils/test_staged', STAGED_DOCUMENT)
+    root = logging.getLogger()
+    level = root.level
+    handlers = list(root.handlers)
+    before = _stage_directories()
+
+    # Run the module.
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+
+    # Every staged test passes, and nothing is left behind.
+    assert [outcome['status'] for outcome in report['outcomes']] == [
+        'PASSED',
+        'PASSED',
+        'PASSED',
+    ]
+    assert printed.splitlines()[-1].endswith('3 passed')
+    assert _stage_directories() == before
+    assert root.handlers == handlers
+    assert root.level == level
+
+# ** test: stage_misuse_fails_without_aborting
+def test_stage_misuse_fails_without_aborting(tmp_path, capsys) -> None:
+    '''
+    Run four stage misuses beside a passing staged test.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Write the misuse document and record the stage directories.
+    python_path = write_pair(
+        tmp_path,
+        'utils/test_stage_misuse',
+        '''fixtures:
+  staged:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: $stage
+tests:
+  in_fixture:
+    conditions:
+      stage: true
+      fixtures: [staged]
+    execute:
+      - target: staged
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  not_arranged:
+    conditions: {}
+    execute:
+      - target: $stage
+        method: path
+        as: directory
+    assert:
+      - outcome: directory
+        equals: kept
+  not_an_observation:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: close
+        as: closed
+    assert:
+      - outcome: closed
+        equals: kept
+  null_stage:
+    conditions:
+      stage: null
+    execute:
+      - target: staged
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  kept:
+    conditions:
+      stage: true
+    execute:
+      - target: $stage
+        method: exists
+        args: [config.yaml]
+        as: found
+    assert:
+      - outcome: found
+        equals: false
+''',
+    )
+    before = _stage_directories()
+
+    # Run the module.
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+
+    # The four misuses fail in order, and the last test still passes.
+    outcomes = report['outcomes']
+    assert [outcome['status'] for outcome in outcomes] == [
+        'FAILED',
+        'FAILED',
+        'FAILED',
+        'FAILED',
+        'PASSED',
+    ]
+    for outcome, text in zip(outcomes, (
+        'illegal in conditions',
+        'not arranged',
+        'close',
+        'stage is true or omitted',
+    )):
+        assert text in outcome['message']
+    assert printed.splitlines()[-1].endswith('4 failed, 1 passed')
+    assert _stage_directories() == before
+
+# ** test: stage_cleanup_failure_is_recorded
+def test_stage_cleanup_failure_is_recorded(tmp_path, capsys, monkeypatch) -> None:
+    '''
+    Run the staged document with a stage whose close raises after cleanup.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    :return: None
+    :rtype: None
+    '''
+
+    # A stage whose close cleans up, then raises.
+    class FailingCloseStage(Stage):
+        '''
+        A stage whose close removes the directory, then raises.
+        '''
+
+        # * method: close
+        def close(self) -> None:
+            '''
+            Close the stage, then raise a cleanup error.
+
+            :return: None
+            :rtype: None
+            '''
+
+            # Close the stage, then raise.
+            Stage.close(self)
+            raise OSError('cleanup failed')
+
+    # Inject the failing stage and write the staged document.
+    monkeypatch.setattr(tester_blueprints, '_registered_stage', lambda: FailingCloseStage)
+    python_path = write_pair(tmp_path, 'utils/test_staged', STAGED_DOCUMENT)
+
+    # Run the module.
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+
+    # Every test records the cleanup failure.
+    outcomes = report['outcomes']
+    assert [outcome['status'] for outcome in outcomes] == [
+        'FAILED',
+        'FAILED',
+        'FAILED',
+    ]
+    for outcome in outcomes:
+        assert 'cleanup failed' in outcome['message']
+    assert printed.splitlines()[-1].endswith('3 failed')
