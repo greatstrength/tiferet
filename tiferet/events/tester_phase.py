@@ -108,7 +108,11 @@ class EvaluateAssertion(CheckEvent):
         outcome = resolved.get('outcome')
         mismatch = None
         if name == 'equals':
-            mismatch = self.check_service.equal(outcome, resolved.get('equals'))
+            mismatch = self.check_service.equal(
+                outcome,
+                resolved.get('equals'),
+                exact=True,
+            )
         elif name == 'null':
             mismatch = self.check_service.equal(outcome, None)
             if outcome is not None and mismatch:

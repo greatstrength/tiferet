@@ -52,7 +52,7 @@ class Check(CheckService):
         )
 
     # * method: equal
-    def equal(self, actual: Any, expected: Any) -> str | None:
+    def equal(self, actual: Any, expected: Any, exact: bool = False) -> str | None:
         '''
         Compare two values, including a structural compare.
 
@@ -60,6 +60,8 @@ class Check(CheckService):
         :type actual: Any
         :param expected: The expected value.
         :type expected: Any
+        :param exact: When true, a mapping actual must not carry extra keys.
+        :type exact: bool
         :return: A mismatch, or None when the values match.
         :rtype: str | None
         '''
@@ -72,12 +74,12 @@ class Check(CheckService):
         ):
             return self._equal_keyed(actual, expected)
         if isinstance(expected, dict):
-            return self._equal_mapping(actual, expected)
+            return self._equal_mapping(actual, expected, exact=exact)
         if isinstance(expected, list):
             if not isinstance(actual, list) or len(actual) != len(expected):
                 return 'List field length does not match.'
             for actual_item, expected_item in zip(actual, expected):
-                mismatch = self.equal(actual_item, expected_item)
+                mismatch = self.equal(actual_item, expected_item, exact=exact)
                 if mismatch:
                     return mismatch
             return None
@@ -307,7 +309,12 @@ class Check(CheckService):
         )
 
     # * method: equal_mapping
-    def _equal_mapping(self, actual: Any, expected: Dict[str, Any]) -> str | None:
+    def _equal_mapping(
+        self,
+        actual: Any,
+        expected: Dict[str, Any],
+        exact: bool = False,
+    ) -> str | None:
         '''
         Compare a mapping or an object's attributes. A missing expected key fails.
 
@@ -315,23 +322,41 @@ class Check(CheckService):
         :type actual: Any
         :param expected: The expected attributes.
         :type expected: Dict[str, Any]
+        :param exact: When true, a mapping actual must not carry extra keys.
+        :type exact: bool
         :return: A mismatch, or None when the named keys match.
         :rtype: str | None
         '''
 
-        # A mapping compares keys. An object compares attributes.
+        # None never matches a mapping, and an empty mapping means no keys.
+        if actual is None:
+            return 'Expected a mapping, found None.'
+        if not expected:
+            if not isinstance(actual, Mapping):
+                return f'Expected an empty mapping, found {type(actual).__name__}.'
+            if actual:
+                return f'Expected an empty mapping, found key {next(iter(actual))}.'
+            return None
+
+        # A mapping compares keys. Equals also rejects extra keys.
         if isinstance(actual, Mapping):
             for key, item in expected.items():
                 if key not in actual:
                     return f'Missing key {key}.'
-                mismatch = self.equal(actual[key], item)
+                mismatch = self.equal(actual[key], item, exact=exact)
                 if mismatch:
                     return mismatch
+            if exact:
+                for key in actual:
+                    if key not in expected:
+                        return f'Unexpected key {key}.'
             return None
+
+        # An object compares attributes. Its attributes cannot be listed.
         for key, item in expected.items():
             if not hasattr(actual, key):
                 return f'Missing attribute {key}.'
-            mismatch = self.equal(getattr(actual, key), item)
+            mismatch = self.equal(getattr(actual, key), item, exact=exact)
             if mismatch:
                 return mismatch
         return None
