@@ -264,7 +264,7 @@ class ExecutionTargetConfigObject(ExecutionTarget, TransferObject):
 # ** mapper: conditions_aggregate
 class ConditionsAggregate(Conditions, Aggregate):
     '''
-    Stores the fixtures and mocks of a conditions phase so the config object can map them without mutating the phase itself.
+    Stores the fixtures, mocks, and stage flag of a conditions phase so the config object can map them without mutating the phase itself.
     '''
 
     # * method: store_fixtures
@@ -318,6 +318,29 @@ class ConditionsAggregate(Conditions, Aggregate):
 
         # Store the validated mocks; a return value stays data.
         self.set_attribute('mocks', mocks)
+
+    # * method: store_stage
+    def store_stage(self, stage: bool) -> None:
+        '''
+        Store the stage flag for this phase.
+
+        :param stage: True when the test has a stage.
+        :type stage: bool
+        :return: None
+        :rtype: None
+        '''
+
+        # Reject a stage flag that is not true.
+        if stage is not True:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='Conditions stage is true or omitted.',
+                model=self,
+                attribute='stage',
+            )
+
+        # Store the validated stage flag.
+        self.set_attribute('stage', stage)
 
     # * method: stream
     def stream(self) -> Dict[str, Any]:
@@ -383,6 +406,10 @@ class ConditionsConfigObject(Conditions, TransferObject):
             name: mock.map()
             for name, mock in self.mocks.items()
         })
+
+        # Store the stage flag only when the test has a stage.
+        if self.stage:
+            aggregate.store_stage(self.stage)
 
         # Apply each remaining override through set_attribute.
         for attribute, value in overrides.items():

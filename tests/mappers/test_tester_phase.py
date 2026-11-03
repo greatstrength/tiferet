@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet import use_tester
 from tiferet.domain import (
@@ -306,6 +309,45 @@ class TestConditionsConfigObject:
         # Assert the clock mock is wrapped as a config object for Feature.
         assert isinstance(config.mocks['clock'], ArrangedMockConfigObject)
         assert config.mocks['clock'].class_name == 'Feature'
+
+    # * test: stage_flag_is_true_or_omitted
+    @pytest.mark.parametrize('value', [False, None, {}, [], 'tmp_path', 'true', 1])
+    def test_stage_flag_is_true_or_omitted(self, value):
+        '''
+        Reject a stage value that is not true on the config object.
+
+        :param value: The rejected stage value.
+        :type value: Any
+        '''
+
+        # Validate a mapping with the rejected stage value.
+        with pytest.raises(ModelError) as exc_info:
+            ConditionsConfigObject.model_validate({'stage': value})
+
+        # Assert the value defect names the config object.
+        assert exc_info.value.error_code == 'INVALID_MODEL_VALUE'
+        assert 'ConditionsConfigObject stage is true or omitted.' in str(exc_info.value)
+
+    # * test: stage_round_trips_to_data
+    def test_stage_round_trips_to_data(self):
+        '''
+        Round-trip the stage flag through data, the noun, and back.
+        '''
+
+        # Dump a config object without a stage.
+        absent = ConditionsConfigObject.model_validate({}).to_primitive('to_data')
+
+        # Validate, dump, map, and restore a staged config object.
+        staged = ConditionsConfigObject.model_validate({'stage': True})
+        dumped = staged.to_primitive('to_data')
+        mapped = staged.map()
+        restored = ConditionsConfigObject.from_model(mapped)
+
+        # Assert the stage key is absent or true at each step.
+        assert ('stage' in absent) is False
+        assert dumped['stage'] is True
+        assert mapped.stage is True
+        assert restored.stage is True
 
 # ** tester: test_execution_config_object
 @use_tester(
@@ -948,6 +990,33 @@ class TestConditionsAggregate:
             )
         else:
             raise AssertionError('Expected ModelError for mocks.')
+
+    # * test: store_stage_true
+    def test_store_stage_true(self):
+        '''
+        Store a true stage flag.
+        '''
+
+        # Store a true stage on a new aggregate.
+        aggregate = ConditionsAggregate()
+        aggregate.store_stage(True)
+
+        # Assert the stored stage flag.
+        assert aggregate.stage is True
+
+    # * test: store_stage_reject
+    def test_store_stage_reject(self):
+        '''
+        Reject a stage flag that is not true.
+        '''
+
+        # Attempt to store a false stage flag.
+        with pytest.raises(ModelError) as exc_info:
+            ConditionsAggregate().store_stage(False)
+
+        # Assert the value defect and its message.
+        assert exc_info.value.error_code == 'INVALID_MODEL_VALUE'
+        assert 'Conditions stage is true or omitted.' in str(exc_info.value)
 
     # * test: stream_conditions
     def test_stream_conditions(self):

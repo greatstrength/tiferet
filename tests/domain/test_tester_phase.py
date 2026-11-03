@@ -288,6 +288,32 @@ def test_domain_exports_phase_models() -> None:
         'TestModuleDocument',
     ]
 
+# ** test: check_set_is_unchanged
+def test_check_set_is_unchanged() -> None:
+    '''
+    Test that the stage adds no assertion check key.
+    '''
+
+    # Assert the assertion check set is unchanged.
+    assert ASSERTION_CHECKS == (
+        'equals',
+        'null',
+        'fields',
+        'absent',
+        'error_code',
+        'type',
+        'is',
+        'message',
+        'assert_called_once_with',
+        'domain_contract',
+        'mapper_contract',
+        'event_base',
+        'parameters_required',
+        'service_contract',
+        'middleware_chain',
+        'cause',
+    )
+
 # *** testers
 
 # ** tester: test_arranged_mock
@@ -530,6 +556,70 @@ class TestConditions:
         assert error.error_code == INVALID_MODEL_VALUE_ID
         assert 'Conditions' in str(error)
         assert 'A YAML Python tag is not legal.' in str(error)
+
+    # * test: stage_accepts_true
+    def test_stage_accepts_true(self) -> None:
+        '''
+        Assert Conditions accepts a true stage and dumps it.
+        '''
+
+        # Construct with a true stage and dump it.
+        conditions = Conditions(stage=True)
+        dump = conditions.model_dump()
+
+        # Assert the stage field and the dumped stage.
+        assert conditions.stage is True
+        assert dump['stage'] is True
+
+    # * test: stage_defaults_absent
+    def test_stage_defaults_absent(self) -> None:
+        '''
+        Assert Conditions defaults stage to null and dumps no stage key.
+        '''
+
+        # Construct with no fields and dump it.
+        conditions = Conditions()
+        dump = conditions.model_dump()
+
+        # Assert the null stage and the absent stage key.
+        assert conditions.stage is None
+        assert ('stage' in dump) is False
+
+    # * test: stage_flag_is_true_or_omitted
+    @pytest.mark.parametrize('value', [False, None, {}, [], 'tmp_path', 'true', 1])
+    def test_stage_flag_is_true_or_omitted(self, value) -> None:
+        '''
+        Assert a stage value that is not true raises ModelError.
+
+        :param value: The rejected stage value.
+        :type value: Any
+        '''
+
+        # Construct with the rejected stage value.
+        with pytest.raises(ModelError) as exc_info:
+            Conditions(stage=value)
+
+        # Assert the value defect and its message.
+        error = exc_info.value
+        assert error.error_code == INVALID_MODEL_VALUE_ID
+        assert 'Conditions stage is true or omitted.' in str(error)
+
+    # * test: stage_keeps_pytest_names_illegal
+    @pytest.mark.parametrize('key', ['tmp_path', 'caplog'])
+    def test_stage_keeps_pytest_names_illegal(self, key) -> None:
+        '''
+        Assert pytest fixture names stay unknown condition keys.
+
+        :param key: The pytest fixture name used as a key.
+        :type key: str
+        '''
+
+        # Construct with the pytest name set to true.
+        with pytest.raises(ModelError) as exc_info:
+            Conditions(**{key: True})
+
+        # Assert the attribute defect.
+        assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
 
 # ** tester: test_execution_target
 @use_tester(

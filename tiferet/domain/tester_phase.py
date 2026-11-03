@@ -6,7 +6,7 @@
 from typing import Any, Dict, List, Literal, Tuple
 
 # ** infra
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_serializer, model_validator
 
 # ** app
 from .core import (
@@ -386,7 +386,7 @@ class ArrangedMock(DomainObject):
 # ** model: conditions
 class Conditions(DomainObject):
     '''
-    What must be in place before a test runs: the fixtures to build and the mocks to arrange, as one object rather than a list.
+    What must be in place before a test runs: the fixtures to build, the mocks to arrange, and whether the test has a stage, as one object rather than a list.
     '''
 
     # * attribute: fixtures
@@ -399,6 +399,12 @@ class Conditions(DomainObject):
     mocks: Dict[str, ArrangedMock] = Field(
         default_factory=dict,
         description='Arranged mocks keyed by mock name.',
+    )
+
+    # * attribute: stage
+    stage: bool | None = Field(
+        default=None,
+        description='True when the test has a stage. An absent key means no stage.',
     )
 
     # * method: _reject_closed_set (model validator)
@@ -424,6 +430,51 @@ class Conditions(DomainObject):
 
         # Return the raw constructor data.
         return data
+
+    # * method: _validate_stage (field validator)
+    @field_validator('stage', mode='before')
+    @classmethod
+    def _validate_stage(cls, value: Any) -> Any:
+        '''
+        Reject a stage value that is not true. Only an absent key means no stage.
+
+        :param value: The raw stage value.
+        :type value: Any
+        :return: The stage value when it is true.
+        :rtype: Any
+        '''
+
+        # Raise a model defect when the stage value is not true before coercion.
+        if value is not True:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'{cls.__name__} stage is true or omitted.',
+            )
+
+        # Return the stage value.
+        return value
+
+    # * method: serialize_conditions
+    @model_serializer(mode='wrap')
+    def serialize_conditions(self, handler: Any) -> Any:
+        '''
+        Serialize the conditions without a stage key when the test has no stage.
+
+        :param handler: The default pydantic serializer.
+        :type handler: Any
+        :return: The serialized conditions.
+        :rtype: Any
+        '''
+
+        # Serialize the conditions with the default handler.
+        result = handler(self)
+
+        # Drop the stage key when the test has no stage.
+        if isinstance(result, dict) and result.get('stage') is None:
+            result.pop('stage', None)
+
+        # Return the serialized conditions.
+        return result
 
 # ** model: execution_target
 class ExecutionTarget(DomainObject):
