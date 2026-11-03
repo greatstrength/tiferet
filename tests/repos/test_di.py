@@ -290,3 +290,45 @@ class TestDIConfigRepository:
         # Check that both old and new constants exist.
         assert constants.get('sample_const') == 'sample_value'
         assert constants.get('new_const') == 'new_value'
+
+    # * test: new
+    def test_new(self, test_ctx, di_config_file: str) -> None:
+        '''
+        Test that the DIConfigRepository constructs with the default role.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param di_config_file: The YAML configuration file path.
+        :type di_config_file: str
+        '''
+
+        # Assert construction and the default serialization role.
+        test_ctx.assert_new(config_file=di_config_file)
+
+        # Check the instance type and default role on a constructed repository.
+        repo = test_ctx.make_target(config_file=di_config_file)
+        assert isinstance(repo, DIConfigRepository)
+        assert repo.default_role == 'to_data'
+
+    # * test: format_dispatch
+    def test_format_dispatch(self, test_ctx, tmp_path) -> None:
+        '''
+        Test that YAML and JSON paths round-trip the same payload.
+
+        :param test_ctx: The bound repo tester context.
+        :type test_ctx: object
+        :param tmp_path: The stage directory.
+        :type tmp_path: pathlib.Path
+        '''
+
+        # Write the YAML and JSON dispatch files on the stage.
+        yaml_path = tmp_path / 'dispatch.yaml'
+        yaml_path.write_text('root: {}\n', encoding='utf-8')
+        json_path = tmp_path / 'dispatch.json'
+        json_path.write_text('{"root": {}}\n', encoding='utf-8')
+
+        # Assert YAML and JSON format dispatch via _save / _load.
+        test_ctx.assert_format_dispatch(
+            yaml_file=str(yaml_path),
+            json_file=str(json_path),
+        )
