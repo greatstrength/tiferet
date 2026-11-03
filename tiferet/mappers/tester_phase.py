@@ -35,6 +35,7 @@ from .core import (
 # ** constant: sibling_fields
 SIBLING_FIELDS: Tuple[str, ...] = (
     'outcome',
+    'attribute',
     'mock',
     'method',
 )
@@ -512,6 +513,27 @@ class ExecutionConfigObject(Execution, TransferObject):
         description='The session-data key for the result. The YAML key is as.',
     )
 
+    # * method: _reject_null_dependencies (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_null_dependencies(cls, data: Any) -> Any:
+        '''
+        Reject a present YAML null under dependencies. Omit is the empty form.
+
+        :param data: The raw execute item.
+        :type data: Any
+        :return: The input when it is in set.
+        :rtype: Any
+        '''
+
+        # A present null is a defect, not omit.
+        if isinstance(data, dict) and 'dependencies' in data and data['dependencies'] is None:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='dependencies must be a mapping.',
+            )
+        return data
+
     # * method: to_primitive
     def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
         '''
@@ -548,6 +570,7 @@ class ExecutionConfigObject(Execution, TransferObject):
             method=self.method,
             args=list(self.args),
             kwargs=dict(self.kwargs),
+            dependencies=None if self.dependencies is None else dict(self.dependencies),
         )
         aggregate.store_target(mapped_target)
         aggregate.store_data_key(self.data_key)
@@ -577,12 +600,13 @@ class ExecutionConfigObject(Execution, TransferObject):
         if not isinstance(target, str):
             target = ExecutionTargetConfigObject.from_model(target)
 
-        # Copy the noun with the wrapped target.
-        return super().from_model(
-            execution,
-            target=target,
-            **overrides,
-        )
+        # Copy the noun with the wrapped target. An omitted dependencies stays omitted.
+        data = execution.model_dump(by_alias=False)
+        if data.get('dependencies') is None:
+            data.pop('dependencies', None)
+        data['target'] = target
+        data.update(overrides)
+        return cls.model_validate(data)
 
 # ** mapper: assertion_aggregate
 class AssertionAggregate(Assertion, Aggregate):

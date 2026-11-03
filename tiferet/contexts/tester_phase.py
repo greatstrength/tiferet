@@ -5,6 +5,7 @@
 # ** core
 import inspect
 import re
+from collections.abc import Mapping
 from importlib import import_module
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
@@ -809,6 +810,8 @@ class PhaseRuntimeContext(BaseContext):
         kwargs = self._resolve_value(execution.kwargs)
         if execution.method == 'new':
             return self._call_new()
+        if execution.method == 'handle' and execution.is_named_handle():
+            return self._call_named_handle(execution, kwargs)
         if execution.method == 'handle':
             return self._call_handle(kwargs)
 
@@ -916,6 +919,38 @@ class PhaseRuntimeContext(BaseContext):
             **kwargs,
         )
 
+    # * method: call_named_handle
+    def _call_named_handle(self, execution: Execution, kwargs: Dict[str, Any]) -> Any:
+        '''
+        Call DomainEvent.handle on a named event with the explicit dependencies.
+
+        The mock store is not merged. A mock is injected only when the mapping
+        names it.
+
+        :param execution: The execute item.
+        :type execution: Execution
+        :param kwargs: The resolved event arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The event result.
+        :rtype: Any
+        '''
+
+        # A class target imports through _require_named. A ref resolves as a whole value.
+        event_cls = self._resolve_target(execution)
+        if not callable(event_cls):
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'handle target {execution.target} is not callable.',
+            )
+
+        # The mapping is the whole constructor dict, resolved in execute.
+        dependencies = self._resolve_value(dict(execution.dependencies or {}))
+        return DomainEvent.handle(
+            event_cls,
+            dependencies=dependencies,
+            **kwargs,
+        )
+
     # * method: resolve_target
     def _resolve_target(self, execution: Execution) -> Any:
         '''
@@ -985,6 +1020,43 @@ class PhaseRuntimeContext(BaseContext):
         # data_key is the feature data_key. $r.<as> reads this store.
         self.session.set_result(result, data_key=data_key)
         self.as_keys.add(data_key)
+
+    # * method: read_attribute
+    def _read_attribute(self, container: Any, name: str, check: str) -> Any:
+        '''
+        Read one key or attribute of a resolved outcome. The value is not called.
+
+        :param container: The resolved outcome.
+        :type container: Any
+        :param name: The key or attribute name.
+        :type name: str
+        :param check: The check that reads the value.
+        :type check: str
+        :return: The read value.
+        :rtype: Any
+        '''
+
+        # A null container is a check failure. The attribute is not read.
+        if container is None:
+            TiferetError.raise_error(
+                a.error.PHASE_CHECK_FAILED_ID,
+                check=check,
+                detail='container is null',
+            )
+
+        # A mapping uses the key. Anything else uses getattr.
+        missing = object()
+        if isinstance(container, Mapping):
+            value = container.get(name, missing)
+        else:
+            value = getattr(container, name, missing)
+        if value is missing:
+            TiferetError.raise_error(
+                a.error.PHASE_CHECK_FAILED_ID,
+                check=check,
+                detail=f'{name} is missing',
+            )
+        return value
 
     # * method: resolve_outcome
     def _resolve_outcome(self, outcome: str) -> Any:
@@ -1070,6 +1142,8 @@ class PhaseRuntimeContext(BaseContext):
         values = {}
         if 'outcome' in named and assertion.outcome is not None:
             values['outcome'] = self._resolve_outcome(assertion.outcome)
+            if assertion.attribute is not None:
+                values['outcome'] = self._read_attribute(values['outcome'], assertion.attribute, assertion.check)
         if 'equals' in named and assertion.equals is not None:
             values['equals'] = self._resolve_value(assertion.equals)
         if 'fields' in named and assertion.fields is not None:

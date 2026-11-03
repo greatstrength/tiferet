@@ -45,7 +45,11 @@ from tiferet.events.core import DomainEvent
 from tiferet.events.error import AddError, ErrorEvent, GetError
 from tiferet.interfaces import ErrorService, MiddlewareService, Service
 from tiferet.mappers.error import ErrorAggregate
-from tiferet.mappers.tester_phase import ConditionsConfigObject
+from tiferet.mappers.tester_phase import (
+    AssertionConfigObject,
+    ConditionsConfigObject,
+    ExecutionConfigObject,
+)
 from tiferet.utils.tester_stage import STAGE_PREFIX, Stage
 
 # *** constants
@@ -85,6 +89,18 @@ def echo(value: str) -> str:
 
     # Return the value without formatting it.
     return value
+
+# ** function: named_event_class
+def named_event_class() -> type:
+    '''
+    Return the NamedEvent class, so a test can store it at an as key.
+
+    :return: The NamedEvent class.
+    :rtype: type
+    '''
+
+    # A stored class is a $r. event target.
+    return NamedEvent
 
 # ** function: emit_named
 def emit_named(message: str) -> None:
@@ -200,6 +216,53 @@ def _runtime(
         tester_fixtures=tester_fixtures,
     )
 
+# ** function: observe
+def _observe(value, asserts: list, executes: list = None, conditions: Conditions = None) -> PhaseRuntimeContext:
+    '''
+    Store a value at as key got through echo, then run the asserts.
+
+    :param value: The value the step stores.
+    :type value: Any
+    :param asserts: The assert items.
+    :type asserts: list
+    :param executes: Extra execute items after the store.
+    :type executes: list
+    :param conditions: The conditions phase.
+    :type conditions: Conditions
+    :return: The runtime after the run.
+    :rtype: PhaseRuntimeContext
+    '''
+
+    # echo returns its argument, so got is exactly value.
+    runtime = _runtime(RecordingEvent.__module__, RecordingEvent.__name__)
+    store = Execution(
+        target={'module_path': __name__, 'attribute': 'echo'},
+        method='echo',
+        args=[value],
+        data_key='got',
+    )
+    holds = [Assertion(check='type', outcome='got', module_path='builtins', class_name='object')]
+    runtime.run(_test('phase.observe', conditions or Conditions(), [store] + list(executes or []), list(asserts) or holds))
+    return runtime
+
+# ** function: check_failure
+def _check_failure(value, assertion: Assertion) -> TiferetError:
+    '''
+    Run one assert on a stored value and return the failure.
+
+    :param value: The value the step stores.
+    :type value: Any
+    :param assertion: The assert item.
+    :type assertion: Assertion
+    :return: The raised error.
+    :rtype: TiferetError
+    '''
+
+    # The failure is the catalogued check or step error, not a raw exception.
+    with pytest.raises(TiferetError) as caught:
+        _observe(value, [assertion])
+    return caught.value
+
 # *** classes
 
 # ** class: has_new
@@ -257,6 +320,38 @@ class RecordingEvent(DomainEvent):
 
         # Return a copy so the test can see a hidden merge.
         return dict(kwargs)
+
+# ** class: named_event
+class NamedEvent(DomainEvent):
+    '''
+    An event that is not the tester class. It returns its dependency and kwargs.
+    '''
+
+    # * init
+    def __init__(self, dep=None):
+        '''
+        Store the explicit dependency.
+
+        :param dep: The injected dependency, or None.
+        :type dep: Any
+        '''
+
+        # The named form passes only what the mapping names.
+        self.dep = dep
+
+    # * method: execute
+    def execute(self, **kwargs):
+        '''
+        Return the dependency and the event arguments.
+
+        :param kwargs: The event arguments.
+        :type kwargs: dict
+        :return: The dependency and the arguments.
+        :rtype: dict
+        '''
+
+        # A hidden mock merge would show up as dep.
+        return {'dep': self.dep, 'kwargs': dict(kwargs)}
 
 # ** class: failing_close_stage
 class FailingCloseStage(Stage):
@@ -1612,3 +1707,234 @@ def test_check_set_is_unchanged():
         'middleware_chain',
         'cause',
     )
+
+# ** test: attribute_reads_one_key_or_attribute
+def test_attribute_reads_one_key_or_attribute():
+    '''attribute reads a mapping key or an object attribute after outcome resolution.'''
+
+    # A mapping uses the key.
+    _observe({'lang': 'en_US'}, [Assertion(check='equals', outcome='got', attribute='lang', equals='en_US')])
+
+    # A fixture outcome uses getattr. No attrgetter step.
+    runtime = _runtime(
+        RecordingEvent.__module__,
+        RecordingEvent.__name__,
+        root_fixtures={'message': ERROR_MESSAGE_FIXTURE},
+    )
+    runtime.run(_test(
+        'phase.fixture_attribute',
+        Conditions(fixtures=['message']),
+        [Execution(target={'module_path': __name__, 'attribute': 'echo'}, method='echo', args=['x'], data_key='x')],
+        [Assertion(check='equals', outcome='message', attribute='lang', equals='en_US')],
+    ))
+
+# ** test: attribute_equals_empty_mapping_is_strict
+def test_attribute_equals_empty_mapping_is_strict():
+    '''equals {} on an attribute passes only for an empty mapping.'''
+
+    check = Assertion(check='equals', outcome='got', attribute='headers', equals={})
+    _observe({'headers': {}}, [check])
+    error = _check_failure({'headers': {'a': 1}}, check)
+    assert error.error_code == 'PHASE_CHECK_FAILED'
+
+# ** test: attribute_null_container_fails
+def test_attribute_null_container_fails():
+    '''A null container is PHASE_CHECK_FAILED, container is null, not AttributeError.'''
+
+    error = _check_failure(None, Assertion(check='null', outcome='got', attribute='feature_id'))
+    assert error.error_code == 'PHASE_CHECK_FAILED'
+    assert error.kwargs.get('detail') == 'container is null'
+
+# ** test: attribute_missing_is_named
+def test_attribute_missing_is_named():
+    '''A missing key or attribute is PHASE_CHECK_FAILED and names it.'''
+
+    error = _check_failure({'other': 1}, Assertion(check='equals', outcome='got', attribute='feature_id', equals=1))
+    assert error.error_code == 'PHASE_CHECK_FAILED'
+    assert 'feature_id' in error.kwargs.get('detail')
+    error = _check_failure(ErrorMessage(lang='en_US', text='x'), Assertion(check='equals', outcome='got', attribute='feature_id', equals=1))
+    assert error.error_code == 'PHASE_CHECK_FAILED'
+
+# ** test: field_null_uses_identity
+def test_field_null_uses_identity():
+    '''null with attribute requires is None. 0 and other falsy values fail.'''
+
+    check = Assertion(check='null', outcome='got', attribute='value')
+    _observe({'value': None}, [check])
+    for value in (0, False, '', []):
+        error = _check_failure({'value': value}, check)
+        assert error.error_code == 'PHASE_CHECK_FAILED'
+        assert error.kwargs.get('detail') == 'attribute is not null'
+
+# ** test: whole_outcome_null_is_unchanged
+def test_whole_outcome_null_is_unchanged():
+    '''null without attribute is still Check.equal on the whole outcome.'''
+
+    _observe(None, [Assertion(check='null', outcome='got')])
+    error = _check_failure({'value': None}, Assertion(check='null', outcome='got'))
+    assert error.error_code == 'PHASE_CHECK_FAILED'
+
+# ** test: field_null_and_absent_are_distinct
+def test_field_null_and_absent_are_distinct():
+    '''absent passes on a missing key; field-null fails on it. A present None is the reverse.'''
+
+    # Missing key: absent holds, field-null names the miss.
+    _observe({'other': 1}, [Assertion(check='absent', outcome='got', absent=['value'])])
+    error = _check_failure({'other': 1}, Assertion(check='null', outcome='got', attribute='value'))
+    assert error.error_code == 'PHASE_CHECK_FAILED'
+    assert error.kwargs.get('detail') == 'value is missing'
+
+    # Present None: field-null holds, absent fails.
+    _observe({'value': None}, [Assertion(check='null', outcome='got', attribute='value')])
+    error = _check_failure({'value': None}, Assertion(check='absent', outcome='got', absent=['value']))
+    assert error.error_code == 'PHASE_CHECK_FAILED'
+
+# ** test: equals_null_still_rejected_with_attribute
+def test_equals_null_still_rejected_with_attribute():
+    '''YAML null under equals is still a step failure when attribute is set.'''
+
+    runtime = _runtime(RecordingEvent.__module__, RecordingEvent.__name__)
+    with pytest.raises(TiferetError) as caught:
+        runtime.handle_assertion(Assertion.model_construct(
+            check='equals',
+            outcome='got',
+            attribute='value',
+            equals=None,
+        ))
+    assert caught.value.error_code == 'PHASE_STEP_FAILED'
+    assert caught.value.kwargs.get('detail') == 'YAML null under equals is rejected.'
+
+# ** test: attribute_model_rules
+def test_attribute_model_rules():
+    '''attribute is allowed on the data checks, rejected elsewhere, and is one name.'''
+
+    for check, payload in (
+        ('equals', {'equals': 1}),
+        ('null', {}),
+        ('fields', {'fields': {'a': 1}}),
+        ('absent', {'absent': ['a']}),
+        ('error_code', {'error_code': 'X'}),
+        ('type', {'module_path': 'builtins', 'class_name': 'dict'}),
+        ('is', {'builtin': 'dict'}),
+        ('message', {'message': 'x'}),
+        ('cause', {'module_path': 'builtins', 'class_name': 'ValueError', 'message': 'x'}),
+    ):
+        assert Assertion(check=check, outcome='got', attribute='value', **payload).attribute == 'value'
+    for check, payload in (
+        ('assert_called_once_with', {'mock': 'm', 'method': 'go', 'assert_called_once_with': {}}),
+        ('domain_contract', {}),
+        ('middleware_chain', {'middleware_chain': 'none'}),
+    ):
+        with pytest.raises(ModelError) as caught:
+            Assertion(check=check, attribute='value', **payload)
+        assert caught.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+    for name in ('', 'message.1.lang', '$r.value', 'a b'):
+        with pytest.raises(ModelError) as caught:
+            Assertion(check='equals', outcome='got', attribute=name, equals=1)
+        assert caught.value.error_code == 'INVALID_MODEL_VALUE'
+
+# ** test: handle_model_rules
+def test_handle_model_rules():
+    '''handle is self or a named event; dependencies belongs only to the named form.'''
+
+    # Legal forms.
+    Execution(target='self', method='handle')
+    Execution(target={'module_path': 'm', 'class_name': 'E'}, method='handle', dependencies={'a': 1})
+    Execution(target='$mock.command', method='handle', dependencies={})
+    Execution(target='$r.event', method='handle')
+
+    # Illegal targets are INVALID_MODEL_VALUE, and the message is not the old self-only sentence.
+    for target in ('event', '$fixture.event', '$stage', '$r.a.b', {'module_path': 'm', 'attribute': 'f'}):
+        with pytest.raises(ModelError) as caught:
+            Execution(target=target, method='handle')
+        assert caught.value.error_code == 'INVALID_MODEL_VALUE'
+        assert 'legal only on target self' not in str(caught.value)
+
+    # dependencies on self or on another method, args on handle, and new off self.
+    for kwargs in (
+        {'target': 'self', 'method': 'handle', 'dependencies': {}},
+        {'target': 'event', 'method': 'go', 'dependencies': {}},
+        {'target': '$mock.command', 'method': 'handle', 'args': [1]},
+        {'target': '$mock.command', 'method': 'new'},
+    ):
+        with pytest.raises(ModelError) as caught:
+            Execution(**kwargs)
+        assert caught.value.error_code == 'INVALID_MODEL_VALUE'
+
+    # A present null, a list, or a string under dependencies is a model error from YAML.
+    for value in (None, ['a'], 'a'):
+        with pytest.raises(ModelError) as caught:
+            ExecutionConfigObject.model_validate({'target': '$mock.command', 'method': 'handle', 'dependencies': value})
+        assert caught.value.error_code == 'INVALID_MODEL_VALUE'
+
+# ** test: named_handle_uses_explicit_dependencies
+def test_named_handle_uses_explicit_dependencies():
+    '''A class target gets only the mapping. A mock is injected only when named.'''
+
+    target = {'module_path': __name__, 'class_name': 'NamedEvent'}
+    conditions = Conditions(mocks={'dep': ArrangedMock(module_path='tiferet.interfaces', class_name='ErrorService')})
+    runtime = _observe('loader', [], executes=[
+        Execution(target=target, method='handle', kwargs={'arg': 'x'}, data_key='bare'),
+        Execution(target=target, method='handle', dependencies={'dep': '$r.got'}, data_key='by_ref'),
+        Execution(target=target, method='handle', dependencies={'dep': '$mock.dep'}, data_key='by_mock'),
+    ], conditions=conditions)
+    data = runtime.session.data
+    assert data['bare'] == {'dep': None, 'kwargs': {'arg': 'x'}}
+    assert data['by_ref']['dep'] == 'loader'
+    assert data['by_mock']['dep'] is runtime.mocks['dep']
+
+# ** test: named_handle_on_mock_and_ref
+def test_named_handle_on_mock_and_ref():
+    '''$mock.<name> and $r.<key> are named events. A non-callable target is PHASE_STEP_FAILED.'''
+
+    conditions = Conditions(mocks={'command': ArrangedMock(module_path=__name__, class_name='NamedEvent')})
+    runtime = _observe('unused', [], executes=[
+        Execution(target={'module_path': __name__, 'attribute': 'named_event_class'}, method='named_event_class', data_key='event'),
+        Execution(target='$mock.command', method='handle', dependencies={'dep': 'value'}, kwargs={'arg': 'test'}, data_key='handled'),
+        Execution(target='$r.event', method='handle', kwargs={'arg': 'ref'}, data_key='by_ref'),
+    ], conditions=conditions)
+    runtime.mocks['command'].assert_called_once_with(dep='value')
+    runtime.mocks['command'].return_value.execute.assert_called_once_with(arg='test')
+    assert runtime.session.data['by_ref'] == {'dep': None, 'kwargs': {'arg': 'ref'}}
+
+    # A stored string is not an event.
+    with pytest.raises(TiferetError) as caught:
+        _observe('not callable', [], executes=[Execution(target='$r.got', method='handle')])
+    assert caught.value.error_code == 'PHASE_STEP_FAILED'
+
+# ** test: named_handle_import_miss_detail
+def test_named_handle_import_miss_detail():
+    '''An unimportable class target reuses the require-named import detail.'''
+
+    with pytest.raises(TiferetError) as caught:
+        _observe(1, [], executes=[Execution(
+            target={'module_path': 'rfp052_no_such_module', 'class_name': 'Event'},
+            method='handle',
+        )])
+    assert caught.value.error_code == 'PHASE_STEP_FAILED'
+    assert caught.value.kwargs.get('detail') == "Could not import module rfp052_no_such_module: No module named 'rfp052_no_such_module'"
+
+# ** test: observation_fields_round_trip
+def test_observation_fields_round_trip():
+    '''map copies dependencies; to_data omits null attribute and dependencies and keeps {}.'''
+
+    item = {
+        'target': {'module_path': 'tiferet.events.yaml', 'class_name': 'GetYamlAnchor'},
+        'method': 'handle',
+        'dependencies': {'yaml_service': '$r.loader'},
+        'kwargs': {'name': 'item'},
+        'as': 'got',
+    }
+    mapped = ExecutionConfigObject.model_validate(item).map()
+    assert mapped.dependencies == {'yaml_service': '$r.loader'}
+    assert ExecutionConfigObject.from_model(mapped).to_primitive('to_data')['dependencies'] == {'yaml_service': '$r.loader'}
+    empty = ExecutionConfigObject.model_validate({'target': '$mock.command', 'method': 'handle', 'dependencies': {}}).map()
+    assert ExecutionConfigObject.from_model(empty).to_primitive('to_data')['dependencies'] == {}
+    plain = ExecutionConfigObject.model_validate({'target': 'self', 'method': 'handle'}).map()
+    assert 'dependencies' not in ExecutionConfigObject.from_model(plain).to_primitive('to_data')
+
+    read = AssertionConfigObject.model_validate({'outcome': 'got', 'attribute': 'headers', 'equals': {}}).map()
+    assert read.check == 'equals' and read.attribute == 'headers'
+    assert AssertionConfigObject.from_model(read).to_primitive('to_data') == {'outcome': 'got', 'attribute': 'headers', 'equals': {}}
+    whole = AssertionConfigObject.model_validate({'outcome': 'got', 'null': True}).map()
+    assert AssertionConfigObject.from_model(whole).to_primitive('to_data') == {'outcome': 'got', 'null': True}

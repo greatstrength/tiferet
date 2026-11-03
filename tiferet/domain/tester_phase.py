@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import re
 from typing import Any, Dict, List, Literal, Tuple
 
 # ** infra
@@ -39,9 +40,19 @@ ASSERTION_CHECKS: Tuple[str, ...] = (
     'cause',
 )
 
+# ** constant: observation_name
+OBSERVATION_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+# ** constant: named_handle_prefixes
+NAMED_HANDLE_PREFIXES: Tuple[str, ...] = (
+    '$mock.',
+    '$r.',
+)
+
 # ** constant: assertion_payload_fields
 ASSERTION_PAYLOAD_FIELDS: Tuple[str, ...] = (
     'outcome',
+    'attribute',
     'equals',
     'fields',
     'absent',
@@ -70,6 +81,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'equals',
         ),
     },
@@ -79,6 +91,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
         ),
     },
     'fields': {
@@ -88,6 +101,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'fields',
         ),
     },
@@ -98,6 +112,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'absent',
         ),
     },
@@ -108,6 +123,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'error_code',
         ),
     },
@@ -119,6 +135,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'module_path',
             'class_name',
             'negate',
@@ -130,6 +147,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'module_path',
             'class_name',
             'builtin',
@@ -142,6 +160,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'message',
         ),
     },
@@ -213,6 +232,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'module_path',
             'class_name',
             'message',
@@ -570,6 +590,12 @@ class Execution(DomainObject):
         description='Whether the call is expected to raise. The caught exception is stored at data_key.',
     )
 
+    # * attribute: dependencies
+    dependencies: Dict[str, Any] | None = Field(
+        default=None,
+        description='The explicit constructor dependencies for a named-event handle. Omitted means none.',
+    )
+
     # * method: _reject_closed_set (model validator)
     @model_validator(mode='before')
     @classmethod
@@ -590,7 +616,33 @@ class Execution(DomainObject):
                 defect[0],
                 message=f'{cls.__name__} {defect[1]}',
             )
+
+        # dependencies is a mapping or absent. The config object rejects a present YAML null.
+        if isinstance(data, dict) and data.get('dependencies') is not None and not isinstance(data['dependencies'], dict):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='dependencies must be a mapping.',
+            )
         return data
+
+    # * method: is_named_handle
+    def is_named_handle(self) -> bool:
+        '''
+        Report whether this step handles an event that is not the tester class.
+
+        :return: True for handle on a class target, $mock.<name>, or $r.<key>.
+        :rtype: bool
+        '''
+
+        # self is the tester-class form. A class target or one-name ref is the named form.
+        if self.method != 'handle':
+            return False
+        if isinstance(self.target, ExecutionTarget):
+            return self.target.class_name is not None
+        for prefix in NAMED_HANDLE_PREFIXES:
+            if isinstance(self.target, str) and self.target.startswith(prefix):
+                return bool(OBSERVATION_NAME.fullmatch(self.target[len(prefix):]))
+        return False
 
     # * method: _validate_execution (model validator)
     @model_validator(mode='after')
@@ -598,8 +650,10 @@ class Execution(DomainObject):
         '''
         Reject a reserved action that is not legal on this step.
 
-        ``new`` and ``handle`` are legal only on ``target: self``. ``new``
-        takes no arguments. ``raises`` requires ``data_key``.
+        ``new`` is legal only on ``target: self`` and takes no arguments.
+        ``handle`` is legal on ``target: self`` or on a named event: a class
+        target, ``$mock.<name>``, or ``$r.<key>``. ``dependencies`` is legal
+        only on the named form. ``raises`` requires ``data_key``.
 
         :return: This execution.
         :rtype: Execution
@@ -612,11 +666,26 @@ class Execution(DomainObject):
                 message='raises requires data_key.',
             )
 
-        # Reserved actions are not getattr, and they are only legal on self.
-        if self.method in ('new', 'handle') and self.target != 'self':
+        # new is not getattr, and it is only legal on self.
+        if self.method == 'new' and self.target != 'self':
             ModelError.raise_error(
                 INVALID_MODEL_VALUE_ID,
-                message=f'{self.method} is legal only on target self.',
+                message='new is legal only on target self.',
+            )
+
+        # handle is the tester class on self, or a named event.
+        named = self.is_named_handle()
+        if self.method == 'handle' and self.target != 'self' and not named:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='handle requires target self, a class target, $mock.<name>, or $r.<key>.',
+            )
+
+        # The explicit constructor dict belongs only to the named form.
+        if self.dependencies is not None and not named:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='dependencies is legal only on handle with a named event target.',
             )
 
         # new constructs from the tester attributes, not from step arguments.
@@ -670,6 +739,12 @@ class Assertion(DomainObject):
     outcome: str | None = Field(
         default=None,
         description='The result name the check reads, where the check requires one.',
+    )
+
+    # * attribute: attribute
+    attribute: str | None = Field(
+        default=None,
+        description='One key or attribute of the outcome the check reads. Not a path.',
     )
 
     # * attribute: equals
@@ -850,6 +925,13 @@ class Assertion(DomainObject):
             ModelError.raise_error(
                 INVALID_MODEL_VALUE_ID,
                 message=f'Check {self.check} requires {sorted(missing)}.',
+            )
+
+        # The read is one name. Not a path, not a ref.
+        if self.attribute is not None and not OBSERVATION_NAME.fullmatch(self.attribute):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'attribute must be one name, not {self.attribute!r}.',
             )
 
         # An identity check names one subject, not both.

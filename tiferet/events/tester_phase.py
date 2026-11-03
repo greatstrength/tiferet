@@ -113,6 +113,10 @@ class EvaluateAssertion(CheckEvent):
                 resolved.get('equals'),
                 exact=True,
             )
+        elif name == 'null' and assertion.attribute is not None:
+            # The field-null form is identity. The context already failed a null container.
+            if outcome is not None:
+                mismatch = 'attribute is not null'
         elif name == 'null':
             mismatch = self.check_service.equal(outcome, None)
             if outcome is not None and mismatch:
