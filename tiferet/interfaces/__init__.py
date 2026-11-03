@@ -9,6 +9,7 @@ __all__ = [
     'SqliteService',
     'YamlService',
     'CheckService',
+    'StageService',
     'AppService',
     'CliService',
     'DIService',
@@ -24,6 +25,7 @@ from .file import FileService
 from .sqlite import SqliteService
 from .yaml import YamlService
 from .tester_check import CheckService
+from .tester_stage import StageService
 from .app import AppService
 from .cli import CliService
 from .di import DIService
