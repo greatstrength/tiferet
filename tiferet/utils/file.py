@@ -204,6 +204,7 @@ class FileLoader(FileService):
                 self,
                 INVALID_FILE_MODE_ID,
                 f'Invalid file mode: {self.mode}. Valid modes include {", ".join(VALID_FILE_MODES)}.',
+                mode=self.mode,
                 modes=list(VALID_FILE_MODES),
             )
 
