@@ -45,6 +45,19 @@ FIXTURE_REF_PREFIX = '$fixture.'
 # ** constant: mock_ref_prefix
 MOCK_REF_PREFIX = '$mock.'
 
+# ** constant: stage_ref
+STAGE_REF = '$stage'
+
+# ** constant: stage_methods
+STAGE_METHODS = (
+    'path',
+    'write',
+    'read',
+    'exists',
+    'records',
+    'message',
+)
+
 # ** constant: ref_name
 REF_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
@@ -210,7 +223,8 @@ class PhaseRuntimeContext(BaseContext):
     '''
     Runs one test's phases against a bound ``PhaseRuntime``. The model names
     the tester class and the fixture specs. Built fixtures, arranged mocks,
-    and ``as`` keys are run state on this context. Handlers take ``Conditions``,
+    ``as`` keys, and the live stage are run state on this context, not fields
+    on the bound model. Handlers take ``Conditions``,
     ``Execution``, and ``Assertion``. They are not dispatched through
     ``AppSessionContext``.
     '''
@@ -236,15 +250,24 @@ class PhaseRuntimeContext(BaseContext):
     # * attribute: check
     check: Any
 
+    # * attribute: stage_factory
+    stage_factory: Callable
+
+    # * attribute: stage
+    stage: Any
+
     # * init
-    def __init__(self, session: RequestContext, check: Any = None) -> None:
+    def __init__(self, session: RequestContext, check: Any = None, stage_factory: Callable = None) -> None:
         '''
-        Initialize the phase runtime context.
+        Initialize the phase runtime context. The check and the stage factory
+        are injected, and this context imports neither.
 
         :param session: The session whose data stores ``as`` results.
         :type session: RequestContext
         :param check: The injected check comparison collaborator.
         :type check: Any
+        :param stage_factory: The injected callable that returns a new stage.
+        :type stage_factory: Callable
         :return: None
         :rtype: None
         '''
@@ -252,20 +275,22 @@ class PhaseRuntimeContext(BaseContext):
         # Initialize the base context.
         super().__init__()
 
-        # Store the session and injected check.
+        # Store the session, injected check, and injected stage factory.
         self.session = session
         self.check = check
+        self.stage_factory = stage_factory
 
         # Start run state empty; from_domain binds the PhaseRuntime after.
         self.fixtures = {}
         self.mocks = {}
         self.as_keys = set()
         self.steps = []
+        self.stage = None
 
     # * method: handle_conditions
     def handle_conditions(self, conditions: Conditions) -> None:
         '''
-        Build fixtures then arrange mocks for one conditions phase.
+        Arrange the stage when the test has one, build fixtures, then arrange mocks. Closing the stage belongs to the entries that run a test.
 
         :param conditions: The conditions phase object.
         :type conditions: Conditions
@@ -290,6 +315,10 @@ class PhaseRuntimeContext(BaseContext):
                 a.error.PHASE_NAME_COLLISION_ID,
                 names=sorted(overlap),
             )
+
+        # Arrange the stage first, so a fixture that logs is in the capture.
+        if conditions.stage:
+            self._arrange_stage()
 
         # Build each fixture name in list order.
         for name in conditions.fixtures:
@@ -411,14 +440,80 @@ class PhaseRuntimeContext(BaseContext):
 
         # Compile steps, then run each phase in order.
         self.steps = compile_phase_steps(test)
-        self.handle_conditions(test.conditions)
-        for execution in test.executes:
-            self.handle_execution(execution)
-        for assertion in test.asserts:
-            self.handle_assertion(assertion)
+        try:
+            self.handle_conditions(test.conditions)
+            for execution in test.executes:
+                self.handle_execution(execution)
+            for assertion in test.asserts:
+                self.handle_assertion(assertion)
+
+        # Close the stage on failure so the test error propagates.
+        except BaseException:
+            self.close_stage(failed=True)
+            raise
+
+        # Close the stage after a passing run.
+        self.close_stage()
 
         # Return the last compiled steps.
         return self.steps
+
+    # * method: close_stage
+    def close_stage(self, failed: bool = False) -> None:
+        '''
+        Close the stage once. A runtime without a stage closes as a no-op.
+
+        :param failed: Whether the test already failed.
+        :type failed: bool
+        :return: None
+        :rtype: None
+        '''
+
+        # A runtime without a stage closes as a no-op.
+        if self.stage is None:
+            return
+
+        # Release the stage before closing it.
+        stage = self.stage
+        self.stage = None
+        try:
+            stage.close()
+
+        # Swallow a cleanup error after a failure; otherwise fail the step.
+        except Exception as error:
+            if failed:
+                return
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'The stage did not close: {error}',
+            )
+
+    # * method: arrange_stage
+    def _arrange_stage(self) -> None:
+        '''
+        Build a new stage through the injected factory and arrange it.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # An absent factory is a composition bug.
+        if self.stage_factory is None:
+            a.core.raise_unwired_handler_error(
+                'stage_factory',
+                self.domain.tester_class_name or PHASE_CONDITIONS_ID,
+                error_code=a.error.APP_ERROR_ID,
+            )
+
+        # Hold the stage before arranging, so a partial arrange is still closed.
+        self.stage = self.stage_factory()
+        try:
+            self.stage.arrange()
+        except Exception as error:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'The stage was not arranged: {error}',
+            )
 
     # * method: build_fixture
     def _build_fixture(self, name: str) -> None:
@@ -652,6 +747,18 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: Any
         '''
 
+        # Reject a whole-value stage ref; it is only an execute target.
+        if value == STAGE_REF and not allow_request:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='$stage is illegal in conditions.',
+            )
+        if value == STAGE_REF:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='$stage is illegal here. It is only an execute target.',
+            )
+
         # Reject request refs when forbidden, before any name check.
         if value.startswith(REQUEST_REF_PREFIX) and not allow_request:
             TiferetError.raise_error(
@@ -801,6 +908,10 @@ class PhaseRuntimeContext(BaseContext):
                 detail='self is legal only for new and handle.',
             )
 
+        # The live stage calls one of its observation methods.
+        if self.stage is not None and target is self.stage:
+            return self._call_stage(execution.method, args, kwargs)
+
         # A module attribute target must call that attribute directly.
         if (
             isinstance(execution.target, ExecutionTarget)
@@ -815,6 +926,37 @@ class PhaseRuntimeContext(BaseContext):
 
         # A class or fixture target uses getattr for the method.
         return getattr(target, execution.method)(*args, **kwargs)
+
+    # * method: call_stage
+    def _call_stage(self, method: str, args: List[Any], kwargs: Dict[str, Any]) -> Any:
+        '''
+        Call one stage method. Any failure is PHASE_STEP_FAILED.
+
+        :param method: The stage method name.
+        :type method: str
+        :param args: The resolved positional arguments.
+        :type args: List[Any]
+        :param kwargs: The resolved keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The plain value the stage returns.
+        :rtype: Any
+        '''
+
+        # Reject a method outside the observation set.
+        if method not in STAGE_METHODS:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'$stage has no method {method}. The methods are {list(STAGE_METHODS)}.',
+            )
+
+        # Call the stage; any failure is a step failure.
+        try:
+            return getattr(self.stage, method)(*args, **kwargs)
+        except Exception as error:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'$stage {method} failed: {error}',
+            )
 
     # * method: call_new
     def _call_new(self) -> Any:
@@ -904,6 +1046,10 @@ class PhaseRuntimeContext(BaseContext):
         if target == 'self':
             return 'self'
 
+        # The whole-value stage ref resolves to the arranged stage.
+        if target == STAGE_REF:
+            return self._resolve_stage()
+
         # A whole-value ref resolves through the scalar path.
         if (
             isinstance(target, str)
@@ -927,6 +1073,25 @@ class PhaseRuntimeContext(BaseContext):
                 f'A bare name is not a prior as key.'
             ),
         )
+
+    # * method: resolve_stage
+    def _resolve_stage(self) -> Any:
+        '''
+        Resolve the $stage target to the arranged stage.
+
+        :return: The arranged stage.
+        :rtype: Any
+        '''
+
+        # Reject a stage that was not arranged.
+        if self.stage is None:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='$stage is not arranged. The test does not set conditions.stage.',
+            )
+
+        # Return the arranged stage.
+        return self.stage
 
     # * method: store
     def _store(self, data_key: str, result: Any) -> None:
@@ -1261,6 +1426,7 @@ class TestContext(FeatureContext):
     def execute_feature(self, request: RequestContext, *flags, **kwargs):
         '''
         Build the phase runtime, fill the slot, then run the bound test feature.
+        The runtime's stage closes after the run returns or raises.
 
         :param request: The request context for the test run.
         :type request: RequestContext
@@ -1285,5 +1451,13 @@ class TestContext(FeatureContext):
         # Fill the shared slot before the feature loop runs.
         self._phase_runtime_slot['runtime'] = runtime
 
-        # Run the bound Test as a feature and return that result.
-        return super().execute_feature(request, *flags, **kwargs)
+        # Run the bound Test as a feature, closing the runtime's stage on failure.
+        try:
+            result = super().execute_feature(request, *flags, **kwargs)
+        except BaseException:
+            runtime.close_stage(failed=True)
+            raise
+
+        # Close the runtime's stage and return the result.
+        runtime.close_stage()
+        return result

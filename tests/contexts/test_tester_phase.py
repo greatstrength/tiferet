@@ -3,6 +3,10 @@
 # *** imports
 
 # ** core
+import logging
+import os
+import tempfile
+from pathlib import Path
 from typing import Any
 
 # ** infra
@@ -20,17 +24,165 @@ from tiferet.contexts.tester_phase import (
     compile_phase_steps,
 )
 from tiferet.domain.feature import Feature
+from tiferet.domain.core import ModelError
 from tiferet.domain.tester_phase import (
     ArrangedMock,
     Assertion,
     Conditions,
     Execution,
+    ExecutionTarget,
     PhaseRuntime,
     Test,
 )
 from tiferet.events import DomainEvent
+from tiferet.utils.tester_check import Check
+from tiferet.utils.tester_stage import STAGE_PREFIX, Stage
+
+# *** functions
+
+# ** function: echo
+def echo(value: Any) -> Any:
+    '''
+    Return the value unchanged.
+
+    :param value: The value to return.
+    :type value: Any
+    :return: The same value.
+    :rtype: Any
+    '''
+
+    # Return the value unchanged.
+    return value
+
+# ** function: emit_named
+def emit_named(message: str) -> None:
+    '''
+    Log a message at DEBUG on the tiferet.stage_probe logger.
+
+    :param message: The message to log.
+    :type message: str
+    :return: None
+    :rtype: None
+    '''
+
+    # Log the message on the named probe logger.
+    logging.getLogger('tiferet.stage_probe').debug(message)
+
+# ** function: stage_directories
+def _stage_directories() -> set:
+    '''
+    Return the stage directory names under the temporary root.
+
+    :return: The names that start with STAGE_PREFIX.
+    :rtype: set
+    '''
+
+    # List the temporary root and keep the stage names.
+    return {
+        name
+        for name in os.listdir(tempfile.gettempdir())
+        if name.startswith(STAGE_PREFIX)
+    }
+
+# ** function: runtime
+def _runtime(stage_factory: Any = Stage, **fields) -> PhaseRuntimeContext:
+    '''
+    Resolve the default phase runtime context for the stage cases.
+
+    :param stage_factory: The injected stage factory.
+    :type stage_factory: Any
+    :param fields: PhaseRuntime fields that replace the defaults.
+    :type fields: dict
+    :return: The resolved phase runtime context.
+    :rtype: PhaseRuntimeContext
+    '''
+
+    # Build the default runtime model, then resolve its context.
+    data = {
+        'tester_module_path': 'tiferet.domain.error',
+        'tester_class_name': 'ErrorMessage',
+        'tester_attributes': {},
+        'root_fixtures': {},
+        'tester_fixtures': {},
+    }
+    data.update(fields)
+    return BaseContext.from_domain(
+        PhaseRuntime(**data),
+        session=RequestContext(),
+        check=Check(),
+        stage_factory=stage_factory,
+    )
+
+# ** function: staged_test
+def _staged_test(executes: list, asserts: list, **conditions) -> Test:
+    '''
+    Build a staged test with the given steps.
+
+    :param executes: The execute steps.
+    :type executes: list
+    :param asserts: The assert steps.
+    :type asserts: list
+    :param conditions: Conditions fields besides stage.
+    :type conditions: dict
+    :return: The staged test.
+    :rtype: Test
+    '''
+
+    # Build the test with a staged conditions phase.
+    return Test(
+        id='phase.staged',
+        name='Staged',
+        conditions=Conditions(stage=True, **conditions),
+        executes=executes,
+        asserts=asserts,
+    )
+
+# ** function: stage_step
+def _stage_step(method: str, *args, data_key: str = None, **kwargs) -> Execution:
+    '''
+    Build an execution whose target is $stage.
+
+    :param method: The stage method.
+    :type method: str
+    :param args: Positional arguments.
+    :type args: tuple
+    :param data_key: The as key, if any.
+    :type data_key: str
+    :param kwargs: Keyword arguments.
+    :type kwargs: dict
+    :return: The stage execution.
+    :rtype: Execution
+    '''
+
+    # Build the stage execution.
+    return Execution(
+        target='$stage',
+        method=method,
+        args=list(args),
+        kwargs=kwargs,
+        data_key=data_key,
+    )
 
 # *** classes
+
+# ** class: failing_close_stage
+class FailingCloseStage(Stage):
+    '''
+    A stage whose close removes the directory, then raises.
+    '''
+
+    # * method: close
+    def close(self) -> None:
+        '''
+        Close the stage, then raise a cleanup error.
+
+        :return: None
+        :rtype: None
+        '''
+
+        # Close the stage, then raise.
+        Stage.close(self)
+        raise OSError('cleanup failed')
 
 # ** class: box
 class Box:
@@ -1088,6 +1240,422 @@ class TestPhaseRuntimeContext:
         assert raised.value.error_code == 'PHASE_STEP_FAILED'
         assert 'assert is a non-empty list.' in str(raised.value)
 
+    # * test: stage_directories_are_per_test
+    def test_stage_directories_are_per_test(self):
+        '''
+        Assert each staged test gets its own directory, closed after its run.
+        '''
+
+        # Set the root to WARNING and record handlers and stage directories.
+        root = logging.getLogger()
+        original_level = root.level
+        root.setLevel(logging.WARNING)
+        handlers = list(root.handlers)
+        before = _stage_directories()
+        try:
+
+            # Run one staged test on each of two runtimes.
+            directories = []
+            for _ in range(2):
+                ctx = _runtime()
+                ctx.run(_staged_test(
+                    executes=[
+                        _stage_step('path', data_key='directory'),
+                        _stage_step('write', 'left.txt', 'x', data_key='written'),
+                    ],
+                    asserts=[
+                        Assertion(check='message', outcome='written', message='left.txt'),
+                    ],
+                ))
+                assert ctx.stage is None
+                directories.append(ctx.session.data['directory'])
+
+            # Assert distinct, removed directories and restored root state.
+            assert directories[0] != directories[1]
+            assert not Path(directories[0]).exists()
+            assert not Path(directories[1]).exists()
+            assert _stage_directories() == before
+            assert root.handlers == handlers
+            assert root.level == logging.WARNING
+        finally:
+            root.setLevel(original_level)
+
+    # * test: unstaged_test_has_no_stage
+    def test_unstaged_test_has_no_stage(self):
+        '''
+        Assert a test without conditions.stage cannot reach $stage.
+        '''
+
+        # Record root handlers and stage directories.
+        handlers = list(logging.getLogger().handlers)
+        before = _stage_directories()
+
+        # Run an unstaged test whose only step is stage path.
+        ctx = _runtime()
+        with pytest.raises(TiferetError) as raised:
+            ctx.run(Test(
+                id='phase.unstaged',
+                name='Unstaged',
+                conditions=Conditions(),
+                executes=[_stage_step('path', data_key='directory')],
+                asserts=[Assertion(check='null', outcome='directory')],
+            ))
+
+        # Assert the step failure and unchanged root state.
+        assert raised.value.error_code == 'PHASE_STEP_FAILED'
+        assert 'not arranged' in str(raised.value)
+        assert logging.getLogger().handlers == handlers
+        assert _stage_directories() == before
+
+    # * test: stage_closes_on_every_outcome
+    @pytest.mark.parametrize('outcome', ['failed_assert', 'raising_step', 'fixture_failure'])
+    def test_stage_closes_on_every_outcome(self, outcome):
+        '''
+        Assert the stage closes when an assert fails, a step raises, or a fixture fails.
+
+        :param outcome: The failing outcome.
+        :type outcome: str
+        '''
+
+        # Record root state and stage directories.
+        root = logging.getLogger()
+        level = root.level
+        handlers = list(root.handlers)
+        before = _stage_directories()
+
+        # Build the staged test for the outcome.
+        write = _stage_step('write', 'left.txt', 'x', data_key='written')
+        conditions = {}
+        fields = {}
+        if outcome == 'failed_assert':
+            executes = [write]
+            asserts = [Assertion(check='equals', outcome='written', equals='not the path')]
+            expected = TiferetError
+        elif outcome == 'raising_step':
+            executes = [
+                write,
+                Execution(
+                    target=ExecutionTarget(module_path='builtins', attribute='int'),
+                    method='int',
+                    args=['not a number'],
+                ),
+            ]
+            asserts = [Assertion(check='null', outcome='written')]
+            expected = ValueError
+        else:
+            executes = [write]
+            asserts = [Assertion(check='null', outcome='written')]
+            conditions = {'fixtures': ['broken']}
+            fields = {'root_fixtures': {'broken': {'module_path': 'tiferet.domain.error', 'class_name': 'NoSuchClass', 'attributes': {}}}}
+            expected = TiferetError
+
+        # Run the staged test.
+        ctx = _runtime(**fields)
+        with pytest.raises(expected):
+            ctx.run(_staged_test(executes=executes, asserts=asserts, **conditions))
+
+        # Assert the stage closed and root state is unchanged.
+        assert ctx.stage is None
+        assert _stage_directories() == before
+        assert root.handlers == handlers
+        assert root.level == level
+
+    # * test: stage_cleanup_error_rules
+    def test_stage_cleanup_error_rules(self):
+        '''
+        Assert a cleanup error is swallowed after a failure and fails a passing test.
+        '''
+
+        # A failing check keeps its own error.
+        first = _runtime(stage_factory=FailingCloseStage)
+        with pytest.raises(TiferetError) as failed:
+            first.run(_staged_test(
+                executes=[_stage_step('exists', 'left.txt', data_key='present')],
+                asserts=[Assertion(check='equals', outcome='present', equals=True)],
+            ))
+        assert failed.value.error_code == 'PHASE_CHECK_FAILED'
+
+        # A passing check raises the cleanup error.
+        second = _runtime(stage_factory=FailingCloseStage)
+        with pytest.raises(TiferetError) as cleanup:
+            second.run(_staged_test(
+                executes=[_stage_step('exists', 'left.txt', data_key='present')],
+                asserts=[Assertion(check='equals', outcome='present', equals=False)],
+            ))
+        assert cleanup.value.error_code == 'PHASE_STEP_FAILED'
+        assert 'cleanup failed' in str(cleanup.value)
+
+        # Closing again, or a runtime that never arranged, is a no-op.
+        assert second.close_stage() is None
+        assert second.close_stage(failed=True) is None
+        assert _runtime().close_stage() is None
+
+    # * test: stage_in_conditions_fails
+    def test_stage_in_conditions_fails(self):
+        '''
+        Assert $stage in a fixture attribute fails the step.
+        '''
+
+        # Bind a root fixture whose text is $stage.
+        ctx = _runtime(root_fixtures={
+            'staged': {
+                'module_path': 'tiferet.domain.error',
+                'class_name': 'ErrorMessage',
+                'attributes': {'lang': 'en_US', 'text': '$stage'},
+            },
+        })
+
+        # Run the staged test.
+        with pytest.raises(TiferetError) as raised:
+            ctx.run(_staged_test(
+                executes=[_stage_step('path', data_key='directory')],
+                asserts=[Assertion(check='null', outcome='directory')],
+                fixtures=['staged'],
+            ))
+
+        # Assert the step failure names $stage.
+        assert raised.value.error_code == 'PHASE_STEP_FAILED'
+        assert '$stage' in str(raised.value)
+        assert ctx.stage is None
+
+    # * test: stage_dotted_value_is_a_literal
+    def test_stage_dotted_value_is_a_literal(self):
+        '''
+        Assert $stage.file is a literal and a bare stage target is a fixture lookup.
+        '''
+
+        # Arrange the stage.
+        ctx = _runtime()
+        ctx.handle_conditions(Conditions(stage=True))
+        try:
+
+            # Echo the dotted value.
+            ctx.handle_execution(Execution(
+                target=ExecutionTarget(module_path='tests.contexts.test_tester_phase', attribute='echo'),
+                method='echo',
+                args=['$stage.file'],
+                data_key='literal',
+            ))
+            assert ctx.session.data['literal'] == '$stage.file'
+
+            # A bare stage target is not a fixture.
+            with pytest.raises(TiferetError) as raised:
+                ctx.handle_execution(Execution(target='stage', method='path'))
+            assert 'not a fixture' in str(raised.value)
+        finally:
+            ctx.close_stage()
+
+    # * test: stage_methods_are_limited
+    @pytest.mark.parametrize('execution', [
+        _stage_step('close'),
+        _stage_step('arrange'),
+        _stage_step('message', level='DEBUG'),
+        _stage_step('read', name='missing.txt'),
+        _stage_step('path', '..'),
+    ])
+    def test_stage_methods_are_limited(self, execution):
+        '''
+        Assert a lifecycle method or a failing observation fails the step.
+
+        :param execution: The stage execution.
+        :type execution: Execution
+        '''
+
+        # Arrange the stage and call it.
+        ctx = _runtime()
+        ctx.handle_conditions(Conditions(stage=True))
+        with pytest.raises(TiferetError) as raised:
+            ctx.handle_execution(execution)
+        ctx.close_stage()
+
+        # Assert the step failure.
+        assert raised.value.error_code == 'PHASE_STEP_FAILED'
+
+    # * test: stage_ref_is_only_an_execute_target
+    @pytest.mark.parametrize('execution', [
+        Execution(
+            target=ExecutionTarget(module_path='builtins', attribute='getattr'),
+            method='getattr',
+            args=['$stage', 'close'],
+        ),
+        Execution(
+            target=ExecutionTarget(module_path='tests.contexts.test_tester_phase', attribute='echo'),
+            method='echo',
+            kwargs={'value': '$stage'},
+        ),
+        Execution(
+            target=ExecutionTarget(module_path='tests.contexts.test_tester_phase', attribute='echo'),
+            method='echo',
+            args=[['$stage']],
+        ),
+    ])
+    def test_stage_ref_is_only_an_execute_target(self, execution):
+        '''
+        Assert $stage as an argument fails the step and leaves the stage usable.
+
+        :param execution: The execution passing $stage as a value.
+        :type execution: Execution
+        '''
+
+        # Arrange the stage.
+        ctx = _runtime()
+        ctx.handle_conditions(Conditions(stage=True))
+        try:
+
+            # Pass $stage as a value.
+            with pytest.raises(TiferetError) as raised:
+                ctx.handle_execution(execution)
+            assert raised.value.error_code == 'PHASE_STEP_FAILED'
+            assert 'only an execute target' in str(raised.value)
+
+            # The stage still answers.
+            ctx.handle_execution(_stage_step('exists', name='config.yaml', data_key='present'))
+            assert ctx.session.data['present'] is False
+        finally:
+            ctx.close_stage()
+
+    # * test: stage_ref_is_illegal_in_checks
+    @pytest.mark.parametrize('assertion', [
+        Assertion(check='equals', outcome='directory', equals='$stage'),
+        Assertion(check='equals', outcome='directory', equals=['$stage']),
+        Assertion(check='fields', outcome='directory', fields={'real': '$stage'}),
+    ])
+    def test_stage_ref_is_illegal_in_checks(self, assertion):
+        '''
+        Assert $stage in a check value fails the step.
+
+        :param assertion: The assertion naming $stage.
+        :type assertion: Assertion
+        '''
+
+        # Arrange the stage and store its path.
+        ctx = _runtime()
+        ctx.handle_conditions(Conditions(stage=True))
+        try:
+            ctx.handle_execution(_stage_step('path', data_key='directory'))
+
+            # Check against $stage.
+            with pytest.raises(TiferetError) as raised:
+                ctx.handle_assertion(assertion)
+            assert raised.value.error_code == 'PHASE_STEP_FAILED'
+            assert 'only an execute target' in str(raised.value)
+            assert Path(ctx.stage.path()).is_dir() is True
+        finally:
+            ctx.close_stage()
+
+    # * test: stage_factory_unwired
+    def test_stage_factory_unwired(self):
+        '''
+        Assert a staged conditions phase without a factory is APP_ERROR.
+        '''
+
+        # Arrange the stage with no factory.
+        ctx = _runtime(stage_factory=None)
+        with pytest.raises(TiferetError) as raised:
+            ctx.handle_conditions(Conditions(stage=True))
+
+        # Assert the unwired handler names stage_factory.
+        assert raised.value.error_code == 'APP_ERROR'
+        assert 'stage_factory' in str(raised.value)
+
+    # * test: stage_path_enters_new_through_r
+    def test_stage_path_enters_new_through_r(self):
+        '''
+        Assert a stage path reaches the tester class through $r.
+        '''
+
+        # Bind a ConfigurationRepository runtime whose config_file is $r.
+        ctx = _runtime(
+            tester_module_path='tiferet.repos.core',
+            tester_class_name='ConfigurationRepository',
+            tester_attributes={'config_file': '$r.config_file'},
+        )
+        ctx.handle_conditions(Conditions(stage=True))
+        try:
+
+            # Write the config, construct the repo, and read its loader.
+            ctx.handle_execution(_stage_step('write', name='config.yaml', text='root: {}\n', data_key='config_file'))
+            ctx.handle_execution(Execution(target='self', method='new', data_key='repo'))
+            ctx.handle_execution(Execution(target='$r.repo', method='_get_loader', data_key='loader'))
+
+            # Assert the repo carries the written path.
+            assert isinstance(ctx.session.data['config_file'], str)
+            assert ctx.session.data['repo'].config_file == ctx.session.data['config_file']
+        finally:
+            ctx.close_stage()
+
+        # Reserved new takes no arguments.
+        with pytest.raises(ModelError):
+            Execution(target='self', method='new', args=['x'])
+
+    # * test: stage_records_and_message
+    def test_stage_records_and_message(self):
+        '''
+        Assert records and message read only the capture of the running test.
+        '''
+
+        # Log before the test.
+        emit_named('before the stage')
+        ctx = _runtime()
+        ctx.handle_conditions(Conditions(stage=True))
+        try:
+
+            # Read the empty capture, then log.
+            ctx.handle_execution(_stage_step('records', data_key='empty'))
+            logging.debug('Executing SampleEvent')
+            emit_named('named record')
+            logging.error('Failed SampleEvent', exc_info=ValueError('boom'))
+            logging.error('No active exception', exc_info=True)
+
+            # Read the records and one message.
+            ctx.handle_execution(_stage_step('records', data_key='records'))
+            ctx.handle_execution(_stage_step('message', level='DEBUG', index=0, data_key='line'))
+        finally:
+            ctx.close_stage()
+        emit_named('after the stage')
+
+        # Assert the capture.
+        assert ctx.session.data['empty'] == []
+        assert ctx.session.data['records'] == [
+            {'level': 'DEBUG', 'message': 'Executing SampleEvent', 'error': False, 'logger': 'root'},
+            {'level': 'DEBUG', 'message': 'named record', 'error': False, 'logger': 'tiferet.stage_probe'},
+            {'level': 'ERROR', 'message': 'Failed SampleEvent', 'error': True, 'logger': 'root'},
+            {'level': 'ERROR', 'message': 'No active exception', 'error': True, 'logger': 'root'},
+        ]
+        assert ctx.session.data['line'] == 'Executing SampleEvent'
+
+        # A second runtime sees a fresh capture.
+        second = _runtime()
+        second.run(_staged_test(
+            executes=[_stage_step('records', data_key='records')],
+            asserts=[Assertion(check='equals', outcome='records', equals=[])],
+        ))
+        assert second.session.data['records'] == []
+
+        # A third runtime has no DEBUG record.
+        third = _runtime()
+        with pytest.raises(TiferetError) as raised:
+            third.run(_staged_test(
+                executes=[_stage_step('message', level='DEBUG', index=0, data_key='line')],
+                asserts=[Assertion(check='null', outcome='line')],
+            ))
+        assert raised.value.error_code == 'PHASE_STEP_FAILED'
+
+    # * test: staged_test_compiles_one_conditions_step
+    def test_staged_test_compiles_one_conditions_step(self):
+        '''
+        Assert a staged test compiles one conditions step.
+        '''
+
+        # Compile a staged test.
+        steps = compile_phase_steps(_staged_test(
+            executes=[_stage_step('path', data_key='directory')],
+            asserts=[Assertion(check='null', outcome='directory')],
+        ))
+
+        # Assert one conditions step.
+        assert [step.service_id for step in steps].count('phase_conditions') == 1
+
 # ** tester: test_test_context
 @use_tester(
     type='context',
@@ -1237,6 +1805,30 @@ class TestTestContext:
             Sentinel whose class name is not PhaseRuntimeContext.
             '''
 
+            # * attribute: closes
+            closes: list
+
+            # * init
+            def __init__(self) -> None:
+                '''
+                Start with no recorded close_stage calls.
+                '''
+
+                # Start the close record empty.
+                self.closes = []
+
+            # * method: close_stage
+            def close_stage(self, failed: bool = False) -> None:
+                '''
+                Record one close_stage call.
+
+                :param failed: Whether the run failed.
+                :type failed: bool
+                '''
+
+                # Record the failed flag.
+                self.closes.append(failed)
+
         sentinel = Sentinel()
 
         def handler(
@@ -1286,3 +1878,4 @@ class TestTestContext:
         assert slot['runtime'] is sentinel
         assert type(slot['runtime']).__name__ != 'PhaseRuntimeContext'
         assert dependency_calls == []
+        assert sentinel.closes == [False]
