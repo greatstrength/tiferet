@@ -21,10 +21,6 @@ from tiferet.assets.core import (
     create_default_handler,
     create_default_logger,
     EN_US,
-    TIFERET,
-    TIFERET_EVENTS_PATH,
-    TIFERET_REPOS_PATH,
-    FEATURE_DOMAIN_PATH,
     TiferetError,
     TiferetAPIError,
 )
@@ -111,417 +107,409 @@ def test_create_default_error_data_empty_messages():
 # ** test: create_service_module_path_returns_dotted_path
 def test_create_service_module_path_returns_dotted_path():
     '''
-    Verify create_service_module_path joins three segments with dots for the events sub-package.
-
-    :return: None
-    :rtype: None
+    Verify create_service_module_path joins the events segments into a dotted path.
     '''
 
-    # Build the module path using the events sub-package and feature domain.
-    result = create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH)
+    # Call create_service_module_path with the case kwargs.
+    built = create_service_module_path(
+        app_base_path='tiferet',
+        base_path='events',
+        domain_path='feature',
+    )
 
-    # Verify the result equals the expected dotted path.
-    assert result == 'tiferet.events.feature'
+    # Verify the expected fields.
+    assert built == 'tiferet.events.feature'
 
 # ** test: create_service_module_path_repos_path
 def test_create_service_module_path_repos_path():
     '''
-    Verify create_service_module_path joins three segments with dots for the repos sub-package.
-
-    :return: None
-    :rtype: None
+    Verify create_service_module_path joins the repos segments into a dotted path.
     '''
 
-    # Build the module path using the repos sub-package and feature domain.
-    result = create_service_module_path(TIFERET, TIFERET_REPOS_PATH, FEATURE_DOMAIN_PATH)
+    # Call create_service_module_path with the case kwargs.
+    built = create_service_module_path(
+        app_base_path='tiferet',
+        base_path='repos',
+        domain_path='feature',
+    )
 
-    # Verify the result equals the expected dotted path.
-    assert result == 'tiferet.repos.feature'
+    # Verify the expected fields.
+    assert built == 'tiferet.repos.feature'
 
 # ** test: create_service_dependency_returns_expected_shape
 def test_create_service_dependency_returns_expected_shape():
     '''
-    Verify create_service_dependency returns a dict with the expected keys and values,
-    and that parameters defaults to an empty dict when omitted.
-
-    :return: None
-    :rtype: None
+    Verify create_service_dependency returns the expected shape with empty parameters by default.
     '''
 
-    # Create a service dependency without explicit parameters.
-    result = create_service_dependency('tiferet.repos.feature', 'FeatureConfigRepository')
+    # Call create_service_dependency with the case kwargs.
+    built = create_service_dependency(
+        module_path='tiferet.repos.app',
+        class_name='AppConfigRepository',
+    )
 
-    # Verify the result has all expected keys and correct values.
-    assert set(result.keys()) == {'module_path', 'class_name', 'parameters'}
-    assert result['module_path'] == 'tiferet.repos.feature'
-    assert result['class_name'] == 'FeatureConfigRepository'
-    assert result['parameters'] == {}
+    # Verify the expected fields.
+    assert built['module_path'] == 'tiferet.repos.app'
+    assert built['class_name'] == 'AppConfigRepository'
+    assert built['parameters'] == {}
 
 # ** test: create_service_dependency_with_parameters
 def test_create_service_dependency_with_parameters():
     '''
-    Verify create_service_dependency preserves an explicitly provided parameters dict as-is.
-
-    :return: None
-    :rtype: None
+    Verify create_service_dependency preserves explicit parameters.
     '''
 
-    # Create a service dependency with an explicit parameters dict.
-    params = {'feature_config': 'config.yml'}
-    result = create_service_dependency(
-        'tiferet.repos.feature',
-        'FeatureConfigRepository',
-        parameters=params,
+    # Call create_service_dependency with the case kwargs.
+    built = create_service_dependency(
+        module_path='tiferet.repos.app',
+        class_name='AppConfigRepository',
+        parameters={'config_file': 'config.yml'},
     )
 
-    # Verify the parameters dict is preserved unchanged.
-    assert result['parameters'] == {'feature_config': 'config.yml'}
+    # Verify the expected fields.
+    assert built['module_path'] == 'tiferet.repos.app'
+    assert built['class_name'] == 'AppConfigRepository'
+    assert built['parameters'] == {'config_file': 'config.yml'}
 
 # ** test: create_app_service_dependency_data_returns_expected_shape
 def test_create_app_service_dependency_data_returns_expected_shape():
     '''
-    Verify create_app_service_dependency_data returns a dict with the expected keys and values,
-    and that parameters defaults to an empty dict when omitted.
-
-    :return: None
-    :rtype: None
+    Verify create_app_service_dependency_data returns module_path, class_name and empty parameters, and omits id.
     '''
 
-    # Create a service dependency without explicit parameters.
-    result = create_app_service_dependency_data(
-        'tiferet.repos.test',
-        'TestRepository',
+    # Call create_app_service_dependency_data with the case kwargs.
+    built = create_app_service_dependency_data(
+        module_path='tiferet.repos.error',
+        class_name='ErrorConfigRepository',
     )
 
-    # Verify the result has all expected keys and correct values.
-    assert set(result.keys()) == {'module_path', 'class_name', 'parameters'}
-    assert result['module_path'] == 'tiferet.repos.test'
-    assert result['class_name'] == 'TestRepository'
-    assert result['parameters'] == {}
+    # Verify the expected fields.
+    assert built['module_path'] == 'tiferet.repos.error'
+    assert built['class_name'] == 'ErrorConfigRepository'
+    assert built['parameters'] == {}
+    assert 'id' not in built
 
 # ** test: create_app_service_dependency_data_omitting_parameters_yields_empty_dict
 def test_create_app_service_dependency_data_omitting_parameters_yields_empty_dict():
     '''
-    Verify omitting parameters in create_app_service_dependency_data yields an empty dict, not None.
-
-    :return: None
-    :rtype: None
+    Verify create_app_service_dependency_data returns module_path, class_name and empty parameters, and omits id.
     '''
 
-    # Create a dependency without explicit parameters.
-    result = create_app_service_dependency_data(
-        'tiferet.repos.test',
-        'TestRepository',
+    # Call create_app_service_dependency_data with the case kwargs.
+    built = create_app_service_dependency_data(
+        module_path='tiferet.mod',
+        class_name='Cls',
     )
 
-    # Verify parameters is an empty dict, not None.
-    assert result['parameters'] == {}
-    assert result['parameters'] is not None
+    # Verify the expected fields.
+    assert built['module_path'] == 'tiferet.mod'
+    assert built['class_name'] == 'Cls'
+    assert built['parameters'] == {}
+    assert 'id' not in built
 
 # ** test: create_default_app_session_data_returns_required_fields
 def test_create_default_app_session_data_returns_required_fields():
     '''
-    Verify create_default_app_session_data returns a dict with name; description is
-    absent when not provided.
-
-    :return: None
-    :rtype: None
+    Verify create_default_app_session_data returns name and omits the optional fields.
     '''
 
-    # Build a session with required fields only.
-    result = create_default_app_session_data('Admin App')
+    # Call create_default_app_session_data with the case kwargs.
+    built = create_default_app_session_data(
+        name='Admin App',
+    )
 
-    # Verify name is present and description is absent.
-    assert result['name'] == 'Admin App'
-    assert 'description' not in result
+    # Verify the expected fields.
+    assert built['name'] == 'Admin App'
+    assert 'id' not in built
+    assert 'description' not in built
+    assert 'services' not in built
+    assert 'constants' not in built
 
 # ** test: create_default_app_session_data_includes_description_when_provided
 def test_create_default_app_session_data_includes_description_when_provided():
     '''
-    Verify create_default_app_session_data includes description in the returned dict when supplied.
-
-    :return: None
-    :rtype: None
+    Verify create_default_app_session_data includes description when provided.
     '''
 
-    # Build a session with an explicit description.
-    result = create_default_app_session_data(
-        'Admin App',
-        'Default built-in admin application session',
+    # Call create_default_app_session_data with the case kwargs.
+    built = create_default_app_session_data(
+        name='Admin CLI',
+        description='Built-in CLI for managing Tiferet application configurations',
     )
 
-    # Verify the description is present and correct.
-    assert result['description'] == 'Default built-in admin application session'
+    # Verify the expected fields.
+    assert built['name'] == 'Admin CLI'
+    assert built['description'] == 'Built-in CLI for managing Tiferet application configurations'
+    assert 'id' not in built
+    assert 'services' not in built
+    assert 'constants' not in built
 
 # ** test: create_default_formatter_returns_required_fields
 def test_create_default_formatter_returns_required_fields():
     '''
-    Verify create_default_formatter returns a dict with id, name, and format;
-    description and datefmt are absent when not provided.
-
-    :return: None
-    :rtype: None
+    Verify create_default_formatter returns the required fields and omits the optional ones.
     '''
 
-    # Build a formatter with required fields only.
-    result = create_default_formatter('default', 'Default Formatter', '%(message)s')
+    # Call create_default_formatter with the case kwargs.
+    built = create_default_formatter(
+        id='default',
+        name='Default Formatter',
+        format='%(asctime)s - %(levelname)s - %(message)s',
+    )
 
-    # Verify required fields are present and optional fields are absent.
-    assert result['id'] == 'default'
-    assert result['name'] == 'Default Formatter'
-    assert result['format'] == '%(message)s'
-    assert 'description' not in result
-    assert 'datefmt' not in result
+    # Verify the expected fields.
+    assert built['id'] == 'default'
+    assert built['name'] == 'Default Formatter'
+    assert built['format'] == '%(asctime)s - %(levelname)s - %(message)s'
+    assert 'description' not in built
+    assert 'datefmt' not in built
 
 # ** test: create_default_formatter_includes_optional_fields_when_provided
 def test_create_default_formatter_includes_optional_fields_when_provided():
     '''
-    Verify create_default_formatter includes description and datefmt when supplied.
-
-    :return: None
-    :rtype: None
+    Verify create_default_formatter includes description and datefmt when provided.
     '''
 
-    # Build a formatter with all optional fields.
-    result = create_default_formatter(
-        'default',
-        'Default Formatter',
-        '%(message)s',
-        description='A test formatter.',
-        datefmt='%Y-%m-%d',
+    # Call create_default_formatter with the case kwargs.
+    built = create_default_formatter(
+        id='default',
+        name='Default Formatter',
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        description='The default logging formatter.',
+        datefmt='%Y-%m-%d %H:%M:%S',
     )
 
-    # Verify optional fields are present and correct.
-    assert result['description'] == 'A test formatter.'
-    assert result['datefmt'] == '%Y-%m-%d'
+    # Verify the expected fields.
+    assert built['id'] == 'default'
+    assert built['name'] == 'Default Formatter'
+    assert built['format'] == '%(asctime)s - %(levelname)s - %(message)s'
+    assert built['description'] == 'The default logging formatter.'
+    assert built['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
 # ** test: create_default_handler_returns_required_fields
 def test_create_default_handler_returns_required_fields():
     '''
-    Verify create_default_handler returns a dict with the six required fields;
-    description, stream, and filename are absent when not provided.
-
-    :return: None
-    :rtype: None
+    Verify create_default_handler returns the required fields and omits the optional ones.
     '''
 
-    # Build a handler with required fields only.
-    result = create_default_handler(
-        'default', 'Default Handler', 'logging', 'StreamHandler', 'INFO', 'default'
+    # Call create_default_handler with the case kwargs.
+    built = create_default_handler(
+        id='default',
+        name='Default Handler',
+        module_path='logging',
+        class_name='StreamHandler',
+        level='INFO',
+        formatter='default',
     )
 
-    # Verify required fields are present and optional fields are absent.
-    assert result['id'] == 'default'
-    assert result['name'] == 'Default Handler'
-    assert result['module_path'] == 'logging'
-    assert result['class_name'] == 'StreamHandler'
-    assert result['level'] == 'INFO'
-    assert result['formatter'] == 'default'
-    assert 'description' not in result
-    assert 'stream' not in result
-    assert 'filename' not in result
+    # Verify the expected fields.
+    assert built['id'] == 'default'
+    assert built['name'] == 'Default Handler'
+    assert built['module_path'] == 'logging'
+    assert built['class_name'] == 'StreamHandler'
+    assert built['level'] == 'INFO'
+    assert built['formatter'] == 'default'
+    assert 'description' not in built
+    assert 'stream' not in built
+    assert 'filename' not in built
 
 # ** test: create_default_handler_includes_optional_fields_when_provided
 def test_create_default_handler_includes_optional_fields_when_provided():
     '''
-    Verify create_default_handler includes description, stream, and filename when supplied.
-
-    :return: None
-    :rtype: None
+    Verify create_default_handler includes description, stream and filename when provided.
     '''
 
-    # Build a handler with all optional fields.
-    result = create_default_handler(
-        'default',
-        'Default Handler',
-        'logging',
-        'StreamHandler',
-        'INFO',
-        'default',
-        description='A test handler.',
+    # Call create_default_handler with the case kwargs.
+    built = create_default_handler(
+        id='default',
+        name='Default Handler',
+        module_path='logging',
+        class_name='StreamHandler',
+        level='INFO',
+        formatter='default',
+        description='The default logging handler.',
         stream='ext://sys.stdout',
         filename='app.log',
     )
 
-    # Verify optional fields are present and correct.
-    assert result['description'] == 'A test handler.'
-    assert result['stream'] == 'ext://sys.stdout'
-    assert result['filename'] == 'app.log'
+    # Verify the expected fields.
+    assert built['id'] == 'default'
+    assert built['name'] == 'Default Handler'
+    assert built['module_path'] == 'logging'
+    assert built['class_name'] == 'StreamHandler'
+    assert built['level'] == 'INFO'
+    assert built['formatter'] == 'default'
+    assert built['description'] == 'The default logging handler.'
+    assert built['stream'] == 'ext://sys.stdout'
+    assert built['filename'] == 'app.log'
 
 # ** test: create_default_logger_returns_required_fields
 def test_create_default_logger_returns_required_fields():
     '''
-    Verify create_default_logger returns a dict with all required fields; propagate and
-    is_root default to False; description is absent when not provided.
-
-    :return: None
-    :rtype: None
+    Verify create_default_logger returns the required fields with propagate and is_root defaulting to False.
     '''
 
-    # Build a logger with required fields only.
-    result = create_default_logger('default', 'Default Logger', 'INFO', ['default'])
+    # Call create_default_logger with the case kwargs.
+    built = create_default_logger(
+        id='default',
+        name='Default Logger',
+        level='INFO',
+        handlers=['default'],
+    )
 
-    # Verify required fields are present with correct defaults.
-    assert result['id'] == 'default'
-    assert result['name'] == 'Default Logger'
-    assert result['level'] == 'INFO'
-    assert result['handlers'] == ['default']
-    assert result['propagate'] is False
-    assert result['is_root'] is False
-    assert 'description' not in result
+    # Verify the expected fields.
+    assert built['id'] == 'default'
+    assert built['name'] == 'Default Logger'
+    assert built['level'] == 'INFO'
+    assert built['handlers'] == ['default']
+    assert built['propagate'] == False
+    assert built['is_root'] == False
+    assert 'description' not in built
 
 # ** test: create_default_feature_data_returns_required_fields
 def test_create_default_feature_data_returns_required_fields():
     '''
-    Verify create_default_feature_data returns required fields and omits optional
-    fields when description and params_schema are not provided.
-
-    :return: None
-    :rtype: None
+    Verify create_default_feature_data returns the required fields and omits the optional ones.
     '''
 
-    # Call the factory with only required arguments.
-    result = create_default_feature_data(
-        name='Test Feature',
-        group_id='test',
-        feature_key='feature',
-        steps=[{'service_id': 'test_evt'}],
+    # Call create_default_feature_data with the case kwargs.
+    built = create_default_feature_data(
+        name='Get Feature',
+        group_id='feature',
+        feature_key='get',
+        steps=[{'service_id': 'get_feature_evt', 'name': 'Get feature'}],
     )
 
-    # Assert all required fields are present with correct values.
-    assert result['name'] == 'Test Feature'
-    assert result['group_id'] == 'test'
-    assert result['feature_key'] == 'feature'
-    assert result['steps'] == [{'service_id': 'test_evt'}]
+    # Count the keys on the first step.
+    step_key_count = len(built['steps'][0])
 
-    # Assert optional fields are absent when not provided.
-    assert 'description' not in result
-    assert 'params_schema' not in result
+    # Verify the expected fields.
+    assert built['name'] == 'Get Feature'
+    assert built['group_id'] == 'feature'
+    assert built['feature_key'] == 'get'
+    assert built['steps'] == [{'service_id': 'get_feature_evt', 'name': 'Get feature'}]
+    assert 'id' not in built
+    assert 'description' not in built
+    assert 'params_schema' not in built
+    assert step_key_count == 2
 
 # ** test: create_default_feature_data_includes_optional_fields_when_provided
 def test_create_default_feature_data_includes_optional_fields_when_provided():
     '''
-    Verify create_default_feature_data includes description and params_schema
-    when they are supplied.
-
-    :return: None
-    :rtype: None
+    Verify create_default_feature_data includes description and params_schema when provided.
     '''
 
-    # Build a schema for use in the call.
-    schema = create_params_schema(name='str', count='int')
-
-    # Call the factory with all optional arguments supplied.
-    result = create_default_feature_data(
-        name='Test Optional',
-        group_id='test',
-        feature_key='optional',
-        steps=[{'service_id': 'optional_evt'}],
-        description='An optional test feature.',
-        params_schema=schema,
+    # Call create_default_feature_data with the case kwargs.
+    built = create_default_feature_data(
+        name='Get Feature',
+        group_id='feature',
+        feature_key='get',
+        steps=[{'service_id': 'get_feature_evt', 'name': 'Get feature'}],
+        description='Retrieve a feature by ID.',
+        params_schema={'id': 'str'},
     )
 
-    # Assert optional fields are present with correct values.
-    assert result['description'] == 'An optional test feature.'
-    assert result['params_schema'] == {'name': 'str', 'count': 'int'}
+    # Count the keys on the first step.
+    step_key_count = len(built['steps'][0])
+
+    # Verify the expected fields.
+    assert built['name'] == 'Get Feature'
+    assert built['group_id'] == 'feature'
+    assert built['feature_key'] == 'get'
+    assert built['steps'] == [{'service_id': 'get_feature_evt', 'name': 'Get feature'}]
+    assert built['description'] == 'Retrieve a feature by ID.'
+    assert built['params_schema'] == {'id': 'str'}
+    assert 'id' not in built
+    assert step_key_count == 2
 
 # ** test: create_params_schema_returns_expected_dict
 def test_create_params_schema_returns_expected_dict():
     '''
-    Verify create_params_schema assembles keyword arguments into a dict,
-    supporting both shorthand type strings and expanded spec dicts.
-
-    :return: None
-    :rtype: None
+    Verify create_params_schema returns each keyword as a schema entry.
     '''
 
-    # Call with a mix of shorthand type strings and expanded spec dicts.
-    result = create_params_schema(
+    # Call create_params_schema with the case kwargs.
+    built = create_params_schema(
+        id='str',
         name='str',
-        count={'type': 'int', 'required': True},
+        description={'type': 'str', 'required': False},
     )
 
-    # Assert the result is the expected assembled dict.
-    assert result == {
-        'name': 'str',
-        'count': {'type': 'int', 'required': True},
-    }
+    # Verify the expected fields.
+    assert built['id'] == 'str'
+    assert built['name'] == 'str'
+    assert built['description'] == {'type': 'str', 'required': False}
+    assert 'type' not in built
+    assert 'required' not in built
+    assert 'default' not in built
 
 # ** test: create_service_registration_data_returns_expected_shape
 def test_create_service_registration_data_returns_expected_shape():
     '''
-    Verify create_service_registration_data returns a dict with keys
-    ``{'module_path', 'class_name', 'parameters'}``; values match inputs;
-    and ``parameters`` defaults to an empty dict when omitted.
-
-    :return: None
-    :rtype: None
+    Verify create_service_registration_data returns module_path, class_name and empty parameters, and omits id.
     '''
 
-    # Create a service registration without explicit parameters.
-    result = create_service_registration_data(
-        'tiferet.repos.feature',
-        'FeatureConfigRepository',
+    # Call create_service_registration_data with the case kwargs.
+    built = create_service_registration_data(
+        module_path='tiferet.events.feature',
+        class_name='AddFeature',
     )
 
-    # Verify all expected keys are present.
-    assert set(result.keys()) == {'module_path', 'class_name', 'parameters'}
-
-    # Verify each value matches the input.
-    assert result['module_path'] == 'tiferet.repos.feature'
-    assert result['class_name'] == 'FeatureConfigRepository'
-    assert result['parameters'] == {}
+    # Verify the expected fields.
+    assert built['module_path'] == 'tiferet.events.feature'
+    assert built['class_name'] == 'AddFeature'
+    assert built['parameters'] == {}
+    assert 'id' not in built
 
 # ** test: create_service_registration_data_omitting_parameters_yields_empty_dict
 def test_create_service_registration_data_omitting_parameters_yields_empty_dict():
     '''
-    Verify omitting ``parameters`` in create_service_registration_data yields
-    an empty dict, not ``None``.
-
-    :return: None
-    :rtype: None
+    Verify create_service_registration_data returns module_path, class_name and empty parameters, and omits id.
     '''
 
-    # Create a registration without explicit parameters.
-    result = create_service_registration_data(
-        'tiferet.repos.test',
-        'TestRepository',
+    # Call create_service_registration_data with the case kwargs.
+    built = create_service_registration_data(
+        module_path='tiferet.mod',
+        class_name='Cls',
     )
 
-    # Verify parameters is an empty dict, not None.
-    assert result['parameters'] == {}
-    assert result['parameters'] is not None
+    # Verify the expected fields.
+    assert built['module_path'] == 'tiferet.mod'
+    assert built['class_name'] == 'Cls'
+    assert built['parameters'] == {}
+    assert 'id' not in built
 
 # ** test: create_default_cli_argument_returns_required_field
 def test_create_default_cli_argument_returns_required_field():
     '''
-    Verify create_default_cli_argument returns only the ``name_or_flags`` key
-    when all optional arguments are omitted.
-
-    :return: None
-    :rtype: None
+    Verify create_default_cli_argument returns name_or_flags and omits the optional fields.
     '''
 
-    # Call the factory with only the required argument.
-    result = create_default_cli_argument(name_or_flags=['id'])
+    # Call create_default_cli_argument with the case kwargs.
+    built = create_default_cli_argument(
+        name_or_flags=['--flag'],
+    )
 
-    # Assert only name_or_flags is present.
-    assert set(result.keys()) == {'name_or_flags'}
-    assert result['name_or_flags'] == ['id']
+    # Verify the expected fields.
+    assert built['name_or_flags'] == ['--flag']
+    assert 'id' not in built
+    assert 'description' not in built
+    assert 'type' not in built
+    assert 'default' not in built
+    assert 'required' not in built
+    assert 'nargs' not in built
+    assert 'choices' not in built
 
 # ** test: create_default_cli_argument_includes_optional_fields_when_provided
 def test_create_default_cli_argument_includes_optional_fields_when_provided():
     '''
-    Verify create_default_cli_argument includes all optional fields when supplied.
-
-    :return: None
-    :rtype: None
+    Verify create_default_cli_argument includes the optional fields when provided.
     '''
 
-    # Call the factory with all optional arguments supplied.
-    result = create_default_cli_argument(
-        name_or_flags=['--level'],
-        description='The logging level.',
+    # Call create_default_cli_argument with the case kwargs.
+    built = create_default_cli_argument(
+        name_or_flags=['level'],
+        description='Logging level.',
         type='str',
         default='INFO',
         required=True,
@@ -529,93 +517,95 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided():
         choices=['DEBUG', 'INFO', 'WARNING'],
     )
 
-    # Assert all optional fields are present with correct values.
-    assert result['name_or_flags'] == ['--level']
-    assert result['description'] == 'The logging level.'
-    assert result['type'] == 'str'
-    assert result['default'] == 'INFO'
-    assert result['required'] is True
-    assert result['nargs'] == '?'
-    assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
+    # Verify the expected fields.
+    assert built['name_or_flags'] == ['level']
+    assert built['description'] == 'Logging level.'
+    assert built['type'] == 'str'
+    assert built['default'] == 'INFO'
+    assert built['required'] == True
+    assert built['nargs'] == '?'
+    assert built['choices'] == ['DEBUG', 'INFO', 'WARNING']
+    assert 'id' not in built
 
 # ** test: create_default_cli_command_data_returns_required_fields
 def test_create_default_cli_command_data_returns_required_fields():
     '''
-    Verify create_default_cli_command_data returns a dict with ``key``,
-    ``group_key``, and ``name``; ``description`` and ``arguments`` are absent
-    when not provided.
-
-    :return: None
-    :rtype: None
+    Verify create_default_cli_command_data returns the required fields and omits the optional ones.
     '''
 
-    # Call the factory with only the required arguments.
-    result = create_default_cli_command_data(
+    # Call create_default_cli_command_data with the case kwargs.
+    built = create_default_cli_command_data(
         key='list',
-        group_key='app',
-        name='List App Interfaces',
+        group_key='feature',
+        name='List Features',
     )
 
-    # Assert required fields are present and optional fields are absent.
-    assert result['key'] == 'list'
-    assert result['group_key'] == 'app'
-    assert result['name'] == 'List App Interfaces'
-    assert 'description' not in result
-    assert 'arguments' not in result
+    # Verify the expected fields.
+    assert built['key'] == 'list'
+    assert built['group_key'] == 'feature'
+    assert built['name'] == 'List Features'
+    assert 'id' not in built
+    assert 'description' not in built
+    assert 'arguments' not in built
 
 # ** test: create_default_cli_command_data_includes_optional_fields_when_provided
 def test_create_default_cli_command_data_includes_optional_fields_when_provided():
     '''
-    Verify create_default_cli_command_data includes ``description`` and ``arguments``
-    when they are supplied.
-
-    :return: None
-    :rtype: None
+    Verify create_default_cli_command_data includes description and arguments when provided.
     '''
 
-    # Build a sample argument for use in the call.
-    arg = create_default_cli_argument(
+    # Build the argument the command carries.
+    argument = create_default_cli_argument(
         name_or_flags=['id'],
-        description='The identifier.',
+        description='The feature identifier.',
     )
 
-    # Call the factory with all optional arguments supplied.
-    result = create_default_cli_command_data(
+    # Call create_default_cli_command_data with the case kwargs.
+    built = create_default_cli_command_data(
         key='get',
-        group_key='app',
-        name='Get App Interface',
-        description='Retrieve an app interface by ID.',
-        arguments=[arg],
+        group_key='feature',
+        name='Get Feature',
+        description='Retrieve a feature by ID.',
+        arguments=[argument],
     )
 
-    # Assert optional fields are present with correct values.
-    assert result['description'] == 'Retrieve an app interface by ID.'
-    assert result['arguments'] == [arg]
+    # Count the keys on the first argument.
+    argument_key_count = len(built['arguments'][0])
+
+    # Verify the expected fields.
+    assert built['key'] == 'get'
+    assert built['group_key'] == 'feature'
+    assert built['name'] == 'Get Feature'
+    assert built['description'] == 'Retrieve a feature by ID.'
+    assert built['arguments'] == [argument]
+    assert 'id' not in built
+    assert argument_key_count == 2
 
 # ** test: create_default_logger_includes_optional_fields_when_provided
 def test_create_default_logger_includes_optional_fields_when_provided():
     '''
-    Verify create_default_logger preserves explicit propagate, is_root, and description values.
-
-    :return: None
-    :rtype: None
+    Verify create_default_logger preserves explicit optional fields.
     '''
 
-    # Build a logger with all optional fields supplied.
-    result = create_default_logger(
-        'root',
-        'Root Logger',
-        'WARNING',
-        ['default_root'],
+    # Call create_default_logger with the case kwargs.
+    built = create_default_logger(
+        id='root',
+        name='Root Logger',
+        level='WARNING',
+        handlers=['default_root'],
         propagate=False,
         is_root=True,
         description='The root logger.',
     )
 
-    # Verify explicit values are preserved.
-    assert result['propagate'] is False
-    assert result['is_root'] is True
-    assert result['description'] == 'The root logger.'
+    # Verify the expected fields.
+    assert built['id'] == 'root'
+    assert built['name'] == 'Root Logger'
+    assert built['level'] == 'WARNING'
+    assert built['handlers'] == ['default_root']
+    assert built['propagate'] == False
+    assert built['is_root'] == True
+    assert built['description'] == 'The root logger.'
 
 # ** test: tiferet_error_carries_code_message_and_kwargs
 def test_tiferet_error_carries_code_message_and_kwargs():
@@ -635,54 +625,91 @@ def test_tiferet_error_carries_code_message_and_kwargs():
     assert error.kwargs == {'detail': 'extra'}
     assert 'Something failed.' in str(error)
 
-# ** test: tiferet_error_raise_error_raises_self
-def test_tiferet_error_raise_error_raises_self():
+# ** test: tiferet_error_raise_error_code_only
+def test_tiferet_error_raise_error_code_only():
     '''
-    Verify TiferetError.raise_error raises a TiferetError with the given
-    error code, message, and kwargs.
-
-    :return: None
-    :rtype: None
+    Verify TiferetError.raise_error raises with an error code only.
     '''
 
-    # Raise via the classmethod and capture the exception.
+    # Raise via the raise_error classmethod and capture the exception.
     with pytest.raises(TiferetError) as exc_info:
-        TiferetError.raise_error('SOME_CODE', 'msg', foo='bar')
+        TiferetError.raise_error(
+            error_code='BASIC_ERROR',
+        )
+    raised = exc_info.value
 
-    # Verify the raised error carries the expected data.
-    assert exc_info.value.error_code == 'SOME_CODE'
-    assert exc_info.value.kwargs.get('foo') == 'bar'
+    # Verify the raised error.
+    assert isinstance(raised, TiferetError)
+    assert raised.error_code == 'BASIC_ERROR'
 
-# ** test: tiferet_api_error_raise_error_raises_subclass
-def test_tiferet_api_error_raise_error_raises_subclass():
+# ** test: tiferet_error_raise_error_with_message_and_kwargs
+def test_tiferet_error_raise_error_with_message_and_kwargs():
     '''
-    Verify the inherited raise_error classmethod raises the subclass type
-    (TiferetAPIError) rather than the base TiferetError.
-
-    :return: None
-    :rtype: None
+    Verify TiferetError.raise_error carries the message and kwargs.
     '''
 
-    # Raise via the subclass's inherited classmethod.
+    # Raise via the raise_error classmethod and capture the exception.
+    with pytest.raises(TiferetError) as exc_info:
+        TiferetError.raise_error(
+            error_code='ARG_ERROR',
+            message='Something failed',
+            detail='extra',
+        )
+    raised = exc_info.value
+
+    # Verify the raised error.
+    assert isinstance(raised, TiferetError)
+    assert raised.error_code == 'ARG_ERROR'
+    assert 'Something failed' in str(raised)
+    assert raised.kwargs == {'detail': 'extra'}
+
+# ** test: tiferet_error_raise_error_kwargs_without_message
+def test_tiferet_error_raise_error_kwargs_without_message():
+    '''
+    Verify TiferetError.raise_error carries kwargs when no message is given.
+    '''
+
+    # Raise via the raise_error classmethod and capture the exception.
+    with pytest.raises(TiferetError) as exc_info:
+        TiferetError.raise_error(
+            error_code='NO_MSG_ERROR',
+            reason='missing',
+        )
+    raised = exc_info.value
+
+    # Verify the raised error.
+    assert isinstance(raised, TiferetError)
+    assert raised.error_code == 'NO_MSG_ERROR'
+    assert raised.kwargs == {'reason': 'missing'}
+
+# ** test: tiferet_api_error_raise_error_dispatches_to_subclass
+def test_tiferet_api_error_raise_error_dispatches_to_subclass():
+    '''
+    Verify the inherited raise_error raises the TiferetAPIError subclass with name defaulting to the error code.
+    '''
+
+    # Raise via the raise_error classmethod and capture the exception.
     with pytest.raises(TiferetAPIError) as exc_info:
-        TiferetAPIError.raise_error('SOME_CODE', 'msg', name='Some Code')
+        TiferetAPIError.raise_error(
+            error_code='SOME_CODE',
+        )
+    raised = exc_info.value
 
-    # Verify the raised error is the subclass with the expected fields.
-    assert exc_info.value.error_code == 'SOME_CODE'
-    assert exc_info.value.name == 'Some Code'
+    # Verify the raised error.
+    assert isinstance(raised, TiferetAPIError)
+    assert raised.error_code == 'SOME_CODE'
+    assert raised.name == 'SOME_CODE'
 
-# ** test: tiferet_api_error_name_defaults_to_error_code
-def test_tiferet_api_error_name_defaults_to_error_code():
+# ** test: tiferet_api_error_positional_message_binds_to_message
+def test_tiferet_api_error_positional_message_binds_to_message():
     '''
-    Verify TiferetAPIError defaults name to the error code when omitted.
-
-    :return: None
-    :rtype: None
+    Verify a positional message binds to message and name defaults to the error code.
     '''
 
-    # Construct without an explicit name.
-    error = TiferetAPIError(error_code='SOME_CODE', message='Something failed.')
+    # Construct the error with a positional message.
+    built = TiferetAPIError('SOME_CODE', 'Something went wrong.')
 
-    # Verify name defaults to the error code.
-    assert error.name == 'SOME_CODE'
-    assert error.message == 'Something failed.'
+    # Verify the constructed error.
+    assert isinstance(built, TiferetAPIError)
+    assert built.message == 'Something went wrong.'
+    assert built.name == 'SOME_CODE'
