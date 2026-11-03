@@ -83,6 +83,13 @@ class Check(CheckService):
                 if mismatch:
                     return mismatch
             return None
+
+        # Equal values of types that must not cross-match are a type mismatch.
+        if self._scalar_types_differ(actual, expected) and actual == expected:
+            return (
+                f'{actual!r} ({type(actual).__name__}) != '
+                f'{expected!r} ({type(expected).__name__}).'
+            )
         if actual != expected:
             return f'{actual!r} != {expected!r}.'
         return None
@@ -289,6 +296,33 @@ class Check(CheckService):
         if mismatch:
             return mismatch
         return self.equal(fallback.get('name'), 'Test Data')
+
+    # * method: scalar_types_differ
+    def _scalar_types_differ(self, actual: Any, expected: Any) -> bool:
+        '''
+        Report whether two scalars are of types that must not cross-match.
+
+        A bool matches only a bool. An int and a float do not match each other.
+        Everything else keeps ``==``.
+
+        :param actual: The value under check.
+        :type actual: Any
+        :param expected: The expected value.
+        :type expected: Any
+        :return: True when the types must not match.
+        :rtype: bool
+        '''
+
+        # Python treats True == 1 and 1 == 1.0. The check does not.
+        if isinstance(actual, bool) != isinstance(expected, bool):
+            return True
+        if isinstance(actual, bool):
+            return False
+        if isinstance(actual, float) and isinstance(expected, int):
+            return True
+        if isinstance(actual, int) and isinstance(expected, float):
+            return True
+        return False
 
     # * method: is_keyed_list
     def _is_keyed_list(self, expected: Dict[str, Any]) -> bool:
