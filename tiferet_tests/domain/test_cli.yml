@@ -163,6 +163,32 @@ fixtures:
     module_path: *cli_module
     class_name: CliRecordList
     attributes: {}
+  uneven_record_list:
+    module_path: *cli_module
+    class_name: CliRecordList
+    attributes:
+      records:
+        - fields:
+            id: '1'
+            name: A
+        - fields:
+            id: '2'
+            extra: Z
+  hole_record_list:
+    module_path: *cli_module
+    class_name: CliRecordList
+    attributes:
+      records:
+        - fields: {}
+        - fields:
+            id: '9'
+  blank_record_list:
+    module_path: *cli_module
+    class_name: CliRecordList
+    attributes:
+      records:
+        - {}
+        - {}
 
 testers:
   test_cli_argument:
@@ -585,6 +611,124 @@ testers:
         assert:
           - outcome: output
             equals: ''
+      output_lines:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: output_lines
+            kwargs:
+              indent: 2
+            as: output
+        assert:
+          - outcome: output
+            type:
+              module_path: *cli_module
+              class_name: CliOutputLines
+          - outcome: output
+            fields:
+              indent: 2
+              key_width: 4
+              lines: ['  id  : 42', '  name: foo bar']
+      output_lines_indent:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: output_lines
+            args: [4]
+            as: output
+          - target: $r.built
+            method: format_output
+            args: [4]
+            as: joined
+        assert:
+          - outcome: output
+            fields:
+              indent: 4
+              key_width: 4
+              lines: ['    id  : 42', '    name: foo bar']
+          - outcome: joined
+            equals: "    id  : 42\n    name: foo bar"
+      format_output_locked_join:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: format_output
+            as: output
+          - target: $r.output
+            method: __eq__
+            args: ["id  name   \n--  -------\n42  foo bar"]
+            as: is_one_row_table
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.built, table]
+            as: has_table
+        assert:
+          - outcome: output
+            equals: "  id  : 42\n  name: foo bar"
+          - outcome: is_one_row_table
+            equals: false
+          - outcome: has_table
+            equals: false
+      output_lines_empty:
+        conditions:
+          fixtures: [empty_output_record]
+        execute:
+          - target: empty_output_record
+            method: output_lines
+            as: output
+          - target: empty_output_record
+            method: format_output
+            as: joined
+        assert:
+          - outcome: output
+            'null': true
+          - outcome: joined
+            equals: ''
+      output_lines_from_record:
+        conditions:
+          fixtures: [cli_record]
+        execute:
+          - target:
+              module_path: tiferet.domain
+              class_name: CliOutputLines
+            method: from_record
+            args: [$fixture.cli_record]
+            kwargs:
+              indent: 3
+            as: output
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.output, format_output]
+            as: has_format_output
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.output, widths]
+            as: has_widths
+        assert:
+          - outcome: output
+            fields:
+              indent: 3
+              key_width: 4
+              lines: ['   id  : 42', '   name: foo']
+          - outcome: has_format_output
+            equals: false
+          - outcome: has_widths
+            equals: false
 
   test_cli_record_list:
     module_path: *cli_module
@@ -760,3 +904,213 @@ testers:
         assert:
           - outcome: output
             equals: ''
+      table:
+        conditions: {}
+        execute:
+          - target: self
+            method: new
+            as: built
+          - target: $r.built
+            method: table
+            as: table
+          - target: $r.built
+            method: format_output
+            as: output
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [widths]
+            as: read_widths
+          - target: $r.read_widths
+            method: __call__
+            args: [$r.table]
+            as: widths
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.widths]
+            as: width_keys
+        assert:
+          - outcome: table
+            type:
+              module_path: *cli_module
+              class_name: CliTable
+          - outcome: table
+            fields:
+              keys: [id, name]
+              widths: {id: 3, name: 5}
+              header: 'id   name '
+              separator: '---  -----'
+              rows: ['1    Alpha', '200  Beta ']
+          - outcome: width_keys
+            equals: [id, name]
+          - outcome: output
+            equals: "id   name \n---  -----\n1    Alpha\n200  Beta "
+      table_uneven_keys:
+        conditions:
+          fixtures: [uneven_record_list]
+        execute:
+          - target: uneven_record_list
+            method: table
+            as: table
+          - target: uneven_record_list
+            method: format_output
+            as: output
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [widths]
+            as: read_widths
+          - target: $r.read_widths
+            method: __call__
+            args: [$r.table]
+            as: widths
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.widths]
+            as: width_keys
+        assert:
+          - outcome: table
+            type:
+              module_path: *cli_module
+              class_name: CliTable
+          - outcome: table
+            fields:
+              keys: [id, name, extra]
+              widths: {id: 2, name: 4, extra: 5}
+              header: 'id  name  extra'
+              separator: '--  ----  -----'
+              rows: ['1   A          ', '2         Z    ']
+          - outcome: width_keys
+            equals: [id, name, extra]
+          - outcome: output
+            equals: "id  name  extra\n--  ----  -----\n1   A          \n2         Z    "
+      table_empty_cell:
+        conditions:
+          fixtures: [hole_record_list]
+        execute:
+          - target: hole_record_list
+            method: table
+            as: table
+          - target: hole_record_list
+            method: format_output
+            as: output
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [widths]
+            as: read_widths
+          - target: $r.read_widths
+            method: __call__
+            args: [$r.table]
+            as: widths
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.widths]
+            as: width_keys
+        assert:
+          - outcome: table
+            type:
+              module_path: *cli_module
+              class_name: CliTable
+          - outcome: table
+            fields:
+              keys: [id]
+              widths: {id: 2}
+              header: 'id'
+              separator: '--'
+              rows: ['  ', '9 ']
+          - outcome: width_keys
+            equals: [id]
+          - outcome: output
+            equals: "id\n--\n  \n9 "
+      table_empty:
+        conditions:
+          fixtures: [empty_record_list]
+        execute:
+          - target: empty_record_list
+            method: table
+            as: table
+          - target: empty_record_list
+            method: format_output
+            as: output
+        assert:
+          - outcome: table
+            'null': true
+          - outcome: output
+            equals: ''
+      table_blank_records:
+        conditions:
+          fixtures: [blank_record_list]
+        execute:
+          - target: blank_record_list
+            method: table
+            as: table
+          - target: blank_record_list
+            method: format_output
+            as: output
+        assert:
+          - outcome: table
+            'null': true
+          - outcome: output
+            equals: ''
+      table_from_records:
+        conditions:
+          fixtures: [cli_record]
+        execute:
+          - target:
+              module_path: tiferet.domain
+              class_name: CliTable
+            method: from_records
+            args: [[$fixture.cli_record]]
+            as: table
+          - target:
+              module_path: operator
+              attribute: attrgetter
+            method: attrgetter
+            args: [widths]
+            as: read_widths
+          - target: $r.read_widths
+            method: __call__
+            args: [$r.table]
+            as: widths
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.widths]
+            as: width_keys
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.table, format_output]
+            as: has_format_output
+          - target:
+              module_path: builtins
+              attribute: hasattr
+            method: hasattr
+            args: [$r.table, records]
+            as: has_records
+        assert:
+          - outcome: table
+            fields:
+              keys: [id, name]
+              widths: {id: 2, name: 4}
+              header: 'id  name'
+              separator: '--  ----'
+              rows: ['42  foo ']
+          - outcome: width_keys
+            equals: [id, name]
+          - outcome: has_format_output
+            equals: false
+          - outcome: has_records
+            equals: false

@@ -1,4 +1,4 @@
-# Domain – CLI: CliRecord, CliOutputRecord, CliRecordList, CliArgument, and CliCommand
+# Domain - CLI: CliRecord, CliTable, CliOutputLines, CliOutputRecord, CliRecordList, CliArgument, and CliCommand
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -10,12 +10,14 @@
 The CLI domain defines two related concerns: the structural configuration for command-line interface commands, and the typed output-rendering models a CLI response is displayed through. `CliCommand` is the **terminal-to-feature bridge**: it has a composite identifier (`group_key.key`) that maps directly to a feature ID in `feature.yml`, enabling seamless execution of domain features via `argparse`-driven command-line input. `CliRecord`/`CliOutputRecord`/`CliRecordList` are a separate, independent concern — rendering a raw feature result as vertical or tabular stdout text — that has no relationship to the command/argument configuration shape.
 
 - `CliRecord` — a typed atomic record unit both output models are built from.
+- `CliTable` - the aligned table a `CliRecordList` computes: keys, widths, header, separator, and rows.
+- `CliOutputLines` - the indented `attribute: value` lines a `CliOutputRecord` computes: indent, key width, and lines.
 - `CliOutputRecord` — renders a single `CliRecord` as a vertical attribute-value list.
 - `CliRecordList` — renders multiple `CliRecord` rows as an aligned table.
 - `CliArgument` — represents a single command-line argument or flag, mapping to `argparse.add_argument()` parameters.
 - `CliCommand` — represents a CLI command with a composite ID (derived by a `@model_validator`) and a `has_argument()` query method.
 
-All five domain objects are **immutable value objects**: they carry no mutation methods (the two output-rendering classes carry a pure `format_output()` query instead) and expose only read-only queries. All state changes to `CliCommand`/`CliArgument` (adding/removing arguments, renaming commands) occur exclusively through Aggregates in the mappers layer.
+All seven domain objects are **immutable value objects**: they carry no mutation methods (the two output-rendering classes carry a pure `format_output()` query instead) and expose only read-only queries. `CliTable` and `CliOutputLines` are the computed pieces behind those two queries; each `format_output()` is only the newline join of its own noun. All state changes to `CliCommand`/`CliArgument` (adding/removing arguments, renaming commands) occur exclusively through Aggregates in the mappers layer.
 
 **Module:** `tiferet/domain/cli.py`
 **Vision:** See the `CliCommand` and `CliRecordList` class docstrings in `tiferet/domain/cli.py` for the value statements this guide distills.
@@ -24,8 +26,8 @@ All five domain objects are **immutable value objects**: they carry no mutation 
 
 - **Terminal-to-feature bridge** — the design pattern where `CliCommand.id` maps 1:1 to a feature ID, so a CLI command is a thin entry point rather than its own business-logic surface.
 - **Record** — one `CliRecord`: an ordered, string-coerced attribute-value mapping extracted from a raw domain result, independent of how it is ultimately rendered.
-- **Vertical output** — `CliOutputRecord`'s rendering shape: one `attribute: value` line per field, for a single record.
-- **Tabular output** — `CliRecordList`'s rendering shape: an aligned, header-plus-rows table across multiple records.
+- **Vertical output** - `CliOutputRecord`'s rendering shape: one `attribute: value` line per field, for a single record. The lines are a `CliOutputLines`, not a one-row table.
+- **Tabular output** - `CliRecordList`'s rendering shape: an aligned, header-plus-rows table across multiple records. The table is a `CliTable`.
 - **Argument dest** — the argparse destination key `CliArgument.get_dest()` derives from `name_or_flags`, mirroring argparse's own long-flag-wins derivation.
 
 ## Domain Objects
@@ -40,6 +42,59 @@ The atomic unit both output models are built from: an ordered mapping of attribu
 
 No methods — `CliRecord` is a pure data container; both rendering classes below own the formatting behavior.
 
+### CliTable
+
+The aligned table a `CliRecordList` renders, named rather than discarded: the ordered column keys, the per-column widths, the header and separator rows, and one row string per record. It stores no records, and it has no `format_output()` or other join method. Only `CliRecordList` builds one.
+
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="clitable-keys"></a>`keys` | `List[str]` | Yes | - | The column keys, in encounter order across all records. Not sorted. |
+| <a id="clitable-widths"></a>`widths` | `Dict[str, int]` | Yes | - | The width of each column, the max of the key and every value. `list(widths)` equals `keys`. |
+| <a id="clitable-header"></a>`header` | `str` | Yes | - | Each key left-justified to its width, joined on two spaces. |
+| <a id="clitable-separator"></a>`separator` | `str` | Yes | - | One dash run per column width, joined on two spaces. |
+| <a id="clitable-rows"></a>`rows` | `List[str]` | Yes | - | One left-justified row per record, in record order. A missing key and a present `''` render the same empty cell. |
+
+#### Methods
+
+<a id="clitable-from-records"></a>
+**`from_records(records: List[CliRecord]) -> CliTable | None`** (classmethod)
+
+The only list width and row builder. Returns `None` when `records` is empty or every record has no fields; it never returns an empty table, since joining an empty header and separator would be `'\n'`, not `''`.
+
+```python
+table = CliTable.from_records([
+    CliRecord(fields={'id': '1', 'name': 'A'}),
+    CliRecord(fields={'id': '2', 'extra': 'Z'}),
+])
+# table.keys == ['id', 'name', 'extra']
+# table.widths == {'id': 2, 'name': 4, 'extra': 5}
+# table.header == 'id  name  extra'
+# table.rows == ['1   A          ', '2         Z    ']
+```
+
+### CliOutputLines
+
+The indented `attribute: value` lines a `CliOutputRecord` renders: the indent, the width of the widest attribute name, and one line per field. These are vertical lines, not table rows: there is no header, separator, or `widths`, and no `format_output()`. A one-record result is never rendered as a one-row `CliTable`.
+
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="clioutputlines-indent"></a>`indent` | `int` | Yes | - | The number of leading spaces before each line. |
+| <a id="clioutputlines-key-width"></a>`key_width` | `int` | Yes | - | The width of the widest attribute name; every name is padded to it. |
+| <a id="clioutputlines-lines"></a>`lines` | `List[str]` | Yes | - | One `<indent><attribute padded to key_width>: <value>` line per field, in field order. |
+
+#### Methods
+
+<a id="clioutputlines-from-record"></a>
+**`from_record(record: CliRecord, indent: int = 2) -> CliOutputLines | None`** (classmethod)
+
+Builds the lines for one record. Returns `None` when the record has no fields.
+
+```python
+lines = CliOutputLines.from_record(CliRecord(fields={'id': '42', 'name': 'foo bar'}))
+# lines.key_width == 4
+# lines.lines == ['  id  : 42', '  name: foo bar']
+```
+
 ### CliOutputRecord
 
 Wraps one `CliRecord` and renders it as a top-down attribute-value list, with attribute names left-padded to a consistent width.
@@ -50,10 +105,15 @@ Wraps one `CliRecord` and renders it as a top-down attribute-value list, with at
 
 #### Methods
 
+<a id="clioutputrecord-output-lines"></a>
+**`output_lines(indent: int = 2) -> CliOutputLines | None`**
+
+Returns `CliOutputLines.from_record(self.record, indent=indent)`. It does not build a `CliTable`, and `CliOutputRecord` has no `table()` method.
+
 <a id="clioutputrecord-format-output"></a>
 **`format_output(indent: int = 2) -> str`**
 
-Renders one `<indent><attribute padded to max width>: <value>` line per field. Returns an empty string when the record has no fields.
+Renders one `<indent><attribute padded to max width>: <value>` line per field: the newline join of `output_lines(indent).lines`, with no header, no separator, and no trailing newline. Returns an empty string when the record has no fields.
 
 ```python
 CliOutputRecord(record=CliRecord(fields={'id': 'calc.add', 'name': 'Add'})).format_output()
@@ -70,16 +130,22 @@ Wraps a list of `CliRecord` rows and renders them as an aligned table: a header 
 
 #### Methods
 
+<a id="clirecordlist-table"></a>
+**`table() -> CliTable | None`**
+
+Returns `CliTable.from_records(self.records)`. The table is computed on demand, not stored, so construction is unchanged.
+
 <a id="clirecordlist-format-output"></a>
 **`format_output() -> str`**
 
-Renders the aligned table described above. Returns an empty string when the list is empty, or when every record has no fields.
+Renders the aligned table described above: the newline join of the table's header, separator, and rows, with no trailing newline. Returns an empty string when `table()` is `None`, that is, when the list is empty or every record has no fields.
 
 ```python
 CliRecordList(records=[
     CliRecord(fields={'id': 'calc.add', 'name': 'Add'}),
     CliRecord(fields={'id': 'calc.sqrt', 'name': 'Square Root'}),
 ]).format_output()
+# 'id         name       \n---------  -----------\ncalc.add   Add        \ncalc.sqrt  Square Root'
 ```
 
 ### CliArgument
