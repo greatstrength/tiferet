@@ -662,6 +662,21 @@ def _registered_check() -> Any:
     # Call the resolved class with no arguments.
     return check_cls()
 
+# ** function: registered_stage
+def _registered_stage() -> Any:
+    '''
+    Resolve Stage from its module and class strings and return the class, which is the per-test stage factory.
+
+    :return: The Stage class.
+    :rtype: Any
+    '''
+
+    # Do not import the util at module level.
+    module = import_module('tiferet.utils.tester_stage')
+
+    # Return the class, not an instance.
+    return getattr(module, 'Stage')
+
 # ** function: reporter_cache
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def _reporter_cache(cache: Dict[str, Any] = None) -> CacheContext:
@@ -797,6 +812,7 @@ def build_phase_runtime(
         value,
         session=session,
         check=_registered_check(),
+        stage_factory=_registered_stage(),
     )
 
 # ** blueprint: build_tester_context

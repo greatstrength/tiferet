@@ -18,6 +18,7 @@ from tiferet.assets.feature import ADMIN_DEFAULT_FEATURES
 from tiferet.blueprints import tester as tester_blueprints
 from tiferet.blueprints.tester import (
     add_fixture,
+    add_test,
     attach_test,
     detach_test,
     get_fixture,
@@ -495,3 +496,38 @@ def test_no_writer_modules_are_added() -> None:
         'YamlLoader.save',
     ):
         assert token not in event_text
+
+# ** test: add_test_keeps_stage_flag
+def test_add_test_keeps_stage_flag(tmp_path) -> None:
+    '''
+    Add a staged test, then load the stored test.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :return: None
+    :rtype: None
+    '''
+
+    # Add a staged test whose one step reads the stage path.
+    add_test(
+        'utils/test_staged',
+        'staged',
+        fragment='''conditions:
+  stage: true
+execute:
+  - target: $stage
+    method: path
+    as: directory
+assert:
+  - outcome: directory
+    message: tiferet
+''',
+        base_dir=str(tmp_path),
+    )
+    stored = yaml.safe_load(
+        (tmp_path / 'tiferet_tests' / 'utils' / 'test_staged.yml').read_text(encoding='utf-8'),
+    )
+
+    # The stage flag and the stage target are kept.
+    assert stored['tests']['staged']['conditions'] == {'stage': True}
+    assert stored['tests']['staged']['execute'][0]['target'] == '$stage'
