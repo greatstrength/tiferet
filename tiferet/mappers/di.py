@@ -9,7 +9,12 @@ from typing import Any, ClassVar, Dict
 from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import FlaggedDependency, ServiceRegistration
+from ..domain import (
+    INVALID_MODEL_VALUE_ID,
+    FlaggedDependency,
+    ModelError,
+    ServiceRegistration,
+)
 from .core import Aggregate, TransferObject
 
 # *** mappers
@@ -23,18 +28,18 @@ class FlaggedDependencyAggregate(FlaggedDependency, Aggregate):
     # * method: set_parameters
     def set_parameters(self, parameters: Dict[str, Any] | None = None) -> None:
         '''
-        Update the parameters dictionary for this flagged dependency.
+        Overlay the parameters dictionary for this flagged dependency. A new
+        value wins, a ``None`` value removes that key, and a ``None`` argument
+        leaves the mapping unchanged.
 
-        :param parameters: New parameters, or None to clear all.
-                           Keys with None values are removed.
+        :param parameters: The parameter overlay, or None to leave the parameters.
         :type parameters: Dict[str, Any] | None
         :return: None
         :rtype: None
         '''
 
-        # Clear all when None is provided.
+        # Leave the parameters unchanged when None is provided.
         if parameters is None:
-            self.parameters = {}
             return
 
         # Merge existing parameters with new ones (new values win), then drop
@@ -170,7 +175,9 @@ class ServiceRegistrationAggregate(ServiceRegistration, Aggregate):
         :type module_path: str | None
         :param class_name: The class name for the dependency.
         :type class_name: str | None
-        :param parameters: The parameters for the dependency (empty dict by default).
+        :param parameters: The parameter overlay on an existing flag, or the
+            parameters for a new one (empty dict by default). ``None`` values
+            are not stored.
         :type parameters: Dict[str, Any] | None
         :return: None
         :rtype: None
@@ -189,12 +196,12 @@ class ServiceRegistrationAggregate(ServiceRegistration, Aggregate):
                 dep.parameters = {k: v for k, v in merged.items() if v is not None}
                 return
 
-        # Otherwise create a new dependency and append it.
+        # Otherwise create a new dependency without None-valued parameters and append it.
         dependency = FlaggedDependency(
             module_path=module_path,
             class_name=class_name,
             flag=flag,
-            parameters=parameters,
+            parameters={k: v for k, v in parameters.items() if v is not None},
         )
         self.dependencies = list(self.dependencies) + [dependency]
 
@@ -268,6 +275,8 @@ class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
     def from_model(cls, service_registration: ServiceRegistration, **overrides) -> 'ServiceRegistrationConfigObject':
         '''
         Creates a ServiceRegistrationConfigObject from a ServiceRegistration model.
+        The dependencies list becomes a mapping keyed by flag in list order. A
+        repeated flag raises a model error instead of collapsing.
 
         :param service_registration: The service registration model to copy from.
         :type service_registration: ServiceRegistration
@@ -276,6 +285,19 @@ class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
         :return: A new ServiceRegistrationConfigObject instance.
         :rtype: ServiceRegistrationConfigObject
         '''
+
+        # Refuse a repeated flag rather than collapsing it.
+        seen = set()
+        for dep in service_registration.dependencies:
+            if dep.flag in seen:
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message=f'Flagged dependency {dep.flag!r} is repeated in service registration {service_registration.id!r}.',
+                    model=service_registration,
+                    attribute='dependencies',
+                    flag=dep.flag,
+                )
+            seen.add(dep.flag)
 
         # Convert the dependencies list into a dictionary keyed by flag.
         return super().from_model(

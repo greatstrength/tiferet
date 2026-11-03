@@ -173,10 +173,10 @@ class TestFlaggedDependencyAggregate:
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * test: set_parameters_clears_when_none
-    def test_set_parameters_clears_when_none(self, test_ctx):
+    # * test: set_parameters_none_leaves_existing
+    def test_set_parameters_none_leaves_existing(self, test_ctx):
         '''
-        Test that set_parameters clears all parameters when called with None.
+        Test that set_parameters leaves the existing parameters unchanged when called with None.
         '''
 
         target = test_ctx.make_target()
@@ -184,11 +184,11 @@ class TestFlaggedDependencyAggregate:
         # Bind the generated target fixture to the established local name.
         aggregate = target
 
-        # Call set_parameters with None to clear all parameters.
+        # Call set_parameters with None, which is not an overlay.
         aggregate.set_parameters(None)
 
-        # All parameters should be cleared.
-        assert aggregate.parameters == {}
+        # The existing parameters should be unchanged.
+        assert aggregate.parameters == {'keep': 'original', 'override': 'old'}
 
     # * test: set_parameters_merges_and_prunes_none_values
     def test_set_parameters_merges_and_prunes_none_values(self, test_ctx):

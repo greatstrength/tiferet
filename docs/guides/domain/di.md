@@ -116,7 +116,7 @@ services:
     params:
       error_config: config.yml
     deps:
-      - flag: sqlite
+      sqlite:
         module_path: tiferet.repos.error_sqlite
         class_name: ErrorSqliteRepository
         params:

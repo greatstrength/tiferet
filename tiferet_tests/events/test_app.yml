@@ -451,7 +451,7 @@ testers:
                     keep: value
                     override: new
                     new_param: new_value
-      parameters_none_clears_existing:
+      parameters_none_leaves_existing:
         conditions:
           fixtures: [app_interface_params]
           mocks:
@@ -469,14 +469,36 @@ testers:
               class_name: AppContext
               parameters: null
             as: updated
+          - target: app_interface_params
+            method: get_service
+            args: [test_service]
+            as: service
+          - target:
+              module_path: builtins
+              attribute: getattr
+            method: getattr
+            args: [$r.service, parameters]
+            as: parameters
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            args: [$r.parameters]
+            as: parameter_keys
         assert:
           - outcome: updated
             equals: *app_id
-          - outcome: app_interface_params
-            fields:
-              services:
-                - service_id: test_service
-                  parameters: {}
+          - outcome: parameters
+            type:
+              module_path: builtins
+              class_name: dict
+          - outcome: parameter_keys
+            equals: [keep, override, remove]
+          - outcome: parameters
+            equals:
+              keep: value
+              override: old
+              remove: to_be_removed
       missing_required_params:
         conditions:
           mocks:

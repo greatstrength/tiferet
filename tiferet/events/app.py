@@ -310,7 +310,8 @@ class SetServiceDependency(AppEvent):
         :type module_path: str
         :param class_name: The class name for the service dependency implementation.
         :type class_name: str
-        :param parameters: Optional parameters for the service dependency. ``None`` clears parameters.
+        :param parameters: Optional parameter overlay for the service dependency. A new value wins,
+            a ``None`` value removes that key, and a ``None`` argument leaves the parameters unchanged.
         :type parameters: dict[str, Any] | None
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict

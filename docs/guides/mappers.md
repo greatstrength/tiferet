@@ -103,7 +103,7 @@ services={
 }
 ```
 
-This pattern appears in every domain that nests sub-objects: services in app sessions, dependencies in service registrations, messages in errors, steps in features.
+This pattern applies to two collections: app-session services, keyed by `service_id`, and flagged dependencies in service registrations, keyed by `flag`. The key is the identity, so it is unique and `to_data` excludes it from each value. `map` walks the mapping in key order, and `from_model` keeps list order and raises a `ModelError` (`INVALID_MODEL_VALUE`) on a repeated identity instead of collapsing it. Error messages and feature steps are lists on both faces, so they are not this conversion.
 
 <a id="transferobject"></a>
 ## Transfer Object Role Strategy
@@ -200,7 +200,7 @@ The gate raises `ATTRIBUTE_NOT_SETTABLE_ID`, not `INVALID_MODEL_ATTRIBUTE_ID`: t
 
 ## Parameter Merge-and-Prune Pattern
 
-Several aggregates manage `parameters` dictionaries with merge semantics: new values override existing ones, and keys set to `None` are removed. This pattern appears in `set_constants`, `set_service`, `set_parameters`, and `set_default_type`.
+Several aggregates manage `parameters` dictionaries with merge semantics: new values override existing ones, and keys set to `None` are removed. This pattern appears in `set_constants`, `set_service`, `set_parameters`, and `set_default_type`. `set_constants` and `set_default_type` clear on a `None` argument; `set_service` and `set_parameters` treat a `None` argument as no change and never store a `None` value on create.
 
 ```python
 def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
@@ -212,7 +212,7 @@ def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
 ```
 
 The convention is:
-- `None` argument → clear all.
+- `None` argument → clear all (`set_constants`, `set_default_type`); leave the mapping unchanged (`set_service`, `set_parameters`).
 - Dict argument → merge, then prune `None`-valued keys.
 
 ## Round-Trip Mapping
