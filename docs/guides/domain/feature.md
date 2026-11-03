@@ -65,7 +65,7 @@ The optional `condition` field supports boolean expression strings evaluated aga
 
 ### ParameterSpecification
 
-A value object describing one expected request parameter, including its declared type, requiredness, default, and validation constraints.
+A value object describing one expected request parameter, including its declared type, requiredness, default, and validation constraints. It owns the three faces of one declared parameter: the config map entry (shorthand `a: int`, or an expanded mapping keyed by name), the ordered runtime list keyed by `name`, and the `(annotation, Field)` field definition.
 
 | Attribute | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -98,6 +98,37 @@ spec = ParameterSpecification(name='b', type='float', required=False, default=0.
 annotation, field = spec.field_definition()
 ```
 
+<a id="parameterspecification-from-config-entry"></a>
+**`from_config_entry(name: str, value: Any) -> ParameterSpecification`** (classmethod)
+
+Reads one config-map entry. A type string is shorthand: that name, that type, `required=True`, every other field at its default. A mapping is the expanded face; the map key is the name, and an inner `name` equal to the key is dropped. An inner `name` that differs, or a value that is neither a type string nor a mapping, raises `ModelError` with `INVALID_MODEL_VALUE`. An unknown type string fails as Pydantic `ValidationError`.
+
+<a id="parameterspecification-to-config-value"></a>
+**`to_config_value() -> str | Dict[str, Any]`**
+
+Writes the config-map value, never with `name`. Emits the type string only when `required` is true, `default is None`, and `description`, `minimum`, `maximum`, `min_length`, `max_length`, `pattern`, and `choices` are all `None`. Otherwise emits a mapping: `type` first, then `default` (if not `None`), `required` (if false), then each constraint that is not `None`, in that order. A `default` of `0` or `False` is written.
+
+<a id="parameterspecification-from-config-map"></a>
+**`from_config_map(config: Any) -> List[ParameterSpecification]`** (classmethod)
+
+Reads a name-keyed config map as the runtime list, in insertion order, via `from_config_entry` then `keyed_by_name`. A key named `parameters` is a parameter name. A non-mapping argument raises `ModelError` with `INVALID_MODEL_VALUE`.
+
+<a id="parameterspecification-to-config-map"></a>
+**`to_config_map(parameters: Any) -> Dict[str, Any]`** (classmethod)
+
+Writes the runtime list as a name-keyed config map, in list order, via `keyed_by_name` then `to_config_value`. An empty list writes `{}`.
+
+<a id="parameterspecification-keyed-by-name"></a>
+**`keyed_by_name(parameters: Any) -> List[ParameterSpecification]`** (classmethod)
+
+The runtime-list face. Accepts `ParameterSpecification` instances or canonical dicts that include `name`, and returns instances in input order. It does not read shorthand. A repeated `name`, or a dict (config map) argument, raises `ModelError` with `INVALID_MODEL_VALUE`.
+
+```python
+params = ParameterSpecification.from_config_map({'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}})
+ParameterSpecification.to_config_map(params)
+# {'a': 'int', 'b': {'type': 'float', 'default': 1.0, 'required': False}}
+```
+
 ### RequestSpecification
 
 A feature-level Specification object that dynamically reconstitutes the request configuration as a Pydantic model to validate and coerce request data, failing fast with a single aggregated error. Runtime output (the step/feature *result*) is intentionally not modeled here — this object validates *input* only.
@@ -111,7 +142,7 @@ A feature-level Specification object that dynamically reconstitutes the request 
 <a id="requestspecification-normalize-parameters"></a>
 **Config Normalization via `@model_validator`**
 
-`normalize_parameters` accepts three ergonomic config forms and canonicalizes all of them into the `parameters` list: the canonical `{'parameters': [...]}` form, the shorthand keyed form (`{'a': 'int'}`), and the expanded keyed form (`{'b': {'type': 'float', 'required': False}}`). A list-valued `parameters` key is treated as already canonical — this lets a feature declare a request parameter literally named `parameters` without colliding with the canonical shape.
+`normalize_parameters` accepts three config forms and canonicalizes all of them into the `parameters` list: the canonical `{'parameters': [...]}` form, the shorthand keyed form (`{'a': 'int'}`), and the expanded keyed form (`{'b': {'type': 'float', 'required': False}}`). It only distinguishes the canonical list from the config map, then calls the noun: a list-valued `parameters` key is canonical and goes through `ParameterSpecification.keyed_by_name` (other keys are kept so `extra='forbid'` still rejects them), and every other dict goes through `ParameterSpecification.from_config_map`, which owns the shorthand rule. This lets a feature declare a request parameter literally named `parameters` without colliding with the canonical shape. A `ModelError` raised by the noun inside this validator propagates as `ModelError`, not as a Pydantic `ValidationError`.
 
 <a id="requestspecification-build-model"></a>
 **`build_model(model_name: str = 'RequestModel') -> type`**

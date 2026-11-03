@@ -3,13 +3,18 @@
 # *** imports
 
 # ** core
+from collections.abc import Mapping
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
 # ** infra
 from pydantic import ConfigDict, Field, ValidationError, create_model, model_validator
 
 # ** app
-from .core import DomainObject
+from .core import (
+    INVALID_MODEL_VALUE_ID,
+    DomainObject,
+    ModelError,
+)
 
 # *** models
 
@@ -76,6 +81,11 @@ class ParameterSpecification(DomainObject):
     '''
     A value object describing one expected request parameter, including its
     declared type, requiredness, default, and validation constraints.
+
+    The noun owns the three faces of one declared parameter: the config map
+    entry (shorthand ``a: int`` or an expanded mapping keyed by name), the
+    ordered runtime list keyed by ``name``, and the ``(annotation, Field)``
+    field definition consumed by ``pydantic.create_model``.
     '''
 
     # * attribute: name
@@ -180,6 +190,183 @@ class ParameterSpecification(DomainObject):
         # Return the annotation/field pair for dynamic model construction.
         return (annotation, Field(default, **constraints))
 
+    # * method: from_config_entry (classmethod)
+    # >> see: @guides/domain/feature.md#parameterspecification-from-config-entry
+    @classmethod
+    def from_config_entry(cls, name: str, value: Any) -> 'ParameterSpecification':
+        '''
+        Read one config-map entry as a parameter specification.
+
+        A type string is shorthand: that name, that type, ``required=True``,
+        and every other field at its default. A mapping is the expanded face,
+        keyed by ``name``; an inner ``name`` equal to the key is dropped. An
+        unknown type string fails as a Pydantic ``ValidationError``.
+
+        :param name: The config-map key, which is the parameter name.
+        :type name: str
+        :param value: The config-map value: a type string or a mapping.
+        :type value: Any
+        :return: The parameter specification.
+        :rtype: ParameterSpecification
+        '''
+
+        # A type string is shorthand for a required parameter of that type.
+        if isinstance(value, str):
+            return cls(name=name, type=value, required=True)
+
+        # Any other non-mapping value is not a config entry.
+        if not isinstance(value, Mapping):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'Parameter {name!r} config value must be a type string or a mapping, not {type(value).__name__}.',
+            )
+
+        # The map key is the name; an inner name must agree with it.
+        fields = dict(value)
+        if 'name' in fields:
+            inner_name = fields.pop('name')
+            if inner_name != name:
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message=f'Parameter {name!r} config value names a different parameter: {inner_name!r}.',
+                )
+
+        # Build the expanded parameter specification.
+        return cls(name=name, **fields)
+
+    # * method: to_config_value
+    # >> see: @guides/domain/feature.md#parameterspecification-to-config-value
+    def to_config_value(self) -> str | Dict[str, Any]:
+        '''
+        Write this parameter as its config-map value, without ``name``.
+
+        The type string is emitted only when the parameter is required, has no
+        default, and has no description or constraint. Otherwise a mapping is
+        emitted: ``type`` first, then only the fields that differ, in field
+        order. Absence is ``is not None``, so a default of ``0`` or ``False``
+        is written.
+
+        :return: The type string, or the expanded mapping.
+        :rtype: str | Dict[str, Any]
+        '''
+
+        # Collect the fields that differ from the shorthand defaults, in order.
+        extras: Dict[str, Any] = {}
+        if self.default is not None:
+            extras['default'] = self.default
+        if not self.required:
+            extras['required'] = self.required
+        for key in ('description', 'minimum', 'maximum', 'min_length', 'max_length', 'pattern', 'choices'):
+            item = getattr(self, key)
+            if item is not None:
+                extras[key] = item
+
+        # Emit shorthand when only the type is meaningful.
+        if not extras:
+            return self.type
+
+        # Emit the expanded mapping with the type first.
+        return {'type': self.type, **extras}
+
+    # * method: from_config_map (classmethod)
+    # >> see: @guides/domain/feature.md#parameterspecification-from-config-map
+    @classmethod
+    def from_config_map(cls, config: Any) -> List['ParameterSpecification']:
+        '''
+        Read a name-keyed config map as the ordered runtime list.
+
+        Entries are read in insertion order. A key named ``parameters`` is a
+        parameter name like any other.
+
+        :param config: The name-keyed config map.
+        :type config: Any
+        :return: The parameter specifications, in map order.
+        :rtype: List[ParameterSpecification]
+        '''
+
+        # Only a mapping is a config map.
+        if not isinstance(config, Mapping):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'Parameter config map must be a mapping, not {type(config).__name__}.',
+            )
+
+        # Read each entry, then key the list by name.
+        return cls.keyed_by_name([
+            cls.from_config_entry(name, value)
+            for name, value in config.items()
+        ])
+
+    # * method: to_config_map (classmethod)
+    # >> see: @guides/domain/feature.md#parameterspecification-to-config-map
+    @classmethod
+    def to_config_map(cls, parameters: Any) -> Dict[str, Any]:
+        '''
+        Write the runtime list as a name-keyed config map, in list order.
+
+        An empty list writes an empty mapping.
+
+        :param parameters: The parameter specifications or canonical dicts.
+        :type parameters: Any
+        :return: The name-keyed config map.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Key the list by name, then write each config value.
+        return {
+            param.name: param.to_config_value()
+            for param in cls.keyed_by_name(parameters)
+        }
+
+    # * method: keyed_by_name (classmethod)
+    # >> see: @guides/domain/feature.md#parameterspecification-keyed-by-name
+    @classmethod
+    def keyed_by_name(cls, parameters: Any) -> List['ParameterSpecification']:
+        '''
+        Return the runtime list as parameter specifications keyed by ``name``,
+        in input order.
+
+        Accepts parameter specifications or canonical dicts that include
+        ``name``. It does not read shorthand or a config map. A repeated name
+        is a model error, not a last-wins write.
+
+        :param parameters: The parameter specifications or canonical dicts.
+        :type parameters: Any
+        :return: The parameter specifications, in input order.
+        :rtype: List[ParameterSpecification]
+        '''
+
+        # A mapping is a config map, not the runtime list; do not iterate keys.
+        if isinstance(parameters, Mapping) or not isinstance(parameters, (list, tuple)):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'Parameter runtime list must be a list, not {type(parameters).__name__}.',
+            )
+
+        # Build each specification, rejecting a repeated name.
+        result: List[ParameterSpecification] = []
+        names: set = set()
+        for item in parameters:
+            if isinstance(item, cls):
+                param = item
+            elif isinstance(item, Mapping):
+                param = cls(**item)
+            else:
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message=f'Parameter runtime list item must be a parameter specification or a mapping, not {type(item).__name__}.',
+                )
+            if param.name in names:
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message=f'Parameter {param.name!r} is declared more than once.',
+                )
+            names.add(param.name)
+            result.append(param)
+
+        # Return the ordered runtime list.
+        return result
+
 # ** model: request_specification
 # >> see: @guides/domain/feature.md#requestspecification
 class RequestSpecification(DomainObject):
@@ -204,9 +391,10 @@ class RequestSpecification(DomainObject):
         '''
         Normalize ergonomic config forms into the canonical ``parameters`` list.
 
-        Accepts the canonical ``{'parameters': [...]}`` form, the shorthand
-        keyed form ``{'a': 'int'}``, and the expanded keyed form
-        ``{'b': {'type': 'float', 'required': False}}``.
+        Distinguishes the canonical ``{'parameters': [...]}`` form from a
+        name-keyed config map (shorthand ``{'a': 'int'}`` or expanded
+        ``{'b': {'type': 'float', 'required': False}}``) and delegates each to
+        ``ParameterSpecification``, which owns the shorthand rule.
 
         :param data: The raw input data passed to the model.
         :type data: Any
@@ -223,19 +411,15 @@ class RequestSpecification(DomainObject):
         # here unambiguously indicates the canonical ``{'parameters': [...]}``
         # shape. This lets a feature declare a request parameter literally named
         # ``parameters`` (e.g. service.add) without colliding with canonical form.
+        # Other keys are kept so ``extra='forbid'`` still rejects them.
         if isinstance(data.get('parameters'), list):
-            return data
+            return {
+                **data,
+                'parameters': ParameterSpecification.keyed_by_name(data['parameters']),
+            }
 
-        # Expand each keyed entry into a parameter specification dict.
-        parameters: List[Dict[str, Any]] = []
-        for name, spec in data.items():
-            if isinstance(spec, str):
-                parameters.append({'name': name, 'type': spec, 'required': True})
-            elif isinstance(spec, dict):
-                parameters.append({'name': name, **spec})
-
-        # Return the canonical parameters mapping.
-        return {'parameters': parameters}
+        # Every other dict is a name-keyed config map.
+        return {'parameters': ParameterSpecification.from_config_map(data)}
 
     # * method: build_model
     # >> see: @guides/domain/feature.md#requestspecification-build-model
