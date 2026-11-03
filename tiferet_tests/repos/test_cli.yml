@@ -15,6 +15,20 @@ fixtures:
         - name_or_flags: ['--value2', '-v2']
           description: The second number to multiply.
           type: str
+  debug_arg:
+    module_path: tiferet.mappers.cli
+    class_name: CliArgumentAggregate
+    attributes:
+      name_or_flags: ['--debug', '-d']
+      description: Enable debug mode.
+      type: bool
+  output_arg:
+    module_path: tiferet.mappers.cli
+    class_name: CliArgumentAggregate
+    attributes:
+      name_or_flags: ['--output', '-o']
+      description: Output file path.
+      type: str
 
 testers:
   test_cli_config_repository:
@@ -188,3 +202,78 @@ testers:
         assert:
           - outcome: deleted
             'null': true
+
+      test_get_parent_arguments:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_cli.yaml, *cli_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: get_parent_arguments
+            as: parent_args
+          - target: $r.parent_args
+            method: __len__
+            as: parent_count
+          - target: $r.parent_args
+            method: __getitem__
+            args: [0]
+            as: first_arg
+          - target: $r.parent_args
+            method: __getitem__
+            args: [1]
+            as: second_arg
+        assert:
+          - outcome: parent_count
+            equals: 2
+          - outcome: first_arg
+            fields:
+              name_or_flags: ['--verbose', '-v']
+              type: bool
+          - outcome: second_arg
+            fields:
+              name_or_flags: ['--config', '-c']
+
+      test_save_parent_arguments:
+        conditions:
+          stage: true
+          fixtures: [debug_arg, output_arg]
+        execute:
+          - target: $stage
+            method: write
+            args: [test_cli.yaml, *cli_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: save_parent_arguments
+            args: [[$fixture.debug_arg, $fixture.output_arg]]
+          - target: $r.repo
+            method: get_parent_arguments
+            as: reloaded_args
+          - target: $r.reloaded_args
+            method: __len__
+            as: reloaded_count
+          - target: $r.reloaded_args
+            method: __getitem__
+            args: [0]
+            as: first_arg
+          - target: $r.reloaded_args
+            method: __getitem__
+            args: [1]
+            as: second_arg
+        assert:
+          - outcome: reloaded_count
+            equals: 2
+          - outcome: first_arg
+            fields:
+              name_or_flags: ['--debug', '-d']
+          - outcome: second_arg
+            fields:
+              name_or_flags: ['--output', '-o']

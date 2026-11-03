@@ -255,3 +255,60 @@ testers:
         assert:
           - outcome: deleted_config
             'null': true
+
+      test_list_all:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_di.yaml, *di_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [0]
+            as: configurations
+          - target: $r.listed
+            method: __getitem__
+            args: [1]
+            as: constants
+        assert:
+          - outcome: configurations
+            fields:
+              key: id
+              items:
+                di_service: {id: di_service}
+                another_service: {id: another_service}
+          - outcome: constants
+            equals: {sample_const: sample_value}
+
+      test_save_constants:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_di.yaml, *di_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: save_constants
+            args: [{new_const: new_value}]
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [1]
+            as: constants
+        assert:
+          - outcome: constants
+            equals: {sample_const: sample_value, new_const: new_value}

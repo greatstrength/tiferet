@@ -106,3 +106,375 @@ testers:
             equals: {root: {ok: true}}
           - outcome: json_exact
             equals: true
+
+      test_list_all:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args:
+              - test_logging.yaml
+              - &logging_seed |
+                logging:
+                  formatters:
+                    test_formatter:
+                      name: Test Formatter
+                      description: A test formatter
+                      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                      datefmt: '%Y-%m-%d %H:%M:%S'
+                  handlers:
+                    test_handler:
+                      name: Test Handler
+                      description: A test handler
+                      module_path: logging
+                      class_name: StreamHandler
+                      level: INFO
+                      formatter: test_formatter
+                      stream: ext://sys.stdout
+                  loggers:
+                    test_logger:
+                      name: Test Logger
+                      description: A test logger
+                      level: DEBUG
+                      handlers: [test_handler]
+                      propagate: false
+                      is_root: false
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [0]
+            as: formatters
+          - target: $r.listed
+            method: __getitem__
+            args: [1]
+            as: handlers
+          - target: $r.listed
+            method: __getitem__
+            args: [2]
+            as: loggers
+          - target: $r.formatters
+            method: __len__
+            as: formatter_count
+          - target: $r.handlers
+            method: __len__
+            as: handler_count
+          - target: $r.loggers
+            method: __len__
+            as: logger_count
+          - target: $r.formatters
+            method: __getitem__
+            args: [0]
+            as: formatter
+          - target: $r.handlers
+            method: __getitem__
+            args: [0]
+            as: handler
+          - target: $r.loggers
+            method: __getitem__
+            args: [0]
+            as: logger
+        assert:
+          - outcome: formatter_count
+            equals: 1
+          - outcome: handler_count
+            equals: 1
+          - outcome: logger_count
+            equals: 1
+          - outcome: formatter
+            fields:
+              id: test_formatter
+              name: Test Formatter
+              format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+          - outcome: handler
+            fields:
+              id: test_handler
+              name: Test Handler
+              level: INFO
+              formatter: test_formatter
+          - outcome: logger
+            fields:
+              id: test_logger
+              name: Test Logger
+              level: DEBUG
+              handlers: [test_handler]
+
+      test_save_formatter:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_logging.yaml, *logging_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target:
+              module_path: tiferet.mappers.logging
+              class_name: FormatterConfigObject
+            method: model_validate
+            args:
+              - id: new_test_formatter
+                name: New Test Formatter
+                description: A new test formatter
+                format: '%(levelname)s - %(message)s'
+                datefmt: '%H:%M:%S'
+            as: config_object
+          - target: $r.config_object
+            method: map
+            as: config
+          - target: $r.repo
+            method: save_formatter
+            args: [$r.config]
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [0]
+            as: formatters
+        assert:
+          - outcome: formatters
+            fields:
+              key: id
+              items:
+                test_formatter: {id: test_formatter}
+                new_test_formatter:
+                  id: new_test_formatter
+                  name: New Test Formatter
+                  format: '%(levelname)s - %(message)s'
+
+      test_save_handler:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_logging.yaml, *logging_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target:
+              module_path: tiferet.mappers.logging
+              class_name: HandlerConfigObject
+            method: model_validate
+            args:
+              - id: new_test_handler
+                name: New Test Handler
+                description: A new test handler
+                module_path: logging
+                class_name: FileHandler
+                level: ERROR
+                formatter: test_formatter
+                filename: test.log
+            as: config_object
+          - target: $r.config_object
+            method: map
+            as: config
+          - target: $r.repo
+            method: save_handler
+            args: [$r.config]
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [1]
+            as: handlers
+        assert:
+          - outcome: handlers
+            fields:
+              key: id
+              items:
+                test_handler: {id: test_handler}
+                new_test_handler:
+                  id: new_test_handler
+                  name: New Test Handler
+                  level: ERROR
+                  class_name: FileHandler
+
+      test_save_logger:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_logging.yaml, *logging_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target:
+              module_path: tiferet.mappers.logging
+              class_name: LoggerConfigObject
+            method: model_validate
+            args:
+              - id: new_test_logger
+                name: New Test Logger
+                description: A new test logger
+                level: WARNING
+                handlers: [test_handler]
+                propagate: true
+                is_root: false
+            as: config_object
+          - target: $r.config_object
+            method: map
+            as: config
+          - target: $r.repo
+            method: save_logger
+            args: [$r.config]
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [2]
+            as: loggers
+        assert:
+          - outcome: loggers
+            fields:
+              key: id
+              items:
+                test_logger: {id: test_logger}
+                new_test_logger:
+                  id: new_test_logger
+                  name: New Test Logger
+                  level: WARNING
+                  propagate: true
+
+      test_delete_formatter:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_logging.yaml, *logging_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: delete_formatter
+            args: [test_formatter]
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [0]
+            as: formatters
+        assert:
+          - outcome: formatters
+            equals: []
+
+      test_delete_handler:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_logging.yaml, *logging_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: delete_handler
+            args: [test_handler]
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [1]
+            as: handlers
+        assert:
+          - outcome: handlers
+            equals: []
+
+      test_delete_logger:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args: [test_logging.yaml, *logging_seed]
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: delete_logger
+            args: [test_logger]
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __getitem__
+            args: [2]
+            as: loggers
+        assert:
+          - outcome: loggers
+            equals: []
+
+      test_empty_sections:
+        conditions:
+          stage: true
+        execute:
+          - target: $stage
+            method: write
+            args:
+              - empty_logging.yaml
+              - |
+                logging:
+                  formatters: {}
+                  handlers: {}
+                  loggers: {}
+            as: config_path
+          - target: self
+            method: new
+            as: repo
+          - target: $r.repo
+            method: list_all
+            as: listed
+          - target: $r.listed
+            method: __len__
+            as: section_count
+          - target: $r.listed
+            method: __getitem__
+            args: [0]
+            as: formatters
+          - target: $r.listed
+            method: __getitem__
+            args: [1]
+            as: handlers
+          - target: $r.listed
+            method: __getitem__
+            args: [2]
+            as: loggers
+          - target: $r.formatters
+            method: __len__
+            as: formatter_count
+          - target: $r.handlers
+            method: __len__
+            as: handler_count
+          - target: $r.loggers
+            method: __len__
+            as: logger_count
+        assert:
+          - outcome: section_count
+            equals: 3
+          - outcome: formatter_count
+            equals: 0
+          - outcome: handler_count
+            equals: 0
+          - outcome: logger_count
+            equals: 0
