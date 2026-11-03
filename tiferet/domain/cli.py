@@ -209,7 +209,6 @@ class CliOutputLines(DomainObject):
             lines=lines,
         )
 
-
 # ** model: cli_output_record
 # >> see: @guides/domain/cli.md#clioutputrecord
 class CliOutputRecord(DomainObject):
@@ -265,7 +264,6 @@ class CliOutputRecord(DomainObject):
         # Return the joined lines.
         return '\n'.join(output.lines)
 
-
 # ** model: cli_record_list
 # >> see: @guides/domain/cli.md#clirecordlist
 class CliRecordList(DomainObject):
@@ -319,7 +317,6 @@ class CliRecordList(DomainObject):
 
         # Return the joined table.
         return '\n'.join([table.header, table.separator, *table.rows])
-
 
 # ** model: cli_argument
 # >> see: @guides/domain/cli.md#cliargument
