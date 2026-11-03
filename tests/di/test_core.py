@@ -256,8 +256,11 @@ def test_normalize_flags_empty():
     :rtype: None
     '''
 
+    # Normalize with no arguments.
+    flags = normalize_flags()
+
     # No arguments normalize to an empty list.
-    assert normalize_flags() == []
+    assert flags == []
 
 # ** test: normalize_flags_coerces_non_string
 def test_normalize_flags_coerces_non_string():

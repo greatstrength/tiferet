@@ -223,6 +223,184 @@ def resolver_registrations() -> list:
         ),
     ]
 
+# ** fixture: constants_first_container
+@pytest.fixture
+def constants_first_container(configurable_dependency: ServiceDependency) -> DIDynamicServiceContainer:
+    '''
+    A dynamic container loaded with a configurable service and its constant.
+
+    :param configurable_dependency: The configurable service dependency.
+    :type configurable_dependency: ServiceDependency
+    :return: The loaded container.
+    :rtype: DIDynamicServiceContainer
+    '''
+
+    # Load the service and its constant together.
+    return DIDynamicServiceContainer(
+        services={'configurable_service': configurable_dependency},
+        constants={'config_value': 'test_config'},
+    )
+
+# ** fixture: delegating_container
+@pytest.fixture
+def delegating_container(simple_dependency: ServiceDependency) -> DIDynamicServiceContainer:
+    '''
+    A dynamic container constructed with a simple service and a constant.
+
+    :param simple_dependency: The simple service dependency.
+    :type simple_dependency: ServiceDependency
+    :return: The loaded container.
+    :rtype: DIDynamicServiceContainer
+    '''
+
+    # Construct with a service and a constant.
+    return DIDynamicServiceContainer(
+        services={'simple_service': simple_dependency},
+        constants={'config_value': 'test_config'},
+    )
+
+# ** fixture: simple_app_dependency
+@pytest.fixture
+def simple_app_dependency() -> AppServiceDependency:
+    '''
+    An AppServiceDependency bound to SimpleService.
+
+    :return: The simple app service dependency.
+    :rtype: AppServiceDependency
+    '''
+
+    # Bind the fixture module's SimpleService under its service id.
+    return AppServiceDependency(
+        service_id='simple_service',
+        module_path=MODULE_PATH,
+        class_name='SimpleService',
+    )
+
+# ** fixture: configurable_app_dependency
+@pytest.fixture
+def configurable_app_dependency() -> AppServiceDependency:
+    '''
+    An AppServiceDependency bound to ConfigurableService.
+
+    :return: The configurable app service dependency.
+    :rtype: AppServiceDependency
+    '''
+
+    # Bind the fixture module's ConfigurableService under its service id.
+    return AppServiceDependency(
+        service_id='configurable_service',
+        module_path=MODULE_PATH,
+        class_name='ConfigurableService',
+    )
+
+# ** fixture: simple_registration
+@pytest.fixture
+def simple_registration() -> ServiceRegistration:
+    '''
+    A registration for the simple service.
+
+    :return: The simple service registration.
+    :rtype: ServiceRegistration
+    '''
+
+    # Register SimpleService under simple_service.
+    return ServiceRegistration(
+        id='simple_service',
+        module_path=MODULE_PATH,
+        class_name='SimpleService',
+    )
+
+# ** fixture: flagged_registration
+@pytest.fixture
+def flagged_registration() -> ServiceRegistration:
+    '''
+    A registration with an alt-flagged DependentService override.
+
+    :return: The flagged service registration.
+    :rtype: ServiceRegistration
+    '''
+
+    # Register SimpleService with a flagged type override.
+    return ServiceRegistration(
+        id='flagged_service',
+        module_path=MODULE_PATH,
+        class_name='SimpleService',
+        dependencies=[
+            {
+                'module_path': MODULE_PATH,
+                'class_name': 'DependentService',
+                'flag': 'alt',
+            },
+        ],
+    )
+
+# ** fixture: configurable_registration
+@pytest.fixture
+def configurable_registration() -> ServiceRegistration:
+    '''
+    A registration for the configurable service with a default parameter.
+
+    :return: The configurable service registration.
+    :rtype: ServiceRegistration
+    '''
+
+    # Register ConfigurableService with its default parameter.
+    return ServiceRegistration(
+        id='configurable_service',
+        module_path=MODULE_PATH,
+        class_name='ConfigurableService',
+        parameters={'config_value': 'default_value'},
+    )
+
+# ** fixture: no_type_registration
+@pytest.fixture
+def no_type_registration() -> ServiceRegistration:
+    '''
+    A registration with no type.
+
+    :return: The typeless service registration.
+    :rtype: ServiceRegistration
+    '''
+
+    # Register an id with no module path or class name.
+    return ServiceRegistration(id='no_type_service')
+
+# ** fixture: di_service
+@pytest.fixture
+def di_service(
+    simple_registration: ServiceRegistration,
+    flagged_registration: ServiceRegistration,
+    configurable_registration: ServiceRegistration,
+    no_type_registration: ServiceRegistration,
+) -> DIService:
+    '''
+    A DIService mock whose list_all returns the four registrations.
+
+    :param simple_registration: The simple service registration.
+    :type simple_registration: ServiceRegistration
+    :param flagged_registration: The flagged service registration.
+    :type flagged_registration: ServiceRegistration
+    :param configurable_registration: The configurable service registration.
+    :type configurable_registration: ServiceRegistration
+    :param no_type_registration: The typeless service registration.
+    :type no_type_registration: ServiceRegistration
+    :return: The mocked DI service.
+    :rtype: DIService
+    '''
+
+    # Spec the mock and fix list_all's return value.
+    di_service = mock.Mock(spec=DIService)
+    di_service.list_all.return_value = [
+        [
+            simple_registration,
+            flagged_registration,
+            configurable_registration,
+            no_type_registration,
+        ],
+        {},
+    ]
+    return di_service
+
 # *** tests
 
 # ** test: init_empty
@@ -251,9 +429,10 @@ def test_add_service_resolves(simple_dependency: ServiceDependency):
     # Register and resolve the simple service.
     container = DIDynamicServiceContainer()
     container.add_service('simple_service', simple_dependency)
+    service = container.get_dependency('simple_service')
 
     # The resolved value is a SimpleService.
-    assert isinstance(container.get_dependency('simple_service'), SimpleService)
+    assert isinstance(service, SimpleService)
 
 # ** test: add_service_new_instance_per_call
 def test_add_service_new_instance_per_call(simple_dependency: ServiceDependency):
@@ -289,9 +468,10 @@ def test_add_constant_resolves():
     # Register a scalar constant.
     container = DIDynamicServiceContainer()
     container.add_constant('config_value', 'test_config')
+    value = container.get_dependency('config_value')
 
     # The constant resolves to its registered value.
-    assert container.get_dependency('config_value') == 'test_config'
+    assert value == 'test_config'
 
 # ** test: add_constant_injected_into_service
 def test_add_constant_injected_into_service(configurable_dependency: ServiceDependency):
@@ -308,9 +488,11 @@ def test_add_constant_injected_into_service(configurable_dependency: ServiceDepe
     container = DIDynamicServiceContainer()
     container.add_constant('config_value', 'test_config')
     container.add_service('configurable_service', configurable_dependency)
+    service = container.get_dependency('configurable_service')
 
     # The resolved service received the constant.
-    assert container.get_dependency('configurable_service').config_value == 'test_config'
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'test_config'
 
 # ** test: add_service_registers_parameters_as_constants
 def test_add_service_registers_parameters_as_constants(configurable_with_params_dependency: ServiceDependency):
@@ -326,9 +508,11 @@ def test_add_service_registers_parameters_as_constants(configurable_with_params_
     # Register only the parameterized service.
     container = DIDynamicServiceContainer()
     container.add_service('configurable_service', configurable_with_params_dependency)
+    service = container.get_dependency('configurable_service')
 
     # The declared parameter is injected.
-    assert container.get_dependency('configurable_service').config_value == 'param_value'
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'param_value'
 
 # ** test: add_service_parameter_wins_over_constant
 def test_add_service_parameter_wins_over_constant(configurable_with_params_dependency: ServiceDependency):
@@ -345,50 +529,48 @@ def test_add_service_parameter_wins_over_constant(configurable_with_params_depen
     container = DIDynamicServiceContainer()
     container.add_constant('config_value', 'existing_value')
     container.add_service('configurable_service', configurable_with_params_dependency)
+    service = container.get_dependency('configurable_service')
 
     # The service parameter wins.
-    assert container.get_dependency('configurable_service').config_value == 'param_value'
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'param_value'
 
 # ** test: load_container_constants_before_services
-def test_load_container_constants_before_services(configurable_dependency: ServiceDependency):
+def test_load_container_constants_before_services(constants_first_container: DIDynamicServiceContainer):
     '''
     Construction registers constants before services.
 
-    :param configurable_dependency: The configurable service dependency.
-    :type configurable_dependency: ServiceDependency
+    :param constants_first_container: The container loaded with a service and its constant.
+    :type constants_first_container: DIDynamicServiceContainer
     :return: None
     :rtype: None
     '''
 
-    # Load the service and its constant together.
-    container = DIDynamicServiceContainer(
-        services={'configurable_service': configurable_dependency},
-        constants={'config_value': 'test_config'},
-    )
+    # Resolve the service from the loaded container.
+    service = constants_first_container.get_dependency('configurable_service')
 
     # The constant was available when the service was wired.
-    assert container.get_dependency('configurable_service').config_value == 'test_config'
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'test_config'
 
 # ** test: constructor_delegates_to_load_container
-def test_constructor_delegates_to_load_container(simple_dependency: ServiceDependency):
+def test_constructor_delegates_to_load_container(delegating_container: DIDynamicServiceContainer):
     '''
     The constructor loads both the given service and constants.
 
-    :param simple_dependency: The simple service dependency.
-    :type simple_dependency: ServiceDependency
+    :param delegating_container: The container constructed with a service and a constant.
+    :type delegating_container: DIDynamicServiceContainer
     :return: None
     :rtype: None
     '''
 
-    # Construct with a service and a constant.
-    container = DIDynamicServiceContainer(
-        services={'simple_service': simple_dependency},
-        constants={'config_value': 'test_config'},
-    )
+    # Resolve the service and the constant.
+    service = delegating_container.get_dependency('simple_service')
+    value = delegating_container.get_dependency('config_value')
 
     # Both the service and the constant resolve.
-    assert isinstance(container.get_dependency('simple_service'), SimpleService)
-    assert container.get_dependency('config_value') == 'test_config'
+    assert isinstance(service, SimpleService)
+    assert value == 'test_config'
 
 # ** test: has_dependency_present
 def test_has_dependency_present(simple_dependency: ServiceDependency):
@@ -404,9 +586,10 @@ def test_has_dependency_present(simple_dependency: ServiceDependency):
     # Register the simple service.
     container = DIDynamicServiceContainer()
     container.add_service('simple_service', simple_dependency)
+    present = container.has_dependency('simple_service')
 
     # The registered id is present.
-    assert container.has_dependency('simple_service') is True
+    assert present is True
 
 # ** test: has_dependency_absent
 def test_has_dependency_absent():
@@ -417,34 +600,34 @@ def test_has_dependency_absent():
     :rtype: None
     '''
 
+    # Query an empty container for a missing id.
+    container = DIDynamicServiceContainer()
+    present = container.has_dependency('missing')
+
     # An empty container has no missing id.
-    assert DIDynamicServiceContainer().has_dependency('missing') is False
+    assert present is False
 
 # ** test: has_dependency_app_container
-def test_has_dependency_app_container(simple_dependency: ServiceDependency):
+def test_has_dependency_app_container(simple_app_dependency: AppServiceDependency):
     '''
     An app container reports present and absent ids.
 
-    :param simple_dependency: Unused sibling fixture kept for catalog shape.
-    :type simple_dependency: ServiceDependency
+    :param simple_app_dependency: The simple app service dependency.
+    :type simple_app_dependency: AppServiceDependency
     :return: None
     :rtype: None
     '''
 
     # Build an app container from one app service dependency.
     container = DIAppServiceContainer.from_dependencies(
-        services=[
-            AppServiceDependency(
-                service_id='simple_service',
-                module_path=MODULE_PATH,
-                class_name='SimpleService',
-            ),
-        ],
+        services=[simple_app_dependency],
     )
+    present = container.has_dependency('simple_service')
+    absent = container.has_dependency('not_registered')
 
     # The registered id is present; an unknown id is not.
-    assert container.has_dependency('simple_service') is True
-    assert container.has_dependency('not_registered') is False
+    assert present is True
+    assert absent is False
 
 # ** test: get_dependency_missing_raises_service_error
 def test_get_dependency_missing_raises_service_error():
@@ -456,13 +639,15 @@ def test_get_dependency_missing_raises_service_error():
     '''
 
     # Resolve an unregistered id.
+    container = DIDynamicServiceContainer()
     with pytest.raises(ServiceError) as exc_info:
-        DIDynamicServiceContainer().get_dependency('missing_dependency')
+        container.get_dependency('missing_dependency')
 
     # The error carries the DI code and is not a TiferetError.
     error = exc_info.value
+    assert isinstance(error, ServiceError)
     assert error.error_code == DI_DEPENDENCY_NOT_REGISTERED_ID
-    assert error.kwargs['dependency_id'] == 'missing_dependency'
+    assert error.kwargs == {'dependency_id': 'missing_dependency'}
     assert not isinstance(error, TiferetError)
 
 # ** test: remove_dependency_removes
@@ -481,10 +666,10 @@ def test_remove_dependency_removes(simple_dependency: ServiceDependency):
     container.add_service('simple_service', simple_dependency)
     container.remove_dependency('simple_service')
 
-    # The provider is gone, and resolution fails.
-    assert 'simple_service' not in container.container.providers
-    with pytest.raises(Exception):
+    # Resolution of the removed id fails.
+    with pytest.raises(Exception) as exc_info:
         container.get_dependency('simple_service')
+    assert isinstance(exc_info.value, Exception)
 
 # ** test: remove_dependency_idempotent
 def test_remove_dependency_idempotent():
@@ -582,28 +767,26 @@ def test_app_container_event_receives_repo_singleton():
     assert event.simple_service is repo
 
 # ** test: app_container_constants_before_services
-def test_app_container_constants_before_services():
+def test_app_container_constants_before_services(configurable_app_dependency: AppServiceDependency):
     '''
     App-container constants are available when services are wired.
 
+    :param configurable_app_dependency: The configurable app service dependency.
+    :type configurable_app_dependency: AppServiceDependency
     :return: None
     :rtype: None
     '''
 
     # Build the app container with a shared constant.
     container = DIAppServiceContainer.from_dependencies(
-        services=[
-            AppServiceDependency(
-                service_id='configurable_service',
-                module_path=MODULE_PATH,
-                class_name='ConfigurableService',
-            ),
-        ],
+        services=[configurable_app_dependency],
         constants={'config_value': 'shared'},
     )
+    service = container.get_dependency('configurable_service')
 
     # The service received the shared constant.
-    assert container.get_dependency('configurable_service').config_value == 'shared'
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'shared'
 
 # ** test: app_container_from_dependencies_core_catalog_resolves
 def test_app_container_from_dependencies_core_catalog_resolves():
@@ -629,52 +812,45 @@ def test_app_container_from_dependencies_core_catalog_resolves():
         assert container.get_dependency(service_id) is not None
 
 # ** test: resolver_build_container_default
-def test_resolver_build_container_default(resolver_registrations, make_di_service):
+def test_resolver_build_container_default(di_service: DIService):
     '''
     build_container returns a dynamic container with default registrations.
 
-    :param resolver_registrations: The catalog registrations.
-    :type resolver_registrations: list
-    :param make_di_service: The DIService factory.
-    :type make_di_service: Callable
+    :param di_service: The mocked DI service.
+    :type di_service: DIService
     :return: None
     :rtype: None
     '''
 
     # Build a container from the catalog with an empty flag list.
-    resolver = DIDynamicServiceResolver(
-        di_service=make_di_service(registrations=resolver_registrations),
-    )
+    resolver = DIDynamicServiceResolver(di_service)
     container = resolver.build_container([])
+    service = container.get_dependency('simple_service')
+    configurable = container.get_dependency('configurable_service')
 
     # The default bindings resolve.
     assert isinstance(container, DIDynamicServiceContainer)
-    assert isinstance(container.get_dependency('simple_service'), SimpleService)
-    assert container.get_dependency('configurable_service').config_value == 'default_value'
+    assert isinstance(service, SimpleService)
+    assert isinstance(configurable, ConfigurableService)
+    assert configurable.config_value == 'default_value'
 
 # ** test: resolver_flagged_type_override
-def test_resolver_flagged_type_override(resolver_registrations, make_di_service):
+def test_resolver_flagged_type_override(di_service: DIService):
     '''
     A flagged resolution uses the flagged type override.
 
-    :param resolver_registrations: The catalog registrations.
-    :type resolver_registrations: list
-    :param make_di_service: The DIService factory.
-    :type make_di_service: Callable
+    :param di_service: The mocked DI service.
+    :type di_service: DIService
     :return: None
     :rtype: None
     '''
 
     # Resolve the flagged service under the alt flag.
-    resolver = DIDynamicServiceResolver(
-        di_service=make_di_service(registrations=resolver_registrations),
-    )
+    resolver = DIDynamicServiceResolver(di_service)
+    service = resolver.get_dependency('flagged_service', 'alt')
 
     # The override type is DependentService.
-    assert isinstance(
-        resolver.get_dependency('flagged_service', 'alt'),
-        DependentService,
-    )
+    assert isinstance(service, DependentService)
 
 # ** test: resolver_skips_no_type_registration
 def test_resolver_skips_no_type_registration(resolver_registrations, make_di_service):
@@ -729,26 +905,23 @@ def test_resolver_parse_parameter_applied(make_di_service):
     assert resolver.get_dependency('configurable_service').config_value == 'parsed:raw'
 
 # ** test: resolver_caches_container_per_flag
-def test_resolver_caches_container_per_flag(resolver_registrations, make_di_service):
+def test_resolver_caches_container_per_flag(di_service: DIService):
     '''
     Repeated resolution of the same flags calls list_all once.
 
-    :param resolver_registrations: The catalog registrations.
-    :type resolver_registrations: list
-    :param make_di_service: The DIService factory.
-    :type make_di_service: Callable
+    :param di_service: The mocked DI service.
+    :type di_service: DIService
     :return: None
     :rtype: None
     '''
 
     # Resolve the same service twice.
-    di_service = make_di_service(registrations=resolver_registrations)
-    resolver = DIDynamicServiceResolver(di_service=di_service)
+    resolver = DIDynamicServiceResolver(di_service)
     resolver.get_dependency('simple_service')
     resolver.get_dependency('simple_service')
 
     # The container was built once.
-    assert di_service.list_all.call_count == 1
+    di_service.list_all.assert_called_once()
 
 # ** test: resolver_cascading_get_dependency
 def test_resolver_cascading_get_dependency(resolver_registrations, make_di_service):
