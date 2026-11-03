@@ -589,7 +589,7 @@ def test_package_exports_and_script():
     assert 'TesterCLI' in tiferet.blueprints.__all__
     assert 'build_tester_cli' in tiferet.blueprints.__all__
     assert 'TesterCLI' not in tiferet.__all__
-    assert tiferet.__version__ == '2.2.0'
+    assert tiferet.__version__ == '2.2.1'
     assert scripts['tiferet'] == 'tiferet.blueprints.admin_cli:main'
     assert scripts['tiferet-tester'] == 'tiferet.blueprints.tester_cli:main'
 
