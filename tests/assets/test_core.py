@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** core
+import json
+
 # ** infra
 import pytest
 
@@ -108,6 +111,9 @@ def test_create_default_error_data_empty_messages():
 def test_create_service_module_path_returns_dotted_path():
     '''
     Verify create_service_module_path joins the events segments into a dotted path.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_service_module_path with the case kwargs.
@@ -124,6 +130,9 @@ def test_create_service_module_path_returns_dotted_path():
 def test_create_service_module_path_repos_path():
     '''
     Verify create_service_module_path joins the repos segments into a dotted path.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_service_module_path with the case kwargs.
@@ -140,6 +149,9 @@ def test_create_service_module_path_repos_path():
 def test_create_service_dependency_returns_expected_shape():
     '''
     Verify create_service_dependency returns the expected shape with empty parameters by default.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_service_dependency with the case kwargs.
@@ -157,6 +169,9 @@ def test_create_service_dependency_returns_expected_shape():
 def test_create_service_dependency_with_parameters():
     '''
     Verify create_service_dependency preserves explicit parameters.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_service_dependency with the case kwargs.
@@ -175,6 +190,9 @@ def test_create_service_dependency_with_parameters():
 def test_create_app_service_dependency_data_returns_expected_shape():
     '''
     Verify create_app_service_dependency_data returns module_path, class_name and empty parameters, and omits id.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_app_service_dependency_data with the case kwargs.
@@ -193,6 +211,9 @@ def test_create_app_service_dependency_data_returns_expected_shape():
 def test_create_app_service_dependency_data_omitting_parameters_yields_empty_dict():
     '''
     Verify create_app_service_dependency_data returns module_path, class_name and empty parameters, and omits id.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_app_service_dependency_data with the case kwargs.
@@ -211,6 +232,9 @@ def test_create_app_service_dependency_data_omitting_parameters_yields_empty_dic
 def test_create_default_app_session_data_returns_required_fields():
     '''
     Verify create_default_app_session_data returns name and omits the optional fields.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_app_session_data with the case kwargs.
@@ -229,6 +253,9 @@ def test_create_default_app_session_data_returns_required_fields():
 def test_create_default_app_session_data_includes_description_when_provided():
     '''
     Verify create_default_app_session_data includes description when provided.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_app_session_data with the case kwargs.
@@ -248,6 +275,9 @@ def test_create_default_app_session_data_includes_description_when_provided():
 def test_create_default_formatter_returns_required_fields():
     '''
     Verify create_default_formatter returns the required fields and omits the optional ones.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_formatter with the case kwargs.
@@ -268,6 +298,9 @@ def test_create_default_formatter_returns_required_fields():
 def test_create_default_formatter_includes_optional_fields_when_provided():
     '''
     Verify create_default_formatter includes description and datefmt when provided.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_formatter with the case kwargs.
@@ -290,6 +323,9 @@ def test_create_default_formatter_includes_optional_fields_when_provided():
 def test_create_default_handler_returns_required_fields():
     '''
     Verify create_default_handler returns the required fields and omits the optional ones.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_handler with the case kwargs.
@@ -317,6 +353,9 @@ def test_create_default_handler_returns_required_fields():
 def test_create_default_handler_includes_optional_fields_when_provided():
     '''
     Verify create_default_handler includes description, stream and filename when provided.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_handler with the case kwargs.
@@ -347,6 +386,9 @@ def test_create_default_handler_includes_optional_fields_when_provided():
 def test_create_default_logger_returns_required_fields():
     '''
     Verify create_default_logger returns the required fields with propagate and is_root defaulting to False.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_logger with the case kwargs.
@@ -370,6 +412,9 @@ def test_create_default_logger_returns_required_fields():
 def test_create_default_feature_data_returns_required_fields():
     '''
     Verify create_default_feature_data returns the required fields and omits the optional ones.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_feature_data with the case kwargs.
@@ -397,6 +442,9 @@ def test_create_default_feature_data_returns_required_fields():
 def test_create_default_feature_data_includes_optional_fields_when_provided():
     '''
     Verify create_default_feature_data includes description and params_schema when provided.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_feature_data with the case kwargs.
@@ -426,6 +474,9 @@ def test_create_default_feature_data_includes_optional_fields_when_provided():
 def test_create_params_schema_returns_expected_dict():
     '''
     Verify create_params_schema returns each keyword as a schema entry.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_params_schema with the case kwargs.
@@ -447,6 +498,9 @@ def test_create_params_schema_returns_expected_dict():
 def test_create_service_registration_data_returns_expected_shape():
     '''
     Verify create_service_registration_data returns module_path, class_name and empty parameters, and omits id.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_service_registration_data with the case kwargs.
@@ -465,6 +519,9 @@ def test_create_service_registration_data_returns_expected_shape():
 def test_create_service_registration_data_omitting_parameters_yields_empty_dict():
     '''
     Verify create_service_registration_data returns module_path, class_name and empty parameters, and omits id.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_service_registration_data with the case kwargs.
@@ -483,6 +540,9 @@ def test_create_service_registration_data_omitting_parameters_yields_empty_dict(
 def test_create_default_cli_argument_returns_required_field():
     '''
     Verify create_default_cli_argument returns name_or_flags and omits the optional fields.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_cli_argument with the case kwargs.
@@ -504,6 +564,9 @@ def test_create_default_cli_argument_returns_required_field():
 def test_create_default_cli_argument_includes_optional_fields_when_provided():
     '''
     Verify create_default_cli_argument includes the optional fields when provided.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_cli_argument with the case kwargs.
@@ -531,6 +594,9 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided():
 def test_create_default_cli_command_data_returns_required_fields():
     '''
     Verify create_default_cli_command_data returns the required fields and omits the optional ones.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_cli_command_data with the case kwargs.
@@ -552,6 +618,9 @@ def test_create_default_cli_command_data_returns_required_fields():
 def test_create_default_cli_command_data_includes_optional_fields_when_provided():
     '''
     Verify create_default_cli_command_data includes description and arguments when provided.
+
+    :return: None
+    :rtype: None
     '''
 
     # Build the argument the command carries.
@@ -585,6 +654,9 @@ def test_create_default_cli_command_data_includes_optional_fields_when_provided(
 def test_create_default_logger_includes_optional_fields_when_provided():
     '''
     Verify create_default_logger preserves explicit optional fields.
+
+    :return: None
+    :rtype: None
     '''
 
     # Call create_default_logger with the case kwargs.
@@ -629,6 +701,9 @@ def test_tiferet_error_carries_code_message_and_kwargs():
 def test_tiferet_error_raise_error_code_only():
     '''
     Verify TiferetError.raise_error raises with an error code only.
+
+    :return: None
+    :rtype: None
     '''
 
     # Raise via the raise_error classmethod and capture the exception.
@@ -646,6 +721,9 @@ def test_tiferet_error_raise_error_code_only():
 def test_tiferet_error_raise_error_with_message_and_kwargs():
     '''
     Verify TiferetError.raise_error carries the message and kwargs.
+
+    :return: None
+    :rtype: None
     '''
 
     # Raise via the raise_error classmethod and capture the exception.
@@ -660,13 +738,16 @@ def test_tiferet_error_raise_error_with_message_and_kwargs():
     # Verify the raised error.
     assert isinstance(raised, TiferetError)
     assert raised.error_code == 'ARG_ERROR'
-    assert 'Something failed' in str(raised)
+    assert json.loads(str(raised))['message'] == 'Something failed'
     assert raised.kwargs == {'detail': 'extra'}
 
 # ** test: tiferet_error_raise_error_kwargs_without_message
 def test_tiferet_error_raise_error_kwargs_without_message():
     '''
     Verify TiferetError.raise_error carries kwargs when no message is given.
+
+    :return: None
+    :rtype: None
     '''
 
     # Raise via the raise_error classmethod and capture the exception.
@@ -686,6 +767,9 @@ def test_tiferet_error_raise_error_kwargs_without_message():
 def test_tiferet_api_error_raise_error_dispatches_to_subclass():
     '''
     Verify the inherited raise_error raises the TiferetAPIError subclass with name defaulting to the error code.
+
+    :return: None
+    :rtype: None
     '''
 
     # Raise via the raise_error classmethod and capture the exception.
@@ -704,6 +788,9 @@ def test_tiferet_api_error_raise_error_dispatches_to_subclass():
 def test_tiferet_api_error_positional_message_binds_to_message():
     '''
     Verify a positional message binds to message and name defaults to the error code.
+
+    :return: None
+    :rtype: None
     '''
 
     # Construct the error with a positional message.
