@@ -9,7 +9,8 @@ import inspect
 import pytest
 
 # ** app
-from tiferet.blueprints.tester import build_test_session, build_tester_context, use_tester
+from tiferet.blueprints.tester import _module_run_session, build_test_session, build_tester_context, use_tester
+from tiferet.assets import TiferetAPIError, TiferetError
 from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.cli import CliSessionContext
@@ -870,3 +871,64 @@ class TestContextTesterContext:
         )
         test_ctx.assert_domain_type()
         test_ctx.assert_for_domain()
+
+# ** function: unwired_module_run
+def _unwired_module_run() -> tuple:
+    '''
+    Build a module run whose dependency and error handler must not be called.
+
+    :return: The module run and the list of unexpected calls.
+    :rtype: tuple
+    '''
+
+    # Any call here would be the reporter resolving get_error_evt.
+    calls = []
+    def unused(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError('must not be called')
+    return ModuleRunContext(unused, raise_error_handler=unused), calls
+
+# ** test: uncatalogued_tiferet_error_is_recorded_as_failed
+def test_uncatalogued_tiferet_error_is_recorded_as_failed() -> None:
+    '''An uncatalogued code is FAILED with <code>: <message> and resolves nothing.'''
+
+    module_run, calls = _unwired_module_run()
+    printable = module_run.note('node.app', error=TiferetError('APP_SPECIFIC_ERR', 'boom'))
+    assert printable is not None
+    assert 'APP_SPECIFIC_ERR' in str(printable)
+    assert module_run.outcomes == [{'node_id': 'node.app', 'status': 'FAILED', 'message': 'APP_SPECIFIC_ERR: boom'}]
+    assert module_run.failures == module_run.outcomes
+    assert calls == []
+
+# ** test: uncatalogued_tiferet_error_without_message
+def test_uncatalogued_tiferet_error_without_message() -> None:
+    '''An uncatalogued code with no message records the code alone.'''
+
+    module_run, calls = _unwired_module_run()
+    printable = module_run.note('node.app', error=TiferetError('APP_SPECIFIC_ERR'))
+    assert printable is not None
+    assert module_run.outcomes[0]['message'] == 'APP_SPECIFIC_ERR'
+    assert calls == []
+
+# ** test: uncatalogued_tiferet_error_without_cache
+def test_uncatalogued_tiferet_error_without_cache() -> None:
+    '''With no cache, a Tiferet error is recorded from the error itself and never raises.'''
+
+    module_run, calls = _unwired_module_run()
+    module_run.cache = None
+    printable = module_run.note('node.app', error=TiferetError('ERROR_NOT_FOUND', 'gone'))
+    assert printable is not None
+    assert module_run.outcomes[0]['status'] == 'FAILED'
+    assert module_run.outcomes[0]['message'] == 'ERROR_NOT_FOUND: gone'
+    assert calls == []
+
+# ** test: catalogued_tiferet_error_formats_through_handler
+def test_catalogued_tiferet_error_formats_through_handler() -> None:
+    '''A catalogued core code still formats through raise_error_handler.'''
+
+    module_run = _module_run_session()
+    printable = module_run.note('node.core', error=TiferetError('ERROR_NOT_FOUND', 'gone'))
+    assert isinstance(printable, TiferetAPIError)
+    assert printable.message == 'Error not found: {id}.'
+    assert module_run.outcomes[0]['status'] == 'FAILED'
+    assert module_run.outcomes[0]['message'] == 'Error not found: {id}.'

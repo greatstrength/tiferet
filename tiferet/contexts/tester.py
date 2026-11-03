@@ -20,6 +20,7 @@ from ..domain import (
 from ..events import DomainEvent
 from .app import AppSessionContext
 from .core import BaseContext, add_default_cache_items
+from .error import ERROR_CACHE_PREFIX
 from .request import RequestContext
 from .tester_phase import TestContext
 
@@ -96,6 +97,25 @@ def add_default_test_presets(presets: Dict[str, Dict]) -> Callable:
 
     # Delegate raw preset storage to the shared cache-seeding factory.
     return add_default_cache_items(presets, TEST_PRESET_CACHE_PREFIX)
+
+# ** function: tiferet_error_message
+def _tiferet_error_message(error: TiferetError) -> str:
+    '''
+    Read a Tiferet error's own message from the JSON its string holds.
+
+    :param error: The Tiferet error.
+    :type error: TiferetError
+    :return: The message, or an empty string when there is none.
+    :rtype: str
+    '''
+
+    # TiferetError has no message attribute. str(error) is its JSON payload.
+    try:
+        payload = json.loads(str(error))
+    except (TypeError, ValueError):
+        return ''
+    message = payload.get('message') if isinstance(payload, dict) else None
+    return message if isinstance(message, str) else ''
 
 # ** function: own_message
 def _own_message(error: ModelError) -> str:
@@ -757,11 +777,22 @@ class ModuleRunContext(AppSessionContext):
             printable = error
         elif isinstance(error, TiferetError):
             status = 'FAILED'
-            try:
-                self._raise_error(error)
-            except TiferetAPIError as api_error:
-                message = api_error.message or ''
-                printable = api_error
+            cache = getattr(self, 'cache', None)
+            catalogued = cache is not None and cache.get(error.error_code, *ERROR_CACHE_PREFIX) is not None
+
+            # A catalogued code formats through the handler as before.
+            if catalogued:
+                try:
+                    self._raise_error(error)
+                except TiferetAPIError as api_error:
+                    message = api_error.message or ''
+                    printable = api_error
+
+            # An uncatalogued code fails this test from the error itself. Nothing resolves get_error_evt.
+            else:
+                own = _tiferet_error_message(error)
+                message = f'{error.error_code}: {own}' if own else error.error_code
+                printable = TiferetAPIError(error.error_code, own or None)
 
         # Any other exception is that test's failure, with its type in the message.
         elif isinstance(error, Exception):
