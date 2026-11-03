@@ -19,12 +19,23 @@ from typing import Any, Callable, Dict, List
 from pydantic import ValidationError
 
 # ** app
-from .. import a
 from ..assets import TiferetAPIError, TiferetError
-from ..assets.tester import (
-    CORE_DEFAULT_TESTERS,
-    CORE_DEFAULT_TESTER_SESSIONS,
-    TEST_MODULE_LOAD_FAILED_ID,
+from ..assets.tester import TEST_MODULE_LOAD_FAILED_ID
+from ..assets.tester_harness import (
+    HARNESS_CORE_DEFAULT_ERRORS,
+    HARNESS_CORE_DEFAULT_TESTERS,
+    HARNESS_CORE_DEFAULT_TESTER_SESSIONS,
+    HARNESS_DEFAULT_CONFIG_FILE,
+    HARNESS_DI_CONFIG_ID,
+    HARNESS_DI_SERVICE_DATA,
+    HARNESS_DI_SERVICE_ID,
+    HARNESS_ERROR_EXIT_CODE,
+    HARNESS_ERROR_PREFIX,
+    HARNESS_FEATURE_CONFIG_ID,
+    HARNESS_FEATURE_SERVICE_DATA,
+    HARNESS_FEATURE_SERVICE_ID,
+    HARNESS_GET_FEATURE_EVT_DATA,
+    HARNESS_GET_FEATURE_EVT_ID,
 )
 from ..contexts.app import (
     add_default_app_constants,
@@ -568,8 +579,40 @@ def _registered_stage():
     module = import_module(registration['module_path'])
     return getattr(module, registration['class_name'])
 
+# ** function: harness_step
+def _harness_step(step: str, build: Callable, *args: Any, **kwargs: Any) -> Any:
+    '''
+    Run one harness build step, or report its failure as a harness error.
+
+    An exception prints one stderr line that names the step and the
+    exception, then exits with the harness error code. No case line and no
+    count line is printed.
+
+    :param step: The harness step name printed on failure.
+    :type step: str
+    :param build: The build callable.
+    :type build: Callable
+    :param args: Positional arguments for the build callable.
+    :type args: tuple
+    :param kwargs: Keyword arguments for the build callable.
+    :type kwargs: dict
+    :return: The build callable's return value.
+    :rtype: Any
+    '''
+
+    # A harness failure is not a test result.
+    try:
+        return build(*args, **kwargs)
+    except Exception as error:
+        message = ' '.join(str(error).split())
+        print(
+            f'{HARNESS_ERROR_PREFIX} {step}: {type(error).__name__}: {message}',
+            file=sys.stderr,
+        )
+        sys.exit(HARNESS_ERROR_EXIT_CODE)
+
 # ** function: reporter_cache
-@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
+@add_default_errors(HARNESS_CORE_DEFAULT_ERRORS)
 def _reporter_cache(cache: Dict[str, Any] = None) -> CacheContext:
     '''Seed the reporter cache with the core error catalog.'''
 
@@ -609,19 +652,19 @@ def _unused_dependency(*args, **kwargs):
     raise RuntimeError('The reporter cache must not resolve get_error_evt.')
 
 # ** blueprint: build_cache
-@add_default_app_sessions(CORE_DEFAULT_TESTER_SESSIONS)
-@add_default_testers(CORE_DEFAULT_TESTERS)
+@add_default_app_sessions(HARNESS_CORE_DEFAULT_TESTER_SESSIONS)
+@add_default_testers(HARNESS_CORE_DEFAULT_TESTERS)
 @add_default_app_constants(
     {
-        a.app.DI_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
-        a.app.FEATURE_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+        HARNESS_DI_CONFIG_ID: HARNESS_DEFAULT_CONFIG_FILE,
+        HARNESS_FEATURE_CONFIG_ID: HARNESS_DEFAULT_CONFIG_FILE,
     },
 )
 @add_default_app_services(
     {
-        a.app.DI_SERVICE_ID: a.app.DI_SERVICE_DATA,
-        a.app.FEATURE_SERVICE_ID: a.app.FEATURE_SERVICE_DATA,
-        a.app.GET_FEATURE_EVT_ID: a.app.GET_FEATURE_EVT_DATA,
+        HARNESS_DI_SERVICE_ID: HARNESS_DI_SERVICE_DATA,
+        HARNESS_FEATURE_SERVICE_ID: HARNESS_FEATURE_SERVICE_DATA,
+        HARNESS_GET_FEATURE_EVT_ID: HARNESS_GET_FEATURE_EVT_DATA,
     },
 )
 def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
@@ -1180,8 +1223,8 @@ def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
         if illegal:
             raise ValueError(f'Illegal test-module root: {illegal[0]}.')
 
-        # The session pools. This function still walks the document.
-        session = _module_run_session()
+        # The session pools. A failure to build it is a harness error.
+        session = _harness_step('reporter session', _module_run_session)
         node_root = f'tiferet_tests/{rel}.yml'
         passed = 0
         failed = 0

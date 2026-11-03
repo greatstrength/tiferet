@@ -7,23 +7,27 @@ from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, Optional
 
 # ** app
-from .. import a
 from . import core
 from .cli import create_cli_request_context, parse_cli_args_handler
 from .tester import (
+    _harness_step,
     _read_test_module_text,
     _replace_test_module,
     run_test_module,
 )
-from ..assets.tester_cli import (
-    TESTER_CLI_ID,
-    TESTER_CLI_SESSIONS,
-    TESTER_DEFAULT_COMMANDS,
-    TESTER_DEFAULT_FEATURES,
-    TESTER_DEFAULT_LOGGING_SETTINGS,
-    TESTER_DEFAULT_PARENT_ARGUMENTS,
-    TESTER_QUERY_EVENT_REGISTRATIONS,
-    TESTER_WRITE_EVENT_REGISTRATIONS,
+from ..assets.tester_cli import TESTER_DEFAULT_PARENT_ARGUMENTS
+from ..assets.tester_harness import (
+    HARNESS_CORE_DEFAULT_ERRORS,
+    HARNESS_DI_CONFIG_ID,
+    HARNESS_DI_SERVICE_DATA,
+    HARNESS_DI_SERVICE_ID,
+    HARNESS_TESTER_CLI_ID,
+    HARNESS_TESTER_CLI_SESSIONS,
+    HARNESS_TESTER_DEFAULT_COMMANDS,
+    HARNESS_TESTER_DEFAULT_FEATURES,
+    HARNESS_TESTER_DEFAULT_LOGGING_SETTINGS,
+    HARNESS_TESTER_QUERY_EVENT_REGISTRATIONS,
+    HARNESS_TESTER_WRITE_EVENT_REGISTRATIONS,
 )
 from ..contexts.app import (
     AppSession,
@@ -51,18 +55,18 @@ from ..di.dependency_injector import (
 # *** blueprints
 
 # ** blueprint: build_cache
-@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
-@add_default_logging_settings(TESTER_DEFAULT_LOGGING_SETTINGS)
-@add_default_app_sessions(TESTER_CLI_SESSIONS)
-@add_default_cli_commands(TESTER_DEFAULT_COMMANDS)
-@add_default_features(TESTER_DEFAULT_FEATURES)
-@add_default_app_services(TESTER_QUERY_EVENT_REGISTRATIONS)
-@add_default_app_services(TESTER_WRITE_EVENT_REGISTRATIONS)
+@add_default_errors(HARNESS_CORE_DEFAULT_ERRORS)
+@add_default_logging_settings(HARNESS_TESTER_DEFAULT_LOGGING_SETTINGS)
+@add_default_app_sessions(HARNESS_TESTER_CLI_SESSIONS)
+@add_default_cli_commands(HARNESS_TESTER_DEFAULT_COMMANDS)
+@add_default_features(HARNESS_TESTER_DEFAULT_FEATURES)
+@add_default_app_services(HARNESS_TESTER_QUERY_EVENT_REGISTRATIONS)
+@add_default_app_services(HARNESS_TESTER_WRITE_EVENT_REGISTRATIONS)
 @add_default_app_services({
-    a.app.DI_SERVICE_ID: a.app.DI_SERVICE_DATA,
+    HARNESS_DI_SERVICE_ID: HARNESS_DI_SERVICE_DATA,
 })
 @add_default_app_constants({
-    a.app.DI_CONFIG_ID: 'unused',
+    HARNESS_DI_CONFIG_ID: 'unused',
 })
 def build_cache(
         cache: Dict[str, Any] = None,
@@ -103,7 +107,7 @@ def build_tester_service_resolver(
     '''
 
     # Read the DI service the resolver constructor requires.
-    di_service = app_container.get_dependency(a.app.DI_SERVICE_ID)
+    di_service = app_container.get_dependency(HARNESS_DI_SERVICE_ID)
 
     # Compose the resolver. Do not build a second container.
     resolver = DIDynamicServiceResolver(
@@ -242,12 +246,23 @@ def build_tester_cli(
     :rtype: Any
     '''
 
-    # Build the catalog cache and resolve the seeded session.
-    cache = build_cache()
-    app_session = core.get_app_session(TESTER_CLI_ID, cache=cache)
+    # Build the frozen catalog cache and resolve the seeded session.
+    # A failure in either step is a harness error, not a test result.
+    cache = _harness_step('cache', build_cache)
+    app_session = _harness_step(
+        'session',
+        core.get_app_session,
+        HARNESS_TESTER_CLI_ID,
+        cache=cache,
+    )
 
-    # Compose the context and dispatch argv.
-    cli_context = build_tester_cli_session_context(app_session, cache)
+    # Compose the context and its container, then dispatch argv.
+    cli_context = _harness_step(
+        'container',
+        build_tester_cli_session_context,
+        app_session,
+        cache,
+    )
     return cli_context.run(argv)
 
 # ** blueprint: main

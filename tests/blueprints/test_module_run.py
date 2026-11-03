@@ -994,3 +994,22 @@ def test_subject_import_miss_fails_that_test(tmp_path, capsys) -> None:
     assert lines[2] == 'tiferet_tests/domain/test_subject_miss.yml::project_import PASSED'
     assert lines[-1] == '1 failed, 1 passed'
     assert report['failures'] == [report['outcomes'][0]]
+
+# ** test: reporter_session_harness_error
+def test_reporter_session_harness_error(monkeypatch, capsys):
+    '''A reporter session build failure is a harness error, not a test result.'''
+
+    # Break the reporter session build.
+    def broken():
+        raise KeyError('CORE_DEFAULT_ERRORS')
+    monkeypatch.setattr(tester_blueprints, '_module_run_session', broken)
+    with pytest.raises(SystemExit) as exit_info:
+        run_test_module(PROOF_PATH)
+
+    # One stderr line, no case line, no count line.
+    captured = capsys.readouterr()
+    assert exit_info.value.code == 3
+    assert captured.out == ''
+    assert captured.err.splitlines() == [
+        "tiferet-tester harness error: reporter session: KeyError: 'CORE_DEFAULT_ERRORS'",
+    ]
