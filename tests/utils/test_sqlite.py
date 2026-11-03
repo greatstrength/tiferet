@@ -127,6 +127,7 @@ def test_sqlite_client_invalid_mode():
     # Assert the failure is a ServiceError with the invalid mode error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_INVALID_MODE_ID
+
 # ** test: sqlite_client_already_open
 def test_sqlite_client_already_open():
     '''
@@ -147,6 +148,7 @@ def test_sqlite_client_already_open():
     # Assert the failure is a ServiceError with the already-open error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_ALREADY_OPEN_ID
+
 # ** test: sqlite_client_execute_success
 def test_sqlite_client_execute_success():
     '''
@@ -171,6 +173,7 @@ def test_sqlite_client_execute_success():
     # Assert the cursor is returned and one row was inserted.
     assert isinstance(cursor, sqlite3.Cursor)
     assert count == 1
+
 # ** test: sqlite_client_executemany_success
 def test_sqlite_client_executemany_success():
     '''
@@ -194,6 +197,7 @@ def test_sqlite_client_executemany_success():
 
     # Assert all three rows were inserted.
     assert count == 3
+
 # ** test: sqlite_client_executescript_success
 def test_sqlite_client_executescript_success():
     '''
@@ -220,6 +224,7 @@ def test_sqlite_client_executescript_success():
 
     # Assert both rows were created.
     assert count == 2
+
 # ** test: sqlite_client_fetch_one
 def test_sqlite_client_fetch_one():
     '''
@@ -255,6 +260,7 @@ def test_sqlite_client_fetch_one():
     # Assert the row matches and the empty fetch is None.
     assert row == expected_row
     assert empty_row is None
+
 # ** test: sqlite_client_fetch_all
 def test_sqlite_client_fetch_all():
     '''
@@ -279,6 +285,7 @@ def test_sqlite_client_fetch_all():
 
     # Assert both rows are returned in order.
     assert rows == [row_a, row_b]
+
 # ** test: sqlite_client_context_manager_commit_on_success
 def test_sqlite_client_context_manager_commit_on_success(tmp_path: Path):
     '''
@@ -309,6 +316,7 @@ def test_sqlite_client_context_manager_commit_on_success(tmp_path: Path):
 
     # Assert the row persisted.
     assert row == expected
+
 # ** test: sqlite_client_context_manager_rollback_on_exception
 def test_sqlite_client_context_manager_rollback_on_exception(tmp_path: Path):
     '''
@@ -368,6 +376,7 @@ def test_sqlite_client_backup_success(tmp_path: Path):
 
     # Assert the backup holds the row.
     assert row == expected
+
 # ** test: sqlite_client_backup_with_progress
 def test_sqlite_client_backup_with_progress(tmp_path: Path, memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
     '''
@@ -437,6 +446,7 @@ def test_sqlite_client_backup_not_initialized(tmp_path: Path):
     # Assert the failure is a ServiceError with the not-initialized error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+
 # ** test: sqlite_client_execute_not_initialized
 def test_sqlite_client_execute_not_initialized():
     '''
@@ -453,6 +463,7 @@ def test_sqlite_client_execute_not_initialized():
     # Assert the failure is a ServiceError with the not-initialized error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+
 # ** test: sqlite_client_commit_not_initialized
 def test_sqlite_client_commit_not_initialized():
     '''
@@ -469,6 +480,7 @@ def test_sqlite_client_commit_not_initialized():
     # Assert the failure is a ServiceError with the not-initialized error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
+
 # ** test: sqlite_client_execute_wraps_driver_error
 def test_sqlite_client_execute_wraps_driver_error():
     '''
@@ -643,6 +655,7 @@ def test_sqlite_client_conn_failed(tmp_path: Path):
     # Assert the failure is a ServiceError with the connection error code.
     assert isinstance(failed.value, ServiceError)
     assert failed.value.error_code == SQLITE_CONN_FAILED_ID
+
 # ** test: sqlite_client_statement_failures
 def test_sqlite_client_statement_failures(memory_client: SqliteClient):
     '''
