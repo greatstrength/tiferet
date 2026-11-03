@@ -72,7 +72,7 @@ Facts for *this* repo: [binding.md](binding.md). Commands an individual needs (l
 
 A Super-TRD is parent plus children. The parent is a grouping and a blocking gate. It has no branch and no pull request of its own. The parent issue can be blocked by, or block, other TRDs and Super-TRDs.
 
-On the board the parent moves like any TRD: it starts at Backlog, then Ready, In Progress, In Review, and Done. A child cannot be started until the parent is In Progress.
+On the board the parent moves like any TRD: it starts at Backlog, then Ready, In Progress, In Review, and Done. The first mover sets the parent to In Progress before any child branch is cut: the agent running a fan-out, or otherwise the implementer of the first child. Later child implementers only confirm it. A child cannot be started until the parent is In Progress.
 
 A **sub-TRD PR** is one child's pull request. It is cut from `main` and targets `main`. Children do not commit onto a shared branch, and no child opens a PR for the parent.
 
