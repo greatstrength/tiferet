@@ -14,7 +14,11 @@ from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 from tiferet import use_tester
 from tiferet.interfaces.core import ServiceError
 from tiferet.interfaces.yaml import YamlService
-from tiferet.utils.file import FileLoader
+from tiferet.utils.file import (
+    FILE_NOT_FOUND_ID,
+    INVALID_FILE_ID,
+    FileLoader,
+)
 from tiferet.utils.yaml import (
     YAML_ANCHOR_CONFLICT_ID,
     YAML_ANCHOR_NOT_FOUND_ID,
@@ -98,27 +102,6 @@ def temp_yaml_file(tmp_path, sample_yaml_content) -> Path:
 
     # Create a temporary YAML file with sample content.
     file_path = tmp_path / 'test.yaml'
-    file_path.write_text(sample_yaml_content, encoding='utf-8')
-
-    # Return the file path.
-    return file_path
-
-# ** fixture: temp_yml_file
-@pytest.fixture
-def temp_yml_file(tmp_path, sample_yaml_content) -> Path:
-    '''
-    Fixture to create a temporary .yml file with sample content.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    :param sample_yaml_content: The sample YAML content string.
-    :type sample_yaml_content: str
-    :return: The path to the created temporary .yml file.
-    :rtype: pathlib.Path
-    '''
-
-    # Create a temporary .yml file with sample content.
-    file_path = tmp_path / 'test.yml'
     file_path.write_text(sample_yaml_content, encoding='utf-8')
 
     # Return the file path.
@@ -905,44 +888,44 @@ class TestYamlLoader:
         assert loader.file is None
 
     # * test: load_success
-    def test_load_success(self, temp_yaml_file, sample_yaml_dict, test_ctx):
+    def test_load_success(self, tmp_path):
         '''
         Load a YAML file.
 
-        :param temp_yaml_file: The sample YAML file.
-        :type temp_yaml_file: pathlib.Path
-        :param sample_yaml_dict: The expected mapping.
-        :type sample_yaml_dict: dict
-        :param test_ctx: The bound generic tester context.
-        :type test_ctx: GenericTesterContext
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # Load the file.
-        loader = test_ctx.make_target(data={'path': temp_yaml_file, 'mode': 'r'})
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path / 'test.yaml')
+        Path(file_path).write_text('name: test\nitems:\n  - one\n  - two\ncount: 3\n', encoding='utf-8')
+        loader = YamlLoader(path=file_path, mode='r')
+
+        # Run the case steps.
         result = loader.load()
 
-        # The outcome equals the sample mapping.
-        assert result == sample_yaml_dict
+        # Assert the case expectations.
+        assert result == {'name': 'test', 'items': ['one', 'two'], 'count': 3}
 
     # * test: load_yml_extension
-    def test_load_yml_extension(self, temp_yml_file, sample_yaml_dict, test_ctx):
+    def test_load_yml_extension(self, tmp_path):
         '''
         Load a .yml file.
 
-        :param temp_yml_file: The sample .yml file.
-        :type temp_yml_file: pathlib.Path
-        :param sample_yaml_dict: The expected mapping.
-        :type sample_yaml_dict: dict
-        :param test_ctx: The bound generic tester context.
-        :type test_ctx: GenericTesterContext
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # Load the .yml file.
-        loader = test_ctx.make_target(data={'path': temp_yml_file, 'mode': 'r'})
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path / 'test.yml')
+        Path(file_path).write_text('name: test\nitems:\n  - one\n  - two\ncount: 3\n', encoding='utf-8')
+        loader = YamlLoader(path=file_path, mode='r')
+
+        # Run the case steps.
         result = loader.load()
 
-        # The outcome equals the sample mapping.
-        assert result == sample_yaml_dict
+        # Assert the case expectations.
+        assert result == {'name': 'test', 'items': ['one', 'two'], 'count': 3}
 
     # * test: load_with_transformations
     def test_load_with_transformations(self, temp_yaml_file, test_ctx):
@@ -966,182 +949,228 @@ class TestYamlLoader:
         assert result == 2
 
     # * test: load_empty_file
-    def test_load_empty_file(self, temp_empty_yaml_file, test_ctx):
+    def test_load_empty_file(self, tmp_path):
         '''
         Load an empty YAML file.
 
-        :param temp_empty_yaml_file: The empty YAML file.
-        :type temp_empty_yaml_file: pathlib.Path
-        :param test_ctx: The bound generic tester context.
-        :type test_ctx: GenericTesterContext
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # Load the empty file.
-        loader = test_ctx.make_target(data={'path': temp_empty_yaml_file, 'mode': 'r'})
-        result = loader.load()
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path / 'empty.yaml')
+        Path(file_path).write_text('', encoding='utf-8')
+        loader = YamlLoader(path=file_path, mode='r')
 
-        # The outcome equals an empty mapping.
-        assert result == {}
+        # Run the case steps.
+        result = loader.load()
+        result_length = len(result)
+
+        # Assert the case expectations.
+        assert result_length == 0
+        assert isinstance(result, dict)
 
     # * test: save_and_reload
     def test_save_and_reload(self, tmp_path):
         '''
         Save a mapping and load it back.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # Save the mapping, then load it.
-        path = tmp_path / 'output.yaml'
-        data = {'key': 'value', 'numbers': [1, 2, 3]}
-        YamlLoader(path=path, mode='w').save(data)
-        result = YamlLoader(path=path, mode='r').load()
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path.joinpath('output.yaml'))
+        saver = YamlLoader(path=file_path, mode='w')
 
-        # The outcome equals that mapping.
-        assert result == data
+        # Run the case steps.
+        saver.save({'key': 'value', 'numbers': [1, 2, 3]})
+        loader = YamlLoader(path=file_path, mode='r')
+        result = loader.load()
+
+        # Assert the case expectations.
+        assert result == {'key': 'value', 'numbers': [1, 2, 3]}
 
     # * test: load_file_not_found
     def test_load_file_not_found(self, tmp_path):
         '''
         Loading a missing file names the path.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # Load missing.yaml.
-        loader = YamlLoader(path=tmp_path / 'missing.yaml', mode='r')
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path.joinpath('missing.yaml'))
+        loader = YamlLoader(path=file_path, mode='r')
+
+        # Run the case steps.
         with pytest.raises(ServiceError) as exc_info:
             loader.load()
+        failed = exc_info.value
 
-        # The message names the missing file.
-        assert 'File not found' in exc_info.value.message
-        assert 'missing.yaml' in exc_info.value.message
+        # Assert the case expectations.
+        assert failed.error_code == FILE_NOT_FOUND_ID
+        assert 'File not found' in failed.message
+        assert 'missing.yaml' in failed.message
 
     # * test: load_malformed_yaml
     def test_load_malformed_yaml(self, tmp_path):
         '''
         Malformed YAML is a parse failure.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # bad.yaml contains an unclosed bracket.
-        path = tmp_path / 'bad.yaml'
-        path.write_text('key: [unclosed bracket', encoding='utf-8')
-        loader = YamlLoader(path=path, mode='r')
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path / 'bad.yaml')
+        Path(file_path).write_text('key: [unclosed bracket', encoding='utf-8')
+        loader = YamlLoader(path=file_path, mode='r')
+
+        # Run the case steps.
         with pytest.raises(ServiceError) as exc_info:
             loader.load()
+        failed = exc_info.value
 
-        # The message names the parse failure and the file.
-        assert 'Failed to parse YAML file' in exc_info.value.message
-        assert 'bad.yaml' in exc_info.value.message
+        # Assert the case expectations.
+        assert failed.error_code == YAML_FILE_LOAD_ERROR_ID
+        assert failed.kwargs['path'] == file_path
+        assert 'Failed to parse YAML file' in failed.message
+        assert 'bad.yaml' in failed.message
 
     # * test: save_write_failure
     def test_save_write_failure(self, tmp_path):
         '''
         A missing parent is a file-not-found failure.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # The parent directory of output.yaml does not exist.
-        path = tmp_path / 'nonexistent_dir' / 'output.yaml'
-        with pytest.raises(ServiceError) as exc_info:
-            YamlLoader(path=path, mode='w').save({'key': 'value'})
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path.joinpath('nonexistent_dir', 'output.yaml'))
+        saver = YamlLoader(path=file_path, mode='w')
 
-        # The message names file not found.
-        assert 'File not found' in exc_info.value.message
+        # Run the case steps.
+        with pytest.raises(ServiceError) as exc_info:
+            saver.save({'key': 'value'})
+        failed = exc_info.value
+
+        # Assert the case expectations.
+        assert failed.error_code == FILE_NOT_FOUND_ID
+        assert 'File not found' in failed.message
 
     # * test: verify_yaml_file_success
-    def test_verify_yaml_file_success(self, temp_yaml_file):
+    def test_verify_yaml_file_success(self, tmp_path):
         '''
         A valid YAML file verifies.
 
-        :param temp_yaml_file: The sample YAML file.
-        :type temp_yaml_file: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # Verify the existing YAML file.
-        result = YamlLoader.verify_yaml_file(YamlLoader(path=temp_yaml_file, mode='r'))
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path / 'test.yaml')
+        Path(file_path).write_text('name: test\nitems:\n  - one\n  - two\ncount: 3\n', encoding='utf-8')
+        loader = YamlLoader(path=file_path, mode='r')
 
-        # The outcome is null.
-        assert result is None
+        # Run the case steps.
+        verified = YamlLoader.verify_yaml_file(loader)
+
+        # Assert the case expectations.
+        assert verified is None
 
     # * test: verify_yaml_file_invalid_extension
     def test_verify_yaml_file_invalid_extension(self, tmp_path):
         '''
         A non-YAML suffix is rejected.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # data.txt exists and its text is a mapping.
-        path = tmp_path / 'data.txt'
-        path.write_text('key: value\n', encoding='utf-8')
-        with pytest.raises(ServiceError) as exc_info:
-            YamlLoader.verify_yaml_file(YamlLoader(path=path, mode='r'))
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path / 'data.txt')
+        Path(file_path).write_text('key: value', encoding='utf-8')
+        loader = YamlLoader(path=file_path, mode='r')
 
-        # The message names the YAML suffix.
-        assert '.yaml' in exc_info.value.message
+        # Run the case steps.
+        with pytest.raises(ServiceError) as exc_info:
+            YamlLoader.verify_yaml_file(loader)
+        failed = exc_info.value
+
+        # Assert the case expectations.
+        assert failed.error_code == INVALID_FILE_ID
+        assert '.yaml' in failed.message
 
     # * test: verify_yaml_file_fallback
     def test_verify_yaml_file_fallback(self, tmp_path):
         '''
         An invalid primary path can fall back.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # The primary path is data.txt. fallback.yaml exists.
-        fallback = tmp_path / 'fallback.yaml'
-        fallback.write_text('key: value\n', encoding='utf-8')
-        loader = YamlLoader(path=tmp_path / 'data.txt', mode='r')
-        result = YamlLoader.verify_yaml_file(loader, default_path=fallback)
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path.joinpath('data.txt'))
+        fallback_file_path = str(tmp_path / 'fallback.yaml')
+        Path(fallback_file_path).write_text('key: value', encoding='utf-8')
+        default_path = Path(fallback_file_path)
+        loader = YamlLoader(path=file_path, mode='r')
 
-        # The outcome is null.
-        assert result is None
+        # Run the case steps.
+        verified = YamlLoader.verify_yaml_file(loader, default_path=default_path)
+
+        # Assert the case expectations.
+        assert verified is None
 
     # * test: verify_yaml_file_not_found
     def test_verify_yaml_file_not_found(self, tmp_path):
         '''
         A missing YAML file is not found.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # missing.yaml does not exist. The suffix is YAML.
-        loader = YamlLoader(path=tmp_path / 'missing.yaml', mode='r')
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path.joinpath('missing.yaml'))
+        loader = YamlLoader(path=file_path, mode='r')
+
+        # Run the case steps.
         with pytest.raises(ServiceError) as exc_info:
             YamlLoader.verify_yaml_file(loader)
+        failed = exc_info.value
 
-        # The message names the missing file.
-        assert 'could not be found' in exc_info.value.message
-        assert 'missing.yaml' in exc_info.value.message
+        # Assert the case expectations.
+        assert failed.error_code == YAML_FILE_NOT_FOUND_ID
+        assert failed.kwargs['path'] == file_path
+        assert 'could not be found' in failed.message
+        assert 'missing.yaml' in failed.message
 
     # * test: closes_on_error
     def test_closes_on_error(self, tmp_path):
         '''
         A parse error closes the stream.
 
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
+        :param tmp_path: The stage directory.
+        :type tmp_path: Path
         '''
 
-        # broken.yaml contains malformed text.
-        path = tmp_path / 'broken.yaml'
-        path.write_text(': :\n  - [invalid', encoding='utf-8')
-        loader = YamlLoader(path=path, mode='r')
-        with pytest.raises(ServiceError):
-            loader.load()
+        # Prepare the stage file and construct the loader.
+        file_path = str(tmp_path / 'broken.yaml')
+        Path(file_path).write_text(': :\n  - [invalid\n', encoding='utf-8')
+        loader = YamlLoader(path=file_path, mode='r')
 
-        # The stream is closed.
+        # Run the case steps.
+        with pytest.raises(ServiceError) as exc_info:
+            loader.load()
+        failed = exc_info.value
+
+        # Assert the case expectations.
+        assert isinstance(failed, ServiceError)
         assert loader.file is None
 
     # * test: unbound_serves_call_path

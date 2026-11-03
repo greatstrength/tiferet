@@ -119,22 +119,24 @@ def temp_nested_json_file(tmp_path, nested_json_data) -> Path:
 # *** tests
 
 # ** test: json_loader_load_success
-def test_json_loader_load_success(temp_json_file: Path, sample_json_dict: dict):
+def test_json_loader_load_success(tmp_path):
     '''
     Test successful loading and parsing of a JSON file.
 
-    :param temp_json_file: The path to the temporary JSON file.
-    :type temp_json_file: pathlib.Path
-    :param sample_json_dict: The expected parsed dict.
-    :type sample_json_dict: dict
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Load the JSON file.
-    loader = JsonLoader(path=temp_json_file, mode='r')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.json')
+    Path(file_path).write_text('{\n  "name": "test",\n  "items": [\n    "one",\n    "two"\n  ],\n  "count": 3\n}\n', encoding='utf-8')
+    loader = JsonLoader(path=file_path, mode='r')
+
+    # Run the case steps.
     result = loader.load()
 
-    # Verify the result matches the expected dict.
-    assert result == sample_json_dict
+    # Assert the case expectations.
+    assert result == {'name': 'test', 'items': ['one', 'two'], 'count': 3}
 
 # ** test: json_loader_load_with_transformations
 def test_json_loader_load_with_transformations(temp_json_file: Path):
@@ -160,237 +162,242 @@ def test_json_loader_save_and_reload(tmp_path):
     '''
     Test round-trip: save data to JSON then load it back.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Define the file path and data to save.
-    file_path = tmp_path / 'output.json'
-    data = {'key': 'value', 'numbers': [1, 2, 3]}
-
-    # Save the data to a JSON file.
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('output.json'))
     saver = JsonLoader(path=file_path, mode='w')
-    saver.save(data)
 
-    # Reload the saved file.
+    # Run the case steps.
+    saver.save({'key': 'value', 'numbers': [1, 2, 3]})
     loader = JsonLoader(path=file_path, mode='r')
     result = loader.load()
 
-    # Verify round-trip produces the same data.
-    assert result == data
+    # Assert the case expectations.
+    assert result == {'key': 'value', 'numbers': [1, 2, 3]}
 
 # ** test: json_loader_load_file_not_found
 def test_json_loader_load_file_not_found(tmp_path):
     '''
     Test that loading a non-existent JSON file raises a structured error.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a loader pointing to a non-existent file.
-    loader = JsonLoader(path=tmp_path / 'missing.json', mode='r')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('missing.json'))
+    loader = JsonLoader(path=file_path, mode='r')
 
-    # Attempt to load; expect FILE_NOT_FOUND error from FileLoader.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.load()
+    failed = exc_info.value
 
-    # Verify the error code.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+    # Assert the case expectations.
+    assert failed.error_code == FILE_NOT_FOUND_ID
 
 # ** test: json_loader_load_malformed_json
 def test_json_loader_load_malformed_json(tmp_path):
     '''
     Test that loading malformed JSON raises JSON_FILE_LOAD_ERROR.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Write malformed JSON content.
-    file_path = tmp_path / 'bad.json'
-    file_path.write_text('{"key": [unclosed bracket', encoding='utf-8')
-
-    # Attempt to load the malformed JSON.
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'bad.json')
+    Path(file_path).write_text('{"key": [unclosed bracket', encoding='utf-8')
     loader = JsonLoader(path=file_path, mode='r')
+
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.load()
+    failed = exc_info.value
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == JSON_FILE_LOAD_ERROR_ID
-    assert 'path' in exc_info.value.kwargs
+    # Assert the case expectations.
+    assert failed.error_code == JSON_FILE_LOAD_ERROR_ID
+    assert failed.kwargs['path'] == file_path
 
 # ** test: json_loader_save_write_failure
 def test_json_loader_save_write_failure(tmp_path):
     '''
     Test that a write failure raises a structured error.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Point to a path within a non-existent parent directory.
-    file_path = tmp_path / 'nonexistent_dir' / 'output.json'
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('nonexistent_dir', 'output.json'))
     saver = JsonLoader(path=file_path, mode='w')
 
-    # Attempt to save; expect an error due to missing parent directory.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         saver.save({'key': 'value'})
+    failed = exc_info.value
 
-    # Verify the error code (FILE_NOT_FOUND propagates from FileLoader).
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+    # Assert the case expectations.
+    assert failed.error_code == FILE_NOT_FOUND_ID
 
 # ** test: json_loader_parse_json_path_dict
-def test_json_loader_parse_json_path_dict(nested_json_data: dict):
+def test_json_loader_parse_json_path_dict():
     '''
     Test parse_json_path navigating nested dict keys.
-
-    :param nested_json_data: The nested JSON data fixture.
-    :type nested_json_data: dict
     '''
 
-    # Navigate to a nested dict value.
-    result = JsonLoader.parse_json_path(nested_json_data, 'metadata.total')
+    # Run the case steps.
+    result = JsonLoader.parse_json_path({'users': [{'name': 'Alice', 'age': 30}, {'name': 'Bob', 'age': 25}], 'metadata': {'total': 2, 'source': 'test'}}, 'metadata.total')
 
-    # Verify the resolved value.
+    # Assert the case expectations.
     assert result == 2
 
 # ** test: json_loader_parse_json_path_list
-def test_json_loader_parse_json_path_list(nested_json_data: dict):
+def test_json_loader_parse_json_path_list():
     '''
     Test parse_json_path navigating through list indices.
-
-    :param nested_json_data: The nested JSON data fixture.
-    :type nested_json_data: dict
     '''
 
-    # Navigate to a nested list element.
-    result = JsonLoader.parse_json_path(nested_json_data, 'users.1.name')
+    # Run the case steps.
+    result = JsonLoader.parse_json_path({'users': [{'name': 'Alice', 'age': 30}, {'name': 'Bob', 'age': 25}], 'metadata': {'total': 2, 'source': 'test'}}, 'users.1.name')
 
-    # Verify the resolved value.
+    # Assert the case expectations.
     assert result == 'Bob'
 
 # ** test: json_loader_parse_json_path_missing_key
-def test_json_loader_parse_json_path_missing_key(nested_json_data: dict):
+def test_json_loader_parse_json_path_missing_key():
     '''
     Test parse_json_path returns None for a missing dict key.
-
-    :param nested_json_data: The nested JSON data fixture.
-    :type nested_json_data: dict
     '''
 
-    # Navigate to a non-existent key.
-    result = JsonLoader.parse_json_path(nested_json_data, 'metadata.missing')
+    # Run the case steps.
+    result = JsonLoader.parse_json_path({'users': [{'name': 'Alice', 'age': 30}, {'name': 'Bob', 'age': 25}], 'metadata': {'total': 2, 'source': 'test'}}, 'metadata.missing')
 
-    # Verify the result is None.
+    # Assert the case expectations.
     assert result is None
 
 # ** test: json_loader_parse_json_path_invalid
-def test_json_loader_parse_json_path_invalid(nested_json_data: dict):
+def test_json_loader_parse_json_path_invalid():
     '''
     Test parse_json_path raises INVALID_JSON_PATH on invalid navigation.
-
-    :param nested_json_data: The nested JSON data fixture.
-    :type nested_json_data: dict
     '''
 
-    # Attempt to navigate through a non-dict/non-list value.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
-        JsonLoader.parse_json_path(nested_json_data, 'metadata.total.invalid')
+        JsonLoader.parse_json_path({'users': [{'name': 'Alice', 'age': 30}, {'name': 'Bob', 'age': 25}], 'metadata': {'total': 2, 'source': 'test'}}, 'metadata.total.invalid')
+    failed = exc_info.value
 
-    # Verify the error code.
-    assert exc_info.value.error_code == INVALID_JSON_PATH_ID
+    # Assert the case expectations.
+    assert failed.error_code == INVALID_JSON_PATH_ID
 
 # ** test: json_loader_verify_json_file_success
-def test_json_loader_verify_json_file_success(temp_json_file: Path):
+def test_json_loader_verify_json_file_success(tmp_path):
     '''
     Test that verify_json_file succeeds for a valid, existing JSON file.
 
-    :param temp_json_file: The path to the temporary JSON file.
-    :type temp_json_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a loader and verify - should not raise.
-    loader = JsonLoader(path=temp_json_file, mode='r')
-    JsonLoader.verify_json_file(loader)
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.json')
+    Path(file_path).write_text('{\n  "name": "test",\n  "items": [\n    "one",\n    "two"\n  ],\n  "count": 3\n}\n', encoding='utf-8')
+    loader = JsonLoader(path=file_path, mode='r')
+
+    # Run the case steps.
+    verified = JsonLoader.verify_json_file(loader)
+
+    # Assert the case expectations.
+    assert verified is None
 
 # ** test: json_loader_verify_json_file_invalid_extension
 def test_json_loader_verify_json_file_invalid_extension(tmp_path):
     '''
     Test that verify_json_file raises INVALID_FILE for non-JSON extension.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a file with a .txt extension.
-    file_path = tmp_path / 'data.txt'
-    file_path.write_text('{"key": "value"}', encoding='utf-8')
-
-    # Verify raises INVALID_FILE error.
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'data.txt')
+    Path(file_path).write_text('{"key": "value"}', encoding='utf-8')
     loader = JsonLoader(path=file_path, mode='r')
+
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         JsonLoader.verify_json_file(loader)
+    failed = exc_info.value
 
-    # Verify the error code.
-    assert exc_info.value.error_code == INVALID_FILE_ID
+    # Assert the case expectations.
+    assert failed.error_code == INVALID_FILE_ID
 
 # ** test: json_loader_verify_json_file_not_found
 def test_json_loader_verify_json_file_not_found(tmp_path):
     '''
     Test that verify_json_file raises JSON_FILE_NOT_FOUND for a missing JSON file.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a loader pointing to a non-existent JSON file.
-    loader = JsonLoader(path=tmp_path / 'missing.json', mode='r')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('missing.json'))
+    loader = JsonLoader(path=file_path, mode='r')
 
-    # Verify raises JSON_FILE_NOT_FOUND error.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         JsonLoader.verify_json_file(loader)
+    failed = exc_info.value
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == JSON_FILE_NOT_FOUND_ID
-    assert 'missing.json' in exc_info.value.kwargs.get('path', '')
+    # Assert the case expectations.
+    assert failed.error_code == JSON_FILE_NOT_FOUND_ID
+    assert failed.kwargs['path'] == file_path
 
 # ** test: json_loader_verify_json_file_fallback
 def test_json_loader_verify_json_file_fallback(tmp_path):
     '''
     Test that verify_json_file falls back to default_path when primary has invalid extension.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create the fallback JSON file.
-    fallback_path = tmp_path / 'fallback.json'
-    fallback_path.write_text('{}', encoding='utf-8')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('data.txt'))
+    fallback_file_path = str(tmp_path / 'fallback.json')
+    Path(fallback_file_path).write_text('{}', encoding='utf-8')
+    default_path = Path(fallback_file_path)
+    loader = JsonLoader(path=file_path, mode='r')
 
-    # Create a loader with a non-JSON extension.
-    loader = JsonLoader(path=tmp_path / 'data.txt', mode='r')
+    # Run the case steps.
+    verified = JsonLoader.verify_json_file(loader, default_path=default_path)
 
-    # Verify succeeds using the fallback path.
-    JsonLoader.verify_json_file(loader, default_path=fallback_path)
+    # Assert the case expectations.
+    assert verified is None
 
 # ** test: json_loader_context_manager_closes_on_error
 def test_json_loader_context_manager_closes_on_error(tmp_path):
     '''
     Test that the file stream is closed even when a parse error occurs.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Write malformed JSON content.
-    file_path = tmp_path / 'broken.json'
-    file_path.write_text('{invalid json', encoding='utf-8')
-
-    # Attempt to load, which should raise.
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'broken.json')
+    Path(file_path).write_text('{invalid json', encoding='utf-8')
     loader = JsonLoader(path=file_path, mode='r')
-    with pytest.raises(ServiceError):
-        loader.load()
 
-    # Verify the file stream is closed after the error.
+    # Run the case steps.
+    with pytest.raises(ServiceError) as exc_info:
+        loader.load()
+    failed = exc_info.value
+
+    # Assert the case expectations.
+    assert isinstance(failed, ServiceError)
     assert loader.file is None
