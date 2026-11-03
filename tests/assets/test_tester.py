@@ -342,9 +342,6 @@ class TestErrorMessage:
     def test_error_message_domain_tester(self) -> None:
         '''
         Test that ErrorMessage constructs with the case fields.
-
-        :return: None
-        :rtype: None
         '''
 
         # Construct the subject.
@@ -359,9 +356,6 @@ class TestErrorMessage:
     def test_error_message_description_tester(self) -> None:
         '''
         Test that ErrorMessage.format returns the message text.
-
-        :return: None
-        :rtype: None
         '''
 
         # Construct the subject and format it.
@@ -406,8 +400,6 @@ class TestErrorAggregate:
 
         :param make_subject: The subject factory.
         :type make_subject: Callable[[], ErrorAggregate]
-        :return: None
-        :rtype: None
         '''
 
         # Construct the subject.
@@ -426,8 +418,6 @@ class TestErrorAggregate:
 
         :param make_subject: The subject factory.
         :type make_subject: Callable[[], ErrorAggregate]
-        :return: None
-        :rtype: None
         '''
 
         # Construct the subject and assert its fields.
