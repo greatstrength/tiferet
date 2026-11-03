@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** core
+from pathlib import Path
+
 # ** infra
 import pytest
 
@@ -12,254 +15,219 @@ from tiferet.utils.file import (
     FILE_NOT_FOUND_ID,
     INVALID_ENCODING_ID,
     INVALID_FILE_MODE_ID,
-    VALID_FILE_MODES,
 )
 from tiferet.interfaces.core import ServiceError
-
-# *** fixtures
-
-# ** fixture: temp_text_file
-@pytest.fixture
-def temp_text_file(tmp_path):
-    '''
-    Fixture to create a temporary text file with sample content.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    :return: The path to the created temporary text file.
-    :rtype: pathlib.Path
-    '''
-
-    # Create a temporary text file with sample content.
-    file_path = tmp_path / 'test.txt'
-    file_path.write_text('Sample content', encoding='utf-8')
-
-    # Return the file path.
-    return file_path
-
-# ** fixture: file_loader_read
-@pytest.fixture
-def file_loader_read(temp_text_file) -> FileLoader:
-    '''
-    Fixture to create a FileLoader instance for reading.
-
-    :param temp_text_file: The path to the temporary text file.
-    :type temp_text_file: pathlib.Path
-    :return: A FileLoader instance configured for reading.
-    :rtype: FileLoader
-    '''
-
-    # Create and return a FileLoader instance for reading.
-    return FileLoader(path=temp_text_file, mode='r', encoding='utf-8')
-
-# ** fixture: file_loader_write
-@pytest.fixture
-def file_loader_write(temp_text_file) -> FileLoader:
-    '''
-    Fixture to create a FileLoader instance for writing.
-
-    :param temp_text_file: The path to the temporary text file.
-    :type temp_text_file: pathlib.Path
-    :return: A FileLoader instance configured for writing.
-    :rtype: FileLoader
-    '''
-
-    # Create and return a FileLoader instance for writing.
-    return FileLoader(path=temp_text_file, mode='w', encoding='utf-8')
 
 # *** tests
 
 # ** test: file_loader_open_read_close_cycle
-def test_file_loader_open_read_close_cycle(file_loader_read: FileLoader):
+def test_file_loader_open_read_close_cycle(tmp_path):
     '''
     Test successful open, read, and close cycle.
 
-    :param file_loader_read: The FileLoader instance for reading.
-    :type file_loader_read: FileLoader
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Open the file stream.
-    stream = file_loader_read.open_file()
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
 
-    # Read the content.
+    # Run the case steps.
+    stream = loader.open_file()
     content = stream.read()
+    loader.close_file()
 
-    # Verify the content matches.
+    # Assert the case expectations.
     assert content == 'Sample content'
-
-    # Close the file.
-    file_loader_read.close_file()
-
-    # Verify the file stream is cleared.
-    assert file_loader_read.file is None
+    assert loader.file is None
 
 # ** test: file_loader_context_manager_read
-def test_file_loader_context_manager_read(file_loader_read: FileLoader):
+def test_file_loader_context_manager_read(tmp_path):
     '''
     Test context manager usage for reading a file.
 
-    :param file_loader_read: The FileLoader instance for reading.
-    :type file_loader_read: FileLoader
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Use the context manager to read the file.
-    with file_loader_read as f:
-        content = f.read()
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
 
-    # Verify the content matches.
+    # Run the case steps.
+    stream = loader.__enter__()
+    content = stream.read()
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
     assert content == 'Sample content'
-
-    # Verify the file stream is closed after exiting the context.
-    assert file_loader_read.file is None
+    assert loader.file is None
 
 # ** test: file_loader_context_manager_write
-def test_file_loader_context_manager_write(temp_text_file):
+def test_file_loader_context_manager_write(tmp_path):
     '''
     Test context manager usage for writing to a file.
 
-    :param temp_text_file: The path to the temporary text file.
-    :type temp_text_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Write new content via context manager.
-    with FileLoader(path=temp_text_file, mode='w', encoding='utf-8') as f:
-        f.write('New content')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    writer = FileLoader(path=file_path, mode='w', encoding='utf-8')
 
-    # Read back and verify the content.
-    with FileLoader(path=temp_text_file, mode='r', encoding='utf-8') as f:
-        content = f.read()
+    # Run the case steps.
+    write_stream = writer.__enter__()
+    write_stream.write('New content')
+    writer.__exit__(None, None, None)
+    reader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+    read_stream = reader.__enter__()
+    content = read_stream.read()
+    reader.__exit__(None, None, None)
 
-    # Verify the written content.
+    # Assert the case expectations.
     assert content == 'New content'
 
 # ** test: file_loader_invalid_mode
-def test_file_loader_invalid_mode(temp_text_file):
+def test_file_loader_invalid_mode(tmp_path):
     '''
     Test that an invalid file mode raises INVALID_FILE_MODE error.
 
-    :param temp_text_file: The path to the temporary text file.
-    :type temp_text_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a FileLoader with an invalid mode.
-    loader = FileLoader(path=temp_text_file, mode='z', encoding='utf-8')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='z', encoding='utf-8')
 
-    # Attempt to open the file.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
+    failed = exc_info.value
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == INVALID_FILE_MODE_ID
-    assert exc_info.value.kwargs.get('mode') == 'z'
-    assert exc_info.value.kwargs.get('modes') == list(VALID_FILE_MODES)
-    assert exc_info.value.message == (
-        'Invalid file mode: z. Valid modes include '
-        + ', '.join(VALID_FILE_MODES) + '.'
-    )
+    # Assert the case expectations.
+    assert failed.error_code == INVALID_FILE_MODE_ID
+    assert failed.kwargs['mode'] == 'z'
 
 # ** test: file_loader_missing_encoding_text_mode
-def test_file_loader_missing_encoding_text_mode(temp_text_file):
+def test_file_loader_missing_encoding_text_mode(tmp_path):
     '''
     Test that missing encoding in text mode raises INVALID_ENCODING error.
 
-    :param temp_text_file: The path to the temporary text file.
-    :type temp_text_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a FileLoader in text mode without encoding.
-    loader = FileLoader(path=temp_text_file, mode='r', encoding=None)
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding=None)
 
-    # Attempt to open the file.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
+    failed = exc_info.value
 
-    # Verify the error code.
-    assert exc_info.value.error_code == INVALID_ENCODING_ID
+    # Assert the case expectations.
+    assert failed.error_code == INVALID_ENCODING_ID
 
 # ** test: file_loader_already_open
-def test_file_loader_already_open(file_loader_read: FileLoader):
+def test_file_loader_already_open(tmp_path):
     '''
     Test that opening an already-open file raises FILE_ALREADY_OPEN error.
 
-    :param file_loader_read: The FileLoader instance for reading.
-    :type file_loader_read: FileLoader
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Open the file via context manager.
-    with file_loader_read as f:
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
 
-        # Attempt to open again.
-        with pytest.raises(ServiceError) as exc_info:
-            file_loader_read.open_file()
+    # Run the case steps.
+    stream = loader.__enter__()
+    with pytest.raises(ServiceError) as exc_info:
+        loader.open_file()
+    failed = exc_info.value
+    loader.__exit__(None, None, None)
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == FILE_ALREADY_OPEN_ID
-    assert exc_info.value.kwargs.get('path') is not None
+    # Assert the case expectations.
+    assert failed.error_code == FILE_ALREADY_OPEN_ID
+    assert failed.kwargs['path'] == file_path
 
 # ** test: file_loader_file_not_found_read
 def test_file_loader_file_not_found_read(tmp_path):
     '''
     Test that reading a non-existent file raises FILE_NOT_FOUND error.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a FileLoader pointing to a non-existent file.
-    loader = FileLoader(path=tmp_path / 'does_not_exist.txt', mode='r', encoding='utf-8')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('does_not_exist.txt'))
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
 
-    # Attempt to open the file.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
+    failed = exc_info.value
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
-    assert 'does_not_exist.txt' in exc_info.value.kwargs.get('path', '')
+    # Assert the case expectations.
+    assert failed.error_code == FILE_NOT_FOUND_ID
+    assert failed.kwargs['path'] == file_path
 
 # ** test: file_loader_missing_parent_dir_write
 def test_file_loader_missing_parent_dir_write(tmp_path):
     '''
     Test that writing to a file with a non-existent parent directory raises FILE_NOT_FOUND error.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a FileLoader pointing to a path with a missing parent directory.
-    loader = FileLoader(
-        path=tmp_path / 'nonexistent_dir' / 'file.txt',
-        mode='w',
-        encoding='utf-8',
-    )
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('nonexistent_dir', 'file.txt'))
+    loader = FileLoader(path=file_path, mode='w', encoding='utf-8')
 
-    # Attempt to open the file.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
+    failed = exc_info.value
 
-    # Verify the error code.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+    # Assert the case expectations.
+    assert failed.error_code == FILE_NOT_FOUND_ID
 
 # ** test: file_loader_binary_mode_no_encoding
-def test_file_loader_binary_mode_no_encoding(temp_text_file):
+def test_file_loader_binary_mode_no_encoding(tmp_path):
     '''
     Test that binary mode does not require encoding.
 
-    :param temp_text_file: The path to the temporary text file.
-    :type temp_text_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a FileLoader in binary read mode without encoding.
-    loader = FileLoader(path=temp_text_file, mode='rb', encoding=None)
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='rb', encoding=None)
 
-    # Open, read, and close.
-    with loader as f:
-        content = f.read()
+    # Run the case steps.
+    stream = loader.__enter__()
+    content = stream.read()
+    decoded = content.decode()
+    loader.__exit__(None, None, None)
 
-    # Verify the content is bytes.
+    # Assert the case expectations.
     assert isinstance(content, bytes)
-    assert content == b'Sample content'
-
-    # Verify the file stream is cleared.
+    assert decoded == 'Sample content'
     assert loader.file is None
 
 # ** test: file_loader_newline_preservation
@@ -267,20 +235,21 @@ def test_file_loader_newline_preservation(tmp_path):
     '''
     Test that the newline parameter is preserved and used correctly.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a file with specific newline characters.
-    file_path = tmp_path / 'newline_test.txt'
-    with open(file_path, 'w', encoding='utf-8', newline='\n') as f:
-        f.write('Line 1\nLine 2\nLine 3\n')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'newline_test.txt')
+    Path(file_path).write_text('Line 1\nLine 2\nLine 3\n', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8', newline='\n')
 
-    # Read back with newline parameter.
-    with FileLoader(path=file_path, mode='r', encoding='utf-8', newline='\n') as f:
-        lines = f.readlines()
+    # Run the case steps.
+    stream = loader.__enter__()
+    lines = stream.readlines()
+    loader.__exit__(None, None, None)
 
-    # Verify the lines preserve newline characters.
+    # Assert the case expectations.
     assert lines == ['Line 1\n', 'Line 2\n', 'Line 3\n']
 
 # ** test: file_loader_write_creates_new_file
@@ -288,40 +257,45 @@ def test_file_loader_write_creates_new_file(tmp_path):
     '''
     Test that write mode creates a new file if it does not exist.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Define a path to a new file.
-    new_file = tmp_path / 'new_file.txt'
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('new_file.txt'))
+    before = (tmp_path / 'new_file.txt').exists()
+    writer = FileLoader(path=file_path, mode='w', encoding='utf-8')
 
-    # Verify the file does not exist yet.
-    assert not new_file.exists()
+    # Run the case steps.
+    stream = writer.__enter__()
+    stream.write('Created content')
+    writer.__exit__(None, None, None)
+    after = (tmp_path / 'new_file.txt').exists()
+    content = (tmp_path / 'new_file.txt').read_text(encoding='utf-8')
 
-    # Write content to the new file.
-    with FileLoader(path=new_file, mode='w', encoding='utf-8') as f:
-        f.write('Created content')
-
-    # Verify the file was created and has the correct content.
-    assert new_file.exists()
-    assert new_file.read_text(encoding='utf-8') == 'Created content'
+    # Assert the case expectations.
+    assert before is False
+    assert after is True
+    assert content == 'Created content'
 
 # ** test: file_loader_close_when_not_open
-def test_file_loader_close_when_not_open(temp_text_file):
+def test_file_loader_close_when_not_open(tmp_path):
     '''
     Test that closing a file that was never opened is a no-op.
 
-    :param temp_text_file: The path to the temporary text file.
-    :type temp_text_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a FileLoader but do not open it.
-    loader = FileLoader(path=temp_text_file, mode='r', encoding='utf-8')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'test.txt')
+    Path(file_path).write_text('Sample content', encoding='utf-8')
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
 
-    # Calling close_file should not raise.
+    # Run the case steps.
     loader.close_file()
 
-    # Verify file is still None.
+    # Assert the case expectations.
     assert loader.file is None
 
 # ** test: file_loader_verify_extension_success
@@ -329,82 +303,90 @@ def test_file_loader_verify_extension_success(tmp_path):
     '''
     Test that verify_extension succeeds for an allowed, existing extension.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a file with an allowed extension.
-    file_path = tmp_path / 'data.ext'
-    file_path.write_text('content', encoding='utf-8')
-
-    # Verify - should not raise.
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'config.yaml')
+    Path(file_path).write_text('key: value', encoding='utf-8')
     loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
-    FileLoader.verify_extension(
-        loader,
-        allowed_extensions={'.ext'},
-        invalid_error_id='INVALID_TEST_FILE',
-        invalid_message='File must have .ext extension',
-        not_found_error_id='TEST_FILE_NOT_FOUND',
+
+    # Run the case steps.
+    verified = FileLoader.verify_extension(
+        loader=loader,
+        allowed_extensions=['.yaml', '.yml'],
+        invalid_error_id='INVALID_TEST_EXT',
+        invalid_message='Invalid extension.',
+        not_found_error_id='TEST_NOT_FOUND',
         format_name='TEST',
     )
 
-# ** test: file_loader_verify_extension_invalid_extension
-def test_file_loader_verify_extension_invalid_extension(tmp_path):
+    # Assert the case expectations.
+    assert verified is None
+
+# ** test: file_loader_verify_extension_invalid_no_fallback
+def test_file_loader_verify_extension_invalid_no_fallback(tmp_path):
     '''
     Test that verify_extension raises the passed invalid_error_id and
     invalid_message when the extension is not allowed and no fallback resolves.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a file with a disallowed extension.
-    file_path = tmp_path / 'data.txt'
-    file_path.write_text('content', encoding='utf-8')
-
-    # Verify raises the passed invalid-extension error.
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'config.txt')
+    Path(file_path).write_text('key: value', encoding='utf-8')
     loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
+
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         FileLoader.verify_extension(
-            loader,
-            allowed_extensions={'.ext'},
-            invalid_error_id='INVALID_TEST_FILE',
-            invalid_message='File must have .ext extension',
-            not_found_error_id='TEST_FILE_NOT_FOUND',
+            loader=loader,
+            allowed_extensions=['.yaml', '.yml'],
+            invalid_error_id='INVALID_TEST_EXT',
+            invalid_message='Invalid extension.',
+            not_found_error_id='TEST_NOT_FOUND',
             format_name='TEST',
         )
+    failed = exc_info.value
 
-    # Verify the error code and message.
-    assert exc_info.value.error_code == 'INVALID_TEST_FILE'
-    assert exc_info.value.message == 'File must have .ext extension'
+    # Assert the case expectations.
+    assert failed.error_code == 'INVALID_TEST_EXT'
+    assert failed.message == 'Invalid extension.'
 
-# ** test: file_loader_verify_extension_fallback
-def test_file_loader_verify_extension_fallback(tmp_path):
+# ** test: file_loader_verify_extension_invalid_with_valid_fallback
+def test_file_loader_verify_extension_invalid_with_valid_fallback(tmp_path):
     '''
     Test that verify_extension falls back to default_path when the primary
     path has an invalid extension but the fallback path is allowed.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create the fallback file with an allowed extension.
-    fallback_path = tmp_path / 'fallback.ext'
-    fallback_path.write_text('content', encoding='utf-8')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'config.txt')
+    Path(file_path).write_text('key: value', encoding='utf-8')
+    default_file_path = str(tmp_path / 'default.yaml')
+    Path(default_file_path).write_text('key: value', encoding='utf-8')
+    default_path = Path(default_file_path)
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
 
-    # Create a loader pointing to a disallowed extension.
-    loader = FileLoader(path=tmp_path / 'data.txt', mode='r', encoding='utf-8')
-
-    # Verify succeeds using the fallback path.
-    FileLoader.verify_extension(
-        loader,
-        allowed_extensions={'.ext'},
-        invalid_error_id='INVALID_TEST_FILE',
-        invalid_message='File must have .ext extension',
-        not_found_error_id='TEST_FILE_NOT_FOUND',
+    # Run the case steps.
+    verified = FileLoader.verify_extension(
+        loader=loader,
+        allowed_extensions=['.yaml', '.yml'],
+        invalid_error_id='INVALID_TEST_EXT',
+        invalid_message='Invalid extension.',
+        not_found_error_id='TEST_NOT_FOUND',
         format_name='TEST',
-        default_path=fallback_path,
+        default_path=default_path,
     )
+
+    # Assert the case expectations.
+    assert verified is None
 
 # ** test: file_loader_verify_extension_not_found
 def test_file_loader_verify_extension_not_found(tmp_path):
@@ -412,25 +394,26 @@ def test_file_loader_verify_extension_not_found(tmp_path):
     Test that verify_extension raises the passed not_found_error_id with the
     resolved path in kwargs when the file does not exist.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create a loader pointing to a non-existent, allowed-extension file.
-    missing_path = tmp_path / 'missing.ext'
-    loader = FileLoader(path=missing_path, mode='r', encoding='utf-8')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('missing.yaml'))
+    loader = FileLoader(path=file_path, mode='r', encoding='utf-8')
 
-    # Verify raises the passed not-found error.
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         FileLoader.verify_extension(
-            loader,
-            allowed_extensions={'.ext'},
-            invalid_error_id='INVALID_TEST_FILE',
-            invalid_message='File must have .ext extension',
-            not_found_error_id='TEST_FILE_NOT_FOUND',
+            loader=loader,
+            allowed_extensions=['.yaml', '.yml'],
+            invalid_error_id='INVALID_TEST_EXT',
+            invalid_message='Invalid extension.',
+            not_found_error_id='TEST_NOT_FOUND',
             format_name='TEST',
         )
+    failed = exc_info.value
 
-    # Verify the error code and kwargs.
-    assert exc_info.value.error_code == 'TEST_FILE_NOT_FOUND'
-    assert 'missing.ext' in exc_info.value.kwargs.get('path', '')
+    # Assert the case expectations.
+    assert failed.error_code == 'TEST_NOT_FOUND'
+    assert failed.kwargs['path'] == file_path

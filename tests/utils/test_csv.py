@@ -21,77 +21,6 @@ from tiferet.interfaces.core import ServiceError
 
 # *** fixtures
 
-# ** fixture: sample_csv_content
-@pytest.fixture
-def sample_csv_content() -> str:
-    '''
-    Fixture providing sample CSV content as a string.
-
-    :return: A CSV-formatted string.
-    :rtype: str
-    '''
-
-    # Return sample CSV content.
-    return 'name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n'
-
-# ** fixture: sample_csv_rows
-@pytest.fixture
-def sample_csv_rows() -> list:
-    '''
-    Fixture providing the expected rows from the sample CSV content.
-
-    :return: A list of list-based rows.
-    :rtype: list
-    '''
-
-    # Return the expected rows.
-    return [
-        ['name', 'age', 'city'],
-        ['Alice', '30', 'New York'],
-        ['Bob', '25', 'London'],
-        ['Charlie', '35', 'Paris'],
-    ]
-
-# ** fixture: temp_csv_file
-@pytest.fixture
-def temp_csv_file(tmp_path, sample_csv_content) -> Path:
-    '''
-    Fixture to create a temporary CSV file with sample content.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    :param sample_csv_content: The sample CSV content string.
-    :type sample_csv_content: str
-    :return: The path to the created temporary CSV file.
-    :rtype: pathlib.Path
-    '''
-
-    # Create a temporary CSV file with sample content.
-    file_path = tmp_path / 'test.csv'
-    file_path.write_text(sample_csv_content, encoding='utf-8')
-
-    # Return the file path.
-    return file_path
-
-# ** fixture: temp_empty_csv_file
-@pytest.fixture
-def temp_empty_csv_file(tmp_path) -> Path:
-    '''
-    Fixture to create an empty temporary CSV file.
-
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
-    :return: The path to the created empty CSV file.
-    :rtype: pathlib.Path
-    '''
-
-    # Create an empty CSV file.
-    file_path = tmp_path / 'empty.csv'
-    file_path.write_text('', encoding='utf-8')
-
-    # Return the file path.
-    return file_path
-
 # ** fixture: sample_dict_csv_content
 @pytest.fixture
 def sample_dict_csv_content() -> str:
@@ -129,55 +58,71 @@ def temp_dict_csv_file(tmp_path, sample_dict_csv_content) -> Path:
 # *** tests
 
 # ** test: csv_loader_read_all
-def test_csv_loader_read_all(temp_csv_file: Path, sample_csv_rows: list):
+def test_csv_loader_read_all(tmp_path):
     '''
     Test reading all rows from a CSV file.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    :param sample_csv_rows: The expected rows.
-    :type sample_csv_rows: list
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Read all rows from the CSV file.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        result = loader.read_all()
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify the result matches the expected rows.
-    assert result == sample_csv_rows
+    # Run the case steps.
+    loader.__enter__()
+    result = loader.read_all()
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert result == [['name', 'age', 'city'], ['Alice', '30', 'New York'], ['Bob', '25', 'London'], ['Charlie', '35', 'Paris']]
 
 # ** test: csv_loader_read_row
-def test_csv_loader_read_row(temp_csv_file: Path):
+def test_csv_loader_read_row(tmp_path):
     '''
     Test reading rows one at a time from a CSV file.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Read the first two rows individually.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        first = loader.read_row()
-        second = loader.read_row()
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify each row matches expected content.
+    # Run the case steps.
+    loader.__enter__()
+    first = loader.read_row()
+    second = loader.read_row()
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
     assert first == ['name', 'age', 'city']
     assert second == ['Alice', '30', 'New York']
 
 # ** test: csv_loader_read_row_eof
-def test_csv_loader_read_row_eof(temp_empty_csv_file: Path):
+def test_csv_loader_read_row_eof(tmp_path):
     '''
     Test that reading past EOF returns an empty list.
 
-    :param temp_empty_csv_file: The path to the empty CSV file.
-    :type temp_empty_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Attempt to read from an empty CSV file.
-    with CsvLoader(path=temp_empty_csv_file, mode='r') as loader:
-        result = loader.read_row()
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'empty.csv')
+    Path(file_path).write_text('', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify empty list is returned at EOF.
+    # Run the case steps.
+    loader.__enter__()
+    result = loader.read_row()
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
     assert result == []
 
 # ** test: csv_loader_write_row
@@ -185,20 +130,24 @@ def test_csv_loader_write_row(tmp_path):
     '''
     Test writing a single row to a CSV file.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Write a single row to a new CSV file.
-    file_path = tmp_path / 'output.csv'
-    with CsvLoader(path=file_path, mode='w') as loader:
-        loader.write_row(['name', 'age'])
+    # Name the output CSV on the stage and construct the writer.
+    file_path = str(tmp_path.joinpath('output.csv'))
+    writer = CsvLoader(path=file_path, mode='w')
 
-    # Read back and verify the content.
-    with CsvLoader(path=file_path, mode='r') as loader:
-        rows = loader.read_all()
+    # Run the case steps.
+    writer.__enter__()
+    writer.write_row(['name', 'age'])
+    writer.__exit__(None, None, None)
+    reader = CsvLoader(path=file_path, mode='r')
+    reader.__enter__()
+    rows = reader.read_all()
+    reader.__exit__(None, None, None)
 
-    # Verify the row was written.
+    # Assert the case expectations.
     assert rows == [['name', 'age']]
 
 # ** test: csv_loader_write_all
@@ -206,410 +155,462 @@ def test_csv_loader_write_all(tmp_path):
     '''
     Test writing multiple rows to a CSV file.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Write multiple rows.
-    file_path = tmp_path / 'output.csv'
-    data = [['a', 'b'], ['1', '2'], ['3', '4']]
-    with CsvLoader(path=file_path, mode='w') as loader:
-        loader.write_all(data)
+    # Name the output CSV on the stage and construct the writer.
+    file_path = str(tmp_path.joinpath('output.csv'))
+    writer = CsvLoader(path=file_path, mode='w')
 
-    # Read back and verify.
-    with CsvLoader(path=file_path, mode='r') as loader:
-        result = loader.read_all()
+    # Run the case steps.
+    writer.__enter__()
+    writer.write_all([['a', 'b'], ['1', '2'], ['3', '4']])
+    writer.__exit__(None, None, None)
+    reader = CsvLoader(path=file_path, mode='r')
+    reader.__enter__()
+    result = reader.read_all()
+    reader.__exit__(None, None, None)
 
-    # Verify all rows were written.
-    assert result == data
+    # Assert the case expectations.
+    assert result == [['a', 'b'], ['1', '2'], ['3', '4']]
 
 # ** test: csv_loader_save_and_reload
 def test_csv_loader_save_and_reload(tmp_path):
     '''
     Test round-trip: write rows then read them back.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Define the file path and data.
-    file_path = tmp_path / 'roundtrip.csv'
-    data = [['x', 'y'], ['10', '20'], ['30', '40']]
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('roundtrip.csv'))
 
-    # Save rows to CSV.
-    CsvLoader.save_rows(file_path, data)
-
-    # Reload the saved file.
+    # Run the case steps.
+    CsvLoader.save_rows(file_path, [['x', 'y'], ['10', '20'], ['30', '40']])
     result = CsvLoader.load_rows(file_path)
 
-    # Verify round-trip produces the same data.
-    assert result == data
+    # Assert the case expectations.
+    assert result == [['x', 'y'], ['10', '20'], ['30', '40']]
 
 # ** test: csv_loader_load_rows_static
-def test_csv_loader_load_rows_static(temp_csv_file: Path, sample_csv_rows: list):
+def test_csv_loader_load_rows_static(tmp_path):
     '''
     Test the static load_rows helper.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    :param sample_csv_rows: The expected rows.
-    :type sample_csv_rows: list
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Load all rows using the static method.
-    result = CsvLoader.load_rows(temp_csv_file)
+    # Prepare the stage file.
+    file_path = str(tmp_path / 'test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n', encoding='utf-8')
 
-    # Verify the result matches the expected rows.
-    assert result == sample_csv_rows
+    # Run the case steps.
+    result = CsvLoader.load_rows(file_path)
+
+    # Assert the case expectations.
+    assert result == [['name', 'age', 'city'], ['Alice', '30', 'New York'], ['Bob', '25', 'London'], ['Charlie', '35', 'Paris']]
 
 # ** test: csv_loader_save_rows_static_list
 def test_csv_loader_save_rows_static_list(tmp_path):
     '''
     Test the static save_rows helper with list-based rows.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Save list rows using the static method.
-    file_path = tmp_path / 'list_output.csv'
-    data = [['col1', 'col2'], ['a', 'b']]
-    CsvLoader.save_rows(file_path, data)
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('list_output.csv'))
 
-    # Reload and verify.
+    # Run the case steps.
+    CsvLoader.save_rows(file_path, [['col1', 'col2'], ['a', 'b']])
     result = CsvLoader.load_rows(file_path)
-    assert result == data
+
+    # Assert the case expectations.
+    assert result == [['col1', 'col2'], ['a', 'b']]
 
 # ** test: csv_loader_save_rows_dict_mode
 def test_csv_loader_save_rows_dict_mode(tmp_path):
     '''
     Test the static save_rows helper with dict-based rows.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Save dict rows using the static method.
-    file_path = tmp_path / 'dict_output.csv'
-    data = [{'name': 'Alice', 'age': '30'}, {'name': 'Bob', 'age': '25'}]
-    CsvLoader.save_rows(file_path, data, fieldnames=['name', 'age'])
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('dict_output.csv'))
 
-    # Reload and verify (includes header row).
+    # Run the case steps.
+    CsvLoader.save_rows(
+        file_path,
+        [{'name': 'Alice', 'age': '30'}, {'name': 'Bob', 'age': '25'}],
+        fieldnames=['name', 'age'],
+    )
     result = CsvLoader.load_rows(file_path)
-    assert result[0] == ['name', 'age']
-    assert result[1] == ['Alice', '30']
-    assert result[2] == ['Bob', '25']
+
+    # Assert the case expectations.
+    assert result == [['name', 'age'], ['Alice', '30'], ['Bob', '25']]
 
 # ** test: csv_loader_save_rows_dict_no_fieldnames
 def test_csv_loader_save_rows_dict_no_fieldnames(tmp_path):
     '''
     Test that save_rows raises CSV_FIELDNAMES_REQUIRED when writing dicts without fieldnames.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Attempt to save dict rows without fieldnames.
-    file_path = tmp_path / 'dict_no_fields.csv'
-    data = [{'name': 'Alice'}]
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('dict_no_fields.csv'))
 
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
-        CsvLoader.save_rows(file_path, data)
+        CsvLoader.save_rows(file_path, [{'name': 'Alice'}])
+    failed = exc_info.value
 
-    # Verify the error code, message, and path.
-    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
-    assert exc_info.value.message == 'Fieldnames must be provided when writing dict-based CSV rows.'
-    assert exc_info.value.kwargs['path'] == str(file_path)
-    assert exc_info.value.class_name == 'CsvLoader'
+    # Assert the case expectations.
+    assert failed.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_loader_append_row_static
 def test_csv_loader_append_row_static(tmp_path):
     '''
     Test the static append_row helper.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Create an initial CSV file with one row.
-    file_path = tmp_path / 'append.csv'
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('append.csv'))
+
+    # Run the case steps.
     CsvLoader.save_rows(file_path, [['header1', 'header2'], ['a', 'b']])
-
-    # Append a new row.
     CsvLoader.append_row(file_path, ['c', 'd'])
-
-    # Reload and verify the appended row.
     result = CsvLoader.load_rows(file_path)
-    assert len(result) == 3
-    assert result[2] == ['c', 'd']
+
+    # Assert the case expectations.
+    assert result == [['header1', 'header2'], ['a', 'b'], ['c', 'd']]
 
 # ** test: csv_loader_yield_rows
-def test_csv_loader_yield_rows(temp_csv_file: Path, sample_csv_rows: list):
+def test_csv_loader_yield_rows(tmp_path):
     '''
     Test yield_rows returns all rows as a generator.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
-    :param sample_csv_rows: The expected rows.
-    :type sample_csv_rows: list
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Yield all rows from the CSV file.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows())
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify all rows are yielded.
-    assert result == sample_csv_rows
+    # Run the case steps.
+    loader.__enter__()
+    generator = loader.yield_rows()
+    result = list(generator)
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert result == [['name', 'age', 'city'], ['Alice', '30', 'New York'], ['Bob', '25', 'London'], ['Charlie', '35', 'Paris']]
 
 # ** test: csv_loader_yield_rows_with_range
-def test_csv_loader_yield_rows_with_range(temp_csv_file: Path):
+def test_csv_loader_yield_rows_with_range(tmp_path):
     '''
     Test yield_rows with start_line and end_line filtering.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Yield rows 2 through 3 (1-based).
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows(start_line=2, end_line=3))
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify only the requested range is returned.
-    assert len(result) == 2
-    assert result[0] == ['Alice', '30', 'New York']
-    assert result[1] == ['Bob', '25', 'London']
+    # Run the case steps.
+    loader.__enter__()
+    generator = loader.yield_rows(start_line=2, end_line=3)
+    result = list(generator)
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert result == [['Alice', '30', 'New York'], ['Bob', '25', 'London']]
 
 # ** test: csv_loader_invalid_read_mode
 def test_csv_loader_invalid_read_mode(tmp_path):
     '''
     Test that building a reader in write-only mode raises CSV_INVALID_READ_MODE.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Open in write mode and attempt to build a reader.
-    file_path = tmp_path / 'write_only.csv'
-    with CsvLoader(path=file_path, mode='w') as loader:
-        with pytest.raises(ServiceError) as exc_info:
-            loader.build_reader()
+    # Name the output CSV on the stage and construct the writer.
+    file_path = str(tmp_path.joinpath('write_only.csv'))
+    loader = CsvLoader(path=file_path, mode='w')
 
-    # Verify the error code, message, and mode.
-    assert exc_info.value.error_code == CSV_INVALID_READ_MODE_ID
-    assert exc_info.value.message == 'File not opened in readable mode for CSV reading.'
-    assert exc_info.value.kwargs['mode'] == 'w'
+    # Run the case steps.
+    loader.__enter__()
+    with pytest.raises(ServiceError) as exc_info:
+        loader.build_reader()
+    failed = exc_info.value
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert failed.error_code == CSV_INVALID_READ_MODE_ID
 
 # ** test: csv_loader_invalid_write_mode
-def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
+def test_csv_loader_invalid_write_mode(tmp_path):
     '''
     Test that building a writer in read-only mode raises CSV_INVALID_WRITE_MODE.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Open in read mode and attempt to build a writer.
-    with CsvLoader(path=temp_csv_file, mode='r') as loader:
-        with pytest.raises(ServiceError) as exc_info:
-            loader.build_writer()
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify the error code, message, and mode.
-    assert exc_info.value.error_code == CSV_INVALID_WRITE_MODE_ID
-    assert exc_info.value.message == 'File not opened in writable mode for CSV writing.'
-    assert exc_info.value.kwargs['mode'] == 'r'
+    # Run the case steps.
+    loader.__enter__()
+    with pytest.raises(ServiceError) as exc_info:
+        loader.build_writer()
+    failed = exc_info.value
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert failed.error_code == CSV_INVALID_WRITE_MODE_ID
 
 # ** test: csv_loader_file_not_found
 def test_csv_loader_file_not_found(tmp_path):
     '''
     Test that opening a non-existent CSV file raises FILE_NOT_FOUND.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Attempt to open a non-existent file.
-    with pytest.raises(ServiceError) as exc_info:
-        with CsvLoader(path=tmp_path / 'missing.csv', mode='r') as loader:
-            loader.read_all()
+    # Name a missing CSV on the stage and construct the loader.
+    file_path = str(tmp_path.joinpath('missing.csv'))
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify the error code.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+    # Enter the loader.
+    with pytest.raises(ServiceError) as exc_info:
+        loader.__enter__()
+    failed = exc_info.value
+
+    # Assert the case expectations.
+    assert failed.error_code == FILE_NOT_FOUND_ID
 
 # ** test: csv_loader_empty_file
-def test_csv_loader_empty_file(temp_empty_csv_file: Path):
+def test_csv_loader_empty_file(tmp_path):
     '''
     Test that reading an empty CSV file returns an empty list.
 
-    :param temp_empty_csv_file: The path to the empty CSV file.
-    :type temp_empty_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Read all rows from the empty file.
-    with CsvLoader(path=temp_empty_csv_file, mode='r') as loader:
-        result = loader.read_all()
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'empty.csv')
+    Path(file_path).write_text('', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify empty file returns empty list.
+    # Run the case steps.
+    loader.__enter__()
+    result = loader.read_all()
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
     assert result == []
 
 # ** test: csv_loader_context_manager_resets_state
-def test_csv_loader_context_manager_resets_state(temp_csv_file: Path):
+def test_csv_loader_context_manager_resets_state(tmp_path):
     '''
     Test that __exit__ resets reader, writer, and file to None.
 
-    :param temp_csv_file: The path to the temporary CSV file.
-    :type temp_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Open and use the context manager.
-    loader = CsvLoader(path=temp_csv_file, mode='r')
-    with loader:
-        loader.read_all()
+    # Write the CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\nCharlie,35,Paris\n', encoding='utf-8')
+    loader = CsvLoader(path=file_path, mode='r')
 
-    # Verify state is reset after context exit.
+    # Run the case steps.
+    loader.__enter__()
+    loader.read_all()
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
     assert loader.reader is None
     assert loader.writer is None
     assert loader.file is None
 
 # ** test: csv_dict_loader_read_all
-def test_csv_dict_loader_read_all(temp_dict_csv_file: Path):
+def test_csv_dict_loader_read_all(tmp_path):
     '''
     Test reading all rows as dicts using CsvDictLoader.
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Read all rows as dicts.
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        result = loader.read_all()
+    # Write the dict CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'dict_test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\n', encoding='utf-8')
+    loader = CsvDictLoader(path=file_path, mode='r')
 
-    # Verify the result is a list of dicts.
-    assert len(result) == 2
-    assert result[0] == {'name': 'Alice', 'age': '30', 'city': 'New York'}
-    assert result[1] == {'name': 'Bob', 'age': '25', 'city': 'London'}
+    # Run the case steps.
+    loader.__enter__()
+    result = loader.read_all()
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert result == [{'name': 'Alice', 'age': '30', 'city': 'New York'}, {'name': 'Bob', 'age': '25', 'city': 'London'}]
 
 # ** test: csv_dict_loader_read_row
-def test_csv_dict_loader_read_row(temp_dict_csv_file: Path):
+def test_csv_dict_loader_read_row(tmp_path):
     '''
     Test reading rows one at a time as dicts.
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Read the first row as a dict.
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        first = loader.read_row()
-        second = loader.read_row()
-        eof = loader.read_row()
+    # Write the dict CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'dict_test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\n', encoding='utf-8')
+    loader = CsvDictLoader(path=file_path, mode='r')
 
-    # Verify each row and EOF behavior.
+    # Run the case steps.
+    loader.__enter__()
+    first = loader.read_row()
+    second = loader.read_row()
+    eof = loader.read_row()
+    loader.__exit__(None, None, None)
+    eof_length = len(eof)
+
+    # Assert the case expectations.
     assert first == {'name': 'Alice', 'age': '30', 'city': 'New York'}
     assert second == {'name': 'Bob', 'age': '25', 'city': 'London'}
-    assert eof == {}
+    assert eof_length == 0
+    assert isinstance(eof, dict)
 
 # ** test: csv_dict_loader_write_and_reload
 def test_csv_dict_loader_write_and_reload(tmp_path):
     '''
     Test round-trip: write dict rows with header then read them back.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Define the file path and dict data.
-    file_path = tmp_path / 'dict_roundtrip.csv'
-    fieldnames = ['name', 'score']
-    data = [{'name': 'X', 'score': '100'}, {'name': 'Y', 'score': '200'}]
+    # Name the output CSV on the stage and construct the writer.
+    file_path = str(tmp_path.joinpath('dict_roundtrip.csv'))
+    writer = CsvDictLoader(path=file_path, mode='w', fieldnames=['name', 'score'])
 
-    # Write dict rows with header.
-    with CsvDictLoader(path=file_path, mode='w', fieldnames=fieldnames) as loader:
-        loader.write_header()
-        loader.write_all(data)
+    # Run the case steps.
+    writer.__enter__()
+    writer.write_header()
+    writer.write_all([{'name': 'X', 'score': '100'}, {'name': 'Y', 'score': '200'}])
+    writer.__exit__(None, None, None)
+    reader = CsvDictLoader(path=file_path, mode='r')
+    reader.__enter__()
+    result = reader.read_all()
+    reader.__exit__(None, None, None)
 
-    # Reload as dicts and verify.
-    with CsvDictLoader(path=file_path, mode='r') as loader:
-        result = loader.read_all()
-
-    # Verify round-trip.
-    assert result == data
+    # Assert the case expectations.
+    assert result == [{'name': 'X', 'score': '100'}, {'name': 'Y', 'score': '200'}]
 
 # ** test: csv_dict_loader_load_rows_static
-def test_csv_dict_loader_load_rows_static(temp_dict_csv_file: Path):
+def test_csv_dict_loader_load_rows_static(tmp_path):
     '''
     Test the static load_rows helper on CsvDictLoader.
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Load all rows as dicts using the static method.
-    result = CsvDictLoader.load_rows(temp_dict_csv_file)
+    # Prepare the stage file.
+    file_path = str(tmp_path / 'dict_test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\n', encoding='utf-8')
 
-    # Verify the result.
-    assert len(result) == 2
-    assert result[0]['name'] == 'Alice'
-    assert result[1]['name'] == 'Bob'
+    # Run the case steps.
+    result = CsvDictLoader.load_rows(file_path)
+
+    # Assert the case expectations.
+    assert result == [{'name': 'Alice', 'age': '30', 'city': 'New York'}, {'name': 'Bob', 'age': '25', 'city': 'London'}]
 
 # ** test: csv_dict_loader_save_rows_static
 def test_csv_dict_loader_save_rows_static(tmp_path):
     '''
     Test the static save_rows helper on CsvDictLoader.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Save dict rows using the static method.
-    file_path = tmp_path / 'dict_save.csv'
-    data = [{'a': '1', 'b': '2'}, {'a': '3', 'b': '4'}]
-    CsvDictLoader.save_rows(file_path, data, fieldnames=['a', 'b'])
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('dict_save.csv'))
 
-    # Reload and verify.
+    # Run the case steps.
+    CsvDictLoader.save_rows(file_path, [{'a': '1', 'b': '2'}, {'a': '3', 'b': '4'}], fieldnames=['a', 'b'])
     result = CsvDictLoader.load_rows(file_path)
-    assert result == data
+
+    # Assert the case expectations.
+    assert result == [{'a': '1', 'b': '2'}, {'a': '3', 'b': '4'}]
 
 # ** test: csv_dict_loader_save_rows_no_fieldnames
 def test_csv_dict_loader_save_rows_no_fieldnames(tmp_path):
     '''
     Test that CsvDictLoader.save_rows raises CSV_FIELDNAMES_REQUIRED without fieldnames.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Attempt to save dict rows without fieldnames.
-    file_path = tmp_path / 'no_fields.csv'
-    data = [{'a': '1'}]
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('no_fields.csv'))
 
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
-        CsvDictLoader.save_rows(file_path, data)
+        CsvDictLoader.save_rows(file_path, [{'a': '1'}])
+    failed = exc_info.value
 
-    # Verify the error code, message, and path.
-    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
-    assert exc_info.value.message == 'Fieldnames must be provided when writing dict-based CSV rows.'
-    assert exc_info.value.kwargs['path'] == str(file_path)
-    assert exc_info.value.class_name == 'CsvDictLoader'
+    # Assert the case expectations.
+    assert failed.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_dict_loader_fieldnames_required_on_build_writer
 def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
     '''
     Test that building a DictWriter without fieldnames raises CSV_FIELDNAMES_REQUIRED.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Open in write mode without fieldnames.
-    file_path = tmp_path / 'no_fieldnames.csv'
-    with CsvDictLoader(path=file_path, mode='w') as loader:
-        with pytest.raises(ServiceError) as exc_info:
-            loader.build_writer()
+    # Name the output CSV on the stage and construct the loader.
+    file_path = str(tmp_path.joinpath('no_fieldnames.csv'))
+    loader = CsvDictLoader(path=file_path, mode='w')
 
-    # Verify the error code, message, and path.
-    assert exc_info.value.error_code == CSV_FIELDNAMES_REQUIRED_ID
-    assert exc_info.value.message == 'Fieldnames must be provided when writing dict-based CSV rows.'
-    assert exc_info.value.kwargs['path'] == str(file_path)
+    # Run the case steps.
+    loader.__enter__()
+    with pytest.raises(ServiceError) as exc_info:
+        loader.build_writer()
+    failed = exc_info.value
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert failed.error_code == CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_dict_loader_invalid_read_mode
 def test_csv_dict_loader_invalid_read_mode(tmp_path):
@@ -651,55 +652,71 @@ def test_csv_dict_loader_invalid_write_mode(temp_dict_csv_file: Path):
     assert exc_info.value.kwargs['mode'] == 'r'
 
 # ** test: csv_dict_loader_yield_rows
-def test_csv_dict_loader_yield_rows(temp_dict_csv_file: Path):
+def test_csv_dict_loader_yield_rows(tmp_path):
     '''
     Test yield_rows returns dict rows as a generator.
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Yield all dict rows.
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows())
+    # Write the dict CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'dict_test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\n', encoding='utf-8')
+    loader = CsvDictLoader(path=file_path, mode='r')
 
-    # Verify all dict rows are yielded.
-    assert len(result) == 2
-    assert result[0]['name'] == 'Alice'
-    assert result[1]['name'] == 'Bob'
+    # Run the case steps.
+    loader.__enter__()
+    generator = loader.yield_rows()
+    result = list(generator)
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert result == [{'name': 'Alice', 'age': '30', 'city': 'New York'}, {'name': 'Bob', 'age': '25', 'city': 'London'}]
 
 # ** test: csv_dict_loader_yield_rows_with_range
-def test_csv_dict_loader_yield_rows_with_range(temp_dict_csv_file: Path):
+def test_csv_dict_loader_yield_rows_with_range(tmp_path):
     '''
     Test yield_rows with range filtering on dict rows.
 
-    :param temp_dict_csv_file: The path to the temporary CSV file with header.
-    :type temp_dict_csv_file: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Yield only the second data row (1-based, header excluded by DictReader).
-    with CsvDictLoader(path=temp_dict_csv_file, mode='r') as loader:
-        result = list(loader.yield_rows(start_line=2, end_line=2))
+    # Write the dict CSV on the stage and construct the loader.
+    file_path = str(tmp_path / 'dict_test.csv')
+    Path(file_path).write_text('name,age,city\nAlice,30,New York\nBob,25,London\n', encoding='utf-8')
+    loader = CsvDictLoader(path=file_path, mode='r')
 
-    # Verify only the requested row is returned.
-    assert len(result) == 1
-    assert result[0]['name'] == 'Bob'
+    # Run the case steps.
+    loader.__enter__()
+    generator = loader.yield_rows(start_line=2, end_line=2)
+    result = list(generator)
+    loader.__exit__(None, None, None)
+
+    # Assert the case expectations.
+    assert result == [{'name': 'Bob', 'age': '25', 'city': 'London'}]
 
 # ** test: csv_dict_loader_save_rows_no_header
 def test_csv_dict_loader_save_rows_no_header(tmp_path):
     '''
     Test that save_rows with include_header=False omits the header.
 
-    :param tmp_path: The temporary directory path provided by pytest.
-    :type tmp_path: pathlib.Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Save dict rows without header.
-    file_path = tmp_path / 'no_header.csv'
-    data = [{'name': 'Alice', 'age': '30'}]
-    CsvDictLoader.save_rows(file_path, data, fieldnames=['name', 'age'], include_header=False)
+    # Prepare the stage file.
+    file_path = str(tmp_path.joinpath('no_header.csv'))
 
-    # Reload as list rows and verify no header.
+    # Run the case steps.
+    CsvDictLoader.save_rows(
+        file_path,
+        [{'name': 'Alice', 'age': '30'}],
+        fieldnames=['name', 'age'],
+        include_header=False,
+    )
     result = CsvLoader.load_rows(file_path)
-    assert len(result) == 1
-    assert result[0] == ['Alice', '30']
+
+    # Assert the case expectations.
+    assert result == [['Alice', '30']]

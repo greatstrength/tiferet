@@ -39,43 +39,27 @@ def sample_toml_file(tmp_path) -> Path:
     )
     return file_path
 
-# ** fixture: invalid_toml_file
-@pytest.fixture
-def invalid_toml_file(tmp_path) -> Path:
-    '''
-    Create a temporary TOML file with invalid content.
-
-    :param tmp_path: Pytest temporary directory fixture.
-    :type tmp_path: Path
-    :return: Path to the invalid TOML file.
-    :rtype: Path
-    '''
-
-    # Write invalid TOML content.
-    file_path = tmp_path / 'bad.toml'
-    file_path.write_bytes(b'[invalid\nkey = ???')
-    return file_path
-
 # *** tests
 
 # ** test: toml_loader_load_basic
-def test_toml_loader_load_basic(sample_toml_file: Path):
+def test_toml_loader_load_basic(tmp_path):
     '''
     Test loading a valid TOML file returns parsed data.
 
-    :param sample_toml_file: Path to the sample TOML file.
-    :type sample_toml_file: Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Load the TOML file.
-    loader = TomlLoader(path=sample_toml_file)
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'config.toml')
+    Path(file_path).write_text('[project]\nname = "tiferet"\nversion = "2.0.0"\n\n[project.options]\ndebug = true\ncount = 42\n', encoding='utf-8')
+    loader = TomlLoader(path=file_path)
+
+    # Run the case steps.
     data = loader.load()
 
-    # Assert parsed structure.
-    assert data['project']['name'] == 'tiferet'
-    assert data['project']['version'] == '2.0.0'
-    assert data['project']['options']['debug'] is True
-    assert data['project']['options']['count'] == 42
+    # Assert the case expectations.
+    assert data == {'project': {'name': 'tiferet', 'version': '2.0.0', 'options': {'debug': True, 'count': 42}}}
 
 # ** test: toml_loader_load_with_start_node
 def test_toml_loader_load_with_start_node(sample_toml_file: Path):
@@ -114,76 +98,90 @@ def test_toml_loader_load_with_data_factory(sample_toml_file: Path):
     assert result == 'tiferet'
 
 # ** test: toml_loader_load_file_not_found
-def test_toml_loader_load_file_not_found(tmp_path: Path):
+def test_toml_loader_load_file_not_found(tmp_path):
     '''
     Test that loading a nonexistent TOML file raises FILE_NOT_FOUND.
 
-    :param tmp_path: Pytest temporary directory fixture.
+    :param tmp_path: The stage directory.
     :type tmp_path: Path
     '''
 
-    # Attempt to load a nonexistent file.
-    loader = TomlLoader(path=tmp_path / 'missing.toml')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('missing.toml'))
+    loader = TomlLoader(path=file_path)
+
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.load()
+    failed = exc_info.value
 
-    # Assert the correct error code.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+    # Assert the case expectations.
+    assert failed.error_code == FILE_NOT_FOUND_ID
 
 # ** test: toml_loader_load_invalid_toml
-def test_toml_loader_load_invalid_toml(invalid_toml_file: Path):
+def test_toml_loader_load_invalid_toml(tmp_path):
     '''
     Test that loading a malformed TOML file raises TOML_FILE_LOAD_ERROR.
 
-    :param invalid_toml_file: Path to the invalid TOML file.
-    :type invalid_toml_file: Path
+    :param tmp_path: The stage directory.
+    :type tmp_path: Path
     '''
 
-    # Attempt to load the invalid file.
-    loader = TomlLoader(path=invalid_toml_file)
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'bad.toml')
+    Path(file_path).write_text('[invalid\nkey = ???\n', encoding='utf-8')
+    loader = TomlLoader(path=file_path)
+
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         loader.load()
+    failed = exc_info.value
 
-    # Assert the correct error code.
-    assert exc_info.value.error_code == TOML_FILE_LOAD_ERROR_ID
+    # Assert the case expectations.
+    assert failed.error_code == TOML_FILE_LOAD_ERROR_ID
 
 # ** test: toml_loader_verify_toml_file_wrong_extension
-def test_toml_loader_verify_toml_file_wrong_extension(tmp_path: Path):
+def test_toml_loader_verify_toml_file_wrong_extension(tmp_path):
     '''
     Test that verify_toml_file raises INVALID_TOML_FILE for non-.toml files.
 
-    :param tmp_path: Pytest temporary directory fixture.
+    :param tmp_path: The stage directory.
     :type tmp_path: Path
     '''
 
-    # Create a file with the wrong extension.
-    file_path = tmp_path / 'config.yaml'
-    file_path.write_text('key: value', encoding='utf-8')
-
-    # Create a loader and verify.
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path / 'config.yaml')
+    Path(file_path).write_text('key: value', encoding='utf-8')
     loader = TomlLoader(path=file_path)
+
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         TomlLoader.verify_toml_file(loader)
+    failed = exc_info.value
 
-    # Assert the correct error code.
-    assert exc_info.value.error_code == INVALID_TOML_FILE_ID
+    # Assert the case expectations.
+    assert failed.error_code == INVALID_TOML_FILE_ID
 
 # ** test: toml_loader_verify_toml_file_not_found
-def test_toml_loader_verify_toml_file_not_found(tmp_path: Path):
+def test_toml_loader_verify_toml_file_not_found(tmp_path):
     '''
     Test that verify_toml_file raises TOML_FILE_NOT_FOUND for missing files.
 
-    :param tmp_path: Pytest temporary directory fixture.
+    :param tmp_path: The stage directory.
     :type tmp_path: Path
     '''
 
-    # Create a loader pointing to a non-existent .toml file.
-    loader = TomlLoader(path=tmp_path / 'missing.toml')
+    # Prepare the stage file and construct the loader.
+    file_path = str(tmp_path.joinpath('missing.toml'))
+    loader = TomlLoader(path=file_path)
+
+    # Run the case steps.
     with pytest.raises(ServiceError) as exc_info:
         TomlLoader.verify_toml_file(loader)
+    failed = exc_info.value
 
-    # Assert the correct error code.
-    assert exc_info.value.error_code == TOML_FILE_NOT_FOUND_ID
+    # Assert the case expectations.
+    assert failed.error_code == TOML_FILE_NOT_FOUND_ID
 
 # ** test: toml_loader_defaults_to_binary_mode
 def test_toml_loader_defaults_to_binary_mode():
@@ -191,9 +189,9 @@ def test_toml_loader_defaults_to_binary_mode():
     Test that TomlLoader defaults to binary read mode as required by tomllib.
     '''
 
-    # Create a loader (file need not exist for attribute checks).
+    # Run the case steps.
     loader = TomlLoader(path='/tmp/test.toml')
 
-    # Assert binary read mode and no encoding.
+    # Assert the case expectations.
     assert loader.mode == 'rb'
     assert loader.encoding is None
