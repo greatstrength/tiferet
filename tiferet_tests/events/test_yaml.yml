@@ -2461,3 +2461,397 @@ testers:
             equals: []
           - outcome: text
             equals: "item: ada\n"
+
+  test_is_plain_value:
+    module_path: tiferet.events.yaml
+    class_name: YamlEvent
+    tests:
+      none_is_plain:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [null]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      string_is_plain:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [ada]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      false_is_plain:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [false]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      zero_is_plain:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [0]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      finite_float_is_plain:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [1.5]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      nonfinite_float_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [.inf]
+            as: pos_inf
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [-.inf]
+            as: neg_inf
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [.nan]
+            as: nan
+        assert:
+          - outcome: pos_inf
+            equals: false
+          - outcome: neg_inf
+            equals: false
+          - outcome: nan
+            equals: false
+
+      nested_list_is_plain:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [[1, a, null, false]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      string_keyed_mapping_is_plain:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [{a: [1]}]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      non_string_key_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [{1: a}]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      tuple_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args: [[1]]
+            as: pair
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [$r.pair]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      nested_tuple_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args: [[1]]
+            as: pair
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [[$r.pair]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      cycle_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: builtins
+              attribute: list
+            method: list
+            as: value
+          - target: $r.value
+            method: append
+            args: [$r.value]
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [$r.value]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      mapping_value_tuple_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args: [[1]]
+            as: pair
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_plain_value
+            method: is_plain_value
+            args: [{a: $r.pair}]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+  test_is_key_path:
+    module_path: tiferet.events.yaml
+    class_name: YamlEvent
+    tests:
+      absent_is_path:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [null]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      empty_list_is_root:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      string_path_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [fixtures.user]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      non_list_path_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [1]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      step_not_pair:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[[val]]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      step_not_list:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[val, user]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      seq_index_accepted:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[[seq, 0]]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      seq_bool_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[[seq, true]]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      seq_negative_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[[seq, -1]]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      val_and_key_accepted:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[[val, fixtures], [key, user]]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: true
+
+      bad_kind_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[[id, user]]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      non_string_token_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[[val, 1]]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
+
+      step_tuple_rejected:
+        conditions: {}
+        execute:
+          - target:
+              module_path: builtins
+              attribute: tuple
+            method: tuple
+            args: [[val, user]]
+            as: step
+          - target:
+              module_path: tiferet.events.yaml
+              attribute: is_key_path
+            method: is_key_path
+            args: [[$r.step]]
+            as: outcome
+        assert:
+          - outcome: outcome
+            equals: false
