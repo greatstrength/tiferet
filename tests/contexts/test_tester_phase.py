@@ -1641,28 +1641,6 @@ class TestPhaseRuntimeContext:
             ))
         assert raised.value.error_code == 'PHASE_STEP_FAILED'
 
-    # * test: stage_rearrange_closes_the_live_stage
-    def test_stage_rearrange_closes_the_live_stage(self):
-        '''
-        Assert a second staged conditions phase closes the live stage first.
-        '''
-
-        # Record stage directories.
-        before = _stage_directories()
-
-        # Arrange twice, holding the first stage, then close.
-        ctx = _runtime()
-        ctx.handle_conditions(Conditions(stage=True))
-        first = ctx.stage
-        directory = first.path()
-        ctx.handle_conditions(Conditions(stage=True))
-        ctx.close_stage()
-
-        # Assert the first directory is gone and nothing leaked.
-        assert Path(directory).exists() is False
-        assert ctx.stage is None
-        assert _stage_directories() == before
-
     # * test: staged_test_compiles_one_conditions_step
     def test_staged_test_compiles_one_conditions_step(self):
         '''
@@ -1677,6 +1655,29 @@ class TestPhaseRuntimeContext:
 
         # Assert one conditions step.
         assert [step.service_id for step in steps].count('phase_conditions') == 1
+
+    # * test: stage_rearrange_closes_the_live_stage
+    def test_stage_rearrange_closes_the_live_stage(self):
+        '''
+        Assert a second staged conditions phase closes the live stage first.
+        '''
+
+        # Record stage directories.
+        before = _stage_directories()
+
+        # Arrange once and read the first stage directory.
+        ctx = _runtime()
+        ctx.handle_conditions(Conditions(stage=True))
+        first_directory = ctx.stage.path()
+
+        # Arrange again; the first directory is gone before close_stage.
+        ctx.handle_conditions(Conditions(stage=True))
+        assert Path(first_directory).exists() is False
+
+        # Close the stage and assert nothing leaked.
+        ctx.close_stage()
+        assert ctx.stage is None
+        assert _stage_directories() == before
 
 # ** tester: test_test_context
 @use_tester(
