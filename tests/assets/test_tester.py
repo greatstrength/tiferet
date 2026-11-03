@@ -5,11 +5,17 @@
 # ** core
 from pathlib import Path
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet.assets import core as assets_core
 from tiferet.assets import tester as tester_assets
 from tiferet.assets.core import create_default_tester_data
 from tiferet.domain import tester as tester_mod
+from tiferet.domain.core import ModelError
+from tiferet.domain.error import ErrorMessage
+from tiferet.mappers.error import ErrorAggregate
 
 # *** constants
 
@@ -325,3 +331,109 @@ class TestAssetsPackageExports:
         # Assert each retired config-stack name is absent from the catalog module.
         for name in FORBIDDEN_CONFIG_NAMES:
             assert not hasattr(tester_assets, name)
+
+# ** tester: test_error_message
+class TestErrorMessage:
+    '''
+    Tests for the error_message tester cases.
+    '''
+
+    # * test: error_message_domain_tester
+    def test_error_message_domain_tester(self) -> None:
+        '''
+        Test that ErrorMessage constructs with the case fields.
+        '''
+
+        # Construct the subject.
+        built = ErrorMessage(lang='en_US', text='An error occurred.')
+
+        # Assert the type and fields.
+        assert isinstance(built, ErrorMessage)
+        assert built.lang == 'en_US'
+        assert built.text == 'An error occurred.'
+
+    # * test: error_message_description_tester
+    def test_error_message_description_tester(self) -> None:
+        '''
+        Test that ErrorMessage.format returns the message text.
+        '''
+
+        # Construct the subject and format it.
+        built = ErrorMessage(lang='en_US', text='An error occurred.')
+        text = built.format()
+
+        # Assert the type, fields and formatted text.
+        assert isinstance(built, ErrorMessage)
+        assert built.lang == 'en_US'
+        assert built.text == 'An error occurred.'
+        assert text == 'An error occurred.'
+
+# ** tester: test_error_aggregate
+class TestErrorAggregate:
+    '''
+    Tests for the error_aggregate tester cases.
+    '''
+
+    # * fixture: make_subject
+    @pytest.fixture
+    def make_subject(self):
+        '''
+        Provide a factory that constructs a fresh case subject.
+
+        :return: A callable returning a new ErrorAggregate.
+        :rtype: Callable[[], ErrorAggregate]
+        '''
+
+        # Return a factory building the aggregate from the case fields.
+        return lambda: ErrorAggregate(
+            id='TEST_ERROR',
+            name='Test Error',
+            message=[
+                {'lang': 'en_US', 'text': 'An error occurred.'},
+            ],
+        )
+
+    # * test: error_aggregate_tester
+    def test_error_aggregate_tester(self, make_subject) -> None:
+        '''
+        Test that ErrorAggregate constructs with the case fields.
+
+        :param make_subject: The subject factory.
+        :type make_subject: Callable[[], ErrorAggregate]
+        '''
+
+        # Construct the subject.
+        built = make_subject()
+
+        # Assert the type and fields.
+        assert isinstance(built, ErrorAggregate)
+        assert built.id == 'TEST_ERROR'
+        assert built.name == 'Test Error'
+        assert built.error_code == 'TEST_ERROR'
+
+    # * test: error_aggregate_set_attribute_tester
+    def test_error_aggregate_set_attribute_tester(self, make_subject) -> None:
+        '''
+        Test that ErrorAggregate.set_attribute updates a valid attribute and rejects an invalid one.
+
+        :param make_subject: The subject factory.
+        :type make_subject: Callable[[], ErrorAggregate]
+        '''
+
+        # Construct the subject and assert its fields.
+        built = make_subject()
+        assert isinstance(built, ErrorAggregate)
+        assert built.id == 'TEST_ERROR'
+        assert built.name == 'Test Error'
+        assert built.error_code == 'TEST_ERROR'
+
+        # Rename a second subject through set_attribute.
+        renamed = make_subject()
+        renamed.set_attribute('name', 'Updated Error')
+        assert renamed.name == 'Updated Error'
+
+        # Assert an invalid attribute raises a ModelError.
+        invalid = make_subject()
+        with pytest.raises(ModelError) as exc_info:
+            invalid.set_attribute('invalid_attribute', 'value')
+        assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
