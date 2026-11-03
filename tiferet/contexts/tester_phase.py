@@ -1036,6 +1036,15 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: Any
         '''
 
+        # An import miss and an attribute miss are distinct details.
+        try:
+            import_module(module_path)
+        except (ImportError, TypeError, ValueError) as error:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'Could not import module {module_path}: {error}',
+            )
+
         # The helper returns None. The method raises the catalogued miss.
         value = import_named(module_path, name)
         if value is None:
