@@ -150,6 +150,7 @@ def test_file_loader_invalid_mode(temp_text_file):
 
     # Verify the error code and kwargs.
     assert exc_info.value.error_code == INVALID_FILE_MODE_ID
+    assert exc_info.value.kwargs.get('mode') == 'z'
     assert exc_info.value.kwargs.get('modes') == list(VALID_FILE_MODES)
     assert exc_info.value.message == (
         'Invalid file mode: z. Valid modes include '
