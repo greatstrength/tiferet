@@ -23,7 +23,7 @@ class CheckService(Service):
 
     # * method: equal
     @abstractmethod
-    def equal(self, actual: Any, expected: Any) -> str | None:
+    def equal(self, actual: Any, expected: Any, exact: bool = False) -> str | None:
         '''
         Compare two values, including a structural compare.
 
@@ -31,6 +31,8 @@ class CheckService(Service):
         :type actual: Any
         :param expected: The expected value.
         :type expected: Any
+        :param exact: When true, a mapping actual must not carry extra keys.
+        :type exact: bool
         :return: A mismatch, or None when the values match.
         :rtype: str | None
         '''
