@@ -13,7 +13,6 @@ import pytest
 from tiferet.utils.core import CacheMiddleware, LoggingMiddleware, TimingMiddleware
 from tiferet.interfaces.middleware import MiddlewareService
 
-
 # *** fixtures
 
 # ** fixture: sample_event
@@ -33,52 +32,76 @@ def sample_event() -> object:
     # Return an instance of the stub event.
     return SampleEvent()
 
-
 # *** tests
 
-# ** test: middleware_conformance
-def test_middleware_conformance():
+# ** test: logging_middleware_conformance
+def test_logging_middleware_conformance():
     '''
-    Test that both utilities conform to MiddlewareService and resolve the default logger.
+    Test that LoggingMiddleware conforms to MiddlewareService with its default constructor arguments.
     '''
 
-    # Assert class-level conformance to the MiddlewareService contract.
-    assert issubclass(LoggingMiddleware, MiddlewareService)
-    assert issubclass(CacheMiddleware, MiddlewareService)
-    assert issubclass(TimingMiddleware, MiddlewareService)
-
-    # Instantiate the utilities with their default constructor arguments.
-    logging_mw = LoggingMiddleware()
-    cache_mw = CacheMiddleware()
-    timing_mw = TimingMiddleware()
+    # Construct the middleware with its default constructor arguments.
+    middleware = LoggingMiddleware()
 
     # Assert instance-level conformance to the MiddlewareService contract.
-    assert isinstance(logging_mw, MiddlewareService)
-    assert isinstance(cache_mw, MiddlewareService)
-    assert isinstance(timing_mw, MiddlewareService)
+    assert isinstance(middleware, MiddlewareService)
 
     # Assert the default logger_id resolves a logger named 'root'.
-    # NOTE: logging.getLogger('root') returns a named logger called 'root' - a child of
-    # the true process root logger (logging.getLogger() with no name), not the root
-    # logger itself; records still propagate to the root handlers.
-    assert logging_mw.logger.name == 'root'
-    assert timing_mw.logger.name == 'root'
+    assert middleware.logger.name == 'root'
 
-
-# ** test: middleware_resolves_named_logger
-def test_middleware_resolves_named_logger():
+# ** test: logging_middleware_named_resolves_named_logger
+def test_logging_middleware_named_resolves_named_logger():
     '''
-    Test that a custom logger_id resolves a logger whose name matches.
+    Test that LoggingMiddleware with a custom logger_id resolves a logger whose name matches.
     '''
 
-    # Instantiate both utilities with a custom logger_id.
-    logging_mw = LoggingMiddleware(logger_id='tiferet.test')
-    timing_mw = TimingMiddleware(logger_id='tiferet.test')
+    # Construct the middleware with a custom logger_id.
+    middleware = LoggingMiddleware(logger_id='tiferet.test')
 
-    # Assert the resolved loggers carry the requested name.
-    assert logging_mw.logger.name == 'tiferet.test'
-    assert timing_mw.logger.name == 'tiferet.test'
+    # Assert the resolved logger carries the requested name.
+    assert middleware.logger.name == 'tiferet.test'
 
+# ** test: timing_middleware_conformance
+def test_timing_middleware_conformance():
+    '''
+    Test that TimingMiddleware conforms to MiddlewareService with its default constructor arguments.
+    '''
+
+    # Construct the middleware with its default constructor arguments.
+    middleware = TimingMiddleware()
+
+    # Assert instance-level conformance to the MiddlewareService contract.
+    assert isinstance(middleware, MiddlewareService)
+
+    # Assert the default logger_id resolves a logger named 'root'.
+    assert middleware.logger.name == 'root'
+
+# ** test: timing_middleware_named_resolves_named_logger
+def test_timing_middleware_named_resolves_named_logger():
+    '''
+    Test that TimingMiddleware with a custom logger_id resolves a logger whose name matches.
+    '''
+
+    # Construct the middleware with a custom logger_id.
+    middleware = TimingMiddleware(logger_id='tiferet.test')
+
+    # Assert the resolved logger carries the requested name.
+    assert middleware.logger.name == 'tiferet.test'
+
+# ** test: cache_middleware_conformance
+def test_cache_middleware_conformance():
+    '''
+    Test that CacheMiddleware conforms to MiddlewareService with its default constructor arguments.
+    '''
+
+    # Construct the middleware with its default constructor arguments.
+    middleware = CacheMiddleware()
+
+    # Assert instance-level conformance to the MiddlewareService contract.
+    assert isinstance(middleware, MiddlewareService)
+
+    # Assert no cache loader is set by default.
+    assert middleware.load_cache is None
 
 # ** test: middleware_forwards_nonempty_kwargs
 def test_middleware_forwards_nonempty_kwargs(sample_event: object):
@@ -103,7 +126,6 @@ def test_middleware_forwards_nonempty_kwargs(sample_event: object):
 
     # Assert the kwargs dict was neither consumed nor mutated.
     assert kwargs == {'a': 1}
-
 
 # ** test: logging_middleware_success
 def test_logging_middleware_success(sample_event: object, caplog):
@@ -133,7 +155,6 @@ def test_logging_middleware_success(sample_event: object, caplog):
     debug_messages = [r.getMessage() for r in caplog.records if r.levelno == logging.DEBUG]
     assert 'Executing SampleEvent' in debug_messages
     assert 'Completed SampleEvent' in debug_messages
-
 
 # ** test: logging_middleware_failure
 def test_logging_middleware_failure(sample_event: object, caplog):
@@ -170,7 +191,6 @@ def test_logging_middleware_failure(sample_event: object, caplog):
     assert 'Executing SampleEvent' in debug_messages
     assert 'Completed SampleEvent' not in debug_messages
 
-
 # ** test: cache_middleware_injects_snapshot
 def test_cache_middleware_injects_snapshot(sample_event: object):
     '''
@@ -196,7 +216,6 @@ def test_cache_middleware_injects_snapshot(sample_event: object):
     # Assert the snapshot was injected alongside the untouched original kwargs.
     assert kwargs['cache'] is snapshot
     assert kwargs['a'] == 1
-
 
 # ** test: cache_middleware_preserves_existing_cache
 def test_cache_middleware_preserves_existing_cache(sample_event: object):
@@ -229,7 +248,6 @@ def test_cache_middleware_preserves_existing_cache(sample_event: object):
     assert kwargs['cache'] is existing
     assert calls == []
 
-
 # ** test: cache_middleware_no_loader_is_noop
 def test_cache_middleware_no_loader_is_noop(sample_event: object):
     '''
@@ -253,7 +271,6 @@ def test_cache_middleware_no_loader_is_noop(sample_event: object):
 
     # Assert the kwargs dict was left entirely untouched.
     assert kwargs == {'a': 1}
-
 
 # ** test: timing_middleware_success
 def test_timing_middleware_success(sample_event: object, caplog):
@@ -286,7 +303,6 @@ def test_timing_middleware_success(sample_event: object, caplog):
     ]
     assert len(timing_records) == 1
     assert re.search(r'completed in \d+\.\d{2}ms', timing_records[0].getMessage())
-
 
 # ** test: timing_middleware_failure
 def test_timing_middleware_failure(sample_event: object, caplog):
