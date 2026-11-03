@@ -3,11 +3,14 @@
 # *** imports
 
 # ** core
+import ast
 import inspect
+from pathlib import Path
 
 # ** app
 from tiferet import a, use_tester
 from tiferet.blueprints import tester as tester_blueprints
+from tiferet.blueprints import tester_cli as tester_cli_blueprints
 from tiferet.blueprints.tester import (
     build_cache,
     build_test_session,
@@ -31,7 +34,75 @@ from tiferet.contexts.tester import (
 from tiferet.domain import Request, TesterObject
 from tiferet.domain.error import ErrorMessage
 
+# *** functions
+
+# ** function: is_harness_name
+def is_harness_name(node: ast.AST) -> bool:
+    '''
+    Return True when the node is a bare HARNESS_* name.
+
+    :param node: The AST node.
+    :type node: ast.AST
+    :return: True for a HARNESS_* name.
+    :rtype: bool
+    '''
+
+    # Only a bare name counts. An attribute such as a.error.X does not.
+    return isinstance(node, ast.Name) and node.id.startswith('HARNESS_')
+
+# ** function: non_harness_decorator_args
+def non_harness_decorator_args(module, function_name: str) -> list:
+    '''
+    Return the decorator arguments of one function that are not harness data.
+
+    An argument is harness data when it is a HARNESS_* name, or a dict whose
+    keys are HARNESS_* names and whose values are HARNESS_* names or literals.
+
+    :param module: The module that defines the function.
+    :type module: module
+    :param function_name: The decorated function name.
+    :type function_name: str
+    :return: The source text of each offending argument.
+    :rtype: list
+    '''
+
+    # Parse the module source and find the function definition.
+    tree = ast.parse(Path(module.__file__).read_text(encoding='utf-8'))
+    function = next(
+        node for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == function_name
+    )
+    assert function.decorator_list
+
+    # Check every argument of every decorator call.
+    offending = []
+    for decorator in function.decorator_list:
+        assert isinstance(decorator, ast.Call)
+        for argument in [*decorator.args, *[kw.value for kw in decorator.keywords]]:
+            if is_harness_name(argument):
+                continue
+            if isinstance(argument, ast.Dict) and all(
+                key is not None and is_harness_name(key)
+                and (is_harness_name(value) or isinstance(value, ast.Constant))
+                for key, value in zip(argument.keys, argument.values)
+            ):
+                continue
+            offending.append(ast.unparse(argument))
+    return offending
+
 # *** tests
+
+# ** test: harness_caches_seed_only_harness_data
+def test_harness_caches_seed_only_harness_data():
+    '''Every harness cache decorator argument is HARNESS_* data.'''
+
+    # A revert to a factory-built constant names a non-harness argument.
+    for module, function_name in [
+        (tester_blueprints, 'build_cache'),
+        (tester_blueprints, '_reporter_cache'),
+        (tester_cli_blueprints, 'build_cache'),
+    ]:
+        assert non_harness_decorator_args(module, function_name) == [], function_name
 
 # ** test: tester_build_cache
 def test_tester_build_cache_isolated_from_standard_app_catalogs():
