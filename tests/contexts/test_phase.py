@@ -1823,11 +1823,17 @@ def test_attribute_model_rules():
     for check, payload in (
         ('assert_called_once_with', {'mock': 'm', 'method': 'go', 'assert_called_once_with': {}}),
         ('domain_contract', {}),
+        ('mapper_contract', {}),
+        ('event_base', {'module_path': 'tiferet.events', 'class_name': 'DomainEvent'}),
+        ('parameters_required', {'names': ['a']}),
+        ('service_contract', {'abstracts': ['a'], 'methods': [{'name': 'go'}]}),
         ('middleware_chain', {'middleware_chain': 'none'}),
     ):
+        Assertion(check=check, **payload)
         with pytest.raises(ModelError) as caught:
             Assertion(check=check, attribute='value', **payload)
         assert caught.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+        assert "['attribute']" in str(caught.value)
     for name in ('', 'message.1.lang', '$r.value', 'a b'):
         with pytest.raises(ModelError) as caught:
             Assertion(check='equals', outcome='got', attribute=name, equals=1)
