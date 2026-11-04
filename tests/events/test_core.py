@@ -4,10 +4,10 @@
 
 # ** core
 import inspect
+from unittest import mock
 
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from tiferet.events.core import DomainEvent, AsyncDomainEvent, TiferetError
