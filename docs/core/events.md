@@ -54,9 +54,9 @@ class DomainEvent(object):
 
     # * method: handle (static)
     @staticmethod
-    def handle(event_cls: type, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
+    def handle(event_cls: type, dependencies: Dict[str, Any] = None, middleware: list = None, **kwargs) -> Any:
         '''Instantiate → execute pattern.'''
-        event_handler = event_cls(**dependencies)
+        event_handler = event_cls(**(dependencies or {}))
         result = event_handler.execute(**kwargs)
         return result
 ```
@@ -65,7 +65,7 @@ Key characteristics:
 - **`execute(**kwargs)`** is the abstract entry point; subclasses must override it.
 - **`raise_error`** is static — usable from both instance and class context.
 - **`verify`** wraps `assert` with structured error raising for domain rule validation.
-- **`handle(EventClass, dependencies, **kwargs)`** is the standard invocation pattern in tests and contexts.
+- **`handle(EventClass, dependencies, **kwargs)`** is the standard invocation pattern in tests and contexts. `dependencies` defaults to `None`, normalised to `{}`. Because `event_cls`, `dependencies` and `middleware` are named parameters, an execute keyword with one of those names collides with them; the tester uses `TestEvent.handle_test` for user-authored keywords (see below).
 - **`@parameters_required`** provides declarative, aggregated parameter validation.
 
 ## Per-Module Base Events
@@ -239,7 +239,7 @@ dependencies:
     class_name: ErrorService
 ```
 
-`DomainEventTesterContext` provides `mock_dependencies()`, `handle(dependencies=None, **kwargs)` (delegates to `DomainEvent.handle` with `sample_kwargs`), and `assert_missing_required_params()`. `ServiceEventTesterContext` adds `get_service_mock` and `assert_not_found()` (`service_attr` + `not_found_error_code`; unset is a no-op).
+`DomainEventTesterContext` provides `mock_dependencies()`, `handle(dependencies=None, **kwargs)` (delegates to `TestEvent.handle_test` with `sample_kwargs`), and `assert_missing_required_params()`. `ServiceEventTesterContext` adds `get_service_mock` and `assert_not_found()` (`service_attr` + `not_found_error_code`; unset is a no-op).
 
 ```python
 @use_tester(
@@ -341,6 +341,14 @@ def test_add_error_success(mock_error_service):
 - Verify service calls and return values.
 - Use `test_ctx.handle` (or `DomainEvent.handle` in standalone tests) for consistent instantiation and execution.
 - Override `mock_dependencies` as a `# * fixture:` when tests need a pre-configured aggregate.
+
+## Tester Events and `handle_test`
+
+`TestEvent(DomainEvent)` in `tiferet/events/tester_module.py` is the core base class of the tester module's domain events. `TestModuleEvent` and `CheckEvent` extend it. It sets `__test__ = False` so pytest does not collect it or its subclasses.
+
+`TestEvent.handle_test(event_cls, /, *, dependencies=None, middleware=None, execute_kwargs=None)` handles an event with the execute keywords as one explicit mapping, so keys named `event_cls`, `dependencies` or `middleware` reach `execute()` unchanged. It copies `execute_kwargs`, so the caller's mapping is never mutated, and delegates to the same `_run_base` / `_run_middleware` helpers as `handle`, so middleware and error behaviour match. The tester calls that forward user-authored keywords use it: `DomainEventTesterContext.handle`, the YAML `handle` step on `target: self`, and the `parameters_required` harness check. Code-authored tester calls stay on `DomainEvent.handle`. There is no async twin yet.
+
+`DomainEvent.handle` and `handle_async` are unchanged apart from the `dependencies` default, which is now `None` instead of a shared `{}`.
 
 ## Middleware Support
 

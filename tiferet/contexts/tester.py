@@ -17,7 +17,7 @@ from ..domain import (
     TesterObject,
     Verification,
 )
-from ..events import DomainEvent
+from ..events.tester_module import TestEvent
 from .app import AppSessionContext
 from .core import BaseContext, add_default_cache_items
 from .error import ERROR_CACHE_PREFIX
@@ -863,7 +863,7 @@ class DomainEventTesterContext(TesterContext):
     # * method: handle
     def handle(self, dependencies: Dict[str, Any] = None, **kwargs) -> Any:
         '''
-        Invoke the bound event through DomainEvent.handle.
+        Invoke the bound event through TestEvent.handle_test.
 
         :param dependencies: Optional pre-configured mocks; built when omitted.
         :type dependencies: Dict[str, Any]
@@ -878,10 +878,10 @@ class DomainEventTesterContext(TesterContext):
             dependencies = self.mock_dependencies()
 
         # Merge sample kwargs with caller overrides and execute the event.
-        return DomainEvent.handle(
+        return TestEvent.handle_test(
             self.domain.get_target_type(),
             dependencies=dependencies,
-            **{
+            execute_kwargs={
                 **self.domain.sample_kwargs,
                 **kwargs,
             },

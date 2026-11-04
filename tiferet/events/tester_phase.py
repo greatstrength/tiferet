@@ -14,6 +14,7 @@ from pydantic import Field, ValidationError
 
 # ** app
 from .core import AsyncDomainEvent, DomainEvent, a
+from .tester_module import TestEvent
 from ..assets import TiferetError
 from ..domain import (
     INVALID_MODEL_ATTRIBUTE_ID,
@@ -48,7 +49,7 @@ def _annotation_name(annotation: Any) -> str | None:
 # *** events
 
 # ** event: check_event
-class CheckEvent(DomainEvent):
+class CheckEvent(TestEvent):
     '''
     Holds the shared check for one phase verification.
 
@@ -457,7 +458,7 @@ class ExerciseParametersRequired(CheckEvent):
         # One invalid call must name the missing parameter.
         def expect_required(event_cls: type, name: str, call_kwargs: Dict[str, Any]) -> str:
             try:
-                DomainEvent.handle(event_cls, **call_kwargs)
+                TestEvent.handle_test(event_cls, execute_kwargs=call_kwargs)
             except TiferetError as error:
                 mismatch = self.check_service.codes(
                     error.error_code,
@@ -481,9 +482,9 @@ class ExerciseParametersRequired(CheckEvent):
                 return 'ok'
 
         # A valid call passes. It is not a second meaning of error_code.
-        result = DomainEvent.handle(
+        result = TestEvent.handle_test(
             RequiredEvent,
-            **{name: 'value' for name in required},
+            execute_kwargs={name: 'value' for name in required},
         )
         mismatch = self.check_service.equal(result, 'ok')
         if mismatch:
