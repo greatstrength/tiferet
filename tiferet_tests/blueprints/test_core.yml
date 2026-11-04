@@ -1110,42 +1110,20 @@ tests:
         kwargs:
           feature: $fixture.feature
         as: feature_context
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.feature_context, domain]
-        as: domain
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.domain, $fixture.feature]
-        as: same_domain
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.feature_context, cache]
-        as: bound_cache
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.bound_cache, $fixture.empty_cache]
-        as: same_cache
     assert:
       - outcome: feature_context
         type:
           module_path: tiferet.contexts.feature
           class_name: FeatureContext
-      - outcome: same_domain
-        equals: true
+      - outcome: feature_context
+        attribute: domain
+        equals: $fixture.feature
       - outcome: feature_context
         attribute: get_dependency
         equals: $mock.get_dependency
-      - outcome: same_cache
-        equals: true
+      - outcome: feature_context
+        attribute: cache
+        equals: $fixture.empty_cache
       - mock: get_dependency
         method: __call__
         assert_called_once_with:
@@ -1181,25 +1159,14 @@ tests:
         kwargs:
           feature_id: group.feat
         as: feature_context
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.feature_context, domain]
-        as: domain
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.domain, $fixture.feature]
-        as: same_domain
     assert:
       - outcome: feature_context
         type:
           module_path: tiferet.contexts.feature
           class_name: FeatureContext
-      - outcome: same_domain
-        equals: true
+      - outcome: feature_context
+        attribute: domain
+        equals: $fixture.feature
       - mock: get_dependency
         method: __call__
         assert_called_once_with:
@@ -1413,18 +1380,6 @@ tests:
         method: get_dependency
         args: [cache_middleware]
         as: middleware
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.middleware, load_cache]
-        as: wired
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.wired, $r.loader]
-        as: same_loader
     assert:
       - outcome: is_callable
         equals: true
@@ -1432,8 +1387,9 @@ tests:
         type:
           module_path: tiferet.utils.core
           class_name: CacheMiddleware
-      - outcome: same_loader
-        equals: true
+      - outcome: middleware
+        attribute: load_cache
+        equals: $r.loader
 
   merge_logging_settings_uses_defaults_when_sections_empty:
     conditions: {}
@@ -1484,35 +1440,7 @@ tests:
         method: merge_logging_settings
         args: [$r.cache, [$fixture.repo_formatter], [$fixture.repo_handler], [$fixture.repo_logger]]
         as: result
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, formatters]
-        as: formatters
-      - target:
-          module_path: operator
-          attribute: contains
-        method: contains
-        args: [$r.formatters, $fixture.repo_formatter]
-        as: has_formatter
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, handlers]
-        as: handlers
-      - target:
-          module_path: operator
-          attribute: contains
-        method: contains
-        args: [$r.handlers, $fixture.repo_handler]
-        as: has_handler
     assert:
-      - outcome: has_formatter
-        equals: true
-      - outcome: has_handler
-        equals: true
       - outcome: result
         fields:
           formatters:
@@ -1569,25 +1497,14 @@ tests:
         kwargs:
           logger_id: default
         as: result
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, domain]
-        as: domain
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.domain, $fixture.empty_logging_settings]
-        as: same_domain
     assert:
       - outcome: result
         type:
           module_path: tiferet.contexts.logging
           class_name: LoggingContext
-      - outcome: same_domain
-        equals: true
+      - outcome: result
+        attribute: domain
+        equals: $fixture.empty_logging_settings
       - outcome: result
         attribute: logger_id
         equals: default
@@ -1781,125 +1698,47 @@ tests:
           module_path: builtins
           attribute: getattr
         method: getattr
-        args: [$r.result, domain]
-        as: domain
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.domain, $fixture.test_app_session]
-        as: same_domain
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
         args: [$mock.resolver, get_dependency]
         as: resolver_get
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, get_dependency]
-        as: bound_get
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.bound_get, $r.resolver_get]
-        as: same_get
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, cache]
-        as: bound_cache
-      - target:
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.bound_cache, $fixture.empty_cache]
-        as: same_cache
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, _build_logger]
-        as: build_logger
-      - target:
-          module_path: builtins
-          attribute: hasattr
-        method: hasattr
-        args: [$r.build_logger, __call__]
-        as: build_logger_callable
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, _execute_feature]
-        as: execute_feature
-      - target:
-          module_path: builtins
-          attribute: hasattr
-        method: hasattr
-        args: [$r.execute_feature, __call__]
-        as: execute_feature_callable
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, _create_request]
-        as: create_request
-      - target:
-          module_path: builtins
-          attribute: hasattr
-        method: hasattr
-        args: [$r.create_request, __call__]
-        as: create_request_callable
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, _raise_error]
-        as: raise_error
-      - target:
-          module_path: builtins
-          attribute: hasattr
-        method: hasattr
-        args: [$r.raise_error, __call__]
-        as: raise_error_callable
-      - target:
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.result, _build_response]
-        as: build_response
-      - target:
-          module_path: builtins
-          attribute: hasattr
-        method: hasattr
-        args: [$r.build_response, __call__]
-        as: build_response_callable
     assert:
       - outcome: result
         type:
           module_path: tiferet.contexts.app
           class_name: AppSessionContext
-      - outcome: same_domain
-        equals: true
-      - outcome: same_get
-        equals: true
-      - outcome: same_cache
-        equals: true
-      - outcome: build_logger_callable
-        equals: true
-      - outcome: execute_feature_callable
-        equals: true
-      - outcome: create_request_callable
-        equals: true
-      - outcome: raise_error_callable
-        equals: true
-      - outcome: build_response_callable
-        equals: true
+      - outcome: result
+        attribute: domain
+        equals: $fixture.test_app_session
+      - outcome: result
+        attribute: get_dependency
+        equals: $r.resolver_get
+      - outcome: result
+        attribute: cache
+        equals: $fixture.empty_cache
+      - outcome: result
+        attribute: _build_logger
+        type:
+          module_path: types
+          class_name: FunctionType
+      - outcome: result
+        attribute: _execute_feature
+        type:
+          module_path: types
+          class_name: FunctionType
+      - outcome: result
+        attribute: _create_request
+        type:
+          module_path: types
+          class_name: FunctionType
+      - outcome: result
+        attribute: _raise_error
+        type:
+          module_path: types
+          class_name: FunctionType
+      - outcome: result
+        attribute: _build_response
+        type:
+          module_path: types
+          class_name: FunctionType
 
   compose_session_context_forwards_extra_kwargs:
     conditions:
