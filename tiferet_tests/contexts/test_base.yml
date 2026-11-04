@@ -1,0 +1,266 @@
+fixtures:
+  feature:
+    module_path: tiferet.domain
+    class_name: Feature
+    attributes:
+      id: group.sample
+      group_id: group
+      feature_key: sample
+      name: Sample
+  cache:
+    module_path: tiferet.contexts.cache
+    class_name: CacheContext
+    attributes: {}
+  error:
+    module_path: tiferet.domain
+    class_name: Error
+    attributes:
+      id: sample_error
+      name: Sample Error
+
+tests:
+  from_domain_explicit_subclass:
+    conditions:
+      fixtures: [feature, cache]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
+        method: from_domain
+        args: [$fixture.feature]
+        kwargs:
+          get_dependency: null
+          cache: $fixture.cache
+        as: context
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.context, cache]
+        as: context_cache
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.context, domain]
+        as: context_domain
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.context_cache, $fixture.cache]
+        as: same_cache
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.context_domain, $fixture.feature]
+        as: same_domain
+    assert:
+      - outcome: context
+        type: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
+      - outcome: same_cache
+        equals: true
+      - outcome: same_domain
+        equals: true
+
+  add_default_cache_items_isolates_by_prefix:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_module, Error]
+        as: error_cls
+      - target: &add_items {module_path: tiferet.contexts.core, attribute: add_default_cache_items}
+        method: add_default_cache_items
+        args:
+          - sample_error:
+              id: sample_error
+              name: Sample Error
+          - [app, errors]
+        kwargs:
+          model: $r.error_cls
+        as: errors_decorator
+      - target: $r.errors_decorator
+        method: __call__
+        args: [$r.base_build]
+        as: build_errors
+      - target: *add_items
+        method: add_default_cache_items
+        args:
+          - cli_config: config.yml
+          - [app, constants]
+        as: constants_decorator
+      - target: $r.constants_decorator
+        method: __call__
+        args: [$r.build_errors]
+        as: build_both
+      - target: $r.build_both
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [sample_error, app, errors]
+        as: error_hit
+      - target: $r.cache
+        method: get
+        args: [cli_config, app, constants]
+        as: constant_hit
+      - target: $r.cache
+        method: get
+        args: [cli_config, app, errors]
+        as: constant_miss
+      - target: $r.cache
+        method: get
+        args: [sample_error, app, constants]
+        as: error_miss
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.error_hit, null]
+        as: error_hit_none
+    assert:
+      - outcome: error_hit_none
+        equals: false
+      - outcome: constant_hit
+        equals: config.yml
+      - outcome: constant_miss
+        "null": true
+      - outcome: error_miss
+        "null": true
+
+testers:
+  test_error_context:
+    module_path: tiferet.contexts.error
+    class_name: ErrorContext
+    tests:
+      from_domain:
+        conditions:
+          fixtures: [error]
+        execute:
+          - target: {module_path: tiferet.contexts.error, class_name: ErrorContext}
+            method: from_domain
+            args: [$fixture.error]
+            as: context
+          - &read_domain
+            target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.context, domain]
+            as: bound
+          - &same_domain
+            target: {module_path: operator, attribute: is_}
+            method: is_
+            args: [$r.bound, $fixture.error]
+            as: same
+        assert:
+          - outcome: context
+            type: &error_context {module_path: tiferet.contexts.error, class_name: ErrorContext}
+          - outcome: same
+            equals: true
+
+      for_domain:
+        conditions: {}
+        execute:
+          - &import_domain
+            target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [tiferet.domain]
+            as: domain_module
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_module, Error]
+            as: error_cls
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_module, Feature]
+            as: feature_cls
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_module, AppSession]
+            as: app_session_cls
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_module, TesterObject]
+            as: tester_object_cls
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_module, Request]
+            as: request_cls
+          - target: &base_context {module_path: tiferet.contexts.core, class_name: BaseContext}
+            method: for_domain
+            args: [$r.error_cls]
+            as: error_context_cls
+          - target: *base_context
+            method: for_domain
+            args: [$r.feature_cls]
+            as: feature_context_cls
+          - target: *base_context
+            method: for_domain
+            args: [$r.app_session_cls]
+            as: app_session_context_cls
+          - target: *base_context
+            method: for_domain
+            args: [$r.tester_object_cls]
+            as: tester_context_cls
+          - target: *base_context
+            method: for_domain
+            args: [$r.request_cls]
+            as: request_context_cls
+        assert:
+          - outcome: error_context_cls
+            is: *error_context
+          - outcome: feature_context_cls
+            is: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
+          - outcome: app_session_context_cls
+            is: {module_path: tiferet.contexts.app, class_name: AppSessionContext}
+          - outcome: tester_context_cls
+            is: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+          - outcome: request_context_cls
+            is: {module_path: tiferet.contexts.request, class_name: RequestContext}
+
+      base_context_not_registered:
+        conditions: {}
+        execute:
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [tiferet.contexts.core]
+            as: core
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.core, ContextMeta]
+            as: meta
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.core, BaseContext]
+            as: base
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.meta, registry]
+            as: registry
+          - target: $r.registry
+            method: values
+            as: registered
+          - target: {module_path: operator, attribute: contains}
+            method: contains
+            args: [$r.registered, $r.base]
+            as: present
+        assert:
+          - outcome: present
+            equals: false
+
+      from_domain_via_base_context:
+        conditions:
+          fixtures: [error]
+        execute:
+          - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+            method: from_domain
+            args: [$fixture.error]
+            as: context
+          - *read_domain
+          - *same_domain
+        assert:
+          - outcome: context
+            type: *error_context
+          - outcome: same
+            equals: true
