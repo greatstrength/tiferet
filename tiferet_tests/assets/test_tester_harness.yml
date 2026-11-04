@@ -1,0 +1,12 @@
+tests:
+  harness_drift_is_empty:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tests.assets.test_tester_harness
+          attribute: harness_drift
+        method: harness_drift
+        as: drift
+    assert:
+      - outcome: drift
+        equals: []

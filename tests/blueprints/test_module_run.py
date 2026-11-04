@@ -1140,3 +1140,22 @@ def test_subject_service_error_does_not_abort_the_other_test(tmp_path, capsys, m
     assert lines[1].startswith('ServiceError: ')
     assert lines[-1] == '1 failed, 1 passed'
     assert report['outcomes'][0]['message'].startswith('ServiceError: ')
+
+# ** test: reporter_session_harness_error
+def test_reporter_session_harness_error(monkeypatch, capsys):
+    '''A reporter session build failure is a harness error, not a test result.'''
+
+    # Break the reporter session build.
+    def broken():
+        raise KeyError('CORE_DEFAULT_ERRORS')
+    monkeypatch.setattr(tester_blueprints, '_module_run_session', broken)
+    with pytest.raises(SystemExit) as exit_info:
+        run_test_module(PROOF_PATH)
+
+    # One stderr line, no case line, no count line.
+    captured = capsys.readouterr()
+    assert exit_info.value.code == 3
+    assert captured.out == ''
+    assert captured.err.splitlines() == [
+        "tiferet-tester harness error: reporter session: KeyError: 'CORE_DEFAULT_ERRORS'",
+    ]

@@ -735,3 +735,54 @@ def test_tester_logging_assets(capsys):
     assert 'probe failure' in captured.err
     assert error_records(captured.out) == []
     assert 'probe failure' not in captured.out
+
+# ** test: harness_error_names_the_step
+@pytest.mark.parametrize('step, target', [
+    ('cache', 'tiferet.blueprints.tester_cli.build_cache'),
+    ('session', 'tiferet.blueprints.core.get_app_session'),
+    ('container', 'tiferet.blueprints.core.build_app_service_container'),
+])
+def test_harness_error_names_the_step(step, target, capsys):
+    '''
+    A harness build failure prints one harness error line and exits 3.
+
+    :param step: The harness step name.
+    :type step: str
+    :param target: The patched build callable.
+    :type target: str
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Break one harness step. The message spans two lines on purpose.
+    with mock.patch(target, side_effect=RuntimeError('broken\nharness')):
+        with pytest.raises(SystemExit) as exit_info:
+            build_tester_cli(['module', 'run', 'tests/domain/test_error.py'])
+
+    # One stderr line, no case line, no count line.
+    captured = capsys.readouterr()
+    assert exit_info.value.code == 3
+    assert captured.out == ''
+    assert captured.err.splitlines() == [
+        f'tiferet-tester harness error: {step}: RuntimeError: broken harness',
+    ]
+
+# ** test: build_cache_ignores_factory_constants
+def test_build_cache_ignores_factory_constants():
+    '''
+    A broken factory-built DI constant does not reach the harness cache.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Swap the factory-built DI data for a broken shape.
+    broken = {'module_path': 'DIConfigRepository', 'class_name': 'tiferet.repos.di', 'parameters': {}}
+    with mock.patch.dict(a.app.DI_SERVICE_DATA, broken):
+        services = build_cache().get_by_prefix(*APP_SERVICE_CACHE_PREFIX)
+
+    # The harness seeds its frozen copy.
+    assert services[a.app.DI_SERVICE_ID].module_path == 'tiferet.repos.di'
+    assert services[a.app.DI_SERVICE_ID].class_name == 'DIConfigRepository'

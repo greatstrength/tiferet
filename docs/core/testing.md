@@ -236,6 +236,8 @@ Pytest is an optional extra (`pip install tiferet[test]`) and the runner for `te
 
 `tiferet-tester module run` exits 0 when every case passes, 1 when any case fails or the module cannot be loaded, and 2 on a usage error. Each failure and load error is written once as an `ERROR` record to stderr through the `tester` logger.
 
+The harness seeds its own caches from frozen literal data in `tiferet/assets/tester_harness.py`, which imports no `tiferet/assets/core.py` factory, so a broken asset factory fails its cases instead of the harness, and `tests/assets/test_tester_harness.py` fails when that data drifts from the factory-built constants. A failure to build the harness cache, session, container, or reporter session is a harness error, not a test result: it prints one stderr line starting `tiferet-tester harness error:` that names the step and the exception, prints no case line and no count line, and exits 3.
+
 The run puts the project root, the directory that holds `tests/`, at the front of `sys.path` for its duration, and removes only an entry it added, so a subject or fixture may import `tests.*` from the console script. An import failure is a failed test, not an abort: a subject import error fails that test, and a fixture, target, or `type` module that cannot be imported fails the step as `PHASE_STEP_FAILED` with `Could not import module <module_path>: <error>`, while a module that imports but lacks the name keeps `<module_path> has no <name>.`
 
 A `TiferetError` whose error code the reporter's core error catalog cannot resolve is a failed test with `<error_code>: <message>` (the code alone when it has no message); the reporter does not resolve `get_error_evt`, and a catalogued code still formats through `raise_error_handler`.
