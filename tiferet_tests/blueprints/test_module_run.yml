@@ -16,12 +16,12 @@ tests:
     execute:
       - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.domain_tester], as: test_ctx}
       - &session {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], as: session}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.session, tester_ctx], as: bound}
-      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.bound, $r.test_ctx], as: same}
       - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, raises: true, as: neither}
       - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], kwargs: {test_context: $r.test_ctx}, raises: true, as: both}
     assert:
-      - {outcome: same, equals: true}
+      - outcome: session
+        attribute: tester_ctx
+        equals: $r.test_ctx
       - outcome: session
         attribute: test_context
         "null": true

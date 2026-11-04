@@ -111,12 +111,12 @@ tests:
     execute:
       - &build_domain {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.domain_tester], as: test_ctx}
       - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], kwargs: {data: {text: overlay}}, as: session}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.session, tester_ctx], as: bound}
-      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.bound, $r.test_ctx], as: same}
     assert:
       - outcome: session
         type: {module_path: tiferet.contexts.tester, class_name: TestSessionContext}
-      - {outcome: same, equals: true}
+      - outcome: session
+        attribute: tester_ctx
+        equals: $r.test_ctx
       - outcome: session
         attribute: data
         equals: {text: overlay}
