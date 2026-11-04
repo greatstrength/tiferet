@@ -39,12 +39,6 @@ fixtures:
         - service_id: error_service
           module_path: tiferet.repos.error
           class_name: ErrorConfigRepository
-  test_app_session:
-    module_path: *domain
-    class_name: *app_session
-    attributes:
-      id: test_app
-      name: Test App
   test_cli_session:
     module_path: *domain
     class_name: *app_session
@@ -115,13 +109,6 @@ fixtures:
       level: INFO
       handlers: [repo_h]
       is_root: true
-  empty_logging_settings:
-    module_path: tiferet.contexts.logging
-    class_name: LoggingSettings
-    attributes:
-      formatters: []
-      handlers: []
-      loggers: []
 
 tests:
 
@@ -1096,11 +1083,14 @@ tests:
 
   create_feature_context_with_preloaded_feature:
     conditions:
-      fixtures: [feature, empty_cache]
+      fixtures: [empty_cache]
       mocks:
         get_dependency:
           module_path: tiferet.di
           class_name: DIDynamicServiceResolver
+        feature_domain:
+          module_path: tiferet.domain
+          class_name: Feature
     execute:
       - target:
           module_path: tiferet.blueprints.core
@@ -1108,7 +1098,7 @@ tests:
         method: create_feature_context
         args: [$mock.get_dependency, $fixture.empty_cache]
         kwargs:
-          feature: $fixture.feature
+          feature: $mock.feature_domain
         as: feature_context
     assert:
       - outcome: feature_context
@@ -1117,7 +1107,7 @@ tests:
           class_name: FeatureContext
       - outcome: feature_context
         attribute: domain
-        equals: $fixture.feature
+        equals: $mock.feature_domain
       - outcome: feature_context
         attribute: get_dependency
         equals: $mock.get_dependency
@@ -1136,16 +1126,19 @@ tests:
 
   create_feature_context_loads_by_feature_id:
     conditions:
-      fixtures: [feature, empty_cache]
+      fixtures: [empty_cache]
       mocks:
         get_dependency:
           module_path: tiferet.di
           class_name: DIDynamicServiceResolver
+        feature_domain:
+          module_path: tiferet.domain
+          class_name: Feature
         event:
           module_path: tiferet.events
           class_name: DomainEvent
           return_value:
-            execute: $fixture.feature
+            execute: $mock.feature_domain
     execute:
       - target: $mock.get_dependency
         method: configure_mock
@@ -1166,7 +1159,7 @@ tests:
           class_name: FeatureContext
       - outcome: feature_context
         attribute: domain
-        equals: $fixture.feature
+        equals: $mock.feature_domain
       - mock: get_dependency
         method: __call__
         assert_called_once_with:
@@ -1487,13 +1480,16 @@ tests:
 
   create_logging_context_returns_logging_context:
     conditions:
-      fixtures: [empty_logging_settings]
+      mocks:
+        logging_settings:
+          module_path: tiferet.contexts.logging
+          class_name: LoggingSettings
     execute:
       - target:
           module_path: tiferet.blueprints.core
           attribute: create_logging_context
         method: create_logging_context
-        args: [$fixture.empty_logging_settings]
+        args: [$mock.logging_settings]
         kwargs:
           logger_id: default
         as: result
@@ -1504,7 +1500,7 @@ tests:
           class_name: LoggingContext
       - outcome: result
         attribute: domain
-        equals: $fixture.empty_logging_settings
+        equals: $mock.logging_settings
       - outcome: result
         attribute: logger_id
         equals: default
@@ -1649,11 +1645,14 @@ tests:
 
   compose_session_context_wires_five_handlers:
     conditions:
-      fixtures: [test_app_session, empty_cache]
+      fixtures: [empty_cache]
       mocks:
         resolver:
           module_path: tiferet.di
           class_name: DIDynamicServiceResolver
+        app_session:
+          module_path: tiferet.domain
+          class_name: AppSession
     execute:
       - target:
           module_path: importlib
@@ -1689,7 +1688,7 @@ tests:
           module_path: tiferet.blueprints.core
           attribute: compose_session_context
         method: compose_session_context
-        args: [$r.context_cls, $fixture.test_app_session, $fixture.empty_cache, $mock.resolver]
+        args: [$r.context_cls, $mock.app_session, $fixture.empty_cache, $mock.resolver]
         kwargs:
           create_request_handler: $r.create_request
           response_handler: $r.response
@@ -1707,7 +1706,7 @@ tests:
           class_name: AppSessionContext
       - outcome: result
         attribute: domain
-        equals: $fixture.test_app_session
+        equals: $mock.app_session
       - outcome: result
         attribute: get_dependency
         equals: $r.resolver_get
