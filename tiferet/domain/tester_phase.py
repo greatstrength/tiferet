@@ -596,6 +596,25 @@ class Execution(DomainObject):
         description='The explicit constructor dependencies for a named-event handle. Omitted means none.',
     )
 
+    # * method: is_named_handle
+    def is_named_handle(self) -> bool:
+        '''
+        Report whether this step handles an event that is not the tester class.
+
+        :return: True for handle on a class target, $mock.<name>, or $r.<key>.
+        :rtype: bool
+        '''
+
+        # self is the tester-class form. A class target or one-name ref is the named form.
+        if self.method != 'handle':
+            return False
+        if isinstance(self.target, ExecutionTarget):
+            return self.target.class_name is not None
+        for prefix in NAMED_HANDLE_PREFIXES:
+            if isinstance(self.target, str) and self.target.startswith(prefix):
+                return bool(OBSERVATION_NAME.fullmatch(self.target[len(prefix):]))
+        return False
+
     # * method: _reject_closed_set (model validator)
     @model_validator(mode='before')
     @classmethod
@@ -624,25 +643,6 @@ class Execution(DomainObject):
                 message='dependencies must be a mapping.',
             )
         return data
-
-    # * method: is_named_handle
-    def is_named_handle(self) -> bool:
-        '''
-        Report whether this step handles an event that is not the tester class.
-
-        :return: True for handle on a class target, $mock.<name>, or $r.<key>.
-        :rtype: bool
-        '''
-
-        # self is the tester-class form. A class target or one-name ref is the named form.
-        if self.method != 'handle':
-            return False
-        if isinstance(self.target, ExecutionTarget):
-            return self.target.class_name is not None
-        for prefix in NAMED_HANDLE_PREFIXES:
-            if isinstance(self.target, str) and self.target.startswith(prefix):
-                return bool(OBSERVATION_NAME.fullmatch(self.target[len(prefix):]))
-        return False
 
     # * method: _validate_execution (model validator)
     @model_validator(mode='after')
