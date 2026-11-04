@@ -3,8 +3,9 @@
 # *** imports
 
 # ** core
+import functools
 import re
-from typing import Any
+from typing import Any, Dict
 
 # ** infra
 from yaml.nodes import MappingNode, ScalarNode, SequenceNode
@@ -336,8 +337,70 @@ def scalar_names(container: Any) -> list:
 
 # *** events
 
+# ** event: test_event
+class TestEvent(DomainEvent):
+    '''
+    Core base class of the tester module's domain events.
+
+    Holds shared test-side handling. handle_test takes execute keywords as one
+    explicit mapping, so a key named event_cls, dependencies, or middleware
+    reaches execute unchanged.
+    '''
+
+    # * attribute: __test__
+    __test__ = False
+
+    # * method: handle_test (static)
+    @staticmethod
+    def handle_test(
+            event_cls: type,
+            /, *,
+            dependencies: Dict[str, Any] = None,
+            middleware: list = None,
+            execute_kwargs: Dict[str, Any] = None) -> Any:
+        '''
+        Handle a domain event for the tester with explicit execute keywords.
+
+        Builds and wraps the event exactly as DomainEvent.handle does, through
+        the shared _run_base and _run_middleware helpers.
+
+        :param event_cls: The domain event class to handle.
+        :type event_cls: type
+        :param dependencies: The event dependencies.
+        :type dependencies: Dict[str, Any]
+        :param middleware: The ordered, outermost-first middleware callables.
+        :type middleware: list
+        :param execute_kwargs: The keyword arguments passed to execute.
+        :type execute_kwargs: Dict[str, Any]
+        :return: The result of the event.
+        :rtype: Any
+        '''
+
+        # Normalise the controls. Copy the mapping so the caller's is never mutated.
+        if dependencies is None:
+            dependencies = {}
+        kwargs = dict(execute_kwargs or {})
+
+        # Instantiate the event with its dependencies.
+        event_handler = event_cls(**dependencies)
+
+        # Build the base callable bound to the handler and kwargs.
+        base = functools.partial(DomainEvent._run_base, event_handler, kwargs)
+
+        # Return the base result directly when no middleware is provided.
+        if not middleware:
+            return base()
+
+        # Compose the middleware chain outermost-first.
+        chain = base
+        for mw in reversed(middleware):
+            chain = functools.partial(DomainEvent._run_middleware, mw, event_handler, kwargs, chain)
+
+        # Execute the composed chain.
+        return chain()
+
 # ** event: test_module_event
-class TestModuleEvent(DomainEvent):
+class TestModuleEvent(TestEvent):
     '''
     Shared defect checks for one test-module document.
 

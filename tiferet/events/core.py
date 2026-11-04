@@ -227,7 +227,7 @@ class DomainEvent(object):
     @staticmethod
     def handle(
             event_cls: type,
-            dependencies: Dict[str, Any] = {},
+            dependencies: Dict[str, Any] = None,
             middleware: list = None,
             **kwargs) -> Any:
         '''
@@ -251,7 +251,9 @@ class DomainEvent(object):
         :rtype: Any
         '''
 
-        # Instantiate the event with its dependencies.
+        # Normalise missing dependencies and instantiate the event.
+        if dependencies is None:
+            dependencies = {}
         event_handler = event_cls(**dependencies)
 
         # Build the base callable bound to the handler and kwargs.
@@ -319,7 +321,7 @@ class DomainEvent(object):
     @staticmethod
     async def handle_async(
             event_cls: type,
-            dependencies: Dict[str, Any] = {},
+            dependencies: Dict[str, Any] = None,
             middleware: list = None,
             **kwargs) -> Any:
         '''
@@ -342,7 +344,9 @@ class DomainEvent(object):
         :rtype: Any
         '''
 
-        # Instantiate the event with its dependencies.
+        # Normalise missing dependencies and instantiate the event.
+        if dependencies is None:
+            dependencies = {}
         event_handler = event_cls(**dependencies)
 
         # Build the async base callable bound to the handler and kwargs.

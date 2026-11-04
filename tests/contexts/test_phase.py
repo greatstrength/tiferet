@@ -1889,6 +1889,18 @@ def test_named_handle_uses_explicit_dependencies():
     assert data['by_ref']['dep'] == 'loader'
     assert data['by_mock']['dep'] is runtime.mocks['dep']
 
+# ** test: named_handle_passes_reserved_kwargs
+def test_named_handle_passes_reserved_kwargs():
+    '''A named-target handle step with a dependencies kwarg reaches execute.'''
+
+    # Before RFP-067 the dependencies key raised TypeError in DomainEvent.handle.
+    target = {'module_path': __name__, 'class_name': 'NamedEvent'}
+    reserved = {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'}
+    runtime = _observe('loader', [], executes=[
+        Execution(target=target, method='handle', dependencies={'dep': 'value'}, kwargs=reserved, data_key='seen'),
+    ])
+    assert runtime.session.data['seen'] == {'dep': 'value', 'kwargs': reserved}
+
 # ** test: named_handle_on_mock_and_ref
 def test_named_handle_on_mock_and_ref():
     '''$mock.<name> and $r.<key> are named events. A non-callable target is PHASE_STEP_FAILED.'''
@@ -1944,3 +1956,86 @@ def test_observation_fields_round_trip():
     assert AssertionConfigObject.from_model(read).to_primitive('to_data') == {'outcome': 'got', 'attribute': 'headers', 'equals': {}}
     whole = AssertionConfigObject.model_validate({'outcome': 'got', 'null': True}).map()
     assert AssertionConfigObject.from_model(whole).to_primitive('to_data') == {'outcome': 'got', 'null': True}
+
+# ** test: handle_step_passes_dependencies_kwarg
+def test_handle_step_passes_dependencies_kwarg():
+    '''
+    A handle step whose kwargs name dependencies, middleware, and event_cls runs.
+    '''
+
+    # Before RFP-067 the dependencies key raised TypeError in DomainEvent.handle.
+    runtime = _runtime(
+        RecordingEvent.__module__,
+        RecordingEvent.__name__,
+    )
+    test = _test(
+        'phase.handle_reserved',
+        Conditions(mocks={
+            'error_service': ArrangedMock(
+                module_path='tiferet.interfaces',
+                class_name='ErrorService',
+            ),
+        }),
+        [
+            Execution(
+                target='self',
+                method='handle',
+                kwargs={
+                    'dependencies': ['a'],
+                    'middleware': ['b'],
+                    'event_cls': 'c',
+                },
+                data_key='seen',
+            ),
+        ],
+        [
+            Assertion(
+                check='fields',
+                outcome='seen',
+                fields={
+                    'dependencies': ['a'],
+                },
+            ),
+        ],
+    )
+    runtime.run(test)
+    assert runtime.session.data['seen'] == {
+        'dependencies': ['a'],
+        'middleware': ['b'],
+        'event_cls': 'c',
+    }
+
+# ** test: parameters_required_over_reserved_names
+def test_parameters_required_over_reserved_names():
+    '''
+    A parameters_required check over reserved handle names passes.
+    '''
+
+    # The matrix forwards each name as an execute keyword through handle_test.
+    runtime = _runtime(
+        RecordingEvent.__module__,
+        RecordingEvent.__name__,
+    )
+    runtime.run(_test(
+        'phase.parameters_required_reserved',
+        Conditions(mocks={
+            'error_service': ArrangedMock(
+                module_path='tiferet.interfaces',
+                class_name='ErrorService',
+            ),
+        }),
+        [
+            Execution(
+                target='self',
+                method='handle',
+                kwargs={},
+                data_key='seen',
+            ),
+        ],
+        [
+            Assertion(
+                check='parameters_required',
+                names=['dependencies', 'middleware', 'event_cls'],
+            ),
+        ],
+    ))

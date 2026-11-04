@@ -27,7 +27,7 @@ from ..domain.tester_phase import (
     PhaseRuntime,
     Test,
 )
-from ..events import DomainEvent
+from ..events.tester_module import TestEvent
 from ..events.tester_phase import (
     EvaluateAssertion,
     ExerciseCalled,
@@ -884,7 +884,7 @@ class PhaseRuntimeContext(BaseContext):
     # * method: call_handle
     def _call_handle(self, kwargs: Dict[str, Any]) -> Any:
         '''
-        Call DomainEvent.handle with constructor dependencies and the step kwargs.
+        Call TestEvent.handle_test with constructor dependencies and the step kwargs.
 
         An arranged mock that is not a constructor parameter stays in the mock
         store. It is an argument, not an injected dependency.
@@ -913,16 +913,16 @@ class PhaseRuntimeContext(BaseContext):
             }
 
         # Inject constructor dependencies only. Other mocks stay addressable.
-        return DomainEvent.handle(
+        return TestEvent.handle_test(
             cls,
             dependencies=dependencies,
-            **kwargs,
+            execute_kwargs=kwargs,
         )
 
     # * method: call_named_handle
     def _call_named_handle(self, execution: Execution, kwargs: Dict[str, Any]) -> Any:
         '''
-        Call DomainEvent.handle on a named event with the explicit dependencies.
+        Call TestEvent.handle_test on a named event with the explicit dependencies.
 
         The mock store is not merged. A mock is injected only when the mapping
         names it.
@@ -945,10 +945,10 @@ class PhaseRuntimeContext(BaseContext):
 
         # The mapping is the whole constructor dict, resolved in execute.
         dependencies = self._resolve_value(dict(execution.dependencies or {}))
-        return DomainEvent.handle(
+        return TestEvent.handle_test(
             event_cls,
             dependencies=dependencies,
-            **kwargs,
+            execute_kwargs=kwargs,
         )
 
     # * method: resolve_target

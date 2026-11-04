@@ -2,9 +2,12 @@
 
 # *** imports
 
+# ** core
+import inspect
+from unittest import mock
+
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from tiferet.events.core import DomainEvent, AsyncDomainEvent, TiferetError
@@ -689,3 +692,23 @@ async def test_handle_async_passthrough_sync_middleware():
     # The async runner awaits the returned coroutine, so the value passes through.
     assert result == 'result', 'Pass-through sync middleware should compose under handle_async'
     assert calls == ['pre', 'execute'], 'Sync pass-through middleware should run before execute'
+
+# ** test: test_handle_dependencies_default_none
+def test_handle_dependencies_default_none():
+    '''
+    handle and handle_async keep their signatures with a None dependencies default.
+    '''
+
+    # Read both signatures.
+    for fn in (DomainEvent.handle, DomainEvent.handle_async):
+        parameters = inspect.signature(fn).parameters
+        assert list(parameters) == ['event_cls', 'dependencies', 'middleware', 'kwargs']
+        assert parameters['dependencies'].default is None
+        assert parameters['middleware'].default is None
+
+    # An omitted dependencies mapping still instantiates the event.
+    class NoDeps(DomainEvent):
+        def execute(self, **kwargs):
+            return kwargs
+
+    assert DomainEvent.handle(NoDeps, value=1) == {'value': 1}

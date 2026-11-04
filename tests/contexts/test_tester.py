@@ -41,6 +41,7 @@ from tiferet.domain import (
 )
 from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.domain.error import ErrorMessage
+from tiferet.events.core import DomainEvent
 from tiferet.events.error import GetError
 from tiferet.interfaces import ErrorService, ServiceError
 from tiferet.mappers.error import (
@@ -55,6 +56,32 @@ ERROR_MESSAGE_SAMPLE_DATA = {
     'lang': 'en_US',
     'text': 'An error occurred.',
 }
+
+# *** classes
+
+# ** class: reserved_kwargs_event
+class ReservedKwargsEvent(DomainEvent):
+    '''
+    An event whose execute takes reserved handle names and returns them.
+    '''
+
+    # * method: execute
+    def execute(self, middleware=None, event_cls=None, **kw):
+        '''
+        Return what execute received.
+
+        :param middleware: The middleware keyword.
+        :type middleware: Any
+        :param event_cls: The event_cls keyword.
+        :type event_cls: Any
+        :param kw: Other keyword arguments.
+        :type kw: dict
+        :return: The received arguments.
+        :rtype: dict
+        '''
+
+        # Return the reserved keywords and the rest.
+        return {'middleware': middleware, 'event_cls': event_cls, 'kw': dict(kw)}
 
 # *** functions
 
@@ -574,6 +601,24 @@ def test_service_event_tester_context_handle_and_asserts() -> None:
     assert test_ctx.handle(dependencies) is error
     test_ctx.assert_not_found()
     test_ctx.assert_missing_required_params()
+
+# ** test: domain_event_tester_handle_passes_reserved_kwargs
+def test_domain_event_tester_handle_passes_reserved_kwargs() -> None:
+    '''DomainEventTesterContext.handle passes middleware and event_cls to execute.'''
+
+    tester = TesterObject(
+        type='domain_event',
+        id='domain_event.ReservedKwargsEvent',
+        module_path=__name__,
+        class_name=ReservedKwargsEvent.__name__,
+        sample_data={},
+        dependencies={},
+        sample_kwargs={},
+        required_params=[],
+    )
+    test_ctx = DomainEventTesterContext.from_domain(tester)
+    result = test_ctx.handle(middleware='m', event_cls='e')
+    assert result == {'middleware': 'm', 'event_cls': 'e', 'kw': {}}
 
 # ** test: use_tester_injects_service_event_test_ctx
 @use_tester(
