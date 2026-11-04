@@ -188,6 +188,71 @@ tests:
         equals: kept
 '''
 
+# ** function: write_raising_module
+def _write_raising_module(root: Path, name: str) -> None:
+    '''
+    Write a module whose callables raise, importable from root.
+
+    :param root: The directory placed on sys.path by the caller.
+    :type root: Path
+    :param name: A module name unique to the calling test.
+    :type name: str
+    :return: None
+    :rtype: None
+    '''
+
+    # Each callable raises a different failure for one test.
+    (root / f'{name}.py').write_text(
+        'from tiferet.assets import TiferetError\n'
+        'from tiferet.interfaces import ServiceError\n'
+        '\n'
+        'def app_error():\n'
+        "    raise TiferetError('APP_SPECIFIC_ERR', 'boom')\n"
+        '\n'
+        'def service_error():\n'
+        "    raise ServiceError('LOST', message='lost')\n"
+        '\n'
+        'def value():\n'
+        "    return 'kept'\n"
+        '\n'
+        'class Broken:\n'
+        '    def __init__(self):\n'
+        "        raise ValueError('cannot build')\n",
+        encoding='utf-8',
+    )
+
+# ** function: raising_document
+def _raising_document(name: str, failing: str) -> str:
+    '''
+    Return a document with one failing test and one passing test.
+
+    :param name: The raising module name.
+    :type name: str
+    :param failing: The failing test body, indented under its key.
+    :type failing: str
+    :return: The YAML document.
+    :rtype: str
+    '''
+
+    return f'''fixtures:
+  broken:
+    module_path: {name}
+    class_name: Broken
+    attributes: {{}}
+tests:
+  failing:
+{failing}
+  kept:
+    conditions: {{}}
+    execute:
+      - target: {{module_path: {name}, attribute: value}}
+        method: value
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+'''
+
 # *** tests
 
 # ** test: proof_run_prints_yaml_node_ids
@@ -994,6 +1059,87 @@ def test_subject_import_miss_fails_that_test(tmp_path, capsys) -> None:
     assert lines[2] == 'tiferet_tests/domain/test_subject_miss.yml::project_import PASSED'
     assert lines[-1] == '1 failed, 1 passed'
     assert report['failures'] == [report['outcomes'][0]]
+
+# ** test: uncatalogued_tiferet_error_does_not_abort_the_other_test
+def test_uncatalogued_tiferet_error_does_not_abort_the_other_test(tmp_path, capsys, monkeypatch) -> None:
+    '''A TiferetError with an app code fails only its test, from the error itself.'''
+
+    name = 'rfp060_app_error_mod'
+    _write_raising_module(tmp_path, name)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    python_path = _write_pair(tmp_path, 'domain/test_app_error', _raising_document(name, f'''    conditions: {{}}
+    execute:
+      - target: {{module_path: {name}, attribute: app_error}}
+        method: app_error
+    assert: []'''))
+    report = run_test_module(str(python_path))
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == 'tiferet_tests/domain/test_app_error.yml::failing FAILED'
+    assert 'APP_SPECIFIC_ERR' in lines[1] and 'boom' in lines[1]
+    assert lines[2] == 'tiferet_tests/domain/test_app_error.yml::kept PASSED'
+    assert lines[-1] == '1 failed, 1 passed'
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert report['outcomes'][0]['message'] == 'APP_SPECIFIC_ERR: boom'
+    assert report['failures'] == [report['outcomes'][0]]
+
+# ** test: conditions_phase_error_does_not_abort_the_other_test
+def test_conditions_phase_error_does_not_abort_the_other_test(tmp_path, capsys, monkeypatch) -> None:
+    '''A fixture whose construction raises fails only its test.'''
+
+    name = 'rfp060_conditions_mod'
+    _write_raising_module(tmp_path, name)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    python_path = _write_pair(tmp_path, 'domain/test_conditions', _raising_document(name, '''    conditions:
+      fixtures: [broken]
+    execute: []
+    assert: []'''))
+    report = run_test_module(str(python_path))
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == 'tiferet_tests/domain/test_conditions.yml::failing FAILED'
+    assert lines[-1] == '1 failed, 1 passed'
+    assert 'cannot build' in report['outcomes'][0]['message']
+    assert report['outcomes'][1]['status'] == 'PASSED'
+
+# ** test: assert_phase_failure_does_not_abort_the_other_test
+def test_assert_phase_failure_does_not_abort_the_other_test(tmp_path, capsys, monkeypatch) -> None:
+    '''A failing assert fails only its test.'''
+
+    name = 'rfp060_assert_mod'
+    _write_raising_module(tmp_path, name)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    python_path = _write_pair(tmp_path, 'domain/test_assert', _raising_document(name, f'''    conditions: {{}}
+    execute:
+      - target: {{module_path: {name}, attribute: value}}
+        method: value
+        as: raw
+    assert:
+      - outcome: raw
+        equals: other'''))
+    report = run_test_module(str(python_path))
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == 'tiferet_tests/domain/test_assert.yml::failing FAILED'
+    assert lines[-1] == '1 failed, 1 passed'
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert report['outcomes'][1]['status'] == 'PASSED'
+
+# ** test: subject_service_error_does_not_abort_the_other_test
+def test_subject_service_error_does_not_abort_the_other_test(tmp_path, capsys, monkeypatch) -> None:
+    '''A ServiceError raised by the subject fails only its test.'''
+
+    name = 'rfp060_service_mod'
+    _write_raising_module(tmp_path, name)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    python_path = _write_pair(tmp_path, 'domain/test_service', _raising_document(name, f'''    conditions: {{}}
+    execute:
+      - target: {{module_path: {name}, attribute: service_error}}
+        method: service_error
+    assert: []'''))
+    report = run_test_module(str(python_path))
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == 'tiferet_tests/domain/test_service.yml::failing FAILED'
+    assert lines[1].startswith('ServiceError: ')
+    assert lines[-1] == '1 failed, 1 passed'
+    assert report['outcomes'][0]['message'].startswith('ServiceError: ')
 
 # ** test: reporter_session_harness_error
 def test_reporter_session_harness_error(monkeypatch, capsys):
