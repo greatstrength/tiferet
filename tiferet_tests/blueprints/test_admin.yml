@@ -1,4 +1,10 @@
 fixtures:
+  stale_constants:
+    module_path: builtins
+    class_name: dict
+    attributes:
+      cli_config: old.yml
+      keep: x
   app_di_service:
     module_path: &domain tiferet.domain
     class_name: &dep AppServiceDependency
@@ -112,14 +118,15 @@ tests:
         equals: true
 
   build_admin_session_constants_overlays_config_paths:
-    conditions: {}
+    conditions:
+      fixtures: [stale_constants]
     execute:
       - target: &overlay
           module_path: *admin
           attribute: build_admin_session_constants
         method: build_admin_session_constants
         args:
-          - {cli_config: old.yml, keep: x}
+          - $fixture.stale_constants
           - other.yml
         as: result
       - target: *overlay
@@ -127,6 +134,10 @@ tests:
         args: [null, other.yml]
         as: from_none
     assert:
+      - outcome: stale_constants
+        equals:
+          cli_config: old.yml
+          keep: x
       - outcome: result
         equals:
           keep: x
