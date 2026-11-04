@@ -1889,6 +1889,18 @@ def test_named_handle_uses_explicit_dependencies():
     assert data['by_ref']['dep'] == 'loader'
     assert data['by_mock']['dep'] is runtime.mocks['dep']
 
+# ** test: named_handle_passes_reserved_kwargs
+def test_named_handle_passes_reserved_kwargs():
+    '''A named-target handle step with a dependencies kwarg reaches execute.'''
+
+    # Before RFP-067 the dependencies key raised TypeError in DomainEvent.handle.
+    target = {'module_path': __name__, 'class_name': 'NamedEvent'}
+    reserved = {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'}
+    runtime = _observe('loader', [], executes=[
+        Execution(target=target, method='handle', dependencies={'dep': 'value'}, kwargs=reserved, data_key='seen'),
+    ])
+    assert runtime.session.data['seen'] == {'dep': 'value', 'kwargs': reserved}
+
 # ** test: named_handle_on_mock_and_ref
 def test_named_handle_on_mock_and_ref():
     '''$mock.<name> and $r.<key> are named events. A non-callable target is PHASE_STEP_FAILED.'''
