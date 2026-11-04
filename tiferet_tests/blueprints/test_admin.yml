@@ -164,34 +164,6 @@ tests:
           attribute: build_admin_app
         method: build_admin_app
         as: context
-      - target: &getattr
-          module_path: builtins
-          attribute: getattr
-        method: getattr
-        args: [$r.context, _build_logger]
-        as: build_logger
-      - target: &is_
-          module_path: operator
-          attribute: is_
-        method: is_
-        args: [$r.build_logger, null]
-        as: logger_missing
-      - target: *getattr
-        method: getattr
-        args: [$r.context, _execute_feature]
-        as: execute_feature
-      - target: *is_
-        method: is_
-        args: [$r.execute_feature, null]
-        as: execute_missing
-      - target: *getattr
-        method: getattr
-        args: [$r.context, _raise_error]
-        as: raise_error
-      - target: *is_
-        method: is_
-        args: [$r.raise_error, null]
-        as: raise_missing
     assert:
       - outcome: context
         type:
@@ -211,12 +183,17 @@ tests:
         is:
           module_path: tiferet.blueprints.core
           class_name: response_handler
-      - outcome: logger_missing
-        equals: false
-      - outcome: execute_missing
-        equals: false
-      - outcome: raise_missing
-        equals: false
+      - outcome: context
+        attribute: _build_logger
+        type: &function
+          module_path: types
+          class_name: FunctionType
+      - outcome: context
+        attribute: _execute_feature
+        type: *function
+      - outcome: context
+        attribute: _raise_error
+        type: *function
 
   build_admin_app_alias:
     conditions: {}
