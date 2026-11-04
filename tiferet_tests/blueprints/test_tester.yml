@@ -1,0 +1,211 @@
+fixtures:
+  domain_tester:
+    module_path: &domain tiferet.domain
+    class_name: &tester_object TesterObject
+    attributes:
+      type: domain
+      id: domain.ErrorMessage
+      module_path: tiferet.domain.error
+      class_name: ErrorMessage
+      sample_data: &message_sample {lang: en_US, text: An error occurred.}
+  domain_event_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: domain_event
+      id: domain_event.ListErrors
+      module_path: tiferet.events.error
+      class_name: ListErrors
+  service_event_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: service_event
+      id: service_event.GetError
+      module_path: tiferet.events.error
+      class_name: GetError
+      dependencies:
+        error_service: {module_path: tiferet.interfaces, class_name: ErrorService}
+      sample_kwargs: {id: TEST_ERROR}
+      service_attr: error_service
+      not_found_error_code: ERROR_NOT_FOUND
+  generic_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: generic
+      id: generic.ErrorMessage
+      module_path: tiferet.domain.error
+      class_name: ErrorMessage
+      sample_data: *message_sample
+  repo_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: repo
+      id: repo.ErrorConfigRepository
+      module_path: tiferet.repos.error
+      class_name: ErrorConfigRepository
+      config_parameter: error_config
+  context_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: context
+      id: context.RequestContext
+      module_path: tiferet.contexts.request
+      class_name: RequestContext
+      domain_module_path: *domain
+      domain_class_name: Request
+  sampled_context_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: context
+      id: context.RequestContext
+      module_path: tiferet.contexts.request
+      class_name: RequestContext
+      domain_module_path: *domain
+      domain_class_name: Request
+      sample_data: {session_id: test-session, feature_id: test.feature}
+
+tests:
+  tester_build_cache_isolated_from_standard_app_catalogs:
+    conditions: {}
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_cache}, method: build_cache, as: cache}
+      - {target: $r.cache, method: get_by_prefix, args: [app, testers], as: testers}
+      - {target: {module_path: builtins, attribute: len}, method: len, args: [$r.testers], as: tester_count}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.testers, domain.ErrorMessage], as: has_tester_0}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.testers, aggregate.ErrorAggregate], as: has_tester_1}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.testers, transfer_object.ErrorConfigObject], as: has_tester_2}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.testers, service_event.GetError], as: has_tester_3}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.testers, repo.ErrorConfigRepository], as: has_tester_4}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.testers, context.RequestContext], as: has_tester_5}
+      - {target: $r.cache, method: get_by_prefix, args: [app, errors], as: errors}
+      - {target: $r.cache, method: get_by_prefix, args: [app, services], as: services}
+      - {target: {module_path: builtins, attribute: len}, method: len, args: [$r.services], as: service_count}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, di_service], as: has_service_0}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, feature_service], as: has_service_1}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, get_feature_evt], as: has_service_2}
+      - {target: $r.cache, method: get_by_prefix, args: [app, constants], as: constants}
+    assert:
+      - {outcome: tester_count, equals: 6}
+      - {outcome: has_tester_0, equals: true}
+      - {outcome: has_tester_1, equals: true}
+      - {outcome: has_tester_2, equals: true}
+      - {outcome: has_tester_3, equals: true}
+      - {outcome: has_tester_4, equals: true}
+      - {outcome: has_tester_5, equals: true}
+      - {outcome: has_service_0, equals: true}
+      - {outcome: has_service_1, equals: true}
+      - {outcome: has_service_2, equals: true}
+      - {outcome: errors, equals: {}}
+      - {outcome: service_count, equals: 3}
+      - outcome: constants
+        equals: {di_config: config.yml, feature_config: config.yml}
+
+  build_test_session_constructs_request_session:
+    conditions:
+      fixtures: [domain_tester]
+    execute:
+      - &build_domain {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.domain_tester], as: test_ctx}
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], kwargs: {data: {text: overlay}}, as: session}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.session, tester_ctx], as: bound}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.bound, $r.test_ctx], as: same}
+    assert:
+      - outcome: session
+        type: {module_path: tiferet.contexts.tester, class_name: TestSessionContext}
+      - {outcome: same, equals: true}
+      - outcome: session
+        attribute: data
+        equals: {text: overlay}
+
+  use_tester_is_exported:
+    conditions: {}
+    execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet], as: package}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.package, use_tester], as: exported}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.blueprints.tester], as: blueprint}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.blueprint, use_tester], as: original}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.exported, $r.original], as: same}
+    assert:
+      - {outcome: same, equals: true}
+
+  build_tester_context_selects_event_variants:
+    conditions:
+      fixtures: [domain_event_tester, service_event_tester]
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.domain_event_tester], as: domain_event_ctx}
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.service_event_tester], as: service_event_ctx}
+    assert:
+      - outcome: domain_event_ctx
+        type: {module_path: tiferet.contexts.tester, class_name: DomainEventTesterContext}
+      - outcome: service_event_ctx
+        type: &service_event_ctx {module_path: tiferet.contexts.tester, class_name: ServiceEventTesterContext}
+      - outcome: domain_event_ctx
+        type: {module_path: tiferet.contexts.tester, class_name: ServiceEventTesterContext, negate: true}
+
+  build_tester_context_selects_generic_variant:
+    conditions:
+      fixtures: [generic_tester]
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.generic_tester], as: test_ctx}
+    assert:
+      - outcome: test_ctx
+        type: {module_path: tiferet.contexts.tester, class_name: GenericTesterContext}
+
+  build_tester_context_selects_repo_variant:
+    conditions:
+      fixtures: [repo_tester]
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.repo_tester], as: test_ctx}
+    assert:
+      - outcome: test_ctx
+        type: {module_path: tiferet.contexts.tester, class_name: RepoTesterContext}
+
+  use_tester_injects_repo_test_ctx:
+    conditions:
+      fixtures: [repo_tester]
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.repo_tester], as: test_ctx}
+    assert:
+      - outcome: test_ctx
+        type: {module_path: tiferet.contexts.tester, class_name: RepoTesterContext}
+
+  use_tester_injects_generic_test_ctx:
+    conditions:
+      fixtures: [generic_tester]
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.generic_tester], as: test_ctx}
+    assert:
+      - outcome: test_ctx
+        type: {module_path: tiferet.contexts.tester, class_name: GenericTesterContext}
+
+testers:
+  test_context_tester_blueprint:
+    module_path: tiferet.contexts.tester
+    class_name: ContextTesterContext
+    tests:
+      build_tester_context_selects_context_variant:
+        conditions:
+          fixtures: [context_tester]
+        execute:
+          - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.context_tester], as: test_ctx}
+        assert:
+          - outcome: test_ctx
+            type: &context_ctx {module_path: tiferet.contexts.tester, class_name: ContextTesterContext}
+
+      use_tester_injects_context_test_ctx:
+        conditions:
+          fixtures: [sampled_context_tester]
+        execute:
+          - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.sampled_context_tester], as: test_ctx}
+        assert:
+          - outcome: test_ctx
+            type: *context_ctx
+          - outcome: test_ctx
+            attribute: domain
+            fields:
+              domain_module_path: tiferet.domain
+              domain_class_name: Request
