@@ -232,13 +232,9 @@ tests:
       - *cache_module
       - *base_build
       - *wrap
-      - target: {module_path: builtins, attribute: hasattr}
-        method: hasattr
-        args: [$r.wrapped, __call__]
-        as: is_callable
     assert:
-      - outcome: is_callable
-        equals: true
+      - outcome: wrapped
+        type: {module_path: types, class_name: FunctionType}
 
   get_default_logging_settings_returns_seeded:
     conditions:

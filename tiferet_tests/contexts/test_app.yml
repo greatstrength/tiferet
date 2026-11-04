@@ -134,13 +134,9 @@ tests:
         method: __call__
         args: [$r.base_build]
         as: wrapped
-      - target: {module_path: builtins, attribute: hasattr}
-        method: hasattr
-        args: [$r.wrapped, __call__]
-        as: is_callable
     assert:
-      - outcome: is_callable
-        equals: true
+      - outcome: wrapped
+        type: {module_path: types, class_name: FunctionType}
 
   add_default_app_services_seeds_cache_with_domain_objects:
     conditions: {}
@@ -245,13 +241,9 @@ tests:
       - *cache_module
       - *base_build
       - *wrap
-      - target: {module_path: builtins, attribute: hasattr}
-        method: hasattr
-        args: [$r.wrapped, __call__]
-        as: is_callable
     assert:
-      - outcome: is_callable
-        equals: true
+      - outcome: wrapped
+        type: {module_path: types, class_name: FunctionType}
 
   add_default_app_constants_seeds_cache_with_scalars:
     conditions: {}
