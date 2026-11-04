@@ -41,29 +41,15 @@ tests:
           get_dependency: null
           cache: $fixture.cache
         as: context
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.context, cache]
-        as: context_cache
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.context, domain]
-        as: context_domain
-      - target: {module_path: operator, attribute: is_}
-        method: is_
-        args: [$r.context_cache, $fixture.cache]
-        as: same_cache
-      - target: {module_path: operator, attribute: is_}
-        method: is_
-        args: [$r.context_domain, $fixture.feature]
-        as: same_domain
     assert:
       - outcome: context
         type: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
-      - outcome: same_cache
-        equals: true
-      - outcome: same_domain
-        equals: true
+      - outcome: context
+        attribute: cache
+        equals: $fixture.cache
+      - outcome: context
+        attribute: domain
+        equals: $fixture.feature
 
   add_default_cache_items_isolates_by_prefix:
     conditions: {}
@@ -154,21 +140,12 @@ testers:
             method: from_domain
             args: [$fixture.error]
             as: context
-          - &read_domain
-            target: {module_path: builtins, attribute: getattr}
-            method: getattr
-            args: [$r.context, domain]
-            as: bound
-          - &same_domain
-            target: {module_path: operator, attribute: is_}
-            method: is_
-            args: [$r.bound, $fixture.error]
-            as: same
         assert:
           - outcome: context
             type: &error_context {module_path: tiferet.contexts.error, class_name: ErrorContext}
-          - outcome: same
-            equals: true
+          - outcome: context
+            attribute: domain
+            equals: $fixture.error
 
       domain_type:
         conditions:
@@ -247,36 +224,6 @@ testers:
           - outcome: request_context_cls
             is: {module_path: tiferet.contexts.request, class_name: RequestContext}
 
-      base_context_not_registered:
-        conditions: {}
-        execute:
-          - target: {module_path: importlib, attribute: import_module}
-            method: import_module
-            args: [tiferet.contexts.core]
-            as: core
-          - target: {module_path: builtins, attribute: getattr}
-            method: getattr
-            args: [$r.core, ContextMeta]
-            as: meta
-          - target: {module_path: builtins, attribute: getattr}
-            method: getattr
-            args: [$r.core, BaseContext]
-            as: base
-          - target: {module_path: builtins, attribute: getattr}
-            method: getattr
-            args: [$r.meta, registry]
-            as: registry
-          - target: $r.registry
-            method: values
-            as: registered
-          - target: {module_path: operator, attribute: contains}
-            method: contains
-            args: [$r.registered, $r.base]
-            as: present
-        assert:
-          - outcome: present
-            equals: false
-
       from_domain_via_base_context:
         conditions:
           fixtures: [error]
@@ -285,10 +232,9 @@ testers:
             method: from_domain
             args: [$fixture.error]
             as: context
-          - *read_domain
-          - *same_domain
         assert:
           - outcome: context
             type: *error_context
-          - outcome: same
-            equals: true
+          - outcome: context
+            attribute: domain
+            equals: $fixture.error

@@ -229,31 +229,16 @@ tests:
         args: [$fixture.int_feature, $fixture.request_empty]
         raises: true
         as: failed
-      - &read_kwargs
-        target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.failed, kwargs]
-        as: failed_kwargs
-      - &count_violations
-        target: $r.failed_kwargs
-        method: get
-        args: [violations]
-        as: violations
-      - &len_violations
-        target: {module_path: builtins, attribute: len}
-        method: len
-        args: [$r.violations]
-        as: violation_count
     assert:
       - outcome: failed
         type: *tiferet_error
       - outcome: failed
         error_code: REQUEST_VALIDATION_FAILED
-      - outcome: failed_kwargs
+      - outcome: failed
+        attribute: kwargs
         fields:
           feature_id: calc.add
-      - outcome: violation_count
-        equals: 1
+          violations: [{field: a}]
 
   validate_request_aggregates_multiple_violations:
     conditions:
@@ -264,14 +249,13 @@ tests:
         args: [$fixture.two_int_feature, $fixture.request_ab_xy]
         raises: true
         as: failed
-      - *read_kwargs
-      - *count_violations
-      - *len_violations
     assert:
       - outcome: failed
         error_code: REQUEST_VALIDATION_FAILED
-      - outcome: violation_count
-        equals: 2
+      - outcome: failed
+        attribute: kwargs
+        fields:
+          violations: [{field: a}, {field: b}]
 
   compose_step_middleware_both_empty:
     conditions: {}

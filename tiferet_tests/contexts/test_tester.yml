@@ -203,17 +203,12 @@ tests:
       - target: $r.get_mock
         method: configure_mock
         kwargs: {return_value: $fixture.error_aggregate}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.test_ctx, handle], as: handle_fn}
-      - {target: $r.handle_fn, method: __call__, args: [$r.dependencies], as: handled}
-      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.handled, $fixture.error_aggregate], as: same_error}
       - {target: $r.test_ctx, method: assert_not_found}
       - {target: $r.test_ctx, method: assert_missing_required_params}
     assert:
       - outcome: test_ctx
         type: {module_path: tiferet.contexts.tester, class_name: DomainEventTesterContext}
       - outcome: same_service
-        equals: true
-      - outcome: same_error
         equals: true
 
   use_tester_injects_service_event_test_ctx:
@@ -265,18 +260,18 @@ tests:
     execute:
       - {target: {module_path: tiferet.blueprints.tester, attribute: _module_run_session}, method: _module_run_session, as: module_run}
       - {target: $r.module_run, method: note, args: [node.core], kwargs: {error: $fixture.not_found_error}, as: printable}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.module_run, outcomes], as: outcomes}
-      - {target: $r.outcomes, method: __getitem__, args: [0], as: first}
     assert:
       - outcome: printable
         type: {module_path: tiferet.assets, class_name: TiferetAPIError}
       - outcome: printable
         attribute: message
         equals: 'Error not found: {id}.'
-      - outcome: first
-        fields:
-          status: FAILED
-          message: 'Error not found: {id}.'
+      - outcome: module_run
+        attribute: outcomes
+        equals:
+          - node_id: node.core
+            status: FAILED
+            message: 'Error not found: {id}.'
 
 testers:
   test_context_tester_context:

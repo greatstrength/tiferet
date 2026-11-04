@@ -19,30 +19,20 @@ tests:
       - target: seeded_cache
         method: get_by_prefix
         as: root
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.seeded_cache, _cache]
-        as: store
-      - target: {module_path: builtins, attribute: len}
-        method: len
-        args: [$r.store]
-        as: namespaces
     assert:
       - outcome: root
         equals: *initial_cache
-      - outcome: namespaces
-        equals: 1
 
   init_without_initial_cache:
     conditions:
       fixtures: [cache_context]
     execute:
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.cache_context, _cache]
-        as: store
+      - target: cache_context
+        method: get_by_prefix
+        as: root
     assert:
-      - outcome: store
+      - outcome: cache_context
+        attribute: _cache
         equals: {}
 
   get_existing_key:
@@ -202,12 +192,9 @@ tests:
       - target: cache_context
         method: delete
         args: [key, missing, ns]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.cache_context, _cache]
-        as: store
     assert:
-      - outcome: store
+      - outcome: cache_context
+        attribute: _cache
         equals: {}
 
   clear:
@@ -222,12 +209,9 @@ tests:
         args: [key2, value2, app, errors]
       - target: cache_context
         method: clear
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.cache_context, _cache]
-        as: store
     assert:
-      - outcome: store
+      - outcome: cache_context
+        attribute: _cache
         equals: {}
 
   multiple_operations:

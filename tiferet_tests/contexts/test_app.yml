@@ -767,9 +767,8 @@ testers:
             args: [group.feat]
             raises: true
             as: failed
-          - target: {module_path: builtins, attribute: getattr}
-            method: getattr
-            args: [$r.failed, message]
+          - target: $r.failed
+            method: __str__
             as: failed_message
           - target: {module_path: operator, attribute: contains}
             method: contains
@@ -856,10 +855,6 @@ testers:
             args: [$fixture.test_error]
             raises: true
             as: failed
-          - target: {module_path: builtins, attribute: getattr}
-            method: getattr
-            args: [$r.failed, kwargs]
-            as: failed_kwargs
         assert:
           - outcome: failed
             type: *api_error
@@ -868,9 +863,10 @@ testers:
           - outcome: failed
             attribute: message
             message: raise_error_handler
-          - outcome: failed_kwargs
+          - outcome: failed
+            attribute: kwargs
             fields:
               original_error_code: TEST_ERROR
-          - outcome: failed_kwargs
-            attribute: original_error_message
+          - outcome: failed
+            attribute: kwargs
             message: Test error message.

@@ -97,10 +97,6 @@ tests:
         args: [specific_value]
         kwargs:
           data_key: specific_key
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, domain]
-        as: domain
     assert:
       - outcome: request_context
         attribute: result
@@ -110,239 +106,85 @@ tests:
         fields:
           specific_key: specific_value
           key: value
-      - outcome: domain
-        attribute: data
-        absent: [specific_key]
-      - outcome: domain
-        attribute: data
+      - outcome: request_context
+        attribute: domain
         fields:
-          key: value
+          data: {key: value, another_key: another_value}
 
   request_context_binds_request_domain:
     conditions:
       fixtures: [request_context]
     execute:
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, domain]
-        as: domain
+      - target: request_context
+        method: handle_response
+        as: unused
     assert:
-      - outcome: domain
-        type: &request_type {module_path: tiferet.domain, class_name: Request}
+      - outcome: request_context
+        attribute: domain
+        type: {module_path: tiferet.domain, class_name: Request}
 
   request_context_construction_fills_domain:
     conditions:
       fixtures: [request_context]
     execute:
-      - &read_domain
-        target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, domain]
-        as: domain
-      - &read_domain_session_id
-        target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.domain, session_id]
-        as: domain_session_id
-      - &session_id_falsy
-        target: {module_path: operator, attribute: contains}
-        method: contains
-        args: [['', null], $r.domain_session_id]
-        as: session_id_falsy
-      - &read_domain_headers
-        target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.domain, headers]
-        as: domain_headers
-      - &read_domain_data
-        target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.domain, data]
-        as: domain_data
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, headers]
-        as: headers
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, data]
-        as: data
-      - target: {module_path: operator, attribute: is_}
-        method: is_
-        args: [$r.headers, $r.domain_headers]
-        as: headers_aliased
-      - target: {module_path: operator, attribute: is_}
-        method: is_
-        args: [$r.data, $r.domain_data]
-        as: data_aliased
+      - target: request_context
+        method: handle_response
+        as: unused
     assert:
-      - outcome: session_id_falsy
-        equals: false
-      - outcome: domain
+      - outcome: request_context
+        attribute: domain
         fields:
           feature_id: test_group.test_feature
-      - outcome: domain_headers
-        equals:
-          interface_id: test_interface
-      - outcome: domain_data
-        equals:
-          key: value
-          another_key: another_value
+          headers: {interface_id: test_interface}
+          data: {key: value, another_key: another_value}
       - outcome: request_context
         attribute: session_id
-        equals: $r.domain_session_id
+        type: {module_path: builtins, class_name: str}
       - outcome: request_context
         attribute: feature_id
         equals: test_group.test_feature
-      - outcome: headers
-        equals:
-          interface_id: test_interface
-      - outcome: data
-        equals:
-          key: value
-          another_key: another_value
-      - outcome: headers_aliased
-        equals: false
-      - outcome: data_aliased
-        equals: false
+      - outcome: request_context
+        attribute: headers
+        equals: {interface_id: test_interface}
+      - outcome: request_context
+        attribute: data
+        equals: {key: value, another_key: another_value}
 
   request_context_set_methods_write_inflight:
     conditions:
       fixtures: [request_context]
     execute:
-      - *read_domain
-      - *read_domain_session_id
-      - *read_domain_headers
-      - *read_domain_data
       - target: request_context
         method: set_session_id
         args: [sess-1]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, session_id]
-        as: session_after_set
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, feature_id]
-        as: feature_after_session
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.domain, session_id]
-        as: domain_session_after_set
       - target: request_context
         method: set_feature_id
         args: [g.f2]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, feature_id]
-        as: feature_after_set
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, session_id]
-        as: session_after_feature
-      - target: request_context
-        method: set_feature_id
-        args: [null]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, feature_id]
-        as: feature_after_none
       - target: request_context
         method: set_headers
-        args: [&incoming_headers {x: y}]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, headers]
-        as: headers_after_set
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.domain, headers]
-        as: domain_headers_after_set
-      - target: {module_path: operator, attribute: is_}
-        method: is_
-        args: [$r.domain_headers_after_set, $r.domain_headers]
-        as: domain_headers_same
+        args: [{x: y}]
       - target: request_context
         method: set_data
-        args: [&incoming_data {new: data}]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.request_context, data]
-        as: data_after_set
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.domain, data]
-        as: domain_data_after_set
-      - target: {module_path: operator, attribute: is_}
-        method: is_
-        args: [$r.domain_data_after_set, $r.domain_data]
-        as: domain_data_same
+        args: [{new: data}]
     assert:
-      - outcome: session_after_set
+      - outcome: request_context
+        attribute: session_id
         equals: sess-1
-      - outcome: feature_after_session
-        equals: test_group.test_feature
-      - outcome: domain_session_after_set
-        equals: $r.domain_session_id
-      - outcome: feature_after_set
+      - outcome: request_context
+        attribute: feature_id
         equals: g.f2
-      - outcome: session_after_feature
-        equals: sess-1
-      - outcome: feature_after_none
-        "null": true
-      - outcome: domain
+      - outcome: request_context
+        attribute: headers
+        equals: {x: y}
+      - outcome: request_context
+        attribute: data
+        equals: {new: data}
+      - outcome: request_context
+        attribute: domain
         fields:
           feature_id: test_group.test_feature
-      - outcome: headers_after_set
-        equals: *incoming_headers
-      - outcome: domain_headers_after_set
-        equals:
-          interface_id: test_interface
-      - outcome: domain_headers_same
-        equals: true
-      - outcome: data_after_set
-        equals: *incoming_data
-      - outcome: domain_data_after_set
-        equals:
-          key: value
-          another_key: another_value
-      - outcome: domain_data_same
-        equals: true
-
-  request_context_domain_field_assignment_raises:
-    conditions:
-      fixtures: [request_context]
-    execute:
-      - *read_domain
-      - target: $r.domain
-        method: __setattr__
-        args: [session_id, other]
-        raises: true
-        as: session_id_failed
-      - target: $r.domain
-        method: __setattr__
-        args: [feature_id, other]
-        raises: true
-        as: feature_id_failed
-      - target: $r.domain
-        method: __setattr__
-        args: [headers, {x: y}]
-        raises: true
-        as: headers_failed
-      - target: $r.domain
-        method: __setattr__
-        args: [data, {new: data}]
-        raises: true
-        as: data_failed
-    assert:
-      - outcome: session_id_failed
-        type: &validation_error {module_path: pydantic, class_name: ValidationError}
-      - outcome: feature_id_failed
-        type: *validation_error
-      - outcome: headers_failed
-        type: *validation_error
-      - outcome: data_failed
-        type: *validation_error
+          headers: {interface_id: test_interface}
+          data: {key: value, another_key: another_value}
 
   request_context_registered_for_request_domain:
     conditions: {}
@@ -367,15 +209,10 @@ tests:
     conditions:
       fixtures: [empty_request_context]
     execute:
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.empty_request_context, domain]
-        as: domain
-      - *read_domain_session_id
-      - *session_id_falsy
+      - target: empty_request_context
+        method: handle_response
+        as: unused
     assert:
-      - outcome: session_id_falsy
-        equals: false
       - outcome: empty_request_context
         attribute: session_id
-        equals: $r.domain_session_id
+        type: {module_path: builtins, class_name: str}

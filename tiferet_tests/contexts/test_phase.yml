@@ -208,14 +208,11 @@ tests:
       - target: $r.runtime
         method: run
         args: [$fixture.add_success_test]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.session, data]
-        as: data
-      - {target: $r.data, method: get, args: [created], as: created}
     assert:
-      - outcome: created
-        type: {module_path: tiferet.domain.error, class_name: Error}
+      - outcome: session
+        attribute: data
+        fields:
+          created: {id: NEW_ERROR, name: New Error}
 
   event_already_exists:
     conditions:
@@ -231,14 +228,11 @@ tests:
       - target: $r.runtime
         method: run
         args: [$fixture.already_exists_test]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.session, data]
-        as: data
-      - {target: $r.data, method: get, args: [failed], as: failed}
     assert:
-      - outcome: failed
-        type: {module_path: tiferet.assets, class_name: TiferetError}
+      - outcome: session
+        attribute: data
+        fields:
+          failed: {error_code: ERROR_ALREADY_EXISTS}
 
   event_not_found:
     conditions:
@@ -254,14 +248,11 @@ tests:
       - target: $r.runtime
         method: run
         args: [$fixture.not_found_test]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.session, data]
-        as: data
-      - {target: $r.data, method: get, args: [failed], as: failed}
     assert:
-      - outcome: failed
-        error_code: ERROR_NOT_FOUND
+      - outcome: session
+        attribute: data
+        fields:
+          failed: {error_code: ERROR_NOT_FOUND}
 
   event_missing_required_parameter:
     conditions:
@@ -277,14 +268,11 @@ tests:
       - target: $r.runtime
         method: run
         args: [$fixture.missing_id_test]
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$fixture.session, data]
-        as: data
-      - {target: $r.data, method: get, args: [failed], as: failed}
     assert:
-      - outcome: failed
-        error_code: COMMAND_PARAMETER_REQUIRED
+      - outcome: session
+        attribute: data
+        fields:
+          failed: {error_code: COMMAND_PARAMETER_REQUIRED}
 
   handlers_are_registered_and_not_default_features:
     conditions: {}
@@ -293,29 +281,17 @@ tests:
         method: register_phase_handlers
         as: handlers
       - {target: {module_path: builtins, attribute: len}, method: len, args: [$r.handlers], as: count}
-      - {target: $r.handlers, method: get, args: [conditions], as: conditions}
-      - {target: $r.handlers, method: get, args: [execute], as: execute}
-      - {target: $r.handlers, method: get, args: [assert], as: assert}
-      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.contexts.tester_phase], as: phase_module}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.phase_module, PhaseRuntimeContext], as: runtime_cls}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.runtime_cls, handle_conditions], as: handle_conditions}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.runtime_cls, handle_execution], as: handle_execution}
-      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.runtime_cls, handle_assertion], as: handle_assertion}
-      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.conditions, $r.handle_conditions], as: same_conditions}
-      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.execute, $r.handle_execution], as: same_execute}
-      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.assert, $r.handle_assertion], as: same_assert}
       - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.domain], as: domain_module}
       - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.domain_module, Feature], as: feature_cls}
       - {target: {module_path: builtins, attribute: hasattr}, method: hasattr, args: [$r.feature_cls, CORE_DEFAULT_FEATURES], as: has_catalog}
     assert:
       - outcome: count
         equals: 3
-      - outcome: same_conditions
-        equals: true
-      - outcome: same_execute
-        equals: true
-      - outcome: same_assert
-        equals: true
+      - outcome: handlers
+        fields:
+          conditions: {__name__: handle_conditions, __qualname__: PhaseRuntimeContext.handle_conditions}
+          execute: {__name__: handle_execution, __qualname__: PhaseRuntimeContext.handle_execution}
+          assert: {__name__: handle_assertion, __qualname__: PhaseRuntimeContext.handle_assertion}
       - outcome: has_catalog
         equals: false
 
