@@ -17,6 +17,17 @@ fixtures:
     attributes:
       id: sample_error
       name: Sample Error
+  error_context_tester:
+    module_path: tiferet.domain
+    class_name: TesterObject
+    attributes:
+      type: context
+      id: context.ErrorContext
+      module_path: tiferet.contexts.error
+      class_name: ErrorContext
+      domain_module_path: tiferet.domain
+      domain_class_name: Error
+      domain_type_cases: [{declares: true}]
 
 tests:
   from_domain_explicit_subclass:
@@ -158,6 +169,23 @@ testers:
             type: &error_context {module_path: tiferet.contexts.error, class_name: ErrorContext}
           - outcome: same
             equals: true
+
+      domain_type:
+        conditions:
+          fixtures: [error_context_tester]
+        execute:
+          - target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}
+            method: build_tester_context
+            args: [$fixture.error_context_tester]
+            as: test_ctx
+          - target: $r.test_ctx
+            method: assert_domain_type
+            as: declared
+        assert:
+          - outcome: test_ctx
+            type: {module_path: tiferet.contexts.tester, class_name: ContextTesterContext}
+          - outcome: declared
+            "null": true
 
       for_domain:
         conditions: {}
