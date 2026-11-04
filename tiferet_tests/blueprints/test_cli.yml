@@ -1,0 +1,344 @@
+fixtures:
+  add_command:
+    module_path: &domain tiferet.domain
+    class_name: &cli_command CliCommand
+    attributes:
+      name: Add
+      key: add
+      group_key: calc
+  subtract_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      name: Subtract
+      key: subtract
+      group_key: calc
+  boot_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      name: Boot
+      key: boot
+      group_key: sys
+  typed_add_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      name: Add
+      key: add
+      group_key: calc
+      arguments:
+        - name_or_flags: [a]
+          type: int
+        - name_or_flags: [b]
+          type: int
+  verbose_argument:
+    module_path: *domain
+    class_name: CliArgument
+    attributes:
+      name_or_flags: [--verbose]
+  empty_cache:
+    module_path: tiferet.contexts.cache
+    class_name: CacheContext
+    attributes: {}
+
+tests:
+  blueprint_exposes_parsing_helpers:
+    conditions: {}
+    execute:
+      - target: &import_module
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [&cli tiferet.blueprints.cli]
+        as: cli_module
+      - target: &hasattr
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.cli_module, group_commands_by_key]
+        as: has_group_commands_by_key
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, build_argument_parser]
+        as: has_build_argument_parser
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, derive_feature_request]
+        as: has_derive_feature_request
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, build_cli_cache]
+        as: has_build_cli_cache
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, parse_cli_args_handler]
+        as: has_parse_cli_args_handler
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, create_cli_request_context]
+        as: has_create_cli_request_context
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, list_commands_handler]
+        as: has_list_commands_handler
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, get_parent_args_handler]
+        as: has_get_parent_args_handler
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, build_cli_session_context]
+        as: has_build_cli_session_context
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, cli_response_handler]
+        as: has_cli_response_handler
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, get_commands]
+        as: has_get_commands
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, get_parent_arguments]
+        as: has_get_parent_arguments
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, build_argument_kwargs]
+        as: has_build_argument_kwargs
+      - target: *hasattr
+        method: hasattr
+        args: [$r.cli_module, parse_argv]
+        as: has_parse_argv
+    assert:
+      - outcome: has_group_commands_by_key
+        equals: true
+      - outcome: has_build_argument_parser
+        equals: true
+      - outcome: has_derive_feature_request
+        equals: true
+      - outcome: has_build_cli_cache
+        equals: true
+      - outcome: has_parse_cli_args_handler
+        equals: true
+      - outcome: has_create_cli_request_context
+        equals: true
+      - outcome: has_list_commands_handler
+        equals: true
+      - outcome: has_get_parent_args_handler
+        equals: true
+      - outcome: has_build_cli_session_context
+        equals: true
+      - outcome: has_cli_response_handler
+        equals: false
+      - outcome: has_get_commands
+        equals: false
+      - outcome: has_get_parent_arguments
+        equals: false
+      - outcome: has_build_argument_kwargs
+        equals: false
+      - outcome: has_parse_argv
+        equals: false
+
+  group_commands_by_key_groups_correctly:
+    conditions:
+      fixtures: [add_command, subtract_command, boot_command]
+    execute:
+      - target: &group_commands
+          module_path: *cli
+          attribute: group_commands_by_key
+        method: group_commands_by_key
+        args: [[$fixture.add_command, $fixture.subtract_command, $fixture.boot_command]]
+        as: commands
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.commands]
+        as: group_count
+    assert:
+      - outcome: commands
+        fields:
+          calc:
+            - key: add
+            - key: subtract
+          sys:
+            - key: boot
+      - outcome: group_count
+        equals: 2
+
+  build_argument_parser_parses_command_arguments:
+    conditions:
+      fixtures: [typed_add_command]
+    execute:
+      - target:
+          module_path: *cli
+          attribute: build_argument_parser
+        method: build_argument_parser
+        args:
+          - calc: [$fixture.typed_add_command]
+          - []
+        as: parser
+      - target: $r.parser
+        method: parse_args
+        args: [[calc, add, '1', '2']]
+        as: parsed
+    assert:
+      - outcome: parsed
+        fields:
+          group: calc
+          command: add
+          a: 1
+          b: 2
+
+  derive_feature_request_normalizes_hyphens:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *cli
+          attribute: derive_feature_request
+        method: derive_feature_request
+        args:
+          - group: my-calc
+            command: sub-tract
+            a: 1
+        as: request
+      - target: $r.request
+        method: __getitem__
+        args: [0]
+        as: feature_id
+      - target: $r.request
+        method: __getitem__
+        args: [1]
+        as: headers
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.request]
+        as: request_length
+    assert:
+      - outcome: feature_id
+        equals: my_calc.sub_tract
+      - outcome: headers
+        equals:
+          command_group: my-calc
+          command_key: sub-tract
+      - outcome: request_length
+        equals: 2
+
+  list_commands_handler_returns_event_result:
+    conditions:
+      fixtures: [add_command, empty_cache]
+      mocks:
+        event: &event_mock
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: $fixture.add_command
+        get_dependency: &resolver_mock
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: *cli
+          attribute: list_commands_handler
+        method: list_commands_handler
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        as: result
+      - target: &is_
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.result, $fixture.add_command]
+        as: same_result
+    assert:
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [list_commands_evt, app]
+      - mock: event
+        method: execute
+        assert_called_once_with:
+          args: []
+      - outcome: same_result
+        equals: true
+
+  list_commands_handler_falls_back_when_event_returns_none:
+    conditions:
+      fixtures: [empty_cache]
+      mocks:
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: null
+        get_dependency: *resolver_mock
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: *cli
+          attribute: list_commands_handler
+        method: list_commands_handler
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        as: result
+    assert:
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [list_commands_evt, app]
+      - outcome: result
+        equals: []
+
+  get_parent_args_handler_resolves_app_scoped_event:
+    conditions:
+      fixtures: [verbose_argument]
+      mocks:
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: $fixture.verbose_argument
+        get_dependency: *resolver_mock
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: *cli
+          attribute: get_parent_args_handler
+        method: get_parent_args_handler
+        args: [$mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        as: result
+      - target: *is_
+        method: is_
+        args: [$r.result, $fixture.verbose_argument]
+        as: same_result
+    assert:
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [get_parent_args_evt, app]
+      - mock: event
+        method: execute
+        assert_called_once_with:
+          args: []
+      - outcome: same_result
+        equals: true

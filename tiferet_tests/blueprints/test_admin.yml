@@ -1,0 +1,229 @@
+fixtures:
+  app_di_service:
+    module_path: &domain tiferet.domain
+    class_name: &dep AppServiceDependency
+    attributes:
+      service_id: di_service
+      module_path: tiferet.contexts.cache
+      class_name: CacheContext
+  app_flag_probe:
+    module_path: *domain
+    class_name: *dep
+    attributes:
+      service_id: flag_probe
+      module_path: tiferet.contexts.request
+      class_name: RequestContext
+  admin_flag_probe:
+    module_path: *domain
+    class_name: *dep
+    attributes:
+      service_id: flag_probe
+      module_path: tiferet.contexts.cache
+      class_name: CacheContext
+  admin_cache:
+    module_path: tiferet.contexts.cache
+    class_name: CacheContext
+    attributes: {}
+
+tests:
+  build_cache_seeds_admin_services:
+    conditions: {}
+    execute:
+      - target: &build_cache
+          module_path: &admin tiferet.blueprints.admin
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [di_service, admin, services]
+        as: cached
+    assert:
+      - outcome: cached
+        type:
+          module_path: tiferet.domain
+          class_name: AppServiceDependency
+      - outcome: cached
+        attribute: service_id
+        equals: di_service
+
+  build_admin_service_resolver_routes_by_flag:
+    conditions:
+      fixtures: [app_di_service, app_flag_probe, admin_flag_probe, admin_cache]
+    execute:
+      - target:
+          module_path: tiferet.di
+          class_name: DIAppServiceContainer
+        method: from_dependencies
+        kwargs:
+          services: [$fixture.app_di_service, $fixture.app_flag_probe]
+          constants: {}
+        as: app_container
+      - target: admin_cache
+        method: set
+        args: [flag_probe, $fixture.admin_flag_probe, admin, services]
+      - target:
+          module_path: *admin
+          attribute: build_admin_service_resolver
+        method: build_admin_service_resolver
+        args: [$r.app_container, $fixture.admin_cache]
+        as: resolver
+      - target: $r.resolver
+        method: get_dependency
+        args: [flag_probe, app]
+        as: app_flag
+      - target: $r.resolver
+        method: get_dependency
+        args: [flag_probe, admin]
+        as: admin_flag
+      - target: $r.resolver
+        method: get_dependency
+        args: [flag_probe]
+        as: default_flag
+      - target: $r.resolver
+        method: get_container
+        args: [admin]
+        as: admin_container
+      - target: $r.resolver
+        method: get_container
+        as: default_container
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.admin_container, $r.default_container]
+        as: same_container
+    assert:
+      - outcome: resolver
+        type:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+      - outcome: app_flag
+        type: &request_context
+          module_path: tiferet.contexts.request
+          class_name: RequestContext
+      - outcome: admin_flag
+        type: &cache_context
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+      - outcome: default_flag
+        type: *cache_context
+      - outcome: same_container
+        equals: true
+
+  build_admin_session_constants_overlays_config_paths:
+    conditions: {}
+    execute:
+      - target: &overlay
+          module_path: *admin
+          attribute: build_admin_session_constants
+        method: build_admin_session_constants
+        args:
+          - {cli_config: old.yml, keep: x}
+          - other.yml
+        as: result
+      - target: *overlay
+        method: build_admin_session_constants
+        args: [null, other.yml]
+        as: from_none
+    assert:
+      - outcome: result
+        equals:
+          keep: x
+          app_config: other.yml
+          cli_config: other.yml
+          di_config: other.yml
+          error_config: other.yml
+          feature_config: other.yml
+          logging_config: other.yml
+      - outcome: from_none
+        equals:
+          app_config: other.yml
+          cli_config: other.yml
+          di_config: other.yml
+          error_config: other.yml
+          feature_config: other.yml
+          logging_config: other.yml
+
+  build_admin_app_returns_app_session_context:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *admin
+          attribute: build_admin_app
+        method: build_admin_app
+        as: context
+      - target: &getattr
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.context, _build_logger]
+        as: build_logger
+      - target: &is_
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.build_logger, null]
+        as: logger_missing
+      - target: *getattr
+        method: getattr
+        args: [$r.context, _execute_feature]
+        as: execute_feature
+      - target: *is_
+        method: is_
+        args: [$r.execute_feature, null]
+        as: execute_missing
+      - target: *getattr
+        method: getattr
+        args: [$r.context, _raise_error]
+        as: raise_error
+      - target: *is_
+        method: is_
+        args: [$r.raise_error, null]
+        as: raise_missing
+    assert:
+      - outcome: context
+        type:
+          module_path: tiferet.contexts.app
+          class_name: AppSessionContext
+      - outcome: context
+        attribute: domain
+        fields:
+          id: admin
+      - outcome: context
+        attribute: _create_request
+        is:
+          module_path: tiferet.blueprints.core
+          class_name: create_request_context
+      - outcome: context
+        attribute: _build_response
+        is:
+          module_path: tiferet.blueprints.core
+          class_name: response_handler
+      - outcome: logger_missing
+        equals: false
+      - outcome: execute_missing
+        equals: false
+      - outcome: raise_missing
+        equals: false
+
+  build_admin_app_alias:
+    conditions: {}
+    execute:
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [*admin]
+        as: admin_module
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.admin_module, AdminApp]
+        as: alias
+    assert:
+      - outcome: alias
+        is:
+          module_path: *admin
+          class_name: build_admin_app

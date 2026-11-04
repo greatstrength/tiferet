@@ -1,0 +1,2003 @@
+fixtures:
+  empty_cache:
+    module_path: &cache_module tiferet.contexts.cache
+    class_name: &cache_class CacheContext
+    attributes: {}
+  bare_interface:
+    module_path: &domain tiferet.domain
+    class_name: &app_session AppSession
+    attributes:
+      id: test
+      name: Test App
+  service_override_interface:
+    module_path: *domain
+    class_name: *app_session
+    attributes:
+      id: test
+      name: Test App
+      services:
+        - service_id: error_service
+          module_path: tiferet.repos.di
+          class_name: DIConfigRepository
+  constant_override_interface:
+    module_path: *domain
+    class_name: *app_session
+    attributes:
+      id: test
+      name: Test App
+      constants:
+        error_config: override.yml
+  redeclared_service_interface:
+    module_path: *domain
+    class_name: *app_session
+    attributes:
+      id: test
+      name: Test App
+      constants:
+        error_config: override.yml
+      services:
+        - service_id: error_service
+          module_path: tiferet.repos.error
+          class_name: ErrorConfigRepository
+  test_app_session:
+    module_path: *domain
+    class_name: *app_session
+    attributes:
+      id: test_app
+      name: Test App
+  test_cli_session:
+    module_path: *domain
+    class_name: *app_session
+    attributes:
+      id: test_cli
+      name: Test CLI
+  cached_error:
+    module_path: *domain
+    class_name: Error
+    attributes:
+      id: CACHED_ERROR
+      name: Cached Error
+  miss_error:
+    module_path: *domain
+    class_name: Error
+    attributes:
+      id: MISS_ERROR
+      name: Miss Error
+  new_error:
+    module_path: *domain
+    class_name: Error
+    attributes:
+      id: NEW_ERROR
+      name: New Error
+  feature:
+    module_path: *domain
+    class_name: Feature
+    attributes:
+      id: group.feat
+      group_id: group
+      feature_key: feat
+      name: Feat
+  event_app_error:
+    module_path: tiferet
+    class_name: TiferetError
+    attributes:
+      error_code: APP_ERROR
+      message: 'SQLite execution failed: no such table: users'
+      error_message: 'no such table: users'
+  request:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {}
+  repo_formatter:
+    module_path: &logging_domain tiferet.domain.logging
+    class_name: Formatter
+    attributes:
+      id: repo
+      name: Repo Formatter
+      format: '%(message)s'
+  repo_handler:
+    module_path: *logging_domain
+    class_name: Handler
+    attributes:
+      id: repo_h
+      name: Repo Handler
+      module_path: logging
+      class_name: NullHandler
+      level: INFO
+      formatter: repo
+  repo_logger:
+    module_path: *logging_domain
+    class_name: Logger
+    attributes:
+      id: root
+      name: Root
+      level: INFO
+      handlers: [repo_h]
+      is_root: true
+  empty_logging_settings:
+    module_path: tiferet.contexts.logging
+    class_name: LoggingSettings
+    attributes:
+      formatters: []
+      handlers: []
+      loggers: []
+
+tests:
+
+  build_cache_seeds_no_default_catalogs:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, errors]
+        as: errors
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, services]
+        as: services
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, constants]
+        as: constants
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, sessions]
+        as: sessions
+      - target: $r.cache
+        method: get_by_prefix
+        args: [logging]
+        as: logging
+    assert:
+      - outcome: cache
+        type:
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+      - outcome: errors
+        equals: {}
+      - outcome: services
+        equals: {}
+      - outcome: constants
+        equals: {}
+      - outcome: sessions
+        equals: {}
+      - outcome: logging
+        equals: {}
+
+  create_app_service_default_composes_app_config_repository:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_app_service
+        method: create_app_service
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: tiferet.repos.app
+          class_name: AppConfigRepository
+      - outcome: service
+        attribute: config_file
+        equals: config.yml
+
+  create_app_service_default_parameters_fallback:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_app_service
+        method: create_app_service
+        as: service
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.assets.app]
+        as: app_assets
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.app_assets, DEFAULT_APP_SERVICE_PARAMETERS]
+        as: parameters
+      - target: $r.parameters
+        method: get
+        args: [app_config]
+        as: default_app_config
+    assert:
+      - outcome: service
+        attribute: config_file
+        equals: $r.default_app_config
+
+  create_app_service_custom_parameter_wiring:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_app_service
+        method: create_app_service
+        kwargs:
+          parameters: {app_config: custom.yml}
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: tiferet.repos.app
+          class_name: AppConfigRepository
+      - outcome: service
+        attribute: config_file
+        equals: custom.yml
+
+  create_app_service_custom_service_type:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_app_service
+        method: create_app_service
+        kwargs:
+          module_path: tiferet.repos.di
+          class_name: DIConfigRepository
+          parameters: {di_config: di_custom.yml}
+        as: service
+    assert:
+      - outcome: service
+        type:
+          module_path: tiferet.repos.di
+          class_name: DIConfigRepository
+      - outcome: service
+        attribute: config_file
+        equals: di_custom.yml
+
+  build_app_service_container_exposes_core_services:
+    conditions:
+      fixtures: [bare_interface]
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_app_service_container
+        method: build_app_service_container
+        args: [$r.cache, $fixture.bare_interface]
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [di_service]
+        as: di_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.di_service, null]
+        as: di_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [error_service]
+        as: error_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.error_service, null]
+        as: error_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [logging_service]
+        as: logging_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.logging_service, null]
+        as: logging_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [feature_service]
+        as: feature_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.feature_service, null]
+        as: feature_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [get_error_evt]
+        as: get_error_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.get_error_evt, null]
+        as: get_error_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [get_feature_evt]
+        as: get_feature_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.get_feature_evt, null]
+        as: get_feature_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [logging_list_all_evt]
+        as: logging_list_all_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.logging_list_all_evt, null]
+        as: logging_list_all_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [cli_service]
+        as: cli_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.cli_service, null]
+        as: cli_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [list_commands_evt]
+        as: list_commands_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.list_commands_evt, null]
+        as: list_commands_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [get_parent_args_evt]
+        as: get_parent_args_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.get_parent_args_evt, null]
+        as: get_parent_args_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [di_list_all_configs_evt]
+        as: di_list_all_configs_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.di_list_all_configs_evt, null]
+        as: di_list_all_configs_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [logging_middleware]
+        as: logging_middleware
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.logging_middleware, null]
+        as: logging_middleware_missing
+      - target: $r.container
+        method: get_dependency
+        args: [timing_middleware]
+        as: timing_middleware
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.timing_middleware, null]
+        as: timing_middleware_missing
+      - target: $r.container
+        method: get_dependency
+        args: [cache_middleware]
+        as: cache_middleware
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.cache_middleware, null]
+        as: cache_middleware_missing
+    assert:
+      - outcome: di_service_missing
+        equals: false
+      - outcome: error_service_missing
+        equals: false
+      - outcome: logging_service_missing
+        equals: false
+      - outcome: feature_service_missing
+        equals: false
+      - outcome: get_error_evt_missing
+        equals: false
+      - outcome: get_feature_evt_missing
+        equals: false
+      - outcome: logging_list_all_evt_missing
+        equals: false
+      - outcome: cli_service_missing
+        equals: false
+      - outcome: list_commands_evt_missing
+        equals: false
+      - outcome: get_parent_args_evt_missing
+        equals: false
+      - outcome: di_list_all_configs_evt_missing
+        equals: false
+      - outcome: logging_middleware_missing
+        equals: false
+      - outcome: timing_middleware_missing
+        equals: false
+      - outcome: cache_middleware_missing
+        equals: false
+
+  build_app_service_container_interface_service_override:
+    conditions:
+      fixtures: [service_override_interface]
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_app_service_container
+        method: build_app_service_container
+        args: [$r.cache, $fixture.service_override_interface]
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [error_service]
+        as: error_service
+    assert:
+      - outcome: error_service
+        type:
+          module_path: tiferet.repos.di
+          class_name: DIConfigRepository
+
+  build_app_service_container_interface_constant_override:
+    conditions:
+      fixtures: [constant_override_interface]
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_app_service_container
+        method: build_app_service_container
+        args: [$r.cache, $fixture.constant_override_interface]
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [error_config]
+        as: error_config
+    assert:
+      - outcome: error_config
+        equals: override.yml
+
+  build_app_service_container_defaults_only_when_no_interface:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_app_service_container
+        method: build_app_service_container
+        args: [$r.cache]
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [di_service]
+        as: di_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.di_service, null]
+        as: di_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [error_service]
+        as: error_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.error_service, null]
+        as: error_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [logging_service]
+        as: logging_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.logging_service, null]
+        as: logging_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [feature_service]
+        as: feature_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.feature_service, null]
+        as: feature_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [get_error_evt]
+        as: get_error_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.get_error_evt, null]
+        as: get_error_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [get_feature_evt]
+        as: get_feature_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.get_feature_evt, null]
+        as: get_feature_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [logging_list_all_evt]
+        as: logging_list_all_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.logging_list_all_evt, null]
+        as: logging_list_all_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [cli_service]
+        as: cli_service
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.cli_service, null]
+        as: cli_service_missing
+      - target: $r.container
+        method: get_dependency
+        args: [list_commands_evt]
+        as: list_commands_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.list_commands_evt, null]
+        as: list_commands_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [get_parent_args_evt]
+        as: get_parent_args_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.get_parent_args_evt, null]
+        as: get_parent_args_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [di_list_all_configs_evt]
+        as: di_list_all_configs_evt
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.di_list_all_configs_evt, null]
+        as: di_list_all_configs_evt_missing
+      - target: $r.container
+        method: get_dependency
+        args: [logging_middleware]
+        as: logging_middleware
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.logging_middleware, null]
+        as: logging_middleware_missing
+      - target: $r.container
+        method: get_dependency
+        args: [timing_middleware]
+        as: timing_middleware
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.timing_middleware, null]
+        as: timing_middleware_missing
+      - target: $r.container
+        method: get_dependency
+        args: [cache_middleware]
+        as: cache_middleware
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.cache_middleware, null]
+        as: cache_middleware_missing
+      - target: $r.container
+        method: get_dependency
+        args: [cli_config]
+        as: cli_config
+      - target: $r.container
+        method: get_dependency
+        args: [di_config]
+        as: di_config
+      - target: $r.container
+        method: get_dependency
+        args: [error_config]
+        as: error_config
+      - target: $r.container
+        method: get_dependency
+        args: [logging_config]
+        as: logging_config
+      - target: $r.container
+        method: get_dependency
+        args: [feature_config]
+        as: feature_config
+    assert:
+      - outcome: di_service_missing
+        equals: false
+      - outcome: error_service_missing
+        equals: false
+      - outcome: logging_service_missing
+        equals: false
+      - outcome: feature_service_missing
+        equals: false
+      - outcome: get_error_evt_missing
+        equals: false
+      - outcome: get_feature_evt_missing
+        equals: false
+      - outcome: logging_list_all_evt_missing
+        equals: false
+      - outcome: cli_service_missing
+        equals: false
+      - outcome: list_commands_evt_missing
+        equals: false
+      - outcome: get_parent_args_evt_missing
+        equals: false
+      - outcome: di_list_all_configs_evt_missing
+        equals: false
+      - outcome: logging_middleware_missing
+        equals: false
+      - outcome: timing_middleware_missing
+        equals: false
+      - outcome: cache_middleware_missing
+        equals: false
+      - outcome: cli_config
+        equals: config.yml
+      - outcome: di_config
+        equals: config.yml
+      - outcome: error_config
+        equals: config.yml
+      - outcome: logging_config
+        equals: config.yml
+      - outcome: feature_config
+        equals: config.yml
+
+  build_app_service_container_constant_override_propagates_to_redeclared_service:
+    conditions:
+      fixtures: [redeclared_service_interface]
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_app_service_container
+        method: build_app_service_container
+        args: [$r.cache, $fixture.redeclared_service_interface]
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [error_service]
+        as: error_service
+    assert:
+      - outcome: error_service
+        type:
+          module_path: tiferet.repos.error
+          class_name: ErrorConfigRepository
+      - outcome: error_service
+        attribute: config_file
+        equals: override.yml
+
+  get_error_returns_callable:
+    conditions:
+      fixtures: [empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_error
+        method: get_error
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.handler, __call__]
+        as: is_callable
+    assert:
+      - outcome: is_callable
+        equals: true
+
+  get_error_handler_cache_hit:
+    conditions:
+      fixtures: [cached_error, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target: empty_cache
+        method: set
+        args: [CACHED_ERROR, $fixture.cached_error, app, errors]
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_error
+        method: get_error
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [CACHED_ERROR]
+        as: result
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.result, $fixture.cached_error]
+        as: same
+    assert:
+      - outcome: same
+        equals: true
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          times: 0
+
+  get_error_handler_cache_miss_resolves_event:
+    conditions:
+      fixtures: [miss_error, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: $fixture.miss_error
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_error
+        method: get_error
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [MISS_ERROR]
+        as: result
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.result, $fixture.miss_error]
+        as: same
+    assert:
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [get_error_evt, app]
+      - mock: event
+        method: execute
+        assert_called_once_with:
+          args: [MISS_ERROR]
+      - outcome: same
+        equals: true
+
+  get_error_handler_caches_result_after_miss:
+    conditions:
+      fixtures: [new_error, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: $fixture.new_error
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_error
+        method: get_error
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [NEW_ERROR]
+      - target: empty_cache
+        method: get
+        args: [NEW_ERROR, app, errors]
+        as: cached
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.cached, $fixture.new_error]
+        as: same
+    assert:
+      - outcome: same
+        equals: true
+
+  get_feature_returns_callable:
+    conditions:
+      fixtures: [empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_feature
+        method: get_feature
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.handler, __call__]
+        as: is_callable
+    assert:
+      - outcome: is_callable
+        equals: true
+
+  get_feature_handler_cache_hit:
+    conditions:
+      fixtures: [feature, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target: empty_cache
+        method: set
+        args: [group.feat, $fixture.feature, app, features]
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_feature
+        method: get_feature
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [group.feat]
+        as: result
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.result, $fixture.feature]
+        as: same
+    assert:
+      - outcome: same
+        equals: true
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          times: 0
+
+  get_feature_handler_cache_miss_resolves_event:
+    conditions:
+      fixtures: [feature, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: $fixture.feature
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_feature
+        method: get_feature
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [group.feat]
+        as: result
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.result, $fixture.feature]
+        as: same
+    assert:
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [get_feature_evt, app]
+      - mock: event
+        method: execute
+        assert_called_once_with:
+          kwargs:
+            id: group.feat
+      - outcome: same
+        equals: true
+
+  get_feature_handler_caches_result_after_miss:
+    conditions:
+      fixtures: [feature, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: $fixture.feature
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_feature
+        method: get_feature
+        args: [$fixture.empty_cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [group.feat]
+      - target: empty_cache
+        method: get
+        args: [group.feat, app, features]
+        as: cached
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.cached, $fixture.feature]
+        as: same
+    assert:
+      - outcome: same
+        equals: true
+
+  parse_parameter_literal_passthrough:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: parse_parameter
+        method: parse_parameter
+        args: [plain_value]
+        as: result
+    assert:
+      - outcome: result
+        equals: plain_value
+
+  load_cache_returns_root_snapshot_callable:
+    conditions:
+      fixtures: [empty_cache]
+    execute:
+      - target: empty_cache
+        method: set
+        args: [root_key, root_value]
+      - target: empty_cache
+        method: set
+        args: [scoped, scoped_value, app, features]
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: load_cache
+        method: load_cache
+        args: [$fixture.empty_cache]
+        as: loader
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.loader, __call__]
+        as: is_callable
+      - target: $r.loader
+        method: __call__
+        as: snapshot
+    assert:
+      - outcome: is_callable
+        equals: true
+      - outcome: snapshot
+        equals:
+          root_key: root_value
+
+  create_request_context_stamps_interface_id:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_request_context
+        method: create_request_context
+        args: [test_interface, group.feat]
+        kwargs:
+          headers: {h: v}
+          data: {a: 1}
+        as: request
+    assert:
+      - outcome: request
+        type:
+          module_path: tiferet.contexts.request
+          class_name: RequestContext
+      - outcome: request
+        attribute: feature_id
+        equals: group.feat
+      - outcome: request
+        attribute: headers
+        fields:
+          interface_id: test_interface
+          h: v
+      - outcome: request
+        attribute: data
+        equals:
+          a: 1
+
+  create_feature_context_with_preloaded_feature:
+    conditions:
+      fixtures: [feature, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_feature_context
+        method: create_feature_context
+        args: [$mock.get_dependency, $fixture.empty_cache]
+        kwargs:
+          feature: $fixture.feature
+        as: feature_context
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.feature_context, domain]
+        as: domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.domain, $fixture.feature]
+        as: same_domain
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.feature_context, cache]
+        as: bound_cache
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.bound_cache, $fixture.empty_cache]
+        as: same_cache
+    assert:
+      - outcome: feature_context
+        type:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+      - outcome: same_domain
+        equals: true
+      - outcome: feature_context
+        attribute: get_dependency
+        equals: $mock.get_dependency
+      - outcome: same_cache
+        equals: true
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          times: 0
+      - outcome: feature_context
+        attribute: parse_parameter
+        is:
+          module_path: tiferet.blueprints.core
+          class_name: parse_parameter
+
+  create_feature_context_loads_by_feature_id:
+    conditions:
+      fixtures: [feature, empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: $fixture.feature
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_feature_context
+        method: create_feature_context
+        args: [$mock.get_dependency, $fixture.empty_cache]
+        kwargs:
+          feature_id: group.feat
+        as: feature_context
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.feature_context, domain]
+        as: domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.domain, $fixture.feature]
+        as: same_domain
+    assert:
+      - outcome: feature_context
+        type:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+      - outcome: same_domain
+        equals: true
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [get_feature_evt, app]
+      - mock: event
+        method: execute
+        assert_called_once_with:
+          kwargs:
+            id: group.feat
+
+  create_request_context_empty_headers_and_data:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_request_context
+        method: create_request_context
+        kwargs:
+          interface_id: iface
+          feature_id: g.f
+        as: request
+    assert:
+      - outcome: request
+        attribute: headers
+        equals:
+          interface_id: iface
+      - outcome: request
+        attribute: data
+        equals: {}
+
+  execute_feature_handler_returns_callable:
+    conditions:
+      fixtures: [empty_cache]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: execute_feature_handler
+        method: execute_feature_handler
+        args: [$mock.get_dependency, $fixture.empty_cache]
+        as: handler
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.handler, __call__]
+        as: is_callable
+    assert:
+      - outcome: is_callable
+        equals: true
+
+  raise_error_handler_returns_callable:
+    conditions:
+      mocks:
+        get_error:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: raise_error_handler
+        method: raise_error_handler
+        args: [$mock.get_error]
+        as: handler
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.handler, __call__]
+        as: is_callable
+    assert:
+      - outcome: is_callable
+        equals: true
+
+  raise_error_handler_formats_wrapped_app_error_end_to_end:
+    conditions:
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: builtins
+          class_name: Exception
+        method: __call__
+        args: [something went wrong]
+        as: plain_exception
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_error
+        method: get_error
+        args: [$r.cache, $mock.get_dependency]
+        as: get_error
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: raise_error_handler
+        method: raise_error_handler
+        args: [$r.get_error]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [$r.plain_exception]
+        raises: true
+        as: error
+    assert:
+      - outcome: error
+        type:
+          module_path: tiferet
+          class_name: TiferetAPIError
+      - outcome: error
+        error_code: APP_ERROR
+      - outcome: error
+        attribute: name
+        equals: App Error
+      - outcome: error
+        attribute: message
+        equals: 'An error occurred in the app: something went wrong.'
+
+  raise_error_handler_formats_event_raised_app_error:
+    conditions:
+      fixtures: [event_app_error]
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: get_error
+        method: get_error
+        args: [$r.cache, $mock.get_dependency]
+        as: get_error
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: raise_error_handler
+        method: raise_error_handler
+        args: [$r.get_error]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [$fixture.event_app_error]
+        raises: true
+        as: error
+    assert:
+      - outcome: error
+        type:
+          module_path: tiferet
+          class_name: TiferetAPIError
+      - outcome: error
+        error_code: APP_ERROR
+      - outcome: error
+        attribute: message
+        equals: 'An error occurred in the app: no such table: users.'
+
+  response_handler_delegates_to_request:
+    conditions:
+      fixtures: [request]
+    execute:
+      - target: request
+        method: set_result
+        args: [{status: ok}]
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: response_handler
+        method: response_handler
+        args: [$fixture.request]
+        as: result
+    assert:
+      - outcome: result
+        equals:
+          status: ok
+
+  build_app_service_container_wires_load_cache_into_cache_middleware:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_app_service_container
+        method: build_app_service_container
+        args: [$r.cache]
+        as: container
+      - target: $r.container
+        method: get_dependency
+        args: [load_cache]
+        as: loader
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.loader, __call__]
+        as: is_callable
+      - target: $r.container
+        method: get_dependency
+        args: [cache_middleware]
+        as: middleware
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.middleware, load_cache]
+        as: wired
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.wired, $r.loader]
+        as: same_loader
+    assert:
+      - outcome: is_callable
+        equals: true
+      - outcome: middleware
+        type:
+          module_path: tiferet.utils.core
+          class_name: CacheMiddleware
+      - outcome: same_loader
+        equals: true
+
+  merge_logging_settings_uses_defaults_when_sections_empty:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: merge_logging_settings
+        method: merge_logging_settings
+        args: [$r.cache, [], [], []]
+        as: result
+    assert:
+      - outcome: result
+        fields:
+          formatters:
+            key: id
+            items:
+              default: {id: default}
+          handlers:
+            key: id
+            items:
+              default_root: {id: default_root}
+              default: {id: default}
+              debug: {id: debug}
+          loggers:
+            key: id
+            items:
+              root: {id: root}
+              default: {id: default}
+              debug: {id: debug}
+
+  merge_logging_settings_merges_repo_data_over_defaults_by_id:
+    conditions:
+      fixtures: [repo_formatter, repo_handler, repo_logger]
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: merge_logging_settings
+        method: merge_logging_settings
+        args: [$r.cache, [$fixture.repo_formatter], [$fixture.repo_handler], [$fixture.repo_logger]]
+        as: result
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, formatters]
+        as: formatters
+      - target:
+          module_path: operator
+          attribute: contains
+        method: contains
+        args: [$r.formatters, $fixture.repo_formatter]
+        as: has_formatter
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, handlers]
+        as: handlers
+      - target:
+          module_path: operator
+          attribute: contains
+        method: contains
+        args: [$r.handlers, $fixture.repo_handler]
+        as: has_handler
+    assert:
+      - outcome: has_formatter
+        equals: true
+      - outcome: has_handler
+        equals: true
+      - outcome: result
+        fields:
+          formatters:
+            key: id
+            items:
+              default: {id: default}
+              repo:
+                name: Repo Formatter
+          handlers:
+            key: id
+            items:
+              default_root: {id: default_root}
+              default: {id: default}
+              debug: {id: debug}
+              repo_h:
+                class_name: NullHandler
+          loggers:
+            key: id
+            items:
+              root:
+                name: Root
+                level: INFO
+                handlers: [repo_h]
+              default: {id: default}
+              debug: {id: debug}
+
+  merge_logging_settings_tolerates_unseeded_cache:
+    conditions:
+      fixtures: [empty_cache, repo_formatter]
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: merge_logging_settings
+        method: merge_logging_settings
+        args: [$fixture.empty_cache, [$fixture.repo_formatter], [], []]
+        as: result
+    assert:
+      - outcome: result
+        fields:
+          formatters:
+            - id: repo
+          handlers: []
+          loggers: []
+
+  create_logging_context_returns_logging_context:
+    conditions:
+      fixtures: [empty_logging_settings]
+    execute:
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: create_logging_context
+        method: create_logging_context
+        args: [$fixture.empty_logging_settings]
+        kwargs:
+          logger_id: default
+        as: result
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, domain]
+        as: domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.domain, $fixture.empty_logging_settings]
+        as: same_domain
+    assert:
+      - outcome: result
+        type:
+          module_path: tiferet.contexts.logging
+          class_name: LoggingContext
+      - outcome: same_domain
+        equals: true
+      - outcome: result
+        attribute: logger_id
+        equals: default
+
+  build_logger_handler_returns_callable:
+    conditions:
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_logger_handler
+        method: build_logger_handler
+        args: [$r.cache, $mock.get_dependency]
+        as: handler
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.handler, __call__]
+        as: is_callable
+    assert:
+      - outcome: is_callable
+        equals: true
+
+  build_logger_handler_resolves_evt_and_builds_logger_on_miss:
+    conditions:
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: [[], [], []]
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_logger_handler
+        method: build_logger_handler
+        args: [$r.cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [default]
+        as: logger
+    assert:
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [logging_list_all_evt, app]
+      - mock: event
+        method: execute
+        assert_called_once_with:
+          times: 1
+      - outcome: logger
+        type:
+          module_path: logging
+          class_name: Logger
+
+  build_logger_handler_caches_built_logger:
+    conditions:
+      mocks:
+        get_dependency:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        event:
+          module_path: tiferet.events
+          class_name: DomainEvent
+          return_value:
+            execute: [[], [], []]
+    execute:
+      - target: $mock.get_dependency
+        method: configure_mock
+        kwargs:
+          return_value: $mock.event
+      - target:
+          module_path: tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: build_logger_handler
+        method: build_logger_handler
+        args: [$r.cache, $mock.get_dependency]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [default]
+        as: first_logger
+      - target: $r.handler
+        method: __call__
+        args: [default]
+        as: second_logger
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.first_logger, $r.second_logger]
+        as: same_logger
+      - target: $r.cache
+        method: get
+        args: [default, logging, loggers]
+        as: cached
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.cached, $r.first_logger]
+        as: same_cached
+    assert:
+      - outcome: same_logger
+        equals: true
+      - mock: get_dependency
+        method: __call__
+        assert_called_once_with:
+          args: [logging_list_all_evt, app]
+      - mock: event
+        method: execute
+        assert_called_once_with:
+          times: 1
+      - outcome: same_cached
+        equals: true
+
+  compose_session_context_wires_five_handlers:
+    conditions:
+      fixtures: [test_app_session, empty_cache]
+      mocks:
+        resolver:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.contexts.app]
+        as: context_cls_module
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.context_cls_module, AppSessionContext]
+        as: context_cls
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.blueprints.core]
+        as: create_request_module
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.create_request_module, create_request_context]
+        as: create_request
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.create_request_module, response_handler]
+        as: response
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: compose_session_context
+        method: compose_session_context
+        args: [$r.context_cls, $fixture.test_app_session, $fixture.empty_cache, $mock.resolver]
+        kwargs:
+          create_request_handler: $r.create_request
+          response_handler: $r.response
+        as: result
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, domain]
+        as: domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.domain, $fixture.test_app_session]
+        as: same_domain
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$mock.resolver, get_dependency]
+        as: resolver_get
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, get_dependency]
+        as: bound_get
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.bound_get, $r.resolver_get]
+        as: same_get
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, cache]
+        as: bound_cache
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.bound_cache, $fixture.empty_cache]
+        as: same_cache
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, _build_logger]
+        as: build_logger
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.build_logger, __call__]
+        as: build_logger_callable
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, _execute_feature]
+        as: execute_feature
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.execute_feature, __call__]
+        as: execute_feature_callable
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, _create_request]
+        as: create_request
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.create_request, __call__]
+        as: create_request_callable
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, _raise_error]
+        as: raise_error
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.raise_error, __call__]
+        as: raise_error_callable
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.result, _build_response]
+        as: build_response
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.build_response, __call__]
+        as: build_response_callable
+    assert:
+      - outcome: result
+        type:
+          module_path: tiferet.contexts.app
+          class_name: AppSessionContext
+      - outcome: same_domain
+        equals: true
+      - outcome: same_get
+        equals: true
+      - outcome: same_cache
+        equals: true
+      - outcome: build_logger_callable
+        equals: true
+      - outcome: execute_feature_callable
+        equals: true
+      - outcome: create_request_callable
+        equals: true
+      - outcome: raise_error_callable
+        equals: true
+      - outcome: build_response_callable
+        equals: true
+
+  compose_session_context_forwards_extra_kwargs:
+    conditions:
+      fixtures: [test_cli_session, empty_cache]
+      mocks:
+        resolver:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+        parse_cli_args:
+          module_path: tiferet.di
+          class_name: DIDynamicServiceResolver
+    execute:
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.contexts.cli]
+        as: context_cls_module
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.context_cls_module, CliSessionContext]
+        as: context_cls
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.blueprints.core]
+        as: create_request_module
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.create_request_module, create_request_context]
+        as: create_request
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.create_request_module, response_handler]
+        as: response
+      - target:
+          module_path: tiferet.blueprints.core
+          attribute: compose_session_context
+        method: compose_session_context
+        args: [$r.context_cls, $fixture.test_cli_session, $fixture.empty_cache, $mock.resolver]
+        kwargs:
+          create_request_handler: $r.create_request
+          response_handler: $r.response
+          parse_cli_args: $mock.parse_cli_args
+        as: result
+    assert:
+      - outcome: result
+        type:
+          module_path: tiferet.contexts.cli
+          class_name: CliSessionContext
+      - outcome: result
+        attribute: _parse_cli_args
+        equals: $mock.parse_cli_args
+      - outcome: result
+        attribute: _list_commands
+        'null': true
+      - outcome: result
+        attribute: _get_parent_args
+        'null': true
+
+  retired_collaborator_scanner_and_aliases_are_absent:
+    conditions: {}
+    execute:
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.blueprints.core]
+        as: core_module
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.core_module, resolve_collaborators]
+        as: has_resolve_collaborators
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.core_module, RESERVED_CONTEXT_PARAMETERS]
+        as: has_RESERVED_CONTEXT_PARAMETERS
+      - target:
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.core_module, create_session_request]
+        as: has_create_session_request
+    assert:
+      - outcome: has_resolve_collaborators
+        equals: false
+      - outcome: has_RESERVED_CONTEXT_PARAMETERS
+        equals: false
+      - outcome: has_create_session_request
+        equals: false
