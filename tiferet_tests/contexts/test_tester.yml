@@ -309,6 +309,137 @@ tests:
     assert:
       - {outcome: result, equals: 8}
 
+
+  session_run_rejects_target_on_specialized_tester:
+    conditions:
+      fixtures: [sampled_domain_tester]
+    execute:
+      - target: {module_path: tiferet.contexts.tester, class_name: DomainTesterContext}
+        method: from_domain
+        args: [$fixture.sampled_domain_tester]
+        as: test_ctx
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}
+        method: build_test_session
+        args: [$r.test_ctx]
+        as: session
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod, pow]
+        as: live_target
+      - target: $r.session
+        method: run
+        kwargs: {target: $r.live_target}
+        raises: true
+        as: rejected
+    assert:
+      - outcome: rejected
+        type: {module_path: builtins, class_name: ValueError}
+
+  uncatalogued_tiferet_error_is_recorded_as_failed:
+    conditions:
+      mocks:
+        unused: {module_path: tiferet.contexts.cache, class_name: CacheContext}
+    execute:
+      - target: {module_path: tiferet.contexts.cache, class_name: CacheContext}
+        method: __call__
+        as: cache
+      - target: {module_path: tiferet.contexts.tester, class_name: ModuleRunContext}
+        method: __call__
+        args: [$mock.unused]
+        kwargs: {cache: $r.cache, raise_error_handler: $mock.unused}
+        as: module_run
+      - target: {module_path: tiferet.assets, class_name: TiferetError}
+        method: __call__
+        kwargs: {error_code: APP_SPECIFIC_ERR, message: boom}
+        as: error
+      - target: $r.module_run
+        method: note
+        args: [node.app]
+        kwargs: {error: $r.error}
+        as: printable
+      - target: $mock.unused
+        method: assert_not_called
+        as: unused_quiet
+    assert:
+      - outcome: printable
+        type: {module_path: tiferet.assets, class_name: TiferetAPIError}
+      - outcome: printable
+        message: APP_SPECIFIC_ERR
+      - outcome: module_run
+        attribute: outcomes
+        equals:
+          - {node_id: node.app, status: FAILED, message: 'APP_SPECIFIC_ERR: boom'}
+      - outcome: unused_quiet
+        "null": true
+
+  uncatalogued_tiferet_error_without_message:
+    conditions:
+      mocks:
+        unused: {module_path: tiferet.contexts.cache, class_name: CacheContext}
+    execute:
+      - target: {module_path: tiferet.contexts.cache, class_name: CacheContext}
+        method: __call__
+        as: cache
+      - target: {module_path: tiferet.contexts.tester, class_name: ModuleRunContext}
+        method: __call__
+        args: [$mock.unused]
+        kwargs: {cache: $r.cache, raise_error_handler: $mock.unused}
+        as: module_run
+      - target: {module_path: tiferet.assets, class_name: TiferetError}
+        method: __call__
+        kwargs: {error_code: APP_SPECIFIC_ERR}
+        as: error
+      - target: $r.module_run
+        method: note
+        args: [node.app]
+        kwargs: {error: $r.error}
+        as: printable
+      - target: $mock.unused
+        method: assert_not_called
+        as: unused_quiet
+    assert:
+      - outcome: module_run
+        attribute: outcomes
+        equals:
+          - {node_id: node.app, status: FAILED, message: APP_SPECIFIC_ERR}
+      - outcome: unused_quiet
+        "null": true
+
+  uncatalogued_tiferet_error_without_cache:
+    conditions:
+      mocks:
+        unused: {module_path: tiferet.contexts.cache, class_name: CacheContext}
+    execute:
+      - target: {module_path: tiferet.contexts.tester, class_name: ModuleRunContext}
+        method: __call__
+        args: [$mock.unused]
+        kwargs: {cache: null, raise_error_handler: $mock.unused}
+        as: module_run
+      - target: {module_path: tiferet.assets, class_name: TiferetError}
+        method: __call__
+        kwargs: {error_code: ERROR_NOT_FOUND, message: gone}
+        as: error
+      - target: $r.module_run
+        method: note
+        args: [node.app]
+        kwargs: {error: $r.error}
+        as: printable
+      - target: $mock.unused
+        method: assert_not_called
+        as: unused_quiet
+    assert:
+      - outcome: module_run
+        attribute: outcomes
+        equals:
+          - {node_id: node.app, status: FAILED, message: 'ERROR_NOT_FOUND: gone'}
+      - outcome: unused_quiet
+        "null": true
+
+
 testers:
   test_context_tester_context:
     module_path: tiferet.contexts.tester

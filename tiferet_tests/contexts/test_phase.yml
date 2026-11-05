@@ -1467,3 +1467,1170 @@ tests:
         error_code: APP_ERROR
       - outcome: unwired_failed
         message: stage_factory
+
+
+  attribute_reads_one_key_or_attribute:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {lang: en_US}
+          data_key: got
+        as: store_mapping
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.store_mapping]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: equals, outcome: got, attribute: lang, equals: en_US}
+        as: mapping_assert
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.mapping_assert]
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+          root_fixtures:
+            message:
+              module_path: tiferet.domain.error
+              class_name: ErrorMessage
+              attributes: {lang: en_US, text: An error occurred.}
+        as: fixture_runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {fixtures: [message]}
+        as: fixture_conditions
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: str}
+          method: str
+          args: [x]
+          data_key: x
+        as: echo_exec
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: equals, outcome: message, attribute: lang, equals: en_US}
+        as: fixture_assert
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.fixture_attribute
+          name: phase.fixture_attribute
+          conditions: $r.fixture_conditions
+          executes: [$r.echo_exec]
+          asserts: [$r.fixture_assert]
+        as: fixture_inner
+      - target: $r.fixture_runtime
+        method: run
+        args: [$r.fixture_inner]
+    assert:
+      - outcome: session
+        attribute: data
+        fields:
+          x: x
+
+
+  attribute_equals_empty_mapping_is_strict:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [empty_headers]
+        as: r_empty_headers
+      - target: $r.r_prefix
+        method: __add__
+        args: [nonempty_headers]
+        as: r_nonempty_headers
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          data_key: empty_headers
+        as: empty_headers_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_headers_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {headers: $r.r_empty_headers}
+          data_key: got
+        as: empty_container_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_container_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: equals, outcome: got, attribute: headers, equals: {}}
+        as: empty_check
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.empty_check]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {a: 1}
+          data_key: nonempty_headers
+        as: nonempty_headers_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.nonempty_headers_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {headers: $r.r_nonempty_headers}
+          data_key: got
+        as: nonempty_container_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.nonempty_container_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.empty_check]
+        raises: true
+        as: nonempty_failed
+    assert:
+      - outcome: nonempty_failed
+        error_code: PHASE_CHECK_FAILED
+
+  attribute_null_container_fails:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [empty]
+        as: r_empty
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          data_key: empty
+        as: empty_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: $r.r_empty
+          method: get
+          args: [missing]
+          data_key: got
+        as: none_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.none_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: 'null', outcome: got, attribute: feature_id}
+        as: null_attr
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.null_attr]
+        raises: true
+        as: null_failed
+    assert:
+      - outcome: null_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: null_failed
+        message: container is null
+  attribute_missing_is_named:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {other: 1}
+          data_key: got
+        as: mapping_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.mapping_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: equals, outcome: got, attribute: feature_id, equals: 1}
+        as: missing_check
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.missing_check]
+        raises: true
+        as: mapping_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: tiferet.domain.error, class_name: ErrorMessage}
+          method: __call__
+          kwargs: {lang: en_US, text: x}
+          data_key: got
+        as: message_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.message_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.missing_check]
+        raises: true
+        as: object_failed
+    assert:
+      - outcome: mapping_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: mapping_failed
+        message: feature_id
+      - outcome: object_failed
+        error_code: PHASE_CHECK_FAILED
+
+  field_null_uses_identity:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [empty]
+        as: r_empty
+      - target: $r.r_prefix
+        method: __add__
+        args: [none_val]
+        as: r_none_val
+      - target: $r.r_prefix
+        method: __add__
+        args: [false_val]
+        as: r_false_val
+      - target: $r.r_prefix
+        method: __add__
+        args: [empty_str]
+        as: r_empty_str
+      - target: $r.r_prefix
+        method: __add__
+        args: [empty_list]
+        as: r_empty_list
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: 'null', outcome: got, attribute: value}
+        as: null_check
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          data_key: empty
+        as: empty_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: $r.r_empty
+          method: get
+          args: [missing]
+          data_key: none_val
+        as: none_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.none_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {value: $r.r_none_val}
+          data_key: got
+        as: null_value_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.null_value_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.null_check]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {value: 0}
+          data_key: got
+        as: zero_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.zero_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.null_check]
+        raises: true
+        as: zero_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: bool}
+          method: bool
+          args: [0]
+          data_key: false_val
+        as: false_val_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.false_val_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {value: $r.r_false_val}
+          data_key: got
+        as: false_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.false_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.null_check]
+        raises: true
+        as: false_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: str}
+          method: str
+          args: ['']
+          data_key: empty_str
+        as: empty_str_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_str_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {value: $r.r_empty_str}
+          data_key: got
+        as: empty_str_value_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_str_value_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.null_check]
+        raises: true
+        as: empty_str_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: list}
+          method: list
+          data_key: empty_list
+        as: empty_list_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_list_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {value: $r.r_empty_list}
+          data_key: got
+        as: empty_list_value_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_list_value_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.null_check]
+        raises: true
+        as: empty_list_failed
+    assert:
+      - outcome: zero_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: zero_failed
+        message: attribute is not null
+      - outcome: false_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: false_failed
+        message: attribute is not null
+      - outcome: empty_str_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: empty_str_failed
+        message: attribute is not null
+      - outcome: empty_list_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: empty_list_failed
+        message: attribute is not null
+
+  whole_outcome_null_is_unchanged:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [empty]
+        as: r_empty
+      - target: $r.r_prefix
+        method: __add__
+        args: [got]
+        as: r_got
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: 'null', outcome: got}
+        as: whole_null
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          data_key: empty
+        as: empty_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: $r.r_empty
+          method: get
+          args: [missing]
+          data_key: got
+        as: none_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.none_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.whole_null]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {value: $r.r_got}
+          data_key: got
+        as: mapping_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.mapping_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.whole_null]
+        raises: true
+        as: mapping_failed
+    assert:
+      - outcome: mapping_failed
+        error_code: PHASE_CHECK_FAILED
+
+  field_null_and_absent_are_distinct:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [empty]
+        as: r_empty
+      - target: $r.r_prefix
+        method: __add__
+        args: [none_val]
+        as: r_none_val
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: absent, outcome: got, absent: [value]}
+        as: absent_check
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: 'null', outcome: got, attribute: value}
+        as: field_null
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {other: 1}
+          data_key: got
+        as: missing_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.missing_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.absent_check]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.field_null]
+        raises: true
+        as: missing_null_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          data_key: empty
+        as: empty_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.empty_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: $r.r_empty
+          method: get
+          args: [missing]
+          data_key: none_val
+        as: none_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.none_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: dict}
+          method: dict
+          kwargs: {value: $r.r_none_val}
+          data_key: got
+        as: present_null_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.present_null_exec]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.field_null]
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.absent_check]
+        raises: true
+        as: present_absent_failed
+    assert:
+      - outcome: missing_null_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: missing_null_failed
+        message: value is missing
+      - outcome: present_absent_failed
+        error_code: PHASE_CHECK_FAILED
+  equals_null_still_rejected_with_attribute:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: model_construct
+        kwargs: {check: equals, outcome: got, attribute: value, equals: null}
+        as: bad_equals
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.bad_equals]
+        raises: true
+        as: rejected
+    assert:
+      - outcome: rejected
+        error_code: PHASE_STEP_FAILED
+      - outcome: rejected
+        message: YAML null under equals is rejected.
+
+  named_handle_import_miss_detail:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: $fixture.session
+        method: set_result
+        args: [1]
+        kwargs: {data_key: got}
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: rfp052_no_such_module, class_name: Event}
+          method: handle
+        as: miss_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.miss_exec]
+        raises: true
+        as: miss_failed
+    assert:
+      - outcome: miss_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: miss_failed
+        message: "Could not import module rfp052_no_such_module: No module named 'rfp052_no_such_module'"
+
+  parameters_required_over_reserved_names:
+    conditions:
+      fixtures: [session]
+      mocks:
+        error_service: {module_path: tiferet.interfaces, class_name: ErrorService}
+    execute:
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.events.error
+          tester_class_name: GetError
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs:
+          mocks:
+            error_service: {module_path: tiferet.interfaces, class_name: ErrorService}
+        as: conditions
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.conditions]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: parameters_required, names: [dependencies, middleware, event_cls]}
+        as: required
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.required]
+    assert:
+      - outcome: required
+        attribute: check
+        equals: parameters_required
+
+  stage_flag_is_true_or_omitted:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: false}
+        raises: true
+        as: false_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: null}
+        raises: true
+        as: null_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: {}}
+        raises: true
+        as: mapping_failed
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        as: empty_list
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: $r.empty_list}
+        raises: true
+        as: list_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: tmp_path}
+        raises: true
+        as: tmp_path_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: 'true'}
+        raises: true
+        as: true_str_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: 1}
+        raises: true
+        as: one_failed
+      - target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}
+        method: model_validate
+        args: [{stage: false}]
+        raises: true
+        as: config_false_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        as: omitted
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {tmp_path: true}
+        raises: true
+        as: illegal_tmp_path
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {caplog: true}
+        raises: true
+        as: illegal_caplog
+    assert:
+      - outcome: false_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: null_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapping_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: list_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: tmp_path_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: true_str_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: one_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: config_false_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: omitted
+        attribute: stage
+        "null": true
+      - outcome: illegal_tmp_path
+        error_code: INVALID_MODEL_ATTRIBUTE
+      - outcome: illegal_caplog
+        error_code: INVALID_MODEL_ATTRIBUTE
+
+  unstaged_test_has_no_stage:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.phase_mod, STAGE_REF]
+        as: stage_ref
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.unstaged
+          name: phase.unstaged
+          conditions: {}
+          executes:
+            - {target: $r.stage_ref, method: path, data_key: directory}
+          asserts:
+            - {check: message, outcome: directory, message: x}
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: failed
+        message: not arranged
+      - outcome: runtime
+        attribute: stage
+        "null": true
+
+  stage_closes_on_every_outcome:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.phase_mod, STAGE_REF]
+        as: stage_ref
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: fail_runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.close_failed_assert
+          name: phase.close_failed_assert
+          conditions: {stage: true}
+          executes:
+            - {target: $r.stage_ref, method: write, kwargs: {name: left.txt, text: x}, data_key: written}
+          asserts:
+            - {check: equals, outcome: written, equals: 'not the path'}
+        as: fail_assert_inner
+      - target: $r.fail_runtime
+        method: run
+        args: [$r.fail_assert_inner]
+        raises: true
+        as: fail_assert_err
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: raise_runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.close_raising_step
+          name: phase.close_raising_step
+          conditions: {stage: true}
+          executes:
+            - {target: $r.stage_ref, method: write, kwargs: {name: left.txt, text: x}, data_key: written}
+            - {target: {module_path: builtins, attribute: int}, method: int, args: ['not a number']}
+          asserts:
+            - {check: equals, outcome: written, equals: 'not the path'}
+        as: raise_inner
+      - target: $r.raise_runtime
+        method: run
+        args: [$r.raise_inner]
+        raises: true
+        as: raise_err
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+          root_fixtures:
+            broken:
+              module_path: tiferet.domain.error
+              class_name: NoSuchClass
+              attributes: {}
+        as: fixture_runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.close_fixture_failure
+          name: phase.close_fixture_failure
+          conditions: {stage: true, fixtures: [broken]}
+          executes:
+            - {target: $r.stage_ref, method: write, kwargs: {name: left.txt, text: x}, data_key: written}
+          asserts:
+            - {check: equals, outcome: written, equals: 'not the path'}
+        as: fixture_inner
+      - target: $r.fixture_runtime
+        method: run
+        args: [$r.fixture_inner]
+        raises: true
+        as: fixture_err
+    assert:
+      - outcome: fail_assert_err
+        error_code: PHASE_CHECK_FAILED
+      - outcome: fail_runtime
+        attribute: stage
+        "null": true
+      - outcome: raise_err
+        type: {module_path: builtins, class_name: ValueError}
+      - outcome: raise_runtime
+        attribute: stage
+        "null": true
+      - outcome: fixture_runtime
+        attribute: stage
+        "null": true
+
+
+  stage_rearrange_closes_the_live_stage:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.phase_mod, STAGE_REF]
+        as: stage_ref
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: true}
+        as: staged
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.staged]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: path, data_key: first}
+        as: path_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.path_exec]
+      - target: $fixture.session
+        method: __getattribute__
+        args: [data]
+        as: sdata
+      - target: $r.sdata
+        method: __getitem__
+        args: [first]
+        as: first
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.first]
+        as: first_path
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.staged]
+      - target: $r.first_path
+        method: exists
+        as: first_exists
+      - target: $r.runtime
+        method: close_stage
+    assert:
+      - outcome: first_exists
+        equals: false
+      - outcome: runtime
+        attribute: stage
+        "null": true
+  stage_records_and_message:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [named_logger]
+        as: r_named_logger
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.phase_mod, STAGE_REF]
+        as: stage_ref
+      - target: {module_path: logging, attribute: getLogger}
+        method: getLogger
+        args: [tiferet.stage_probe]
+        as: outer_named
+      - target: $r.outer_named
+        method: debug
+        args: ['before the stage']
+      - target: {module_path: builtins, attribute: ValueError}
+        method: ValueError
+        args: [boom]
+        as: boom
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.records
+          name: phase.records
+          conditions: {stage: true}
+          executes:
+            - {target: $r.stage_ref, method: records, data_key: empty}
+            - {target: {module_path: logging, attribute: debug}, method: debug, args: ['Executing SampleEvent']}
+            - {target: {module_path: logging, attribute: getLogger}, method: getLogger, args: [tiferet.stage_probe], data_key: named_logger}
+            - {target: $r.r_named_logger, method: debug, args: ['named record']}
+            - {target: {module_path: logging, attribute: error}, method: error, args: ['Failed SampleEvent'], kwargs: {exc_info: $r.boom}}
+            - {target: {module_path: logging, attribute: error}, method: error, args: ['No active exception'], kwargs: {exc_info: true}}
+            - {target: $r.stage_ref, method: records, data_key: records}
+            - {target: $r.stage_ref, method: message, kwargs: {level: DEBUG, index: 0}, data_key: line}
+          asserts:
+            - {check: equals, outcome: empty, equals: []}
+            - {check: message, outcome: line, message: Executing}
+        as: records_inner
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$r.records_inner]
+      - target: $fixture.session
+        method: __getattribute__
+        args: [data]
+        as: sdata
+      - target: $r.sdata
+        method: __getitem__
+        args: [empty]
+        as: captured_empty
+      - target: $r.sdata
+        method: __getitem__
+        args: [line]
+        as: captured_line
+      - target: $r.sdata
+        method: __getitem__
+        args: [records]
+        as: captured_records
+      - target: $r.outer_named
+        method: debug
+        args: ['after the stage']
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: second
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.records_second
+          name: phase.records_second
+          conditions: {stage: true}
+          executes:
+            - {target: $r.stage_ref, method: records, data_key: records}
+          asserts:
+            - {check: equals, outcome: records, equals: []}
+        as: second_inner
+      - target: $r.second
+        method: run
+        args: [$r.second_inner]
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: third
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.records_missing_index
+          name: phase.records_missing_index
+          conditions: {stage: true}
+          executes:
+            - {target: $r.stage_ref, method: message, kwargs: {level: DEBUG, index: 0}, data_key: line}
+          asserts:
+            - {check: message, outcome: line, message: x}
+        as: third_inner
+      - target: $r.third
+        method: run
+        args: [$r.third_inner]
+        raises: true
+        as: missing_index_failed
+    assert:
+      - outcome: captured_empty
+        equals: []
+      - outcome: captured_line
+        equals: Executing SampleEvent
+      - outcome: captured_records
+        equals:
+          - {level: DEBUG, message: Executing SampleEvent, error: false, logger: root}
+          - {level: DEBUG, message: named record, error: false, logger: tiferet.stage_probe}
+          - {level: ERROR, message: Failed SampleEvent, error: true, logger: root}
+          - {level: ERROR, message: No active exception, error: true, logger: root}
+      - outcome: missing_index_failed
+        error_code: PHASE_STEP_FAILED
