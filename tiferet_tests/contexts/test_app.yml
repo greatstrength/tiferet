@@ -837,6 +837,141 @@ tests:
       equals: true
     - outcome: has_duration
       equals: true
+  app_interface_context_run_timing_success:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target: $r.app
+      method: run
+      args:
+      - test_group.test_feature
+      kwargs:
+        headers:
+          Content-Type: application/json
+        data:
+          key: value
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.logger
+      - info
+      as: info
+    - target: $r.info
+      method: __getattribute__
+      args:
+      - call_args_list
+      as: info_calls
+    - target:
+        module_path: builtins
+        attribute: len
+      method: len
+      args:
+      - $r.info_calls
+      as: info_len
+    - target:
+        module_path: builtins
+        attribute: str
+      method: str
+      args:
+      - $r.info_calls
+      as: info_text
+    - target: $r.info_text
+      method: split
+      args:
+      - "'"
+      - 2
+      as: quote_parts
+    - target: $r.quote_parts
+      method: __getitem__
+      args:
+      - 1
+      as: final_log
+    - target: $r.final_log
+      method: startswith
+      args:
+      - 'Executed Feature - test_group.test_feature ('
+      as: has_prefix
+    - target: $r.final_log
+      method: endswith
+      args:
+      - ms)
+      as: has_suffix
+    - target: $r.final_log
+      method: split
+      args:
+      - ' ('
+      as: duration_parts
+    - target: $r.duration_parts
+      method: __getitem__
+      args:
+      - -1
+      as: duration_tail
+    - target: $r.duration_tail
+      method: removesuffix
+      args:
+      - ms)
+      as: duration_text
+    - target: $r.duration_text
+      method: isdigit
+      as: duration_is_digit
+    assert:
+    - outcome: info_len
+      equals: 1
+    - outcome: has_prefix
+      equals: true
+    - outcome: has_suffix
+      equals: true
+    - outcome: duration_is_digit
+      equals: true
   app_interface_context_run_timing_no_pre_execution_log:
     conditions:
       fixtures:

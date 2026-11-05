@@ -3456,6 +3456,224 @@ tests:
       - {outcome: argcount, equals: 6}
       - {outcome: steps_len, equals: 3}
 
+  harness_checks_run:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tests.contexts.test_phase]
+        as: paired
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, _runtime]
+        as: runtime_fn
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, _test]
+        as: test_fn
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, ERROR_MESSAGE_FIXTURE]
+        as: error_message_fixture
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain.error]
+        as: error_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_mod, ErrorMessage]
+        as: error_message_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_message_cls, __module__]
+        as: error_message_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_message_cls, __name__]
+        as: error_message_name
+      - target: $r.runtime_fn
+        method: __call__
+        args: [$r.error_message_module, $r.error_message_name]
+        kwargs:
+          root_fixtures:
+            error_message: $r.error_message_fixture
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs:
+          fixtures: [error_message]
+        as: domain_conditions
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: error_message
+          method: format
+          data_key: formatted
+        as: format_exec
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs:
+          check: domain_contract
+        as: domain_contract
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs:
+          check: mapper_contract
+          exclude: [id]
+        as: mapper_contract
+      - target: $r.test_fn
+        method: __call__
+        args:
+          - phase.domain_and_mapper
+          - $r.domain_conditions
+          - [$r.format_exec]
+          - [$r.domain_contract, $r.mapper_contract]
+        as: domain_test
+      - target: $r.runtime
+        method: run
+        args: [$r.domain_test]
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.events.error]
+        as: events_error_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.events_error_mod, ErrorEvent]
+        as: error_event_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_event_cls, __module__]
+        as: error_event_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_event_cls, __name__]
+        as: error_event_name
+      - target: $r.runtime_fn
+        method: __call__
+        args: [$r.error_event_module, $r.error_event_name]
+        kwargs:
+          root_fixtures:
+            error_message: $r.error_message_fixture
+        as: event_runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: ArrangedMock}
+        method: __call__
+        kwargs:
+          module_path: tiferet.interfaces
+          class_name: ErrorService
+        as: arranged_error_service
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs:
+          fixtures: [error_message]
+          mocks:
+            error_service: $r.arranged_error_service
+        as: event_conditions
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs:
+          check: event_base
+          module_path: tiferet.events.core
+          class_name: DomainEvent
+        as: event_base
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs:
+          check: parameters_required
+          names: [id]
+        as: parameters_required
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs:
+          check: middleware_chain
+          middleware_chain: async
+        as: middleware_chain
+      - target: $r.test_fn
+        method: __call__
+        args:
+          - phase.event_base
+          - $r.event_conditions
+          - [$r.format_exec]
+          - [$r.event_base, $r.parameters_required, $r.middleware_chain]
+        as: event_test
+      - target: $r.event_runtime
+        method: run
+        args: [$r.event_test]
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.interfaces]
+        as: interfaces_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.interfaces_mod, ErrorService]
+        as: error_service_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_service_cls, __module__]
+        as: error_service_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_service_cls, __name__]
+        as: error_service_name
+      - target: $r.runtime_fn
+        method: __call__
+        args: [$r.error_service_module, $r.error_service_name]
+        kwargs:
+          root_fixtures:
+            error_message: $r.error_message_fixture
+        as: service_runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs:
+          fixtures: [error_message]
+        as: service_conditions
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs:
+          check: service_contract
+          abstracts: [delete, exists, get, list, save]
+          methods:
+            - name: get
+              params: [self, id]
+          absent: [legacy_name]
+        as: service_contract
+      - target: $r.test_fn
+        method: __call__
+        args:
+          - phase.service_contract
+          - $r.service_conditions
+          - [$r.format_exec]
+          - [$r.service_contract]
+        as: service_test
+      - target: $r.service_runtime
+        method: run
+        args: [$r.service_test]
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.interfaces_mod, MiddlewareService]
+        as: middleware_service_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.interfaces_mod, Service]
+        as: service_cls
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod, type]
+        as: type_cls
+      - target: $r.type_cls
+        method: __getattribute__
+        args: [$r.middleware_service_cls, __mro__]
+        as: middleware_mro
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.middleware_mro, $r.service_cls]
+        as: middleware_is_service
+    assert:
+      - {outcome: middleware_is_service, equals: true}
+
   illegal_keys_and_python_tags_are_rejected:
     conditions: {}
     execute:

@@ -586,6 +586,87 @@ tests:
         method: __call__
         assert_called_once_with: {args: [outcome]}
 
+  session_context_run_exercises_bound_tester:
+    conditions:
+      mocks:
+        predicate: {module_path: unittest.mock, class_name: Mock}
+    execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tests.contexts.test_tester], as: paired}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.paired, _build_error_message_tester], as: build_tester}
+      - {target: $r.build_tester, method: __call__, as: tester}
+      - {target: {module_path: tiferet.contexts.tester, class_name: DomainTesterContext}, method: from_domain, args: [$r.tester], as: test_ctx}
+      - {target: $r.test_ctx, method: __getattribute__, args: [domain], as: domain}
+      - {target: $r.domain, method: __getattribute__, args: [sample_data], as: sample}
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], as: session}
+      - {target: $mock.predicate, method: __setattr__, args: [return_value, true]}
+      - {target: $r.session, method: given, kwargs: {text: overlay}, as: given_session}
+      - {target: $r.given_session, method: verify, args: [$mock.predicate], as: verified}
+      - {target: $r.verified, method: run, as: result}
+      - {target: $r.result, method: __getattribute__, args: [text], as: result_text}
+      - {target: $r.result, method: __getattribute__, args: [lang], as: result_lang}
+      - {target: $r.session, method: __getattribute__, args: [verifications], as: verifications}
+      - {target: {module_path: builtins, attribute: len}, method: len, args: [$r.verifications], as: verification_count}
+      - {target: $r.test_ctx, method: __getattribute__, args: [domain], as: domain_after}
+      - {target: $r.domain_after, method: __getattribute__, args: [sample_data], as: sample_after}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.sample_after, $r.sample], as: same_sample}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.paired, ERROR_MESSAGE_SAMPLE_DATA], as: sample_constant}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.sample, $r.sample_constant], as: sample_matches}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.contexts.tester], as: tester_mod}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.tester_mod, __file__], as: tester_file}
+      - {target: {module_path: pathlib, attribute: Path}, method: Path, args: [$r.tester_file], as: tester_path}
+      - {target: $r.tester_path, method: read_text, kwargs: {encoding: utf-8}, as: tester_source}
+      - {target: $r.tester_source, method: split, args: ['def run(self, target: Any = None, **kwargs)', 1], as: after_run_def}
+      - {target: $r.after_run_def, method: __getitem__, args: [1], as: from_run}
+      - {target: $r.from_run, method: split, args: ["\n    def ", 1], as: run_parts}
+      - {target: $r.run_parts, method: __getitem__, args: [0], as: run_body}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.run_body, 'self.test_context.execute_feature(self)'], as: has_execute_feature}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.run_body, AppSessionContext], as: has_app_session}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.run_body, build_logger], as: has_build_logger}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.run_body, handle_error], as: has_handle_error}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.run_body, TiferetAPIError], as: has_api_error}
+    assert:
+      - {outcome: result_text, equals: overlay}
+      - {outcome: result_lang, equals: en_US}
+      - {outcome: verification_count, equals: 0}
+      - {outcome: same_sample, equals: true}
+      - {outcome: sample_matches, equals: true}
+      - {outcome: has_execute_feature, equals: true}
+      - {outcome: has_app_session, equals: false}
+      - {outcome: has_build_logger, equals: false}
+      - {outcome: has_handle_error, equals: false}
+      - {outcome: has_api_error, equals: false}
+
+  session_context_invoke_merges_params_and_returns_self:
+    conditions:
+      mocks:
+        predicate: {module_path: unittest.mock, class_name: Mock}
+    execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tests.contexts.test_tester], as: paired}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.paired, _build_error_message_tester], as: build_tester}
+      - {target: $r.build_tester, method: __call__, as: tester}
+      - {target: {module_path: tiferet.contexts.tester, class_name: DomainTesterContext}, method: from_domain, args: [$r.tester], as: test_ctx}
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], as: session}
+      - {target: $mock.predicate, method: __setattr__, args: [return_value, true]}
+      - {target: $r.session, method: invoke, kwargs: {text: from invoke}, as: invoked}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.invoked, $r.session], as: invoke_returns_self}
+      - {target: $r.session, method: __getattribute__, args: [data], as: session_data}
+      - {target: $r.session, method: verify, args: [$mock.predicate], as: verified}
+      - {target: $r.verified, method: run, as: result}
+      - {target: $r.result, method: __getattribute__, args: [text], as: result_text}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.contexts.tester], as: tester_mod}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.tester_mod, TestSessionContext], as: session_cls}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [builtins], as: builtins_mod}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.builtins_mod, type], as: type_cls}
+      - {target: $r.type_cls, method: __getattribute__, args: [$r.session_cls, invoke], as: invoke_fn}
+      - {target: $r.invoke_fn, method: __getattribute__, args: [__code__], as: invoke_code}
+      - {target: $r.invoke_code, method: __getattribute__, args: [co_varnames], as: invoke_varnames}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.invoke_varnames, feature_id], as: has_feature_id}
+    assert:
+      - {outcome: invoke_returns_self, equals: true}
+      - {outcome: session_data, equals: {text: from invoke}}
+      - {outcome: result_text, equals: from invoke}
+      - {outcome: has_feature_id, equals: false}
+
   add_default_testers_seeds_polymorphic_domain_objects:
     conditions: {}
     execute:
