@@ -321,6 +321,39 @@ tests:
         method: contains
         args: [$r.text, "[error_message, formatted_error_message]"]
         as: token_14
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tests.blueprints.test_test_module_writer]
+        as: writer_tests
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.writer_tests, NORMATIVE_MODULE]
+        as: normative
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [yaml]
+        as: yaml_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.yaml_mod, safe_load]
+        as: safe_load
+      - target: $r.safe_load
+        method: __call__
+        args: [$r.normative]
+        as: loaded_normative
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.yaml_mod, safe_dump]
+        as: safe_dump
+      - target: $r.safe_dump
+        method: __call__
+        args: [$r.loaded_normative]
+        kwargs: {sort_keys: false}
+        as: dumped_normative
+      - target: {module_path: operator, attribute: eq}
+        method: eq
+        args: [$r.text, $r.dumped_normative]
+        as: same_as_safe_dump
     assert:
       - {outcome: merged_has_module_path, equals: false}
       - {outcome: token_0, equals: true}
@@ -338,6 +371,7 @@ tests:
       - {outcome: token_12, equals: true}
       - {outcome: token_13, equals: true}
       - {outcome: token_14, equals: true}
+      - {outcome: same_as_safe_dump, equals: false}
 
   get_and_list_do_not_write:
     conditions:
