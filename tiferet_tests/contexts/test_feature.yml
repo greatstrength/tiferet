@@ -1939,3 +1939,67 @@ tests:
     assert:
       - outcome: result
         equals: plain_value
+
+  build_step_chain_sync:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        as: empty_mw
+      - target: {module_path: tiferet.contexts.feature, attribute: build_step_chain}
+        method: build_step_chain
+        args: [$r.test_command, {key: value}, $r.empty_mw]
+        kwargs: {is_async: false}
+        as: chain
+      - target: $r.chain
+        method: __call__
+        as: result
+    assert:
+      - outcome: result
+        equals: {status: success, data: {key: value}}
+
+  parse_request_parameter_delegates_to_injected_parser:
+    conditions:
+      mocks:
+        spy_parser: {module_path: unittest.mock, class_name: Mock}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *get_dep
+      - target: $mock.spy_parser
+        method: __setattr__
+        args: [return_value, parsed-value]
+      - target: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
+        method: from_domain
+        args: [$r.feature]
+        kwargs: {get_dependency: $r.get_dep, parse_parameter: $mock.spy_parser}
+        as: ctx
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {}}
+        as: request
+      - target: $r.ctx
+        method: parse_request_parameter
+        args: ['$env.MY_VAR', $r.request]
+        as: result
+      - target: $mock.spy_parser
+        method: assert_called_once_with
+        args: ['$env.MY_VAR']
+        as: called
+    assert:
+      - outcome: result
+        equals: parsed-value
+      - outcome: called
+        "null": true
