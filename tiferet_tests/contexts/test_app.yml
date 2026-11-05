@@ -1,0 +1,864 @@
+fixtures:
+  app_interface:
+    module_path: tiferet.mappers
+    class_name: AppSessionAggregate
+    attributes:
+      id: test
+      name: Test App
+      description: The test app.
+      flags: [test]
+      services: []
+  request:
+    module_path: &request_module tiferet.contexts.request
+    class_name: &request_class RequestContext
+    attributes:
+      data: {}
+  expected_request:
+    module_path: *request_module
+    class_name: *request_class
+    attributes:
+      data: {k: v}
+  api_error:
+    module_path: tiferet.assets
+    class_name: TiferetAPIError
+    attributes:
+      error_code: FORMATTED_ERROR
+      name: Formatted Error
+      message: Already formatted.
+      feature_id: group.feat
+  test_error:
+    module_path: tiferet.assets
+    class_name: TiferetError
+    attributes:
+      error_code: TEST_ERROR
+      message: Test error message.
+      feature_id: group.feat
+
+tests:
+  app_service_cache_prefix_value:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.app]
+        as: module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.module, APP_SERVICE_CACHE_PREFIX]
+        as: prefix
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.prefix]
+        as: size
+      - target: $r.prefix
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.prefix
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: prefix
+        type: {module_path: builtins, class_name: tuple}
+      - outcome: size
+        equals: 2
+      - outcome: first
+        equals: app
+      - outcome: second
+        equals: services
+
+  app_constant_cache_prefix_value:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.app]
+        as: module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.module, APP_CONSTANT_CACHE_PREFIX]
+        as: prefix
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.prefix]
+        as: size
+      - target: $r.prefix
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.prefix
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: prefix
+        type: {module_path: builtins, class_name: tuple}
+      - outcome: size
+        equals: 2
+      - outcome: first
+        equals: app
+      - outcome: second
+        equals: constants
+
+  add_default_app_services_returns_callable:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_services}
+        method: add_default_app_services
+        args:
+          - &sample_services
+            di_service:
+              service_id: di_service
+              module_path: tiferet.repos.di
+              class_name: DIConfigRepository
+              parameters: {}
+            get_error_evt:
+              service_id: get_error_evt
+              module_path: tiferet.events.error
+              class_name: GetError
+              parameters: {}
+        as: decorator
+      - &cache_module
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - &base_build
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - &wrap
+        target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: wrapped
+    assert:
+      - outcome: wrapped
+        type: {module_path: types, class_name: FunctionType}
+
+  add_default_app_services_seeds_cache_with_domain_objects:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_services}
+        method: add_default_app_services
+        args:
+          - *sample_services
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [di_service, app, services]
+        as: di
+      - target: $r.cache
+        method: get
+        args: [get_error_evt, app, services]
+        as: evt
+    assert:
+      - outcome: di
+        type: {module_path: tiferet.domain, class_name: AppServiceDependency}
+      - outcome: di
+        attribute: service_id
+        equals: di_service
+      - outcome: evt
+        type: {module_path: tiferet.domain, class_name: AppServiceDependency}
+      - outcome: evt
+        attribute: service_id
+        equals: get_error_evt
+
+  add_default_app_services_preserves_initial_cache_values:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_services}
+        method: add_default_app_services
+        args:
+          - *sample_services
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        kwargs:
+          cache:
+            existing_key: existing_value
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [existing_key]
+        as: existing
+      - target: $r.cache
+        method: get
+        args: [di_service, app, services]
+        as: di
+      - target: $r.cache
+        method: get
+        args: [get_error_evt, app, services]
+        as: evt
+    assert:
+      - outcome: existing
+        equals: existing_value
+      - outcome: di
+        type: {module_path: tiferet.domain, class_name: AppServiceDependency}
+      - outcome: evt
+        type: {module_path: tiferet.domain, class_name: AppServiceDependency}
+
+  add_default_app_services_empty_dict_leaves_cache_clean:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_services}
+        method: add_default_app_services
+        args:
+          - {}
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+    assert:
+      - outcome: cache
+        attribute: _cache
+        equals: {}
+
+  add_default_app_constants_returns_callable:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_constants}
+        method: add_default_app_constants
+        args:
+          - &sample_constants
+            cli_config: config.yml
+            di_config: config.yml
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+    assert:
+      - outcome: wrapped
+        type: {module_path: types, class_name: FunctionType}
+
+  add_default_app_constants_seeds_cache_with_scalars:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_constants}
+        method: add_default_app_constants
+        args:
+          - *sample_constants
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [cli_config, app, constants]
+        as: cli
+      - target: $r.cache
+        method: get
+        args: [di_config, app, constants]
+        as: di
+    assert:
+      - outcome: cli
+        equals: config.yml
+      - outcome: di
+        equals: config.yml
+
+  add_default_app_constants_preserves_initial_cache_values:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_constants}
+        method: add_default_app_constants
+        args:
+          - *sample_constants
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        kwargs:
+          cache:
+            existing_key: existing_value
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [existing_key]
+        as: existing
+      - target: $r.cache
+        method: get
+        args: [cli_config, app, constants]
+        as: cli
+      - target: $r.cache
+        method: get
+        args: [di_config, app, constants]
+        as: di
+    assert:
+      - outcome: existing
+        equals: existing_value
+      - outcome: cli
+        equals: config.yml
+      - outcome: di
+        equals: config.yml
+
+  add_default_app_constants_empty_dict_leaves_cache_clean:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_constants}
+        method: add_default_app_constants
+        args:
+          - {}
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+    assert:
+      - outcome: cache
+        attribute: _cache
+        equals: {}
+
+  app_session_cache_prefix_value:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.app]
+        as: module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.module, APP_SESSION_CACHE_PREFIX]
+        as: prefix
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.prefix]
+        as: size
+      - target: $r.prefix
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.prefix
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: prefix
+        type: {module_path: builtins, class_name: tuple}
+      - outcome: size
+        equals: 2
+      - outcome: first
+        equals: app
+      - outcome: second
+        equals: sessions
+
+  add_default_app_sessions_seeds_cache_with_domain_objects:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_sessions}
+        method: add_default_app_sessions
+        args:
+          - tiferet_app: {id: tiferet_app, name: Admin App}
+            tiferet_cli: {id: tiferet_cli, name: Admin CLI}
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [tiferet_app, app, sessions]
+        as: app_session
+      - target: $r.cache
+        method: get
+        args: [tiferet_cli, app, sessions]
+        as: cli_session
+    assert:
+      - outcome: app_session
+        type: {module_path: tiferet.domain, class_name: AppSession}
+      - outcome: app_session
+        attribute: id
+        equals: tiferet_app
+      - outcome: cli_session
+        type: {module_path: tiferet.domain, class_name: AppSession}
+      - outcome: cli_session
+        attribute: id
+        equals: tiferet_cli
+
+  add_default_app_sessions_absent_key_returns_none:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_sessions}
+        method: add_default_app_sessions
+        args:
+          - tiferet_app: {id: tiferet_app, name: Admin App}
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [tiferet_app, app, sessions]
+        as: app_session
+      - target: $r.cache
+        method: get
+        args: [missing.session, app, sessions]
+        as: missing
+    assert:
+      - outcome: app_session
+        type: {module_path: tiferet.domain, class_name: AppSession}
+      - outcome: app_session
+        attribute: id
+        equals: tiferet_app
+      - outcome: missing
+        "null": true
+
+  add_default_app_services_readable_via_cache_by_prefix:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_services}
+        method: add_default_app_services
+        args: [*sample_services]
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, services]
+        as: services
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.services]
+        as: size
+      - target: $r.services
+        method: get
+        args: [di_service]
+        as: di
+      - target: $r.services
+        method: get
+        args: [get_error_evt]
+        as: evt
+    assert:
+      - outcome: size
+        equals: 2
+      - outcome: di
+        type: {module_path: tiferet.domain, class_name: AppServiceDependency}
+      - outcome: evt
+        type: {module_path: tiferet.domain, class_name: AppServiceDependency}
+      - outcome: services
+        fields:
+          di_service:
+            service_id: di_service
+          get_error_evt:
+            service_id: get_error_evt
+
+  add_default_app_constants_readable_via_cache_by_prefix:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.app, attribute: add_default_app_constants}
+        method: add_default_app_constants
+        args: [*sample_constants]
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, constants]
+        as: constants
+    assert:
+      - outcome: constants
+        equals: *sample_constants
+
+testers:
+  test_app_session_context:
+    module_path: &app_module tiferet.contexts.app
+    class_name: &app_class AppSessionContext
+    tests:
+      build_request_delegates_to_create_request_handler:
+        conditions:
+          fixtures: [app_interface, expected_request]
+          mocks:
+            dep: &dep_mock {module_path: tiferet.contexts.cache, class_name: CacheContext}
+            factory:
+              module_path: *request_module
+              class_name: *request_class
+              return_value:
+                handle_response: $fixture.expected_request
+        execute:
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.factory, handle_response]
+            as: handler
+          - target: &app_context {module_path: tiferet.contexts.app, class_name: AppSessionContext}
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+              create_request_handler: $r.handler
+            as: context
+          - target: $r.context
+            method: build_request
+            args: [group.feat, {h: v}, {d: 1}]
+            as: result
+          - target: {module_path: operator, attribute: is_}
+            method: is_
+            args: [$r.result, $fixture.expected_request]
+            as: same
+        assert:
+          - outcome: same
+            equals: true
+          - mock: factory
+            method: handle_response
+            assert_called_once_with:
+              args: [test, group.feat, {h: v}, {d: 1}]
+
+      execute_feature_delegates_to_handler:
+        conditions:
+          fixtures: [app_interface, request]
+          mocks:
+            dep: *dep_mock
+            factory:
+              module_path: *request_module
+              class_name: *request_class
+        execute:
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.factory, handle_response]
+            as: handler
+          - target: *app_context
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+              execute_feature_handler: $r.handler
+            as: context
+          - target: $r.context
+            method: execute_feature
+            args: [group.feat, $fixture.request]
+        assert:
+          - mock: factory
+            method: handle_response
+            assert_called_once_with:
+              args: [group.feat, $fixture.request]
+
+      build_response_delegates_to_response_handler:
+        conditions:
+          fixtures: [app_interface, request]
+          mocks:
+            dep: *dep_mock
+            factory:
+              module_path: *request_module
+              class_name: *request_class
+              return_value:
+                handle_response: {attributes: {status: ok}}
+        execute:
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.factory, handle_response]
+            as: handler
+          - target: *app_context
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+              response_handler: $r.handler
+            as: context
+          - target: $r.handler
+            method: __call__
+            args: [$fixture.request]
+            as: expected_result
+          - target: $r.handler
+            method: reset_mock
+          - target: $r.context
+            method: build_response
+            args: [$fixture.request]
+            as: result
+          - target: {module_path: operator, attribute: is_}
+            method: is_
+            args: [$r.result, $r.expected_result]
+            as: same
+        assert:
+          - outcome: same
+            equals: true
+          - outcome: result
+            fields:
+              status: ok
+          - mock: factory
+            method: handle_response
+            assert_called_once_with:
+              args: [$fixture.request]
+
+      build_response_unwired_handler_raises:
+        conditions:
+          fixtures: [app_interface, request]
+          mocks:
+            dep: *dep_mock
+        execute:
+          - &bare_context
+            target: *app_context
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+            as: context
+          - target: request
+            method: set_result
+            args: [the_result]
+          - target: $r.context
+            method: build_response
+            args: [$fixture.request]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: &api_error {module_path: tiferet.assets, class_name: TiferetAPIError}
+          - outcome: failed
+            error_code: APP_ERROR
+          - outcome: failed
+            attribute: message
+            message: response_handler
+
+      build_request_unwired_handler_raises:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            dep: *dep_mock
+        execute:
+          - *bare_context
+          - target: $r.context
+            method: build_request
+            args: [group.feat, {}, {}]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *api_error
+          - outcome: failed
+            error_code: APP_ERROR
+          - outcome: failed
+            attribute: message
+            message: create_request_handler
+          - outcome: failed
+            attribute: kwargs
+            fields:
+              feature_id: group.feat
+
+      execute_feature_unwired_handler_raises:
+        conditions:
+          fixtures: [app_interface, request]
+          mocks:
+            dep: *dep_mock
+        execute:
+          - *bare_context
+          - target: $r.context
+            method: execute_feature
+            args: [group.feat, $fixture.request]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *api_error
+          - outcome: failed
+            error_code: APP_ERROR
+          - outcome: failed
+            attribute: message
+            message: execute_feature_handler
+          - outcome: failed
+            attribute: kwargs
+            fields:
+              feature_id: group.feat
+
+      build_logger_unwired_handler_raises:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            dep: *dep_mock
+        execute:
+          - *bare_context
+          - target: $r.context
+            method: build_logger
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *api_error
+          - outcome: failed
+            error_code: APP_ERROR
+          - outcome: failed
+            attribute: message
+            message: build_logger_handler
+
+      execute_feature_unwired_handler_passes_through_run:
+        conditions:
+          fixtures: [app_interface, request]
+          mocks:
+            dep: *dep_mock
+            logger:
+              module_path: logging
+              class_name: Logger
+            logger_factory:
+              module_path: tiferet.contexts.logging
+              class_name: LoggingContext
+              return_value:
+                build_logger: $mock.logger
+            request_factory:
+              module_path: *request_module
+              class_name: *request_class
+              return_value:
+                handle_response: $fixture.request
+            response_factory:
+              module_path: *request_module
+              class_name: *request_class
+        execute:
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.logger_factory, build_logger]
+            as: build_logger_handler
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.request_factory, handle_response]
+            as: create_request_handler
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.response_factory, handle_response]
+            as: response_handler
+          - target: *app_context
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+              build_logger_handler: $r.build_logger_handler
+              create_request_handler: $r.create_request_handler
+              response_handler: $r.response_handler
+            as: context
+          - target: $r.context
+            method: run
+            args: [group.feat]
+            raises: true
+            as: failed
+          - target: $r.failed
+            method: __str__
+            as: failed_message
+          - target: {module_path: operator, attribute: contains}
+            method: contains
+            args: [$r.failed_message, raise_error_handler]
+            as: names_error_handler
+          - target: {module_path: operator, attribute: contains}
+            method: contains
+            args: [$r.failed_message, An error occurred in the app]
+            as: wrapped_as_app_error
+        assert:
+          - outcome: failed
+            type: *api_error
+          - outcome: failed
+            error_code: APP_ERROR
+          - outcome: failed
+            attribute: message
+            message: execute_feature_handler
+          - outcome: names_error_handler
+            equals: false
+          - outcome: failed
+            attribute: kwargs
+            fields:
+              feature_id: group.feat
+          - outcome: wrapped_as_app_error
+            equals: false
+          - mock: logger
+            method: error
+            assert_called_once_with:
+              times: 1
+
+      handle_error_passes_api_errors_through:
+        conditions:
+          fixtures: [app_interface, api_error]
+          mocks:
+            dep: *dep_mock
+            raise_factory:
+              module_path: *request_module
+              class_name: *request_class
+        execute:
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.raise_factory, handle_response]
+            as: raise_handler
+          - target: *app_context
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+              raise_error_handler: $r.raise_handler
+            as: context
+          - target: $r.context
+            method: handle_error
+            args: [$fixture.api_error]
+            raises: true
+            as: failed
+          - target: {module_path: operator, attribute: is_}
+            method: is_
+            args: [$r.failed, $fixture.api_error]
+            as: same
+        assert:
+          - outcome: same
+            equals: true
+          - outcome: failed
+            attribute: name
+            equals: Formatted Error
+          - outcome: failed
+            attribute: kwargs
+            fields:
+              feature_id: group.feat
+          - mock: raise_factory
+            method: handle_response
+            assert_called_once_with:
+              times: 0
+
+      handle_error_unwired_handler_raises:
+        conditions:
+          fixtures: [app_interface, test_error]
+          mocks:
+            dep: *dep_mock
+        execute:
+          - *bare_context
+          - target: $r.context
+            method: handle_error
+            args: [$fixture.test_error]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *api_error
+          - outcome: failed
+            error_code: APP_ERROR
+          - outcome: failed
+            attribute: message
+            message: raise_error_handler
+          - outcome: failed
+            attribute: kwargs
+            fields:
+              original_error_code: TEST_ERROR
+          - outcome: failed
+            attribute: kwargs
+            message: Test error message.

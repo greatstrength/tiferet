@@ -1,0 +1,218 @@
+fixtures:
+  request_context:
+    module_path: &request_module tiferet.contexts.request
+    class_name: &request_class RequestContext
+    attributes:
+      data:
+        key: value
+        another_key: another_value
+      headers:
+        interface_id: test_interface
+      feature_id: test_group.test_feature
+  empty_request_context:
+    module_path: *request_module
+    class_name: *request_class
+    attributes:
+      data: {}
+
+tests:
+  request_context_handle_response_none:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: __setattr__
+        args: [result, null]
+      - target: request_context
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        "null": true
+
+  request_context_handle_response_primitive:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: __setattr__
+        args: [result, test_string]
+      - target: request_context
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        equals: test_string
+
+  request_context_handle_response_data:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: __setattr__
+        args: [result, {key: value}]
+      - target: request_context
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        equals:
+          key: value
+
+  request_context_handle_response_list:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: __setattr__
+        args: [result, [item1, item2, item3]]
+      - target: request_context
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        type: {module_path: builtins, class_name: list}
+      - outcome: response
+        equals: [item1, item2, item3]
+
+  request_context_set_result:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: set_result
+        args: [{new_key: new_value}]
+    assert:
+      - outcome: request_context
+        attribute: result
+        equals:
+          new_key: new_value
+
+  request_context_set_result_with_data_key:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: set_result
+        args: [specific_value]
+        kwargs:
+          data_key: specific_key
+    assert:
+      - outcome: request_context
+        attribute: result
+        "null": true
+      - outcome: request_context
+        attribute: data
+        fields:
+          specific_key: specific_value
+          key: value
+      - outcome: request_context
+        attribute: domain
+        fields:
+          data: {key: value, another_key: another_value}
+
+  request_context_binds_request_domain:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: handle_response
+        as: unused
+    assert:
+      - outcome: request_context
+        attribute: domain
+        type: {module_path: tiferet.domain, class_name: Request}
+
+  request_context_construction_fills_domain:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: handle_response
+        as: unused
+    assert:
+      - outcome: request_context
+        attribute: domain
+        fields:
+          feature_id: test_group.test_feature
+          headers: {interface_id: test_interface}
+          data: {key: value, another_key: another_value}
+      - outcome: request_context
+        attribute: session_id
+        type: {module_path: builtins, class_name: str}
+      - outcome: request_context
+        attribute: feature_id
+        equals: test_group.test_feature
+      - outcome: request_context
+        attribute: headers
+        equals: {interface_id: test_interface}
+      - outcome: request_context
+        attribute: data
+        equals: {key: value, another_key: another_value}
+
+  request_context_set_methods_write_inflight:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: set_session_id
+        args: [sess-1]
+      - target: request_context
+        method: set_feature_id
+        args: [g.f2]
+      - target: request_context
+        method: set_headers
+        args: [{x: y}]
+      - target: request_context
+        method: set_data
+        args: [{new: data}]
+    assert:
+      - outcome: request_context
+        attribute: session_id
+        equals: sess-1
+      - outcome: request_context
+        attribute: feature_id
+        equals: g.f2
+      - outcome: request_context
+        attribute: headers
+        equals: {x: y}
+      - outcome: request_context
+        attribute: data
+        equals: {new: data}
+      - outcome: request_context
+        attribute: domain
+        fields:
+          feature_id: test_group.test_feature
+          headers: {interface_id: test_interface}
+          data: {key: value, another_key: another_value}
+
+  request_context_registered_for_request_domain:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_module, Request]
+        as: request_cls
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.request_cls]
+        as: context_cls
+    assert:
+      - outcome: context_cls
+        is: {module_path: *request_module, class_name: *request_class}
+
+  request_context_session_id_auto_generated:
+    conditions:
+      fixtures: [empty_request_context]
+    execute:
+      - target: empty_request_context
+        method: handle_response
+        as: unused
+    assert:
+      - outcome: empty_request_context
+        attribute: session_id
+        type: {module_path: builtins, class_name: str}

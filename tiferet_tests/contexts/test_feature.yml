@@ -1,0 +1,411 @@
+fixtures:
+  feature:
+    module_path: &domain tiferet.domain
+    class_name: &feature_class Feature
+    attributes:
+      id: test_group.test_feature
+      group_id: test_group
+      feature_key: test_feature
+      name: Test Feature
+      description: A feature for testing purposes.
+      steps: []
+  coercing_feature:
+    module_path: *domain
+    class_name: *feature_class
+    attributes:
+      id: calc.add
+      name: Add
+      params_schema: {a: int, b: float}
+      steps: []
+  int_feature:
+    module_path: *domain
+    class_name: *feature_class
+    attributes:
+      id: calc.add
+      name: Add
+      params_schema: {a: int}
+      steps: []
+  two_int_feature:
+    module_path: *domain
+    class_name: *feature_class
+    attributes:
+      id: calc.add
+      name: Add
+      params_schema: {a: int, b: int}
+      steps: []
+  request_empty:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {}
+  request_x5:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {x: 5}
+  request_x_neg:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {x: -1}
+  request_advanced:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {mode: advanced}
+  request_a_str:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: '5'}
+  request_ab_str:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: '5', b: '2'}
+  request_a_notint:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: notint}
+  request_ab_xy:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: x, b: y}
+  middleware_a:
+    module_path: &mw_module tiferet.contexts.request
+    class_name: &mw_class RequestContext
+    attributes: {data: {}}
+  middleware_b:
+    module_path: *mw_module
+    class_name: *mw_class
+    attributes: {data: {}}
+
+tests:
+  evaluate_condition_none_returns_true:
+    conditions:
+      fixtures: [request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: [null, $fixture.request_empty]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: true
+
+  evaluate_condition_empty_returns_true:
+    conditions:
+      fixtures: [request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['', $fixture.request_empty]
+        as: result_0
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['   ', $fixture.request_empty]
+        as: result_1
+    assert:
+      - outcome: result_0
+        equals: true
+      - outcome: result_1
+        equals: true
+
+  evaluate_condition_true_expression:
+    conditions:
+      fixtures: [request_x5]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x > 0', $fixture.request_x5]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: true
+
+  evaluate_condition_false_expression:
+    conditions:
+      fixtures: [request_x_neg]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x > 0', $fixture.request_x_neg]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: false
+
+  evaluate_condition_string_equality:
+    conditions:
+      fixtures: [request_advanced]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ["$r.mode == 'advanced'", $fixture.request_advanced]
+        as: result_0
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ["$r.mode == 'basic'", $fixture.request_advanced]
+        as: result_1
+    assert:
+      - outcome: result_0
+        equals: true
+      - outcome: result_1
+        equals: false
+
+  evaluate_condition_missing_key_returns_false:
+    conditions:
+      fixtures: [request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x > 0', $fixture.request_empty]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: false
+
+  evaluate_condition_invalid_expression_returns_false:
+    conditions:
+      fixtures: [request_x5]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x >>>!!! invalid', $fixture.request_x5]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: false
+
+  validate_request_no_schema_is_noop:
+    conditions:
+      fixtures: [feature, request_a_str]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.feature, $fixture.request_a_str]
+    assert:
+      - outcome: request_a_str
+        attribute: data
+        equals: {a: '5'}
+
+  validate_request_coerces_data:
+    conditions:
+      fixtures: [coercing_feature, request_ab_str]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.coercing_feature, $fixture.request_ab_str]
+    assert:
+      - outcome: request_ab_str
+        attribute: data
+        fields:
+          a: 5
+          b: 2.0
+
+  validate_request_invalid_data_raises:
+    conditions:
+      fixtures: [int_feature, request_a_notint]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.int_feature, $fixture.request_a_notint]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type: &tiferet_error {module_path: tiferet.assets, class_name: TiferetError}
+      - outcome: failed
+        error_code: REQUEST_VALIDATION_FAILED
+
+  validate_request_missing_required_carries_context:
+    conditions:
+      fixtures: [int_feature, request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.int_feature, $fixture.request_empty]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type: *tiferet_error
+      - outcome: failed
+        error_code: REQUEST_VALIDATION_FAILED
+      - outcome: failed
+        attribute: kwargs
+        fields:
+          feature_id: calc.add
+          violations: [{field: a}]
+
+  validate_request_aggregates_multiple_violations:
+    conditions:
+      fixtures: [two_int_feature, request_ab_xy]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.two_int_feature, $fixture.request_ab_xy]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: REQUEST_VALIDATION_FAILED
+      - outcome: failed
+        attribute: kwargs
+        fields:
+          violations: [{field: a}, {field: b}]
+
+  compose_step_middleware_both_empty:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[], []]
+        as: result
+    assert:
+      - outcome: result
+        equals: []
+
+  compose_step_middleware_feature_only:
+    conditions:
+      fixtures: [middleware_a]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[$fixture.middleware_a], []]
+        as: result
+    assert:
+      - outcome: result
+        equals: [$fixture.middleware_a]
+
+  compose_step_middleware_step_only:
+    conditions:
+      fixtures: [middleware_b]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[], [$fixture.middleware_b]]
+        as: result
+    assert:
+      - outcome: result
+        equals: [$fixture.middleware_b]
+
+  compose_step_middleware_feature_first:
+    conditions:
+      fixtures: [middleware_a, middleware_b]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[$fixture.middleware_a], [$fixture.middleware_b]]
+        as: result
+    assert:
+      - outcome: result
+        equals: [$fixture.middleware_a, $fixture.middleware_b]
+
+  compose_step_middleware_none_inputs:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [null, null]
+        as: result
+    assert:
+      - outcome: result
+        equals: []
+
+  feature_cache_prefix_value:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.feature]
+        as: module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.module, FEATURE_CACHE_PREFIX]
+        as: prefix
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.prefix]
+        as: size
+      - target: $r.prefix
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.prefix
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: prefix
+        type: {module_path: builtins, class_name: tuple}
+      - outcome: size
+        equals: 2
+      - outcome: first
+        equals: app
+      - outcome: second
+        equals: features
+
+  add_default_features_seeds_cache:
+    conditions: {}
+    execute:
+      - target: &add_features {module_path: tiferet.contexts.feature, attribute: add_default_features}
+        method: add_default_features
+        args:
+          - test_group.test_feature:
+              group_id: test_group
+              feature_key: test_feature
+              name: Test Feature
+              steps: []
+        as: decorator
+      - &cache_module
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - &base_build
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - &wrap
+        target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: build_cache
+      - &build
+        target: $r.build_cache
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [test_group.test_feature, app, features]
+        as: feature
+    assert:
+      - outcome: feature
+        type: {module_path: *domain, class_name: *feature_class}
+      - outcome: feature
+        fields:
+          id: test_group.test_feature
+          name: Test Feature
+
+  add_default_features_empty_catalog:
+    conditions: {}
+    execute:
+      - target: *add_features
+        method: add_default_features
+        args: [{}]
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - *build
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, features]
+        as: features
+    assert:
+      - outcome: features
+        equals: {}

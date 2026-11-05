@@ -1,0 +1,430 @@
+fixtures:
+  session:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes: {}
+  data_key_test:
+    module_path: &phase_domain tiferet.domain.tester_phase
+    class_name: Test
+    attributes:
+      id: phase.data_key
+      name: phase.data_key
+      conditions: {}
+      executes:
+        - {target: self, method: new, data_key: built}
+      asserts:
+        - {check: 'null', outcome: built}
+  format_test:
+    module_path: tiferet.domain.tester_phase
+    class_name: Test
+    attributes:
+      id: phase.format
+      name: phase.format
+      conditions: {fixtures: [formatted_error_message]}
+      executes:
+        - target: formatted_error_message
+          method: format
+          kwargs: {error: test failure}
+          data_key: formatted
+      asserts:
+        - {check: equals, outcome: formatted, equals: 'An error occurred: test failure'}
+  add_success_test:
+    module_path: tiferet.domain.tester_phase
+    class_name: Test
+    attributes:
+      id: phase.add_success
+      name: phase.add_success
+      conditions: {mocks: {error_service: {module_path: tiferet.interfaces, class_name: ErrorService, return_value: {exists: false}}}}
+      executes:
+        - target: self
+          method: handle
+          kwargs: {id: NEW_ERROR, name: New Error, message: This is a new error message., lang: en_US}
+          data_key: created
+      asserts:
+        - {check: type, outcome: created, module_path: tiferet.domain.error, class_name: Error}
+        - check: fields
+          outcome: created
+          fields:
+            id: NEW_ERROR
+            name: New Error
+            message: [{lang: en_US, text: This is a new error message.}]
+        - check: assert_called_once_with
+          mock: error_service
+          method: exists
+          assert_called_once_with: {args: [NEW_ERROR]}
+  already_exists_test:
+    module_path: tiferet.domain.tester_phase
+    class_name: Test
+    attributes:
+      id: phase.already_exists
+      name: phase.already_exists
+      conditions: {mocks: {error_service: {module_path: tiferet.interfaces, class_name: ErrorService, return_value: {exists: true}}}}
+      executes:
+        - target: self
+          method: handle
+          kwargs: {id: NEW_ERROR, name: New Error, message: This is a new error message., lang: en_US}
+          raises: true
+          data_key: failed
+      asserts:
+        - {check: error_code, outcome: failed, error_code: ERROR_ALREADY_EXISTS}
+  not_found_test:
+    module_path: tiferet.domain.tester_phase
+    class_name: Test
+    attributes:
+      id: phase.not_found
+      name: phase.not_found
+      conditions: {mocks: {error_service: {module_path: tiferet.interfaces, class_name: ErrorService, return_value: {get: null}}}}
+      executes:
+        - {target: self, method: handle, kwargs: {id: TEST_ERROR}, raises: true, data_key: failed}
+      asserts:
+        - {check: error_code, outcome: failed, error_code: ERROR_NOT_FOUND}
+  missing_id_test:
+    module_path: tiferet.domain.tester_phase
+    class_name: Test
+    attributes:
+      id: phase.missing_id
+      name: phase.missing_id
+      conditions: {mocks: {error_service: {module_path: tiferet.interfaces, class_name: ErrorService}}}
+      executes:
+        - {target: self, method: handle, kwargs: {id: null}, raises: true, data_key: failed}
+      asserts:
+        - {check: error_code, outcome: failed, error_code: COMMAND_PARAMETER_REQUIRED}
+  tester_object:
+    module_path: tiferet.domain
+    class_name: TesterObject
+    attributes:
+      type: generic
+      id: phase.tester
+      module_path: tiferet.domain.error
+      class_name: ErrorMessage
+  empty_conditions:
+    module_path: tiferet.domain.tester_phase
+    class_name: Conditions
+    attributes: {}
+
+tests:
+  closed_phase_keys_are_rejected:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {fixtures: [], variables: {}}
+        raises: true
+        as: conditions_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: true}
+        as: staged
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: self, method: new, sample_kwargs: {}}
+        raises: true
+        as: execution_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: equals, outcome: built, equals: a, 'null': true}
+        raises: true
+        as: assertion_failed
+    assert:
+      - outcome: conditions_failed
+        type: &model_error {module_path: tiferet.domain, class_name: ModelError}
+      - outcome: staged
+        attribute: stage
+        equals: true
+      - outcome: execution_failed
+        type: *model_error
+      - outcome: assertion_failed
+        type: *model_error
+
+  as_is_data_key_and_not_parameters:
+    conditions:
+      fixtures: [data_key_test]
+    execute:
+      - target: {module_path: tiferet.contexts.tester_phase, attribute: compile_phase_steps}
+        method: compile_phase_steps
+        args: [$fixture.data_key_test]
+        as: steps
+      - target: $r.steps
+        method: __getitem__
+        args: [1]
+        as: execute_step
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.steps]
+        as: step_count
+      - {target: $r.steps, method: __getitem__, args: [0], as: step_0}
+      - {target: $r.steps, method: __getitem__, args: [2], as: step_2}
+    assert:
+      - outcome: execute_step
+        fields:
+          data_key: built
+          parameters: {}
+          pass_on_error: false
+      - outcome: step_count
+        equals: 3
+      - outcome: step_0
+        type: &event_step {module_path: tiferet.domain, class_name: EventFeatureStep}
+      - outcome: execute_step
+        type: *event_step
+      - outcome: step_2
+        type: *event_step
+
+  error_format_with_kwargs:
+    conditions:
+      fixtures: [session, format_test]
+    execute:
+      - target: &build_runtime {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+          root_fixtures:
+            formatted_error_message:
+              module_path: tiferet.domain.error
+              class_name: ErrorMessage
+              attributes: {lang: en_US, text: 'An error occurred: {error}'}
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.format_test]
+    assert:
+      - outcome: session
+        attribute: data
+        fields:
+          formatted: 'An error occurred: test failure'
+
+  event_success:
+    conditions:
+      fixtures: [session, add_success_test]
+    execute:
+      - target: *build_runtime
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.events.error
+          tester_class_name: AddError
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.add_success_test]
+    assert:
+      - outcome: session
+        attribute: data
+        fields:
+          created: {id: NEW_ERROR, name: New Error}
+
+  event_already_exists:
+    conditions:
+      fixtures: [session, already_exists_test]
+    execute:
+      - target: *build_runtime
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.events.error
+          tester_class_name: AddError
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.already_exists_test]
+    assert:
+      - outcome: session
+        attribute: data
+        fields:
+          failed: {error_code: ERROR_ALREADY_EXISTS}
+
+  event_not_found:
+    conditions:
+      fixtures: [session, not_found_test]
+    execute:
+      - target: *build_runtime
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.events.error
+          tester_class_name: GetError
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.not_found_test]
+    assert:
+      - outcome: session
+        attribute: data
+        fields:
+          failed: {error_code: ERROR_NOT_FOUND}
+
+  event_missing_required_parameter:
+    conditions:
+      fixtures: [session, missing_id_test]
+    execute:
+      - target: *build_runtime
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.events.error
+          tester_class_name: AddError
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.missing_id_test]
+    assert:
+      - outcome: session
+        attribute: data
+        fields:
+          failed: {error_code: COMMAND_PARAMETER_REQUIRED}
+
+  handlers_are_registered_and_not_default_features:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.blueprints.tester, attribute: register_phase_handlers}
+        method: register_phase_handlers
+        as: handlers
+      - {target: {module_path: builtins, attribute: len}, method: len, args: [$r.handlers], as: count}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.domain], as: domain_module}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.domain_module, Feature], as: feature_cls}
+      - {target: {module_path: builtins, attribute: hasattr}, method: hasattr, args: [$r.feature_cls, CORE_DEFAULT_FEATURES], as: has_catalog}
+    assert:
+      - outcome: count
+        equals: 3
+      - outcome: handlers
+        fields:
+          conditions: {__name__: handle_conditions, __qualname__: PhaseRuntimeContext.handle_conditions}
+          execute: {__name__: handle_execution, __qualname__: PhaseRuntimeContext.handle_execution}
+          assert: {__name__: handle_assertion, __qualname__: PhaseRuntimeContext.handle_assertion}
+      - outcome: has_catalog
+        equals: false
+
+  phase_runtime_is_reached_through_from_domain:
+    conditions:
+      fixtures: [tester_object, session]
+    execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.domain.tester_phase], as: phase_domain}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.phase_domain, PhaseRuntime], as: runtime_domain_cls}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.phase_domain, Test], as: test_cls}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.domain], as: domain_module}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.domain_module, Feature], as: feature_cls}
+      - &base {target: {module_path: tiferet.contexts.core, class_name: BaseContext}, method: for_domain, args: [$r.runtime_domain_cls], as: runtime_context_cls}
+      - {target: {module_path: tiferet.contexts.core, class_name: BaseContext}, method: for_domain, args: [$r.feature_cls], as: feature_context_cls}
+      - {target: {module_path: tiferet.contexts.core, class_name: BaseContext}, method: for_domain, args: [$r.test_cls], as: test_context_cls}
+      - target: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+        method: from_domain
+        args: [$fixture.tester_object]
+        as: unwired
+      - target: $r.unwired
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, ErrorMessage]
+        raises: true
+        as: failed
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}
+        method: build_tester_context
+        args: [$fixture.tester_object]
+        as: wired
+      - target: $r.wired
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, ErrorMessage]
+        as: runtime
+    assert:
+      - outcome: runtime_context_cls
+        is: &runtime_context {module_path: tiferet.contexts.tester_phase, class_name: PhaseRuntimeContext}
+      - outcome: feature_context_cls
+        is: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
+      - outcome: test_context_cls
+        is: {module_path: tiferet.contexts.tester_phase, class_name: TestContext}
+      - outcome: failed
+        message: build_phase_runtime_handler
+      - outcome: runtime
+        type: *runtime_context
+      - outcome: runtime
+        attribute: domain
+        type: {module_path: tiferet.domain.tester_phase, class_name: PhaseRuntime}
+      - outcome: runtime
+        attribute: domain
+        fields:
+          tester_class_name: ErrorMessage
+
+  conditions_stage_round_trips_to_data:
+    conditions:
+      fixtures: [empty_conditions]
+    execute:
+      - &cco {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{}], as: bare}
+      - {target: $r.bare, method: to_primitive, args: [to_data], as: bare_data}
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{stage: true}], as: staged}
+      - {target: $r.staged, method: to_primitive, args: [to_data], as: staged_data}
+      - {target: $r.staged, method: map, as: mapped}
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: from_model, args: [$r.mapped], as: round_trip}
+      - {target: empty_conditions, method: model_dump, as: dumped}
+    assert:
+      - outcome: bare_data
+        absent: [stage]
+      - outcome: staged_data
+        attribute: stage
+        equals: true
+      - outcome: mapped
+        attribute: stage
+        equals: true
+      - outcome: round_trip
+        attribute: stage
+        equals: true
+      - outcome: dumped
+        absent: [stage]
+
+  check_set_is_unchanged:
+    conditions: {}
+    execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.domain.tester_phase], as: phase_domain}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.phase_domain, ASSERTION_CHECKS], as: checks}
+      - {target: {module_path: builtins, attribute: len}, method: len, args: [$r.checks], as: count}
+      - {target: $r.checks, method: __getitem__, args: [0], as: check_0}
+      - {target: $r.checks, method: __getitem__, args: [1], as: check_1}
+      - {target: $r.checks, method: __getitem__, args: [2], as: check_2}
+      - {target: $r.checks, method: __getitem__, args: [3], as: check_3}
+      - {target: $r.checks, method: __getitem__, args: [4], as: check_4}
+      - {target: $r.checks, method: __getitem__, args: [5], as: check_5}
+      - {target: $r.checks, method: __getitem__, args: [6], as: check_6}
+      - {target: $r.checks, method: __getitem__, args: [7], as: check_7}
+      - {target: $r.checks, method: __getitem__, args: [8], as: check_8}
+      - {target: $r.checks, method: __getitem__, args: [9], as: check_9}
+      - {target: $r.checks, method: __getitem__, args: [10], as: check_10}
+      - {target: $r.checks, method: __getitem__, args: [11], as: check_11}
+      - {target: $r.checks, method: __getitem__, args: [12], as: check_12}
+      - {target: $r.checks, method: __getitem__, args: [13], as: check_13}
+      - {target: $r.checks, method: __getitem__, args: [14], as: check_14}
+      - {target: $r.checks, method: __getitem__, args: [15], as: check_15}
+    assert:
+      - outcome: checks
+        type: {module_path: builtins, class_name: tuple}
+      - outcome: count
+        equals: 16
+      - outcome: check_0
+        equals: 'equals'
+      - outcome: check_1
+        equals: 'null'
+      - outcome: check_2
+        equals: 'fields'
+      - outcome: check_3
+        equals: 'absent'
+      - outcome: check_4
+        equals: 'error_code'
+      - outcome: check_5
+        equals: 'type'
+      - outcome: check_6
+        equals: 'is'
+      - outcome: check_7
+        equals: 'message'
+      - outcome: check_8
+        equals: 'assert_called_once_with'
+      - outcome: check_9
+        equals: 'domain_contract'
+      - outcome: check_10
+        equals: 'mapper_contract'
+      - outcome: check_11
+        equals: 'event_base'
+      - outcome: check_12
+        equals: 'parameters_required'
+      - outcome: check_13
+        equals: 'service_contract'
+      - outcome: check_14
+        equals: 'middleware_chain'
+      - outcome: check_15
+        equals: 'cause'

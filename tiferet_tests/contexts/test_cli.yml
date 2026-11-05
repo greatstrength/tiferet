@@ -1,0 +1,490 @@
+fixtures:
+  app_interface:
+    module_path: tiferet.mappers
+    class_name: AppSessionAggregate
+    attributes:
+      id: test_cli
+      name: Test CLI
+      description: The test CLI interface.
+      flags: [test]
+      services: []
+  add_command:
+    module_path: &domain tiferet.domain
+    class_name: &cli_command CliCommand
+    attributes: &add_command
+      name: Add
+      key: add
+      group_key: calc
+  subtract_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      name: Subtract
+      key: subtract
+      group_key: calc
+  sub_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      name: Sub
+      key: sub
+      group_key: calc
+  boot_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      name: Boot
+      key: boot
+      group_key: sys
+  add_command_no_description:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      <<: *add_command
+      description: null
+  typed_add_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      <<: *add_command
+      arguments:
+        - {name_or_flags: [a], type: int}
+        - {name_or_flags: [b], type: int}
+  colliding_add_command:
+    module_path: *domain
+    class_name: *cli_command
+    attributes:
+      <<: *add_command
+      arguments:
+        - {name_or_flags: [a], type: int}
+  verbose_argument:
+    module_path: *domain
+    class_name: &cli_argument CliArgument
+    attributes:
+      name_or_flags: [--verbose]
+      type: bool
+  plain_verbose_argument:
+    module_path: *domain
+    class_name: *cli_argument
+    attributes:
+      name_or_flags: [--verbose]
+  colliding_argument:
+    module_path: *domain
+    class_name: *cli_argument
+    attributes:
+      name_or_flags: [a]
+  cli_request_context:
+    module_path: tiferet.contexts.cli
+    class_name: CliRequestContext
+    attributes:
+      feature_id: test.feature
+  cache:
+    module_path: tiferet.contexts.cache
+    class_name: CacheContext
+    attributes: {}
+
+tests:
+  group_commands_by_key:
+    conditions:
+      fixtures: [add_command, subtract_command, boot_command]
+    execute:
+      - target: {module_path: tiferet.blueprints.cli, attribute: group_commands_by_key}
+        method: group_commands_by_key
+        args: [[$fixture.add_command, $fixture.subtract_command, $fixture.boot_command]]
+        as: commands
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.commands]
+        as: group_count
+    assert:
+      - outcome: group_count
+        equals: 2
+      - outcome: commands
+        fields:
+          calc: [{key: add}, {key: subtract}]
+          sys: [{key: boot}]
+
+  derive_feature_request:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.blueprints.cli, attribute: derive_feature_request}
+        method: derive_feature_request
+        args: [{group: my-calc, command: sub-tract, a: 1}]
+        as: derived
+      - target: $r.derived
+        method: __getitem__
+        args: [0]
+        as: feature_id
+      - target: $r.derived
+        method: __getitem__
+        args: [1]
+        as: headers
+    assert:
+      - outcome: feature_id
+        equals: my_calc.sub_tract
+      - outcome: headers
+        equals:
+          command_group: my-calc
+          command_key: sub-tract
+
+  build_parser_parses_command_arguments:
+    conditions:
+      fixtures: [typed_add_command]
+    execute:
+      - target: &build_parser {module_path: tiferet.blueprints.cli, attribute: build_argument_parser}
+        method: build_argument_parser
+        args: [{calc: [$fixture.typed_add_command]}, []]
+        as: parser
+      - target: $r.parser
+        method: parse_args
+        args: [[calc, add, '1', '2']]
+        as: parsed
+    assert:
+      - outcome: parsed
+        fields:
+          group: calc
+          command: add
+          a: 1
+          b: 2
+
+  build_parser_merges_parent_args_and_skips_collisions:
+    conditions:
+      fixtures: [colliding_add_command, verbose_argument, colliding_argument]
+    execute:
+      - target: *build_parser
+        method: build_argument_parser
+        args:
+          - {calc: [$fixture.colliding_add_command]}
+          - [$fixture.verbose_argument, $fixture.colliding_argument]
+        as: parser
+      - target: $r.parser
+        method: parse_args
+        args: [[calc, add, '5', --verbose]]
+        as: parsed
+    assert:
+      - outcome: parsed
+        fields:
+          a: 5
+          verbose: true
+
+  build_cli_record_from_domain_object:
+    conditions:
+      fixtures: [add_command]
+    execute:
+      - target: &build_cli_record {module_path: tiferet.contexts.cli, attribute: build_cli_record}
+        method: build_cli_record
+        args: [$fixture.add_command]
+        as: record
+    assert:
+      - outcome: record
+        type: &cli_record {module_path: *domain, class_name: CliRecord}
+      - outcome: record
+        attribute: fields
+        fields:
+          name: Add
+          key: add
+          group_key: calc
+
+  build_cli_record_omits_none_from_domain_object:
+    conditions:
+      fixtures: [add_command_no_description]
+    execute:
+      - target: *build_cli_record
+        method: build_cli_record
+        args: [$fixture.add_command_no_description]
+        as: record
+    assert:
+      - outcome: record
+        attribute: fields
+        absent: [description]
+
+  build_cli_record_from_dict:
+    conditions: {}
+    execute:
+      - target: *build_cli_record
+        method: build_cli_record
+        args: [{name: Add, count: 42}]
+        as: record
+    assert:
+      - outcome: record
+        type: *cli_record
+      - outcome: record
+        attribute: fields
+        fields:
+          name: Add
+          count: '42'
+
+  build_cli_record_from_primitive:
+    conditions: {}
+    execute:
+      - target: *build_cli_record
+        method: build_cli_record
+        args: [99]
+        as: record
+    assert:
+      - outcome: record
+        type: *cli_record
+      - outcome: record
+        attribute: fields
+        equals:
+          value: '99'
+
+  cli_request_context_handle_response_list:
+    conditions:
+      fixtures: [add_command, sub_command, cli_request_context]
+    execute:
+      - target: cli_request_context
+        method: __setattr__
+        args: [result, [$fixture.add_command, $fixture.sub_command]]
+      - target: cli_request_context
+        method: handle_response
+        as: output
+    assert:
+      - outcome: output
+        type: {module_path: *domain, class_name: CliRecordList}
+      - outcome: output
+        fields:
+          records:
+            - fields: {name: Add}
+            - fields: {name: Sub}
+
+  cli_request_context_handle_response_domain_object:
+    conditions:
+      fixtures: [add_command, cli_request_context]
+    execute:
+      - target: cli_request_context
+        method: __setattr__
+        args: [result, $fixture.add_command]
+      - target: cli_request_context
+        method: handle_response
+        as: output
+    assert:
+      - outcome: output
+        type: &cli_output_record {module_path: *domain, class_name: CliOutputRecord}
+      - outcome: output
+        fields:
+          record:
+            fields: {name: Add, key: add}
+
+  cli_request_context_handle_response_dict:
+    conditions:
+      fixtures: [cli_request_context]
+    execute:
+      - target: cli_request_context
+        method: __setattr__
+        args: [result, {id: calc.add, status: ok}]
+      - target: cli_request_context
+        method: handle_response
+        as: output
+    assert:
+      - outcome: output
+        type: *cli_output_record
+      - outcome: output
+        fields:
+          record:
+            fields: {id: calc.add, status: ok}
+
+  cli_request_context_handle_response_primitive:
+    conditions:
+      fixtures: [cli_request_context]
+    execute:
+      - target: cli_request_context
+        method: __setattr__
+        args: [result, plain-string]
+      - target: cli_request_context
+        method: handle_response
+        as: output
+    assert:
+      - outcome: output
+        equals: plain-string
+
+  add_default_cli_commands_seeds_cache:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.cli, attribute: add_default_cli_commands}
+        method: add_default_cli_commands
+        args:
+          - calc.add: {name: Add, key: add, group_key: calc}
+            calc.sub: {name: Sub, key: sub, group_key: calc}
+        as: decorator
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: build
+      - target: $r.build
+        method: __call__
+        as: cache
+      - target: &get_default {module_path: tiferet.contexts.cli, attribute: get_default_cli_commands}
+        method: get_default_cli_commands
+        args: [$r.cache]
+        as: result
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.result]
+        as: size
+      - target: $r.result
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.result
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: size
+        equals: 2
+      - outcome: result
+        fields:
+          key: id
+          items:
+            calc.add: {key: add}
+            calc.sub: {key: sub}
+      - outcome: first
+        type: &command_type {module_path: *domain, class_name: *cli_command}
+      - outcome: second
+        type: *command_type
+
+  get_default_cli_commands_returns_empty_when_not_seeded:
+    conditions:
+      fixtures: [cache]
+    execute:
+      - target: *get_default
+        method: get_default_cli_commands
+        args: [$fixture.cache]
+        as: result
+    assert:
+      - outcome: result
+        equals: []
+
+testers:
+  test_cli_session_context:
+    module_path: tiferet.contexts.cli
+    class_name: CliSessionContext
+    tests:
+      list_commands_calls_handler:
+        conditions:
+          fixtures: [app_interface, add_command]
+          mocks:
+            dep: &dep_mock {module_path: tiferet.contexts.cache, class_name: CacheContext}
+            factory:
+              module_path: &request_module tiferet.contexts.request
+              class_name: &request_class RequestContext
+              return_value:
+                handle_response: [$fixture.add_command]
+        execute:
+          - &handler
+            target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$mock.factory, handle_response]
+            as: handler
+          - target: &cli_context {module_path: tiferet.contexts.cli, class_name: CliSessionContext}
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+              list_commands_handler: $r.handler
+            as: context
+          - target: $r.handler
+            method: __call__
+            as: commands
+          - target: $r.handler
+            method: reset_mock
+          - target: $r.context
+            method: list_commands
+            as: result
+          - &same_result
+            target: {module_path: operator, attribute: is_}
+            method: is_
+            args: [$r.result, $r.commands]
+            as: same
+        assert:
+          - outcome: same
+            equals: true
+          - mock: factory
+            method: handle_response
+            assert_called_once_with: {}
+
+      list_commands_unwired_raises:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            dep: *dep_mock
+        execute:
+          - &bare_context
+            target: *cli_context
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+            as: context
+          - target: $r.context
+            method: list_commands
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: &api_error {module_path: tiferet.assets, class_name: TiferetAPIError}
+          - outcome: failed
+            attribute: message
+            message: list_commands_handler
+
+      get_parent_args_calls_handler:
+        conditions:
+          fixtures: [app_interface, plain_verbose_argument]
+          mocks:
+            dep: *dep_mock
+            factory:
+              module_path: *request_module
+              class_name: *request_class
+              return_value:
+                handle_response: [$fixture.plain_verbose_argument]
+        execute:
+          - *handler
+          - target: *cli_context
+            method: from_domain
+            args: [$fixture.app_interface]
+            kwargs:
+              get_dependency: $mock.dep
+              get_parent_args_handler: $r.handler
+            as: context
+          - target: $r.handler
+            method: __call__
+            as: commands
+          - target: $r.handler
+            method: reset_mock
+          - target: $r.context
+            method: get_parent_args
+            as: result
+          - *same_result
+        assert:
+          - outcome: same
+            equals: true
+          - mock: factory
+            method: handle_response
+            assert_called_once_with: {}
+
+      get_parent_args_unwired_raises:
+        conditions:
+          fixtures: [app_interface]
+          mocks:
+            dep: *dep_mock
+        execute:
+          - *bare_context
+          - target: $r.context
+            method: get_parent_args
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: *api_error
+          - outcome: failed
+            attribute: message
+            message: get_parent_args_handler

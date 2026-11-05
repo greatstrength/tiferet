@@ -1,0 +1,242 @@
+fixtures:
+  error_context:
+    module_path: tiferet.contexts.error
+    class_name: ErrorContext
+    attributes: {}
+  error:
+    module_path: tiferet.domain
+    class_name: Error
+    attributes:
+      id: ERROR_NOT_FOUND
+      name: Error Not Found
+      message:
+        - lang: en_US
+          text: 'Error not found: {id}.'
+  not_found_exception:
+    module_path: tiferet.assets
+    class_name: TiferetError
+    attributes:
+      error_code: ERROR_NOT_FOUND
+      id: NON_EXISTENT_ERROR
+  some_id_exception:
+    module_path: tiferet.assets
+    class_name: TiferetError
+    attributes:
+      error_code: ERROR_NOT_FOUND
+      id: SOME_ID
+
+tests:
+  add_default_errors_returns_callable:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.error, attribute: add_default_errors}
+        method: add_default_errors
+        args:
+          - &sample_errors
+            APP_ERROR:
+              name: App Error
+              message:
+                - lang: en_US
+                  text: 'An error occurred in the app: {error_message}.'
+            APP_SESSION_NOT_FOUND:
+              name: App Session Not Found
+              message:
+                - lang: en_US
+                  text: App session with ID {interface_id} not found.
+            COMMAND_PARAMETER_REQUIRED:
+              name: Command Parameter Required
+              message:
+                - lang: en_US
+                  text: The required parameter {parameter} for command {command} is missing.
+        as: decorator
+      - &base_build_module
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - &base_build
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - &wrap
+        target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: wrapped
+    assert:
+      - outcome: wrapped
+        type: {module_path: types, class_name: FunctionType}
+
+  add_default_errors_seeds_cache_with_error_domain_objects:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.error, attribute: add_default_errors}
+        method: add_default_errors
+        args: [*sample_errors]
+        as: decorator
+      - *base_build_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [APP_ERROR, app, errors]
+        as: app_error
+      - target: $r.cache
+        method: get
+        args: [APP_SESSION_NOT_FOUND, app, errors]
+        as: session_error
+      - target: $r.cache
+        method: get
+        args: [COMMAND_PARAMETER_REQUIRED, app, errors]
+        as: parameter_error
+    assert:
+      - outcome: app_error
+        type: &error_type {module_path: tiferet.domain, class_name: Error}
+      - outcome: app_error
+        attribute: id
+        equals: APP_ERROR
+      - outcome: session_error
+        type: *error_type
+      - outcome: session_error
+        attribute: id
+        equals: APP_SESSION_NOT_FOUND
+      - outcome: parameter_error
+        type: *error_type
+      - outcome: parameter_error
+        attribute: id
+        equals: COMMAND_PARAMETER_REQUIRED
+
+  add_default_errors_preserves_initial_cache_values:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.error, attribute: add_default_errors}
+        method: add_default_errors
+        args: [*sample_errors]
+        as: decorator
+      - *base_build_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        kwargs:
+          cache:
+            existing_key: existing_value
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [existing_key]
+        as: existing
+      - target: $r.cache
+        method: get
+        args: [APP_ERROR, app, errors]
+        as: app_error
+      - target: $r.cache
+        method: get
+        args: [APP_SESSION_NOT_FOUND, app, errors]
+        as: session_error
+      - target: $r.cache
+        method: get
+        args: [COMMAND_PARAMETER_REQUIRED, app, errors]
+        as: parameter_error
+    assert:
+      - outcome: existing
+        equals: existing_value
+      - outcome: app_error
+        type: *error_type
+      - outcome: session_error
+        type: *error_type
+      - outcome: parameter_error
+        type: *error_type
+
+  add_default_errors_empty_dict_leaves_cache_clean:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.error, attribute: add_default_errors}
+        method: add_default_errors
+        args: [{}]
+        as: decorator
+      - *base_build_module
+      - *base_build
+      - *wrap
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+    assert:
+      - outcome: cache
+        attribute: _cache
+        equals: {}
+
+  error_cache_prefix_value:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.error]
+        as: error_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.error_module, ERROR_CACHE_PREFIX]
+        as: prefix
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.prefix]
+        as: size
+      - target: $r.prefix
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.prefix
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: prefix
+        type: {module_path: builtins, class_name: tuple}
+      - outcome: size
+        equals: 2
+      - outcome: first
+        equals: app
+      - outcome: second
+        equals: errors
+
+  error_context_format_response:
+    conditions:
+      fixtures: [error_context, error, not_found_exception]
+    execute:
+      - target: error_context
+        method: format_response
+        args: [$fixture.error, $fixture.not_found_exception]
+        kwargs:
+          lang: en_US
+        as: response
+    assert:
+      - outcome: response
+        type: {module_path: builtins, class_name: dict}
+      - outcome: response
+        fields:
+          error_code: ERROR_NOT_FOUND
+          name: Error Not Found
+          id: NON_EXISTENT_ERROR
+      - outcome: response
+        attribute: message
+        message: 'Error not found: NON_EXISTENT_ERROR.'
+
+  error_context_format_response_default_lang:
+    conditions:
+      fixtures: [error_context, error, some_id_exception]
+    execute:
+      - target: error_context
+        method: format_response
+        args: [$fixture.error, $fixture.some_id_exception]
+        as: response
+    assert:
+      - outcome: response
+        fields:
+          error_code: ERROR_NOT_FOUND
+      - outcome: response
+        attribute: message
+        message: 'Error not found: SOME_ID.'
