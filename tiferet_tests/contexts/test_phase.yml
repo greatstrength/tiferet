@@ -284,14 +284,23 @@ tests:
       - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.domain], as: domain_module}
       - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.domain_module, Feature], as: feature_cls}
       - {target: {module_path: builtins, attribute: hasattr}, method: hasattr, args: [$r.feature_cls, CORE_DEFAULT_FEATURES], as: has_catalog}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.contexts.tester_phase], as: phase_mod}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.phase_mod, PhaseRuntimeContext], as: runtime_cls}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.runtime_cls, handle_conditions], as: conditions_fn}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.runtime_cls, handle_execution], as: execute_fn}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.runtime_cls, handle_assertion], as: assert_fn}
+      - {target: $r.handlers, method: __getitem__, args: [conditions], as: registered_conditions}
+      - {target: $r.handlers, method: __getitem__, args: [execute], as: registered_execute}
+      - {target: $r.handlers, method: __getitem__, args: [assert], as: registered_assert}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.registered_conditions, $r.conditions_fn], as: conditions_same}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.registered_execute, $r.execute_fn], as: execute_same}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.registered_assert, $r.assert_fn], as: assert_same}
     assert:
       - outcome: count
         equals: 3
-      - outcome: handlers
-        fields:
-          conditions: {__name__: handle_conditions, __qualname__: PhaseRuntimeContext.handle_conditions}
-          execute: {__name__: handle_execution, __qualname__: PhaseRuntimeContext.handle_execution}
-          assert: {__name__: handle_assertion, __qualname__: PhaseRuntimeContext.handle_assertion}
+      - {outcome: conditions_same, equals: true}
+      - {outcome: execute_same, equals: true}
+      - {outcome: assert_same, equals: true}
       - outcome: has_catalog
         equals: false
 

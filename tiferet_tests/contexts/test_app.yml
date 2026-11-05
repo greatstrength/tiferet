@@ -796,13 +796,6 @@ tests:
       as: info_calls
     - target:
         module_path: builtins
-        attribute: str
-      method: str
-      args:
-      - $r.info_calls
-      as: info_text
-    - target:
-        module_path: builtins
         attribute: len
       method: len
       args:
@@ -810,19 +803,38 @@ tests:
       as: info_len
     - target:
         module_path: operator
-        attribute: contains
-      method: contains
+        attribute: itemgetter
+      method: itemgetter
       args:
-      - $r.info_text
-      - "[call('Executed Feature - test_group.test_feature ("
+      - 0
+      as: first_item
+    - target: $r.first_item
+      method: __call__
+      args:
+      - $r.info_calls
+      as: info_call
+    - target: $r.first_item
+      method: __call__
+      args:
+      - $r.info_call
+      as: info_args
+    - target: $r.first_item
+      method: __call__
+      args:
+      - $r.info_args
+      as: final_log
+    - target: $r.final_log
+      method: startswith
+      args:
+      - 'Executed Feature - test_group.test_feature'
       as: final_prefix
     - target:
         module_path: operator
         attribute: contains
       method: contains
       args:
-      - $r.info_text
-      - "ms)')]"
+      - $r.final_log
+      - ms)
       as: has_duration
     assert:
     - mock: logger_builder
@@ -918,22 +930,26 @@ tests:
       - $r.info_calls
       as: info_len
     - target:
-        module_path: builtins
-        attribute: str
-      method: str
+        module_path: operator
+        attribute: itemgetter
+      method: itemgetter
+      args:
+      - 0
+      as: first_item
+    - target: $r.first_item
+      method: __call__
       args:
       - $r.info_calls
-      as: info_text
-    - target: $r.info_text
-      method: split
+      as: info_call
+    - target: $r.first_item
+      method: __call__
       args:
-      - "'"
-      - 2
-      as: quote_parts
-    - target: $r.quote_parts
-      method: __getitem__
+      - $r.info_call
+      as: info_args
+    - target: $r.first_item
+      method: __call__
       args:
-      - 1
+      - $r.info_args
       as: final_log
     - target: $r.final_log
       method: startswith
@@ -1046,18 +1062,30 @@ tests:
       - call_args_list
       as: info_calls
     - target:
-        module_path: builtins
-        attribute: str
-      method: str
+        module_path: operator
+        attribute: itemgetter
+      method: itemgetter
+      args:
+      - 0
+      as: first_item
+    - target: $r.first_item
+      method: __call__
       args:
       - $r.info_calls
-      as: info_text
-    - target:
-        module_path: operator
-        attribute: contains
-      method: contains
+      as: info_call
+    - target: $r.first_item
+      method: __call__
       args:
-      - $r.info_text
+      - $r.info_call
+      as: info_args
+    - target: $r.first_item
+      method: __call__
+      args:
+      - $r.info_args
+      as: final_log
+    - target: $r.final_log
+      method: startswith
+      args:
       - 'Executing feature:'
       as: has_pre_log
     assert:

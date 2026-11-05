@@ -14,6 +14,16 @@ fixtures:
     class_name: *request_class
     attributes:
       data: {}
+  incoming_headers:
+    module_path: builtins
+    class_name: dict
+    attributes:
+      x: y
+  incoming_data:
+    module_path: builtins
+    class_name: dict
+    attributes:
+      new: data
 
 tests:
   request_context_handle_response_none:
@@ -130,6 +140,34 @@ tests:
       - target: request_context
         method: handle_response
         as: unused
+      - target: request_context
+        method: __getattribute__
+        args: [headers]
+        as: headers
+      - target: request_context
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: request_context
+        method: __getattribute__
+        args: [domain]
+        as: domain
+      - target: $r.domain
+        method: __getattribute__
+        args: [headers]
+        as: domain_headers
+      - target: $r.domain
+        method: __getattribute__
+        args: [data]
+        as: domain_data
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.headers, $r.domain_headers]
+        as: headers_aliased
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.data, $r.domain_data]
+        as: data_aliased
     assert:
       - outcome: request_context
         attribute: domain
@@ -149,11 +187,25 @@ tests:
       - outcome: request_context
         attribute: data
         equals: {key: value, another_key: another_value}
+      - {outcome: headers_aliased, equals: false}
+      - {outcome: data_aliased, equals: false}
 
   request_context_set_methods_write_inflight:
     conditions:
-      fixtures: [request_context]
+      fixtures: [request_context, incoming_headers, incoming_data]
     execute:
+      - target: request_context
+        method: __getattribute__
+        args: [domain]
+        as: domain
+      - target: $r.domain
+        method: __getattribute__
+        args: [headers]
+        as: domain_headers_before
+      - target: $r.domain
+        method: __getattribute__
+        args: [data]
+        as: domain_data_before
       - target: request_context
         method: set_session_id
         args: [sess-1]
@@ -165,10 +217,42 @@ tests:
         args: [null]
       - target: request_context
         method: set_headers
-        args: [{x: y}]
+        args: [$fixture.incoming_headers]
       - target: request_context
         method: set_data
-        args: [{new: data}]
+        args: [$fixture.incoming_data]
+      - target: request_context
+        method: __getattribute__
+        args: [headers]
+        as: headers
+      - target: request_context
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: $r.domain
+        method: __getattribute__
+        args: [headers]
+        as: domain_headers_after
+      - target: $r.domain
+        method: __getattribute__
+        args: [data]
+        as: domain_data_after
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.headers, $fixture.incoming_headers]
+        as: headers_aliased
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.data, $fixture.incoming_data]
+        as: data_aliased
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.domain_headers_after, $r.domain_headers_before]
+        as: domain_headers_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.domain_data_after, $r.domain_data_before]
+        as: domain_data_same
     assert:
       - outcome: request_context
         attribute: session_id
@@ -188,6 +272,10 @@ tests:
           feature_id: test_group.test_feature
           headers: {interface_id: test_interface}
           data: {key: value, another_key: another_value}
+      - {outcome: headers_aliased, equals: false}
+      - {outcome: data_aliased, equals: false}
+      - {outcome: domain_headers_same, equals: true}
+      - {outcome: domain_data_same, equals: true}
 
   request_context_registered_for_request_domain:
     conditions: {}

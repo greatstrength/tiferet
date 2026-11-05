@@ -43,16 +43,15 @@ tests:
       - {target: $r.tests, method: __getitem__, args: [staged], as: staged}
       - {target: $r.staged, method: __getitem__, args: [execute], as: execute}
       - {target: $r.execute, method: __getitem__, args: [0], as: first_step}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.contexts.tester_phase], as: phase_mod}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.phase_mod, STAGE_REF], as: stage_ref}
       - {target: $r.first_step, method: __getitem__, args: [target], as: stored_target}
-      - {target: {module_path: builtins, attribute: len}, method: len, args: [$r.stored_target], as: target_length}
     assert:
       - outcome: staged
         attribute: conditions
         equals: {stage: true}
       - outcome: stored_target
-        message: '$stag'
-      - outcome: target_length
-        equals: 6
+        equals: $r.stage_ref
 
   no_writer_modules_are_added:
     conditions: {}
