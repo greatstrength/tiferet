@@ -14,6 +14,16 @@ fixtures:
     class_name: *request_class
     attributes:
       data: {}
+  incoming_headers:
+    module_path: builtins
+    class_name: dict
+    attributes:
+      x: y
+  incoming_data:
+    module_path: builtins
+    class_name: dict
+    attributes:
+      new: data
 
 tests:
   request_context_handle_response_none:
@@ -130,6 +140,34 @@ tests:
       - target: request_context
         method: handle_response
         as: unused
+      - target: request_context
+        method: __getattribute__
+        args: [headers]
+        as: headers
+      - target: request_context
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: request_context
+        method: __getattribute__
+        args: [domain]
+        as: domain
+      - target: $r.domain
+        method: __getattribute__
+        args: [headers]
+        as: domain_headers
+      - target: $r.domain
+        method: __getattribute__
+        args: [data]
+        as: domain_data
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.headers, $r.domain_headers]
+        as: headers_aliased
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.data, $r.domain_data]
+        as: data_aliased
     assert:
       - outcome: request_context
         attribute: domain
@@ -149,11 +187,25 @@ tests:
       - outcome: request_context
         attribute: data
         equals: {key: value, another_key: another_value}
+      - {outcome: headers_aliased, equals: false}
+      - {outcome: data_aliased, equals: false}
 
   request_context_set_methods_write_inflight:
     conditions:
-      fixtures: [request_context]
+      fixtures: [request_context, incoming_headers, incoming_data]
     execute:
+      - target: request_context
+        method: __getattribute__
+        args: [domain]
+        as: domain
+      - target: $r.domain
+        method: __getattribute__
+        args: [headers]
+        as: domain_headers_before
+      - target: $r.domain
+        method: __getattribute__
+        args: [data]
+        as: domain_data_before
       - target: request_context
         method: set_session_id
         args: [sess-1]
@@ -161,18 +213,53 @@ tests:
         method: set_feature_id
         args: [g.f2]
       - target: request_context
+        method: set_feature_id
+        args: [null]
+      - target: request_context
         method: set_headers
-        args: [{x: y}]
+        args: [$fixture.incoming_headers]
       - target: request_context
         method: set_data
-        args: [{new: data}]
+        args: [$fixture.incoming_data]
+      - target: request_context
+        method: __getattribute__
+        args: [headers]
+        as: headers
+      - target: request_context
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: $r.domain
+        method: __getattribute__
+        args: [headers]
+        as: domain_headers_after
+      - target: $r.domain
+        method: __getattribute__
+        args: [data]
+        as: domain_data_after
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.headers, $fixture.incoming_headers]
+        as: headers_aliased
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.data, $fixture.incoming_data]
+        as: data_aliased
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.domain_headers_after, $r.domain_headers_before]
+        as: domain_headers_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.domain_data_after, $r.domain_data_before]
+        as: domain_data_same
     assert:
       - outcome: request_context
         attribute: session_id
         equals: sess-1
       - outcome: request_context
         attribute: feature_id
-        equals: g.f2
+        "null": true
       - outcome: request_context
         attribute: headers
         equals: {x: y}
@@ -185,6 +272,10 @@ tests:
           feature_id: test_group.test_feature
           headers: {interface_id: test_interface}
           data: {key: value, another_key: another_value}
+      - {outcome: headers_aliased, equals: false}
+      - {outcome: data_aliased, equals: false}
+      - {outcome: domain_headers_same, equals: true}
+      - {outcome: domain_data_same, equals: true}
 
   request_context_registered_for_request_domain:
     conditions: {}
@@ -216,3 +307,107 @@ tests:
       - outcome: empty_request_context
         attribute: session_id
         type: {module_path: builtins, class_name: str}
+
+  request_context_domain_field_assignment_raises:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: request_context
+        method: __getattribute__
+        args: [domain]
+        as: domain
+      - target: $r.domain
+        method: __setattr__
+        args: [session_id, other]
+        raises: true
+        as: failed_session
+      - target: $r.domain
+        method: __setattr__
+        args: [feature_id, other]
+        raises: true
+        as: failed_feature
+      - target: $r.domain
+        method: __setattr__
+        args: [headers, {x: y}]
+        raises: true
+        as: failed_headers
+      - target: $r.domain
+        method: __setattr__
+        args: [data, {new: data}]
+        raises: true
+        as: failed_data
+    assert:
+      - outcome: failed_session
+        type: &validation_error {module_path: pydantic, class_name: ValidationError}
+      - outcome: failed_feature
+        type: *validation_error
+      - outcome: failed_headers
+        type: *validation_error
+      - outcome: failed_data
+        type: *validation_error
+
+  request_context_handle_response_domain_object:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: {module_path: tiferet.domain.error, class_name: ErrorMessage}
+        method: __call__
+        kwargs: {lang: en_US, text: value}
+        as: data
+      - target: request_context
+        method: __setattr__
+        args: [result, $r.data]
+      - target: request_context
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        type: {module_path: tiferet.domain, class_name: DomainObject}
+      - outcome: response
+        attribute: text
+        equals: value
+
+  request_context_handle_response_domain_object_list:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: {module_path: tiferet.domain.error, class_name: ErrorMessage}
+        method: __call__
+        kwargs: {lang: en_US, text: item1}
+        as: item1
+      - target: {module_path: tiferet.domain.error, class_name: ErrorMessage}
+        method: __call__
+        kwargs: {lang: en_US, text: item2}
+        as: item2
+      - target: request_context
+        method: __setattr__
+        args: [result, [$r.item1, $r.item2]]
+      - target: request_context
+        method: handle_response
+        as: response
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.response]
+        as: response_len
+      - target: $r.response
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.response
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: first
+        type: {module_path: tiferet.domain, class_name: DomainObject}
+      - outcome: second
+        type: {module_path: tiferet.domain, class_name: DomainObject}
+      - outcome: response
+        type: {module_path: builtins, class_name: list}
+      - {outcome: response_len, equals: 2}
+      - outcome: first
+        attribute: text
+        equals: item1
+      - outcome: second
+        attribute: text
+        equals: item2
