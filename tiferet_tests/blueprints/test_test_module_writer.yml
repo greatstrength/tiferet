@@ -454,6 +454,259 @@ tests:
       - {outcome: tester_has_formatted, equals: false}
       - {outcome: unchanged, equals: true}
 
+  attach_and_detach_share_the_root_node:
+    conditions:
+      stage: true
+    execute:
+      - {target: $stage, method: path, as: base_dir}
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.base_dir]
+        as: base_path
+      - {target: $r.base_path, method: __truediv__, args: [tiferet_tests], as: tests_root}
+      - {target: $r.tests_root, method: __truediv__, args: [domain], as: domain_dir}
+      - {target: $r.domain_dir, method: mkdir, kwargs: {parents: true}, as: made}
+      - {target: $r.domain_dir, method: __truediv__, args: [test_error.yml], as: module_path}
+      - target: $r.module_path
+        method: write_text
+        args: ["fixtures:\n  error_message: &error_message\n    module_path: &error_module tiferet.domain.error\n    class_name: ErrorMessage\n    attributes: &plain_message\n      lang: &lang en_US\n      text: &plain An error occurred.\n  formatted_error_message:\n    <<: *error_message\n    attributes:\n      lang: *lang\n      text: &formatted 'An error occurred: {error}'\n\ntests:\n  error_message_format:\n    conditions:\n      fixtures: [error_message, formatted_error_message]\n    execute:\n      - target: error_message\n        method: format\n        as: raw\n    assert:\n      - outcome: raw\n        equals: *plain\n\ntesters:\n  test_error:\n    module_path: *error_module\n    class_name: Error\n    attributes:\n      id: &error_id TEST_ERROR\n      name: Test Error\n      message: [$fixture.error_message]\n    fixtures:\n      error_message: *error_message\n    tests:\n      construction_derives_error_code:\n        conditions:\n          fixtures: [error_message]\n        execute:\n          - target: self\n            method: new\n            as: built\n        assert:\n          - outcome: built\n            fields:\n              id: *error_id\n              error_code: *error_id\n"]
+        as: written
+      - target: {module_path: tiferet.blueprints.tester, attribute: attach_test}
+        method: attach_test
+        args: [domain/test_error, test_error, error_message_format]
+        kwargs: {base_dir: $r.base_dir}
+        as: attached
+      - target: $r.module_path
+        method: read_text
+        as: text
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.text, 'error_message_format: &error_message_format']
+        as: has_anchor
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.text, 'error_message_format: *error_message_format']
+        as: has_alias
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.text, 'construction_derives_error_code']
+        as: has_sibling
+      - target: $r.module_path
+        method: read_bytes
+        as: before
+      - target: {module_path: tiferet.blueprints.tester, attribute: attach_test}
+        method: attach_test
+        args: [domain/test_error, test_error, error_message_format]
+        kwargs: {base_dir: $r.base_dir}
+        as: again_error
+        raises: true
+      - target: $r.module_path
+        method: read_bytes
+        as: after_again
+      - target: {module_path: operator, attribute: eq}
+        method: eq
+        args: [$r.before, $r.after_again]
+        as: unchanged
+      - target: {module_path: tiferet.blueprints.tester, attribute: detach_test}
+        method: detach_test
+        args: [domain/test_error, test_error, error_message_format]
+        kwargs: {base_dir: $r.base_dir}
+        as: detached
+      - target: $r.module_path
+        method: read_text
+        as: detached_text
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.detached_text, 'error_message_format: &error_message_format']
+        as: keeps_anchor
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.detached_text, 'error_message_format: *error_message_format']
+        as: keeps_alias
+    assert:
+      - {outcome: has_anchor, equals: true}
+      - {outcome: has_alias, equals: true}
+      - {outcome: has_sibling, equals: true}
+      - {outcome: again_error, error_code: TEST_ARTIFACT_ALREADY_EXISTS}
+      - {outcome: unchanged, equals: true}
+      - {outcome: keeps_anchor, equals: true}
+      - {outcome: keeps_alias, equals: false}
+
+  remove_refuses_to_relocate_a_first_visit:
+    conditions:
+      stage: true
+    execute:
+      - {target: $stage, method: path, as: base_dir}
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.base_dir]
+        as: base_path
+      - {target: $r.base_path, method: __truediv__, args: [tiferet_tests], as: tests_root}
+      - {target: $r.tests_root, method: __truediv__, args: [domain], as: domain_dir}
+      - {target: $r.domain_dir, method: mkdir, kwargs: {parents: true}, as: made}
+      - {target: $r.domain_dir, method: __truediv__, args: [test_error.yml], as: module_path}
+      - target: $r.module_path
+        method: write_text
+        args: ["fixtures:\n  error_message: &error_message\n    module_path: &error_module tiferet.domain.error\n    class_name: ErrorMessage\n    attributes: &plain_message\n      lang: &lang en_US\n      text: &plain An error occurred.\n  formatted_error_message:\n    <<: *error_message\n    attributes:\n      lang: *lang\n      text: &formatted 'An error occurred: {error}'\n\ntests:\n  error_message_format:\n    conditions:\n      fixtures: [error_message, formatted_error_message]\n    execute:\n      - target: error_message\n        method: format\n        as: raw\n    assert:\n      - outcome: raw\n        equals: *plain\n\ntesters:\n  test_error:\n    module_path: *error_module\n    class_name: Error\n    attributes:\n      id: &error_id TEST_ERROR\n      name: Test Error\n      message: [$fixture.error_message]\n    fixtures:\n      error_message: *error_message\n    tests:\n      construction_derives_error_code:\n        conditions:\n          fixtures: [error_message]\n        execute:\n          - target: self\n            method: new\n            as: built\n        assert:\n          - outcome: built\n            fields:\n              id: *error_id\n              error_code: *error_id\n"]
+        as: written
+      - target: $r.module_path
+        method: read_bytes
+        as: before
+      - target: {module_path: tiferet.blueprints.tester, attribute: remove_fixture}
+        method: remove_fixture
+        args: [domain/test_error, error_message]
+        kwargs: {base_dir: $r.base_dir}
+        as: conflict
+        raises: true
+      - target: $r.module_path
+        method: read_bytes
+        as: after_conflict
+      - target: {module_path: operator, attribute: eq}
+        method: eq
+        args: [$r.before, $r.after_conflict]
+        as: unchanged
+      - target: {module_path: tiferet.blueprints.tester, attribute: remove_fixture}
+        method: remove_fixture
+        args: [domain/test_error, error_message]
+        kwargs: {tester: test_error, base_dir: $r.base_dir}
+        as: removed
+      - target: $r.module_path
+        method: read_text
+        as: text
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.text, '&error_message']
+        as: keeps_anchor
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.text, 'error_message: *error_message']
+        as: keeps_alias
+    assert:
+      - {outcome: conflict, error_code: TEST_ANCHOR_CONFLICT}
+      - {outcome: unchanged, equals: true}
+      - {outcome: keeps_anchor, equals: true}
+      - {outcome: keeps_alias, equals: false}
+
+  update_patches_without_replacing_the_node:
+    conditions:
+      stage: true
+    execute:
+      - {target: $stage, method: path, as: base_dir}
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.base_dir]
+        as: base_path
+      - {target: $r.base_path, method: __truediv__, args: [tiferet_tests], as: tests_root}
+      - {target: $r.tests_root, method: __truediv__, args: [domain], as: domain_dir}
+      - {target: $r.domain_dir, method: mkdir, kwargs: {parents: true}, as: made}
+      - {target: $r.domain_dir, method: __truediv__, args: [test_error.yml], as: module_path}
+      - target: $r.module_path
+        method: write_text
+        args: ["fixtures:\n  error_message: &error_message\n    module_path: &error_module tiferet.domain.error\n    class_name: ErrorMessage\n    attributes: &plain_message\n      lang: &lang en_US\n      text: &plain An error occurred.\n  formatted_error_message:\n    <<: *error_message\n    attributes:\n      lang: *lang\n      text: &formatted 'An error occurred: {error}'\n\ntests:\n  error_message_format:\n    conditions:\n      fixtures: [error_message, formatted_error_message]\n    execute:\n      - target: error_message\n        method: format\n        as: raw\n    assert:\n      - outcome: raw\n        equals: *plain\n\ntesters:\n  test_error:\n    module_path: *error_module\n    class_name: Error\n    attributes:\n      id: &error_id TEST_ERROR\n      name: Test Error\n      message: [$fixture.error_message]\n    fixtures:\n      error_message: *error_message\n    tests:\n      construction_derives_error_code:\n        conditions:\n          fixtures: [error_message]\n        execute:\n          - target: self\n            method: new\n            as: built\n        assert:\n          - outcome: built\n            fields:\n              id: *error_id\n              error_code: *error_id\n"]
+        as: written
+      - target: {module_path: tiferet.blueprints.tester, attribute: update_fixture}
+        method: update_fixture
+        args: [domain/test_error, formatted_error_message]
+        kwargs: {payload: {attributes: {lang: en_US}}, base_dir: $r.base_dir}
+        as: patched
+      - target: $r.module_path
+        method: read_text
+        as: text
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.text, '<<: *error_message']
+        as: keeps_merge
+      - target: $r.module_path
+        method: read_bytes
+        as: before
+      - target: {module_path: tiferet.blueprints.tester, attribute: update_tester}
+        method: update_tester
+        args: [domain/test_error, test_error]
+        kwargs: {payload: {fixtures: {}}, base_dir: $r.base_dir}
+        as: container_error
+        raises: true
+      - target: {module_path: builtins, class_name: object}
+        method: __call__
+        as: opaque
+      - target: {module_path: tiferet.blueprints.tester, attribute: update_fixture}
+        method: update_fixture
+        args: [domain/test_error, error_message]
+        kwargs: {payload: {callback: $r.opaque}, base_dir: $r.base_dir}
+        as: callable_error
+        raises: true
+      - target: $r.module_path
+        method: read_bytes
+        as: after
+      - target: {module_path: operator, attribute: eq}
+        method: eq
+        args: [$r.before, $r.after]
+        as: unchanged
+    assert:
+      - {outcome: keeps_merge, equals: true}
+      - {outcome: container_error, error_code: TEST_MODULE_WRITE_REFUSED}
+      - {outcome: callable_error, error_code: TEST_MODULE_WRITE_REFUSED}
+      - {outcome: unchanged, equals: true}
+
+  missing_and_illegal_addresses_do_not_create:
+    conditions:
+      stage: true
+    execute:
+      - {target: $stage, method: path, as: base_dir}
+      - target: {module_path: tiferet.blueprints.tester, attribute: get_fixture}
+        method: get_fixture
+        args: [domain/test_missing, error_message]
+        kwargs: {base_dir: $r.base_dir}
+        as: missing_error
+        raises: true
+      - {target: $stage, method: exists, args: [tiferet_tests], as: created}
+      - target: {module_path: tiferet.blueprints.tester, attribute: get_fixture}
+        method: get_fixture
+        args: ['../config', error_message]
+        kwargs: {base_dir: $r.base_dir}
+        as: parent_error
+        raises: true
+      - target: {module_path: tiferet.blueprints.tester, attribute: get_fixture}
+        method: get_fixture
+        args: [config, error_message]
+        kwargs: {base_dir: $r.base_dir}
+        as: stem_error
+        raises: true
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.base_dir]
+        as: base_path
+      - {target: $r.base_path, method: __truediv__, args: [tiferet_tests], as: tests_root}
+      - {target: $r.tests_root, method: __truediv__, args: [domain], as: domain_dir}
+      - {target: $r.domain_dir, method: mkdir, kwargs: {parents: true}, as: made}
+      - {target: $r.domain_dir, method: __truediv__, args: [test_vars.yml], as: module_path}
+      - target: $r.module_path
+        method: write_text
+        args: ["variables:\n  a: 1\n"]
+        as: written
+      - target: $r.module_path
+        method: read_bytes
+        as: before
+      - target: {module_path: tiferet.blueprints.tester, attribute: update_fixture}
+        method: update_fixture
+        args: [domain/test_vars, a]
+        kwargs: {payload: {b: 1}, base_dir: $r.base_dir}
+        as: vars_error
+        raises: true
+      - target: $r.module_path
+        method: read_bytes
+        as: after
+      - target: {module_path: operator, attribute: eq}
+        method: eq
+        args: [$r.before, $r.after]
+        as: unchanged
+    assert:
+      - {outcome: missing_error, error_code: TEST_MODULE_NOT_FOUND}
+      - {outcome: created, equals: false}
+      - {outcome: parent_error, error_code: TEST_MODULE_PATH_INVALID}
+      - {outcome: stem_error, error_code: TEST_MODULE_PATH_INVALID}
+      - {outcome: vars_error, error_code: TEST_MODULE_WRITE_REFUSED}
+      - {outcome: unchanged, equals: true}
+
   writers_stay_on_the_blueprint:
     conditions: {}
     execute:

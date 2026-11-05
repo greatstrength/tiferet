@@ -127,6 +127,162 @@ tests:
       - outcome: error_miss
         "null": true
 
+  add_default_cache_items_no_model_caches_raw_value:
+    conditions: {}
+    execute:
+      - &import_cache_module
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - &get_cache_cls
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - target: *add_items
+        method: add_default_cache_items
+        args:
+          - cli_config: config.yml
+            di_config: config.yml
+          - [app, constants]
+        as: decorator
+      - target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: wrapped
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [cli_config, app, constants]
+        as: cli_hit
+      - target: $r.cache
+        method: get
+        args: [di_config, app, constants]
+        as: di_hit
+    assert:
+      - outcome: cli_hit
+        equals: config.yml
+      - outcome: di_hit
+        equals: config.yml
+
+  add_default_cache_items_model_without_id_field:
+    conditions: {}
+    execute:
+      - *import_cache_module
+      - *get_cache_cls
+      - &import_domain_module
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_module, Error]
+        as: error_cls
+      - target: *add_items
+        method: add_default_cache_items
+        args:
+          - sample_error:
+              id: sample_error
+              name: Sample Error
+          - [app, errors]
+        kwargs:
+          model: $r.error_cls
+        as: decorator
+      - target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: wrapped
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [sample_error, app, errors]
+        as: cached
+    assert:
+      - outcome: cached
+        type: {module_path: tiferet.domain, class_name: Error}
+      - outcome: cached
+        attribute: id
+        equals: sample_error
+
+  add_default_cache_items_model_with_id_field_reinjects_key:
+    conditions: {}
+    execute:
+      - *import_cache_module
+      - *get_cache_cls
+      - *import_domain_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_module, Feature]
+        as: feature_cls
+      - target: *add_items
+        method: add_default_cache_items
+        args:
+          - group.sample:
+              group_id: group
+              feature_key: sample
+              name: Sample
+          - [app, features]
+        kwargs:
+          model: $r.feature_cls
+          id_field: id
+        as: decorator
+      - target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: wrapped
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [group.sample, app, features]
+        as: cached
+    assert:
+      - outcome: cached
+        type: {module_path: tiferet.domain, class_name: Feature}
+      - outcome: cached
+        attribute: id
+        equals: group.sample
+
+  add_default_cache_items_empty_dict_leaves_cache_clean:
+    conditions: {}
+    execute:
+      - *import_cache_module
+      - *get_cache_cls
+      - *import_domain_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_module, Error]
+        as: error_cls
+      - target: *add_items
+        method: add_default_cache_items
+        args:
+          - {}
+          - [app, errors]
+        kwargs:
+          model: $r.error_cls
+        as: decorator
+      - target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: wrapped
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, errors]
+        as: entries
+    assert:
+      - outcome: entries
+        equals: {}
+
 testers:
   test_error_context:
     module_path: tiferet.contexts.error

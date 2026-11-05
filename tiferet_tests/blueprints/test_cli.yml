@@ -227,6 +227,38 @@ tests:
       - outcome: request_length
         equals: 2
 
+  parse_cli_args_handler_returns_feature_request_tuple:
+    conditions:
+      fixtures: [add_command]
+      mocks:
+        list_commands: {module_path: unittest.mock, class_name: Mock}
+        get_parent_args: {module_path: unittest.mock, class_name: Mock}
+    execute:
+      - target: $mock.list_commands
+        method: __setattr__
+        args: [return_value, [$fixture.add_command]]
+      - target: $mock.get_parent_args
+        method: __setattr__
+        args: [return_value, []]
+      - target: {module_path: tiferet.blueprints.cli, attribute: parse_cli_args_handler}
+        method: parse_cli_args_handler
+        kwargs: {list_commands: $mock.list_commands, get_parent_args: $mock.get_parent_args}
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [[calc, add]]
+        as: parsed
+      - {target: $r.parsed, method: __getitem__, args: [0], as: feature_id}
+      - {target: $r.parsed, method: __getitem__, args: [1], as: headers}
+      - {target: $r.parsed, method: __getitem__, args: [2], as: data}
+      - {target: $r.data, method: __getitem__, args: [group], as: data_group}
+      - {target: $r.data, method: __getitem__, args: [command], as: data_command}
+    assert:
+      - {outcome: feature_id, equals: calc.add}
+      - {outcome: headers, equals: {command_group: calc, command_key: add}}
+      - {outcome: data_group, equals: calc}
+      - {outcome: data_command, equals: add}
+
   list_commands_handler_returns_event_result:
     conditions:
       fixtures: [add_command, empty_cache]

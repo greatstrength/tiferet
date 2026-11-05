@@ -689,6 +689,390 @@ tests:
         status: success
         data:
           key: value
+  app_interface_context_run:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target: $r.app
+      method: __getattribute__
+      args:
+      - domain
+      as: domain
+    - target: $r.domain
+      method: __getattribute__
+      args:
+      - id
+      as: interface_id
+    - target: $r.app
+      method: run
+      args:
+      - test_group.test_feature
+      kwargs:
+        headers:
+          Content-Type: application/json
+          interface_id: $r.interface_id
+        data:
+          key: value
+          param: test_param
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.logger
+      - debug
+      as: debug
+    - target: $r.debug
+      method: __getattribute__
+      args:
+      - call_count
+      as: debug_count
+    - target:
+        module_path: builtins
+        attribute: bool
+      method: bool
+      args:
+      - $r.debug_count
+      as: debug_called
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.logger
+      - info
+      as: info
+    - target: $r.info
+      method: __getattribute__
+      args:
+      - call_args_list
+      as: info_calls
+    - target:
+        module_path: builtins
+        attribute: str
+      method: str
+      args:
+      - $r.info_calls
+      as: info_text
+    - target:
+        module_path: builtins
+        attribute: len
+      method: len
+      args:
+      - $r.info_calls
+      as: info_len
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.info_text
+      - "[call('Executed Feature - test_group.test_feature ("
+      as: final_prefix
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.info_text
+      - "ms)')]"
+      as: has_duration
+    assert:
+    - mock: logger_builder
+      method: __call__
+      assert_called_once_with:
+        times: 1
+    - outcome: debug_called
+      equals: true
+    - outcome: info_len
+      equals: 1
+    - outcome: final_prefix
+      equals: true
+    - outcome: has_duration
+      equals: true
+  app_interface_context_run_timing_no_pre_execution_log:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target: $r.app
+      method: run
+      args:
+      - test_group.test_feature
+      kwargs:
+        headers:
+          Content-Type: application/json
+        data:
+          key: value
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.logger
+      - info
+      as: info
+    - target: $r.info
+      method: __getattribute__
+      args:
+      - call_args_list
+      as: info_calls
+    - target:
+        module_path: builtins
+        attribute: str
+      method: str
+      args:
+      - $r.info_calls
+      as: info_text
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.info_text
+      - 'Executing feature:'
+      as: has_pre_log
+    assert:
+    - outcome: has_pre_log
+      equals: false
+  app_interface_context_run_timing_error_path:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target:
+        module_path: tiferet.assets
+        class_name: TiferetError
+      method: __call__
+      kwargs:
+        error_code: TEST_ERROR
+        message: Test error occurred.
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.feature
+      - execute_feature
+      as: execute_feature
+    - target: $r.execute_feature
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.error
+      - format_response
+      as: format_response
+    - target: $r.format_response
+      method: __setattr__
+      args:
+      - return_value
+      - error_code: TEST_ERROR
+        name: Test Error
+        message: Test error occurred.
+    - target: $r.app
+      method: run
+      args:
+      - test_group.test_feature
+      kwargs:
+        headers:
+          Content-Type: application/json
+        data:
+          key: value
+      raises: true
+      as: failure
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.logger
+      - info
+      as: info
+    - target: $r.info
+      method: __getattribute__
+      args:
+      - call_args_list
+      as: info_calls
+    - target:
+        module_path: builtins
+        attribute: str
+      method: str
+      args:
+      - $r.info_calls
+      as: info_text
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.info_text
+      - 'ms)'
+      as: has_duration
+    assert:
+    - outcome: failure
+      type:
+        module_path: tiferet.assets
+        class_name: TiferetAPIError
+    - outcome: failure
+      error_code: TEST_ERROR
+    - outcome: failure
+      attribute: name
+      equals: Test Error
+    - outcome: failure
+      attribute: message
+      equals: Test error occurred.
+    - outcome: has_duration
+      equals: false
+    - mock: logger
+      method: error
+      assert_called_once_with:
+        times: 1
   app_interface_context_run_invalid:
     conditions:
       fixtures:
