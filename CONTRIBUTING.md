@@ -63,7 +63,7 @@ Wire `Depends on` / `Blocks` (RFP header or TRD §7) as GitHub blocked-by when y
 
 Keep functional changes out of the same commit as docs, config, or packaging. Title by scope - `Events - AddFeature Event`, `Docs - Process and Skills`. When an AI agent collaborated, it attributes itself in its own name - never another agent's. On a shared bot account it signs `- <agent>@<platform> via <account>` instead. See [Attribution](docs/collab/process.md#attribution) and [Shared bot accounts](docs/collab/process.md#shared-bot-accounts). Never commit unless someone asked you to. Merge, tag, version bump, freeze, and milestone actions are [Agent guardrails](docs/collab/process.md#agent-guardrails). Review and merge are outside these contribution guidelines.
 
-When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local and remote branch, and every temp file. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
+When a PR is squash-merged, clean up after yourself: remove the worktree and its registration, the local branch, and every temp file. The remote source branch is removed at closing by the one who merged; confirm it is gone and report it if it is not. Temporary information never goes to external or cloud storage (gists, pastebins, uploaded images) unless a human explicitly authorizes it. See [docs/collab/process.md](docs/collab/process.md#closeout-leaves-nothing-behind).
 
 ### Pull requests
 

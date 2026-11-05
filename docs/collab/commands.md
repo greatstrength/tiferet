@@ -23,8 +23,10 @@ git checkout -b v2.0.0b1-my-context v2.x-proto
 # Delete a local branch
 git branch -d <branch-name>
 
-# Delete a remote branch
-git push origin --delete <branch-name>
+# Remote source branch: removed at closing by the one who merged.
+# Policy: docs/collab/process.md, Closing a merged PR.
+# Confirm it is gone after a merge
+git ls-remote origin refs/heads/<branch-name>
 
 # Pull latest from a branch
 git pull origin main

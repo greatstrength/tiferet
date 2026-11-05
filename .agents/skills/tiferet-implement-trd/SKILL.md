@@ -75,6 +75,6 @@ Once every child is Done, the parent goes In Review for its final review. The pa
 - Never tag or bump version on this PR.
 - Never check an AC box on your own PR. The reviewer checks each one as it verifies it.
 - Never `Closes` / `Fixes` / `Resolves` on the parent from a Super-TRD child PR.
-- Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch you cut, and every temp file (`docs/collab/process.md`). `.trd/` and `.rfp/` working copies are not temp.
+- Closeout leaves nothing behind: remove the worktree and its registration, the local branch you cut, and every temp file; confirm the remote branch was removed at closing, and report it if it was not (`docs/collab/process.md`). `.trd/` and `.rfp/` working copies are not temp.
 - Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
 - Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `- <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).

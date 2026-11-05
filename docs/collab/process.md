@@ -107,6 +107,28 @@ Please do not leave the session diary as PR conversation comments.
 
 Review and squash-merge are not part of these contribution guidelines. This page does not restate them. An agent acting under these guidelines never merges ([Agent guardrails](#agent-guardrails)).
 
+## Closing a merged PR
+
+A PR is closed out by two steps: its squash-merge and the removal of its remote source branch. This holds whoever merges: the maintainer by hand, or one the maintainer has authorized to squash-merge that PR. The one who merges is accountable for the whole closing process. This section does not change who may merge; see [Agent guardrails](#agent-guardrails).
+
+No repository settings change is part of this process. If the branch was removed automatically, that satisfies removal once the one who merged verifies it is gone.
+
+Before the merge, record the PR's repository, base branch, head branch, head repository, and head sha. Confirm the head branch is in the same repository, and that no open PR, draft, or other work depends on it. If something does, the branch is kept.
+
+A branch is never removed if it is `main`, the proto branch named in binding.md, a build branch, a protected branch, or a reference branch. A build branch is never a PR source to close out; graduation re-authors its work onto a fresh branch.
+
+Before removal, check again: the PR state is MERGED (closed without merge is not merged); its merge commit is on the recorded base; the remote head ref still equals the recorded head sha; and nothing depends on the branch. Remove only that exact ref, immediately after these checks. If anything changed, stop and keep the branch.
+
+The check and the removal are separate steps, so a push can land between them. Use a removal that names the expected sha where one is available and authorized; otherwise recheck immediately before removing, and coordinate with anyone who may push to that branch.
+
+After removal, verify the exact remote ref no longer resolves. If it was already absent, record it as verified absent; closure is complete.
+
+If the merge succeeded but the branch remains, closure is incomplete; the merge stands. Record the branch, its owner, the reason, and the next action, and bring it to the maintainer. Do not revert, re-push, or retry under another identity. Removing that leftover branch later is the merger's, or a cleanup delegate's that the maintainer names for that branch.
+
+Report the closure (PR, merge commit, branch, head sha, result) through the reporting workflow already authorized for the one who merged, or to the maintainer. This section grants no new posting permission. Local branches and worktrees are outside this step. Issue closure is unchanged.
+
+No scheduled or bulk branch sweep is part of this process.
+
 ## Safeguards
 
 These checks keep a fan-out off the wrong base.
@@ -120,11 +142,11 @@ These checks keep a fan-out off the wrong base.
 When a PR is squash-merged (and again when a milestone closes), remove everything the work created locally. Nothing is left to be found, resumed, or mistaken for current.
 
 - The worktree and its registration: `git worktree remove`, then `git worktree prune`.
-- The local branch, and the remote branch if GitHub did not delete it.
+- The local branch. The remote source branch is removed at closing by the one who merged ([Closing a merged PR](#closing-a-merged-pr)). The author confirms it is gone and reports it if it is not.
 - Anything that points at them: symlinks, config entries, editor or index references.
 - Temp files: scratch scripts, virtual environments, snapshots, downloaded artifacts, and PR or comment body drafts.
 
-The working copies this process defines are not temp: `.rfp/` and `.trd/` stay. Each is renamed `.complete.md` when its work is done: an RFP after its proto PR is squash-merged and the issue is closed, a standalone TRD after its PR is squash-merged and the issue is Done. A Super-TRD child's working copy completes when its sub-TRD PR is squash-merged to `main` and the child issue is closed. Do not remove another contributor's branch or worktree, or your own uncommitted work, without asking.
+The working copies this process defines are not temp: `.rfp/` and `.trd/` stay. Each is renamed `.complete.md` when its work is done: an RFP after its proto PR is squash-merged and the issue is closed, a standalone TRD after its PR is squash-merged and the issue is Done. A Super-TRD child's working copy completes when its sub-TRD PR is squash-merged to `main` and the child issue is closed. Do not remove another contributor's branch or worktree, or your own uncommitted work, without asking. Approval to squash-merge a PR is also approval for the one who merges it to remove that PR's remote source branch. It covers nothing else: no local branch, no worktree, and no other branch.
 
 **Temporary information never goes to external or cloud storage** (gists, pastebins, uploaded images or screenshots, hosted drives, third-party services) unless the human explicitly authorizes it. What the process defines goes where it says: RFP and TRD bodies, status notes, review comments, and Collaboration Reports live on GitHub issues and PRs. Temporary images and scratch output do not.
 

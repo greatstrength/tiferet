@@ -39,7 +39,7 @@ RFP issue number. Binding (proto branch, prefix).
 5. Commit. Stop before push if the human has not approved opening the PR.
 6. PR title: `RFP-00N - <Plain Title> (#issue)`. **GitHub-link** the PR to the RFP issue. Do not add the PR to a milestone. Body links `#issue` and does **not** use `Closes`, `Fixes`, or `Resolves`.
 7. After the PR opens, post a short status on the **RFP issue**. Do not review and do not merge. Review and merge are outside these contribution guidelines. After addressing PR feedback, post another status.
-8. After squash-merge: close the RFP issue by hand if it is still open. Rename the local `.rfp/` working copy to `.complete.md`. Run the closeout cleanup in `docs/collab/process.md` (worktree and its registration, local and remote branch, temp files). Do not tag. Do not bump the package version.
+8. After squash-merge: close the RFP issue by hand if it is still open. Rename the local `.rfp/` working copy to `.complete.md`. Run the closeout cleanup in `docs/collab/process.md` (worktree and its registration, local branch, temp files); confirm the remote branch was removed at closing, and report it if it was not. Do not tag. Do not bump the package version.
 
 ## Outputs
 
@@ -54,6 +54,6 @@ RFP issue number. Binding (proto branch, prefix).
 - Never review. Never merge. Review and merge are outside these contribution guidelines.
 - Never tag or bump version on this PR.
 - Never check an AC box on your own PR. The Prototype reviewer checks each one as it verifies it.
-- Closeout leaves nothing behind: remove the worktree and its registration, the local and remote branch, and every temp file (`docs/collab/process.md`).
+- Closeout leaves nothing behind: remove the worktree and its registration, the local branch, and every temp file; confirm the remote branch was removed at closing (`docs/collab/process.md`).
 - Never put temporary information on external or cloud storage unless the human explicitly authorizes it.
 - Attribute yourself in your own name, never another agent's (`docs/collab/process.md` § Attribution). On a shared bot account, end every issue, PR, and comment with `- <agent>@<platform> via <account>` (§ Shared bot accounts). Never merge, tag, bump the version, mint a freeze, or create or close a milestone (§ Agent guardrails).
