@@ -1,0 +1,31 @@
+fixtures:
+  domain_tester:
+    module_path: tiferet.domain
+    class_name: TesterObject
+    attributes:
+      type: domain
+      id: domain.ErrorMessage
+      module_path: tiferet.domain.error
+      class_name: ErrorMessage
+      sample_data: {lang: en_US, text: An error occurred.}
+
+tests:
+  positional_session_keeps_tester_ctx:
+    conditions:
+      fixtures: [domain_tester]
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_tester_context}, method: build_tester_context, args: [$fixture.domain_tester], as: test_ctx}
+      - &session {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], as: session}
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, raises: true, as: neither}
+      - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], kwargs: {test_context: $r.test_ctx}, raises: true, as: both}
+    assert:
+      - outcome: session
+        attribute: tester_ctx
+        equals: $r.test_ctx
+      - outcome: session
+        attribute: test_context
+        "null": true
+      - outcome: neither
+        type: &value_error {module_path: builtins, class_name: ValueError}
+      - outcome: both
+        type: *value_error
