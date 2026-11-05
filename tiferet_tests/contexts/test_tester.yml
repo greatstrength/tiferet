@@ -145,6 +145,19 @@ fixtures:
           domain_class_name: TesterObject
           context_module_path: tiferet.contexts.tester
           context_class_name: TesterContext
+  reserved_kwargs_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: domain_event
+      id: domain_event.ReservedKwargsEvent
+      module_path: tests.contexts.test_tester
+      class_name: ReservedKwargsEvent
+      sample_data: {}
+      dependencies: {}
+      sample_kwargs: {}
+      required_params: []
+
   pow_generic_tester:
     module_path: *domain
     class_name: *tester_object
@@ -218,6 +231,26 @@ tests:
         type: {module_path: tiferet.contexts.tester, class_name: DomainEventTesterContext}
       - outcome: same_service
         equals: true
+
+  domain_event_tester_handle_passes_reserved_kwargs:
+    conditions:
+      fixtures: [reserved_kwargs_tester]
+    execute:
+      - target: {module_path: tiferet.contexts.tester, class_name: DomainEventTesterContext}
+        method: from_domain
+        args: [$fixture.reserved_kwargs_tester]
+        as: test_ctx
+      - target: $r.test_ctx
+        method: __getattribute__
+        args: [handle]
+        as: handle_method
+      - target: $r.handle_method
+        method: __call__
+        kwargs: {middleware: m, event_cls: e}
+        as: result
+    assert:
+      - outcome: result
+        equals: {middleware: m, event_cls: e, kw: {}}
 
   use_tester_injects_service_event_test_ctx:
     conditions:
