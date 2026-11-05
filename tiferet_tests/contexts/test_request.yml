@@ -257,3 +257,65 @@ tests:
         type: *validation_error
       - outcome: failed_data
         type: *validation_error
+
+  request_context_handle_response_domain_object:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: {module_path: tiferet.domain.error, class_name: ErrorMessage}
+        method: __call__
+        kwargs: {lang: en_US, text: value}
+        as: data
+      - target: request_context
+        method: __setattr__
+        args: [result, $r.data]
+      - target: request_context
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        type: {module_path: tiferet.domain, class_name: DomainObject}
+      - outcome: response
+        attribute: text
+        equals: value
+
+  request_context_handle_response_domain_object_list:
+    conditions:
+      fixtures: [request_context]
+    execute:
+      - target: {module_path: tiferet.domain.error, class_name: ErrorMessage}
+        method: __call__
+        kwargs: {lang: en_US, text: item1}
+        as: item1
+      - target: {module_path: tiferet.domain.error, class_name: ErrorMessage}
+        method: __call__
+        kwargs: {lang: en_US, text: item2}
+        as: item2
+      - target: request_context
+        method: __setattr__
+        args: [result, [$r.item1, $r.item2]]
+      - target: request_context
+        method: handle_response
+        as: response
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.response]
+        as: response_len
+      - target: $r.response
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.response
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: response
+        type: {module_path: builtins, class_name: list}
+      - {outcome: response_len, equals: 2}
+      - outcome: first
+        attribute: text
+        equals: item1
+      - outcome: second
+        attribute: text
+        equals: item2

@@ -3202,3 +3202,239 @@ tests:
     assert:
       - outcome: seen
         equals: {dependencies: [a], middleware: [b], event_cls: c}
+
+  handle_uses_arranged_mocks_not_sample_kwargs:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tests.contexts.test_phase
+          tester_class_name: RecordingEvent
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs:
+          mocks:
+            error_service: {module_path: tiferet.interfaces, class_name: ErrorService}
+        as: conditions
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: self
+          method: handle
+          kwargs: {id: NEW_ERROR}
+          data_key: seen
+        as: handle_exec
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs:
+          check: fields
+          outcome: seen
+          fields: {id: NEW_ERROR}
+        as: seen_fields
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.handle
+          name: phase.handle
+          conditions: $r.conditions
+          executes: [$r.handle_exec]
+          asserts: [$r.seen_fields]
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: $fixture.session
+        method: __getattribute__
+        args: [data]
+        as: sdata
+      - target: $r.sdata
+        method: __getitem__
+        args: [seen]
+        as: seen
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.phase_mod, __file__]
+        as: phase_file
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.phase_file]
+        as: phase_path
+      - target: $r.phase_path
+        method: read_text
+        kwargs: {encoding: utf-8}
+        as: phase_source
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.phase_source, 'def _call_handle(self, kwargs']
+        as: call_handle_sig
+    assert:
+      - outcome: seen
+        equals: {id: NEW_ERROR}
+      - {outcome: call_handle_sig, equals: true}
+
+  stage_adds_no_runtime_field_or_step:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain.tester_phase]
+        as: domain_phase
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_phase, PhaseRuntime]
+        as: phase_runtime_cls
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_model_fields
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_model_fields, type]
+        as: type_cls_for_model_fields
+      - target: $r.type_cls_for_model_fields
+        method: __getattribute__
+        args: [$r.phase_runtime_cls, model_fields]
+        as: model_fields
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.model_fields, stage]
+        as: has_stage_field
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.blueprints.tester]
+        as: tester_bp
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_bp, build_phase_runtime]
+        as: build_phase_runtime
+      - target: $r.build_phase_runtime
+        method: __getattribute__
+        args: [__code__]
+        as: build_code
+      - target: $r.build_code
+        method: __getattribute__
+        args: [co_varnames]
+        as: varnames
+      - target: $r.varnames
+        method: __getitem__
+        args: [0]
+        as: p0
+      - target: $r.varnames
+        method: __getitem__
+        args: [1]
+        as: p1
+      - target: $r.varnames
+        method: __getitem__
+        args: [2]
+        as: p2
+      - target: $r.varnames
+        method: __getitem__
+        args: [3]
+        as: p3
+      - target: $r.varnames
+        method: __getitem__
+        args: [4]
+        as: p4
+      - target: $r.varnames
+        method: __getitem__
+        args: [5]
+        as: p5
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [[$r.p0, $r.p1, $r.p2, $r.p3, $r.p4, $r.p5]]
+        as: param_names
+      - target: {module_path: tiferet.blueprints.tester, attribute: register_phase_handlers}
+        method: register_phase_handlers
+        as: handlers
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [$r.handlers]
+        as: handler_ids
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.phase_mod, STAGE_REF]
+        as: stage_ref
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: true}
+        as: conditions
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: path, data_key: directory}
+        as: path_exec
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.utils.tester_stage]
+        as: stage_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.stage_mod, STAGE_PREFIX]
+        as: stage_prefix
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: message, outcome: directory, message: $r.stage_prefix}
+        as: dir_assert
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.staged_steps
+          name: phase.staged_steps
+          conditions: $r.conditions
+          executes: [$r.path_exec]
+          asserts: [$r.dir_assert]
+        as: inner
+      - target: {module_path: tiferet.contexts.tester_phase, attribute: compile_phase_steps}
+        method: compile_phase_steps
+        args: [$r.inner]
+        as: steps
+      - target: $r.steps
+        method: __getitem__
+        args: [0]
+        as: step0
+      - target: $r.steps
+        method: __getitem__
+        args: [1]
+        as: step1
+      - target: $r.steps
+        method: __getitem__
+        args: [2]
+        as: step2
+      - target: $r.step0
+        method: __getattribute__
+        args: [service_id]
+        as: sid0
+      - target: $r.step1
+        method: __getattribute__
+        args: [service_id]
+        as: sid1
+      - target: $r.step2
+        method: __getattribute__
+        args: [service_id]
+        as: sid2
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [[$r.sid0, $r.sid1, $r.sid2]]
+        as: sids
+      - target: $r.sids
+        method: count
+        args: [phase_conditions]
+        as: conditions_count
+    assert:
+      - {outcome: has_stage_field, equals: false}
+      - outcome: param_names
+        equals: [session, tester_module_path, tester_class_name, tester_attributes, root_fixtures, tester_fixtures]
+      - outcome: handler_ids
+        equals: [conditions, execute, assert]
+      - {outcome: conditions_count, equals: 1}

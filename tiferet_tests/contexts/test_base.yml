@@ -276,3 +276,29 @@ testers:
           - outcome: context
             attribute: domain
             equals: $fixture.error
+
+      for_domain_not_found:
+        conditions: {}
+        execute:
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [builtins]
+            as: builtins_mod
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.builtins_mod, object]
+            as: object_cls
+          - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+            method: for_domain
+            args: [$r.object_cls]
+            raises: true
+            as: failed
+        assert:
+          - outcome: failed
+            type: {module_path: tiferet.assets, class_name: TiferetError}
+          - outcome: failed
+            error_code: CONTEXT_NOT_FOUND
+          - outcome: failed
+            attribute: kwargs
+            fields:
+              domain_type: object

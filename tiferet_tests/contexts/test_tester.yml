@@ -167,6 +167,15 @@ fixtures:
       module_path: builtins
       class_name: pow
 
+  add_values_generic_tester:
+    module_path: *domain
+    class_name: *tester_object
+    attributes:
+      type: generic
+      id: generic.add_values
+      module_path: tests.contexts.test_tester
+      class_name: _add_values
+
 tests:
   build_tester_context_selects_variant_class:
     conditions:
@@ -472,12 +481,641 @@ tests:
       - outcome: unused_quiet
         "null": true
 
+  session_run_generic_invokes_local_callable:
+    conditions:
+      fixtures: [add_values_generic_tester]
+    execute:
+      - target: {module_path: tiferet.contexts.tester, class_name: GenericTesterContext}
+        method: from_domain
+        args: [$fixture.add_values_generic_tester]
+        as: test_ctx
+      - target: $r.test_ctx
+        method: __getattribute__
+        args: [domain]
+        as: domain
+      - target: $r.domain
+        method: __getattribute__
+        args: [sample_data]
+        as: sample
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}
+        method: build_test_session
+        args: [$r.test_ctx]
+        as: session
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tests.contexts.test_tester]
+        as: paired
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, _add_values]
+        as: add_values
+      - target: $r.session
+        method: given
+        kwargs: {a: 1, b: 2}
+        as: given_session
+      - target: $r.given_session
+        method: verify
+        args: [3]
+        as: verified
+      - target: $r.verified
+        method: run
+        kwargs: {target: $r.add_values}
+        as: result
+      - target: $r.test_ctx
+        method: __getattribute__
+        args: [domain]
+        as: domain_after
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.domain_after, $r.domain]
+        as: same_domain
+      - target: $r.domain_after
+        method: __getattribute__
+        args: [sample_data]
+        as: sample_after
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.sample_after, $r.sample]
+        as: same_sample
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester]
+        as: tester_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, __file__]
+        as: tester_file
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.tester_file]
+        as: tester_path
+      - target: $r.tester_path
+        method: read_text
+        kwargs: {encoding: utf-8}
+        as: tester_source
+      - target: $r.tester_source
+        method: split
+        args: ['def run(self, target: Any = None, **kwargs)', 1]
+        as: after_run_def
+      - target: $r.after_run_def
+        method: __getitem__
+        args: [1]
+        as: from_run
+      - target: $r.from_run
+        method: split
+        args: ["\n    def ", 1]
+        as: run_parts
+      - target: $r.run_parts
+        method: __getitem__
+        args: [0]
+        as: run_body
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.run_body, 'self.test_context.execute_feature(self)']
+        as: has_execute_feature
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.run_body, AppSessionContext]
+        as: has_app_session
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.run_body, _dispatch_event]
+        as: has_dispatch
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.run_body, build_logger]
+        as: has_build_logger
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.run_body, handle_error]
+        as: has_handle_error
+    assert:
+      - {outcome: result, equals: 3}
+      - {outcome: same_domain, equals: true}
+      - {outcome: same_sample, equals: true}
+      - {outcome: has_execute_feature, equals: true}
+      - {outcome: has_app_session, equals: false}
+      - {outcome: has_dispatch, equals: false}
+      - {outcome: has_build_logger, equals: false}
+      - {outcome: has_handle_error, equals: false}
+
+  tester_context_registry_and_omitted_domain_type:
+    conditions:
+      fixtures: [sampled_domain_tester]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester]
+        as: tester_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, DomainTesterContext]
+        as: domain_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, AggregateTesterContext]
+        as: aggregate_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, TransferObjectTesterContext]
+        as: transfer_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, RepoTesterContext]
+        as: repo_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, ContextTesterContext]
+        as: context_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, TesterContext]
+        as: tester_cls
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_domain_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_domain_dict, object]
+        as: object_cls_for_domain_dict
+      - target: $r.object_cls_for_domain_dict
+        method: __getattribute__
+        args: [$r.domain_cls, __dict__]
+        as: domain_dict
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_aggregate_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_aggregate_dict, object]
+        as: object_cls_for_aggregate_dict
+      - target: $r.object_cls_for_aggregate_dict
+        method: __getattribute__
+        args: [$r.aggregate_cls, __dict__]
+        as: aggregate_dict
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_transfer_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_transfer_dict, object]
+        as: object_cls_for_transfer_dict
+      - target: $r.object_cls_for_transfer_dict
+        method: __getattribute__
+        args: [$r.transfer_cls, __dict__]
+        as: transfer_dict
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_repo_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_repo_dict, object]
+        as: object_cls_for_repo_dict
+      - target: $r.object_cls_for_repo_dict
+        method: __getattribute__
+        args: [$r.repo_cls, __dict__]
+        as: repo_dict
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_context_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_context_dict, object]
+        as: object_cls_for_context_dict
+      - target: $r.object_cls_for_context_dict
+        method: __getattribute__
+        args: [$r.context_cls, __dict__]
+        as: context_dict
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.domain_dict, domain_type]
+        as: domain_has
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.aggregate_dict, domain_type]
+        as: aggregate_has
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.transfer_dict, domain_type]
+        as: transfer_has
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.repo_dict, domain_type]
+        as: repo_has
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.context_dict, domain_type]
+        as: context_has
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, TesterObject]
+        as: tester_object_cls
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.tester_object_cls]
+        as: registered
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: from_domain
+        args: [$fixture.sampled_domain_tester]
+        as: from_base
+      - target: {module_path: tiferet.contexts.tester, class_name: DomainTesterContext}
+        method: from_domain
+        args: [$fixture.sampled_domain_tester]
+        as: from_domain_cls
+    assert:
+      - {outcome: domain_has, equals: false}
+      - {outcome: aggregate_has, equals: false}
+      - {outcome: transfer_has, equals: false}
+      - {outcome: repo_has, equals: false}
+      - {outcome: context_has, equals: false}
+      - outcome: registered
+        is: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+      - outcome: from_base
+        type: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+      - outcome: from_domain_cls
+        type: {module_path: tiferet.contexts.tester, class_name: DomainTesterContext}
+
+  session_context_preserves_request_and_tester_registration:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester]
+        as: tester_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, TestSessionContext]
+        as: session_cls
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_session_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_session_dict, object]
+        as: object_cls_for_session_dict
+      - target: $r.object_cls_for_session_dict
+        method: __getattribute__
+        args: [$r.session_cls, __dict__]
+        as: session_dict
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.session_dict, domain_type]
+        as: session_has
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, Request]
+        as: request_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, TesterObject]
+        as: tester_object_cls
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.request_cls]
+        as: request_ctx
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.tester_object_cls]
+        as: tester_ctx
+    assert:
+      - {outcome: session_has, equals: false}
+      - outcome: request_ctx
+        is: {module_path: tiferet.contexts.request, class_name: RequestContext}
+      - outcome: tester_ctx
+        is: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+
+  event_tester_contexts_omit_domain_type:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester]
+        as: tester_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, DomainEventTesterContext]
+        as: domain_event_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, ServiceEventTesterContext]
+        as: service_event_cls
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_domain_event_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_domain_event_dict, object]
+        as: object_cls_for_domain_event_dict
+      - target: $r.object_cls_for_domain_event_dict
+        method: __getattribute__
+        args: [$r.domain_event_cls, __dict__]
+        as: domain_event_dict
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_service_event_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_service_event_dict, object]
+        as: object_cls_for_service_event_dict
+      - target: $r.object_cls_for_service_event_dict
+        method: __getattribute__
+        args: [$r.service_event_cls, __dict__]
+        as: service_event_dict
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.domain_event_dict, domain_type]
+        as: domain_event_has
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.service_event_dict, domain_type]
+        as: service_event_has
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, TesterObject]
+        as: tester_object_cls
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.tester_object_cls]
+        as: registered
+    assert:
+      - {outcome: domain_event_has, equals: false}
+      - {outcome: service_event_has, equals: false}
+      - outcome: registered
+        is: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+
+  generic_tester_context_omits_domain_type:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester]
+        as: tester_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, GenericTesterContext]
+        as: generic_cls
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_generic_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_generic_dict, object]
+        as: object_cls_for_generic_dict
+      - target: $r.object_cls_for_generic_dict
+        method: __getattribute__
+        args: [$r.generic_cls, __dict__]
+        as: generic_dict
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.generic_dict, domain_type]
+        as: generic_has
+      - target: {module_path: builtins, attribute: hasattr}
+        method: hasattr
+        args: [$r.generic_cls, given]
+        as: has_given
+      - target: {module_path: builtins, attribute: hasattr}
+        method: hasattr
+        args: [$r.generic_cls, invoke]
+        as: has_invoke
+      - target: {module_path: builtins, attribute: hasattr}
+        method: hasattr
+        args: [$r.generic_cls, verify]
+        as: has_verify
+      - target: {module_path: builtins, attribute: hasattr}
+        method: hasattr
+        args: [$r.generic_cls, run]
+        as: has_run
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, TesterObject]
+        as: tester_object_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, Request]
+        as: request_cls
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.tester_object_cls]
+        as: tester_registered
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.request_cls]
+        as: request_registered
+    assert:
+      - {outcome: generic_has, equals: false}
+      - {outcome: has_given, equals: false}
+      - {outcome: has_invoke, equals: false}
+      - {outcome: has_verify, equals: false}
+      - {outcome: has_run, equals: false}
+      - outcome: tester_registered
+        is: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+      - outcome: request_registered
+        is: {module_path: tiferet.contexts.request, class_name: RequestContext}
+
+  repo_tester_context_omits_domain_type:
+    conditions:
+      fixtures: [repo_tester]
+    execute:
+      - target: {module_path: tiferet.contexts.tester, class_name: RepoTesterContext}
+        method: from_domain
+        args: [$fixture.repo_tester]
+        as: test_ctx
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester]
+        as: tester_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_mod, RepoTesterContext]
+        as: repo_cls
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [builtins]
+        as: builtins_mod_for_repo_dict
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.builtins_mod_for_repo_dict, object]
+        as: object_cls_for_repo_dict
+      - target: $r.object_cls_for_repo_dict
+        method: __getattribute__
+        args: [$r.repo_cls, __dict__]
+        as: repo_dict
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.repo_dict, domain_type]
+        as: repo_has
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.domain]
+        as: domain_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, TesterObject]
+        as: tester_object_cls
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.domain_mod, Request]
+        as: request_cls
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.tester_object_cls]
+        as: tester_registered
+      - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+        method: for_domain
+        args: [$r.request_cls]
+        as: request_registered
+    assert:
+      - {outcome: repo_has, equals: false}
+      - outcome: tester_registered
+        is: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+      - outcome: request_registered
+        is: {module_path: tiferet.contexts.request, class_name: RequestContext}
+      - outcome: test_ctx
+        type: {module_path: tiferet.contexts.tester, class_name: RepoTesterContext}
 
 testers:
   test_context_tester_context:
     module_path: tiferet.contexts.tester
     class_name: ContextTesterContext
     tests:
+
+      omits_domain_type_and_preserves_registry:
+        conditions:
+          fixtures: [bare_request_tester]
+        execute:
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [tiferet.contexts.tester]
+            as: tester_mod
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.tester_mod, ContextTesterContext]
+            as: context_cls
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [builtins]
+            as: builtins_mod_for_context_dict
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.builtins_mod_for_context_dict, object]
+            as: object_cls_for_context_dict
+          - target: $r.object_cls_for_context_dict
+            method: __getattribute__
+            args: [$r.context_cls, __dict__]
+            as: context_dict
+          - target: {module_path: operator, attribute: contains}
+            method: contains
+            args: [$r.context_dict, domain_type]
+            as: context_has
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [tiferet.domain]
+            as: domain_mod
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_mod, TesterObject]
+            as: tester_object_cls
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_mod, Request]
+            as: request_cls
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.domain_mod, AppSession]
+            as: app_session_cls
+          - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+            method: for_domain
+            args: [$r.tester_object_cls]
+            as: tester_registered
+          - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+            method: for_domain
+            args: [$r.request_cls]
+            as: request_registered
+          - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+            method: for_domain
+            args: [$r.app_session_cls]
+            as: app_registered
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [tiferet.contexts.core]
+            as: core_mod
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.core_mod, ContextMeta]
+            as: context_meta
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.core_mod, BaseContext]
+            as: base_context
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [builtins]
+            as: builtins_mod
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.builtins_mod, object]
+            as: object_cls
+          - target: $r.object_cls
+            method: __getattribute__
+            args: [$r.context_meta, registry]
+            as: registry
+          - target: $r.registry
+            method: values
+            as: registered
+          - target: {module_path: operator, attribute: contains}
+            method: contains
+            args: [$r.registered, $r.base_context]
+            as: base_in_registry
+          - target: {module_path: tiferet.contexts.core, class_name: BaseContext}
+            method: from_domain
+            args: [$fixture.bare_request_tester]
+            as: from_base
+          - target: {module_path: tiferet.contexts.tester, class_name: ContextTesterContext}
+            method: from_domain
+            args: [$fixture.bare_request_tester]
+            as: bound
+        assert:
+          - {outcome: context_has, equals: false}
+          - outcome: tester_registered
+            is: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+          - outcome: request_registered
+            is: {module_path: tiferet.contexts.request, class_name: RequestContext}
+          - outcome: app_registered
+            is: {module_path: tiferet.contexts.app, class_name: AppSessionContext}
+          - {outcome: base_in_registry, equals: false}
+          - outcome: from_base
+            type: {module_path: tiferet.contexts.tester, class_name: TesterContext}
+          - outcome: bound
+            type: {module_path: tiferet.contexts.tester, class_name: ContextTesterContext}
+          - outcome: bound
+            attribute: domain
+            equals: $fixture.bare_request_tester
+
       empty_case_lists_are_no_ops:
         conditions:
           fixtures: [bare_request_tester]
