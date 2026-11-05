@@ -141,3 +141,385 @@ tests:
       - {outcome: exports_entry, equals: true}
       - {outcome: package_exports_alias, equals: false}
       - {outcome: version, equals: 2.2.1b1}
+
+  resolver_registers_the_empty_flag_container:
+    conditions: {}
+    execute:
+      - *build_cache
+      - {target: $r.cache, method: get, args: [tester_cli, app, sessions], as: session}
+      - target: {module_path: tiferet.blueprints.core, attribute: build_app_service_container}
+        method: build_app_service_container
+        args: [$r.cache, $r.session]
+        as: container
+      - target: {module_path: tiferet.blueprints.tester_cli, attribute: build_tester_service_resolver}
+        method: build_tester_service_resolver
+        args: [$r.container]
+        as: resolver
+      - target: $r.resolver
+        method: get_container
+        args: [app]
+        as: app_container
+      - target: $r.resolver
+        method: get_container
+        as: empty_flag_container
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.app_container, $r.container]
+        as: app_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.empty_flag_container, $r.container]
+        as: empty_same
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.blueprints.tester_cli]
+        as: tester_cli_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_cli_mod, __file__]
+        as: cli_file
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.cli_file]
+        as: cli_path
+      - target: $r.cli_path
+        method: read_text
+        kwargs: {encoding: utf-8}
+        as: cli_source
+      - target: $r.cli_source
+        method: split
+        args: ['def build_tester_service_resolver', 1]
+        as: after_resolver_def
+      - target: $r.after_resolver_def
+        method: __getitem__
+        args: [1]
+        as: from_resolver
+      - target: $r.from_resolver
+        method: split
+        args: ['\ndef ', 1]
+        as: resolver_parts
+      - target: $r.resolver_parts
+        method: __getitem__
+        args: [0]
+        as: resolver_source
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.resolver_source, list_all]
+        as: resolver_has_list_all
+    assert:
+      - {outcome: app_same, equals: true}
+      - {outcome: empty_same, equals: true}
+      - {outcome: resolver_has_list_all, equals: false}
+
+  catalog_parent_arguments_reads_the_catalog:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.blueprints.tester_cli, attribute: catalog_parent_arguments}
+        method: catalog_parent_arguments
+        as: arguments
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.arguments]
+        as: arg_count
+      - target: $r.arguments
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.tester_cli]
+        as: assets
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.assets, TESTER_DEFAULT_PARENT_ARGUMENTS]
+        as: catalog
+      - target: $r.catalog
+        method: __getitem__
+        args: [0]
+        as: catalog_first
+      - target: $r.catalog_first
+        method: __getitem__
+        args: [name_or_flags]
+        as: catalog_flags
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.blueprints.tester_cli]
+        as: tester_cli_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_cli_mod, __file__]
+        as: cli_file
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.cli_file]
+        as: cli_path
+      - target: $r.cli_path
+        method: read_text
+        kwargs: {encoding: utf-8}
+        as: cli_source
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.cli_source, '# *** functions']
+        as: has_functions_banner
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.cli_source, argparse]
+        as: has_argparse
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.cli_source, '--base-dir']
+        as: has_base_dir_flag
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.cli_source, '--config']
+        as: has_config_flag
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.cli_source, config.yml]
+        as: has_config_yml
+    assert:
+      - {outcome: arg_count, equals: 1}
+      - outcome: first
+        attribute: name_or_flags
+        equals: $r.catalog_flags
+      - outcome: first
+        attribute: default
+        equals: .
+      - {outcome: has_functions_banner, equals: false}
+      - {outcome: has_argparse, equals: false}
+      - {outcome: has_base_dir_flag, equals: false}
+      - {outcome: has_config_flag, equals: false}
+      - {outcome: has_config_yml, equals: false}
+
+  parse_tester_args_sets_the_address_resolver:
+    conditions: {}
+    execute:
+      - {target: {module_path: tiferet.blueprints.tester_cli, attribute: build_cache}, method: build_cache, as: cache}
+      - target: {module_path: tiferet.blueprints.tester_cli, attribute: parse_tester_args}
+        method: parse_tester_args
+        args: [$r.cache]
+        as: handler
+      - target: $r.handler
+        method: __call__
+        args: [[fixture, get, domain/test_error, error_message]]
+        as: parsed
+      - target: $r.parsed
+        method: __getitem__
+        args: [0]
+        as: feature_id
+      - target: $r.parsed
+        method: __getitem__
+        args: [2]
+        as: data
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.data, group]
+        as: has_group
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.data, command]
+        as: has_command
+      - target: $r.data
+        method: __getitem__
+        args: [base_dir]
+        as: base_dir
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.data, resolve_address]
+        as: has_resolve_address
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.data, replace_module]
+        as: has_replace_module
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.blueprints.tester_cli]
+        as: tester_cli_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.tester_cli_mod, __file__]
+        as: cli_file
+      - target: {module_path: pathlib, attribute: Path}
+        method: Path
+        args: [$r.cli_file]
+        as: cli_path
+      - target: $r.cli_path
+        method: read_text
+        kwargs: {encoding: utf-8}
+        as: cli_source
+      - target: $r.cli_source
+        method: split
+        args: ['def list_tester_commands', 1]
+        as: after_list_def
+      - target: $r.after_list_def
+        method: __getitem__
+        args: [1]
+        as: from_list
+      - target: $r.from_list
+        method: split
+        args: ['\ndef ', 1]
+        as: list_parts
+      - target: $r.list_parts
+        method: __getitem__
+        args: [0]
+        as: list_source
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.list_source, list_all]
+        as: list_has_list_all
+      - target: {module_path: operator, attribute: contains}
+        method: contains
+        args: [$r.list_source, get_dependency]
+        as: list_has_get_dependency
+    assert:
+      - {outcome: feature_id, equals: fixture.get}
+      - {outcome: has_group, equals: false}
+      - {outcome: has_command, equals: false}
+      - {outcome: base_dir, equals: .}
+      - {outcome: has_resolve_address, equals: false}
+      - {outcome: has_replace_module, equals: false}
+      - {outcome: list_has_list_all, equals: false}
+      - {outcome: list_has_get_dependency, equals: false}
+
+  context_omits_domain_type:
+    conditions: {}
+    execute:
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tiferet.contexts.tester_cli
+      as: module
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.module
+      - TesterCliSessionContext
+      as: context_cls
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - builtins
+      as: builtins_mod
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.builtins_mod
+      - type
+      as: type_cls
+    - target: $r.type_cls
+      method: __getattribute__
+      args:
+      - $r.context_cls
+      - __dict__
+      as: namespace
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.namespace
+      - domain_type
+      as: declares_domain
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.module
+      - __file__
+      as: file
+    - target:
+        module_path: pathlib
+        attribute: Path
+      method: Path
+      args:
+      - $r.file
+      as: path
+    - target: $r.path
+      method: read_text
+      kwargs:
+        encoding: utf-8
+      as: source
+    - target: $r.source
+      method: split
+      args:
+      - class TesterCliSessionContext
+      - 1
+      as: parts
+    - target: $r.parts
+      method: __getitem__
+      args:
+      - 1
+      as: class_tail
+    - target: $r.class_tail
+      method: split
+      args:
+      - "\n"
+      - 1
+      as: class_parts
+    - target: $r.class_parts
+      method: __getitem__
+      args:
+      - 1
+      as: body
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - module.run
+      as: contains_0
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - AppSessionContext.run
+      as: contains_1
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - super().run
+      as: contains_2
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - CliSessionContext.run
+      as: contains_3
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - TesterCliSessionContext(
+      as: contains_4
+    assert:
+    - outcome: declares_domain
+      equals: false
+    - outcome: contains_0
+      equals: false
+    - outcome: contains_1
+      equals: true
+    - outcome: contains_2
+      equals: false
+    - outcome: contains_3
+      equals: false
+    - outcome: contains_4
+      equals: false

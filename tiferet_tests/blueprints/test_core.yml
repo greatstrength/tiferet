@@ -109,6 +109,16 @@ fixtures:
       level: INFO
       handlers: [repo_h]
       is_root: true
+  logging_settings:
+    module_path: *logging_domain
+    class_name: LoggingSettings
+    attributes: {}
+  handler_app_session:
+    module_path: *domain
+    class_name: *app_session
+    attributes:
+      id: test_app
+      name: Test App
 
 tests:
 
@@ -1083,14 +1093,11 @@ tests:
 
   create_feature_context_with_preloaded_feature:
     conditions:
-      fixtures: [empty_cache]
+      fixtures: [empty_cache, feature]
       mocks:
         get_dependency:
           module_path: tiferet.di
           class_name: DIDynamicServiceResolver
-        feature_domain:
-          module_path: tiferet.domain
-          class_name: Feature
     execute:
       - target:
           module_path: tiferet.blueprints.core
@@ -1098,16 +1105,25 @@ tests:
         method: create_feature_context
         args: [$mock.get_dependency, $fixture.empty_cache]
         kwargs:
-          feature: $mock.feature_domain
+          feature: $fixture.feature
         as: feature_context
+      - target: $r.feature_context
+        method: __getattribute__
+        args: [domain]
+        as: bound_domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.bound_domain, $fixture.feature]
+        as: domain_same
     assert:
       - outcome: feature_context
         type:
           module_path: tiferet.contexts.feature
           class_name: FeatureContext
-      - outcome: feature_context
-        attribute: domain
-        equals: $mock.feature_domain
+      - outcome: domain_same
+        equals: true
       - outcome: feature_context
         attribute: get_dependency
         equals: $mock.get_dependency
@@ -1126,19 +1142,16 @@ tests:
 
   create_feature_context_loads_by_feature_id:
     conditions:
-      fixtures: [empty_cache]
+      fixtures: [empty_cache, feature]
       mocks:
         get_dependency:
           module_path: tiferet.di
           class_name: DIDynamicServiceResolver
-        feature_domain:
-          module_path: tiferet.domain
-          class_name: Feature
         event:
           module_path: tiferet.events
           class_name: DomainEvent
           return_value:
-            execute: $mock.feature_domain
+            execute: $fixture.feature
     execute:
       - target: $mock.get_dependency
         method: configure_mock
@@ -1152,14 +1165,23 @@ tests:
         kwargs:
           feature_id: group.feat
         as: feature_context
+      - target: $r.feature_context
+        method: __getattribute__
+        args: [domain]
+        as: bound_domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.bound_domain, $fixture.feature]
+        as: domain_same
     assert:
       - outcome: feature_context
         type:
           module_path: tiferet.contexts.feature
           class_name: FeatureContext
-      - outcome: feature_context
-        attribute: domain
-        equals: $mock.feature_domain
+      - outcome: domain_same
+        equals: true
       - mock: get_dependency
         method: __call__
         assert_called_once_with:
@@ -1480,27 +1502,33 @@ tests:
 
   create_logging_context_returns_logging_context:
     conditions:
-      mocks:
-        logging_settings:
-          module_path: tiferet.contexts.logging
-          class_name: LoggingSettings
+      fixtures: [logging_settings]
     execute:
       - target:
           module_path: tiferet.blueprints.core
           attribute: create_logging_context
         method: create_logging_context
-        args: [$mock.logging_settings]
+        args: [$fixture.logging_settings]
         kwargs:
           logger_id: default
         as: result
+      - target: $r.result
+        method: __getattribute__
+        args: [domain]
+        as: bound_domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.bound_domain, $fixture.logging_settings]
+        as: domain_same
     assert:
       - outcome: result
         type:
           module_path: tiferet.contexts.logging
           class_name: LoggingContext
-      - outcome: result
-        attribute: domain
-        equals: $mock.logging_settings
+      - outcome: domain_same
+        equals: true
       - outcome: result
         attribute: logger_id
         equals: default
@@ -1645,14 +1673,11 @@ tests:
 
   compose_session_context_wires_five_handlers:
     conditions:
-      fixtures: [empty_cache]
+      fixtures: [empty_cache, handler_app_session]
       mocks:
         resolver:
           module_path: tiferet.di
           class_name: DIDynamicServiceResolver
-        app_session:
-          module_path: tiferet.domain
-          class_name: AppSession
     execute:
       - target:
           module_path: importlib
@@ -1688,11 +1713,21 @@ tests:
           module_path: tiferet.blueprints.core
           attribute: compose_session_context
         method: compose_session_context
-        args: [$r.context_cls, $mock.app_session, $fixture.empty_cache, $mock.resolver]
+        args: [$r.context_cls, $fixture.handler_app_session, $fixture.empty_cache, $mock.resolver]
         kwargs:
           create_request_handler: $r.create_request
           response_handler: $r.response
         as: result
+      - target: $r.result
+        method: __getattribute__
+        args: [domain]
+        as: bound_domain
+      - target:
+          module_path: operator
+          attribute: is_
+        method: is_
+        args: [$r.bound_domain, $fixture.handler_app_session]
+        as: domain_same
       - target:
           module_path: builtins
           attribute: getattr
@@ -1704,9 +1739,8 @@ tests:
         type:
           module_path: tiferet.contexts.app
           class_name: AppSessionContext
-      - outcome: result
-        attribute: domain
-        equals: $mock.app_session
+      - outcome: domain_same
+        equals: true
       - outcome: result
         attribute: get_dependency
         equals: $r.resolver_get
@@ -1839,3 +1873,169 @@ tests:
         equals: false
       - outcome: has_create_session_request
         equals: false
+
+  build_logger_handler_falls_back_when_list_all_unresolvable:
+    conditions:
+      mocks:
+        handlers:
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+        event:
+          module_path: tiferet.events.logging
+          class_name: ListAllLoggingConfigs
+    execute:
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_cache
+      method: build_cache
+      as: cache
+    - target:
+        module_path: tiferet.interfaces.core
+        class_name: ServiceError
+      method: __call__
+      kwargs:
+        error_code: DI_DEPENDENCY_NOT_REGISTERED
+        message: 'No dependency is registered under the id: logging_list_all_evt.'
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.handlers
+      - get
+      as: get_dependency
+    - target: $r.get_dependency
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_logger_handler
+      method: build_logger_handler
+      args:
+      - $r.cache
+      - $r.get_dependency
+      as: handler
+    - target: $r.handler
+      method: __call__
+      args:
+      - default
+      as: logger
+    - target: $r.cache
+      method: get
+      args:
+      - default
+      - logging
+      - loggers
+      as: cached
+    - target:
+        module_path: operator
+        attribute: is_
+      method: is_
+      args:
+      - $r.cached
+      - $r.logger
+      as: cache_identity
+    assert:
+    - mock: handlers
+      method: get
+      assert_called_once_with:
+        args:
+        - logging_list_all_evt
+        - app
+    - outcome: logger
+      type:
+        module_path: logging
+        class_name: Logger
+    - outcome: cache_identity
+      equals: true
+  build_logger_handler_falls_back_when_execute_raises_service_error:
+    conditions:
+      mocks:
+        handlers:
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+        event:
+          module_path: tiferet.events.logging
+          class_name: ListAllLoggingConfigs
+    execute:
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_cache
+      method: build_cache
+      as: cache
+    - target:
+        module_path: tiferet.interfaces.core
+        class_name: ServiceError
+      method: __call__
+      kwargs:
+        error_code: YAML_FILE_NOT_FOUND
+        message: YAML file not found.
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.handlers
+      - get
+      as: get_dependency
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.event
+      - execute
+      as: execute
+    - target: $r.execute
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target: $r.get_dependency
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.event
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_logger_handler
+      method: build_logger_handler
+      args:
+      - $r.cache
+      - $r.get_dependency
+      as: handler
+    - target: $r.handler
+      method: __call__
+      args:
+      - fallback
+      as: logger
+    - target: $r.cache
+      method: get
+      args:
+      - fallback
+      - logging
+      - loggers
+      as: cached
+    - target:
+        module_path: operator
+        attribute: is_
+      method: is_
+      args:
+      - $r.cached
+      - $r.logger
+      as: cache_identity
+    assert:
+    - mock: event
+      method: execute
+      assert_called_once_with:
+        times: 1
+    - outcome: logger
+      type:
+        module_path: logging
+        class_name: Logger
+    - outcome: cache_identity
+      equals: true
