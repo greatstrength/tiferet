@@ -224,6 +224,44 @@ testers:
           - outcome: request_context_cls
             is: {module_path: tiferet.contexts.request, class_name: RequestContext}
 
+      base_context_not_registered:
+        conditions: {}
+        execute:
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [tiferet.contexts.core]
+            as: core_module
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.core_module, ContextMeta]
+            as: context_meta
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.core_module, BaseContext]
+            as: base_context
+          - target: {module_path: importlib, attribute: import_module}
+            method: import_module
+            args: [builtins]
+            as: builtins_module
+          - target: {module_path: builtins, attribute: getattr}
+            method: getattr
+            args: [$r.builtins_module, object]
+            as: object_cls
+          - target: $r.object_cls
+            method: __getattribute__
+            args: [$r.context_meta, registry]
+            as: registry
+          - target: $r.registry
+            method: values
+            as: registered
+          - target: {module_path: operator, attribute: contains}
+            method: contains
+            args: [$r.registered, $r.base_context]
+            as: base_in_registry
+        assert:
+          - outcome: base_in_registry
+            equals: false
+
       from_domain_via_base_context:
         conditions:
           fixtures: [error]
