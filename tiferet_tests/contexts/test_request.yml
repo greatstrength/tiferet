@@ -161,6 +161,9 @@ tests:
         method: set_feature_id
         args: [g.f2]
       - target: request_context
+        method: set_feature_id
+        args: [null]
+      - target: request_context
         method: set_headers
         args: [{x: y}]
       - target: request_context
@@ -172,7 +175,7 @@ tests:
         equals: sess-1
       - outcome: request_context
         attribute: feature_id
-        equals: g.f2
+        "null": true
       - outcome: request_context
         attribute: headers
         equals: {x: y}
