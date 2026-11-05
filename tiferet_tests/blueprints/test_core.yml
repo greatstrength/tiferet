@@ -1839,3 +1839,169 @@ tests:
         equals: false
       - outcome: has_create_session_request
         equals: false
+
+  build_logger_handler_falls_back_when_list_all_unresolvable:
+    conditions:
+      mocks:
+        handlers:
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+        event:
+          module_path: tiferet.events.logging
+          class_name: ListAllLoggingConfigs
+    execute:
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_cache
+      method: build_cache
+      as: cache
+    - target:
+        module_path: tiferet.interfaces.core
+        class_name: ServiceError
+      method: __call__
+      kwargs:
+        error_code: DI_DEPENDENCY_NOT_REGISTERED
+        message: 'No dependency is registered under the id: logging_list_all_evt.'
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.handlers
+      - get
+      as: get_dependency
+    - target: $r.get_dependency
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_logger_handler
+      method: build_logger_handler
+      args:
+      - $r.cache
+      - $r.get_dependency
+      as: handler
+    - target: $r.handler
+      method: __call__
+      args:
+      - default
+      as: logger
+    - target: $r.cache
+      method: get
+      args:
+      - default
+      - logging
+      - loggers
+      as: cached
+    - target:
+        module_path: operator
+        attribute: is_
+      method: is_
+      args:
+      - $r.cached
+      - $r.logger
+      as: cache_identity
+    assert:
+    - mock: handlers
+      method: get
+      assert_called_once_with:
+        args:
+        - logging_list_all_evt
+        - app
+    - outcome: logger
+      type:
+        module_path: logging
+        class_name: Logger
+    - outcome: cache_identity
+      equals: true
+  build_logger_handler_falls_back_when_execute_raises_service_error:
+    conditions:
+      mocks:
+        handlers:
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+        event:
+          module_path: tiferet.events.logging
+          class_name: ListAllLoggingConfigs
+    execute:
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_cache
+      method: build_cache
+      as: cache
+    - target:
+        module_path: tiferet.interfaces.core
+        class_name: ServiceError
+      method: __call__
+      kwargs:
+        error_code: YAML_FILE_NOT_FOUND
+        message: YAML file not found.
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.handlers
+      - get
+      as: get_dependency
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.event
+      - execute
+      as: execute
+    - target: $r.execute
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target: $r.get_dependency
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.event
+    - target:
+        module_path: tiferet.blueprints.core
+        attribute: build_logger_handler
+      method: build_logger_handler
+      args:
+      - $r.cache
+      - $r.get_dependency
+      as: handler
+    - target: $r.handler
+      method: __call__
+      args:
+      - fallback
+      as: logger
+    - target: $r.cache
+      method: get
+      args:
+      - fallback
+      - logging
+      - loggers
+      as: cached
+    - target:
+        module_path: operator
+        attribute: is_
+      method: is_
+      args:
+      - $r.cached
+      - $r.logger
+      as: cache_identity
+    assert:
+    - mock: event
+      method: execute
+      assert_called_once_with:
+        times: 1
+    - outcome: logger
+      type:
+        module_path: logging
+        class_name: Logger
+    - outcome: cache_identity
+      equals: true

@@ -3255,30 +3255,33 @@ tests:
         method: __getitem__
         args: [seen]
         as: seen
-      - target: {module_path: importlib, attribute: import_module}
-        method: import_module
-        args: [tiferet.contexts.tester_phase]
-        as: phase_mod
-      - target: {module_path: builtins, attribute: getattr}
-        method: getattr
-        args: [$r.phase_mod, __file__]
-        as: phase_file
-      - target: {module_path: pathlib, attribute: Path}
-        method: Path
-        args: [$r.phase_file]
-        as: phase_path
-      - target: $r.phase_path
-        method: read_text
-        kwargs: {encoding: utf-8}
-        as: phase_source
-      - target: {module_path: operator, attribute: contains}
+      - target: $r.runtime
+        method: __getattribute__
+        args:
+        - _call_handle
+        as: call_handle
+      - target: $r.call_handle
+        method: __getattribute__
+        args:
+        - __code__
+        as: call_code
+      - target: $r.call_code
+        method: __getattribute__
+        args:
+        - co_varnames
+        as: call_varnames
+      - target:
+          module_path: operator
+          attribute: contains
         method: contains
-        args: [$r.phase_source, 'def _call_handle(self, kwargs']
-        as: call_handle_sig
+        args:
+        - $r.call_varnames
+        - sample_kwargs
+        as: has_sample_kwargs
     assert:
       - outcome: seen
         equals: {id: NEW_ERROR}
-      - {outcome: call_handle_sig, equals: true}
+      - {outcome: has_sample_kwargs, equals: false}
 
   stage_adds_no_runtime_field_or_step:
     conditions: {}
@@ -3431,6 +3434,18 @@ tests:
         method: count
         args: [phase_conditions]
         as: conditions_count
+      - target: $r.build_code
+        method: __getattribute__
+        args:
+        - co_argcount
+        as: argcount
+      - target:
+          module_path: builtins
+          attribute: len
+        method: len
+        args:
+        - $r.steps
+        as: steps_len
     assert:
       - {outcome: has_stage_field, equals: false}
       - outcome: param_names
@@ -3438,3 +3453,254 @@ tests:
       - outcome: handler_ids
         equals: [conditions, execute, assert]
       - {outcome: conditions_count, equals: 1}
+      - {outcome: argcount, equals: 6}
+      - {outcome: steps_len, equals: 3}
+
+  illegal_keys_and_python_tags_are_rejected:
+    conditions: {}
+    execute:
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs0
+    - target: $r.kwargs0
+      method: __setitem__
+      args:
+      - predicate
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs0
+      raises: true
+      as: bad0
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs1
+    - target: $r.kwargs1
+      method: __setitem__
+      args:
+      - field_normalizers
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs1
+      raises: true
+      as: bad1
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs2
+    - target: $r.kwargs2
+      method: __setitem__
+      args:
+      - side_effect
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs2
+      raises: true
+      as: bad2
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs3
+    - target: $r.kwargs3
+      method: __setitem__
+      args:
+      - eval
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs3
+      raises: true
+      as: bad3
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs4
+    - target: $r.kwargs4
+      method: __setitem__
+      args:
+      - code
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs4
+      raises: true
+      as: bad4
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs5
+    - target: $r.kwargs5
+      method: __setitem__
+      args:
+      - python
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs5
+      raises: true
+      as: bad5
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs6
+    - target: $r.kwargs6
+      method: __setitem__
+      args:
+      - body
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs6
+      raises: true
+      as: bad6
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      kwargs:
+        check: equals
+        outcome: built
+        equals: a
+      as: kwargs7
+    - target: $r.kwargs7
+      method: __setitem__
+      args:
+      - contains
+      - data
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Assertion
+      method: model_validate
+      args:
+      - $r.kwargs7
+      raises: true
+      as: bad7
+    - target:
+        module_path: builtins
+        attribute: str
+      method: str
+      args:
+      - '!!'
+      as: tag_prefix
+    - target: $r.tag_prefix
+      method: __add__
+      args:
+      - python/object:os.system
+      as: tag
+    - target:
+        module_path: builtins
+        attribute: dict
+      method: dict
+      as: tag_kwargs
+    - target: $r.tag_kwargs
+      method: __setitem__
+      args:
+      - body
+      - $r.tag
+    - target:
+        module_path: tiferet.domain.tester_phase
+        class_name: Execution
+      method: __call__
+      kwargs:
+        target: fixture
+        method: format
+        kwargs: $r.tag_kwargs
+      raises: true
+      as: bad_tag
+    assert:
+    - outcome: bad0
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad1
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad2
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad3
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad4
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad5
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad6
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad7
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: bad_tag
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError

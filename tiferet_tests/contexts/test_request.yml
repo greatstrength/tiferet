@@ -310,6 +310,10 @@ tests:
         args: [1]
         as: second
     assert:
+      - outcome: first
+        type: {module_path: tiferet.domain, class_name: DomainObject}
+      - outcome: second
+        type: {module_path: tiferet.domain, class_name: DomainObject}
       - outcome: response
         type: {module_path: builtins, class_name: list}
       - {outcome: response_len, equals: 2}

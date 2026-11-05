@@ -791,7 +791,69 @@ tests:
         method: for_domain
         args: [$r.tester_object_cls]
         as: tester_ctx
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args:
+        - $r.builtins_mod_for_session_dict
+        - type
+        as: type_cls
+      - target: $r.type_cls
+        method: __getattribute__
+        args:
+        - $r.session_cls
+        - __mro__
+        as: session_mro
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args:
+        - tiferet.contexts.request
+        as: request_mod
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args:
+        - $r.request_mod
+        - RequestContext
+        as: request_context_cls
+      - target:
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args:
+        - tiferet.contexts.app
+        as: app_mod
+      - target:
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args:
+        - $r.app_mod
+        - AppSessionContext
+        as: app_context_cls
+      - target:
+          module_path: operator
+          attribute: contains
+        method: contains
+        args:
+        - $r.session_mro
+        - $r.request_context_cls
+        as: is_request
+      - target:
+          module_path: operator
+          attribute: contains
+        method: contains
+        args:
+        - $r.session_mro
+        - $r.app_context_cls
+        as: is_app
     assert:
+      - {outcome: is_request, equals: true}
+      - {outcome: is_app, equals: false}
       - {outcome: session_has, equals: false}
       - outcome: request_ctx
         is: {module_path: tiferet.contexts.request, class_name: RequestContext}
@@ -1099,6 +1161,19 @@ testers:
             method: from_domain
             args: [$fixture.bare_request_tester]
             as: bound
+          - target: $r.bound
+            method: __getattribute__
+            args:
+            - domain
+            as: bound_domain
+          - target:
+              module_path: operator
+              attribute: is_
+            method: is_
+            args:
+            - $r.bound_domain
+            - $fixture.bare_request_tester
+            as: domain_identity
         assert:
           - {outcome: context_has, equals: false}
           - outcome: tester_registered
@@ -1112,9 +1187,7 @@ testers:
             type: {module_path: tiferet.contexts.tester, class_name: TesterContext}
           - outcome: bound
             type: {module_path: tiferet.contexts.tester, class_name: ContextTesterContext}
-          - outcome: bound
-            attribute: domain
-            equals: $fixture.bare_request_tester
+          - {outcome: domain_identity, equals: true}
 
       empty_case_lists_are_no_ops:
         conditions:

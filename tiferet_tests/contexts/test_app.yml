@@ -492,6 +492,793 @@ tests:
       - outcome: constants
         equals: *sample_constants
 
+  app_interface_context_execute_feature:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target:
+        module_path: tiferet.contexts.request
+        class_name: RequestContext
+      method: __call__
+      kwargs:
+        headers:
+          Content-Type: application/json
+        data:
+          key: value
+      as: request
+    - target: $r.app
+      method: execute_feature
+      args:
+      - test_group.test_feature
+      - $r.request
+    assert:
+    - mock: feature
+      method: execute_feature
+      assert_called_once_with:
+        times: 1
+  app_interface_context_handle_error:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.error
+      - format_response
+      as: format_response
+    - target: $r.format_response
+      method: __setattr__
+      args:
+      - return_value
+      - error_code: TEST_ERROR
+        name: Test Error
+        message: This is a test error message.
+    - target:
+        module_path: tiferet.assets
+        class_name: TiferetError
+      method: __call__
+      kwargs:
+        error_code: TEST_ERROR
+        message: This is a test error message.
+      as: error
+    - target: $r.app
+      method: handle_error
+      args:
+      - $r.error
+      raises: true
+      as: failure
+    assert:
+    - outcome: failure
+      type:
+        module_path: tiferet.assets
+        class_name: TiferetAPIError
+    - outcome: failure
+      error_code: TEST_ERROR
+    - outcome: failure
+      attribute: name
+      equals: Test Error
+    - outcome: failure
+      attribute: message
+      equals: This is a test error message.
+  app_interface_context_handle_response:
+    conditions: {}
+    execute:
+    - target:
+        module_path: tiferet.contexts.request
+        class_name: RequestContext
+      method: __call__
+      kwargs:
+        headers:
+          Content-Type: application/json
+        data:
+          key: value
+      as: request
+    - target: $r.request
+      method: __setattr__
+      args:
+      - result
+      - status: success
+        data:
+          key: value
+    - target: $r.request
+      method: handle_response
+      as: response
+    assert:
+    - outcome: response
+      type:
+        module_path: builtins
+        class_name: dict
+    - outcome: response
+      fields:
+        status: success
+        data:
+          key: value
+  app_interface_context_run_invalid:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target:
+        module_path: tiferet.assets
+        class_name: TiferetError
+      method: __call__
+      kwargs:
+        error_code: FEATURE_NOT_FOUND
+        message: 'Feature not found: invalid_group.invalid_feature.'
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.feature
+      - execute_feature
+      as: execute_feature
+    - target: $r.execute_feature
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.error
+      - format_response
+      as: format_response
+    - target: $r.format_response
+      method: __setattr__
+      args:
+      - return_value
+      - error_code: FEATURE_NOT_FOUND
+        name: Feature Not Found
+        message: 'Feature not found: invalid_group.invalid_feature.'
+    - target: $r.app
+      method: run
+      args:
+      - invalid_group.invalid_feature
+      kwargs:
+        headers:
+          Content-Type: application/json
+          interface_id: test
+        data:
+          key: value
+          param: test_param
+      raises: true
+      as: failure
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.logger
+      - error
+      as: logged_error
+    assert:
+    - outcome: failure
+      type:
+        module_path: tiferet.assets
+        class_name: TiferetAPIError
+    - outcome: failure
+      error_code: FEATURE_NOT_FOUND
+    - outcome: failure
+      attribute: name
+      equals: Feature Not Found
+    - outcome: failure
+      attribute: message
+      equals: 'Feature not found: invalid_group.invalid_feature.'
+    - mock: logger_builder
+      method: __call__
+      assert_called_once_with:
+        times: 1
+    - mock: logger
+      method: error
+      assert_called_once_with:
+        times: 1
+  app_interface_context_run_leaks_model_error:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target:
+        module_path: tiferet.domain
+        class_name: ModelError
+      method: __call__
+      kwargs:
+        error_code: INVALID_MODEL_ATTRIBUTE
+        message: 'Invalid attribute: nope.'
+        attribute: nope
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.feature
+      - execute_feature
+      as: execute_feature
+    - target: $r.execute_feature
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target: $r.app
+      method: run
+      args:
+      - test_group.test_feature
+      kwargs:
+        headers:
+          Content-Type: application/json
+        data:
+          key: value
+      raises: true
+      as: failure
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tiferet.assets
+      as: assets
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.assets
+      - TiferetError
+      as: tiferet_error_cls
+    - target: $r.failure
+      method: __getattribute__
+      args:
+      - __class__
+      as: error_class
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - builtins
+      as: builtins_mod
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.builtins_mod
+      - type
+      as: type_cls
+    - target: $r.type_cls
+      method: __getattribute__
+      args:
+      - $r.error_class
+      - __mro__
+      as: error_mro
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.error_mro
+      - $r.tiferet_error_cls
+      as: is_tiferet_error
+    assert:
+    - outcome: failure
+      type:
+        module_path: tiferet.domain
+        class_name: ModelError
+    - outcome: failure
+      error_code: INVALID_MODEL_ATTRIBUTE
+    - outcome: is_tiferet_error
+      equals: false
+    - mock: error
+      method: format_response
+      assert_called_once_with:
+        times: 0
+  app_interface_context_run_leaks_service_error:
+    conditions:
+      fixtures:
+      - app_interface
+      mocks:
+        feature:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+        error:
+          module_path: tiferet.contexts.error
+          class_name: ErrorContext
+        logger_builder:
+          module_path: unittest.mock
+          class_name: Mock
+        logger:
+          module_path: logging
+          class_name: Logger
+    execute:
+    - target: $mock.logger_builder
+      method: __setattr__
+      args:
+      - return_value
+      - $mock.logger
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tests.contexts.test_app
+      as: paired
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.paired
+      - app_interface_context
+      as: fixture_function
+    - target: $r.fixture_function
+      method: __getattribute__
+      args:
+      - __wrapped__
+      as: fixture_factory
+    - target: $r.fixture_factory
+      method: __call__
+      args:
+      - $fixture.app_interface
+      - $mock.feature
+      - $mock.error
+      - $mock.logger_builder
+      as: app
+    - target:
+        module_path: tiferet.interfaces.core
+        class_name: ServiceError
+      method: __call__
+      kwargs:
+        error_code: YAML_FILE_LOAD_ERROR
+        message: Failed to parse YAML file.
+        module_path: tiferet.utils.yaml
+        class_name: YamlLoader
+        target_method: load
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.feature
+      - execute_feature
+      as: execute_feature
+    - target: $r.execute_feature
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target: $r.app
+      method: run
+      args:
+      - test_group.test_feature
+      kwargs:
+        headers:
+          Content-Type: application/json
+        data:
+          key: value
+      raises: true
+      as: failure
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tiferet.assets
+      as: assets
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.assets
+      - TiferetError
+      as: tiferet_error_cls
+    - target: $r.failure
+      method: __getattribute__
+      args:
+      - __class__
+      as: error_class
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - builtins
+      as: builtins_mod
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.builtins_mod
+      - type
+      as: type_cls
+    - target: $r.type_cls
+      method: __getattribute__
+      args:
+      - $r.error_class
+      - __mro__
+      as: error_mro
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.error_mro
+      - $r.tiferet_error_cls
+      as: is_tiferet_error
+    assert:
+    - outcome: failure
+      type:
+        module_path: tiferet.interfaces.core
+        class_name: ServiceError
+    - outcome: failure
+      error_code: YAML_FILE_LOAD_ERROR
+    - outcome: is_tiferet_error
+      equals: false
+    - mock: error
+      method: format_response
+      assert_called_once_with:
+        times: 0
+    - outcome: failure
+      attribute: class_name
+      equals: YamlLoader
+  app_session_context_handle_error_delegates_to_raise_error_handler:
+    conditions: &id001
+      fixtures:
+      - app_interface
+      mocks:
+        handlers:
+          module_path: unittest.mock
+          class_name: Mock
+        resolver:
+          module_path: unittest.mock
+          class_name: Mock
+    execute:
+    - target:
+        module_path: tiferet.assets
+        class_name: TiferetAPIError
+      method: __call__
+      kwargs:
+        error_code: INJECTED_ERROR
+        name: Injected Error
+        message: Injected error message.
+      as: api_error
+    - target:
+        module_path: tiferet.assets
+        class_name: TiferetError
+      method: __call__
+      kwargs:
+        error_code: INJECTED_ERROR
+        message: injected
+      as: error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.handlers
+      - return_value
+      as: handler_bag
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.handler_bag
+      - raise_error
+      as: raise_error
+    - target: $r.raise_error
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.api_error
+    - target:
+        module_path: tiferet.contexts.app
+        class_name: AppSessionContext
+      method: from_domain
+      args:
+      - $fixture.app_interface
+      kwargs:
+        get_dependency: $mock.resolver
+        raise_error_handler: $r.raise_error
+      as: app
+    - target: $r.app
+      method: handle_error
+      args:
+      - $r.error
+      raises: true
+      as: failure
+    - target: $r.raise_error
+      method: assert_called_once_with
+      args:
+      - $r.error
+    assert:
+    - outcome: failure
+      type:
+        module_path: tiferet.assets
+        class_name: TiferetAPIError
+  app_session_context_build_logger_formats_tiferet_error:
+    conditions: *id001
+    execute:
+    - target:
+        module_path: tiferet.assets
+        class_name: TiferetError
+      method: __call__
+      kwargs:
+        error_code: LOGGING_CONFIG_FAILED
+        message: Failed to configure logging.
+      as: error
+    - target:
+        module_path: tiferet.assets
+        class_name: TiferetAPIError
+      method: __call__
+      kwargs:
+        error_code: LOGGING_CONFIG_FAILED
+        name: Logging Config Failed
+        message: Failed to configure logging.
+      as: api_error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.handlers
+      - return_value
+      as: handler_bag
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.handler_bag
+      - build_logger
+      as: build_logger
+    - target: $r.build_logger
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.error
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $mock.handlers
+      - return_value
+      as: handler_bag
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.handler_bag
+      - raise_error
+      as: raise_error
+    - target: $r.raise_error
+      method: __setattr__
+      args:
+      - side_effect
+      - $r.api_error
+    - target:
+        module_path: tiferet.contexts.app
+        class_name: AppSessionContext
+      method: from_domain
+      args:
+      - $fixture.app_interface
+      kwargs:
+        get_dependency: $mock.resolver
+        build_logger_handler: $r.build_logger
+        raise_error_handler: $r.raise_error
+      as: app
+    - target: $r.app
+      method: build_logger
+      raises: true
+      as: failure
+    - target: $r.raise_error
+      method: assert_called_once_with
+      args:
+      - $r.error
+    assert:
+    - outcome: failure
+      type:
+        module_path: tiferet.assets
+        class_name: TiferetAPIError
+    - outcome: failure
+      error_code: LOGGING_CONFIG_FAILED
+
 testers:
   test_app_session_context:
     module_path: &app_module tiferet.contexts.app

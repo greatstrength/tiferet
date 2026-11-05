@@ -380,3 +380,146 @@ tests:
       - {outcome: has_replace_module, equals: false}
       - {outcome: list_has_list_all, equals: false}
       - {outcome: list_has_get_dependency, equals: false}
+
+  context_omits_domain_type:
+    conditions: {}
+    execute:
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - tiferet.contexts.tester_cli
+      as: module
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.module
+      - TesterCliSessionContext
+      as: context_cls
+    - target:
+        module_path: importlib
+        attribute: import_module
+      method: import_module
+      args:
+      - builtins
+      as: builtins_mod
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.builtins_mod
+      - type
+      as: type_cls
+    - target: $r.type_cls
+      method: __getattribute__
+      args:
+      - $r.context_cls
+      - __dict__
+      as: namespace
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.namespace
+      - domain_type
+      as: declares_domain
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.module
+      - __file__
+      as: file
+    - target:
+        module_path: pathlib
+        attribute: Path
+      method: Path
+      args:
+      - $r.file
+      as: path
+    - target: $r.path
+      method: read_text
+      kwargs:
+        encoding: utf-8
+      as: source
+    - target: $r.source
+      method: split
+      args:
+      - class TesterCliSessionContext
+      - 1
+      as: parts
+    - target: $r.parts
+      method: __getitem__
+      args:
+      - 1
+      as: class_tail
+    - target: $r.class_tail
+      method: split
+      args:
+      - "\n"
+      - 1
+      as: class_parts
+    - target: $r.class_parts
+      method: __getitem__
+      args:
+      - 1
+      as: body
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - module.run
+      as: contains_0
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - AppSessionContext.run
+      as: contains_1
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - super().run
+      as: contains_2
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - CliSessionContext.run
+      as: contains_3
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.body
+      - TesterCliSessionContext(
+      as: contains_4
+    assert:
+    - outcome: declares_domain
+      equals: false
+    - outcome: contains_0
+      equals: false
+    - outcome: contains_1
+      equals: true
+    - outcome: contains_2
+      equals: false
+    - outcome: contains_3
+      equals: false
+    - outcome: contains_4
+      equals: false
