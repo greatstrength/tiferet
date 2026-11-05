@@ -1175,3 +1175,295 @@ tests:
     assert:
       - outcome: bad_new
         type: {module_path: tiferet.domain, class_name: ModelError}
+
+  stage_ref_rules:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_mod
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.phase_mod, STAGE_REF]
+        as: stage_ref
+      - target: $r.stage_ref
+        method: __add__
+        args: ['.file']
+        as: stage_file_literal
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Test}
+        method: __call__
+        kwargs:
+          id: phase.stage_in_fixture
+          name: phase.stage_in_fixture
+          conditions: {stage: true, fixtures: [staged]}
+          executes:
+            - {target: $r.stage_ref, method: path, data_key: directory}
+          asserts:
+            - {check: message, outcome: directory, message: x}
+        as: fixture_inner
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+          root_fixtures:
+            staged:
+              module_path: tiferet.domain.error
+              class_name: ErrorMessage
+              attributes: {lang: en_US, text: $r.stage_ref}
+        as: fixture_runtime
+      - target: $r.fixture_runtime
+        method: run
+        args: [$r.fixture_inner]
+        raises: true
+        as: fixture_failed
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: runtime
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
+        method: __call__
+        kwargs: {stage: true}
+        as: staged_conditions
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.staged_conditions]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: str}
+          method: str
+          args: [$r.stage_file_literal]
+          data_key: literal
+        as: literal_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.literal_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: stage, method: path}
+        as: bare_stage_exec
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.bare_stage_exec]
+        raises: true
+        as: bare_stage_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: close}
+        as: bad_close
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.bad_close]
+        raises: true
+        as: bad_close_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: arrange}
+        as: bad_arrange
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.bad_arrange]
+        raises: true
+        as: bad_arrange_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: message, kwargs: {level: DEBUG}}
+        as: bad_message
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.bad_message]
+        raises: true
+        as: bad_message_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: read, kwargs: {name: missing.txt}}
+        as: bad_read
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.bad_read]
+        raises: true
+        as: bad_read_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: path, args: ['..']}
+        as: bad_path
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.bad_path]
+        raises: true
+        as: bad_path_failed
+      - target: $r.runtime
+        method: close_stage
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: pos_runtime
+      - target: $r.pos_runtime
+        method: handle_conditions
+        args: [$r.staged_conditions]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: getattr}
+          method: getattr
+          args: [$r.stage_ref, close]
+        as: stage_in_args
+      - target: $r.pos_runtime
+        method: handle_execution
+        args: [$r.stage_in_args]
+        raises: true
+        as: stage_in_args_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: str}
+          method: str
+          kwargs: {value: $r.stage_ref}
+        as: stage_in_kwargs
+      - target: $r.pos_runtime
+        method: handle_execution
+        args: [$r.stage_in_kwargs]
+        raises: true
+        as: stage_in_kwargs_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs:
+          target: {module_path: builtins, attribute: str}
+          method: str
+          args: [[$r.stage_ref]]
+        as: stage_in_nested
+      - target: $r.pos_runtime
+        method: handle_execution
+        args: [$r.stage_in_nested]
+        raises: true
+        as: stage_in_nested_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: exists, kwargs: {name: config.yaml}, data_key: present}
+        as: exists_exec
+      - target: $r.pos_runtime
+        method: handle_execution
+        args: [$r.exists_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: path, data_key: directory}
+        as: path_exec
+      - target: $r.pos_runtime
+        method: handle_execution
+        args: [$r.path_exec]
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: equals, outcome: directory, equals: $r.stage_ref}
+        as: equals_stage
+      - target: $r.pos_runtime
+        method: handle_assertion
+        args: [$r.equals_stage]
+        raises: true
+        as: equals_stage_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: equals, outcome: directory, equals: [$r.stage_ref]}
+        as: equals_list_stage
+      - target: $r.pos_runtime
+        method: handle_assertion
+        args: [$r.equals_list_stage]
+        raises: true
+        as: equals_list_stage_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Assertion}
+        method: __call__
+        kwargs: {check: fields, outcome: directory, fields: {real: $r.stage_ref}}
+        as: fields_stage
+      - target: $r.pos_runtime
+        method: handle_assertion
+        args: [$r.fields_stage]
+        raises: true
+        as: fields_stage_failed
+      - target: {module_path: tiferet.domain.tester_phase, class_name: Execution}
+        method: __call__
+        kwargs: {target: $r.stage_ref, method: path, data_key: still_dir}
+        as: still_dir_exec
+      - target: $r.pos_runtime
+        method: handle_execution
+        args: [$r.still_dir_exec]
+      - target: $r.pos_runtime
+        method: close_stage
+      - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
+        method: build_phase_runtime
+        kwargs:
+          session: $fixture.session
+          tester_module_path: tiferet.domain.error
+          tester_class_name: ErrorMessage
+        as: unwired
+      - target: $r.unwired
+        method: __setattr__
+        args: [stage_factory, null]
+      - target: $r.unwired
+        method: handle_conditions
+        args: [$r.staged_conditions]
+        raises: true
+        as: unwired_failed
+    assert:
+      - outcome: fixture_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: fixture_failed
+        message: '$stage'
+      - outcome: session
+        attribute: data
+        fields:
+          literal: '$stage.file'
+      - outcome: bare_stage_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: bare_stage_failed
+        message: not a fixture
+      - outcome: bad_close_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: bad_arrange_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: bad_message_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: bad_read_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: bad_path_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: stage_in_args_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: stage_in_args_failed
+        message: only an execute target
+      - outcome: stage_in_kwargs_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: stage_in_kwargs_failed
+        message: only an execute target
+      - outcome: stage_in_nested_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: stage_in_nested_failed
+        message: only an execute target
+      - outcome: session
+        attribute: data
+        fields:
+          present: false
+      - outcome: equals_stage_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: equals_stage_failed
+        message: only an execute target
+      - outcome: equals_list_stage_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: equals_list_stage_failed
+        message: only an execute target
+      - outcome: fields_stage_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: fields_stage_failed
+        message: only an execute target
+      - outcome: unwired_failed
+        error_code: APP_ERROR
+      - outcome: unwired_failed
+        message: stage_factory
