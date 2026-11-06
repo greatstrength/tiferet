@@ -1,0 +1,228 @@
+{
+  "ly_sha": "230047b81bdc8594098b3992a0a95bda30f65724",
+  "python": "3.13.5",
+  "rows": [
+    {
+      "category": "signature",
+      "mode": "baseline",
+      "native_pass": true,
+      "candidate_names": [
+        "signature_names",
+        "signature_exact"
+      ],
+      "candidate_pass": [
+        true,
+        true
+      ]
+    },
+    {
+      "category": "signature",
+      "mode": "signature_order",
+      "native_pass": false,
+      "candidate_names": [
+        "signature_names",
+        "signature_exact"
+      ],
+      "candidate_pass": [
+        false,
+        false
+      ]
+    },
+    {
+      "category": "signature",
+      "mode": "signature_kind",
+      "native_pass": false,
+      "candidate_names": [
+        "signature_names",
+        "signature_exact"
+      ],
+      "candidate_pass": [
+        true,
+        false
+      ]
+    },
+    {
+      "category": "signature",
+      "mode": "signature_default",
+      "native_pass": false,
+      "candidate_names": [
+        "signature_names",
+        "signature_exact"
+      ],
+      "candidate_pass": [
+        true,
+        false
+      ]
+    },
+    {
+      "category": "annotation",
+      "mode": "baseline",
+      "native_pass": true,
+      "candidate_names": [
+        "annotation_fields",
+        "annotation_exact"
+      ],
+      "candidate_pass": [
+        true,
+        true
+      ]
+    },
+    {
+      "category": "annotation",
+      "mode": "annotation_identity",
+      "native_pass": false,
+      "candidate_names": [
+        "annotation_fields",
+        "annotation_exact"
+      ],
+      "candidate_pass": [
+        true,
+        false
+      ]
+    },
+    {
+      "category": "annotation",
+      "mode": "protocol_field",
+      "native_pass": false,
+      "candidate_names": [
+        "annotation_fields",
+        "annotation_exact"
+      ],
+      "candidate_pass": [
+        false,
+        false
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "baseline",
+      "native_pass": true,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        true,
+        true
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "import_absolute",
+      "native_pass": false,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        false,
+        false
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "import_relative",
+      "native_pass": false,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        true,
+        false
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "import_relative_child",
+      "native_pass": false,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        true,
+        true
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "import_alias",
+      "native_pass": false,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        false,
+        false
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "import_from_root",
+      "native_pass": true,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        true,
+        true
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "comment_only",
+      "native_pass": true,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        false,
+        true
+      ]
+    },
+    {
+      "category": "source",
+      "mode": "ast_literal_only",
+      "native_pass": true,
+      "candidate_names": [
+        "source_substring",
+        "source_ast_patterns"
+      ],
+      "candidate_pass": [
+        true,
+        false
+      ]
+    }
+  ],
+  "candidate_cost": {
+    "signature_names": {
+      "execute_steps": 5,
+      "assertions": 1
+    },
+    "signature_exact": {
+      "execute_steps": 10,
+      "assertions": 3
+    },
+    "annotation_fields": {
+      "execute_steps": 6,
+      "assertions": 1
+    },
+    "annotation_exact": {
+      "execute_steps": 12,
+      "assertions": 2
+    },
+    "source_substring": {
+      "execute_steps": 2,
+      "assertions": 1
+    },
+    "source_ast_patterns": {
+      "execute_steps": 6,
+      "assertions": 3
+    }
+  },
+  "conclusion": "retain-native-pytest-no-new-product-api"
+}

@@ -1,0 +1,328 @@
+fixtures:
+  subject:
+    module_path: experiments.source_contract_efficacy.subjects
+    class_name: ContractSubject
+    attributes:
+      mode: baseline
+tests:
+  signature_names:
+    conditions:
+      fixtures:
+      - subject
+    execute:
+    - target: subject
+      method: function
+      as: function
+    - target:
+        module_path: inspect
+        attribute: signature
+      method: signature
+      args:
+      - $r.function
+      as: signature
+    - target: $r.signature
+      method: __getattribute__
+      args:
+      - parameters
+      as: parameters
+    - target: $r.parameters
+      method: keys
+      as: keys
+    - target:
+        module_path: builtins
+        attribute: list
+      method: list
+      args:
+      - $r.keys
+      as: names
+    assert:
+    - check: equals
+      outcome: names
+      equals: &id001
+      - self
+      - grammar_id
+      - text
+      - tokens
+      - grammars
+      - rewrites
+      - kwargs
+  signature_exact:
+    conditions:
+      fixtures:
+      - subject
+    execute:
+    - target: subject
+      method: function
+      as: function
+    - target:
+        module_path: inspect
+        attribute: signature
+      method: signature
+      args:
+      - $r.function
+      as: signature
+    - target: $r.signature
+      method: __getattribute__
+      args:
+      - parameters
+      as: parameters
+    - target: $r.parameters
+      method: keys
+      as: keys
+    - target:
+        module_path: builtins
+        attribute: list
+      method: list
+      args:
+      - $r.keys
+      as: names
+    - target: $r.parameters
+      method: get
+      args:
+      - text
+      as: text_parameter
+    - target: $r.text_parameter
+      method: __getattribute__
+      args:
+      - kind
+      as: kind
+    - target: $r.kind
+      method: __getattribute__
+      args:
+      - name
+      as: kind_name
+    - target: $r.parameters
+      method: get
+      args:
+      - rewrites
+      as: rewrite_parameter
+    - target: $r.rewrite_parameter
+      method: __getattribute__
+      args:
+      - default
+      as: default
+    assert:
+    - check: equals
+      outcome: names
+      equals: *id001
+    - check: equals
+      outcome: kind_name
+      equals: POSITIONAL_OR_KEYWORD
+    - check: 'null'
+      outcome: default
+  annotation_fields:
+    conditions:
+      fixtures:
+      - subject
+    execute:
+    - target: subject
+      method: profile
+      as: profile
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.profile
+      - __annotations__
+      as: annotations
+    - target: $r.annotations
+      method: keys
+      as: keys
+    - target:
+        module_path: builtins
+        attribute: set
+      method: set
+      args:
+      - $r.keys
+      as: actual_fields
+    - target:
+        module_path: builtins
+        attribute: set
+      method: set
+      args:
+      - - block_tokens
+        - open_delimiters
+        - close_delimiters
+        - newline_token
+        - suppress_newline_in_delimiters
+        - indent_token
+        - dedent_token
+        - tab_size
+      as: expected_fields
+    - target:
+        module_path: operator
+        attribute: eq
+      method: eq
+      args:
+      - $r.actual_fields
+      - $r.expected_fields
+      as: same_fields
+    assert:
+    - check: equals
+      outcome: same_fields
+      equals: true
+  annotation_exact:
+    conditions:
+      fixtures:
+      - subject
+    execute:
+    - target: subject
+      method: profile
+      as: profile
+    - target:
+        module_path: builtins
+        attribute: getattr
+      method: getattr
+      args:
+      - $r.profile
+      - __annotations__
+      as: annotations
+    - target: $r.annotations
+      method: keys
+      as: keys
+    - target:
+        module_path: builtins
+        attribute: set
+      method: set
+      args:
+      - $r.keys
+      as: actual_fields
+    - target:
+        module_path: builtins
+        attribute: set
+      method: set
+      args:
+      - - block_tokens
+        - open_delimiters
+        - close_delimiters
+        - newline_token
+        - suppress_newline_in_delimiters
+        - indent_token
+        - dedent_token
+        - tab_size
+      as: expected_fields
+    - target:
+        module_path: operator
+        attribute: eq
+      method: eq
+      args:
+      - $r.actual_fields
+      - $r.expected_fields
+      as: same_fields
+    - target: subject
+      method: apply
+      as: apply
+    - target:
+        module_path: inspect
+        attribute: signature
+      method: signature
+      args:
+      - $r.apply
+      as: signature
+    - target: $r.signature
+      method: __getattribute__
+      args:
+      - parameters
+      as: parameters
+    - target: $r.parameters
+      method: get
+      args:
+      - profile
+      as: parameter
+    - target: $r.parameter
+      method: __getattribute__
+      args:
+      - annotation
+      as: annotation
+    - target:
+        module_path: operator
+        attribute: is_
+      method: is_
+      args:
+      - $r.annotation
+      - $r.profile
+      as: same_annotation
+    assert:
+    - check: equals
+      outcome: same_fields
+      equals: true
+    - check: equals
+      outcome: same_annotation
+      equals: true
+  source_substring:
+    conditions:
+      fixtures:
+      - subject
+    execute:
+    - target: subject
+      method: source
+      as: source
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.source
+      - tiferet_ly.domain
+      as: found
+    assert:
+    - check: equals
+      outcome: found
+      equals: false
+  source_ast_patterns:
+    conditions:
+      fixtures:
+      - subject
+    execute:
+    - target: subject
+      method: source
+      as: source
+    - target:
+        module_path: ast
+        attribute: parse
+      method: parse
+      args:
+      - $r.source
+      as: tree
+    - target:
+        module_path: ast
+        attribute: dump
+      method: dump
+      args:
+      - $r.tree
+      as: dump
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.dump
+      - ImportFrom(module='domain'
+      as: forbidden_0
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.dump
+      - ImportFrom(module='tiferet_ly.domain'
+      as: forbidden_1
+    - target:
+        module_path: operator
+        attribute: contains
+      method: contains
+      args:
+      - $r.dump
+      - alias(name='tiferet_ly.domain'
+      as: forbidden_2
+    assert:
+    - check: equals
+      outcome: forbidden_0
+      equals: false
+    - check: equals
+      outcome: forbidden_1
+      equals: false
+    - check: equals
+      outcome: forbidden_2
+      equals: false
