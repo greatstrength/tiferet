@@ -1,0 +1,268 @@
+fixtures:
+  formatter:
+    module_path: &domain_logging tiferet.domain.logging
+    class_name: Formatter
+    attributes:
+      id: simple
+      name: Simple Formatter
+      description: A simple logging formatter.
+      format: '%(asctime)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handler:
+    module_path: *domain_logging
+    class_name: Handler
+    attributes:
+      id: console
+      name: Console Handler
+      description: A console logging handler.
+      module_path: logging
+      class_name: StreamHandler
+      level: INFO
+      formatter: simple
+      stream: ext://sys.stdout
+  invalid_handler:
+    module_path: *domain_logging
+    class_name: Handler
+    attributes:
+      id: bad
+      name: Bad Handler
+      module_path: invalid.module
+      class_name: NonExistentHandler
+      level: INFO
+      formatter: simple
+  logger_root:
+    module_path: *domain_logging
+    class_name: Logger
+    attributes: &root_logger
+      id: root
+      name: ''
+      description: Root logger.
+      level: DEBUG
+      handlers: [console]
+      propagate: false
+      is_root: true
+  invalid_logger:
+    module_path: *domain_logging
+    class_name: Logger
+    attributes:
+      <<: *root_logger
+      handlers: [bad]
+  logging_settings:
+    module_path: &settings_module tiferet.domain
+    class_name: &settings_class LoggingSettings
+    attributes:
+      formatters: [$fixture.formatter]
+      handlers: [$fixture.handler]
+      loggers: [$fixture.logger_root]
+  invalid_settings:
+    module_path: *settings_module
+    class_name: *settings_class
+    attributes:
+      formatters: [$fixture.formatter]
+      handlers: [$fixture.invalid_handler]
+      loggers: [$fixture.invalid_logger]
+  cache_context:
+    module_path: tiferet.contexts.cache
+    class_name: CacheContext
+    attributes: {}
+
+tests:
+  logging_context_build_logger_success:
+    conditions:
+      fixtures: [formatter, handler, logger_root, logging_settings]
+    execute:
+      - &from_settings
+        target: &logging_context {module_path: tiferet.contexts.logging, class_name: LoggingContext}
+        method: from_domain
+        args: [$fixture.logging_settings]
+        kwargs:
+          logger_id: root
+        as: logging_context
+      - target: $r.logging_context
+        method: build_logger
+        as: logger
+    assert:
+      - outcome: logger
+        type: &std_logger {module_path: logging, class_name: Logger}
+      - outcome: logger
+        attribute: name
+        equals: root
+
+  logging_context_create_logger_success:
+    conditions:
+      fixtures: [formatter, handler, logger_root, logging_settings]
+    execute:
+      - *from_settings
+      - target: logging_settings
+        method: format_config
+        as: config
+      - target: $r.logging_context
+        method: create_logger
+        kwargs:
+          logger_id: root
+          logging_config: $r.config
+        as: logger
+    assert:
+      - outcome: logger
+        type: *std_logger
+      - outcome: logger
+        attribute: name
+        equals: root
+
+  logging_context_create_logger_invalid_config:
+    conditions:
+      fixtures: [formatter, handler, logger_root, logging_settings]
+    execute:
+      - *from_settings
+      - target: $r.logging_context
+        method: create_logger
+        kwargs:
+          logger_id: root
+          logging_config:
+            version: 1
+            formatters: {}
+            handlers:
+              invalid:
+                class: InvalidHandlerClass
+                level: INFO
+            root:
+              level: DEBUG
+              handlers: [invalid]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type: &tiferet_error {module_path: tiferet.assets, class_name: TiferetError}
+      - outcome: failed
+        error_code: LOGGING_CONFIG_FAILED
+
+  logging_context_build_logger_error:
+    conditions:
+      fixtures: [formatter, invalid_handler, invalid_logger, invalid_settings]
+    execute:
+      - target: *logging_context
+        method: from_domain
+        args: [$fixture.invalid_settings]
+        kwargs:
+          logger_id: root
+        as: invalid_context
+      - target: $r.invalid_context
+        method: build_logger
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type: *tiferet_error
+      - outcome: failed
+        error_code: LOGGING_CONFIG_FAILED
+
+  logging_context_domain_type_registered:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.logging]
+        as: logging_module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.logging_module, LoggingContext]
+        as: context_cls
+    assert:
+      - outcome: context_cls
+        attribute: domain_type
+        is: {module_path: *settings_module, class_name: *settings_class}
+
+  add_default_logging_settings_seeds_cache:
+    conditions: {}
+    execute:
+      - target: &add_default {module_path: tiferet.contexts.logging, attribute: add_default_logging_settings}
+        method: add_default_logging_settings
+        args:
+          - formatters:
+              - id: default
+                name: Default Formatter
+                format: '%(message)s'
+            handlers:
+              - id: default
+                name: Default Handler
+                module_path: logging
+                class_name: NullHandler
+                level: INFO
+                formatter: default
+            loggers:
+              - id: root
+                name: ''
+                level: INFO
+                handlers: [default]
+                is_root: true
+        as: decorator
+      - &cache_module
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - &base_build
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - &wrap
+        target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: wrapped
+      - target: $r.wrapped
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [default, logging]
+        as: result
+    assert:
+      - outcome: result
+        type: {module_path: *settings_module, class_name: *settings_class}
+
+  add_default_logging_settings_returns_callable:
+    conditions: {}
+    execute:
+      - target: *add_default
+        method: add_default_logging_settings
+        args: [{}]
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+    assert:
+      - outcome: wrapped
+        type: {module_path: types, class_name: FunctionType}
+
+  get_default_logging_settings_returns_seeded:
+    conditions:
+      fixtures: [formatter, handler, logger_root, logging_settings, cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [default, $fixture.logging_settings, logging]
+      - target: &get_default {module_path: tiferet.contexts.logging, attribute: get_default_logging_settings}
+        method: get_default_logging_settings
+        args: [$fixture.cache_context]
+        as: result
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.result, $fixture.logging_settings]
+        as: same
+    assert:
+      - outcome: same
+        equals: true
+
+  get_default_logging_settings_returns_none_when_absent:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: *get_default
+        method: get_default_logging_settings
+        args: [$fixture.cache_context]
+        as: result
+    assert:
+      - outcome: result
+        "null": true

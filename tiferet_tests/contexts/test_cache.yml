@@ -1,0 +1,319 @@
+fixtures:
+  cache_context:
+    module_path: &cache_module tiferet.contexts.cache
+    class_name: &cache_class CacheContext
+    attributes: {}
+  seeded_cache:
+    module_path: *cache_module
+    class_name: *cache_class
+    attributes:
+      cache: &initial_cache
+        key1: value1
+        key2: value2
+
+tests:
+  init_with_initial_cache:
+    conditions:
+      fixtures: [seeded_cache]
+    execute:
+      - target: seeded_cache
+        method: get_by_prefix
+        as: root
+    assert:
+      - outcome: root
+        equals: *initial_cache
+
+  init_without_initial_cache:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: get_by_prefix
+        as: root
+    assert:
+      - outcome: cache_context
+        attribute: _cache
+        equals: {}
+
+  get_existing_key:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [test_key, test_value]
+      - target: cache_context
+        method: get
+        args: [test_key]
+        as: value
+    assert:
+      - outcome: value
+        equals: test_value
+
+  get_existing_key_with_prefix:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [my_error, err_val, app, errors]
+      - target: cache_context
+        method: get
+        args: [my_error, app, errors]
+        as: value
+    assert:
+      - outcome: value
+        equals: err_val
+
+  get_non_existent_key:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: get
+        args: [non_existent_key]
+        as: value
+    assert:
+      - outcome: value
+        "null": true
+
+  get_non_existent_namespace:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: get
+        args: [any_key, missing, namespace]
+        as: value
+    assert:
+      - outcome: value
+        "null": true
+
+  set:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [new_key, new_value]
+      - target: cache_context
+        method: get
+        args: [new_key]
+        as: value
+    assert:
+      - outcome: value
+        equals: new_value
+
+  set_with_prefix:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [svc, val, app, services]
+      - target: cache_context
+        method: get
+        args: [svc, app, services]
+        as: value
+      - target: cache_context
+        method: get
+        args: [svc]
+        as: root_value
+    assert:
+      - outcome: value
+        equals: val
+      - outcome: root_value
+        "null": true
+
+  delete_existing_key:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [to_delete, value]
+      - target: cache_context
+        method: delete
+        args: [to_delete]
+      - target: cache_context
+        method: get
+        args: [to_delete]
+        as: value
+    assert:
+      - outcome: value
+        "null": true
+
+  delete_existing_key_with_prefix:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [a, 1, app, errors]
+      - target: cache_context
+        method: set
+        args: [b, 2, app, errors]
+      - target: cache_context
+        method: delete
+        args: [a, app, errors]
+      - target: cache_context
+        method: get
+        args: [a, app, errors]
+        as: deleted
+      - target: cache_context
+        method: get
+        args: [b, app, errors]
+        as: sibling
+    assert:
+      - outcome: deleted
+        "null": true
+      - outcome: sibling
+        equals: 2
+
+  delete_non_existent_key:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: delete
+        args: [non_existent_key]
+      - target: cache_context
+        method: get
+        args: [non_existent_key]
+        as: value
+    assert:
+      - outcome: value
+        "null": true
+
+  delete_non_existent_namespace:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: delete
+        args: [key, missing, ns]
+    assert:
+      - outcome: cache_context
+        attribute: _cache
+        equals: {}
+
+  clear:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [key1, value1]
+      - target: cache_context
+        method: set
+        args: [key2, value2, app, errors]
+      - target: cache_context
+        method: clear
+    assert:
+      - outcome: cache_context
+        attribute: _cache
+        equals: {}
+
+  multiple_operations:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [a, 1]
+      - target: cache_context
+        method: set
+        args: [b, 2]
+      - target: cache_context
+        method: get
+        args: [a]
+        as: a_set
+      - target: cache_context
+        method: get
+        args: [b]
+        as: b_set
+      - target: cache_context
+        method: delete
+        args: [a]
+      - target: cache_context
+        method: get
+        args: [a]
+        as: a_deleted
+      - target: cache_context
+        method: get
+        args: [b]
+        as: b_kept
+      - target: cache_context
+        method: clear
+      - target: cache_context
+        method: get
+        args: [b]
+        as: b_cleared
+    assert:
+      - outcome: a_set
+        equals: 1
+      - outcome: b_set
+        equals: 2
+      - outcome: a_deleted
+        "null": true
+      - outcome: b_kept
+        equals: 2
+      - outcome: b_cleared
+        "null": true
+
+  get_by_prefix_matches:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [di, svc1, app, services]
+      - target: cache_context
+        method: set
+        args: [error, svc2, app, services]
+      - target: cache_context
+        method: set
+        args: [cli, const, app, constants]
+      - target: cache_context
+        method: get_by_prefix
+        args: [app, services]
+        as: result
+    assert:
+      - outcome: result
+        equals:
+          di: svc1
+          error: svc2
+
+  get_by_prefix_no_match:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [other, value]
+      - target: cache_context
+        method: get_by_prefix
+        args: [app, services]
+        as: result
+    assert:
+      - outcome: result
+        equals: {}
+
+  get_by_prefix_root:
+    conditions:
+      fixtures: [cache_context]
+    execute:
+      - target: cache_context
+        method: set
+        args: [r1, v1]
+      - target: cache_context
+        method: set
+        args: [r2, v2]
+      - target: cache_context
+        method: get_by_prefix
+        as: result
+    assert:
+      - outcome: result
+        equals:
+          r1: v1
+          r2: v2

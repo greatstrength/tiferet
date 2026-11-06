@@ -1,0 +1,2005 @@
+fixtures:
+  feature:
+    module_path: &domain tiferet.domain
+    class_name: &feature_class Feature
+    attributes:
+      id: test_group.test_feature
+      group_id: test_group
+      feature_key: test_feature
+      name: Test Feature
+      description: A feature for testing purposes.
+      steps: []
+  coercing_feature:
+    module_path: *domain
+    class_name: *feature_class
+    attributes:
+      id: calc.add
+      name: Add
+      params_schema: {a: int, b: float}
+      steps: []
+  int_feature:
+    module_path: *domain
+    class_name: *feature_class
+    attributes:
+      id: calc.add
+      name: Add
+      params_schema: {a: int}
+      steps: []
+  two_int_feature:
+    module_path: *domain
+    class_name: *feature_class
+    attributes:
+      id: calc.add
+      name: Add
+      params_schema: {a: int, b: int}
+      steps: []
+  request_empty:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {}
+  request_x5:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {x: 5}
+  request_x_neg:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {x: -1}
+  request_advanced:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {mode: advanced}
+  request_a_str:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: '5'}
+  request_ab_str:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: '5', b: '2'}
+  request_a_notint:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: notint}
+  request_ab_xy:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes:
+      data: {a: x, b: y}
+  middleware_a:
+    module_path: &mw_module tiferet.contexts.request
+    class_name: &mw_class RequestContext
+    attributes: {data: {}}
+  middleware_b:
+    module_path: *mw_module
+    class_name: *mw_class
+    attributes: {data: {}}
+
+tests:
+  evaluate_condition_none_returns_true:
+    conditions:
+      fixtures: [request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: [null, $fixture.request_empty]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: true
+
+  evaluate_condition_empty_returns_true:
+    conditions:
+      fixtures: [request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['', $fixture.request_empty]
+        as: result_0
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['   ', $fixture.request_empty]
+        as: result_1
+    assert:
+      - outcome: result_0
+        equals: true
+      - outcome: result_1
+        equals: true
+
+  evaluate_condition_true_expression:
+    conditions:
+      fixtures: [request_x5]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x > 0', $fixture.request_x5]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: true
+
+  evaluate_condition_false_expression:
+    conditions:
+      fixtures: [request_x_neg]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x > 0', $fixture.request_x_neg]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: false
+
+  evaluate_condition_string_equality:
+    conditions:
+      fixtures: [request_advanced]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ["$r.mode == 'advanced'", $fixture.request_advanced]
+        as: result_0
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ["$r.mode == 'basic'", $fixture.request_advanced]
+        as: result_1
+    assert:
+      - outcome: result_0
+        equals: true
+      - outcome: result_1
+        equals: false
+
+  evaluate_condition_missing_key_returns_false:
+    conditions:
+      fixtures: [request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x > 0', $fixture.request_empty]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: false
+
+  evaluate_condition_invalid_expression_returns_false:
+    conditions:
+      fixtures: [request_x5]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: evaluate_condition}
+        method: evaluate_condition
+        args: ['$r.x >>>!!! invalid', $fixture.request_x5]
+        as: result_0
+    assert:
+      - outcome: result_0
+        equals: false
+
+  validate_request_no_schema_is_noop:
+    conditions:
+      fixtures: [feature, request_a_str]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.feature, $fixture.request_a_str]
+    assert:
+      - outcome: request_a_str
+        attribute: data
+        equals: {a: '5'}
+
+  validate_request_coerces_data:
+    conditions:
+      fixtures: [coercing_feature, request_ab_str]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.coercing_feature, $fixture.request_ab_str]
+    assert:
+      - outcome: request_ab_str
+        attribute: data
+        fields:
+          a: 5
+          b: 2.0
+
+  validate_request_invalid_data_raises:
+    conditions:
+      fixtures: [int_feature, request_a_notint]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.int_feature, $fixture.request_a_notint]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type: &tiferet_error {module_path: tiferet.assets, class_name: TiferetError}
+      - outcome: failed
+        error_code: REQUEST_VALIDATION_FAILED
+
+  validate_request_missing_required_carries_context:
+    conditions:
+      fixtures: [int_feature, request_empty]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.int_feature, $fixture.request_empty]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        type: *tiferet_error
+      - outcome: failed
+        error_code: REQUEST_VALIDATION_FAILED
+      - outcome: failed
+        attribute: kwargs
+        fields:
+          feature_id: calc.add
+          violations: [{field: a}]
+
+  validate_request_aggregates_multiple_violations:
+    conditions:
+      fixtures: [two_int_feature, request_ab_xy]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: validate_request}
+        method: validate_request
+        args: [$fixture.two_int_feature, $fixture.request_ab_xy]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: REQUEST_VALIDATION_FAILED
+      - outcome: failed
+        attribute: kwargs
+        fields:
+          violations: [{field: a}, {field: b}]
+
+  compose_step_middleware_both_empty:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[], []]
+        as: result
+    assert:
+      - outcome: result
+        equals: []
+
+  compose_step_middleware_feature_only:
+    conditions:
+      fixtures: [middleware_a]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[$fixture.middleware_a], []]
+        as: result
+    assert:
+      - outcome: result
+        equals: [$fixture.middleware_a]
+
+  compose_step_middleware_step_only:
+    conditions:
+      fixtures: [middleware_b]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[], [$fixture.middleware_b]]
+        as: result
+    assert:
+      - outcome: result
+        equals: [$fixture.middleware_b]
+
+  compose_step_middleware_feature_first:
+    conditions:
+      fixtures: [middleware_a, middleware_b]
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [[$fixture.middleware_a], [$fixture.middleware_b]]
+        as: result
+    assert:
+      - outcome: result
+        equals: [$fixture.middleware_a, $fixture.middleware_b]
+
+  compose_step_middleware_none_inputs:
+    conditions: {}
+    execute:
+      - target: {module_path: tiferet.contexts.feature, attribute: compose_step_middleware}
+        method: compose_step_middleware
+        args: [null, null]
+        as: result
+    assert:
+      - outcome: result
+        equals: []
+
+  feature_cache_prefix_value:
+    conditions: {}
+    execute:
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.feature]
+        as: module
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.module, FEATURE_CACHE_PREFIX]
+        as: prefix
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.prefix]
+        as: size
+      - target: $r.prefix
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.prefix
+        method: __getitem__
+        args: [1]
+        as: second
+    assert:
+      - outcome: prefix
+        type: {module_path: builtins, class_name: tuple}
+      - outcome: size
+        equals: 2
+      - outcome: first
+        equals: app
+      - outcome: second
+        equals: features
+
+  add_default_features_seeds_cache:
+    conditions: {}
+    execute:
+      - target: &add_features {module_path: tiferet.contexts.feature, attribute: add_default_features}
+        method: add_default_features
+        args:
+          - test_group.test_feature:
+              group_id: test_group
+              feature_key: test_feature
+              name: Test Feature
+              steps: []
+        as: decorator
+      - &cache_module
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.contexts.cache]
+        as: cache_module
+      - &base_build
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.cache_module, CacheContext]
+        as: base_build
+      - &wrap
+        target: $r.decorator
+        method: __call__
+        args: [$r.base_build]
+        as: build_cache
+      - &build
+        target: $r.build_cache
+        method: __call__
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [test_group.test_feature, app, features]
+        as: feature
+    assert:
+      - outcome: feature
+        type: {module_path: *domain, class_name: *feature_class}
+      - outcome: feature
+        fields:
+          id: test_group.test_feature
+          name: Test Feature
+
+  add_default_features_empty_catalog:
+    conditions: {}
+    execute:
+      - target: *add_features
+        method: add_default_features
+        args: [{}]
+        as: decorator
+      - *cache_module
+      - *base_build
+      - *wrap
+      - *build
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, features]
+        as: features
+    assert:
+      - outcome: features
+        equals: {}
+
+  # --- Saito nested-class __wrapped__ ports (Chief 2026-11-05) ---
+
+  resolve_step_event_without_flags:
+    conditions: {}
+    execute:
+      - &import_paired
+        target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tests.contexts.test_feature]
+        as: paired
+      - &load_cmd_fx
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, test_command]
+        as: cmd_fx
+      - &unwrap_cmd
+        target: $r.cmd_fx
+        method: __getattribute__
+        args: [__wrapped__]
+        as: cmd_factory
+      - &call_cmd
+        target: $r.cmd_factory
+        method: __call__
+        as: test_command
+      - &load_svc_fx
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, services_context]
+        as: svc_fx
+      - &unwrap_svc
+        target: $r.svc_fx
+        method: __getattribute__
+        args: [__wrapped__]
+        as: svc_factory
+      - &call_svc
+        target: $r.svc_factory
+        method: __call__
+        args: [$r.test_command]
+        as: services
+      - &load_feat_fx
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, feature]
+        as: feat_fx
+      - &unwrap_feat
+        target: $r.feat_fx
+        method: __getattribute__
+        args: [__wrapped__]
+        as: feat_factory
+      - &call_feat
+        target: $r.feat_factory
+        method: __call__
+        as: feature
+      - &load_ctx_fx
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.paired, feature_context]
+        as: ctx_fx
+      - &unwrap_ctx
+        target: $r.ctx_fx
+        method: __getattribute__
+        args: [__wrapped__]
+        as: ctx_factory
+      - &call_ctx
+        target: $r.ctx_factory
+        method: __call__
+        args: [$r.services, $r.feature]
+        as: ctx
+      - &get_dep
+        target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.services, get_dependency]
+        as: get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Test Command, service_id: test_command}
+        as: step
+      - target: $r.ctx
+        method: resolve_step_event
+        args: [$r.step]
+        as: event
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.event, $r.test_command]
+        as: same
+      - target: $r.get_dep
+        method: assert_called_once_with
+        args: [test_command]
+        as: called
+    assert:
+      - outcome: same
+        equals: true
+      - outcome: called
+        "null": true
+
+  resolve_step_event_with_flags:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Test Command, service_id: test_command, flags: [flag1, flag2]}
+        as: step
+      - target: $r.ctx
+        method: resolve_step_event
+        args: [$r.step]
+        as: event
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.event, $r.test_command]
+        as: same
+      - target: $r.get_dep
+        method: assert_called_once_with
+        args: [test_command, flag1, flag2]
+        as: called
+    assert:
+      - outcome: same
+        equals: true
+      - outcome: called
+        "null": true
+
+  resolve_step_event_only_feature_flags:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Test Command, service_id: test_command, flags: []}
+        as: step
+      - target: $r.ctx
+        method: resolve_step_event
+        args: [$r.step]
+        kwargs: {feature_flags: [feature_flag]}
+        as: event
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.event, $r.test_command]
+        as: same
+      - target: $r.get_dep
+        method: assert_called_once_with
+        args: [test_command, feature_flag]
+        as: called
+    assert:
+      - outcome: same
+        equals: true
+      - outcome: called
+        "null": true
+
+  resolve_step_event_only_step_flags:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Test Command, service_id: test_command, flags: [command_flag]}
+        as: step
+      - target: $r.ctx
+        method: resolve_step_event
+        args: [$r.step]
+        as: event
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.event, $r.test_command]
+        as: same
+      - target: $r.get_dep
+        method: assert_called_once_with
+        args: [test_command, command_flag]
+        as: called
+    assert:
+      - outcome: same
+        equals: true
+      - outcome: called
+        "null": true
+
+  resolve_step_event_with_combined_flags:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs:
+          name: Test Command
+          service_id: test_command
+          flags: [command_flag_1, command_flag_2]
+        as: step
+      - target: $r.ctx
+        method: resolve_step_event
+        args: [$r.step]
+        kwargs: {feature_flags: [feature_flag_1, feature_flag_2]}
+        as: event
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.event, $r.test_command]
+        as: same
+      - target: $r.get_dep
+        method: assert_called_once_with
+        args: [test_command, feature_flag_1, feature_flag_2, command_flag_1, command_flag_2]
+        as: called
+    assert:
+      - outcome: same
+        equals: true
+      - outcome: called
+        "null": true
+
+  resolve_step_event_failed:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.assets, class_name: TiferetError}
+        method: __call__
+        kwargs:
+          error_code: TEST_ERROR
+          message: 'Feature command not found in services: non_existent_command'
+        as: missing
+      - target: $r.get_dep
+        method: __setattr__
+        args: [side_effect, $r.missing]
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Missing Command, service_id: non_existent_command, flags: [flagX]}
+        as: step
+      - target: $r.ctx
+        method: resolve_step_event
+        args: [$r.step]
+        raises: true
+        as: failure
+      - target: $r.failure
+        method: __getattribute__
+        args: [kwargs]
+        as: err_kwargs
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.err_kwargs, get]
+        as: kwargs_get
+      - target: $r.kwargs_get
+        method: __call__
+        args: [service_id]
+        as: service_id
+    assert:
+      - outcome: failure
+        error_code: FEATURE_STEP_LOADING_FAILED
+      - outcome: service_id
+        equals: non_existent_command
+      - outcome: failure
+        message: 'Failed to load feature step: non_existent_command'
+
+  resolve_middleware:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: $r.ctx
+        method: resolve_middleware
+        args: [[mw_one, mw_two]]
+        as: middleware
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.middleware]
+        as: size
+      - target: $r.middleware
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.middleware
+        method: __getitem__
+        args: [1]
+        as: second
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.first, $r.test_command]
+        as: first_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.second, $r.test_command]
+        as: second_same
+      - target: $r.get_dep
+        method: __getattribute__
+        args: [call_count]
+        as: calls
+    assert:
+      - outcome: size
+        equals: 2
+      - outcome: first_same
+        equals: true
+      - outcome: second_same
+        equals: true
+      - outcome: calls
+        equals: 2
+
+  resolve_middleware_empty:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: $r.ctx
+        method: resolve_middleware
+        args: [[]]
+        as: middleware
+      - target: $r.get_dep
+        method: assert_not_called
+        as: quiet
+    assert:
+      - outcome: middleware
+        equals: []
+      - outcome: quiet
+        "null": true
+
+  resolve_middleware_failed:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.assets, class_name: TiferetError}
+        method: __call__
+        kwargs:
+          error_code: TEST_ERROR
+          message: 'Middleware not found in services: missing_mw'
+        as: missing
+      - target: $r.get_dep
+        method: __setattr__
+        args: [side_effect, $r.missing]
+      - target: $r.ctx
+        method: resolve_middleware
+        args: [[missing_mw]]
+        raises: true
+        as: failure
+      - target: $r.failure
+        method: __getattribute__
+        args: [kwargs]
+        as: err_kwargs
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.err_kwargs, get]
+        as: kwargs_get
+      - target: $r.kwargs_get
+        method: __call__
+        args: [service_id]
+        as: service_id
+    assert:
+      - outcome: failure
+        error_code: MIDDLEWARE_LOADING_FAILED
+      - outcome: service_id
+        equals: missing_mw
+      - outcome: failure
+        message: 'Failed to load middleware: missing_mw'
+
+  resolve_middleware_uses_app_flag:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: $r.ctx
+        method: resolve_middleware
+        args: [[mw_one]]
+        as: middleware
+      - target: $r.get_dep
+        method: assert_called_once_with
+        args: [mw_one, app]
+        as: called
+    assert:
+      - outcome: called
+        "null": true
+
+  resolve_middleware_empty_list:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: $r.ctx
+        method: resolve_middleware
+        args: [[]]
+        as: empty
+      - target: $r.ctx
+        method: resolve_middleware
+        args: [null]
+        as: none
+    assert:
+      - outcome: empty
+        equals: []
+      - outcome: none
+        equals: []
+
+  resolve_middleware_resolves_services:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: builtins, class_name: object}
+        method: __call__
+        as: sentinel
+      - target: $r.get_dep
+        method: __setattr__
+        args: [return_value, $r.sentinel]
+      - target: $r.ctx
+        method: resolve_middleware
+        args: [[mw_a, mw_b]]
+        as: result
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.result]
+        as: size
+      - target: $r.result
+        method: __getitem__
+        args: [0]
+        as: first
+      - target: $r.result
+        method: __getitem__
+        args: [1]
+        as: second
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.first, $r.sentinel]
+        as: first_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.second, $r.sentinel]
+        as: second_same
+    assert:
+      - outcome: size
+        equals: 2
+      - outcome: first_same
+        equals: true
+      - outcome: second_same
+        equals: true
+
+  execute_step:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.request
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: $r.ctx
+        method: execute_step
+        args: [$r.test_command, $r.request, $r.data]
+      - target: $r.request
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        equals: {status: success, data: {key: value}}
+
+  execute_step_with_error:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: null}}
+        as: request
+      - target: $r.request
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: $r.ctx
+        method: execute_step
+        args: [$r.test_command, $r.request, $r.data]
+        raises: true
+        as: failure
+    assert:
+      - outcome: failure
+        error_code: KEY_NOT_FOUND
+      - outcome: failure
+        message: 'No key provided for command execution.'
+
+  execute_step_with_data_key:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.request
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: $r.ctx
+        method: execute_step
+        args: [$r.test_command, $r.request, $r.data]
+        kwargs: {data_key: response_data}
+      - target: $r.request
+        method: __getattribute__
+        args: [data]
+        as: data_after
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.data_after, get]
+        as: data_get
+      - target: $r.data_get
+        method: __call__
+        args: [response_data]
+        as: stored
+    assert:
+      - outcome: stored
+        equals: {status: success, data: {key: value}}
+
+  execute_step_with_pass_on_error:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: null}}
+        as: request
+      - target: $r.request
+        method: __getattribute__
+        args: [data]
+        as: data
+      - target: $r.ctx
+        method: execute_step
+        args: [$r.test_command, $r.request, $r.data]
+        kwargs: {pass_on_error: true}
+      - target: $r.request
+        method: handle_response
+        as: response
+      - target: {module_path: builtins, attribute: bool}
+        method: bool
+        args: [$r.response]
+        as: truthy
+    assert:
+      - outcome: truthy
+        equals: false
+
+  execute_feature:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Test Command, service_id: test_command}
+        as: step
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: append
+        args: [$r.step]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.ctx
+        method: execute_feature
+        args: [$r.request]
+      - target: $r.request
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        equals: {status: success, data: {key: value}}
+
+  execute_feature_with_request_parameter:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core_assets
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core_assets, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [key]
+        as: r_key
+      - target: {module_path: builtins, attribute: dict}
+        method: dict
+        kwargs: {param: $r.r_key}
+        as: parameters
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs:
+          name: Test Command
+          service_id: test_command
+          parameters: $r.parameters
+          data_key: response_data
+        as: step
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: append
+        args: [$r.step]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.ctx
+        method: execute_feature
+        args: [$r.request]
+      - target: $r.request
+        method: __getattribute__
+        args: [data]
+        as: data_after
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.data_after, get]
+        as: data_get
+      - target: $r.data_get
+        method: __call__
+        args: [response_data]
+        as: stored
+    assert:
+      - outcome: stored
+        equals: {status: success, data: {key: value, param: value}}
+
+  execute_feature_with_pass_on_error:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Test Command, service_id: test_command, pass_on_error: true}
+        as: step
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: append
+        args: [$r.step]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: null}}
+        as: request
+      - target: $r.ctx
+        method: execute_feature
+        args: [$r.request]
+      - target: $r.request
+        method: handle_response
+        as: response
+      - target: {module_path: builtins, attribute: bool}
+        method: bool
+        args: [$r.response]
+        as: truthy
+    assert:
+      - outcome: truthy
+        equals: false
+
+  execute_feature_accepts_flags:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Test Command, service_id: test_command}
+        as: step
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: append
+        args: [$r.step]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.ctx
+        method: execute_feature
+        args: [$r.request, flag_a, flag_b]
+      - target: $r.request
+        method: handle_response
+        as: response
+    assert:
+      - outcome: response
+        equals: {status: success, data: {key: value}}
+
+  resolve_feature_steps_yields_steps:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Step A, service_id: test_command}
+        as: step_a
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Step B, service_id: test_command}
+        as: step_b
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: extend
+        args: [[$r.step_a, $r.step_b]]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.ctx
+        method: resolve_feature_steps
+        args: [$r.request]
+        as: steps_iter
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [$r.steps_iter]
+        as: resolved
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.resolved]
+        as: size
+      - target: $r.resolved
+        method: __getitem__
+        args: [0]
+        as: row0
+      - target: $r.resolved
+        method: __getitem__
+        args: [1]
+        as: row1
+      - target: $r.row0
+        method: __getitem__
+        args: [0]
+        as: ev0
+      - target: $r.row0
+        method: __getitem__
+        args: [1]
+        as: st0
+      - target: $r.row0
+        method: __getitem__
+        args: [2]
+        as: params0
+      - target: $r.row1
+        method: __getitem__
+        args: [0]
+        as: ev1
+      - target: $r.row1
+        method: __getitem__
+        args: [1]
+        as: st1
+      - target: $r.row1
+        method: __getitem__
+        args: [2]
+        as: params1
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.ev0, $r.test_command]
+        as: ev0_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.st0, $r.step_a]
+        as: st0_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.ev1, $r.test_command]
+        as: ev1_same
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.st1, $r.step_b]
+        as: st1_same
+    assert:
+      - outcome: size
+        equals: 2
+      - outcome: ev0_same
+        equals: true
+      - outcome: st0_same
+        equals: true
+      - outcome: params0
+        equals: {}
+      - outcome: ev1_same
+        equals: true
+      - outcome: st1_same
+        equals: true
+      - outcome: params1
+        equals: {}
+
+  resolve_feature_steps_skips_false_condition:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Skipped, service_id: test_command, condition: '$r.x > 100'}
+        as: skipped
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Executed, service_id: test_command}
+        as: executed
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: extend
+        args: [[$r.skipped, $r.executed]]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value, x: 5}}
+        as: request
+      - target: $r.ctx
+        method: resolve_feature_steps
+        args: [$r.request]
+        as: steps_iter
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [$r.steps_iter]
+        as: resolved
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.resolved]
+        as: size
+      - target: $r.resolved
+        method: __getitem__
+        args: [0]
+        as: row0
+      - target: $r.row0
+        method: __getitem__
+        args: [1]
+        as: st0
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.st0, $r.executed]
+        as: same
+    assert:
+      - outcome: size
+        equals: 1
+      - outcome: same
+        equals: true
+
+  resolve_feature_steps_yields_true_condition:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Conditional, service_id: test_command, condition: '$r.x > 0'}
+        as: step
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: append
+        args: [$r.step]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value, x: 5}}
+        as: request
+      - target: $r.ctx
+        method: resolve_feature_steps
+        args: [$r.request]
+        as: steps_iter
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [$r.steps_iter]
+        as: resolved
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.resolved]
+        as: size
+      - target: $r.resolved
+        method: __getitem__
+        args: [0]
+        as: row0
+      - target: $r.row0
+        method: __getitem__
+        args: [1]
+        as: st0
+      - target: {module_path: operator, attribute: is_}
+        method: is_
+        args: [$r.st0, $r.step]
+        as: same
+    assert:
+      - outcome: size
+        equals: 1
+      - outcome: same
+        equals: true
+
+  resolve_feature_steps_parses_parameters:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core_assets
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core_assets, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [key]
+        as: r_key
+      - target: {module_path: builtins, attribute: dict}
+        method: dict
+        kwargs: {param: $r.r_key}
+        as: parameters
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs:
+          name: Parameterized
+          service_id: test_command
+          parameters: $r.parameters
+        as: step
+      - target: $r.feature
+        method: __getattribute__
+        args: [steps]
+        as: steps
+      - target: $r.steps
+        method: append
+        args: [$r.step]
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: resolved_value}}
+        as: request
+      - target: $r.ctx
+        method: resolve_feature_steps
+        args: [$r.request]
+        as: steps_iter
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [$r.steps_iter]
+        as: resolved
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.resolved]
+        as: size
+      - target: $r.resolved
+        method: __getitem__
+        args: [0]
+        as: row0
+      - target: $r.row0
+        method: __getitem__
+        args: [2]
+        as: params
+    assert:
+      - outcome: size
+        equals: 1
+      - outcome: params
+        equals: {param: resolved_value}
+
+  resolve_feature_steps_empty_feature:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.ctx
+        method: resolve_feature_steps
+        args: [$r.request]
+        as: steps_iter
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [$r.steps_iter]
+        as: resolved
+      - target: {module_path: builtins, attribute: len}
+        method: len
+        args: [$r.resolved]
+        as: size
+    assert:
+      - outcome: size
+        equals: 0
+
+  resolve_feature_steps_combines_flags_additively:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.domain, class_name: EventFeatureStep}
+        method: __call__
+        kwargs: {name: Flagged Step, service_id: test_command, flags: [step_flag]}
+        as: step
+      - target: {module_path: tiferet.domain, class_name: Feature}
+        method: __call__
+        kwargs:
+          id: test.step_flags
+          name: Step Flags
+          flags: [feature_flag]
+          steps: [$r.step]
+        as: flagged_feature
+      - target: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
+        method: from_domain
+        args: [$r.flagged_feature]
+        kwargs: {get_dependency: $r.get_dep}
+        as: flagged_ctx
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.flagged_ctx
+        method: resolve_feature_steps
+        args: [$r.request, exec_flag]
+        as: steps_iter
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        args: [$r.steps_iter]
+        as: resolved
+      - target: $r.get_dep
+        method: assert_called_once_with
+        args: [test_command, exec_flag, feature_flag, step_flag]
+        as: called
+    assert:
+      - outcome: called
+        "null": true
+
+  parse_request_parameter_request_ref_success:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core_assets
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core_assets, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [key]
+        as: r_key
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {key: value}}
+        as: request
+      - target: $r.ctx
+        method: parse_request_parameter
+        args: [$r.r_key, $r.request]
+        as: result
+    assert:
+      - outcome: result
+        equals: value
+
+  parse_request_parameter_request_not_found:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core_assets
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core_assets, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [key]
+        as: r_key
+      - target: $r.ctx
+        method: parse_request_parameter
+        args: [$r.r_key, null]
+        raises: true
+        as: failure
+      - target: $r.failure
+        method: __getattribute__
+        args: [kwargs]
+        as: err_kwargs
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.err_kwargs, get]
+        as: kwargs_get
+      - target: $r.kwargs_get
+        method: __call__
+        args: [parameter]
+        as: parameter
+    assert:
+      - outcome: failure
+        error_code: REQUEST_NOT_FOUND
+      - outcome: parameter
+        equals: $r.r_key
+
+  parse_request_parameter_key_missing:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+      - target: {module_path: importlib, attribute: import_module}
+        method: import_module
+        args: [tiferet.assets.core]
+        as: core_assets
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.core_assets, REQUEST_REF_PREFIX]
+        as: r_prefix
+      - target: $r.r_prefix
+        method: __add__
+        args: [missing]
+        as: r_missing
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {}}
+        as: request
+      - target: $r.ctx
+        method: parse_request_parameter
+        args: [$r.r_missing, $r.request]
+        raises: true
+        as: failure
+      - target: $r.failure
+        method: __getattribute__
+        args: [kwargs]
+        as: err_kwargs
+      - target: {module_path: builtins, attribute: getattr}
+        method: getattr
+        args: [$r.err_kwargs, get]
+        as: kwargs_get
+      - target: $r.kwargs_get
+        method: __call__
+        args: [parameter]
+        as: parameter
+    assert:
+      - outcome: failure
+        error_code: PARAMETER_NOT_FOUND
+      - outcome: parameter
+        equals: $r.r_missing
+
+  parse_request_parameter_defaults_to_identity:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *load_ctx_fx
+      - *unwrap_ctx
+      - *call_ctx
+      - *get_dep
+
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {}}
+        as: request
+      - target: $r.ctx
+        method: parse_request_parameter
+        args: [plain_value, $r.request]
+        as: result
+    assert:
+      - outcome: result
+        equals: plain_value
+
+  build_step_chain_sync:
+    conditions: {}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - target: {module_path: builtins, attribute: list}
+        method: list
+        as: empty_mw
+      - target: {module_path: tiferet.contexts.feature, attribute: build_step_chain}
+        method: build_step_chain
+        args: [$r.test_command, {key: value}, $r.empty_mw]
+        kwargs: {is_async: false}
+        as: chain
+      - target: $r.chain
+        method: __call__
+        as: result
+    assert:
+      - outcome: result
+        equals: {status: success, data: {key: value}}
+
+  parse_request_parameter_delegates_to_injected_parser:
+    conditions:
+      mocks:
+        spy_parser: {module_path: unittest.mock, class_name: Mock}
+    execute:
+      - *import_paired
+      - *load_cmd_fx
+      - *unwrap_cmd
+      - *call_cmd
+      - *load_svc_fx
+      - *unwrap_svc
+      - *call_svc
+      - *load_feat_fx
+      - *unwrap_feat
+      - *call_feat
+      - *get_dep
+      - target: $mock.spy_parser
+        method: __setattr__
+        args: [return_value, parsed-value]
+      - target: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
+        method: from_domain
+        args: [$r.feature]
+        kwargs: {get_dependency: $r.get_dep, parse_parameter: $mock.spy_parser}
+        as: ctx
+      - target: {module_path: tiferet.contexts.request, class_name: RequestContext}
+        method: __call__
+        kwargs: {data: {}}
+        as: request
+      - target: $r.ctx
+        method: parse_request_parameter
+        args: ['$env.MY_VAR', $r.request]
+        as: result
+      - target: $mock.spy_parser
+        method: assert_called_once_with
+        args: ['$env.MY_VAR']
+        as: called
+    assert:
+      - outcome: result
+        equals: parsed-value
+      - outcome: called
+        "null": true
