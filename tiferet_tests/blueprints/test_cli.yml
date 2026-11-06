@@ -235,11 +235,11 @@ tests:
         get_parent_args: {module_path: unittest.mock, class_name: Mock}
     execute:
       - target: $mock.list_commands
-        method: __setattr__
-        args: [return_value, [$fixture.add_command]]
+        method: configure_mock
+        kwargs: {return_value: [$fixture.add_command]}
       - target: $mock.get_parent_args
-        method: __setattr__
-        args: [return_value, []]
+        method: configure_mock
+        kwargs: {return_value: []}
       - target: {module_path: tiferet.blueprints.cli, attribute: parse_cli_args_handler}
         method: parse_cli_args_handler
         kwargs: {list_commands: $mock.list_commands, get_parent_args: $mock.get_parent_args}
