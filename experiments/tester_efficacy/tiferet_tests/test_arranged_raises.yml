@@ -1,0 +1,113 @@
+testers:
+  failure_consumer:
+    module_path: experiments.tester_efficacy.tests.test_arranged_raises
+    class_name: FailureConsumer
+    tests:
+      ordinary:
+        conditions:
+          mocks:
+            service:
+              module_path: experiments.tester_efficacy.tests.test_arranged_raises
+              class_name: FailureService
+              context: false
+              return_value:
+                read:
+                  raises:
+                    module_path: builtins
+                    class_name: ValueError
+                    message: driver failed
+        execute:
+        - target: self
+          method: handle
+          kwargs:
+            context: false
+          raises: true
+          as: failure
+        assert:
+        - check: type
+          outcome: failure
+          module_path: builtins
+          class_name: ValueError
+        - check: assert_called_once_with
+          mock: service
+          method: read
+          assert_called_once_with:
+            args:
+            - payload
+        - check: message
+          outcome: failure
+          message: driver failed
+      context_manager:
+        conditions:
+          mocks:
+            service:
+              module_path: experiments.tester_efficacy.tests.test_arranged_raises
+              class_name: FailureService
+              context: true
+              return_value:
+                read:
+                  raises:
+                    module_path: builtins
+                    class_name: ValueError
+                    message: driver failed
+        execute:
+        - target: self
+          method: handle
+          kwargs:
+            context: true
+          raises: true
+          as: failure
+        assert:
+        - check: type
+          outcome: failure
+          module_path: builtins
+          class_name: ValueError
+        - check: assert_called_once_with
+          mock: service
+          method: read
+          assert_called_once_with:
+            args:
+            - payload
+        - check: message
+          outcome: failure
+          message: driver failed
+        - check: assert_called_once_with
+          mock: service
+          method: __enter__
+          assert_called_once_with:
+            times: 1
+        - check: assert_called_once_with
+          mock: service
+          method: __exit__
+          assert_called_once_with:
+            times: 1
+      class_only:
+        conditions:
+          mocks:
+            service:
+              module_path: experiments.tester_efficacy.tests.test_arranged_raises
+              class_name: FailureService
+              context: false
+              return_value:
+                read:
+                  raises:
+                    module_path: builtins
+                    class_name: ValueError
+        execute:
+        - target: self
+          method: handle
+          kwargs:
+            context: false
+          raises: true
+          as: failure
+        assert:
+        - check: type
+          outcome: failure
+          module_path: builtins
+          class_name: ValueError
+        - check: assert_called_once_with
+          mock: service
+          method: read
+          assert_called_once_with:
+            args:
+            - payload
