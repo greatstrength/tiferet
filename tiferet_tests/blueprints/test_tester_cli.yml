@@ -127,4 +127,4 @@ tests:
       - {outcome: exports_alias, equals: true}
       - {outcome: exports_entry, equals: true}
       - {outcome: package_exports_alias, equals: false}
-      - {outcome: version, equals: 2.2.1b1}
+      - {outcome: version, equals: 2.2.2b1}
