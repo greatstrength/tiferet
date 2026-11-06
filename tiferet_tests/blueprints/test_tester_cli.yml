@@ -1,0 +1,130 @@
+fixtures:
+  loader:
+    module_path: tiferet.utils.yaml
+    class_name: YamlLoader
+    attributes: {}
+
+tests:
+  build_cache_seeds_the_catalog:
+    conditions: {}
+    execute:
+      - &build_cache {target: {module_path: tiferet.blueprints.tester_cli, attribute: build_cache}, method: build_cache, as: cache}
+      - {target: $r.cache, method: get_by_prefix, args: [cli, commands], as: commands}
+      - {target: $r.cache, method: get_by_prefix, args: [app, features], as: features}
+      - {target: $r.cache, method: get_by_prefix, args: [app, services], as: services}
+      - {target: $r.cache, method: get_by_prefix, args: [app, constants], as: constants}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.commands, module.run], as: has_command}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.features, module.run], as: has_feature}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, get_fixture_evt], as: has_event_0}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, list_fixtures_evt], as: has_event_1}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, get_test_evt], as: has_event_2}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, list_tests_evt], as: has_event_3}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, get_tester_evt], as: has_event_4}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, list_testers_evt], as: has_event_5}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, add_fixture_evt], as: has_event_6}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, update_fixture_evt], as: has_event_7}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, remove_fixture_evt], as: has_event_8}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, add_test_evt], as: has_event_9}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, update_test_evt], as: has_event_10}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, remove_test_evt], as: has_event_11}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, add_tester_evt], as: has_event_12}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, update_tester_evt], as: has_event_13}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, remove_tester_evt], as: has_event_14}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, attach_test_evt], as: has_event_15}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.services, detach_test_evt], as: has_event_16}
+      - {target: $r.services, method: get, args: [di_service], as: di_service}
+      - {target: $r.cache, method: get, args: [tester_cli, app, sessions], as: session}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.session, null], as: session_missing}
+    assert:
+      - {outcome: has_command, equals: true}
+      - {outcome: has_feature, equals: true}
+      - {outcome: has_event_0, equals: true}
+      - {outcome: has_event_1, equals: true}
+      - {outcome: has_event_2, equals: true}
+      - {outcome: has_event_3, equals: true}
+      - {outcome: has_event_4, equals: true}
+      - {outcome: has_event_5, equals: true}
+      - {outcome: has_event_6, equals: true}
+      - {outcome: has_event_7, equals: true}
+      - {outcome: has_event_8, equals: true}
+      - {outcome: has_event_9, equals: true}
+      - {outcome: has_event_10, equals: true}
+      - {outcome: has_event_11, equals: true}
+      - {outcome: has_event_12, equals: true}
+      - {outcome: has_event_13, equals: true}
+      - {outcome: has_event_14, equals: true}
+      - {outcome: has_event_15, equals: true}
+      - {outcome: has_event_16, equals: true}
+      - outcome: di_service
+        attribute: service_id
+        equals: di_service
+      - outcome: constants
+        attribute: di_config
+        equals: unused
+      - {outcome: session_missing, equals: false}
+
+  writer_add_needs_no_config_file:
+    conditions:
+      stage: true
+      fixtures: [loader]
+    execute:
+      - {target: $stage, method: exists, args: [config.yml], as: had_config}
+      - &base_dir {target: $stage, method: path, as: base_dir}
+      - &add_cli
+        target: &tester_cli {module_path: tiferet.blueprints, attribute: build_tester_cli}
+        method: build_tester_cli
+        kwargs:
+          argv: [fixture, add, domain/test_error, error_message, --payload, 'class_name: ErrorMessage', --base-dir, $r.base_dir]
+        as: result
+      - &module_path {target: $stage, method: path, args: [tiferet_tests, domain, test_error.yml], as: module_path}
+      - &load {target: loader, method: load_mapping, args: [$r.module_path], as: loaded}
+    assert:
+      - {outcome: had_config, equals: false}
+      - {outcome: result, equals: $r.module_path}
+      - outcome: loaded
+        equals:
+          fixtures:
+            error_message: {class_name: ErrorMessage}
+
+  writer_get_does_not_replace_the_file:
+    conditions:
+      stage: true
+      fixtures: [loader]
+    execute:
+      - *base_dir
+      - *add_cli
+      - *module_path
+      - {target: loader, method: load_mapping, args: [$r.module_path], as: before}
+      - target: *tester_cli
+        method: build_tester_cli
+        kwargs:
+          argv: [fixture, get, domain/test_error, error_message, --base-dir, $r.base_dir]
+        as: got
+      - {target: loader, method: load_mapping, args: [$r.module_path], as: after}
+    assert:
+      - {outcome: after, equals: $r.before}
+      - outcome: got
+        fields:
+          record:
+            fields: {name: error_message}
+
+  package_exports_and_script:
+    conditions: {}
+    execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.blueprints], as: blueprints}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.blueprints, TesterCLI], as: tester_cli_alias}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.blueprints, build_tester_cli], as: build_tester_cli}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.tester_cli_alias, $r.build_tester_cli], as: same}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.blueprints, __all__], as: blueprints_all}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.blueprints_all, TesterCLI], as: exports_alias}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.blueprints_all, build_tester_cli], as: exports_entry}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet], as: package}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.package, __all__], as: package_all}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.package_all, TesterCLI], as: package_exports_alias}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.package, __version__], as: version}
+    assert:
+      - {outcome: same, equals: true}
+      - {outcome: exports_alias, equals: true}
+      - {outcome: exports_entry, equals: true}
+      - {outcome: package_exports_alias, equals: false}
+      - {outcome: version, equals: 2.2.1b1}

@@ -1,0 +1,92 @@
+tests:
+  build_cache_seeds_admin_cli_commands:
+    conditions: {}
+    execute:
+      - target:
+          module_path: &admin_cli tiferet.blueprints.admin_cli
+          attribute: build_cache
+        method: build_cache
+        as: cache
+      - target: $r.cache
+        method: get_by_prefix
+        args: [cli, commands]
+        as: seeded
+      - target:
+          module_path: operator
+          attribute: contains
+        method: contains
+        args: [$r.seeded, cli.list_commands]
+        as: has_list_commands
+      - target: $r.seeded
+        method: get
+        args: [cli.list_commands]
+        as: list_commands
+    assert:
+      - outcome: cache
+        type:
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+      - outcome: has_list_commands
+        equals: true
+      - outcome: list_commands
+        type:
+          module_path: tiferet.domain
+          class_name: CliCommand
+
+  build_admin_cli_alias:
+    conditions: {}
+    execute:
+      - target: &import_module
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [*admin_cli]
+        as: admin_cli_module
+      - target: &getattr
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.admin_cli_module, AdminCLI]
+        as: alias
+    assert:
+      - outcome: alias
+        is:
+          module_path: *admin_cli
+          class_name: build_admin_cli
+
+  package_exports_admin_blueprints:
+    conditions: {}
+    execute:
+      - target: *import_module
+        method: import_module
+        args: [tiferet.blueprints]
+        as: package
+      - target: *getattr
+        method: getattr
+        args: [$r.package, AdminApp]
+        as: admin_app_alias
+      - target: *getattr
+        method: getattr
+        args: [$r.package, build_admin_app]
+        as: admin_app
+      - target: *getattr
+        method: getattr
+        args: [$r.package, AdminCLI]
+        as: admin_cli_alias
+      - target: *getattr
+        method: getattr
+        args: [$r.package, build_admin_cli]
+        as: admin_cli
+    assert:
+      - outcome: admin_app
+        is: &build_admin_app
+          module_path: tiferet.blueprints.admin
+          class_name: build_admin_app
+      - outcome: admin_app_alias
+        is: *build_admin_app
+      - outcome: admin_cli
+        is: &build_admin_cli
+          module_path: *admin_cli
+          class_name: build_admin_cli
+      - outcome: admin_cli_alias
+        is: *build_admin_cli

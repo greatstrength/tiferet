@@ -1,0 +1,380 @@
+tests:
+  build_cache_returns_cache_context:
+    conditions: {}
+    execute:
+      - target: &build_cache
+          module_path: &app tiferet.blueprints.app
+          attribute: build_cache
+        method: build_cache
+        as: cache
+    assert:
+      - outcome: cache
+        type:
+          module_path: tiferet.contexts.cache
+          class_name: CacheContext
+
+  build_cache_seeds_all_three_catalogs:
+    conditions: {}
+    execute:
+      - target: *build_cache
+        method: build_cache
+        as: cache
+      - target: &import_module
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.assets.error]
+        as: error_assets
+      - target: *import_module
+        method: import_module
+        args: [tiferet.assets.app]
+        as: app_assets
+      - target: &getattr
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$r.error_assets, CORE_DEFAULT_ERRORS]
+        as: default_errors
+      - target: *getattr
+        method: getattr
+        args: [$r.app_assets, CORE_DEFAULT_SERVICES]
+        as: default_services
+      - target: *getattr
+        method: getattr
+        args: [$r.app_assets, CORE_DEFAULT_CONSTANTS]
+        as: default_constants
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, errors]
+        as: errors
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, services]
+        as: services
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, constants]
+        as: constants
+      - target: &len
+          module_path: builtins
+          attribute: len
+        method: len
+        args: [$r.errors]
+        as: error_count
+      - target: *len
+        method: len
+        args: [$r.default_errors]
+        as: default_error_count
+      - target: *len
+        method: len
+        args: [$r.services]
+        as: service_count
+      - target: *len
+        method: len
+        args: [$r.default_services]
+        as: default_service_count
+      - target: *len
+        method: len
+        args: [$r.constants]
+        as: constant_count
+      - target: *len
+        method: len
+        args: [$r.default_constants]
+        as: default_constant_count
+      - target: $r.cache
+        method: get
+        args: [default, logging]
+        as: logging_settings
+    assert:
+      - outcome: error_count
+        equals: $r.default_error_count
+      - outcome: service_count
+        equals: $r.default_service_count
+      - outcome: constant_count
+        equals: $r.default_constant_count
+      - outcome: logging_settings
+        type:
+          module_path: tiferet.contexts.logging
+          class_name: LoggingSettings
+
+  build_cache_seeds_typed_entries_per_catalog:
+    conditions: {}
+    execute:
+      - target: *build_cache
+        method: build_cache
+        as: cache
+      - target: *import_module
+        method: import_module
+        args: [tiferet.assets.app]
+        as: app_assets
+      - target: *getattr
+        method: getattr
+        args: [$r.app_assets, CORE_DEFAULT_CONSTANTS]
+        as: default_constants
+      - target: $r.cache
+        method: get
+        args: [APP_ERROR, app, errors]
+        as: error_app_error
+      - target: $r.cache
+        method: get
+        args: [APP_SESSION_NOT_FOUND, app, errors]
+        as: error_app_session_not_found
+      - target: $r.cache
+        method: get
+        args: [COMMAND_PARAMETER_REQUIRED, app, errors]
+        as: error_command_parameter_required
+      - target: $r.cache
+        method: get
+        args: [CONTEXT_NOT_FOUND, app, errors]
+        as: error_context_not_found
+      - target: $r.cache
+        method: get
+        args: [ERROR_NOT_FOUND, app, errors]
+        as: error_error_not_found
+      - target: $r.cache
+        method: get
+        args: [FEATURE_NOT_FOUND, app, errors]
+        as: error_feature_not_found
+      - target: $r.cache
+        method: get
+        args: [FEATURE_STEP_LOADING_FAILED, app, errors]
+        as: error_feature_step_loading_failed
+      - target: $r.cache
+        method: get
+        args: [INVALID_APP_SESSION_TYPE, app, errors]
+        as: error_invalid_app_session_type
+      - target: $r.cache
+        method: get
+        args: [LOGGER_CREATION_FAILED, app, errors]
+        as: error_logger_creation_failed
+      - target: $r.cache
+        method: get
+        args: [LOGGING_CONFIG_FAILED, app, errors]
+        as: error_logging_config_failed
+      - target: $r.cache
+        method: get
+        args: [MIDDLEWARE_LOADING_FAILED, app, errors]
+        as: error_middleware_loading_failed
+      - target: $r.cache
+        method: get
+        args: [PARAMETER_NOT_FOUND, app, errors]
+        as: error_parameter_not_found
+      - target: $r.cache
+        method: get
+        args: [PARAMETER_PARSING_FAILED, app, errors]
+        as: error_parameter_parsing_failed
+      - target: $r.cache
+        method: get
+        args: [REQUEST_NOT_FOUND, app, errors]
+        as: error_request_not_found
+      - target: $r.cache
+        method: get
+        args: [REQUEST_VALIDATION_FAILED, app, errors]
+        as: error_request_validation_failed
+      - target: $r.cache
+        method: get
+        args: [TEST_PRESET_NOT_FOUND, app, errors]
+        as: error_test_preset_not_found
+      - target: $r.cache
+        method: get
+        args: [PHASE_FIXTURE_NOT_FOUND, app, errors]
+        as: error_phase_fixture_not_found
+      - target: $r.cache
+        method: get
+        args: [PHASE_NAME_COLLISION, app, errors]
+        as: error_phase_name_collision
+      - target: $r.cache
+        method: get
+        args: [PHASE_REFERENCE_NOT_FOUND, app, errors]
+        as: error_phase_reference_not_found
+      - target: $r.cache
+        method: get
+        args: [PHASE_HANDLER_MISMATCH, app, errors]
+        as: error_phase_handler_mismatch
+      - target: $r.cache
+        method: get
+        args: [PHASE_STEP_FAILED, app, errors]
+        as: error_phase_step_failed
+      - target: $r.cache
+        method: get
+        args: [PHASE_CHECK_FAILED, app, errors]
+        as: error_phase_check_failed
+      - target: $r.cache
+        method: get
+        args: [di_service, app, services]
+        as: service_di_service
+      - target: $r.cache
+        method: get
+        args: [error_service, app, services]
+        as: service_error_service
+      - target: $r.cache
+        method: get
+        args: [logging_service, app, services]
+        as: service_logging_service
+      - target: $r.cache
+        method: get
+        args: [feature_service, app, services]
+        as: service_feature_service
+      - target: $r.cache
+        method: get
+        args: [get_error_evt, app, services]
+        as: service_get_error_evt
+      - target: $r.cache
+        method: get
+        args: [get_feature_evt, app, services]
+        as: service_get_feature_evt
+      - target: $r.cache
+        method: get
+        args: [logging_list_all_evt, app, services]
+        as: service_logging_list_all_evt
+      - target: $r.cache
+        method: get
+        args: [cli_service, app, services]
+        as: service_cli_service
+      - target: $r.cache
+        method: get
+        args: [list_commands_evt, app, services]
+        as: service_list_commands_evt
+      - target: $r.cache
+        method: get
+        args: [get_parent_args_evt, app, services]
+        as: service_get_parent_args_evt
+      - target: $r.cache
+        method: get
+        args: [di_list_all_configs_evt, app, services]
+        as: service_di_list_all_configs_evt
+      - target: $r.cache
+        method: get
+        args: [logging_middleware, app, services]
+        as: service_logging_middleware
+      - target: $r.cache
+        method: get
+        args: [timing_middleware, app, services]
+        as: service_timing_middleware
+      - target: $r.cache
+        method: get
+        args: [cache_middleware, app, services]
+        as: service_cache_middleware
+      - target: $r.cache
+        method: get_by_prefix
+        args: [app, constants]
+        as: constants
+    assert:
+      - outcome: error_app_error
+        type: &error
+          module_path: tiferet.domain
+          class_name: Error
+      - outcome: error_app_session_not_found
+        type: *error
+      - outcome: error_command_parameter_required
+        type: *error
+      - outcome: error_context_not_found
+        type: *error
+      - outcome: error_error_not_found
+        type: *error
+      - outcome: error_feature_not_found
+        type: *error
+      - outcome: error_feature_step_loading_failed
+        type: *error
+      - outcome: error_invalid_app_session_type
+        type: *error
+      - outcome: error_logger_creation_failed
+        type: *error
+      - outcome: error_logging_config_failed
+        type: *error
+      - outcome: error_middleware_loading_failed
+        type: *error
+      - outcome: error_parameter_not_found
+        type: *error
+      - outcome: error_parameter_parsing_failed
+        type: *error
+      - outcome: error_request_not_found
+        type: *error
+      - outcome: error_request_validation_failed
+        type: *error
+      - outcome: error_test_preset_not_found
+        type: *error
+      - outcome: error_phase_fixture_not_found
+        type: *error
+      - outcome: error_phase_name_collision
+        type: *error
+      - outcome: error_phase_reference_not_found
+        type: *error
+      - outcome: error_phase_handler_mismatch
+        type: *error
+      - outcome: error_phase_step_failed
+        type: *error
+      - outcome: error_phase_check_failed
+        type: *error
+      - outcome: service_di_service
+        type: &dependency
+          module_path: tiferet.domain
+          class_name: AppServiceDependency
+      - outcome: service_error_service
+        type: *dependency
+      - outcome: service_logging_service
+        type: *dependency
+      - outcome: service_feature_service
+        type: *dependency
+      - outcome: service_get_error_evt
+        type: *dependency
+      - outcome: service_get_feature_evt
+        type: *dependency
+      - outcome: service_logging_list_all_evt
+        type: *dependency
+      - outcome: service_cli_service
+        type: *dependency
+      - outcome: service_list_commands_evt
+        type: *dependency
+      - outcome: service_get_parent_args_evt
+        type: *dependency
+      - outcome: service_di_list_all_configs_evt
+        type: *dependency
+      - outcome: service_logging_middleware
+        type: *dependency
+      - outcome: service_timing_middleware
+        type: *dependency
+      - outcome: service_cache_middleware
+        type: *dependency
+      - outcome: constants
+        equals: $r.default_constants
+
+  build_cache_specific_service_and_constant_retrievable:
+    conditions: {}
+    execute:
+      - target: *build_cache
+        method: build_cache
+        as: cache
+      - target: $r.cache
+        method: get
+        args: [di_service, app, services]
+        as: service
+      - target: $r.cache
+        method: get
+        args: [cli_config, app, constants]
+        as: cli_config
+    assert:
+      - outcome: service
+        type: *dependency
+      - outcome: service
+        attribute: service_id
+        equals: di_service
+      - outcome: cli_config
+        equals: config.yml
+
+  app_alias_is_build_app:
+    conditions: {}
+    execute:
+      - target: *import_module
+        method: import_module
+        args: [tiferet]
+        as: package
+      - target: *getattr
+        method: getattr
+        args: [$r.package, App]
+        as: alias
+    assert:
+      - outcome: alias
+        is:
+          module_path: *app
+          class_name: build_app

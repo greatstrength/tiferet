@@ -1,0 +1,54 @@
+fixtures:
+  loader:
+    module_path: tiferet.utils.yaml
+    class_name: YamlLoader
+    attributes: {}
+
+tests:
+  add_fixture_creates_only_the_test_module:
+    conditions:
+      stage: true
+      fixtures: [loader]
+    execute:
+      - {target: $stage, method: path, as: base_dir}
+      - target: {module_path: tiferet.blueprints.tester, attribute: add_fixture}
+        method: add_fixture
+        args: [domain/test_error, error_message]
+        kwargs: {payload: {class_name: ErrorMessage}, anchor: error_message, base_dir: $r.base_dir}
+      - {target: $stage, method: path, args: [tiferet_tests, domain, test_error.yml], as: module_path}
+      - {target: loader, method: load_mapping, args: [$r.module_path], as: loaded}
+      - {target: $stage, method: exists, args: [tests], as: has_tests_dir}
+    assert:
+      - outcome: loaded
+        equals:
+          fixtures:
+            error_message: {class_name: ErrorMessage}
+      - {outcome: has_tests_dir, equals: false}
+
+  add_test_keeps_stage_flag:
+    conditions:
+      stage: true
+      fixtures: [loader]
+    execute:
+      - {target: $stage, method: path, as: base_dir}
+      - target: {module_path: tiferet.blueprints.tester, attribute: add_test}
+        method: add_test
+        args: [utils/test_staged, staged]
+        kwargs:
+          fragment: "conditions:\n  stage: true\nexecute:\n  - target: $stage\n    method: path\n    as: directory\nassert:\n  - outcome: directory\n    message: tiferet\n"
+          base_dir: $r.base_dir
+      - {target: $stage, method: path, args: [tiferet_tests, utils, test_staged.yml], as: module_path}
+      - {target: loader, method: load_mapping, args: [$r.module_path], as: stored}
+      - {target: $r.stored, method: __getitem__, args: [tests], as: tests}
+      - {target: $r.tests, method: __getitem__, args: [staged], as: staged}
+      - {target: $r.staged, method: __getitem__, args: [execute], as: execute}
+      - {target: $r.execute, method: __getitem__, args: [0], as: first_step}
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tiferet.contexts.tester_phase], as: phase_mod}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.phase_mod, STAGE_REF], as: stage_ref}
+      - {target: $r.first_step, method: __getitem__, args: [target], as: stored_target}
+    assert:
+      - outcome: staged
+        attribute: conditions
+        equals: {stage: true}
+      - outcome: stored_target
+        equals: $r.stage_ref
