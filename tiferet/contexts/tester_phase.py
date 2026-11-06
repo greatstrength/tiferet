@@ -5,10 +5,12 @@
 # ** core
 import inspect
 import re
+from abc import ABCMeta
 from collections.abc import Mapping
 from contextlib import ExitStack
+from functools import wraps
 from importlib import import_module
-from types import FunctionType, SimpleNamespace
+from types import FunctionType, ModuleType, SimpleNamespace
 from typing import Any, Callable, Dict, List
 from unittest.mock import MagicMock, Mock
 
@@ -27,6 +29,7 @@ from ..domain.tester_phase import (
     ExecutionTarget,
     InstanceFailurePatch,
     PhaseRuntime,
+    ScopedCallSpy,
     Test,
 )
 from ..events.tester_module import TestEvent
@@ -281,6 +284,7 @@ class PhaseRuntimeContext(BaseContext):
         # Built fixtures, arranged mocks, and as keys start empty. No stage is arranged.
         self.fixtures = {}
         self.mocks = {}
+        self.spies = {}
         self.as_keys = set()
         self.steps = []
         self.stage = None
@@ -546,6 +550,86 @@ class PhaseRuntimeContext(BaseContext):
         except BaseException:
             restore()
             raise
+
+    # * method: install_call_spy
+    def _install_call_spy(self, execution: Execution) -> Mock:
+        """Forward actual calls at a declared lookup site with native binding.
+
+        :param execution: The closed spy_calls declaration.
+        :type execution: Execution
+        :return: The observation record; it is not a constructor dependency.
+        :rtype: Mock
+        """
+
+        # Validate the complete declaration and alias before touching a namespace.
+        execution = Execution.model_validate(execution.model_dump())
+        spec = ScopedCallSpy.model_validate(execution.kwargs)
+        if spec.name in self.spies or spec.name in self.mocks or spec.name in self.fixtures:
+            TiferetError.raise_error(a.error.PHASE_NAME_COLLISION_ID, names=[spec.name])
+        target = execution.target
+        owner = import_module(target.module_path)
+        path = (target.attribute or target.class_name).split('.')
+        if target.class_name:
+            path.append(spec.method)
+
+        # Follow only raw declared namespace cells, never a property or __getattr__.
+        for segment in path[:-1]:
+            if type(owner) is not ModuleType and type(owner) not in (type, ABCMeta):
+                TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='A spy path must traverse module or ordinary class namespaces.')
+            if segment not in vars(owner):
+                TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail=f'Missing spy namespace {segment}.')
+            owner = vars(owner)[segment]
+        member = path[-1]
+        is_module = type(owner) is ModuleType
+        if not is_module and type(owner) not in (type, ABCMeta):
+            TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='A spy owner must be a module or an ordinary class.')
+        if target.class_name and is_module:
+            TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='A class spy target must resolve to a class.')
+        descriptor = vars(owner).get(member) if is_module else inspect.getattr_static(owner, member, None)
+        kind = type(descriptor)
+        if kind in (staticmethod, classmethod) and not is_module:
+            function = descriptor.__func__
+        else:
+            function = descriptor
+        if (not isinstance(function, FunctionType) or inspect.iscoroutinefunction(function)
+                or inspect.isgeneratorfunction(function) or inspect.isasyncgenfunction(function)):
+            TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='A spy supports synchronous Python functions and ordinary/static/class methods only.')
+
+        # Mock records the original object references and delegates unchanged.
+        record = Mock(wraps=function)
+
+        @wraps(function)
+        def forward(*args, **kwargs):
+            return record(*args, **kwargs)
+
+        replacement = forward
+        if not is_module and kind in (staticmethod, classmethod):
+            replacement = kind(forward)
+        present = member in vars(owner)
+        original = vars(owner).get(member)
+        setter = ModuleType.__setattr__ if is_module else type.__setattr__
+        deleter = ModuleType.__delattr__ if is_module else type.__delattr__
+        restored = False
+
+        def restore():
+            nonlocal restored
+            if restored:
+                return
+            if present:
+                setter(owner, member, original)
+            elif member in vars(owner):
+                deleter(owner, member)
+            restored = True
+
+        # Share the group3 LIFO lifecycle, including rollback of partial setup.
+        self._patches.callback(restore)
+        try:
+            setter(owner, member, replacement)
+            self.spies[spec.name] = record
+        except BaseException:
+            restore()
+            raise
+        return record
 
     # * method: close_stage
     def close_stage(self, failed: bool = False) -> None:
@@ -900,6 +984,8 @@ class PhaseRuntimeContext(BaseContext):
         '''
 
         # Install only after the target exists. This action does not invoke it.
+        if execution.method == 'spy_calls':
+            return self._install_call_spy(execution)
         if execution.method == 'patch_raises':
             return self._patch_instance_failure(execution)
 
@@ -1264,16 +1350,18 @@ class PhaseRuntimeContext(BaseContext):
         if assertion.check == 'is' and assertion.builtin:
             values['expected'] = BUILTIN_TYPES[assertion.builtin]
         if assertion.check == 'assert_called_once_with':
-            if assertion.mock not in self.mocks:
+            registry = dict(self.mocks)
+            registry.update(self.spies)
+            if assertion.mock not in registry:
                 TiferetError.raise_error(
                     a.error.PHASE_REFERENCE_NOT_FOUND_ID,
                     reference=assertion.mock,
                 )
             # __call__ is the mock's own call record. getattr returns the real function.
             if assertion.method == '__call__':
-                values['method'] = self.mocks[assertion.mock]
+                values['method'] = registry[assertion.mock]
             else:
-                values['method'] = getattr(self.mocks[assertion.mock], assertion.method)
+                values['method'] = getattr(registry[assertion.mock], assertion.method)
             spec = self._resolve_value(assertion.assert_called_once_with)
             if spec.get('times') == 0 and ('args' in spec or 'kwargs' in spec):
                 TiferetError.raise_error(

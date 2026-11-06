@@ -1,0 +1,30 @@
+tests:
+  module_forward:
+    conditions: {}
+    execute:
+    - target:
+        module_path: experiments.tester_efficacy.tests.test_spies
+        attribute: module_echo
+      method: spy_calls
+      kwargs:
+        name: observed
+      as: record
+    - target:
+        module_path: experiments.tester_efficacy.tests.test_spies
+        attribute: module_echo
+      method: module_echo
+      args:
+      - payload
+      - required
+      as: value
+    assert:
+    - check: equals
+      outcome: value
+      equals: payload
+    - check: assert_called_once_with
+      mock: observed
+      method: __call__
+      assert_called_once_with:
+        args:
+        - payload
+        - required

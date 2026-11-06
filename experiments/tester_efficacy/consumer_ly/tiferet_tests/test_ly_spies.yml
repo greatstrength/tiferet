@@ -1,0 +1,305 @@
+tests:
+  unknown_grammar_no_lex:
+    conditions: {}
+    execute:
+    - target:
+        module_path: tiferet_ly.utils.core
+        attribute: lex.lex
+      method: spy_calls
+      kwargs:
+        name: lex_entry
+      as: lex_entry
+    - target:
+        module_path: experiments.tester_efficacy.consumer_ly.fixtures
+        attribute: number_token
+      method: number_token
+      as: number
+    - target:
+        module_path: tiferet_ly.utils.lex
+        class_name: PlyLexer
+      method: __call__
+      as: lexer
+    - target: $r.lexer
+      method: tokenize
+      args:
+      - missing
+      - []
+      - - $r.number
+      - '1'
+      raises: true
+      as: failure
+    assert:
+    - check: error_code
+      outcome: failure
+      error_code: GRAMMAR_NOT_FOUND
+    - check: assert_called_once_with
+      mock: lex_entry
+      method: __call__
+      assert_called_once_with:
+        times: 0
+  reject_lex_rewrites:
+    conditions:
+      stage: true
+    execute:
+    - target: $stage
+      method: path
+      args:
+      - catalogue
+      as: directory
+    - target:
+        module_path: experiments.tester_efficacy.consumer_ly.fixtures
+        attribute: build_app
+      method: build_app
+      args:
+      - $r.directory
+      as: app
+    - target:
+        module_path: tiferet_ly.utils.lex
+        class_name: PlyLexer
+      method: spy_calls
+      kwargs:
+        name: lex_reader
+        method: tokenize
+      as: lex_reader
+    - target:
+        module_path: tiferet_ly.utils.parse
+        class_name: PlyParser
+      method: spy_calls
+      kwargs:
+        name: parse_reader
+        method: parse
+      as: parse_reader
+    - target: $r.app
+      method: run
+      args:
+      - lex.default
+      kwargs:
+        data:
+          grammar_id: arith
+          text: '1'
+          rewrites:
+          - not
+          - a
+          - dict
+      raises: true
+      as: failure
+    - target: $r.failure
+      method: __getattribute__
+      args:
+      - kwargs
+      as: failure_data
+    - target: $r.failure_data
+      method: get
+      args:
+      - violations
+      as: violations
+    - target:
+        module_path: builtins
+        attribute: len
+      method: len
+      args:
+      - $r.violations
+      as: violation_count
+    - target: $r.violations
+      method: __getitem__
+      args:
+      - 0
+      as: violation
+    - target: $r.violation
+      method: get
+      args:
+      - field
+      as: violation_field
+    assert:
+    - check: error_code
+      outcome: failure
+      error_code: REQUEST_VALIDATION_FAILED
+    - check: assert_called_once_with
+      mock: lex_reader
+      method: __call__
+      assert_called_once_with:
+        times: 0
+    - check: assert_called_once_with
+      mock: parse_reader
+      method: __call__
+      assert_called_once_with:
+        times: 0
+    - check: equals
+      outcome: violation_count
+      equals: 1
+    - check: equals
+      outcome: violation_field
+      equals: rewrites
+  reject_parse_rewrites:
+    conditions:
+      stage: true
+    execute:
+    - target: $stage
+      method: path
+      args:
+      - catalogue
+      as: directory
+    - target:
+        module_path: experiments.tester_efficacy.consumer_ly.fixtures
+        attribute: build_app
+      method: build_app
+      args:
+      - $r.directory
+      as: app
+    - target:
+        module_path: tiferet_ly.utils.lex
+        class_name: PlyLexer
+      method: spy_calls
+      kwargs:
+        name: lex_reader
+        method: tokenize
+      as: lex_reader
+    - target:
+        module_path: tiferet_ly.utils.parse
+        class_name: PlyParser
+      method: spy_calls
+      kwargs:
+        name: parse_reader
+        method: parse
+      as: parse_reader
+    - target: $r.app
+      method: run
+      args:
+      - parse.default
+      kwargs:
+        data:
+          grammar_id: arith
+          text: '1'
+          rewrites:
+          - not
+          - a
+          - dict
+      raises: true
+      as: failure
+    - target: $r.failure
+      method: __getattribute__
+      args:
+      - kwargs
+      as: failure_data
+    - target: $r.failure_data
+      method: get
+      args:
+      - violations
+      as: violations
+    - target:
+        module_path: builtins
+        attribute: len
+      method: len
+      args:
+      - $r.violations
+      as: violation_count
+    - target: $r.violations
+      method: __getitem__
+      args:
+      - 0
+      as: violation
+    - target: $r.violation
+      method: get
+      args:
+      - field
+      as: violation_field
+    assert:
+    - check: error_code
+      outcome: failure
+      error_code: REQUEST_VALIDATION_FAILED
+    - check: assert_called_once_with
+      mock: lex_reader
+      method: __call__
+      assert_called_once_with:
+        times: 0
+    - check: assert_called_once_with
+      mock: parse_reader
+      method: __call__
+      assert_called_once_with:
+        times: 0
+    - check: equals
+      outcome: violation_count
+      equals: 1
+    - check: equals
+      outcome: violation_field
+      equals: rewrites
+  parse_stream_forwarding_identity:
+    conditions:
+      stage: true
+    execute:
+    - target: $stage
+      method: path
+      args:
+      - catalogue
+      as: directory
+    - target:
+        module_path: experiments.tester_efficacy.consumer_ly.fixtures
+        attribute: build_app
+      method: build_app
+      args:
+      - $r.directory
+      as: app
+    - target:
+        module_path: tiferet_ly.utils.parse
+        class_name: PlyParser
+      method: spy_calls
+      kwargs:
+        name: parse_reader
+        method: parse
+      as: parse_reader
+    - target:
+        module_path: experiments.tester_efficacy.consumer_ly.fixtures
+        attribute: stream
+      method: stream
+      as: stream
+    - target: $r.app
+      method: run
+      args:
+      - parse.default
+      kwargs:
+        data:
+          grammar_id: arith
+          lexemes: $r.stream
+      as: value
+    - target: $r.parse_reader
+      method: __getattribute__
+      args:
+      - call_args
+      as: call
+    - target:
+        module_path: builtins
+        attribute: list
+      method: list
+      args:
+      - $r.call
+      as: call_parts
+    - target: $r.call_parts
+      method: __getitem__
+      args:
+      - 1
+      as: call_kwargs
+    - target: $r.call_kwargs
+      method: get
+      args:
+      - lexemes
+      as: received
+    - target:
+        module_path: operator
+        attribute: is_
+      method: is_
+      args:
+      - $r.received
+      - $r.stream
+      as: same
+    assert:
+    - check: equals
+      outcome: value
+      equals: 3
+    - check: equals
+      outcome: same
+      equals: true
+    - check: assert_called_once_with
+      mock: parse_reader
+      method: __call__
+      assert_called_once_with:
+        times: 1

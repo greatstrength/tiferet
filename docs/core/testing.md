@@ -51,7 +51,7 @@ A phase is a closed mapping. This layer starts after `safe_load`. Anchors, alias
 
 `execute` is a non-empty list. Each item's keys are only `target`, `method`, `args`, `kwargs`, `as`, `raises`, and `dependencies`. `args` defaults to `[]`. `kwargs` defaults to `{}`. `raises` defaults to false. `target` is `self`, a fixture name, `$fixture.<name>`, `$r.<key>`, `$mock.<name>`, `$stage` (only when the test has `stage: true`), `{module_path, class_name}` for the class itself, or `{module_path, attribute}` for a module-level function. A bare name is a fixture, not a prior `as` key. A prior result is only `$r.<key>`.
 
-This experimental build reserves three harness actions: `new`, `handle`, and `patch_raises` (the bounded live-instance action below). Every other name is a call. `new`, `handle`, and `patch_raises` are not `getattr`. A real method with either name cannot be called through this dialect.
+This experimental build reserves four harness actions: `new`, `handle`, `patch_raises`, and `spy_calls` (the bounded live-instance action below). Every other name is a call. `new`, `handle`, `patch_raises`, and `spy_calls` are not `getattr`. A real method with any of these names cannot be called through this dialect.
 
 - `patch_raises` is a build-only live-instance failure injection, not a call to the named method. Its target must be one existing `$r.<name>`. `kwargs` is exactly `{method, module_path, class_name, message?}`; the public `method` is an ordinary instance method and the imported class must construct an `Exception`, with zero arguments or the optional string message. Positional arguments, `raises: true`, and `dependencies` are forbidden. Installation returns `None`. The actual consumer is called in a subsequent execute step; that step can use the existing `raises: true`/`as` and error/cause checks. No top-level mock `side_effect` or arbitrary callback is added.
 
@@ -307,4 +307,25 @@ The stored `file` must be the exact live handle owned by `client`, obtained afte
 
 The runtime shadows only that instance dictionary entry, without calling custom setters or changing a class descriptor. Unrelated instances retain their methods. One internal ExitStack restores prior own entries by identity or removes newly introduced shadows, in LIFO order, before stage cleanup. PhaseRuntimeContext.run and TestContext.execute_feature both own this lifecycle across success, assertion/execution failure, BaseException and partial setup failure. Cleanup continues after a restoration failure and preserves an already-active test failure. Low-level manual handler callers must invoke close_resources themselves; close_stage still closes only the stage. The target instance must remain exclusively owned for the test: concurrent writes to that same method/instance are not supported. This is not a sandbox for untrusted imported classes or exception constructors.
 
-The action name patch_raises is newly reserved in this experimental build. The closed specification uses the existing Execution kwargs field and config mapper; no new execute keys or general patch callbacks are introduced. Module/class spies, forwarding wrappers and source/signature APIs remain separate future groups. Consumer proofs and environment requirements are in experiments/tester_efficacy/README.md.
+The action name patch_raises is newly reserved in this experimental build. The closed specification uses the existing Execution kwargs field and config mapper; no new execute keys or general patch callbacks are introduced. Module/class spies and forwarding wrappers are documented separately below; source/signature APIs remain future work. Consumer proofs and environment requirements are in experiments/tester_efficacy/README.md.
+
+### Build experiment: scoped forwarding spies
+
+```yaml
+- target: {module_path: tiferet_ly.utils.core, attribute: lex.lex}
+  method: spy_calls
+  kwargs: {name: lex_entry}
+  as: lex_record
+- target: {module_path: tiferet_ly.utils.parse, class_name: PlyParser}
+  method: spy_calls
+  kwargs: {name: parse_reader, method: parse}
+  as: parse_record
+```
+
+`spy_calls` is a new reserved build action with a closed `kwargs` declaration: `name` and, for class targets only, `method`. A module attribute target names the complete dotted lookup path within the imported module. Intermediate cells must be real module or ordinary class namespaces; properties and dynamic attribute hooks are not traversed. No positional arguments, expected raise, dependencies, replacement function, lambda, callback, return override or eval are accepted. Imported targets with public identifier path segments are required; runtime-instance failure injection remains the separate `patch_raises` action.
+
+The spy forwards to the actual synchronous Python function and records original argument object references and calls, including calls that raise. Ordinary instance methods, classmethods and staticmethods are installed with their original descriptor kind. Raw records include bound self/cls arguments where Python binding supplies them. Access through a class or instance and inherited descriptors retain normal binding. Coroutine/generator functions, built-in/C descriptors, properties, custom module subclasses/metaclasses and arbitrary callable objects are outside this bounded experiment.
+
+Use the existing `assert_called_once_with` check with `mock: <name>`, `method: __call__`, and `{times: 0}`, exact args/kwargs or calls as before. These aliases are held separately from arranged mocks and are never implicitly injected into event constructors or resolved as `$mock` dependencies. An optional `as` stores the record for runtime observation. Python Mock call records have special attribute behavior: a safe YAML extraction is `builtins.list(record.call_args)` through runtime calls, then list index1 for the real kwargs mapping, rather than invoking `_Call.__getattribute__('kwargs')`. Identity assertions can compare the retrieved argument with its original runtime reference using the existing operator.is_ call.
+
+Module/class spies intentionally affect the declared namespace cell for the duration of one serial test, including aliases referencing that module object and instances inheriting that class member. They are not isolated to one instance or safe for concurrent users of the same cells. This is explicit module/class scope, never a silent fallback from a rejected instance patch. Restoration shares the group3 ExitStack, preserves exact prior own descriptor/value identity or inherited absence, and unwinds prior patch layers on success, Exception, BaseException and invalid later setup. Observation records remain available on the completed runtime; production namespace changes do not. Existing Python source/signature/AST guards are not replaced by this feature.

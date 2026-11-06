@@ -595,6 +595,33 @@ class InstanceFailurePatch(DomainObject):
             ModelError.raise_error(defect[0], message=f'{cls.__name__} {defect[1]}')
         return data
 
+# ** model: scoped_call_spy
+class ScopedCallSpy(DomainObject):
+    """Name a forwarding observation without accepting replacement callbacks."""
+
+    # * attribute: name
+    name: str = Field(..., strict=True, pattern=r'^[A-Za-z_][A-Za-z0-9_]*$', description='The check-only spy alias.')
+
+    # * attribute: method
+    method: str | None = Field(default=None, strict=True, pattern=r'^[A-Za-z][A-Za-z0-9_]*$', description='The class method; module attribute targets already name their member.')
+
+    # * method: reject_unsupported_data (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_unsupported_data(cls, data: Any) -> Any:
+        """Reject undeclared keys and executable data.
+
+        :param data: The raw spy declaration.
+        :type data: Any
+        :return: The bounded declaration.
+        :rtype: Any
+        """
+
+        defect = phase_mapping_defect(phase_input_keys(cls), data)
+        if defect:
+            ModelError.raise_error(defect[0], message=f'{cls.__name__} {defect[1]}')
+        return data
+
 # ** model: execution
 class Execution(DomainObject):
     '''
@@ -715,6 +742,19 @@ class Execution(DomainObject):
                 INVALID_MODEL_VALUE_ID,
                 message='raises requires data_key.',
             )
+
+        # A spy declares an imported lookup site, not an injected dependency.
+        if self.method == 'spy_calls':
+            if (not isinstance(self.target, ExecutionTarget) or self.args
+                    or self.raises or self.dependencies is not None):
+                ModelError.raise_error(INVALID_MODEL_VALUE_ID, message='spy_calls requires an import target and no positional args, raises, or dependencies.')
+            spec = ScopedCallSpy.model_validate(self.kwargs)
+            if bool(self.target.class_name) != bool(spec.method):
+                ModelError.raise_error(INVALID_MODEL_VALUE_ID, message='Only class targets require a spy method; module attributes name the complete lookup path.')
+            parts = self.target.module_path.split('.')
+            parts += (self.target.attribute or self.target.class_name).split('.')
+            if any(not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', part) for part in parts):
+                ModelError.raise_error(INVALID_MODEL_VALUE_ID, message='A spy lookup path has public identifier segments only.')
 
         # patch_raises installs only on a previously returned runtime instance.
         if self.method == 'patch_raises':
