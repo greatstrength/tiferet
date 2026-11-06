@@ -1,0 +1,135 @@
+testers:
+  layout_profile:
+    module_path: tiferet_ly.domain.layout
+    class_name: LayoutProfile
+    attributes:
+      indent_token: INDENT
+      dedent_token: DEDENT
+    tests:
+      valid:
+        conditions: {}
+        execute:
+        - target: self
+          method: new
+          as: profile
+        - target: $r.profile
+          method: __getattribute__
+          args:
+          - tab_size
+          as: before
+        - target: $r.profile
+          method: __setattr__
+          args:
+          - tab_size
+          - 8
+          raises: false
+          as: assignment
+        assert:
+        - check: equals
+          outcome: before
+          equals: 4
+        - check: fields
+          outcome: profile
+          fields:
+            tab_size: 8
+        - check: 'null'
+          outcome: assignment
+      zero:
+        conditions: {}
+        execute:
+        - target: self
+          method: new
+          as: profile
+        - target: $r.profile
+          method: __getattribute__
+          args:
+          - tab_size
+          as: before
+        - target: $r.profile
+          method: __setattr__
+          args:
+          - tab_size
+          - 0
+          raises: true
+          as: assignment
+        assert:
+        - check: equals
+          outcome: before
+          equals: 4
+        - check: fields
+          outcome: profile
+          fields:
+            tab_size: 4
+        - check: type
+          outcome: assignment
+          module_path: pydantic
+          class_name: ValidationError
+        - check: message
+          outcome: assignment
+          message: tab_size
+      negative:
+        conditions: {}
+        execute:
+        - target: self
+          method: new
+          as: profile
+        - target: $r.profile
+          method: __getattribute__
+          args:
+          - tab_size
+          as: before
+        - target: $r.profile
+          method: __setattr__
+          args:
+          - tab_size
+          - -1
+          raises: true
+          as: assignment
+        assert:
+        - check: equals
+          outcome: before
+          equals: 4
+        - check: fields
+          outcome: profile
+          fields:
+            tab_size: 4
+        - check: type
+          outcome: assignment
+          module_path: pydantic
+          class_name: ValidationError
+        - check: message
+          outcome: assignment
+          message: tab_size
+      'false':
+        conditions: {}
+        execute:
+        - target: self
+          method: new
+          as: profile
+        - target: $r.profile
+          method: __getattribute__
+          args:
+          - tab_size
+          as: before
+        - target: $r.profile
+          method: __setattr__
+          args:
+          - tab_size
+          - false
+          raises: true
+          as: assignment
+        assert:
+        - check: equals
+          outcome: before
+          equals: 4
+        - check: fields
+          outcome: profile
+          fields:
+            tab_size: 4
+        - check: type
+          outcome: assignment
+          module_path: pydantic
+          class_name: ValidationError
+        - check: message
+          outcome: assignment
+          message: tab_size
