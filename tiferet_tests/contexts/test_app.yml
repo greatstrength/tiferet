@@ -801,28 +801,13 @@ tests:
       args:
       - $r.info_calls
       as: info_len
-    - target:
-        module_path: operator
-        attribute: itemgetter
-      method: itemgetter
-      args:
-      - 0
-      as: first_item
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_calls
-      as: info_call
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_call
-      as: info_args
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_args
-      as: final_log
+    - {target: $r.info_calls, method: __getattribute__, args: [__getitem__], as: info_calls_getitem}
+    - {target: $r.info_calls_getitem, method: __call__, args: [0], as: info_call}
+    - {target: {module_path: builtins, attribute: list}, method: list, args: [$r.info_call], as: info_call_parts}
+    - {target: $r.info_call_parts, method: __getattribute__, args: [__getitem__], as: info_call_getitem}
+    - {target: $r.info_call_getitem, method: __call__, args: [0], as: info_args}
+    - {target: $r.info_args, method: __getattribute__, args: [__getitem__], as: info_args_getitem}
+    - {target: $r.info_args_getitem, method: __call__, args: [0], as: final_log}
     - target: $r.final_log
       method: startswith
       args:
@@ -929,28 +914,13 @@ tests:
       args:
       - $r.info_calls
       as: info_len
-    - target:
-        module_path: operator
-        attribute: itemgetter
-      method: itemgetter
-      args:
-      - 0
-      as: first_item
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_calls
-      as: info_call
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_call
-      as: info_args
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_args
-      as: final_log
+    - {target: $r.info_calls, method: __getattribute__, args: [__getitem__], as: info_calls_getitem}
+    - {target: $r.info_calls_getitem, method: __call__, args: [0], as: info_call}
+    - {target: {module_path: builtins, attribute: list}, method: list, args: [$r.info_call], as: info_call_parts}
+    - {target: $r.info_call_parts, method: __getattribute__, args: [__getitem__], as: info_call_getitem}
+    - {target: $r.info_call_getitem, method: __call__, args: [0], as: info_args}
+    - {target: $r.info_args, method: __getattribute__, args: [__getitem__], as: info_args_getitem}
+    - {target: $r.info_args_getitem, method: __call__, args: [0], as: final_log}
     - target: $r.final_log
       method: startswith
       args:
@@ -1061,28 +1031,13 @@ tests:
       args:
       - call_args_list
       as: info_calls
-    - target:
-        module_path: operator
-        attribute: itemgetter
-      method: itemgetter
-      args:
-      - 0
-      as: first_item
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_calls
-      as: info_call
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_call
-      as: info_args
-    - target: $r.first_item
-      method: __call__
-      args:
-      - $r.info_args
-      as: final_log
+    - {target: $r.info_calls, method: __getattribute__, args: [__getitem__], as: info_calls_getitem}
+    - {target: $r.info_calls_getitem, method: __call__, args: [0], as: info_call}
+    - {target: {module_path: builtins, attribute: list}, method: list, args: [$r.info_call], as: info_call_parts}
+    - {target: $r.info_call_parts, method: __getattribute__, args: [__getitem__], as: info_call_getitem}
+    - {target: $r.info_call_getitem, method: __call__, args: [0], as: info_args}
+    - {target: $r.info_args, method: __getattribute__, args: [__getitem__], as: info_args_getitem}
+    - {target: $r.info_args_getitem, method: __call__, args: [0], as: final_log}
     - target: $r.final_log
       method: startswith
       args:
