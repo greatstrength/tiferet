@@ -16,6 +16,7 @@ from tiferet_ly.utils.core import lex
 # ** app
 from tiferet.assets import TiferetError
 from tiferet.blueprints.tester import build_phase_runtime, run_test_module
+from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.request import RequestContext
 from tiferet.interfaces import ServiceError
 from tiferet.mappers.tester_phase import TestConfigObject
@@ -89,7 +90,6 @@ def test_copied_forward_data_mutant_detected(monkeypatch):
     """
 
     # The spy records caller arguments; mutate the caller, not merely its callee.
-    from tiferet.contexts.app import AppSessionContext
     original_run = AppSessionContext.run
     def copy_request(self, feature_id, data=None, **kwargs):
         if data and 'lexemes' in data:
@@ -107,7 +107,6 @@ def test_dropped_argument_mutant_detected(monkeypatch):
     :type monkeypatch: Any
     """
 
-    from tiferet.contexts.app import AppSessionContext
     original = AppSessionContext.run
     def drop(self, feature_id, data=None, **kwargs):
         if data and 'lexemes' in data:
@@ -134,7 +133,6 @@ def test_invalid_rewrites_forbidden_reader_mutant(monkeypatch, name):
     :type name: Any
     """
 
-    from tiferet.contexts.app import AppSessionContext
     original = AppSessionContext.run
     def early_reader(self, feature_id, data=None, **kwargs):
         if data and isinstance(data.get('rewrites'), list):
