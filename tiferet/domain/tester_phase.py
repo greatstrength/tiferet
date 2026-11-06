@@ -547,6 +547,54 @@ class ExecutionTarget(DomainObject):
         # Return the validated target.
         return self
 
+# ** model: instance_failure_patch
+class InstanceFailurePatch(DomainObject):
+    """
+    Describe one bounded exception injection into an existing instance method.
+    This is data, not a callback or a class/module patch declaration.
+    """
+
+    # * attribute: method
+    method: str = Field(
+        ..., strict=True, pattern=r'^[A-Za-z][A-Za-z0-9_]*$',
+        description='The public ordinary instance method to shadow until test cleanup.',
+    )
+
+    # * attribute: module_path
+    module_path: str = Field(
+        ..., strict=True, pattern=r'^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$',
+        description='The import module holding the exception class.',
+    )
+
+    # * attribute: class_name
+    class_name: str = Field(
+        ..., strict=True, pattern=r'^[A-Za-z_][A-Za-z0-9_]*$',
+        description='An Exception subclass constructed before patch installation.',
+    )
+
+    # * attribute: message
+    message: str | None = Field(
+        default=None, strict=True, description='An optional single string constructor argument.',
+    )
+
+    # * method: reject_unsupported_data (model validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_unsupported_data(cls, data: Any) -> Any:
+        """Reject callbacks and undeclared keys before any runtime mutation.
+
+        :param data: The raw patch specification.
+        :type data: Any
+        :return: The bounded patch data.
+        :rtype: Any
+        """
+
+        # Reuse the phase-wide closed-data check, including callable rejection.
+        defect = phase_mapping_defect(phase_input_keys(cls), data)
+        if defect:
+            ModelError.raise_error(defect[0], message=f'{cls.__name__} {defect[1]}')
+        return data
+
 # ** model: execution
 class Execution(DomainObject):
     '''
@@ -651,6 +699,8 @@ class Execution(DomainObject):
         Reject a reserved action that is not legal on this step.
 
         ``new`` is legal only on ``target: self`` and takes no arguments.
+        ``patch_raises`` installs one bounded live-instance method failure.
+        It accepts only a runtime target and the closed kwargs specification.
         ``handle`` is legal on ``target: self`` or on a named event: a class
         target, ``$mock.<name>``, or ``$r.<key>``. ``dependencies`` is legal
         only on the named form. ``raises`` requires ``data_key``.
@@ -665,6 +715,17 @@ class Execution(DomainObject):
                 INVALID_MODEL_VALUE_ID,
                 message='raises requires data_key.',
             )
+
+        # patch_raises installs only on a previously returned runtime instance.
+        if self.method == 'patch_raises':
+            if (not isinstance(self.target, str) or not self.target.startswith('$r.')
+                    or not OBSERVATION_NAME.fullmatch(self.target[3:])
+                    or self.args or self.raises or self.dependencies is not None):
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message='patch_raises requires one $r. target, no args, raises, or dependencies.',
+                )
+            InstanceFailurePatch.model_validate(self.kwargs)
 
         # new is not getattr, and it is only legal on self.
         if self.method == 'new' and self.target != 'self':

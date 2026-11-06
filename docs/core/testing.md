@@ -51,7 +51,9 @@ A phase is a closed mapping. This layer starts after `safe_load`. Anchors, alias
 
 `execute` is a non-empty list. Each item's keys are only `target`, `method`, `args`, `kwargs`, `as`, `raises`, and `dependencies`. `args` defaults to `[]`. `kwargs` defaults to `{}`. `raises` defaults to false. `target` is `self`, a fixture name, `$fixture.<name>`, `$r.<key>`, `$mock.<name>`, `$stage` (only when the test has `stage: true`), `{module_path, class_name}` for the class itself, or `{module_path, attribute}` for a module-level function. A bare name is a fixture, not a prior `as` key. A prior result is only `$r.<key>`.
 
-Two method names are reserved harness actions. Every other name is a call. `new` and `handle` are not `getattr`. A real method with either name cannot be called through this dialect.
+This experimental build reserves three harness actions: `new`, `handle`, and `patch_raises` (the bounded live-instance action below). Every other name is a call. `new`, `handle`, and `patch_raises` are not `getattr`. A real method with either name cannot be called through this dialect.
+
+- `patch_raises` is a build-only live-instance failure injection, not a call to the named method. Its target must be one existing `$r.<name>`. `kwargs` is exactly `{method, module_path, class_name, message?}`; the public `method` is an ordinary instance method and the imported class must construct an `Exception`, with zero arguments or the optional string message. Positional arguments, `raises: true`, and `dependencies` are forbidden. Installation returns `None`. The actual consumer is called in a subsequent execute step; that step can use the existing `raises: true`/`as` and error/cause checks. No top-level mock `side_effect` or arbitrary callback is added.
 
 - `new` is legal only on `target: self`. It constructs the tester class from the tester's `module_path`, `class_name`, and `attributes`. It takes no `args` and no `kwargs`. `$fixture.` inside those attributes must already have been built. The instance is stored at `as`.
 - `handle` on `target: self` is the tester-class form. It calls `TestEvent.handle_test` on the tester class, with the step `kwargs` as the event arguments, so a step kwarg named `dependencies`, `middleware` or `event_cls` reaches `execute()`. `handle` injects constructor dependencies only. A constructor with `**kwargs` may receive the whole mock dict. An arranged mock that is not a constructor parameter is an argument. It stays available as `$mock.<name>`. It does not merge a hidden `sample_kwargs`. It does not construct an instance. There is no `dependencies` key on the step.
@@ -283,3 +285,26 @@ A `tiferet_tests/` file is still not an application `testers:` section. `TesterS
 - [code_style.md](code_style.md) — artifact comments, including the test-module grammar
 - [contexts.md](contexts.md) — `FeatureContext`, which `TestContext` extends
 - [domain.md](domain.md) — `Feature`, which `Test` extends
+
+### Build experiment: managed live-instance failures
+
+```yaml
+- target: $r.file
+  method: patch_raises
+  kwargs:
+    method: create_group
+    module_path: tables
+    class_name: NodeError
+    message: injected
+- target: $r.client
+  method: create_group
+  args: [/missing/parent/leaf]
+  raises: true
+  as: failure
+```
+
+The stored `file` must be the exact live handle owned by `client`, obtained after opening it. A separately arranged File mock is not equivalent. This build accepts standard object attribute lookup, an actual instance dictionary and a public Python function descriptor; it rejects class/module targets, properties, static/class methods, custom lookup, slots-only objects and methods implemented only as C descriptors. PyTables File.create_group and File.copy_children are Python methods with per-instance dictionaries on the verified consumer baseline, so no class/global fallback is needed. Unsupported targets fail instead of widening patch scope.
+
+The runtime shadows only that instance dictionary entry, without calling custom setters or changing a class descriptor. Unrelated instances retain their methods. One internal ExitStack restores prior own entries by identity or removes newly introduced shadows, in LIFO order, before stage cleanup. PhaseRuntimeContext.run and TestContext.execute_feature both own this lifecycle across success, assertion/execution failure, BaseException and partial setup failure. Cleanup continues after a restoration failure and preserves an already-active test failure. Low-level manual handler callers must invoke close_resources themselves; close_stage still closes only the stage. The target instance must remain exclusively owned for the test: concurrent writes to that same method/instance are not supported. This is not a sandbox for untrusted imported classes or exception constructors.
+
+The action name patch_raises is newly reserved in this experimental build. The closed specification uses the existing Execution kwargs field and config mapper; no new execute keys or general patch callbacks are introduced. Module/class spies, forwarding wrappers and source/signature APIs remain separate future groups. Consumer proofs and environment requirements are in experiments/tester_efficacy/README.md.

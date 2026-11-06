@@ -6,8 +6,9 @@
 import inspect
 import re
 from collections.abc import Mapping
+from contextlib import ExitStack
 from importlib import import_module
-from types import SimpleNamespace
+from types import FunctionType, SimpleNamespace
 from typing import Any, Callable, Dict, List
 from unittest.mock import MagicMock, Mock
 
@@ -24,6 +25,7 @@ from ..domain.tester_phase import (
     Conditions,
     Execution,
     ExecutionTarget,
+    InstanceFailurePatch,
     PhaseRuntime,
     Test,
 )
@@ -282,6 +284,7 @@ class PhaseRuntimeContext(BaseContext):
         self.as_keys = set()
         self.steps = []
         self.stage = None
+        self._patches = ExitStack()
 
     # * method: handle_conditions
     def handle_conditions(self, conditions: Conditions) -> None:
@@ -439,7 +442,7 @@ class PhaseRuntimeContext(BaseContext):
         # Compile for data_key. Do not dispatch through AppSessionContext.
         self.steps = compile_phase_steps(test)
 
-        # Run the phases. The stage closes after a pass and after a failure.
+        # Run the phases. All owned resources close on every exit.
         try:
             self.handle_conditions(test.conditions)
             for execution in test.executes:
@@ -447,11 +450,102 @@ class PhaseRuntimeContext(BaseContext):
             for assertion in test.asserts:
                 self.handle_assertion(assertion)
         except BaseException:
-            self.close_stage(failed=True)
+            self.close_resources(failed=True)
             raise
         else:
-            self.close_stage()
+            self.close_resources()
         return self.steps
+
+    # * method: close_resources
+    def close_resources(self, failed: bool = False) -> None:
+        """Restore patches in LIFO order, then close the stage on every run exit.
+
+        :param failed: Preserve an already-active test failure over cleanup errors.
+        :type failed: bool
+        :return: None.
+        :rtype: None
+        """
+
+        # ExitStack continues remaining restorations when a callback fails.
+        error = None
+        try:
+            self._patches.close()
+        except BaseException as caught:
+            error = caught
+
+        # A patch cleanup failure must not leak the independently owned stage.
+        try:
+            self.close_stage(failed=failed or error is not None)
+        except BaseException as caught:
+            if error is None:
+                error = caught
+        if error is not None and not failed:
+            raise error
+
+    # * method: patch_instance_failure
+    def _patch_instance_failure(self, execution: Execution) -> None:
+        """Install a bounded failure on this instance only until run cleanup.
+
+        :param execution: A validated patch_raises execute item.
+        :type execution: Execution
+        :return: None.
+        :rtype: None
+        """
+
+        # Revalidate even model_construct callers; resolve the actual live object.
+        execution = Execution.model_validate(execution.model_dump())
+        spec = InstanceFailurePatch.model_validate(execution.kwargs)
+        target = self._resolve_target(execution)
+        cls = type(target)
+        descriptor = inspect.getattr_static(cls, spec.method, None)
+        lookup = inspect.getattr_static(cls, '__getattribute__', None)
+        try:
+            namespace = object.__getattribute__(target, '__dict__') if lookup is object.__getattribute__ else None
+        except (AttributeError, TypeError):
+            namespace = None
+        if type(namespace) is not dict or not isinstance(descriptor, FunctionType):
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail='patch_raises requires standard instance lookup, an instance dict, and an ordinary public method.',
+            )
+        original = namespace.get(spec.method, descriptor)
+        if not callable(original):
+            TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='The instance method is not callable.')
+
+        # Import and construct a bounded Exception before mutating the target.
+        exc_cls = self._require_named(spec.module_path, spec.class_name)
+        if not isinstance(exc_cls, type) or not issubclass(exc_cls, Exception):
+            TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='The patch class must subclass Exception.')
+        error = exc_cls() if spec.message is None else exc_cls(spec.message)
+        if not isinstance(error, Exception):
+            TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='The patch must construct an Exception.')
+
+        # Shadow a non-data method descriptor without touching the class or setters.
+        present = spec.method in namespace
+        restored = False
+
+        def restore():
+            nonlocal restored
+            if restored:
+                return
+            if present:
+                namespace[spec.method] = original
+            else:
+                namespace.pop(spec.method, None)
+            restored = True
+
+        def raise_failure(*args, **kwargs):
+            raise error
+
+        # Register first, then mutate. Failed setup restores locally and on run exit.
+        self._patches.callback(restore)
+        try:
+            namespace[spec.method] = raise_failure
+            if getattr(target, spec.method) is not raise_failure:
+                TiferetError.raise_error(a.error.PHASE_STEP_FAILED_ID, detail='The instance did not expose the patched method.')
+        except BaseException:
+            restore()
+            raise
 
     # * method: close_stage
     def close_stage(self, failed: bool = False) -> None:
@@ -804,6 +898,10 @@ class PhaseRuntimeContext(BaseContext):
         :return: The call result.
         :rtype: Any
         '''
+
+        # Install only after the target exists. This action does not invoke it.
+        if execution.method == 'patch_raises':
+            return self._patch_instance_failure(execution)
 
         # Resolve refs before the call. new and handle are not getattr.
         args = self._resolve_value(execution.args)
@@ -1343,7 +1441,7 @@ class TestContext(FeatureContext):
 
         The phase runtime is reached through the injected callable before the
         compiled steps resolve. This is not ``AppSessionContext.run``. The
-        runtime's stage closes after the run returns or raises.
+        runtime's patches and stage close after the run returns or raises.
 
         :param request: The test session.
         :type request: RequestContext
@@ -1370,8 +1468,8 @@ class TestContext(FeatureContext):
         try:
             result = super().execute_feature(request, *flags, **kwargs)
         except BaseException:
-            runtime.close_stage(failed=True)
+            runtime.close_resources(failed=True)
             raise
         else:
-            runtime.close_stage()
+            runtime.close_resources()
         return result

@@ -1,0 +1,103 @@
+testers:
+  h5_client:
+    module_path: tiferet_h5.utils.h5
+    class_name: H5Client
+    attributes:
+      path: $r.path
+      mode: w
+    tests:
+      parent_group_failure:
+        conditions:
+          stage: true
+        execute:
+        - target: $stage
+          method: path
+          args:
+          - parent_group_failure.h5
+          as: path
+        - target: self
+          method: new
+          as: client
+        - target: $r.client
+          method: __enter__
+          as: opened
+        - target: $r.client
+          method: __getattribute__
+          args:
+          - h5file
+          as: file
+        - target: $r.file
+          method: patch_raises
+          kwargs:
+            method: create_group
+            module_path: tables
+            class_name: NodeError
+            message: injected
+        - target: $r.client
+          method: create_group
+          args:
+          - /missing/parent/leaf
+          raises: true
+          as: failure
+        - target: $r.client
+          method: __exit__
+          args:
+          - null
+          - null
+          - null
+        assert:
+        - check: error_code
+          outcome: failure
+          error_code: H5_GROUP_CREATE_FAILED
+        - outcome: failure
+          cause:
+            module_path: tables
+            class_name: NodeError
+            message: injected
+      compact_copy_failure:
+        conditions:
+          stage: true
+        execute:
+        - target: $stage
+          method: path
+          args:
+          - compact_copy_failure.h5
+          as: path
+        - target: self
+          method: new
+          as: client
+        - target: $r.client
+          method: __enter__
+          as: opened
+        - target: $r.client
+          method: __getattribute__
+          args:
+          - h5file
+          as: file
+        - target: $r.file
+          method: patch_raises
+          kwargs:
+            method: copy_children
+            module_path: tables
+            class_name: HDF5ExtError
+            message: injected
+        - target: $r.client
+          method: compact
+          args: []
+          raises: true
+          as: failure
+        - target: $r.client
+          method: __exit__
+          args:
+          - null
+          - null
+          - null
+        assert:
+        - check: error_code
+          outcome: failure
+          error_code: H5_COMPACT_FAILED
+        - outcome: failure
+          cause:
+            module_path: tables
+            class_name: HDF5ExtError
+            message: injected

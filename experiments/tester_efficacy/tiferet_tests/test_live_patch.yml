@@ -1,0 +1,47 @@
+testers:
+  live_consumer:
+    module_path: experiments.tester_efficacy.tests.test_live_patch
+    class_name: LiveConsumer
+    tests:
+      injected_live_method:
+        conditions:
+          stage: true
+        execute:
+        - target: self
+          method: new
+          as: consumer
+        - target: $r.consumer
+          method: __getattribute__
+          args:
+          - driver
+          as: driver
+        - target: $r.driver
+          method: patch_raises
+          kwargs:
+            method: operate
+            module_path: builtins
+            class_name: OSError
+            message: injected
+        - target: $r.consumer
+          method: serve
+          args:
+          - payload
+          raises: true
+          as: failure
+        - target: $r.consumer
+          method: other_serve
+          args:
+          - payload
+          as: other
+        assert:
+        - check: error_code
+          outcome: failure
+          error_code: LIVE_FAILED
+        - outcome: failure
+          cause:
+            module_path: builtins
+            class_name: OSError
+            message: injected
+        - check: equals
+          outcome: other
+          equals: real:payload
