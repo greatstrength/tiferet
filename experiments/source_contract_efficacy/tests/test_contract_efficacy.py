@@ -7,11 +7,11 @@ from pathlib import Path
 
 # ** infra
 import pytest
+from tiferet_ly.events.lex import LexText
+from tiferet_ly.utils import layout
 
 # ** app
 from experiments.source_contract_efficacy.evaluate import EXPECTED, candidate_passes, native_passes
-from tiferet_ly.events.lex import LexText
-from tiferet_ly.utils import layout
 from tiferet.blueprints.tester import run_test_module
 
 # *** tests
