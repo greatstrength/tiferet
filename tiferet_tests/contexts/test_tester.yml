@@ -158,15 +158,6 @@ fixtures:
       sample_kwargs: {}
       required_params: []
 
-  pow_generic_tester:
-    module_path: *domain
-    class_name: *tester_object
-    attributes:
-      type: generic
-      id: generic.pow
-      module_path: builtins
-      class_name: pow
-
   add_values_generic_tester:
     module_path: *domain
     class_name: *tester_object
@@ -233,6 +224,9 @@ tests:
       - target: $r.get_mock
         method: configure_mock
         kwargs: {return_value: $fixture.error_aggregate}
+      - {target: $r.test_ctx, method: __getattribute__, args: [handle], as: handle_method}
+      - {target: $r.handle_method, method: __call__, args: [$r.dependencies], as: handled_error}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.handled_error, $fixture.error_aggregate], as: same_error}
       - {target: $r.test_ctx, method: assert_not_found}
       - {target: $r.test_ctx, method: assert_missing_required_params}
     assert:
@@ -240,6 +234,7 @@ tests:
         type: {module_path: tiferet.contexts.tester, class_name: DomainEventTesterContext}
       - outcome: same_service
         equals: true
+      - {outcome: same_error, equals: true}
 
   domain_event_tester_handle_passes_reserved_kwargs:
     conditions:
@@ -328,29 +323,37 @@ tests:
       fixtures: [sampled_domain_tester]
     execute:
       - {target: {module_path: tiferet.contexts.tester, class_name: DomainTesterContext}, method: from_domain, args: [$fixture.sampled_domain_tester], as: test_ctx}
+      - {target: $r.test_ctx, method: __getattribute__, args: [domain], as: sample_domain}
+      - {target: $r.sample_domain, method: __getattribute__, args: [sample_data], as: original_sample}
       - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], as: session}
       - {target: $r.session, method: given, kwargs: {a: 1}, as: first}
       - {target: $r.first, method: given, kwargs: {a: 2}, as: returned}
       - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.returned, $r.session], as: same_session}
       - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.first, $r.session], as: same_first}
+      - {target: $r.test_ctx, method: __getattribute__, args: [domain], as: domain_after_given}
+      - {target: $r.domain_after_given, method: __getattribute__, args: [sample_data], as: sample_after_given}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.sample_after_given, $r.original_sample], as: same_sample_after_given}
+      - {target: {module_path: operator, attribute: contains}, method: contains, args: [$r.original_sample, a], as: sample_contains_a}
     assert:
       - {outcome: same_session, equals: true}
       - {outcome: same_first, equals: true}
       - {outcome: session, attribute: data, equals: {a: 2}}
       - {outcome: sampled_domain_tester, attribute: sample_data, equals: {lang: en_US, text: An error occurred.}}
+      - {outcome: same_sample_after_given, equals: true}
+      - {outcome: sample_contains_a, equals: false}
+      - {outcome: original_sample, equals: {lang: en_US, text: An error occurred.}}
 
   session_run_generic_uses_get_target_without_invoke:
     conditions:
-      fixtures: [pow_generic_tester]
+      fixtures: [add_values_generic_tester]
     execute:
-      - {target: {module_path: tiferet.contexts.tester, class_name: GenericTesterContext}, method: from_domain, args: [$fixture.pow_generic_tester], as: test_ctx}
+      - {target: {module_path: tiferet.contexts.tester, class_name: GenericTesterContext}, method: from_domain, args: [$fixture.add_values_generic_tester], as: test_ctx}
       - {target: {module_path: tiferet.blueprints.tester, attribute: build_test_session}, method: build_test_session, args: [$r.test_ctx], as: session}
-      - {target: $r.session, method: given, kwargs: {base: 2, exp: 3}, as: given_session}
-      - {target: $r.given_session, method: verify, args: [8], as: verified}
+      - {target: $r.session, method: given, kwargs: {a: 2, b: 3}, as: given_session}
+      - {target: $r.given_session, method: verify, args: [5], as: verified}
       - {target: $r.verified, method: run, as: result}
     assert:
-      - {outcome: result, equals: 8}
-
+      - {outcome: result, equals: 5}
 
   session_run_rejects_target_on_specialized_tester:
     conditions:
@@ -366,11 +369,11 @@ tests:
         as: session
       - target: {module_path: importlib, attribute: import_module}
         method: import_module
-        args: [builtins]
-        as: builtins_mod
+        args: [tests.contexts.test_tester]
+        as: paired_tester_mod
       - target: {module_path: builtins, attribute: getattr}
         method: getattr
-        args: [$r.builtins_mod, pow]
+        args: [$r.paired_tester_mod, _add_values]
         as: live_target
       - target: $r.session
         method: run

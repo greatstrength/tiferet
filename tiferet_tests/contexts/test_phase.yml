@@ -1477,7 +1477,6 @@ tests:
       - outcome: unwired_failed
         message: stage_factory
 
-
   attribute_reads_one_key_or_attribute:
     conditions:
       fixtures: [session]
@@ -1552,7 +1551,6 @@ tests:
         attribute: data
         fields:
           x: x
-
 
   attribute_equals_empty_mapping_is_strict:
     conditions:
@@ -2216,6 +2214,9 @@ tests:
   stage_flag_is_true_or_omitted:
     conditions: {}
     execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tests.contexts.test_phase], as: paired_phase}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.paired_phase, _stage_directories], as: stage_directories_fn}
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_before_case}
       - target: {module_path: tiferet.domain.tester_phase, class_name: Conditions}
         method: __call__
         kwargs: {stage: false}
@@ -2272,7 +2273,16 @@ tests:
         kwargs: {caplog: true}
         raises: true
         as: illegal_caplog
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{stage: null}], raises: true, as: config_null_failed}
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{stage: {}}], raises: true, as: config_mapping_failed}
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{stage: $r.empty_list}], raises: true, as: config_list_failed}
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{stage: tmp_path}], raises: true, as: config_tmp_path_failed}
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{stage: 'true'}], raises: true, as: config_true_str_failed}
+      - {target: {module_path: tiferet.mappers.tester_phase, class_name: ConditionsConfigObject}, method: model_validate, args: [{stage: 1}], raises: true, as: config_one_failed}
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_after_case}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.directories_after_case, $r.directories_before_case], as: directories_same_case}
     assert:
+      - {outcome: directories_same_case, equals: true}
       - outcome: false_failed
         error_code: INVALID_MODEL_VALUE
       - outcome: null_failed
@@ -2296,11 +2306,23 @@ tests:
         error_code: INVALID_MODEL_ATTRIBUTE
       - outcome: illegal_caplog
         error_code: INVALID_MODEL_ATTRIBUTE
+      - {outcome: config_null_failed, error_code: INVALID_MODEL_VALUE}
+      - {outcome: config_mapping_failed, error_code: INVALID_MODEL_VALUE}
+      - {outcome: config_list_failed, error_code: INVALID_MODEL_VALUE}
+      - {outcome: config_tmp_path_failed, error_code: INVALID_MODEL_VALUE}
+      - {outcome: config_true_str_failed, error_code: INVALID_MODEL_VALUE}
+      - {outcome: config_one_failed, error_code: INVALID_MODEL_VALUE}
 
   unstaged_test_has_no_stage:
     conditions:
       fixtures: [session]
     execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tests.contexts.test_phase], as: paired_phase}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.paired_phase, _stage_directories], as: stage_directories_fn}
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_before_case}
+      - {target: {module_path: logging, attribute: getLogger}, method: getLogger, as: root_case}
+      - {target: $r.root_case, method: __getattribute__, args: [handlers], as: handlers_live_case}
+      - {target: {module_path: builtins, attribute: list}, method: list, args: [$r.handlers_live_case], as: handlers_before_case}
       - target: {module_path: importlib, attribute: import_module}
         method: import_module
         args: [tiferet.contexts.tester_phase]
@@ -2332,7 +2354,13 @@ tests:
         args: [$r.inner]
         raises: true
         as: failed
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_after_case}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.directories_after_case, $r.directories_before_case], as: directories_same_case}
+      - {target: $r.root_case, method: __getattribute__, args: [handlers], as: handlers_after_case}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.handlers_after_case, $r.handlers_before_case], as: handlers_same_case}
     assert:
+      - {outcome: directories_same_case, equals: true}
+      - {outcome: handlers_same_case, equals: true}
       - outcome: failed
         error_code: PHASE_STEP_FAILED
       - outcome: failed
@@ -2345,6 +2373,8 @@ tests:
     conditions:
       fixtures: [session]
     execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tests.contexts.test_phase], as: paired_phase}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.paired_phase, _stage_directories], as: stage_directories_fn}
       - target: {module_path: importlib, attribute: import_module}
         method: import_module
         args: [tiferet.contexts.tester_phase]
@@ -2353,6 +2383,11 @@ tests:
         method: getattr
         args: [$r.phase_mod, STAGE_REF]
         as: stage_ref
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_before_assert}
+      - {target: {module_path: logging, attribute: getLogger}, method: getLogger, as: root_assert}
+      - {target: $r.root_assert, method: __getattribute__, args: [handlers], as: handlers_live_assert}
+      - {target: {module_path: builtins, attribute: list}, method: list, args: [$r.handlers_live_assert], as: handlers_before_assert}
+      - {target: $r.root_assert, method: __getattribute__, args: [level], as: level_before_assert}
       - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
         method: build_phase_runtime
         kwargs:
@@ -2376,6 +2411,17 @@ tests:
         args: [$r.fail_assert_inner]
         raises: true
         as: fail_assert_err
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_after_assert}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.directories_after_assert, $r.directories_before_assert], as: directories_same_assert}
+      - {target: $r.root_assert, method: __getattribute__, args: [handlers], as: handlers_after_assert}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.handlers_after_assert, $r.handlers_before_assert], as: handlers_same_assert}
+      - {target: $r.root_assert, method: __getattribute__, args: [level], as: level_after_assert}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.level_after_assert, $r.level_before_assert], as: level_same_assert}
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_before_step}
+      - {target: {module_path: logging, attribute: getLogger}, method: getLogger, as: root_step}
+      - {target: $r.root_step, method: __getattribute__, args: [handlers], as: handlers_live_step}
+      - {target: {module_path: builtins, attribute: list}, method: list, args: [$r.handlers_live_step], as: handlers_before_step}
+      - {target: $r.root_step, method: __getattribute__, args: [level], as: level_before_step}
       - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
         method: build_phase_runtime
         kwargs:
@@ -2400,6 +2446,17 @@ tests:
         args: [$r.raise_inner]
         raises: true
         as: raise_err
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_after_step}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.directories_after_step, $r.directories_before_step], as: directories_same_step}
+      - {target: $r.root_step, method: __getattribute__, args: [handlers], as: handlers_after_step}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.handlers_after_step, $r.handlers_before_step], as: handlers_same_step}
+      - {target: $r.root_step, method: __getattribute__, args: [level], as: level_after_step}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.level_after_step, $r.level_before_step], as: level_same_step}
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_before_fixture}
+      - {target: {module_path: logging, attribute: getLogger}, method: getLogger, as: root_fixture}
+      - {target: $r.root_fixture, method: __getattribute__, args: [handlers], as: handlers_live_fixture}
+      - {target: {module_path: builtins, attribute: list}, method: list, args: [$r.handlers_live_fixture], as: handlers_before_fixture}
+      - {target: $r.root_fixture, method: __getattribute__, args: [level], as: level_before_fixture}
       - target: {module_path: tiferet.blueprints.tester, attribute: build_phase_runtime}
         method: build_phase_runtime
         kwargs:
@@ -2428,6 +2485,12 @@ tests:
         args: [$r.fixture_inner]
         raises: true
         as: fixture_err
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_after_fixture}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.directories_after_fixture, $r.directories_before_fixture], as: directories_same_fixture}
+      - {target: $r.root_fixture, method: __getattribute__, args: [handlers], as: handlers_after_fixture}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.handlers_after_fixture, $r.handlers_before_fixture], as: handlers_same_fixture}
+      - {target: $r.root_fixture, method: __getattribute__, args: [level], as: level_after_fixture}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.level_after_fixture, $r.level_before_fixture], as: level_same_fixture}
     assert:
       - outcome: fail_assert_err
         error_code: PHASE_CHECK_FAILED
@@ -2442,12 +2505,23 @@ tests:
       - outcome: fixture_runtime
         attribute: stage
         "null": true
-
+      - {outcome: directories_same_assert, equals: true}
+      - {outcome: handlers_same_assert, equals: true}
+      - {outcome: level_same_assert, equals: true}
+      - {outcome: directories_same_step, equals: true}
+      - {outcome: handlers_same_step, equals: true}
+      - {outcome: level_same_step, equals: true}
+      - {outcome: directories_same_fixture, equals: true}
+      - {outcome: handlers_same_fixture, equals: true}
+      - {outcome: level_same_fixture, equals: true}
 
   stage_rearrange_closes_the_live_stage:
     conditions:
       fixtures: [session]
     execute:
+      - {target: {module_path: importlib, attribute: import_module}, method: import_module, args: [tests.contexts.test_phase], as: paired_phase}
+      - {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [$r.paired_phase, _stage_directories], as: stage_directories_fn}
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_before_case}
       - target: {module_path: importlib, attribute: import_module}
         method: import_module
         args: [tiferet.contexts.tester_phase]
@@ -2497,7 +2571,10 @@ tests:
         as: first_exists
       - target: $r.runtime
         method: close_stage
+      - {target: $r.stage_directories_fn, method: __call__, as: directories_after_case}
+      - {target: {module_path: operator, attribute: eq}, method: eq, args: [$r.directories_after_case, $r.directories_before_case], as: directories_same_case}
     assert:
+      - {outcome: directories_same_case, equals: true}
       - outcome: first_exists
         equals: false
       - outcome: runtime

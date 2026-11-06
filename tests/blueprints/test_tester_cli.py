@@ -543,7 +543,7 @@ def test_package_exports_and_script():
     assert 'TesterCLI' in tiferet.blueprints.__all__
     assert 'build_tester_cli' in tiferet.blueprints.__all__
     assert 'TesterCLI' not in tiferet.__all__
-    assert tiferet.__version__ == '2.2.1b1'
+    assert tiferet.__version__ == '2.2.2b1'
 
 # ** test: main_forwards_the_preparsed_base_dir
 def test_main_calls_build_tester_cli():

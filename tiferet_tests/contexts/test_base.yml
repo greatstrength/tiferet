@@ -41,15 +41,15 @@ tests:
           get_dependency: null
           cache: $fixture.cache
         as: context
+      - {target: $r.context, method: __getattribute__, args: [domain], as: bound_domain}
+      - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.bound_domain, $fixture.feature], as: same_domain}
     assert:
       - outcome: context
         type: {module_path: tiferet.contexts.feature, class_name: FeatureContext}
       - outcome: context
         attribute: cache
         equals: $fixture.cache
-      - outcome: context
-        attribute: domain
-        equals: $fixture.feature
+      - {outcome: same_domain, equals: true}
 
   add_default_cache_items_isolates_by_prefix:
     conditions: {}
@@ -296,12 +296,12 @@ testers:
             method: from_domain
             args: [$fixture.error]
             as: context
+          - {target: $r.context, method: __getattribute__, args: [domain], as: bound_domain}
+          - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.bound_domain, $fixture.error], as: same_domain}
         assert:
           - outcome: context
             type: &error_context {module_path: tiferet.contexts.error, class_name: ErrorContext}
-          - outcome: context
-            attribute: domain
-            equals: $fixture.error
+          - {outcome: same_domain, equals: true}
 
       domain_type:
         conditions:
@@ -426,12 +426,12 @@ testers:
             method: from_domain
             args: [$fixture.error]
             as: context
+          - {target: $r.context, method: __getattribute__, args: [domain], as: bound_domain}
+          - {target: {module_path: operator, attribute: is_}, method: is_, args: [$r.bound_domain, $fixture.error], as: same_domain}
         assert:
           - outcome: context
             type: *error_context
-          - outcome: context
-            attribute: domain
-            equals: $fixture.error
+          - {outcome: same_domain, equals: true}
 
       for_domain_not_found:
         conditions: {}
