@@ -57,6 +57,9 @@ REQUEST_NOT_FOUND_ID = 'REQUEST_NOT_FOUND'
 # ** constant: request_validation_failed_id
 REQUEST_VALIDATION_FAILED_ID = 'REQUEST_VALIDATION_FAILED'
 
+# ** constant: test_preset_not_found_id
+TEST_PRESET_NOT_FOUND_ID = 'TEST_PRESET_NOT_FOUND'
+
 # ** constant: phase_fixture_not_found_id
 PHASE_FIXTURE_NOT_FOUND_ID = 'PHASE_FIXTURE_NOT_FOUND'
 
@@ -208,6 +211,12 @@ REQUEST_VALIDATION_FAILED_DATA = create_default_error_data(
     [(EN_US, 'Request validation failed for feature {feature_id}: {violations}.')],
 )
 
+# ** constant: test_preset_not_found_data
+TEST_PRESET_NOT_FOUND_DATA = create_default_error_data(
+    'Test Preset Not Found',
+    [(EN_US, 'Test preset not found: {preset_id}.')],
+)
+
 # ** constant: phase_fixture_not_found_data
 PHASE_FIXTURE_NOT_FOUND_DATA = create_default_error_data(
     'Phase Fixture Not Found',
@@ -347,6 +356,7 @@ CORE_DEFAULT_ERRORS = {
     PARAMETER_PARSING_FAILED_ID: PARAMETER_PARSING_FAILED_DATA,
     REQUEST_NOT_FOUND_ID: REQUEST_NOT_FOUND_DATA,
     REQUEST_VALIDATION_FAILED_ID: REQUEST_VALIDATION_FAILED_DATA,
+    TEST_PRESET_NOT_FOUND_ID: TEST_PRESET_NOT_FOUND_DATA,
     PHASE_FIXTURE_NOT_FOUND_ID: PHASE_FIXTURE_NOT_FOUND_DATA,
     PHASE_NAME_COLLISION_ID: PHASE_NAME_COLLISION_DATA,
     PHASE_REFERENCE_NOT_FOUND_ID: PHASE_REFERENCE_NOT_FOUND_DATA,
