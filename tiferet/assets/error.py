@@ -166,7 +166,7 @@ FEATURE_STEP_LOADING_FAILED_DATA = create_default_error_data(
 # ** constant: invalid_app_session_type_data
 INVALID_APP_SESSION_TYPE_DATA = create_default_error_data(
     'Invalid App Session Type',
-    [(EN_US, 'App context for interface is not valid: {interface_id}.')],
+    [(EN_US, '{attribute} must be a non-empty string.')],
 )
 
 # ** constant: logger_creation_failed_data

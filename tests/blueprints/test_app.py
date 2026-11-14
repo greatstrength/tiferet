@@ -5,10 +5,10 @@
 # ** core
 import pathlib
 import textwrap
+from unittest import mock
 
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from tiferet import assets as a
@@ -132,30 +132,42 @@ def test_build_app_returns_app_session_context():
     # Assert the wired context is returned unchanged.
     assert result is mock_ctx
 
-# ** test: build_app_invalid_type
-def test_build_app_invalid_type():
+# ** test: build_app_invalid_context
+def test_build_app_invalid_context(monkeypatch):
     '''
-    Test that build_app raises INVALID_APP_SESSION_TYPE_ID when the resolved context type is invalid.
+    Test that build_app raises INVALID_APP_SESSION_TYPE_ID with a session-specific
+    message when the composed context is not an AppSessionContext.
+
+    :param monkeypatch: The pytest patching fixture.
+    :type monkeypatch: pytest.MonkeyPatch
     '''
 
-    # Isolate build_app and force an invalid context type.
-    with mock.patch('tiferet.blueprints.core.get_app_session') as mock_get_session, \
-         mock.patch('tiferet.blueprints.app.build_app_session_context') as mock_build_ctx:
-        mock_get_session.return_value = AppSession(id='test.session', name='Test Session')
-        mock_build_ctx.return_value = object()
+    # Resolve a known session and compose an ordinary object instead of a context.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.get_app_session',
+        lambda *args, **kwargs: AppSession(id='invalid_interface', name='Invalid'),
+    )
+    monkeypatch.setattr(
+        'tiferet.blueprints.app.build_app_session_context',
+        lambda *args, **kwargs: object(),
+    )
 
-        # Invoke build_app and expect the structured type error.
-        with pytest.raises(TiferetError) as exc_info:
-            build_app('test.session')
+    # Invoke build_app and expect the structured invalid-context error.
+    with pytest.raises(TiferetError) as exc_info:
+        build_app('invalid_interface', app_config='config.yml')
 
-    # Assert the structured invalid-type error is raised.
+    # Assert the error code and the session-specific message naming the interface.
     assert exc_info.value.error_code == a.error.INVALID_APP_SESSION_TYPE_ID
+    assert 'App context for session is not valid: invalid_interface.' in str(exc_info.value)
 
 # ** test: build_app_end_to_end_wires_session_context
 def test_build_app_end_to_end_wires_session_context(session_config_file):
     '''
     Test that build_app composes a real AppSessionContext end to end, with no
     step of the composition chain patched out.
+
+    :param session_config_file: The path to the written session configuration file.
+    :type session_config_file: str
     '''
 
     # Build the app against the real session configuration file.
@@ -181,6 +193,9 @@ def test_build_app_end_to_end_resolves_default_services(session_config_file):
     '''
     Test that the composed context resolves the seeded default service catalog,
     including every middleware utility registered in CORE_DEFAULT_SERVICES.
+
+    :param session_config_file: The path to the written session configuration file.
+    :type session_config_file: str
     '''
 
     # Build the app against the real session configuration file.
@@ -200,6 +215,11 @@ def test_build_app_end_to_end_defaults_app_service_parameters(session_config_fil
     '''
     Test that build_app falls back to the framework default app service
     parameters when no app_config is supplied by the caller.
+
+    :param session_config_file: The path to the written session configuration file.
+    :type session_config_file: str
+    :param monkeypatch: The pytest patching fixture.
+    :type monkeypatch: pytest.MonkeyPatch
     '''
 
     # Run from the config file's directory so the default 'config.yml' resolves.
