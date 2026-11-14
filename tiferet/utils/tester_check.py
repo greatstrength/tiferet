@@ -333,6 +333,8 @@ class Check(CheckService):
             # Reject the first extra key of a non-empty actual mapping.
             if actual:
                 return f'Unexpected key {next(iter(actual))}.'
+
+            # An empty actual mapping matches.
             return None
 
         # Compare keys when actual is a mapping.
