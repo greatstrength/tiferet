@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** core
+from enum import Enum, IntEnum
+
 # ** infra
 import pytest
 from pydantic import Field
@@ -98,6 +101,194 @@ class TestCheck:
 
         # Compare differing scalars.
         assert check.equal(1, 2) == '1 != 2.'
+
+    # * test: equal_true_match
+    def test_equal_true_match(self, check):
+        '''
+        equal returns null when both values are True.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare True to True.
+        assert check.equal(True, True) is None
+
+    # * test: equal_false_match
+    def test_equal_false_match(self, check):
+        '''
+        equal returns null when both values are False.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare False to False.
+        assert check.equal(False, False) is None
+
+    # * test: equal_float_match
+    def test_equal_float_match(self, check):
+        '''
+        equal returns null when both values are the same float.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare matching floats.
+        assert check.equal(1.0, 1.0) is None
+
+    # * test: equal_true_int_mismatch
+    def test_equal_true_int_mismatch(self, check):
+        '''
+        equal names both types when True matches 1 by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare True to 1.
+        assert check.equal(True, 1) == 'True (bool) != 1 (int).'
+
+    # * test: equal_int_true_mismatch
+    def test_equal_int_true_mismatch(self, check):
+        '''
+        equal names both types when 1 matches True by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare 1 to True.
+        assert check.equal(1, True) == '1 (int) != True (bool).'
+
+    # * test: equal_false_zero_mismatch
+    def test_equal_false_zero_mismatch(self, check):
+        '''
+        equal names both types when False matches 0 by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare False to 0.
+        assert check.equal(False, 0) == 'False (bool) != 0 (int).'
+
+    # * test: equal_zero_false_mismatch
+    def test_equal_zero_false_mismatch(self, check):
+        '''
+        equal names both types when 0 matches False by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare 0 to False.
+        assert check.equal(0, False) == '0 (int) != False (bool).'
+
+    # * test: equal_int_float_mismatch
+    def test_equal_int_float_mismatch(self, check):
+        '''
+        equal names both types when an int matches a float by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare 1 to 1.0.
+        assert check.equal(1, 1.0) == '1 (int) != 1.0 (float).'
+
+    # * test: equal_float_int_mismatch
+    def test_equal_float_int_mismatch(self, check):
+        '''
+        equal names both types when a float matches an int by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare 1.0 to 1.
+        assert check.equal(1.0, 1) == '1.0 (float) != 1 (int).'
+
+    # * test: equal_true_float_mismatch
+    def test_equal_true_float_mismatch(self, check):
+        '''
+        equal names both types when True matches a float by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare True to 1.0.
+        assert check.equal(True, 1.0) == 'True (bool) != 1.0 (float).'
+
+    # * test: equal_string_true_keeps_detail
+    def test_equal_string_true_keeps_detail(self, check):
+        '''
+        equal keeps the value mismatch text when a string differs from True.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare a string to True.
+        assert check.equal('x', True) == "'x' != True."
+
+    # * test: equal_str_enum_match
+    def test_equal_str_enum_match(self, check):
+        '''
+        equal returns null when a str enum member matches its string value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Build a str enum member whose value is red.
+        class Color(str, Enum):
+            RED = 'red'
+
+        # Compare the member to its string value.
+        assert check.equal(Color.RED, 'red') is None
+
+    # * test: equal_int_enum_match
+    def test_equal_int_enum_match(self, check):
+        '''
+        equal returns null when an IntEnum member matches its int value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Build an IntEnum member whose value is 1.
+        class Level(IntEnum):
+            ONE = 1
+
+        # Compare the member to its int value.
+        assert check.equal(Level.ONE, 1) is None
+
+    # * test: equal_list_int_true_mismatch
+    def test_equal_list_int_true_mismatch(self, check):
+        '''
+        equal names both types for a nested list scalar that matches by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare a list holding 1 to a list holding True.
+        assert check.equal([1], [True]) == '1 (int) != True (bool).'
+
+    # * test: equal_mapping_int_true_mismatch
+    def test_equal_mapping_int_true_mismatch(self, check):
+        '''
+        equal names both types for a nested mapping scalar that matches by value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare a mapping holding 1 to a mapping holding True.
+        assert check.equal({'flag': 1}, {'flag': True}) == '1 (int) != True (bool).'
 
     # * test: mapping_none_does_not_equal_expected
     def test_mapping_none_does_not_equal_expected(self, check):
