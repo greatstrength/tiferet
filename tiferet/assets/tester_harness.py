@@ -11,25 +11,25 @@ from typing import Any, Dict
 
 # *** constants (ids)
 
-# ** constant: tester_cli_id
+# ** constant: harness_tester_cli_id
 HARNESS_TESTER_CLI_ID = 'tester_cli'
 
-# ** constant: di_service_id
+# ** constant: harness_di_service_id
 HARNESS_DI_SERVICE_ID = 'di_service'
 
-# ** constant: di_config_id
+# ** constant: harness_di_config_id
 HARNESS_DI_CONFIG_ID = 'di_config'
 
-# ** constant: feature_service_id
+# ** constant: harness_feature_service_id
 HARNESS_FEATURE_SERVICE_ID = 'feature_service'
 
-# ** constant: feature_config_id
+# ** constant: harness_feature_config_id
 HARNESS_FEATURE_CONFIG_ID = 'feature_config'
 
-# ** constant: get_feature_evt_id
+# ** constant: harness_get_feature_evt_id
 HARNESS_GET_FEATURE_EVT_ID = 'get_feature_evt'
 
-# ** constant: default_config_file
+# ** constant: harness_default_config_file
 HARNESS_DEFAULT_CONFIG_FILE = 'config.yml'
 
 # ** constant: harness_error_prefix
@@ -40,28 +40,28 @@ HARNESS_ERROR_EXIT_CODE = 3
 
 # *** constants (data)
 
-# ** constant: di_service_data
+# ** constant: harness_di_service_data
 HARNESS_DI_SERVICE_DATA: Dict[str, Any] = {
     'module_path': 'tiferet.repos.di',
     'class_name': 'DIConfigRepository',
     'parameters': {},
 }
 
-# ** constant: feature_service_data
+# ** constant: harness_feature_service_data
 HARNESS_FEATURE_SERVICE_DATA: Dict[str, Any] = {
     'module_path': 'tiferet.repos.feature',
     'class_name': 'FeatureConfigRepository',
     'parameters': {},
 }
 
-# ** constant: get_feature_evt_data
+# ** constant: harness_get_feature_evt_data
 HARNESS_GET_FEATURE_EVT_DATA: Dict[str, Any] = {
     'module_path': 'tiferet.events.feature',
     'class_name': 'GetFeature',
     'parameters': {},
 }
 
-# ** constant: core_default_errors
+# ** constant: harness_core_default_errors
 HARNESS_CORE_DEFAULT_ERRORS: Dict[str, Any] = {
     'APP_ERROR': {
         'name': 'App Error',
@@ -263,7 +263,7 @@ HARNESS_CORE_DEFAULT_ERRORS: Dict[str, Any] = {
     },
 }
 
-# ** constant: tester_cli_sessions
+# ** constant: harness_tester_cli_sessions
 HARNESS_TESTER_CLI_SESSIONS: Dict[str, Any] = {
     'tester_cli': {
         'name': 'Tester CLI',
@@ -271,7 +271,7 @@ HARNESS_TESTER_CLI_SESSIONS: Dict[str, Any] = {
     },
 }
 
-# ** constant: tester_default_commands
+# ** constant: harness_tester_default_commands
 HARNESS_TESTER_DEFAULT_COMMANDS: Dict[str, Any] = {
     'fixture.add': {
         'key': 'add',
@@ -804,7 +804,7 @@ HARNESS_TESTER_DEFAULT_COMMANDS: Dict[str, Any] = {
     },
 }
 
-# ** constant: tester_default_features
+# ** constant: harness_tester_default_features
 HARNESS_TESTER_DEFAULT_FEATURES: Dict[str, Any] = {
     'fixture.add': {
         'name': 'Add Fixture',
@@ -1205,7 +1205,7 @@ HARNESS_TESTER_DEFAULT_FEATURES: Dict[str, Any] = {
     },
 }
 
-# ** constant: tester_query_event_registrations
+# ** constant: harness_tester_query_event_registrations
 HARNESS_TESTER_QUERY_EVENT_REGISTRATIONS: Dict[str, Any] = {
     'get_fixture_evt': {
         'module_path': 'tiferet.events.tester_module',
@@ -1239,7 +1239,7 @@ HARNESS_TESTER_QUERY_EVENT_REGISTRATIONS: Dict[str, Any] = {
     },
 }
 
-# ** constant: tester_write_event_registrations
+# ** constant: harness_tester_write_event_registrations
 HARNESS_TESTER_WRITE_EVENT_REGISTRATIONS: Dict[str, Any] = {
     'add_fixture_evt': {
         'module_path': 'tiferet.events.tester_module',
@@ -1298,7 +1298,7 @@ HARNESS_TESTER_WRITE_EVENT_REGISTRATIONS: Dict[str, Any] = {
     },
 }
 
-# ** constant: tester_default_logging_settings
+# ** constant: harness_tester_default_logging_settings
 HARNESS_TESTER_DEFAULT_LOGGING_SETTINGS: Dict[str, Any] = {
     'formatters': [
         {
@@ -1399,7 +1399,7 @@ HARNESS_TESTER_DEFAULT_LOGGING_SETTINGS: Dict[str, Any] = {
     ],
 }
 
-# ** constant: core_default_tester_sessions
+# ** constant: harness_core_default_tester_sessions
 HARNESS_CORE_DEFAULT_TESTER_SESSIONS: Dict[str, Any] = {
     'tester': {
         'name': 'Tester',
@@ -1407,7 +1407,7 @@ HARNESS_CORE_DEFAULT_TESTER_SESSIONS: Dict[str, Any] = {
     },
 }
 
-# ** constant: core_default_testers
+# ** constant: harness_core_default_testers
 HARNESS_CORE_DEFAULT_TESTERS: Dict[str, Any] = {
     'domain.ErrorMessage': {
         'type': 'domain',
