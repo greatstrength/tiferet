@@ -126,11 +126,7 @@ def record_run_handler(get_dependency: Callable) -> Callable:
     def handler(feature_id: str, request: RequestContext) -> None:
 
         # Resolve and execute the record-run event; non-arithmetic runs no-op.
-        # request.result (not request.data) carries the feature's final
-        # response, since the default arithmetic features have no data_key
-        # step to set it -- request.data still carries the raw a/b operands
-        # for a plain call, or the accumulated values/operators logged by a
-        # fluent chain's single calc.resolve run.
+        # request.result carries the final response; request.data keeps the raw operands.
         record_run_evt = get_dependency(a.core.RECORD_RUN_EVT_ID, 'app')
         record_run_evt.execute(feature_id=feature_id, result=request.result, **request.data)
 
