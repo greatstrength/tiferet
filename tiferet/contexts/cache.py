@@ -47,7 +47,7 @@ class CacheContext(object):
         '''
 
         # Look up the namespace; return None when absent.
-        namespace = self._cache.get(prefix)
+        namespace = self._cache.get(tuple(prefix))
         if namespace is None:
             return None
 
@@ -68,11 +68,15 @@ class CacheContext(object):
         :type prefix: str
         '''
 
+        # Normalize the prefix segments to the namespace key.
+        prefix_t = tuple(prefix)
+
         # Create the namespace on first use.
-        namespace = self._cache.setdefault(prefix, {})
+        if prefix_t not in self._cache:
+            self._cache[prefix_t] = {}
 
         # Store the value in the namespace.
-        namespace[key] = value
+        self._cache[prefix_t][key] = value
 
     # * method: delete
     def delete(self, key: str, *prefix: str) -> None:
@@ -87,7 +91,7 @@ class CacheContext(object):
         '''
 
         # Look up the namespace; no-op when absent.
-        namespace = self._cache.get(prefix)
+        namespace = self._cache.get(tuple(prefix))
         if namespace is None:
             return
 
@@ -106,7 +110,7 @@ class CacheContext(object):
         '''
 
         # Return a shallow copy of the namespace, or an empty dict when absent.
-        return dict(self._cache.get(prefix, {}))
+        return dict(self._cache.get(tuple(prefix), {}))
 
     # * method: clear
     def clear(self) -> None:
