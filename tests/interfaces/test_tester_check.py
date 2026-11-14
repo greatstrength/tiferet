@@ -49,7 +49,7 @@ class TestCheckService:
 
         # Read each method's declared parameter names in order.
         expected_params = {
-            'equal': ['self', 'actual', 'expected'],
+            'equal': ['self', 'actual', 'expected', 'exact'],
             'codes': ['self', 'actual', 'expected'],
             'role_dump': ['self', 'dumped', 'exclude'],
             'mapper_contract': ['self', 'exclude', 'source'],

@@ -105,7 +105,7 @@ class TestEvaluateAssertion:
     # * test: dispatches_equals
     def test_dispatches_equals(self, check_service):
         '''
-        Assert equals that holds returns the same assertion object.
+        Assert equals that holds returns the same assertion object and compares exactly.
 
         :param check_service: The mock CheckService fixture.
         :type check_service: Mock
@@ -126,6 +126,42 @@ class TestEvaluateAssertion:
 
         # Assert the outcome is that same assertion object.
         assert result is assertion
+
+        # Assert equal is called once with exact comparison.
+        check_service.equal.assert_called_once_with(1, 1, exact=True)
+
+    # * test: dispatches_fields
+    def test_dispatches_fields(self, check_service):
+        '''
+        Assert fields that holds returns the same assertion object without exact comparison.
+
+        :param check_service: The mock CheckService fixture.
+        :type check_service: Mock
+        '''
+
+        # Configure fields to report a match and build the assertion.
+        check_service.equal.return_value = None
+        assertion = Mock()
+        assertion.check = 'fields'
+        outcome = {'id': 'a'}
+        fields = {'id': 'a'}
+
+        # Handle the event with fields values.
+        result = DomainEvent.handle(
+            EvaluateAssertion,
+            dependencies={'check_service': check_service},
+            assertion=assertion,
+            values={'outcome': outcome, 'fields': fields},
+        )
+
+        # Assert the outcome is that same assertion object.
+        assert result is assertion
+
+        # Assert equal is called once with the outcome and fields and no exact comparison.
+        check_service.equal.assert_called_once()
+        args, kwargs = check_service.equal.call_args
+        assert args == (outcome, fields)
+        assert kwargs.get('exact') is not True
 
     # * test: mismatch_raises_phase_check_failed
     def test_mismatch_raises_phase_check_failed(self, check_service):

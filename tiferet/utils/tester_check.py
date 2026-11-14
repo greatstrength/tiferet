@@ -45,7 +45,7 @@ class Check(CheckService):
         ServiceError.raise_for(self, CHECK_CALL_INVALID, message=message)
 
     # * method: equal
-    def equal(self, actual: Any, expected: Any) -> str | None:
+    def equal(self, actual: Any, expected: Any, exact: bool = False) -> str | None:
         '''
         Compare two values, including a structural compare.
 
@@ -53,6 +53,8 @@ class Check(CheckService):
         :type actual: Any
         :param expected: The expected value.
         :type expected: Any
+        :param exact: Optional exact mapping comparison that rejects unexpected keys. Defaults to False.
+        :type exact: bool
         :return: A mismatch, or None when the values match.
         :rtype: str | None
         '''
@@ -63,7 +65,7 @@ class Check(CheckService):
 
         # Compare a mapping of expected attributes or keys.
         if isinstance(expected, dict):
-            return self._equal_mapping(actual, expected)
+            return self._equal_mapping(actual, expected, exact=exact)
 
         # Compare lists pairwise when expected is a list.
         if isinstance(expected, list):
@@ -72,7 +74,7 @@ class Check(CheckService):
 
             # Return the first pairwise mismatch.
             for actual_item, expected_item in zip(actual, expected):
-                mismatch = self.equal(actual_item, expected_item)
+                mismatch = self.equal(actual_item, expected_item, exact=exact)
                 if mismatch is not None:
                     return mismatch
 
@@ -302,17 +304,36 @@ class Check(CheckService):
         )
 
     # * method: equal_mapping
-    def _equal_mapping(self, actual: Any, expected: Dict[str, Any]) -> str | None:
+    def _equal_mapping(self, actual: Any, expected: Dict[str, Any], exact: bool = False) -> str | None:
         '''
         Compare a mapping or an object's attributes. A missing expected key fails.
+
+        An absent actual never matches a mapping expectation, and an empty
+        expectation matches only an empty mapping.
 
         :param actual: The actual mapping or object.
         :type actual: Any
         :param expected: The expected attributes.
         :type expected: Dict[str, Any]
+        :param exact: Optional exact mapping comparison that rejects unexpected keys. Defaults to False.
+        :type exact: bool
         :return: A mismatch, or None when the named keys match.
         :rtype: str | None
         '''
+
+        # Refuse an absent actual for any mapping expectation.
+        if actual is None:
+            return 'Expected a mapping, got None.'
+
+        # Treat an empty expectation as a literal empty mapping.
+        if not expected:
+            if not isinstance(actual, Mapping):
+                return f'Expected a mapping, got {actual!r}.'
+
+            # Reject the first extra key of a non-empty actual mapping.
+            if actual:
+                return f'Unexpected key {next(iter(actual))}.'
+            return None
 
         # Compare keys when actual is a mapping.
         if isinstance(actual, Mapping):
@@ -321,9 +342,15 @@ class Check(CheckService):
                     return f'Missing key {key}.'
 
                 # Compare the present value.
-                mismatch = self.equal(actual[key], expected_value)
+                mismatch = self.equal(actual[key], expected_value, exact=exact)
                 if mismatch is not None:
                     return mismatch
+
+            # Reject the first unexpected key under exact comparison.
+            if exact:
+                for key in actual:
+                    if key not in expected:
+                        return f'Unexpected key {key}.'
 
             return None
 
@@ -333,7 +360,7 @@ class Check(CheckService):
                 return f'Missing attribute {key}.'
 
             # Compare the present attribute value.
-            mismatch = self.equal(getattr(actual, key), expected_value)
+            mismatch = self.equal(getattr(actual, key), expected_value, exact=exact)
             if mismatch is not None:
                 return mismatch
 

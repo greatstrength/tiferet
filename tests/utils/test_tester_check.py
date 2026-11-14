@@ -99,6 +99,127 @@ class TestCheck:
         # Compare differing scalars.
         assert check.equal(1, 2) == '1 != 2.'
 
+    # * test: mapping_none_does_not_equal_expected
+    def test_mapping_none_does_not_equal_expected(self, check):
+        '''
+        equal refuses a None actual for any mapping expectation, empty or not, under either exact value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare None to an empty and a non-empty mapping with default exact.
+        assert check.equal(None, {}) == 'Expected a mapping, got None.'
+        assert check.equal(None, {'a': 1}) == 'Expected a mapping, got None.'
+
+        # Compare None to an empty and a non-empty mapping with exact comparison.
+        assert check.equal(None, {}, exact=True) == 'Expected a mapping, got None.'
+        assert check.equal(None, {'a': 1}, exact=True) == 'Expected a mapping, got None.'
+
+    # * test: empty_mapping_is_literal
+    def test_empty_mapping_is_literal(self, check):
+        '''
+        equal treats an empty mapping expectation as a literal empty mapping, at any depth.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare an empty expectation to an empty mapping, a non-empty mapping, and an object.
+        obj = type('Obj', (), {'a': 1})()
+        assert check.equal({}, {}) is None
+        assert check.equal({'a': 1}, {}) == 'Unexpected key a.'
+        assert check.equal(obj, {}) == f'Expected a mapping, got {obj!r}.'
+
+        # Compare a nested empty expectation to an empty mapping, an extra key, and None.
+        expected = {'parameters': {}}
+        assert check.equal({'parameters': {}}, expected) is None
+        assert check.equal({'parameters': {'config_file': 'x'}}, expected) == 'Unexpected key config_file.'
+        assert check.equal({'parameters': None}, expected) == 'Expected a mapping, got None.'
+
+    # * test: extra_key_fails_exact
+    def test_extra_key_fails_exact(self, check):
+        '''
+        equal with exact comparison rejects an unexpected mapping key.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare a matching mapping and a mapping with an extra key exactly.
+        assert check.equal({'a': 1}, {'a': 1}, exact=True) is None
+        assert check.equal({'a': 1, 'b': 2}, {'a': 1}, exact=True) == 'Unexpected key b.'
+
+    # * test: nested_extra_key_fails_exact
+    def test_nested_extra_key_fails_exact(self, check):
+        '''
+        equal with exact comparison rejects an unexpected key in a nested mapping.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare a nested mapping with an extra key exactly.
+        assert check.equal(
+            {'outer': {'a': 1, 'b': 2}},
+            {'outer': {'a': 1}},
+            exact=True,
+        ) == 'Unexpected key b.'
+
+    # * test: object_named_attributes
+    def test_object_named_attributes(self, check):
+        '''
+        equal compares only named attributes on an object actual under either exact value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare named attributes with default and exact comparison.
+        obj = type('Obj', (), {'a': 1, 'b': 2})()
+        assert check.equal(obj, {'a': 1}) is None
+        assert check.equal(obj, {'a': 1}, exact=True) is None
+
+        # Compare a missing named attribute.
+        assert check.equal(obj, {'missing': 1}) == 'Missing attribute missing.'
+
+    # * test: keyed_list_partial
+    def test_keyed_list_partial(self, check):
+        '''
+        equal keeps the partial keyed-list item compare under either exact value.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Build a keyed list whose object carries an extra attribute.
+        obj = type('Obj', (), {'id': 'a', 'extra': 1})()
+        expected = {
+            'key': 'id',
+            'items': {
+                'a': {
+                    'id': 'a',
+                },
+            },
+        }
+
+        # Compare the keyed list with default and exact comparison.
+        assert check.equal([obj], expected) is None
+        assert check.equal([obj], expected, exact=True) is None
+
+    # * test: only_equals_passes_exact
+    def test_only_equals_passes_exact(self, check):
+        '''
+        equal ignores an extra key by default and rejects it with exact comparison.
+
+        :param check: The constructed Check.
+        :type check: Check
+        '''
+
+        # Compare a mapping with an extra key once by default and once exactly.
+        assert check.equal({'a': 1, 'b': 2}, {'a': 1}) is None
+        assert check.equal({'a': 1, 'b': 2}, {'a': 1}, exact=True) == 'Unexpected key b.'
+
     # * test: codes_match
     def test_codes_match(self, check):
         '''
