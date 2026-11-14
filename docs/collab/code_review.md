@@ -74,7 +74,7 @@ Confirm the link and the base:
 
 ## Doc and skills PRs
 
-A Doc or skills PR has no issue, no TRD, and no RFP. It is not linked to an issue, not on a milestone, not on the project board, and has no `Closes #N`. Do not flag any of those as missing. Review the diff against the intent in the PR body and the vocabulary in [process.md](process.md). Post the review's short status on the PR, since there is no issue. Code examples inside docs and skills are held to the shared floor like any other code.
+A Doc or skills PR has no issue, no TRD, and no RFP. It is not linked to an issue, not on a milestone, and has no `Closes #N`. It may sit on the project board, associated with Ultimate Deferred. Do not flag any of those as missing, and do not flag a board item as present or absent. Review the diff against the intent in the PR body and the vocabulary in [process.md](process.md). Post the review's short status on the PR, since there is no issue. Code examples inside docs and skills are held to the shared floor like any other code.
 
 ## How to leave a diff comment
 

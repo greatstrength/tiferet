@@ -9,9 +9,9 @@
 
 Standalone documentation and agent-skill changes - collaboration guides, style docs, the README, tutorials, the committed skills in `.agents/skills/`. Not a reconstruction. Not a hotfix. Process-skill rewrites are Doc PRs.
 
-**You do not need an issue or a TRD.** You do not need a milestone, a project-board item, or a release. The pull request *is* the authorizing document. Docs evolve with the situation, so they go straight to a branch and a PR. Write the title and body in the language of this process - trunk, prototype, catalog, freeze, RFP, TRD, issue versus PR - so someone six months from now can tell what you did without a specification sitting next to it.
+**You do not need an issue or a TRD.** You do not need a milestone or a release. The PR is acceptable on the project board, associated with Ultimate Deferred, so the maintainer can see it and trace it back. The pull request *is* the authorizing document. Docs evolve with the situation, so they go straight to a branch and a PR. Write the title and body in the language of this process - trunk, prototype, catalog, freeze, RFP, TRD, issue versus PR - so someone six months from now can tell what you did without a specification sitting next to it.
 
-A Doc PR has no issue, no TRD, no milestone, no project-board item, and no `Closes #N`. Do not open an issue for it. Discussion lives on the PR. It is still a PR: agents never push to `main`. Review and squash-merge are outside these contribution guidelines ([process.md](process.md#agent-guardrails)).
+A Doc PR has no issue, no TRD, no milestone, and no `Closes #N`. It may go on the project board as a PR item, associated with Ultimate Deferred. Do not open an issue for it. Discussion lives on the PR. It is still a PR: agents never push to `main`. Review and squash-merge are outside these contribution guidelines ([process.md](process.md#agent-guardrails)).
 
 If a Doc PR body lists acceptance criteria, every box starts unchecked. The reviewer checks each one as it verifies it.
 
@@ -25,7 +25,7 @@ From `main`: `docs-<lowercase-hyphenated-context>`.
 
 1. Cut the branch from `main`.
 2. Write the docs or skills. New or rewritten skills follow [agents/SKILL_TEMPLATE.md](agents/SKILL_TEMPLATE.md). Skills stay terse; these guides may take a breath.
-3. Open a PR targeting `main`. Title it `Docs - <Capitalized Semantic Title>`. Do not link an issue, add a milestone, or add a project-board item. The body says what changed and why.
+3. Open a PR targeting `main`. Title it `Docs - <Capitalized Semantic Title>`. Do not link an issue or add a milestone. The PR may be added to the project board, associated with Ultimate Deferred. The body says what changed and why.
 4. Review comments and short status notes stay on the PR.
 5. After the squash-merge, pull `main` and delete the local branch.
 
