@@ -56,6 +56,152 @@ ERROR_MESSAGE_FIXTURE = {
 # ** constant: handle_dependencies_message
 HANDLE_DEPENDENCIES_MESSAGE = 'dependencies is legal only on handle with a named event target.'
 
+# *** functions
+
+# ** function: echo
+def echo(value: Any) -> Any:
+    '''
+    Return the value unchanged.
+
+    :param value: The value to return.
+    :type value: Any
+    :return: The same value.
+    :rtype: Any
+    '''
+
+    # Return the value unchanged.
+    return value
+
+# ** function: named_event_class
+def named_event_class() -> type:
+    '''
+    Return the NamedEvent class.
+
+    :return: The NamedEvent class.
+    :rtype: type
+    '''
+
+    # Return the class.
+    return NamedEvent
+
+# ** function: stage_directories
+def _stage_directories() -> set:
+    '''
+    Return the stage directory names under the temporary root.
+
+    :return: The names that start with STAGE_PREFIX.
+    :rtype: set
+    '''
+
+    # List the temporary root and keep the stage names.
+    return {
+        name
+        for name in os.listdir(tempfile.gettempdir())
+        if name.startswith(STAGE_PREFIX)
+    }
+
+# ** function: test
+def _test(test_id: str, conditions: Conditions, executes: list, asserts: list) -> Test:
+    '''
+    Build one test with the given phases.
+
+    :param test_id: The test id and name.
+    :type test_id: str
+    :param conditions: The conditions phase.
+    :type conditions: Conditions
+    :param executes: The execute steps.
+    :type executes: list
+    :param asserts: The assert steps.
+    :type asserts: list
+    :return: The test.
+    :rtype: Test
+    '''
+
+    # Build the test with no added field.
+    return Test(id=test_id, name=test_id, conditions=conditions, executes=executes, asserts=asserts)
+
+# ** function: runtime
+def _runtime(
+        tester_module_path: str,
+        tester_class_name: str,
+        tester_attributes: dict = None,
+        root_fixtures: dict = None,
+        tester_fixtures: dict = None,
+    ) -> PhaseRuntimeContext:
+    '''
+    Build a phase runtime on a fresh session through build_phase_runtime.
+
+    :param tester_module_path: The tester class module path.
+    :type tester_module_path: str
+    :param tester_class_name: The tester class name.
+    :type tester_class_name: str
+    :param tester_attributes: Attributes new passes to the tester class.
+    :type tester_attributes: dict
+    :param root_fixtures: Root fixture specs.
+    :type root_fixtures: dict
+    :param tester_fixtures: Tester-local fixture specs.
+    :type tester_fixtures: dict
+    :return: The phase runtime context.
+    :rtype: PhaseRuntimeContext
+    '''
+
+    # Build the runtime on a fresh session.
+    return build_phase_runtime(
+        RequestContext(),
+        tester_module_path,
+        tester_class_name,
+        tester_attributes=tester_attributes,
+        root_fixtures=root_fixtures,
+        tester_fixtures=tester_fixtures,
+    )
+
+# ** function: observe
+def _observe(value: Any, asserts: list, executes: list = None, conditions: Conditions = None) -> PhaseRuntimeContext:
+    '''
+    Store a value at as key got through echo, then run the asserts.
+
+    :param value: The value to store at got.
+    :type value: Any
+    :param asserts: The asserts to run; empty means a type hold on got.
+    :type asserts: list
+    :param executes: Executes that run after the store.
+    :type executes: list
+    :param conditions: The conditions phase.
+    :type conditions: Conditions
+    :return: The phase runtime context.
+    :rtype: PhaseRuntimeContext
+    '''
+
+    # Build a runtime on RecordingEvent.
+    ctx = _runtime(MODULE_PATH, 'RecordingEvent')
+
+    # Build the execution that stores the value through echo.
+    store = Execution(
+        target=ExecutionTarget(module_path=MODULE_PATH, attribute='echo'),
+        method='echo',
+        args=[value],
+        data_key='got',
+    )
+
+    # Hold the stored type when no assert is supplied.
+    held = asserts or [
+        Assertion(
+            check='type',
+            outcome='got',
+            module_path=type(value).__module__,
+            class_name=type(value).__qualname__,
+        ),
+    ]
+
+    # Run the test and return the runtime.
+    ctx.run(_test(
+        'phase.observe',
+        conditions or Conditions(),
+        [store] + list(executes or []),
+        held,
+    ))
+    return ctx
+
 # *** classes
 
 # ** class: has_new
@@ -177,152 +323,6 @@ class FailingCloseStage(Stage):
         # Close the stage, then raise.
         Stage.close(self)
         raise OSError('cleanup failed')
-
-# *** functions
-
-# ** function: echo
-def echo(value: Any) -> Any:
-    '''
-    Return the value unchanged.
-
-    :param value: The value to return.
-    :type value: Any
-    :return: The same value.
-    :rtype: Any
-    '''
-
-    # Return the value unchanged.
-    return value
-
-# ** function: named_event_class
-def named_event_class() -> type:
-    '''
-    Return the NamedEvent class.
-
-    :return: The NamedEvent class.
-    :rtype: type
-    '''
-
-    # Return the class.
-    return NamedEvent
-
-# ** function: stage_directories
-def _stage_directories() -> set:
-    '''
-    Return the stage directory names under the temporary root.
-
-    :return: The names that start with STAGE_PREFIX.
-    :rtype: set
-    '''
-
-    # List the temporary root and keep the stage names.
-    return {
-        name
-        for name in os.listdir(tempfile.gettempdir())
-        if name.startswith(STAGE_PREFIX)
-    }
-
-# ** function: test
-def _test(test_id: str, conditions: Conditions, executes: list, asserts: list) -> Test:
-    '''
-    Build one test with the given phases.
-
-    :param test_id: The test id and name.
-    :type test_id: str
-    :param conditions: The conditions phase.
-    :type conditions: Conditions
-    :param executes: The execute steps.
-    :type executes: list
-    :param asserts: The assert steps.
-    :type asserts: list
-    :return: The test.
-    :rtype: Test
-    '''
-
-    # Build the test with no added field.
-    return Test(id=test_id, name=test_id, conditions=conditions, executes=executes, asserts=asserts)
-
-# ** function: runtime
-def _runtime(
-        tester_module_path: str,
-        tester_class_name: str,
-        tester_attributes: dict = None,
-        root_fixtures: dict = None,
-        tester_fixtures: dict = None,
-    ) -> PhaseRuntimeContext:
-    '''
-    Build a phase runtime on a fresh session through build_phase_runtime.
-
-    :param tester_module_path: The tester class module path.
-    :type tester_module_path: str
-    :param tester_class_name: The tester class name.
-    :type tester_class_name: str
-    :param tester_attributes: Attributes new passes to the tester class.
-    :type tester_attributes: dict
-    :param root_fixtures: Root fixture specs.
-    :type root_fixtures: dict
-    :param tester_fixtures: Tester-local fixture specs.
-    :type tester_fixtures: dict
-    :return: The phase runtime context.
-    :rtype: PhaseRuntimeContext
-    '''
-
-    # Build the runtime on a fresh session.
-    return build_phase_runtime(
-        RequestContext(),
-        tester_module_path,
-        tester_class_name,
-        tester_attributes,
-        root_fixtures,
-        tester_fixtures,
-    )
-
-# ** function: observe
-def _observe(value: Any, asserts: list, executes: list = None, conditions: Conditions = None) -> PhaseRuntimeContext:
-    '''
-    Store a value at as key got through echo, then run the asserts.
-
-    :param value: The value to store at got.
-    :type value: Any
-    :param asserts: The asserts to run; empty means a type hold on got.
-    :type asserts: list
-    :param executes: Executes that run after the store.
-    :type executes: list
-    :param conditions: The conditions phase.
-    :type conditions: Conditions
-    :return: The phase runtime context.
-    :rtype: PhaseRuntimeContext
-    '''
-
-    # Build a runtime on RecordingEvent.
-    ctx = _runtime(MODULE_PATH, 'RecordingEvent')
-
-    # Store the value through echo, then run any further executes.
-    store = Execution(
-        target=ExecutionTarget(module_path=MODULE_PATH, attribute='echo'),
-        method='echo',
-        args=[value],
-        data_key='got',
-    )
-
-    # Hold the stored type when no assert is supplied.
-    held = asserts or [
-        Assertion(
-            check='type',
-            outcome='got',
-            module_path=type(value).__module__,
-            class_name=type(value).__qualname__,
-        ),
-    ]
-
-    # Run the test and return the runtime.
-    ctx.run(_test(
-        'phase.observe',
-        conditions or Conditions(),
-        [store] + list(executes or []),
-        held,
-    ))
-    return ctx
 
 # *** testers
 
