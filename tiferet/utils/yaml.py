@@ -668,19 +668,21 @@ def plain_from_node(node: Any) -> tuple:
                 total = total * 60 + int(part)
             return sign * total
 
-        # Binary, hex, a leading 0 octal, or decimal.
+        # Binary or hex, with a case-insensitive prefix.
         try:
             lowered = body.lower()
             if lowered.startswith('0b'):
                 return None if len(body) == 2 else sign * int(body[2:], 2)
             if lowered.startswith('0x'):
                 return None if len(body) == 2 else sign * int(body[2:], 16)
-            if (
-                len(body) > 1
-                and body[0] == '0'
-                and all(char in '01234567' for char in body)
-            ):
+
+            # A leading 0 is octal under YAML 1.1. A non-octal digit refuses, with no decimal fallback.
+            if len(body) > 1 and body[0] == '0':
+                if not all(char in '01234567' for char in body):
+                    return None
                 return sign * int(body, 8)
+
+            # Otherwise decimal.
             if body.isdigit():
                 return sign * int(body, 10)
         except ValueError:

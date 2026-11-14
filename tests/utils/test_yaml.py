@@ -779,15 +779,18 @@ def test_plain_from_node_int_forms():
     Parse the plain int forms.
     '''
 
-    # Int-tag scalars for each named form.
-    texts = ('0', '0b10', '0x10', '010', '1:30', '1_000')
-    expected = (0, 2, 16, 8, 90, 1000)
+    # Int-tag scalars for each named form. Binary and hex prefixes are case insensitive.
+    texts = ('0', '0b10', '0B10', '0x10', '0XFF', '010', '1:30', '1_000')
+    expected = (0, 2, 2, 16, 255, 8, 90, 1000)
 
     # Project each scalar.
     values = [plain_from_node(ScalarNode(YAML_INT_TAG, text)) for text in texts]
 
     # Each value is plain and equals the named int.
     assert values == [(item, True) for item in expected]
+
+    # A leading 0 with a non-octal digit is a bad octal and refuses. It is not read as decimal.
+    assert plain_from_node(ScalarNode(YAML_INT_TAG, '09')) == (None, False)
 
 # *** testers
 
