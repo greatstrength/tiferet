@@ -46,6 +46,8 @@ Git *may* flow the other way - trunk → prototype - when proto has not yet abso
 
 **Docs or skills.** Open a Doc PR. No issue, no milestone, no project-board item.
 
+**Tests.** Open a Tests PR. Python and YAML test updates go straight to a PR, with no TRD or RFP, and outside any milestone, the same way a Doc PR does. A Tests PR may target any branch at any time and goes through the standard PR review. Every test name states the invariant it guards, so a reader knows what property the test checks without reading its body. This applies to Python tests, testers, and YAML cases across Tiferet and its extensions.
+
 ## Issues, PRs, and blocking
 
 Pull requests are for reviewing code. Issues are for remembering the work item.
