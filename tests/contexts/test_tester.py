@@ -10,8 +10,9 @@ import pytest
 
 # ** app
 from tiferet.assets import TiferetAPIError, TiferetError
-from tiferet.assets.error import APP_ERROR_ID, FEATURE_NOT_FOUND_ID
+from tiferet.assets.error import APP_ERROR_ID
 from tiferet.blueprints.tester import (
+    _module_run_session,
     build_test_session,
     build_tester_context,
     use_tester,
@@ -96,6 +97,26 @@ def _add_values(a, b):
 
     # Return the sum.
     return a + b
+
+# ** function: unwired_module_run
+def _unwired_module_run() -> tuple:
+    '''
+    Build a module run whose dependency and error handlers must not be called.
+
+    :return: The module run and the list of recorded handler calls.
+    :rtype: tuple
+    '''
+
+    # Record each call, then fail loudly, so a test can prove nothing resolved.
+    calls = []
+
+    def unused(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError('must not be called')
+
+    # Wire the same recorder as the dependency and the error handler.
+    module_run = ModuleRunContext(unused, raise_error_handler=unused)
+    return module_run, calls
 
 # *** fixtures
 
@@ -1132,61 +1153,100 @@ def test_note_model_error_keeps_own_message() -> None:
     assert 'APP_ERROR' not in module_run.outcomes[0]['message']
     assert len(calls) == 0
 
-# ** test: note_catalogued_error_uses_the_handler
-def test_note_catalogued_error_uses_the_handler() -> None:
+# ** test: uncatalogued_tiferet_error_is_recorded_as_failed
+def test_uncatalogued_tiferet_error_is_recorded_as_failed() -> None:
     '''
-    Assert a catalogued error is formatted by the injected handler.
+    Assert an uncatalogued Tiferet error fails the test from the error itself.
 
     :return: None
     :rtype: None
     '''
 
-    # The handler raises one prebuilt API error for the catalogued error.
-    original = TiferetError(FEATURE_NOT_FOUND_ID)
-    api_error = TiferetAPIError(
-        error_code=FEATURE_NOT_FOUND_ID,
-        message='missing feature',
+    # Note an application error whose code is not in the cached catalog.
+    module_run, calls = _unwired_module_run()
+    printable = module_run.note(
+        'node.app',
+        error=TiferetError('APP_SPECIFIC_ERR', message='boom'),
     )
-    received = []
 
-    def handler(caught):
-        received.append(caught)
-        raise api_error
+    # The printable is a constructed API error, and nothing was resolved.
+    assert isinstance(printable, TiferetAPIError)
+    assert 'APP_SPECIFIC_ERR' in str(printable)
+    assert module_run.outcomes == [
+        {
+            'node_id': 'node.app',
+            'status': 'FAILED',
+            'message': 'APP_SPECIFIC_ERR: boom',
+        },
+    ]
+    assert module_run.failures == module_run.outcomes
+    assert calls == []
 
-    module_run = ModuleRunContext(
-        lambda *args, **kwargs: None,
-        raise_error_handler=handler,
-    )
-    returned = module_run.note('node.catalogued', error=original)
-    assert received[0] is original
-    assert returned is api_error
-    assert module_run.outcomes[0]['status'] == 'FAILED'
-    assert module_run.outcomes[0]['message'] == 'missing feature'
-    assert module_run.outcomes[0]['message'] != str(original)
-
-# ** test: note_empty_api_message
-def test_note_empty_api_message() -> None:
+# ** test: uncatalogued_tiferet_error_without_message
+def test_uncatalogued_tiferet_error_without_message() -> None:
     '''
-    Assert a null API message is recorded as an empty string.
+    Assert an uncatalogued Tiferet error without a message records its code alone.
 
     :return: None
     :rtype: None
     '''
 
-    # The handler raises an API error whose message is null.
-    def handler(caught):
-        raise TiferetAPIError(
-            error_code=FEATURE_NOT_FOUND_ID,
-            message=None,
-        )
-
-    module_run = ModuleRunContext(
-        lambda *args, **kwargs: None,
-        raise_error_handler=handler,
+    # Note an uncatalogued error that carries no message.
+    module_run, calls = _unwired_module_run()
+    printable = module_run.note(
+        'node.app',
+        error=TiferetError('APP_SPECIFIC_ERR'),
     )
-    module_run.note('node.empty', error=TiferetError(FEATURE_NOT_FOUND_ID))
+
+    # The message is the error code, and nothing was resolved.
+    assert printable is not None
+    assert module_run.outcomes[0]['message'] == 'APP_SPECIFIC_ERR'
+    assert calls == []
+
+# ** test: uncatalogued_tiferet_error_without_cache
+def test_uncatalogued_tiferet_error_without_cache() -> None:
+    '''
+    Assert a missing cache is a catalog miss, even for a core error code.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Clear the cache, then note a core code that would otherwise be catalogued.
+    module_run, calls = _unwired_module_run()
+    module_run.cache = None
+    printable = module_run.note(
+        'node.app',
+        error=TiferetError('ERROR_NOT_FOUND', message='gone'),
+    )
+
+    # The error fails from its own message, and nothing was resolved.
+    assert printable is not None
     assert module_run.outcomes[0]['status'] == 'FAILED'
-    assert module_run.outcomes[0]['message'] == ''
+    assert module_run.outcomes[0]['message'] == 'ERROR_NOT_FOUND: gone'
+    assert calls == []
+
+# ** test: catalogued_tiferet_error_formats_through_handler
+def test_catalogued_tiferet_error_formats_through_handler() -> None:
+    '''
+    Assert a catalogued Tiferet error still formats through the injected handler.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Note a core code against the reporter cache.
+    module_run = _module_run_session()
+    printable = module_run.note(
+        'node.core',
+        error=TiferetError('ERROR_NOT_FOUND', message='gone'),
+    )
+
+    # The handler formats the catalogued message.
+    assert isinstance(printable, TiferetAPIError)
+    assert printable.message == 'Error not found: {id}.'
+    assert module_run.outcomes[0]['status'] == 'FAILED'
+    assert module_run.outcomes[0]['message'] == 'Error not found: {id}.'
 
 # ** test: service_error_is_recorded_as_failed
 def test_service_error_is_recorded_as_failed() -> None:
