@@ -54,6 +54,12 @@ def build_admin_session_constants(constants: Dict[str, Any], app_config: str) ->
 
 # ** blueprint: build_cache
 @add_default_catalog(
+    a.cli_svc.ADMIN_DEFAULT_SERVICES,
+    a.app.ADMIN_SERVICE_CACHE_PREFIX,
+    model=AppServiceDependency,
+    id_field='service_id',
+)
+@add_default_catalog(
     a.app.ADMIN_DEFAULT_SERVICES,
     a.app.ADMIN_SERVICE_CACHE_PREFIX,
     model=AppServiceDependency,
@@ -72,6 +78,9 @@ def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
 
     Extends ``app.build_cache``, not ``core.build_cache``, then stacks the
     admin service and constant catalogs plus the admin feature and error catalogs.
+    The admin feature-step event registrations (``a.cli_svc.ADMIN_DEFAULT_SERVICES``)
+    are seeded on the admin service prefix so admin feature steps resolve from
+    the admin container.
 
     :param cache: An optional initial cache dictionary for the root namespace.
     :type cache: Dict[str, Any] | None
