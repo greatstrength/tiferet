@@ -116,7 +116,7 @@ class EvaluateAssertion(CheckEvent):
 
         # Dispatch the named comparison through the check service.
         if name == 'equals':
-            mismatch = self.check_service.equal(outcome, resolved.get('equals'))
+            mismatch = self.check_service.equal(outcome, resolved.get('equals'), exact=True)
 
         elif name == 'null':
             mismatch = self.check_service.equal(outcome, None)
