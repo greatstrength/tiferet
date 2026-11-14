@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 # ** app
 from .. import a
@@ -11,14 +11,15 @@ from . import admin, core
 from .cli import (
     parse_cli_args_handler,
     create_cli_request_context,
-    list_commands_handler,
     get_parent_args_handler,
 )
 from ..contexts.app import AppSession
 from ..contexts.cache import CacheContext
 from ..contexts.cli import (
+    CliCommand,
     CliSessionContext,
     add_default_cli_commands,
+    get_default_cli_commands,
 )
 
 # *** blueprints
@@ -42,6 +43,28 @@ def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
     # Delegate to the admin cache builder; the decorator stacks CLI commands.
     return admin.build_cache(cache=cache)
 
+# ** blueprint: list_admin_commands_handler
+def list_admin_commands_handler(cache: CacheContext) -> Callable:
+    '''
+    Build a zero-arg handler whose admin CLI command catalog comes from the
+    cache-seeded built-in commands and is never read from the consumer
+    configuration file.
+
+    :param cache: The admin CLI bootstrap cache.
+    :type cache: CacheContext
+    :return: A closure that returns the built-in admin CLI commands.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure bound to the cache.
+    def handler() -> List[CliCommand]:
+
+        # Read the built-in admin CLI commands from the cache at call time.
+        return get_default_cli_commands(cache)
+
+    # Return the closure.
+    return handler
+
 # ** blueprint: build_admin_cli_session_context
 def build_admin_cli_session_context(app_session: AppSession,
         cache: CacheContext) -> CliSessionContext:
@@ -52,7 +75,8 @@ def build_admin_cli_session_context(app_session: AppSession,
     ``admin.build_admin_service_resolver`` so feature steps resolve from the
     admin container by default. This builder does not resolve the CLI events
     by service id. It passes the injected command handlers and
-    ``core.response_handler``.
+    ``core.response_handler``. The command handler returns the built-in admin
+    command catalog and does not read the consumer's ``cli.cmds``.
 
     :param app_session: The loaded app session domain object.
     :type app_session: AppSession
@@ -67,7 +91,7 @@ def build_admin_cli_session_context(app_session: AppSession,
     resolver = admin.build_admin_service_resolver(app_container, cache, session_constants=app_session.constants)
 
     # Build the CLI handlers without resolving events during construction.
-    commands_handler = list_commands_handler(cache, resolver.get_dependency)
+    commands_handler = list_admin_commands_handler(cache)
     parent_args_handler = get_parent_args_handler(resolver.get_dependency)
     parse_cli_args = parse_cli_args_handler(
         list_commands=commands_handler,

@@ -2,9 +2,12 @@
 
 # *** imports
 
-# ** infra
-import yaml
+# ** core
 from unittest import mock
+
+# ** infra
+import pytest
+import yaml
 
 # ** app
 from tiferet import assets as a
@@ -14,6 +17,7 @@ from tiferet.blueprints.admin_cli import (
     build_admin_cli,
     build_admin_cli_session_context,
     build_cache,
+    list_admin_commands_handler,
     main,
 )
 from tiferet.blueprints.cli import (
@@ -23,6 +27,7 @@ from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.cli import (
     CLI_COMMAND_CACHE_PREFIX,
     CliSessionContext,
+    get_default_cli_commands,
 )
 from tiferet.domain import AppSession, CliCommand
 from tiferet.mappers import FeatureAggregate
@@ -137,6 +142,146 @@ def test_build_admin_cli_session_context_passes_handlers_not_raw_events():
     assert callable(keywords['get_parent_args_handler'])
     assert callable(keywords['parse_cli_args'])
     assert result is composed
+
+    # Assert the command handler returns the built-in catalog without resolving events.
+    assert keywords['list_commands_handler']() == get_default_cli_commands(cache)
+    resolver.get_dependency.assert_not_called()
+
+# ** test: list_admin_commands_handler_returns_built_in_commands
+def test_list_admin_commands_handler_returns_built_in_commands():
+    '''
+    Test that list_admin_commands_handler returns the cache-seeded built-in
+    admin CLI commands.
+    '''
+
+    # Build the admin CLI cache and list its commands through the handler.
+    cache = build_cache()
+    commands = list_admin_commands_handler(cache)()
+
+    # Assert the handler returns the full built-in catalog, including feature list.
+    assert commands == get_default_cli_commands(cache)
+    assert ('feature', 'list') in {(command.group_key, command.key) for command in commands}
+    assert len(commands) == len(a.cli.ADMIN_DEFAULT_COMMANDS)
+
+# ** test: build_admin_cli_session_context_lists_built_ins_for_empty_cli_config
+def test_build_admin_cli_session_context_lists_built_ins_for_empty_cli_config(tmp_path):
+    '''
+    Test that an empty consumer cli section still exposes the built-in admin
+    CLI commands and parses feature list.
+
+    :param tmp_path: The pytest temporary directory.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Write a consumer configuration file with an empty cli section.
+    config_path = str(tmp_path / 'config.yml')
+    with open(config_path, 'w') as config_file:
+        yaml.safe_dump({'cli': {}}, config_file)
+
+    # Resolve the admin CLI session the way build_admin_cli does.
+    cache = build_cache()
+    app_session = core.get_app_session(
+        a.app.TIFERET_ADMIN_CLI_ID,
+        cache,
+        app_config=config_path,
+    )
+    app_session.constants = {
+        **app_session.constants,
+        'app_config': config_path,
+        'cli_config': config_path,
+        'di_config': config_path,
+        'error_config': config_path,
+        'feature_config': config_path,
+        'logging_config': config_path,
+    }
+
+    # Compose the admin CLI session context through the wrapped composition call.
+    with mock.patch(
+        'tiferet.blueprints.admin_cli.core.compose_session_context',
+        wraps=core.compose_session_context,
+    ) as mock_compose:
+        context = build_admin_cli_session_context(app_session, cache)
+
+    # Read the parse closure from the wrapped composition call.
+    parse_cli_args = mock_compose.call_args.kwargs['parse_cli_args']
+
+    # Assert the listed commands are the built-in catalog.
+    listed = {(command.group_key, command.key) for command in context.list_commands()}
+    assert listed == {(command.group_key, command.key) for command in get_default_cli_commands(cache)}
+
+    # Assert argparse accepts the feature list command.
+    assert parse_cli_args(['feature', 'list'])[0] == 'feature.list'
+
+# ** test: build_admin_cli_session_context_ignores_consumer_cli_cmds
+def test_build_admin_cli_session_context_ignores_consumer_cli_cmds(tmp_path):
+    '''
+    Test that consumer cli.cmds do not replace the built-in admin CLI command
+    catalog.
+
+    :param tmp_path: The pytest temporary directory.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Write a consumer configuration file that defines its own calc add command.
+    config_path = str(tmp_path / 'config.yml')
+    with open(config_path, 'w') as config_file:
+        yaml.safe_dump(
+            {
+                'cli': {
+                    'cmds': {
+                        'calc': {
+                            'add': {
+                                'group_key': 'calc',
+                                'key': 'add',
+                                'name': 'Add',
+                                'description': 'Add numbers.',
+                            },
+                        },
+                    },
+                },
+            },
+            config_file,
+        )
+
+    # Resolve the admin CLI session the way build_admin_cli does.
+    cache = build_cache()
+    app_session = core.get_app_session(
+        a.app.TIFERET_ADMIN_CLI_ID,
+        cache,
+        app_config=config_path,
+    )
+    app_session.constants = {
+        **app_session.constants,
+        'app_config': config_path,
+        'cli_config': config_path,
+        'di_config': config_path,
+        'error_config': config_path,
+        'feature_config': config_path,
+        'logging_config': config_path,
+    }
+
+    # Compose the admin CLI session context through the wrapped composition call.
+    with mock.patch(
+        'tiferet.blueprints.admin_cli.core.compose_session_context',
+        wraps=core.compose_session_context,
+    ) as mock_compose:
+        context = build_admin_cli_session_context(app_session, cache)
+
+    # Read the parse closure from the wrapped composition call.
+    parse_cli_args = mock_compose.call_args.kwargs['parse_cli_args']
+
+    # Assert the consumer command is not listed and the built-ins are.
+    listed = {(command.group_key, command.key) for command in context.list_commands()}
+    assert ('calc', 'add') not in listed
+    assert listed == {(command.group_key, command.key) for command in get_default_cli_commands(cache)}
+
+    # Assert argparse accepts feature list.
+    assert parse_cli_args(['feature', 'list'])[0] == 'feature.list'
+
+    # Assert argparse rejects the consumer calc group with exit code 2.
+    with pytest.raises(SystemExit) as exit_info:
+        parse_cli_args(['calc', 'add'])
+    assert exit_info.value.code == 2
 
 # ** test: build_admin_cli_reseeds_app_config
 def test_build_admin_cli_reseeds_app_config():
