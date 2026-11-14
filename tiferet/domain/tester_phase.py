@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import re
 from typing import Any, Dict, List, Literal, Tuple
 
 # ** infra
@@ -18,6 +19,15 @@ from .core import (
 from .feature import Feature
 
 # *** constants
+
+# ** constant: ref_name
+REF_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+# ** constant: named_handle_prefixes
+NAMED_HANDLE_PREFIXES: Tuple[str, ...] = (
+    '$mock.',
+    '$r.',
+)
 
 # ** constant: assertion_checks
 ASSERTION_CHECKS: Tuple[str, ...] = (
@@ -42,6 +52,7 @@ ASSERTION_CHECKS: Tuple[str, ...] = (
 # ** constant: assertion_payload_fields
 ASSERTION_PAYLOAD_FIELDS: Tuple[str, ...] = (
     'outcome',
+    'attribute',
     'equals',
     'fields',
     'absent',
@@ -70,6 +81,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'equals',
         ),
     },
@@ -79,6 +91,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
         ),
     },
     'fields': {
@@ -88,6 +101,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'fields',
         ),
     },
@@ -98,6 +112,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'absent',
         ),
     },
@@ -108,6 +123,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'error_code',
         ),
     },
@@ -119,6 +135,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'module_path',
             'class_name',
             'negate',
@@ -130,6 +147,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'module_path',
             'class_name',
             'builtin',
@@ -142,6 +160,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'message',
         ),
     },
@@ -216,6 +235,7 @@ ASSERTION_CHECK_FIELDS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         'allowed': (
             'outcome',
+            'attribute',
             'module_path',
             'class_name',
             'message',
@@ -592,6 +612,12 @@ class Execution(DomainObject):
         description='Whether the call is expected to raise. The caught exception is stored at data_key.',
     )
 
+    # * attribute: dependencies
+    dependencies: Dict[str, Any] = Field(
+        default_factory=dict,
+        description='The constructor mapping for a named handle. An omitted key is an empty mapping.',
+    )
+
     # * method: _reject_closed_set (model validator)
     @model_validator(mode='before')
     @classmethod
@@ -633,11 +659,29 @@ class Execution(DomainObject):
                 message='raises requires data_key.',
             )
 
-        # new and handle are legal only on target self.
-        if self.method in ('new', 'handle') and self.target != 'self':
+        # new is legal only on target self.
+        if self.method == 'new' and self.target != 'self':
             ModelError.raise_error(
                 INVALID_MODEL_VALUE_ID,
-                message=f'{self.method} is legal only on target self.',
+                message='new is legal only on target self.',
+            )
+
+        # handle is legal on target self or a named event target.
+        if (
+            self.method == 'handle'
+            and self.target != 'self'
+            and not self.is_named_handle()
+        ):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='handle requires target self, a class target, $mock.<name>, or $r.<key>.',
+            )
+
+        # dependencies is legal only on the named-handle form.
+        if self.dependencies and not self.is_named_handle():
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='dependencies is legal only on handle with a named event target.',
             )
 
         # new takes no args and no kwargs.
@@ -656,6 +700,54 @@ class Execution(DomainObject):
 
         # Return this execution.
         return self
+
+    # * method: _validate_dependencies (field validator)
+    @field_validator('dependencies', mode='before')
+    @classmethod
+    def _validate_dependencies(cls, value: Any) -> Any:
+        '''
+        Require a present dependencies key to be a mapping.
+
+        :param value: The raw dependencies value.
+        :type value: Any
+        :return: The raw dependencies value when it is a mapping.
+        :rtype: Any
+        '''
+
+        # A present null, list, or string is a model defect, not omit.
+        if not isinstance(value, dict):
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message='dependencies must be a mapping.',
+            )
+
+        # Return the raw mapping.
+        return value
+
+    # * method: is_named_handle
+    def is_named_handle(self) -> bool:
+        '''
+        Report whether this execution handles a named event target.
+
+        :return: True for handle on a class target, a $mock. name, or a $r. name.
+        :rtype: bool
+        '''
+
+        # Only the handle method has a named form.
+        if self.method != 'handle':
+            return False
+
+        # A class import target is named; an attribute target is not.
+        if isinstance(self.target, ExecutionTarget):
+            return self.target.class_name is not None
+
+        # A string target is named when it is a $mock. or $r. ref to one name.
+        for prefix in NAMED_HANDLE_PREFIXES:
+            if self.target.startswith(prefix):
+                return REF_NAME.fullmatch(self.target[len(prefix):]) is not None
+
+        # Any other string target, including self, is not named.
+        return False
 
 # ** model: assertion
 class Assertion(DomainObject):
@@ -690,6 +782,12 @@ class Assertion(DomainObject):
     outcome: str | None = Field(
         default=None,
         description='The result name the check reads, where the check requires one.',
+    )
+
+    # * attribute: attribute
+    attribute: str | None = Field(
+        default=None,
+        description='One key or attribute of the resolved outcome. Not a path.',
     )
 
     # * attribute: equals
@@ -877,6 +975,13 @@ class Assertion(DomainObject):
             ModelError.raise_error(
                 INVALID_MODEL_VALUE_ID,
                 message=f'Check {self.check} requires {sorted(missing)}.',
+            )
+
+        # An attribute is one name, not a path or a reference.
+        if self.attribute is not None and REF_NAME.fullmatch(self.attribute) is None:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'attribute must be one name, not {self.attribute!r}.',
             )
 
         # An is check requires exactly one subject.
