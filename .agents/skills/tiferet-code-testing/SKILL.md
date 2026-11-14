@@ -34,6 +34,8 @@ Under a tester: `# * fixture:` and `# * test:` (not `# * method:` for collected 
 
 **Per type (summary):** specialized `assert_*` / `handle`; generic `get_target` + `assert_contract` + `session.run(target=fn)`; repo `make_target(config_file=)` CRUD (not `session.run`); context `from_domain` / own-namespace `domain_type` / `for_domain`.
 
+**Test names:** every test name states the invariant it guards, so a reader knows what property the test checks without reading its body. This applies to Python tests, testers, and YAML cases across Tiferet and its extensions. Name the property, not the action: `test_set_default_type_overlays_parameters`, not `test_set_default_type_updates`. See [What you submit](../../../docs/collab/process.md#what-you-submit) in `docs/collab/process.md`.
+
 **Retired:** `tiferet.testing` (`AggregateTestBase`, `DomainEventTestBase`, …) was removed in v2.1.2 (#1226). Do not import it or reintroduce it. No test imports `tiferet.testing`. Component tests use `@use_tester`; module-level pytest tests remain where no tester type fits. YAML test modules (e.g. `tiferet_tests/`) run through the separate `tiferet-tester` console script (`tiferet.blueprints.tester_cli:main`).
 
 ## Example

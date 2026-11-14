@@ -164,6 +164,10 @@ See [docs/core/code_style.md § Test-Module Artifact Grammar](code_style.md#test
 
 Full walkthroughs: [docs/guides/blueprints/tester.md](../guides/blueprints/tester.md).
 
+### Naming tests
+
+Every test name states the invariant it guards, so a reader knows what property the test checks without reading its body. The rule covers Python tests, testers, and YAML cases across Tiferet and its extensions. For example, `test_set_default_type_overlays_parameters` names the property, where `test_set_default_type_updates` names only the action. See [What you submit](../collab/process.md#what-you-submit) in the process guide.
+
 ## Retired: `tiferet.testing`
 
 The `tiferet/testing/` package and its `conftest.py` hooks (`register_mapper_hooks`, `register_event_hooks`) were removed on trunk in v2.1.2 (#1226). Existing references in older tags or branches map onto `@use_tester` types:
