@@ -531,7 +531,7 @@ tests:
         as: bare
       - target: $r.bare
         method: to_primitive
-        args: [to_data]
+        kwargs: {role: to_data}
         as: bare_dump
       - target: *conditions_config
         method: model_validate
@@ -539,7 +539,7 @@ tests:
         as: staged
       - target: $r.staged
         method: to_primitive
-        args: [to_data]
+        kwargs: {role: to_data}
         as: staged_dump
       - target: $r.staged
         method: map
@@ -891,7 +891,7 @@ tests:
               data_key: built
             - target: $r.ref_built
               method: format_message
-              args: [fr_FR]
+              kwargs: {lang: fr_FR}
               data_key: missing
           - - check: 'null'
               outcome: missing
@@ -1262,7 +1262,7 @@ tests:
         as: present_round_trip
       - target: $r.present_round_trip
         method: to_primitive
-        args: [to_data]
+        kwargs: {role: to_data}
         as: present_dump
       - target: $r.empty
         method: map
@@ -1273,7 +1273,7 @@ tests:
         as: empty_round_trip
       - target: $r.empty_round_trip
         method: to_primitive
-        args: [to_data]
+        kwargs: {role: to_data}
         as: empty_dump
       - target: $r.omitted
         method: map
@@ -1284,7 +1284,7 @@ tests:
         as: omitted_round_trip
       - target: $r.omitted_round_trip
         method: to_primitive
-        args: [to_data]
+        kwargs: {role: to_data}
         as: omitted_dump
       - target: &assertion_config
           module_path: *phase_mappers
@@ -1301,7 +1301,7 @@ tests:
         as: read_round_trip
       - target: $r.read_round_trip
         method: to_primitive
-        args: [to_data]
+        kwargs: {role: to_data}
         as: read_dump
       - target: *assertion_config
         method: model_validate
@@ -1316,7 +1316,7 @@ tests:
         as: whole_round_trip
       - target: $r.whole_round_trip
         method: to_primitive
-        args: [to_data]
+        kwargs: {role: to_data}
         as: whole_dump
     assert:
       - outcome: present_model
@@ -2613,7 +2613,7 @@ tests:
         as: ref_boom
       - target: *get_logger
         method: getLogger
-        args: [tiferet.stage_probe]
+        kwargs: {name: tiferet.stage_probe}
         as: probe_logger
       - target: $r.probe_logger
         method: debug
