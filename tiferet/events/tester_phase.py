@@ -119,9 +119,12 @@ class EvaluateAssertion(CheckEvent):
             mismatch = self.check_service.equal(outcome, resolved.get('equals'), exact=True)
 
         elif name == 'null':
-            mismatch = self.check_service.equal(outcome, None)
-            if outcome is not None and mismatch:
-                mismatch = f'Expected None, got {outcome!r}.'
+            if getattr(assertion, 'attribute', None) is not None:
+                mismatch = None if outcome is None else 'attribute is not null'
+            else:
+                mismatch = self.check_service.equal(outcome, None)
+                if outcome is not None and mismatch:
+                    mismatch = f'Expected None, got {outcome!r}.'
 
         elif name == 'fields':
             mismatch = self.check_service.equal(outcome, resolved.get('fields'))

@@ -872,18 +872,22 @@ class TestExecution:
     # * test: execution_new_and_handle_require_self
     def test_execution_new_and_handle_require_self(self) -> None:
         '''
-        Assert new and handle are legal only on target self.
+        Assert new is legal only on target self, and handle on a bare name needs a named target.
         '''
 
         # Construct new then handle against target built.
-        for method in ('new', 'handle'):
+        messages = {
+            'new': 'new is legal only on target self.',
+            'handle': 'handle requires target self, a class target, $mock.<name>, or $r.<key>.',
+        }
+        for method, message in messages.items():
             with pytest.raises(ModelError) as exc_info:
                 Execution(target='built', method=method)
 
             # Assert the reserved-action message.
             error = exc_info.value
             assert error.error_code == INVALID_MODEL_VALUE_ID
-            assert f'{method} is legal only on target self.' in str(error)
+            assert message in str(error)
 
     # * test: execution_new_takes_no_arguments
     def test_execution_new_takes_no_arguments(self) -> None:
@@ -1030,7 +1034,7 @@ class TestExecution:
     },
     equality_fields=['check', 'outcome', 'equals'],
     description_cases=[
-        ('value_fields', (), ('outcome', 'equals')),
+        ('value_fields', (), ('outcome', 'attribute', 'equals')),
     ],
 )
 class TestAssertion:

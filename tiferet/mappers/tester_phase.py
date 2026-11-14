@@ -41,6 +41,7 @@ from .core import (
 # ** constant: sibling_fields
 SIBLING_FIELDS: Tuple[str, ...] = (
     'outcome',
+    'attribute',
     'mock',
     'method',
 )
@@ -577,6 +578,10 @@ class ExecutionConfigObject(Execution, TransferObject):
         aggregate.store_data_key(self.data_key)
         aggregate.set_attribute('raises', self.raises)
 
+        # Copy a present dependencies mapping; a null value stays omitted.
+        if self.dependencies is not None:
+            aggregate.set_attribute('dependencies', dict(self.dependencies))
+
         # Apply each remaining override through set_attribute.
         for attribute, value in overrides.items():
             aggregate.set_attribute(attribute, value)
@@ -729,6 +734,10 @@ class AssertionAggregate(Assertion, Aggregate):
         # When check is absent, return the copy unchanged.
         if 'check' not in emitted:
             return emitted
+
+        # Drop a null attribute so an omitted attribute is not emitted.
+        if 'attribute' in emitted and emitted['attribute'] is None:
+            emitted.pop('attribute')
 
         # Pop check and resolve its payload fields.
         check = emitted.pop('check')

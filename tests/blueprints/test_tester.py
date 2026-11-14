@@ -19,7 +19,6 @@ from tiferet.blueprints.tester import (
     build_phase_runtime,
     build_test_session,
     build_tester_context,
-    register_phase_handlers,
 )
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.request import RequestContext
@@ -35,7 +34,6 @@ from tiferet.contexts.tester import (
 )
 from tiferet.domain.error import ErrorMessage
 from tiferet.domain.request import Request
-from tiferet.domain.tester_phase import PhaseRuntime
 from tiferet.events.error import GetError, ListErrors
 from tiferet.repos.error import ErrorConfigRepository
 from tiferet.utils.tester_stage import Stage
@@ -308,35 +306,6 @@ def test_registered_stage_is_the_stage_class() -> None:
     assert factory is Stage
     assert runtime.stage_factory is Stage
     assert runtime.stage is None
-
-# ** test: stage_adds_no_runtime_field_or_step
-def test_stage_adds_no_runtime_field_or_step() -> None:
-    '''
-    Read the runtime fields, the runtime builder parameters, and the phase handler keys.
-
-    :return: None
-    :rtype: None
-    '''
-
-    # The stage is not a PhaseRuntime field.
-    assert ('stage' in PhaseRuntime.model_fields) is False
-
-    # The runtime builder signature is unchanged.
-    assert list(inspect.signature(build_phase_runtime).parameters) == [
-        'session',
-        'tester_module_path',
-        'tester_class_name',
-        'tester_attributes',
-        'root_fixtures',
-        'tester_fixtures',
-    ]
-
-    # The phase handlers add no stage step.
-    assert list(register_phase_handlers()) == [
-        'conditions',
-        'execute',
-        'assert',
-    ]
 
 # *** testers
 

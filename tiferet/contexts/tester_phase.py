@@ -897,9 +897,13 @@ class PhaseRuntimeContext(BaseContext):
         if execution.method == 'new':
             return self._call_new()
 
-        # Reserved handle injects constructor mocks into DomainEvent.handle.
-        if execution.method == 'handle':
+        # Reserved handle on self injects constructor mocks into DomainEvent.handle.
+        if execution.method == 'handle' and not execution.is_named_handle():
             return self._call_handle(kwargs)
+
+        # A named handle dispatches the named event with explicit dependencies.
+        if execution.method == 'handle':
+            return self._call_named_handle(execution, kwargs)
 
         # Resolve the call target.
         target = self._resolve_target(execution)
@@ -1023,6 +1027,40 @@ class PhaseRuntimeContext(BaseContext):
         # Handle the event; step kwargs are event arguments.
         return DomainEvent.handle(
             cls,
+            dependencies=dependencies,
+            **kwargs,
+        )
+
+    # * method: call_named_handle
+    def _call_named_handle(self, execution: Execution, kwargs: Dict[str, Any]) -> Any:
+        '''
+        Handle a named event with its explicit constructor mapping as dependencies.
+
+        :param execution: The named-handle execution.
+        :type execution: Execution
+        :param kwargs: The resolved event keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The event handle result.
+        :rtype: Any
+        '''
+
+        # Resolve the named event target; it must be callable.
+        event_cls = self._resolve_target(execution)
+        if not callable(event_cls):
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'handle target {execution.target} is not callable.',
+            )
+
+        # Resolve the explicit dependencies; null means an empty mapping.
+        dependencies = self._resolve_value(
+            _copy_data(execution.dependencies or {}),
+            allow_request=True,
+        )
+
+        # Handle the event; step kwargs are event arguments.
+        return DomainEvent.handle(
+            event_cls,
             dependencies=dependencies,
             **kwargs,
         )
@@ -1173,6 +1211,15 @@ class PhaseRuntimeContext(BaseContext):
         :rtype: Any
         '''
 
+        # An unimportable module names its import error.
+        try:
+            import_module(module_path)
+        except (ImportError, TypeError, ValueError) as error:
+            TiferetError.raise_error(
+                a.error.PHASE_STEP_FAILED_ID,
+                detail=f'Could not import module {module_path}: {error}',
+            )
+
         # Import the attribute; null is a step failure.
         value = import_named(module_path, name)
         if value is None:
@@ -1183,6 +1230,48 @@ class PhaseRuntimeContext(BaseContext):
 
         # Return the imported attribute.
         return value
+
+    # * method: read_attribute
+    def _read_attribute(self, container: Any, name: str, check: str) -> Any:
+        '''
+        Read one key or attribute of a resolved outcome without calling it.
+
+        :param container: The resolved outcome to read from.
+        :type container: Any
+        :param name: The key or attribute name.
+        :type name: str
+        :param check: The assertion check, named on a failure.
+        :type check: str
+        :return: The read value.
+        :rtype: Any
+        '''
+
+        # A null container fails the check; the attribute is not read.
+        if container is None:
+            TiferetError.raise_error(
+                a.error.PHASE_CHECK_FAILED_ID,
+                check=check,
+                detail='container is null',
+            )
+
+        # A mapping reads the key.
+        if isinstance(container, dict):
+            if name not in container:
+                TiferetError.raise_error(
+                    a.error.PHASE_CHECK_FAILED_ID,
+                    check=check,
+                    detail=f'{name} is missing',
+                )
+            return container[name]
+
+        # Any other container reads the attribute.
+        if not hasattr(container, name):
+            TiferetError.raise_error(
+                a.error.PHASE_CHECK_FAILED_ID,
+                check=check,
+                detail=f'{name} is missing',
+            )
+        return getattr(container, name)
 
     # * method: resolved_assertion_values
     def _resolved_assertion_values(
@@ -1209,6 +1298,14 @@ class PhaseRuntimeContext(BaseContext):
             resolved['equals'] = self._resolve_value(assertion.equals)
         if 'fields' in named and assertion.fields is not None:
             resolved['fields'] = self._resolve_value(assertion.fields)
+
+        # An attribute replaces the outcome with one key or attribute read.
+        if assertion.attribute is not None:
+            resolved['outcome'] = self._read_attribute(
+                resolved.get('outcome'),
+                assertion.attribute,
+                assertion.check,
+            )
 
         # error_code reads the outcome attribute when present.
         if assertion.check == 'error_code':
