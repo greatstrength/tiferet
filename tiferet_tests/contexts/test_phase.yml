@@ -2635,7 +2635,7 @@ tests:
               args: [Executing SampleEvent]
             - target: {module_path: logging, attribute: getLogger}
               method: getLogger
-              args: [tiferet.stage_probe]
+              kwargs: {name: tiferet.stage_probe}
               data_key: named_logger
             - target: $r.ref_named_logger
               method: debug
