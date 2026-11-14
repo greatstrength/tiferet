@@ -855,7 +855,7 @@ def test_event_modules_import_in_either_order():
     package = sys.modules['tiferet.events']
     saved_modules = {name: sys.modules[name] for name in names}
     saved_attributes = {
-        name: getattr(package, name.rsplit('.', 1)[1])
+        name: getattr(package, name.rsplit(sep='.', maxsplit=1)[1])
         for name in names
     }
 
@@ -871,7 +871,7 @@ def test_event_modules_import_in_either_order():
     finally:
         sys.modules.update(saved_modules)
         for name, module in saved_attributes.items():
-            setattr(package, name.rsplit('.', 1)[1], module)
+            setattr(package, name.rsplit(sep='.', maxsplit=1)[1], module)
 
     # Both import orders complete.
     assert outcomes == [True, True]
