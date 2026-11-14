@@ -115,6 +115,7 @@ class DomainEvent(object):
                 a.error.COMMAND_PARAMETER_REQUIRED_ID,
                 message=f'Required parameters missing for {instance.__class__.__name__}.',
                 parameters=missing,
+                parameter=', '.join(missing),
                 command=instance.__class__.__name__,
             )
 
@@ -223,7 +224,7 @@ class DomainEvent(object):
     @staticmethod
     def handle(
             event_cls: type,
-            dependencies: Dict[str, Any] = {},
+            dependencies: Dict[str, Any] = None,
             middleware: list = None,
             **kwargs) -> Any:
         '''
@@ -232,7 +233,7 @@ class DomainEvent(object):
 
         :param event_cls: The domain event class to handle.
         :type event_cls: type
-        :param dependencies: The event dependencies.
+        :param dependencies: The event dependencies; null means an empty mapping.
         :type dependencies: Dict[str, Any]
         :param middleware: The ordered, outermost-first middleware callables.
         :type middleware: list
@@ -241,6 +242,10 @@ class DomainEvent(object):
         :return: The result of the event.
         :rtype: Any
         '''
+
+        # Normalize missing dependencies to a fresh empty mapping.
+        if dependencies is None:
+            dependencies = {}
 
         # Instantiate the event with its dependencies.
         event_handler = event_cls(**dependencies)
@@ -310,7 +315,7 @@ class DomainEvent(object):
     @staticmethod
     async def handle_async(
             event_cls: type,
-            dependencies: Dict[str, Any] = {},
+            dependencies: Dict[str, Any] = None,
             middleware: list = None,
             **kwargs) -> Any:
         '''
@@ -323,7 +328,7 @@ class DomainEvent(object):
 
         :param event_cls: The domain event class to handle.
         :type event_cls: type
-        :param dependencies: The event dependencies.
+        :param dependencies: The event dependencies; null means an empty mapping.
         :type dependencies: Dict[str, Any]
         :param middleware: The ordered, outermost-first middleware callables.
         :type middleware: list
@@ -332,6 +337,10 @@ class DomainEvent(object):
         :return: The result of the event.
         :rtype: Any
         '''
+
+        # Normalize missing dependencies to a fresh empty mapping.
+        if dependencies is None:
+            dependencies = {}
 
         # Instantiate the event with its dependencies.
         event_handler = event_cls(**dependencies)

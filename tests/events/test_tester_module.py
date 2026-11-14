@@ -3,6 +3,9 @@
 # *** imports
 
 # ** core
+import importlib
+import inspect
+import sys
 from unittest.mock import Mock, patch
 
 # ** infra
@@ -35,6 +38,7 @@ from tiferet.events.tester_module import (
     RemoveFixture,
     RemoveTest,
     RemoveTester,
+    TestEvent,
     TestModuleEvent,
     UpdateFixture,
     UpdateTest,
@@ -52,6 +56,7 @@ from tiferet.events.tester_module import (
     scalar_names,
     tester_present as is_tester_present,
 )
+from tiferet.events.tester_phase import CheckEvent
 from tiferet.interfaces.core import ServiceError
 
 # *** functions
@@ -185,6 +190,60 @@ def assert_service(text, action):
     with pytest.raises(ServiceError) as caught:
         action()
     assert text in str(caught.value)
+
+# *** classes
+
+# ** class: reserved_event
+class ReservedEvent(DomainEvent):
+    '''
+    Subject event for explicit execute-keyword handling.
+    '''
+
+    # * init
+    def __init__(self, service=None):
+        '''
+        Store the service dependency.
+
+        :param service: The constructor dependency.
+        :type service: Any
+        '''
+
+        # Store the service.
+        self.service = service
+
+    # * method: execute
+    def execute(self, **kwargs):
+        '''
+        Return the service and a copy of the execute keywords.
+
+        :param kwargs: The execute keywords.
+        :type kwargs: dict
+        :return: The service and the received keywords.
+        :rtype: dict
+        '''
+
+        # Return the service and the received keywords.
+        return {'service': self.service, 'kwargs': dict(kwargs)}
+
+# ** class: failing_event
+class FailingEvent(DomainEvent):
+    '''
+    Subject event for error handling.
+    '''
+
+    # * method: execute
+    def execute(self, **kwargs):
+        '''
+        Raise a structured error.
+
+        :param kwargs: The execute keywords.
+        :type kwargs: dict
+        :return: Never returns.
+        :rtype: None
+        '''
+
+        # Raise the test error.
+        self.raise_error('TEST_ERROR', message='An error has occurred.')
 
 # *** fixtures
 
@@ -770,6 +829,178 @@ def test_scalar_names_not_mapping():
 
     # Call scalar_names on null.
     assert scalar_names(None) == []
+
+# ** test: test_event_is_base_of_tester_events
+def test_event_is_base_of_tester_events():
+    '''
+    Assert TestEvent is the base of the tester events and is not collected.
+    '''
+
+    # Inspect the subclass relationships.
+    assert issubclass(TestEvent, DomainEvent) is True
+    assert issubclass(TestModuleEvent, TestEvent) is True
+    assert issubclass(CheckEvent, TestEvent) is True
+
+    # The collection marker is false.
+    assert TestEvent.__test__ is False
+
+# ** test: test_event_modules_import_in_either_order
+def test_event_modules_import_in_either_order():
+    '''
+    Assert the tester event modules import in either order without a cycle.
+    '''
+
+    # Save the module-cache entries and the package attributes.
+    names = ['tiferet.events.tester_phase', 'tiferet.events.tester_module']
+    package = sys.modules['tiferet.events']
+    saved_modules = {name: sys.modules[name] for name in names}
+    saved_attributes = {
+        name: getattr(package, name.rsplit(sep='.', maxsplit=1)[1])
+        for name in names
+    }
+
+    # Import both orders, restoring the saved entries even on failure.
+    outcomes = []
+    try:
+        for order in (names, list(reversed(names))):
+            for name in names:
+                sys.modules.pop(name, None)
+            for name in order:
+                importlib.import_module(name)
+            outcomes.append(all(name in sys.modules for name in names))
+    finally:
+        sys.modules.update(saved_modules)
+        for name, module in saved_attributes.items():
+            setattr(package, name.rsplit(sep='.', maxsplit=1)[1], module)
+
+    # Both import orders complete.
+    assert outcomes == [True, True]
+
+# ** test: test_handle_test_signature
+def test_handle_test_signature():
+    '''
+    Assert handle_test takes a positional-only class and keyword-only controls.
+    '''
+
+    # Inspect the signature.
+    parameters = inspect.signature(TestEvent.handle_test).parameters
+
+    # The class is positional-only; the controls are keyword-only and default to null.
+    assert parameters['event_cls'].kind == inspect.Parameter.POSITIONAL_ONLY
+    for name in ('dependencies', 'middleware', 'execute_kwargs'):
+        assert parameters[name].kind == inspect.Parameter.KEYWORD_ONLY
+        assert parameters[name].default is None
+
+# ** test: test_handle_test_reserved_keys_reach_execute
+def test_handle_test_reserved_keys_reach_execute():
+    '''
+    Assert reserved names in the execute mapping reach execute as data.
+    '''
+
+    # Build the reserved mapping and its snapshot.
+    mapping = {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'}
+    snapshot = {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'}
+
+    # Handle the event with the mapping as execute keywords.
+    result = TestEvent.handle_test(ReservedEvent, execute_kwargs=mapping)
+
+    # The received keywords and the caller mapping equal the snapshot.
+    assert result['kwargs'] == snapshot
+    assert mapping == snapshot
+
+# ** test: test_handle_test_mapping_not_mutated_by_middleware
+def test_handle_test_mapping_not_mutated_by_middleware():
+    '''
+    Assert middleware works on a private copy of the execute mapping.
+    '''
+
+    # Define a middleware that adds a key, then continues.
+    def add_key(event, kwargs, next_fn):
+        kwargs['added'] = True
+        return next_fn()
+
+    # Handle the event with that middleware as the sole wrapper.
+    mapping = {'id': 'x'}
+    result = TestEvent.handle_test(ReservedEvent, middleware=[add_key], execute_kwargs=mapping)
+
+    # The event sees the added key; the caller mapping does not.
+    assert result['kwargs'] == {'id': 'x', 'added': True}
+    assert mapping == {'id': 'x'}
+
+# ** test: test_handle_test_defaults
+def test_handle_test_defaults():
+    '''
+    Assert handle_test with no controls matches DomainEvent.handle.
+    '''
+
+    # Handle the event both ways with all controls omitted.
+    tester_result = TestEvent.handle_test(ReservedEvent)
+    standard_result = DomainEvent.handle(ReservedEvent)
+
+    # Both outcomes are the empty result.
+    assert tester_result == {'service': None, 'kwargs': {}}
+    assert standard_result == {'service': None, 'kwargs': {}}
+
+# ** test: test_handle_test_matches_handle_with_middleware
+def test_handle_test_matches_handle_with_middleware():
+    '''
+    Assert handle_test composes middleware outermost-first, like DomainEvent.handle.
+    '''
+
+    # Build a middleware that records its label, event, service, and keywords.
+    def make_recorder(label, log):
+        def record(event, kwargs, next_fn):
+            log.append((label, type(event).__name__, event.service, dict(kwargs)))
+            return next_fn()
+        return record
+
+    # Invoke the tester handler and the standard handler with equivalent inputs.
+    tester_log = []
+    tester_result = TestEvent.handle_test(
+        ReservedEvent,
+        dependencies={'service': 'svc'},
+        middleware=[make_recorder('outer', tester_log), make_recorder('inner', tester_log)],
+        execute_kwargs={'id': 'x'},
+    )
+    standard_log = []
+    standard_result = DomainEvent.handle(
+        ReservedEvent,
+        dependencies={'service': 'svc'},
+        middleware=[make_recorder('outer', standard_log), make_recorder('inner', standard_log)],
+        id='x',
+    )
+
+    # The results and logs match.
+    expected_log = [
+        ('outer', 'ReservedEvent', 'svc', {'id': 'x'}),
+        ('inner', 'ReservedEvent', 'svc', {'id': 'x'}),
+    ]
+    assert tester_result == standard_result == {'service': 'svc', 'kwargs': {'id': 'x'}}
+    assert tester_log == expected_log
+    assert standard_log == expected_log
+
+# ** test: test_handle_test_error_handling
+def test_handle_test_error_handling():
+    '''
+    Assert errors propagate unwrapped and middleware can intercept them.
+    '''
+
+    # Define a middleware that returns the error code of a caught error.
+    def intercept(event, kwargs, next_fn):
+        try:
+            return next_fn()
+        except TiferetError as error:
+            return error.error_code
+
+    # Without middleware the error propagates.
+    with pytest.raises(TiferetError) as raised:
+        TestEvent.handle_test(FailingEvent)
+    assert 'An error has occurred.' in str(raised.value)
+    assert raised.value.error_code == 'TEST_ERROR'
+
+    # The interceptor returns the code for both handlers.
+    assert TestEvent.handle_test(FailingEvent, middleware=[intercept]) == 'TEST_ERROR'
+    assert DomainEvent.handle(FailingEvent, middleware=[intercept]) == 'TEST_ERROR'
 
 # *** testers
 

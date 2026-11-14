@@ -17,7 +17,7 @@ from ..domain import (
     TesterObject,
     Verification,
 )
-from ..events import DomainEvent
+from ..events.tester_module import TestEvent
 from .app import AppSessionContext
 from .core import BaseContext, add_default_cache_items
 from .error import ERROR_CACHE_PREFIX
@@ -928,9 +928,10 @@ class DomainEventTesterContext(TesterContext):
     # * method: handle
     def handle(self, dependencies: Dict[str, Any] = None, **kwargs) -> Any:
         '''
-        Handle the bound domain event with mocked or supplied dependencies.
+        Handle the bound domain event through TestEvent.handle_test with mocked or supplied
+        dependencies. The merged keywords are an explicit execute mapping, never handler controls.
 
-        :param dependencies: Optional prebuilt dependency mapping.
+        :param dependencies: Optional prebuilt dependency mapping; an empty mapping is kept.
         :type dependencies: Dict[str, Any]
         :param kwargs: Keyword arguments merged over sample_kwargs.
         :type kwargs: dict
@@ -939,19 +940,17 @@ class DomainEventTesterContext(TesterContext):
         '''
 
         # Use supplied dependencies, otherwise build mocks.
-        deps = self.mock_dependencies() if dependencies is None else dependencies
+        if dependencies is None:
+            dependencies = self.mock_dependencies()
 
-        # Merge caller kwargs over the tester sample kwargs.
-        merged = {
-            **self.domain.sample_kwargs,
-            **kwargs,
-        }
-
-        # Handle the bound event class.
-        return DomainEvent.handle(
+        # Handle the bound event class; caller kwargs win over the tester sample kwargs.
+        return TestEvent.handle_test(
             self.domain.get_target_type(),
-            dependencies=deps,
-            **merged,
+            dependencies=dependencies,
+            execute_kwargs={
+                **self.domain.sample_kwargs,
+                **kwargs,
+            },
         )
 
     # * method: exercise_target

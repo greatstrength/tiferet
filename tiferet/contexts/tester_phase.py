@@ -26,7 +26,7 @@ from ..domain.tester_phase import (
     PhaseRuntime,
     Test,
 )
-from ..events import DomainEvent
+from ..events.tester_module import TestEvent
 from ..events.tester_phase import (
     EvaluateAssertion,
     ExerciseCalled,
@@ -897,7 +897,7 @@ class PhaseRuntimeContext(BaseContext):
         if execution.method == 'new':
             return self._call_new()
 
-        # Reserved handle on self injects constructor mocks into DomainEvent.handle.
+        # Reserved handle on self injects constructor mocks into TestEvent.handle_test.
         if execution.method == 'handle' and not execution.is_named_handle():
             return self._call_handle(kwargs)
 
@@ -990,9 +990,10 @@ class PhaseRuntimeContext(BaseContext):
     # * method: call_handle
     def _call_handle(self, kwargs: Dict[str, Any]) -> Any:
         '''
-        Handle a domain event with constructor mocks as dependencies.
+        Handle the tester event through TestEvent.handle_test, with the constructor-matching
+        mocks as dependencies and the step kwargs as the explicit execute mapping.
 
-        :param kwargs: The resolved event keyword arguments.
+        :param kwargs: The resolved event keyword arguments, forwarded as execute data.
         :type kwargs: Dict[str, Any]
         :return: The event handle result.
         :rtype: Any
@@ -1024,21 +1025,22 @@ class PhaseRuntimeContext(BaseContext):
                 if name in names
             }
 
-        # Handle the event; step kwargs are event arguments.
-        return DomainEvent.handle(
+        # Handle the event; step kwargs are execute data, not handler controls.
+        return TestEvent.handle_test(
             cls,
             dependencies=dependencies,
-            **kwargs,
+            execute_kwargs=kwargs,
         )
 
     # * method: call_named_handle
     def _call_named_handle(self, execution: Execution, kwargs: Dict[str, Any]) -> Any:
         '''
-        Handle a named event with its explicit constructor mapping as dependencies.
+        Handle a named event through TestEvent.handle_test, with its explicit constructor
+        mapping as dependencies and the step kwargs as the explicit execute mapping.
 
         :param execution: The named-handle execution.
         :type execution: Execution
-        :param kwargs: The resolved event keyword arguments.
+        :param kwargs: The resolved event keyword arguments, forwarded as execute data.
         :type kwargs: Dict[str, Any]
         :return: The event handle result.
         :rtype: Any
@@ -1054,15 +1056,15 @@ class PhaseRuntimeContext(BaseContext):
 
         # Resolve the explicit dependencies; an omitted key is already empty.
         dependencies = self._resolve_value(
-            _copy_data(execution.dependencies),
+            dict(execution.dependencies),
             allow_request=True,
         )
 
-        # Handle the event; step kwargs are event arguments.
-        return DomainEvent.handle(
+        # Handle the event; step kwargs are execute data, not handler controls.
+        return TestEvent.handle_test(
             event_cls,
             dependencies=dependencies,
-            **kwargs,
+            execute_kwargs=kwargs,
         )
 
     # * method: resolve_target

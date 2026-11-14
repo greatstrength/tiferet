@@ -3,8 +3,9 @@
 # *** imports
 
 # ** core
+import functools
 import re
-from typing import Any
+from typing import Any, Dict
 
 # ** infra
 from yaml.nodes import MappingNode, ScalarNode, SequenceNode
@@ -470,8 +471,69 @@ def scalar_names(container: Any) -> list:
 
 # *** events
 
+# ** event: test_event
+class TestEvent(DomainEvent):
+    '''
+    The tester event base. It keeps event-construction controls apart from the keywords an event's execute method receives.
+    '''
+
+    # * attribute: __test__
+    __test__ = False
+
+    # * method: handle_test (static)
+    @staticmethod
+    def handle_test(
+            event_cls: type,
+            /,
+            *,
+            dependencies: Dict[str, Any] = None,
+            middleware: list = None,
+            execute_kwargs: Dict[str, Any] = None,
+        ) -> Any:
+        '''
+        Handle a domain event with an explicit execute-keyword mapping. The constructor
+        controls are keyword-only, so dependencies, middleware, and event_cls can be
+        ordinary keys of the execute mapping. The first middleware is outermost.
+
+        :param event_cls: The domain event class to handle.
+        :type event_cls: type
+        :param dependencies: The constructor mapping; null means an empty mapping.
+        :type dependencies: Dict[str, Any]
+        :param middleware: The ordered, outermost-first middleware callables.
+        :type middleware: list
+        :param execute_kwargs: The execute keywords, forwarded unchanged; the caller's mapping is not mutated.
+        :type execute_kwargs: Dict[str, Any]
+        :return: The result of the event, or of the outermost middleware.
+        :rtype: Any
+        '''
+
+        # Normalize missing dependencies to a fresh empty mapping.
+        if dependencies is None:
+            dependencies = {}
+
+        # Copy the execute keywords so middleware works on a private mapping.
+        kwargs = dict(execute_kwargs or {})
+
+        # Instantiate exactly one handler with its dependencies.
+        event_handler = event_cls(**dependencies)
+
+        # Build the base callable bound to the handler and the private mapping.
+        base = functools.partial(DomainEvent._run_base, event_handler, kwargs)
+
+        # Return the base result directly when no middleware is provided.
+        if not middleware:
+            return base()
+
+        # Compose the middleware chain outermost-first.
+        chain = base
+        for mw in reversed(middleware):
+            chain = functools.partial(DomainEvent._run_middleware, mw, event_handler, kwargs, chain)
+
+        # Execute the composed chain.
+        return chain()
+
 # ** event: test_module_event
-class TestModuleEvent(DomainEvent):
+class TestModuleEvent(TestEvent):
     '''
     Shared defect checks for one test-module document.
 
