@@ -112,6 +112,7 @@ def build_app(interface_id: str,
     if not isinstance(context, AppSessionContext):
         TiferetError.raise_error(
             a.error.INVALID_APP_SESSION_TYPE_ID,
+            message=f'App context for session is not valid: {interface_id}.',
             interface_id=interface_id,
         )
 
