@@ -3122,6 +3122,118 @@ tests:
       - outcome: has_sample_kwargs
         equals: false
 
+  named_handle_passes_reserved_kwargs:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.observe
+          - {}
+          - - target: *echo
+              method: echo
+              args: [loader]
+              data_key: got
+            - target: *named_event
+              method: handle
+              dependencies: {dep: value}
+              kwargs: &reserved_kwargs {dependencies: [a], middleware: [b], event_cls: c}
+              data_key: seen
+          - - check: type
+              outcome: got
+              module_path: builtins
+              class_name: str
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: seen
+        equals: {dep: value, kwargs: *reserved_kwargs}
+
+  handle_step_passes_dependencies_kwarg:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.handle_reserved
+          - mocks:
+              error_service:
+                module_path: *interfaces
+                class_name: ErrorService
+          - - target: self
+              method: handle
+              kwargs: *reserved_kwargs
+              data_key: seen
+          - - check: fields
+              outcome: seen
+              fields: *reserved_kwargs
+            - check: parameters_required
+              names: &reserved_names [dependencies, middleware, event_cls]
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: seen
+        equals: *reserved_kwargs
+
+  parameters_required_over_reserved_names:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.parameters_required_reserved
+          - mocks:
+              error_service:
+                module_path: *interfaces
+                class_name: ErrorService
+          - - target: self
+              method: handle
+              kwargs: {}
+              data_key: seen
+          - - check: parameters_required
+              names: *reserved_names
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: seen
+        equals: {}
+
   stage_adds_no_runtime_field_or_step:
     conditions: {}
     execute:

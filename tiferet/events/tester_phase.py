@@ -14,6 +14,7 @@ from pydantic import Field, ValidationError
 
 # ** app
 from .core import DomainEvent, AsyncDomainEvent, a
+from .tester_module import TestEvent
 from ..assets import TiferetError
 from ..domain import (
     INVALID_MODEL_ATTRIBUTE_ID,
@@ -52,7 +53,7 @@ def _annotation_name(annotation: Any) -> str | None:
 # *** events
 
 # ** event: check_event
-class CheckEvent(DomainEvent):
+class CheckEvent(TestEvent):
     '''
     Holds the shared check for one phase verification.
 
@@ -548,11 +549,11 @@ class ExerciseParametersRequired(CheckEvent):
                 return 'ok'
 
         # Expect COMMAND_PARAMETER_REQUIRED for one missing name.
-        def expect_required(event_cls, name, call_kwargs) -> str:
+        def expect_required(event_cls: type, name: str, call_kwargs: Dict[str, Any]) -> str:
 
-            # Handle the event and classify a missing-parameter failure.
+            # Handle the event with explicit execute keywords and classify a missing-parameter failure.
             try:
-                DomainEvent.handle(event_cls, **call_kwargs)
+                TestEvent.handle_test(event_cls, execute_kwargs=call_kwargs)
 
             except TiferetError as error:
                 mismatch = self.check_service.codes(
@@ -569,10 +570,10 @@ class ExerciseParametersRequired(CheckEvent):
 
             return f'{name} did not raise COMMAND_PARAMETER_REQUIRED.'
 
-        # A valid call must pass parameters_required.
-        result = DomainEvent.handle(
+        # A valid call must pass parameters_required. Reserved names are data, not handler controls.
+        result = TestEvent.handle_test(
             RequiredEvent,
-            **{name: 'value' for name in required},
+            execute_kwargs={name: 'value' for name in required},
         )
         mismatch = self.check_service.equal(result, 'ok')
         if mismatch:

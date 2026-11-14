@@ -30,6 +30,7 @@ from tiferet.domain.tester_phase import (
     Test,
 )
 from tiferet.events import DomainEvent
+from tiferet.events.tester_module import TestEvent
 from tiferet.events.tester_phase import EvaluateAssertion
 from tiferet.mappers.tester_phase import AssertionConfigObject, ExecutionConfigObject
 from tiferet.utils.tester_check import Check
@@ -324,6 +325,93 @@ class FailingCloseStage(Stage):
         Stage.close(self)
         raise OSError('cleanup failed')
 
+# *** tests
+
+# ** test: named_handle_passes_reserved_kwargs
+def test_named_handle_passes_reserved_kwargs():
+    '''
+    Assert a named handle forwards reserved names to execute as data.
+    '''
+
+    # Arrange the reserved mapping and the named class target.
+    reserved = {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'}
+    target = ExecutionTarget(module_path=MODULE_PATH, class_name='NamedEvent')
+    step = Execution(
+        target=target,
+        method='handle',
+        dependencies={'dep': 'value'},
+        kwargs=reserved,
+        data_key='seen',
+    )
+
+    # Observe a value, then run the named handle.
+    ctx = _observe('loader', [], executes=[step])
+
+    # The constructor mapping and the reserved keywords stay separate.
+    assert ctx.session.data['seen'] == {
+        'dep': 'value',
+        'kwargs': {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'},
+    }
+
+# ** test: handle_step_passes_dependencies_kwarg
+def test_handle_step_passes_dependencies_kwarg():
+    '''
+    Assert a self handle forwards reserved names to execute as data.
+    '''
+
+    # Arrange the reserved mapping, the runtime, and the error service mock.
+    reserved = {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'}
+    ctx = _runtime(MODULE_PATH, 'RecordingEvent')
+    conditions = Conditions(mocks={
+        'error_service': ArrangedMock(module_path='tiferet.interfaces', class_name='ErrorService'),
+    })
+
+    # Run the handle step, then check the fields and the required names.
+    outcome = None
+    try:
+        ctx.run(_test(
+            'phase.handle_reserved',
+            conditions,
+            [Execution(target='self', method='handle', kwargs=reserved, data_key='seen')],
+            [
+                Assertion(check='fields', outcome='seen', fields=reserved),
+                Assertion(check='parameters_required', names=['dependencies', 'middleware', 'event_cls']),
+            ],
+        ))
+    except TiferetError as error:
+        outcome = error
+
+    # The run raises no error and the session holds the reserved mapping.
+    assert outcome is None
+    assert ctx.session.data['seen'] == {'dependencies': ['a'], 'middleware': ['b'], 'event_cls': 'c'}
+
+# ** test: parameters_required_over_reserved_names
+def test_parameters_required_over_reserved_names():
+    '''
+    Assert the parameters_required harness accepts transport-reserved names.
+    '''
+
+    # Arrange the runtime and the error service mock.
+    ctx = _runtime(MODULE_PATH, 'RecordingEvent')
+    conditions = Conditions(mocks={
+        'error_service': ArrangedMock(module_path='tiferet.interfaces', class_name='ErrorService'),
+    })
+
+    # Run the handle step and the required-names check.
+    outcome = None
+    try:
+        ctx.run(_test(
+            'phase.parameters_required_reserved',
+            conditions,
+            [Execution(target='self', method='handle', kwargs={}, data_key='seen')],
+            [Assertion(check='parameters_required', names=['dependencies', 'middleware', 'event_cls'])],
+        ))
+    except TiferetError as error:
+        outcome = error
+
+    # The run raises no error.
+    assert outcome is None
+
 # *** testers
 
 # ** tester: test_phase_runtime
@@ -555,21 +643,21 @@ class TestPhaseRuntime:
             Execution(target=target, method='handle', dependencies={'dep': '$r.got'}, data_key='handled'),
         ]
 
-        # Call the execution with DomainEvent.handle wrapped.
-        with mock.patch.object(DomainEvent, 'handle', wraps=DomainEvent.handle) as handle:
+        # Call the execution with TestEvent.handle_test wrapped.
+        with mock.patch.object(TestEvent, 'handle_test', wraps=TestEvent.handle_test) as handle:
             ctx = _observe('loaded', [Assertion(check='equals', outcome='got', equals='loaded')], executes=steps, conditions=conditions)
 
-        # DomainEvent.handle receives NamedEvent and the explicit mapping.
-        handle.assert_called_once_with(NamedEvent, dependencies={'dep': 'loaded'})
+        # TestEvent.handle_test receives NamedEvent and the explicit mapping.
+        handle.assert_called_once_with(NamedEvent, dependencies={'dep': 'loaded'}, execute_kwargs={})
         assert ctx.session.data['handled']['dep'] == 'loaded'
         assert ctx.session.data['handled']['dep'] is not ctx.mocks['dep']
 
         # Absent dependencies passes an empty mapping.
-        with mock.patch.object(DomainEvent, 'handle', wraps=DomainEvent.handle) as handle:
+        with mock.patch.object(TestEvent, 'handle_test', wraps=TestEvent.handle_test) as handle:
             _observe('loaded', [Assertion(check='equals', outcome='got', equals='loaded')], executes=[
                 Execution(target=ExecutionTarget(module_path=MODULE_PATH, class_name='RecordingEvent'), method='handle'),
             ])
-        handle.assert_called_once_with(RecordingEvent, dependencies={})
+        handle.assert_called_once_with(RecordingEvent, dependencies={}, execute_kwargs={})
 
     # * test: named_handle_on_mock_and_ref
     def test_named_handle_on_mock_and_ref(self):
