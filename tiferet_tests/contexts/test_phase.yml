@@ -1,0 +1,3441 @@
+fixtures:
+  session:
+    module_path: tiferet.contexts.request
+    class_name: RequestContext
+    attributes: {}
+  data_key_test:
+    module_path: &phase_domain tiferet.domain.tester_phase
+    class_name: Test
+    attributes:
+      id: phase.data_key
+      name: phase.data_key
+      conditions: {}
+      executes:
+        - target: self
+          method: new
+          data_key: built
+      asserts:
+        - check: 'null'
+          outcome: built
+  format_test:
+    module_path: *phase_domain
+    class_name: Test
+    attributes:
+      id: phase.format
+      name: phase.format
+      conditions:
+        fixtures: [formatted_error_message]
+      executes:
+        - target: formatted_error_message
+          method: format
+          kwargs:
+            error: test failure
+          data_key: formatted
+      asserts:
+        - check: equals
+          outcome: formatted
+          equals: 'An error occurred: test failure'
+  add_success_test:
+    module_path: *phase_domain
+    class_name: Test
+    attributes:
+      id: phase.add_success
+      name: phase.add_success
+      conditions:
+        mocks:
+          error_service:
+            module_path: &interfaces tiferet.interfaces
+            class_name: ErrorService
+            return_value:
+              exists: false
+      executes:
+        - target: self
+          method: handle
+          kwargs: &add_error_kwargs
+            id: NEW_ERROR
+            name: New Error
+            message: This is a new error message.
+            lang: en_US
+          data_key: created
+      asserts:
+        - check: type
+          outcome: created
+          module_path: tiferet.domain.error
+          class_name: Error
+        - check: fields
+          outcome: created
+          fields:
+            id: NEW_ERROR
+            name: New Error
+            message:
+              - lang: en_US
+                text: This is a new error message.
+        - check: assert_called_once_with
+          mock: error_service
+          method: exists
+          assert_called_once_with:
+            args: [NEW_ERROR]
+  already_exists_test:
+    module_path: *phase_domain
+    class_name: Test
+    attributes:
+      id: phase.already_exists
+      name: phase.already_exists
+      conditions:
+        mocks:
+          error_service:
+            module_path: *interfaces
+            class_name: ErrorService
+            return_value:
+              exists: true
+      executes:
+        - target: self
+          method: handle
+          kwargs: *add_error_kwargs
+          raises: true
+          data_key: failed
+      asserts:
+        - check: error_code
+          outcome: failed
+          error_code: ERROR_ALREADY_EXISTS
+  not_found_test:
+    module_path: *phase_domain
+    class_name: Test
+    attributes:
+      id: phase.not_found
+      name: phase.not_found
+      conditions:
+        mocks:
+          error_service:
+            module_path: *interfaces
+            class_name: ErrorService
+            return_value:
+              get: null
+      executes:
+        - target: self
+          method: handle
+          kwargs:
+            id: TEST_ERROR
+          raises: true
+          data_key: failed
+      asserts:
+        - check: error_code
+          outcome: failed
+          error_code: ERROR_NOT_FOUND
+  missing_id_test:
+    module_path: *phase_domain
+    class_name: Test
+    attributes:
+      id: phase.missing_id
+      name: phase.missing_id
+      conditions:
+        mocks:
+          error_service:
+            module_path: *interfaces
+            class_name: ErrorService
+      executes:
+        - target: self
+          method: handle
+          kwargs:
+            id: null
+          raises: true
+          data_key: failed
+      asserts:
+        - check: error_code
+          outcome: failed
+          error_code: COMMAND_PARAMETER_REQUIRED
+  tester_object:
+    module_path: tiferet.domain
+    class_name: TesterObject
+    attributes:
+      type: generic
+      id: phase.tester
+      module_path: tiferet.domain.error
+      class_name: ErrorMessage
+  empty_conditions:
+    module_path: *phase_domain
+    class_name: Conditions
+    attributes: {}
+
+tests:
+  closed_phase_keys_are_rejected:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *phase_domain
+          attribute: Conditions
+        method: Conditions
+        kwargs:
+          fixtures: []
+          variables: {}
+        raises: true
+        as: conditions_failed
+      - target:
+          module_path: *phase_domain
+          attribute: Conditions
+        method: Conditions
+        kwargs:
+          stage: true
+        as: staged
+      - target:
+          module_path: *phase_domain
+          attribute: Execution
+        method: Execution
+        kwargs:
+          target: self
+          method: new
+          sample_kwargs: {}
+        raises: true
+        as: execution_failed
+      - target:
+          module_path: *phase_domain
+          attribute: Assertion
+        method: Assertion
+        kwargs:
+          check: equals
+          outcome: built
+          equals: a
+          'null': true
+        raises: true
+        as: assertion_failed
+    assert:
+      - outcome: conditions_failed
+        type: &model_error
+          module_path: tiferet.domain
+          class_name: ModelError
+      - outcome: execution_failed
+        type: *model_error
+      - outcome: assertion_failed
+        type: *model_error
+      - outcome: staged
+        attribute: stage
+        equals: true
+
+  as_is_data_key_and_not_parameters:
+    conditions:
+      fixtures: [data_key_test]
+    execute:
+      - target:
+          module_path: &phase_context tiferet.contexts.tester_phase
+          attribute: compile_phase_steps
+        method: compile_phase_steps
+        args: [$fixture.data_key_test]
+        as: steps
+      - target: $r.steps
+        method: __len__
+        as: step_count
+      - target: $r.steps
+        method: __getitem__
+        args: [0]
+        as: conditions_step
+      - target: $r.steps
+        method: __getitem__
+        args: [1]
+        as: execute_step
+      - target: $r.steps
+        method: __getitem__
+        args: [2]
+        as: assert_step
+    assert:
+      - outcome: execute_step
+        fields:
+          data_key: built
+          parameters: {}
+          pass_on_error: false
+      - outcome: step_count
+        equals: 3
+      - outcome: conditions_step
+        type: &event_feature_step
+          module_path: tiferet.domain
+          class_name: EventFeatureStep
+      - outcome: execute_step
+        type: *event_feature_step
+      - outcome: assert_step
+        type: *event_feature_step
+
+  error_format_with_kwargs:
+    conditions:
+      fixtures: [session, format_test]
+    execute:
+      - target: &build_phase_runtime
+          module_path: tiferet.blueprints.tester
+          attribute: build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, ErrorMessage]
+        kwargs:
+          root_fixtures:
+            formatted_error_message:
+              module_path: tiferet.domain.error
+              class_name: ErrorMessage
+              attributes:
+                lang: en_US
+                text: 'An error occurred: {error}'
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.format_test]
+      - target: &getattr
+          module_path: builtins
+          attribute: getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: formatted
+        equals: 'An error occurred: test failure'
+
+  event_success:
+    conditions:
+      fixtures: [session, add_success_test]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.events.error, AddError]
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.add_success_test]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: created
+        fields:
+          id: NEW_ERROR
+          name: New Error
+
+  event_already_exists:
+    conditions:
+      fixtures: [session, already_exists_test]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.events.error, AddError]
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.already_exists_test]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: failed
+        error_code: ERROR_ALREADY_EXISTS
+
+  event_not_found:
+    conditions:
+      fixtures: [session, not_found_test]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.events.error, GetError]
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.not_found_test]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: failed
+        error_code: ERROR_NOT_FOUND
+
+  event_missing_required_parameter:
+    conditions:
+      fixtures: [session, missing_id_test]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.events.error, AddError]
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$fixture.missing_id_test]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: failed
+        error_code: COMMAND_PARAMETER_REQUIRED
+
+  handlers_are_registered_and_not_default_features:
+    conditions: {}
+    execute:
+      - target:
+          module_path: tiferet.blueprints.tester
+          attribute: register_phase_handlers
+        method: register_phase_handlers
+        as: handlers
+      - target: $r.handlers
+        method: __len__
+        as: handler_count
+      - target: &import_module
+          module_path: importlib
+          attribute: import_module
+        method: import_module
+        args: [tiferet.contexts.tester_phase]
+        as: phase_context
+      - target: *getattr
+        method: getattr
+        args: [$r.phase_context, PhaseRuntimeContext]
+        as: runtime_class
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime_class, handle_conditions]
+        as: handle_conditions
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime_class, handle_execution]
+        as: handle_execution
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime_class, handle_assertion]
+        as: handle_assertion
+      - target: *import_module
+        method: import_module
+        args: [tiferet.domain]
+        as: domain
+      - target: *getattr
+        method: getattr
+        args: [$r.domain, Feature]
+        as: feature_class
+      - target: &hasattr
+          module_path: builtins
+          attribute: hasattr
+        method: hasattr
+        args: [$r.feature_class, CORE_DEFAULT_FEATURES]
+        as: has_default_features
+    assert:
+      - outcome: handler_count
+        equals: 3
+      - outcome: handlers
+        attribute: conditions
+        equals: $r.handle_conditions
+      - outcome: handlers
+        attribute: execute
+        equals: $r.handle_execution
+      - outcome: handlers
+        attribute: assert
+        equals: $r.handle_assertion
+      - outcome: has_default_features
+        equals: false
+
+  phase_runtime_is_reached_through_from_domain:
+    conditions:
+      fixtures: [tester_object, session]
+    execute:
+      - target: *import_module
+        method: import_module
+        args: [tiferet.domain.tester_phase]
+        as: phase_domain
+      - target: *getattr
+        method: getattr
+        args: [$r.phase_domain, PhaseRuntime]
+        as: phase_runtime_class
+      - target: *getattr
+        method: getattr
+        args: [$r.phase_domain, Test]
+        as: test_class
+      - target: *import_module
+        method: import_module
+        args: [tiferet.domain]
+        as: domain
+      - target: *getattr
+        method: getattr
+        args: [$r.domain, Feature]
+        as: feature_class
+      - target: &base_context
+          module_path: tiferet.contexts.core
+          class_name: BaseContext
+        method: for_domain
+        args: [$r.phase_runtime_class]
+        as: phase_runtime_context
+      - target: *base_context
+        method: for_domain
+        args: [$r.feature_class]
+        as: feature_context
+      - target: *base_context
+        method: for_domain
+        args: [$r.test_class]
+        as: test_context
+      - target:
+          module_path: tiferet.contexts.tester
+          class_name: TesterContext
+        method: from_domain
+        args: [$fixture.tester_object]
+        as: unwired
+      - target: $r.unwired
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, ErrorMessage]
+        raises: true
+        as: unwired_failed
+      - target:
+          module_path: tiferet.blueprints.tester
+          attribute: build_tester_context
+        method: build_tester_context
+        args: [$fixture.tester_object]
+        as: wired
+      - target: $r.wired
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, ErrorMessage]
+        as: wired_runtime
+      - target: *getattr
+        method: getattr
+        args: [$r.wired_runtime, domain]
+        as: wired_domain
+    assert:
+      - outcome: phase_runtime_context
+        is:
+          module_path: *phase_context
+          class_name: PhaseRuntimeContext
+      - outcome: feature_context
+        is:
+          module_path: tiferet.contexts.feature
+          class_name: FeatureContext
+      - outcome: test_context
+        is:
+          module_path: *phase_context
+          class_name: TestContext
+      - outcome: unwired_failed
+        message: build_phase_runtime_handler
+      - outcome: wired_runtime
+        type:
+          module_path: *phase_context
+          class_name: PhaseRuntimeContext
+      - outcome: wired_domain
+        type:
+          module_path: *phase_domain
+          class_name: PhaseRuntime
+      - outcome: wired_domain
+        attribute: tester_class_name
+        equals: ErrorMessage
+
+  conditions_stage_round_trips_to_data:
+    conditions:
+      fixtures: [empty_conditions]
+    execute:
+      - target: &conditions_config
+          module_path: &phase_mappers tiferet.mappers.tester_phase
+          class_name: ConditionsConfigObject
+        method: model_validate
+        args: [{}]
+        as: bare
+      - target: $r.bare
+        method: to_primitive
+        args: [to_data]
+        as: bare_dump
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: true}]
+        as: staged
+      - target: $r.staged
+        method: to_primitive
+        args: [to_data]
+        as: staged_dump
+      - target: $r.staged
+        method: map
+        as: staged_model
+      - target: *conditions_config
+        method: from_model
+        args: [$r.staged_model]
+        as: round_trip
+      - target: empty_conditions
+        method: model_dump
+        as: empty_dump
+    assert:
+      - outcome: bare_dump
+        absent: [stage]
+      - outcome: staged_dump
+        attribute: stage
+        equals: true
+      - outcome: staged_model
+        attribute: stage
+        equals: true
+      - outcome: round_trip
+        attribute: stage
+        equals: true
+      - outcome: empty_dump
+        absent: [stage]
+
+  check_set_is_unchanged:
+    conditions: {}
+    execute:
+      - target: &assertion_checks
+          module_path: *phase_domain
+          class_name: ASSERTION_CHECKS
+        method: __len__
+        as: check_count
+      - target: *import_module
+        method: import_module
+        args: [tiferet.domain.tester_phase]
+        as: phase_domain
+      - target: *getattr
+        method: getattr
+        args: [$r.phase_domain, ASSERTION_CHECKS]
+        as: check_set
+      - target: *assertion_checks
+        method: __getitem__
+        args: [0]
+        as: check_0
+      - target: *assertion_checks
+        method: __getitem__
+        args: [1]
+        as: check_1
+      - target: *assertion_checks
+        method: __getitem__
+        args: [2]
+        as: check_2
+      - target: *assertion_checks
+        method: __getitem__
+        args: [3]
+        as: check_3
+      - target: *assertion_checks
+        method: __getitem__
+        args: [4]
+        as: check_4
+      - target: *assertion_checks
+        method: __getitem__
+        args: [5]
+        as: check_5
+      - target: *assertion_checks
+        method: __getitem__
+        args: [6]
+        as: check_6
+      - target: *assertion_checks
+        method: __getitem__
+        args: [7]
+        as: check_7
+      - target: *assertion_checks
+        method: __getitem__
+        args: [8]
+        as: check_8
+      - target: *assertion_checks
+        method: __getitem__
+        args: [9]
+        as: check_9
+      - target: *assertion_checks
+        method: __getitem__
+        args: [10]
+        as: check_10
+      - target: *assertion_checks
+        method: __getitem__
+        args: [11]
+        as: check_11
+      - target: *assertion_checks
+        method: __getitem__
+        args: [12]
+        as: check_12
+      - target: *assertion_checks
+        method: __getitem__
+        args: [13]
+        as: check_13
+      - target: *assertion_checks
+        method: __getitem__
+        args: [14]
+        as: check_14
+      - target: *assertion_checks
+        method: __getitem__
+        args: [15]
+        as: check_15
+    assert:
+      - outcome: check_set
+        type:
+          module_path: builtins
+          class_name: tuple
+      - outcome: check_count
+        equals: 16
+      - outcome: check_0
+        equals: 'equals'
+      - outcome: check_1
+        equals: 'null'
+      - outcome: check_2
+        equals: 'fields'
+      - outcome: check_3
+        equals: 'absent'
+      - outcome: check_4
+        equals: 'error_code'
+      - outcome: check_5
+        equals: 'type'
+      - outcome: check_6
+        equals: 'is'
+      - outcome: check_7
+        equals: 'message'
+      - outcome: check_8
+        equals: 'assert_called_once_with'
+      - outcome: check_9
+        equals: 'domain_contract'
+      - outcome: check_10
+        equals: 'mapper_contract'
+      - outcome: check_11
+        equals: 'event_base'
+      - outcome: check_12
+        equals: 'parameters_required'
+      - outcome: check_13
+        equals: 'service_contract'
+      - outcome: check_14
+        equals: 'middleware_chain'
+      - outcome: check_15
+        equals: 'cause'
+
+  raises_stores_the_exception:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: &request_prefix
+          module_path: tiferet.assets.core
+          class_name: REQUEST_REF_PREFIX
+        method: __add__
+        args: [built]
+        as: ref_built
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.mappers, ErrorAggregate]
+        kwargs:
+          tester_attributes: &error_aggregate_attributes
+            id: TEST_ERROR
+            name: TEST_ERROR
+            error_code: TEST_ERROR
+            message:
+              - lang: en
+                text: Test error message.
+        as: runtime
+      - target: &make_test
+          module_path: &test_module tests.contexts.test_phase
+          attribute: _test
+        method: _test
+        args:
+          - phase.raises
+          - {}
+          - - target: self
+              method: new
+              data_key: built
+            - target: $r.ref_built
+              method: set_attribute
+              args: [invalid_attribute, value]
+              raises: true
+              data_key: failed
+          - - check: error_code
+              outcome: failed
+              error_code: INVALID_MODEL_ATTRIBUTE
+        as: inner
+      - target: *make_test
+        method: _test
+        args:
+          - phase.no_raise
+          - {}
+          - - target: self
+              method: new
+              raises: true
+              data_key: failed
+          - - check: 'null'
+              outcome: failed
+        as: quiet
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+      - target: $r.runtime
+        method: run
+        args: [$r.quiet]
+        raises: true
+        as: quiet_failed
+    assert:
+      - outcome: data
+        attribute: failed
+        error_code: INVALID_MODEL_ATTRIBUTE
+      - outcome: quiet_failed
+        error_code: PHASE_STEP_FAILED
+
+  invalid_set_attribute:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [built]
+        as: ref_built
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.mappers, ErrorAggregate]
+        kwargs:
+          tester_attributes: *error_aggregate_attributes
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.invalid_attribute
+          - {}
+          - - target: self
+              method: new
+              data_key: built
+            - target: $r.ref_built
+              method: set_attribute
+              args: [invalid_attribute, value]
+              raises: true
+              data_key: failed
+          - - check: error_code
+              outcome: failed
+              error_code: INVALID_MODEL_ATTRIBUTE
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: failed
+        error_code: INVALID_MODEL_ATTRIBUTE
+
+  aggregate_rename_and_set_message:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [built]
+        as: ref_built
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.mappers, ErrorAggregate]
+        kwargs:
+          tester_attributes: *error_aggregate_attributes
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.rename
+          - {}
+          - - target: self
+              method: new
+              data_key: built
+            - target: $r.ref_built
+              method: rename
+              args: [Renamed Error]
+            - target: $r.ref_built
+              method: set_message
+              args: [es, Mensaje de error de prueba.]
+          - - check: fields
+              outcome: built
+              fields: &renamed_fields
+                name: Renamed Error
+                message:
+                  - lang: en
+                    text: Test error message.
+                  - lang: es
+                    text: Mensaje de error de prueba.
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: built
+        fields: *renamed_fields
+
+  error_format_message_missing_language:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [built]
+        as: ref_built
+      - target: &fixture_prefix
+          module_path: *phase_context
+          class_name: FIXTURE_REF_PREFIX
+        method: __add__
+        args: [error_message]
+        as: ref_error_message
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, Error]
+        kwargs:
+          tester_attributes:
+            id: TEST_ERROR
+            name: Test Error
+            message: [$r.ref_error_message]
+          tester_fixtures:
+            error_message: &error_message_spec
+              module_path: tiferet.domain.error
+              class_name: ErrorMessage
+              attributes:
+                lang: en_US
+                text: An error occurred.
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.missing_lang
+          - fixtures: [error_message]
+          - - target: self
+              method: new
+              data_key: built
+            - target: $r.ref_built
+              method: format_message
+              args: [fr_FR]
+              data_key: missing
+          - - check: 'null'
+              outcome: missing
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: missing
+        'null': true
+
+  refs_resolve_before_the_call:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *fixture_prefix
+        method: __add__
+        args: [missing]
+        as: ref_missing
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, ErrorMessage]
+        kwargs:
+          root_fixtures:
+            error_message: *error_message_spec
+        as: runtime
+      - target: &make_conditions
+          module_path: *phase_domain
+          attribute: Conditions
+        method: Conditions
+        kwargs:
+          fixtures: [error_message]
+        as: inner_conditions
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.inner_conditions]
+      - target: &make_execution
+          module_path: *phase_domain
+          attribute: Execution
+        method: Execution
+        kwargs:
+          target: $r.ref_missing
+          method: format
+        as: missing_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.missing_step]
+        raises: true
+        as: missing_failed
+      - target: *make_execution
+        method: Execution
+        kwargs:
+          target:
+            module_path: builtins
+            attribute: str
+          method: str
+          args: ['An error occurred: $r.x']
+          data_key: literal
+        as: literal_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.literal_step]
+      - target:
+          module_path: builtins
+          attribute: str
+        method: str
+        args: ['An error occurred: $r.x']
+        as: literal
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: missing_failed
+        error_code: PHASE_REFERENCE_NOT_FOUND
+      - outcome: literal
+        equals: 'An error occurred: $r.x'
+      - outcome: data
+        attribute: literal
+        equals: 'An error occurred: $r.x'
+
+  attribute_model_rules:
+    conditions: {}
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [value]
+        as: ref_value
+      - target: &make_assertion
+          module_path: *phase_domain
+          attribute: Assertion
+        method: Assertion
+        kwargs: {check: equals, outcome: got, attribute: value, equals: 1}
+        as: legal_equals
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: 'null', outcome: got, attribute: value}
+        as: legal_null
+      - target: *make_assertion
+        method: Assertion
+        kwargs:
+          check: assert_called_once_with
+          mock: command
+          method: run
+          assert_called_once_with:
+            args: []
+        as: legal_called
+      - target: *make_assertion
+        method: Assertion
+        kwargs:
+          check: assert_called_once_with
+          mock: command
+          method: run
+          assert_called_once_with:
+            args: []
+          attribute: value
+        raises: true
+        as: called_failed
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: domain_contract, attribute: value}
+        raises: true
+        as: contract_failed
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: equals, outcome: got, attribute: '', equals: 1}
+        raises: true
+        as: empty_failed
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: equals, outcome: got, attribute: message.1.lang, equals: 1}
+        raises: true
+        as: path_failed
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: equals, outcome: got, attribute: $r.ref_value, equals: 1}
+        raises: true
+        as: ref_failed
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: equals, outcome: got, attribute: a b, equals: 1}
+        raises: true
+        as: space_failed
+    assert:
+      - outcome: legal_equals
+        attribute: attribute
+        equals: value
+      - outcome: legal_null
+        attribute: attribute
+        equals: value
+      - outcome: legal_called
+        attribute: check
+        equals: assert_called_once_with
+      - outcome: called_failed
+        error_code: INVALID_MODEL_ATTRIBUTE
+      - outcome: contract_failed
+        error_code: INVALID_MODEL_ATTRIBUTE
+      - outcome: empty_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: path_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: ref_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: space_failed
+        error_code: INVALID_MODEL_VALUE
+
+  handle_model_rules:
+    conditions: {}
+    execute:
+      - target: &mock_prefix
+          module_path: *phase_context
+          class_name: MOCK_REF_PREFIX
+        method: __add__
+        args: [command]
+        as: ref_command
+      - target: *request_prefix
+        method: __add__
+        args: [event]
+        as: ref_event
+      - target: *request_prefix
+        method: __add__
+        args: [a.b]
+        as: ref_dotted
+      - target: *fixture_prefix
+        method: __add__
+        args: [event]
+        as: ref_fixture_event
+      - target: &stage_ref
+          module_path: *phase_context
+          class_name: STAGE_REF
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: self, method: handle}
+        as: self_handle
+      - target: *make_execution
+        method: Execution
+        kwargs:
+          target: {module_path: m, class_name: E}
+          method: handle
+          dependencies: {a: 1}
+        as: class_handle
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_command, method: handle, dependencies: {}}
+        as: mock_handle
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_event, method: handle}
+        as: ref_handle
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: self, method: handle, dependencies: {}}
+        as: self_empty_handle
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: event, method: handle}
+        raises: true
+        as: bare_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_fixture_event, method: handle}
+        raises: true
+        as: fixture_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: handle}
+        raises: true
+        as: stage_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_dotted, method: handle}
+        raises: true
+        as: dotted_failed
+      - target: *make_execution
+        method: Execution
+        kwargs:
+          target: {module_path: m, attribute: f}
+          method: handle
+        raises: true
+        as: attribute_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: self, method: handle, dependencies: {a: 1}}
+        raises: true
+        as: self_dependencies_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: self, method: handle, args: [1]}
+        raises: true
+        as: args_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_command, method: new}
+        raises: true
+        as: new_failed
+      - target: &execution_config
+          module_path: *phase_mappers
+          class_name: ExecutionConfigObject
+        method: model_validate
+        args: [{target: {module_path: m, class_name: E}, method: handle, dependencies: null}]
+        raises: true
+        as: null_dependencies_failed
+      - target: *execution_config
+        method: model_validate
+        args: [{target: {module_path: m, class_name: E}, method: handle, dependencies: []}]
+        raises: true
+        as: list_dependencies_failed
+      - target: *execution_config
+        method: model_validate
+        args: [{target: {module_path: m, class_name: E}, method: handle, dependencies: dep}]
+        raises: true
+        as: string_dependencies_failed
+      - target: &to_text
+          module_path: builtins
+          attribute: str
+        method: str
+        args: [$r.bare_failed]
+        as: bare_text
+      - target: $r.bare_text
+        method: __contains__
+        args: [legal only on target self]
+        as: bare_has_old_sentence
+    assert:
+      - outcome: self_handle
+        attribute: method
+        equals: handle
+      - outcome: class_handle
+        attribute: dependencies
+        equals: {a: 1}
+      - outcome: mock_handle
+        attribute: target
+        equals: $r.ref_command
+      - outcome: ref_handle
+        attribute: target
+        equals: $r.ref_event
+      - outcome: self_empty_handle
+        attribute: dependencies
+        equals: {}
+      - outcome: bare_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: bare_failed
+        message: handle requires target self, a class target, $mock.<name>, or $r.<key>.
+      - outcome: fixture_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: stage_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: dotted_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: attribute_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: self_dependencies_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: self_dependencies_failed
+        message: dependencies is legal only on handle with a named event target.
+      - outcome: args_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: new_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: null_dependencies_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: list_dependencies_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: string_dependencies_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: bare_has_old_sentence
+        equals: false
+
+  observation_fields_round_trip:
+    conditions: {}
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [loader]
+        as: ref_loader
+      - target: *execution_config
+        method: model_validate
+        args:
+          - target: {module_path: tiferet.events.yaml, class_name: LoadYaml}
+            method: handle
+            dependencies: {yaml_service: $r.ref_loader}
+            kwargs: {name: item}
+        as: present
+      - target: *execution_config
+        method: model_validate
+        args:
+          - target: {module_path: tiferet.events.yaml, class_name: LoadYaml}
+            method: handle
+            dependencies: {}
+        as: empty
+      - target: *execution_config
+        method: model_validate
+        args: [{target: self, method: handle}]
+        as: omitted
+      - target: $r.present
+        method: map
+        as: present_model
+      - target: *execution_config
+        method: from_model
+        args: [$r.present_model]
+        as: present_round_trip
+      - target: $r.present_round_trip
+        method: to_primitive
+        args: [to_data]
+        as: present_dump
+      - target: $r.empty
+        method: map
+        as: empty_model
+      - target: *execution_config
+        method: from_model
+        args: [$r.empty_model]
+        as: empty_round_trip
+      - target: $r.empty_round_trip
+        method: to_primitive
+        args: [to_data]
+        as: empty_dump
+      - target: $r.omitted
+        method: map
+        as: omitted_model
+      - target: *execution_config
+        method: from_model
+        args: [$r.omitted_model]
+        as: omitted_round_trip
+      - target: $r.omitted_round_trip
+        method: to_primitive
+        args: [to_data]
+        as: omitted_dump
+      - target: &assertion_config
+          module_path: *phase_mappers
+          class_name: AssertionConfigObject
+        method: model_validate
+        args: [{outcome: got, attribute: headers, equals: {}}]
+        as: read
+      - target: $r.read
+        method: map
+        as: read_model
+      - target: *assertion_config
+        method: from_model
+        args: [$r.read_model]
+        as: read_round_trip
+      - target: $r.read_round_trip
+        method: to_primitive
+        args: [to_data]
+        as: read_dump
+      - target: *assertion_config
+        method: model_validate
+        args: [{outcome: got, 'null': true}]
+        as: whole
+      - target: $r.whole
+        method: map
+        as: whole_model
+      - target: *assertion_config
+        method: from_model
+        args: [$r.whole_model]
+        as: whole_round_trip
+      - target: $r.whole_round_trip
+        method: to_primitive
+        args: [to_data]
+        as: whole_dump
+    assert:
+      - outcome: present_model
+        attribute: dependencies
+        equals: {yaml_service: $r.ref_loader}
+      - outcome: present_dump
+        attribute: dependencies
+        equals: {yaml_service: $r.ref_loader}
+      - outcome: present_dump
+        attribute: kwargs
+        equals: {name: item}
+      - outcome: empty_dump
+        attribute: dependencies
+        equals: {}
+      - outcome: omitted_dump
+        attribute: dependencies
+        equals: {}
+      - outcome: read_dump
+        equals: {outcome: got, attribute: headers, equals: {}}
+      - outcome: whole_dump
+        equals: {outcome: got, 'null': true}
+
+  stage_path_enters_new_through_r:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *request_prefix
+        method: __add__
+        args: [config_file]
+        as: ref_config_file
+      - target: *request_prefix
+        method: __add__
+        args: [repo]
+        as: ref_repo
+      - target: *make_test
+        method: _test
+        args:
+          - phase.config_file
+          - stage: true
+          - - target: $r.ref_stage
+              method: write
+              args: [config.yaml, 'root: {}']
+              data_key: config_file
+            - target: self
+              method: new
+              data_key: repo
+            - target: $r.ref_repo
+              method: _get_loader
+              data_key: loader
+          - - check: fields
+              outcome: repo
+              fields:
+                config_file: $r.ref_config_file
+        as: inner
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.repos.core, ConfigurationRepository]
+        kwargs:
+          tester_attributes:
+            config_file: $r.ref_config_file
+        as: runtime
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: self, method: new, args: [x]}
+        raises: true
+        as: bad_new
+    assert:
+      - outcome: bad_new
+        type: *model_error
+
+  stage_ref_rules:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *stage_ref
+        method: __add__
+        args: [.file]
+        as: ref_stage_file
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, tiferet.domain.error, ErrorMessage]
+        kwargs:
+          root_fixtures:
+            staged_message:
+              module_path: tiferet.domain.error
+              class_name: ErrorMessage
+              attributes:
+                lang: en_US
+                text: $r.ref_stage
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.stage_fixture
+          - fixtures: [staged_message]
+          - - target: *to_text
+              method: str
+              args: [x]
+              data_key: x
+          - - check: equals
+              outcome: x
+              equals: x
+        as: fixture_test
+      - target: $r.runtime
+        method: run
+        args: [$r.fixture_test]
+        raises: true
+        as: fixture_failed
+      - target: *make_test
+        method: _test
+        args:
+          - phase.stage_literal
+          - stage: true
+          - - target: *to_text
+              method: str
+              args: [$r.ref_stage_file]
+              data_key: literal
+          - - check: equals
+              outcome: literal
+              equals: $r.ref_stage_file
+        as: literal_test
+      - target: $r.runtime
+        method: run
+        args: [$r.literal_test]
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: true}
+        as: staged_conditions
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.staged_conditions]
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: stage, method: path}
+        as: bare_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.bare_step]
+        raises: true
+        as: bare_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: close}
+        as: close_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.close_step]
+        raises: true
+        as: close_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: arrange}
+        as: arrange_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.arrange_step]
+        raises: true
+        as: arrange_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: message, kwargs: {level: DEBUG}}
+        as: message_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.message_step]
+        raises: true
+        as: message_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: read, kwargs: {name: missing.txt}}
+        as: read_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.read_step]
+        raises: true
+        as: read_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: path, args: ['..']}
+        as: parent_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.parent_step]
+        raises: true
+        as: parent_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: {module_path: builtins, attribute: str}, method: str, args: [$r.ref_stage]}
+        as: args_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.args_step]
+        raises: true
+        as: args_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: {module_path: builtins, attribute: str}, method: str, kwargs: {object: $r.ref_stage}}
+        as: kwargs_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.kwargs_step]
+        raises: true
+        as: kwargs_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: {module_path: builtins, attribute: getattr}, method: getattr, args: [[$r.ref_stage], path]}
+        as: nested_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.nested_step]
+        raises: true
+        as: nested_failed
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: exists, kwargs: {name: config.yaml}, data_key: present}
+        as: exists_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.exists_step]
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: equals, outcome: present, equals: $r.ref_stage}
+        as: equals_assertion
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.equals_assertion]
+        raises: true
+        as: equals_failed
+      - target: *make_assertion
+        method: Assertion
+        kwargs: {check: fields, outcome: present, fields: {value: $r.ref_stage}}
+        as: fields_assertion
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.fields_assertion]
+        raises: true
+        as: fields_failed
+      - target: $r.runtime
+        method: close_stage
+      - target: &setattr
+          module_path: builtins
+          attribute: setattr
+        method: setattr
+        args: [$r.runtime, stage_factory, null]
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.staged_conditions]
+        raises: true
+        as: factory_failed
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: fixture_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: fixture_failed
+        message: $stage
+      - outcome: bare_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: bare_failed
+        message: not a fixture
+      - outcome: close_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: arrange_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: message_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: read_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: parent_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: args_failed
+        message: only an execute target
+      - outcome: kwargs_failed
+        message: only an execute target
+      - outcome: nested_failed
+        message: only an execute target
+      - outcome: equals_failed
+        message: only an execute target
+      - outcome: fields_failed
+        message: only an execute target
+      - outcome: data
+        attribute: literal
+        equals: $r.ref_stage_file
+      - outcome: data
+        attribute: present
+        equals: false
+      - outcome: factory_failed
+        error_code: APP_ERROR
+      - outcome: factory_failed
+        message: stage_factory
+
+  attribute_reads_one_key_or_attribute:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        kwargs:
+          root_fixtures:
+            message: *error_message_spec
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.mapping_attribute
+          - {}
+          - - target: &echo
+                module_path: *test_module
+                attribute: echo
+              method: echo
+              args: [{lang: en_US}]
+              data_key: got
+          - - check: equals
+              outcome: got
+              attribute: lang
+              equals: en_US
+        as: mapping_test
+      - target: $r.runtime
+        method: run
+        args: [$r.mapping_test]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.fixture_attribute
+          - fixtures: [message]
+          - - target: *to_text
+              method: str
+              args: [x]
+              data_key: x
+          - - check: equals
+              outcome: message
+              attribute: lang
+              equals: en_US
+        as: fixture_test
+      - target: $r.runtime
+        method: run
+        args: [$r.fixture_test]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: got
+        equals: {lang: en_US}
+      - outcome: data
+        attribute: x
+        equals: x
+
+  attribute_equals_empty_mapping_is_strict:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [empty_headers]
+        as: ref_empty_headers
+      - target: *request_prefix
+        method: __add__
+        args: [nonempty_headers]
+        as: ref_nonempty_headers
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.empty_headers
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{}]
+              data_key: empty_headers
+            - target: *echo
+              method: echo
+              args: [{headers: $r.ref_empty_headers}]
+              data_key: got
+          - - &empty_headers_assert
+              check: equals
+              outcome: got
+              attribute: headers
+              equals: {}
+        as: empty_test
+      - target: $r.runtime
+        method: run
+        args: [$r.empty_test]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.nonempty_headers
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{a: 1}]
+              data_key: nonempty_headers
+            - target: *echo
+              method: echo
+              args: [{headers: $r.ref_nonempty_headers}]
+              data_key: got
+          - - *empty_headers_assert
+        as: nonempty_test
+      - target: $r.runtime
+        method: run
+        args: [$r.nonempty_test]
+        raises: true
+        as: nonempty_failed
+    assert:
+      - outcome: nonempty_failed
+        error_code: PHASE_CHECK_FAILED
+
+  attribute_null_container_fails:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [empty]
+        as: ref_empty
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.null_container
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{}]
+              data_key: empty
+            - target: $r.ref_empty
+              method: get
+              args: [missing]
+              data_key: got
+          - - check: 'null'
+              outcome: got
+              attribute: feature_id
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: failed
+        message: container is null
+
+  attribute_missing_is_named:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.missing_key
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{other: 1}]
+              data_key: got
+          - - &feature_id_assert
+              check: equals
+              outcome: got
+              attribute: feature_id
+              equals: 1
+        as: mapping_test
+      - target: $r.runtime
+        method: run
+        args: [$r.mapping_test]
+        raises: true
+        as: mapping_failed
+      - target: *make_test
+        method: _test
+        args:
+          - phase.missing_attribute
+          - {}
+          - - target:
+                module_path: tiferet.domain.error
+                attribute: ErrorMessage
+              method: ErrorMessage
+              kwargs: {lang: en_US, text: x}
+              data_key: got
+          - - *feature_id_assert
+        as: object_test
+      - target: $r.runtime
+        method: run
+        args: [$r.object_test]
+        raises: true
+        as: object_failed
+    assert:
+      - outcome: mapping_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: mapping_failed
+        message: feature_id
+      - outcome: object_failed
+        error_code: PHASE_CHECK_FAILED
+
+  field_null_uses_identity:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.field_null
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{value: null}]
+              data_key: got
+          - - &field_null_assert
+              check: 'null'
+              outcome: got
+              attribute: value
+        as: null_test
+      - target: $r.runtime
+        method: run
+        args: [$r.null_test]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.field_zero
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{value: 0}]
+              data_key: got
+          - - *field_null_assert
+        as: zero_test
+      - target: $r.runtime
+        method: run
+        args: [$r.zero_test]
+        raises: true
+        as: zero_failed
+      - target: *make_test
+        method: _test
+        args:
+          - phase.field_false
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{value: false}]
+              data_key: got
+          - - *field_null_assert
+        as: false_test
+      - target: $r.runtime
+        method: run
+        args: [$r.false_test]
+        raises: true
+        as: false_failed
+      - target: *make_test
+        method: _test
+        args:
+          - phase.field_empty_text
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{value: ''}]
+              data_key: got
+          - - *field_null_assert
+        as: empty_text_test
+      - target: $r.runtime
+        method: run
+        args: [$r.empty_text_test]
+        raises: true
+        as: empty_text_failed
+      - target: *make_test
+        method: _test
+        args:
+          - phase.field_empty_list
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{value: []}]
+              data_key: got
+          - - *field_null_assert
+        as: empty_list_test
+      - target: $r.runtime
+        method: run
+        args: [$r.empty_list_test]
+        raises: true
+        as: empty_list_failed
+    assert:
+      - outcome: zero_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: zero_failed
+        message: attribute is not null
+      - outcome: false_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: false_failed
+        message: attribute is not null
+      - outcome: empty_text_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: empty_text_failed
+        message: attribute is not null
+      - outcome: empty_list_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: empty_list_failed
+        message: attribute is not null
+
+  whole_outcome_null_is_unchanged:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [got]
+        as: ref_got
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.whole_null
+          - {}
+          - - target: *echo
+              method: echo
+              args: [null]
+              data_key: got
+          - - &whole_null_assert
+              check: 'null'
+              outcome: got
+        as: null_test
+      - target: $r.runtime
+        method: run
+        args: [$r.null_test]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.whole_mapping
+          - {}
+          - - target: *echo
+              method: echo
+              args: [null]
+              data_key: got
+            - target: *echo
+              method: echo
+              args: [{value: $r.ref_got}]
+              data_key: got
+          - - *whole_null_assert
+        as: mapping_test
+      - target: $r.runtime
+        method: run
+        args: [$r.mapping_test]
+        raises: true
+        as: mapping_failed
+    assert:
+      - outcome: mapping_failed
+        error_code: PHASE_CHECK_FAILED
+
+  field_null_and_absent_are_distinct:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.other_absent
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{other: 1}]
+              data_key: got
+          - - &value_absent_assert
+              check: absent
+              outcome: got
+              absent: [value]
+        as: absent_test
+      - target: $r.runtime
+        method: run
+        args: [$r.absent_test]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.other_field_null
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{other: 1}]
+              data_key: got
+          - - &value_null_assert
+              check: 'null'
+              outcome: got
+              attribute: value
+        as: missing_test
+      - target: $r.runtime
+        method: run
+        args: [$r.missing_test]
+        raises: true
+        as: missing_failed
+      - target: *make_test
+        method: _test
+        args:
+          - phase.value_field_null
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{value: null}]
+              data_key: got
+          - - *value_null_assert
+        as: field_null_test
+      - target: $r.runtime
+        method: run
+        args: [$r.field_null_test]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.value_absent
+          - {}
+          - - target: *echo
+              method: echo
+              args: [{value: null}]
+              data_key: got
+          - - *value_absent_assert
+        as: present_test
+      - target: $r.runtime
+        method: run
+        args: [$r.present_test]
+        raises: true
+        as: present_failed
+    assert:
+      - outcome: missing_failed
+        error_code: PHASE_CHECK_FAILED
+      - outcome: missing_failed
+        message: value is missing
+      - outcome: present_failed
+        error_code: PHASE_CHECK_FAILED
+
+  equals_null_still_rejected_with_attribute:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_construct
+        kwargs: {check: equals, outcome: got, attribute: value, equals: null}
+        as: equals_null
+      - target: $r.runtime
+        method: handle_assertion
+        args: [$r.equals_null]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: failed
+        message: YAML null under equals is rejected.
+
+  named_handle_import_miss_detail:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: *echo, method: echo, args: [1], data_key: got}
+        as: store_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.store_step]
+      - target: *make_execution
+        method: Execution
+        kwargs:
+          target: {module_path: rfp052_no_such_module, class_name: Event}
+          method: handle
+        as: miss_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.miss_step]
+        raises: true
+        as: failed
+    assert:
+      - outcome: failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: failed
+        message: "Could not import module rfp052_no_such_module: No module named 'rfp052_no_such_module'"
+
+  stage_flag_is_true_or_omitted:
+    conditions: {}
+    execute:
+      - target: &stage_directories
+          module_path: *test_module
+          attribute: _stage_directories
+        method: _stage_directories
+        as: directories_before
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: false}
+        raises: true
+        as: domain_false_failed
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: false}]
+        raises: true
+        as: mapper_false_failed
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: null}
+        raises: true
+        as: domain_null_failed
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: null}]
+        raises: true
+        as: mapper_null_failed
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: {}}
+        raises: true
+        as: domain_mapping_failed
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: {}}]
+        raises: true
+        as: mapper_mapping_failed
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: []}
+        raises: true
+        as: domain_list_failed
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: []}]
+        raises: true
+        as: mapper_list_failed
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: tmp_path}
+        raises: true
+        as: domain_tmp_path_failed
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: tmp_path}]
+        raises: true
+        as: mapper_tmp_path_failed
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: 'true'}
+        raises: true
+        as: domain_text_true_failed
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: 'true'}]
+        raises: true
+        as: mapper_text_true_failed
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: 1}
+        raises: true
+        as: domain_one_failed
+      - target: *conditions_config
+        method: model_validate
+        args: [{stage: 1}]
+        raises: true
+        as: mapper_one_failed
+      - target: *make_conditions
+        method: Conditions
+        as: omitted
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {tmp_path: true}
+        raises: true
+        as: tmp_path_failed
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {caplog: true}
+        raises: true
+        as: caplog_failed
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_after
+    assert:
+      - outcome: directories_after
+        equals: $r.directories_before
+      - outcome: domain_false_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapper_false_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: domain_null_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapper_null_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: domain_mapping_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapper_mapping_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: domain_list_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapper_list_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: domain_tmp_path_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapper_tmp_path_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: domain_text_true_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapper_text_true_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: domain_one_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: mapper_one_failed
+        error_code: INVALID_MODEL_VALUE
+      - outcome: omitted
+        attribute: stage
+        'null': true
+      - outcome: tmp_path_failed
+        error_code: INVALID_MODEL_ATTRIBUTE
+      - outcome: caplog_failed
+        error_code: INVALID_MODEL_ATTRIBUTE
+
+  unstaged_test_has_no_stage:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_before
+      - target: &get_logger
+          module_path: logging
+          attribute: getLogger
+        method: getLogger
+        as: root_logger
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, handlers]
+        as: live_handlers
+      - target: &to_list
+          module_path: builtins
+          attribute: list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_before
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.unstaged
+          - {}
+          - - target: $r.ref_stage
+              method: path
+              data_key: directory
+          - - check: 'null'
+              outcome: directory
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+        raises: true
+        as: failed
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_after
+      - target: *to_list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_after
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, stage]
+        as: stage_after
+    assert:
+      - outcome: directories_after
+        equals: $r.directories_before
+      - outcome: handlers_after
+        equals: $r.handlers_before
+      - outcome: failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: failed
+        message: not arranged
+      - outcome: stage_after
+        'null': true
+
+  stage_closes_on_every_outcome:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *get_logger
+        method: getLogger
+        as: root_logger
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, handlers]
+        as: live_handlers
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        kwargs:
+          root_fixtures:
+            broken:
+              module_path: tiferet.domain.error
+              class_name: NoSuchClass
+              attributes: {}
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.failed_assert
+          - stage: true
+          - - target: $r.ref_stage
+              method: write
+              args: [left.txt, left]
+              data_key: left
+          - - check: equals
+              outcome: left
+              equals: not the path
+        as: failed_assert_test
+      - target: *make_test
+        method: _test
+        args:
+          - phase.raising_step
+          - stage: true
+          - - target: $r.ref_stage
+              method: write
+              args: [left.txt, left]
+              data_key: left
+            - target: {module_path: builtins, attribute: int}
+              method: int
+              args: [not a number]
+          - - check: 'null'
+              outcome: left
+        as: raising_step_test
+      - target: *make_test
+        method: _test
+        args:
+          - phase.fixture_failure
+          - stage: true
+            fixtures: [broken]
+          - - target: $r.ref_stage
+              method: write
+              args: [left.txt, left]
+              data_key: left
+          - - check: 'null'
+              outcome: left
+        as: fixture_failure_test
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_before_assert
+      - target: *to_list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_before_assert
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, level]
+        as: level_before_assert
+      - target: $r.runtime
+        method: run
+        args: [$r.failed_assert_test]
+        raises: true
+        as: failed_assert
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_after_assert
+      - target: *to_list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_after_assert
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, level]
+        as: level_after_assert
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, stage]
+        as: stage_after_assert
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_before_step
+      - target: *to_list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_before_step
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, level]
+        as: level_before_step
+      - target: $r.runtime
+        method: run
+        args: [$r.raising_step_test]
+        raises: true
+        as: raising_step
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_after_step
+      - target: *to_list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_after_step
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, level]
+        as: level_after_step
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, stage]
+        as: stage_after_step
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_before_fixture
+      - target: *to_list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_before_fixture
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, level]
+        as: level_before_fixture
+      - target: $r.runtime
+        method: run
+        args: [$r.fixture_failure_test]
+        raises: true
+        as: fixture_failure
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_after_fixture
+      - target: *to_list
+        method: list
+        args: [$r.live_handlers]
+        as: handlers_after_fixture
+      - target: *getattr
+        method: getattr
+        args: [$r.root_logger, level]
+        as: level_after_fixture
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, stage]
+        as: stage_after_fixture
+    assert:
+      - outcome: failed_assert
+        error_code: PHASE_CHECK_FAILED
+      - outcome: raising_step
+        type:
+          module_path: builtins
+          class_name: ValueError
+      - outcome: fixture_failure
+        error_code: PHASE_STEP_FAILED
+      - outcome: stage_after_assert
+        'null': true
+      - outcome: stage_after_step
+        'null': true
+      - outcome: stage_after_fixture
+        'null': true
+      - outcome: directories_after_assert
+        equals: $r.directories_before_assert
+      - outcome: handlers_after_assert
+        equals: $r.handlers_before_assert
+      - outcome: level_after_assert
+        equals: $r.level_before_assert
+      - outcome: directories_after_step
+        equals: $r.directories_before_step
+      - outcome: handlers_after_step
+        equals: $r.handlers_before_step
+      - outcome: level_after_step
+        equals: $r.level_before_step
+      - outcome: directories_after_fixture
+        equals: $r.directories_before_fixture
+      - outcome: handlers_after_fixture
+        equals: $r.handlers_before_fixture
+      - outcome: level_after_fixture
+        equals: $r.level_before_fixture
+
+  stage_rearrange_closes_the_live_stage:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_before
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_conditions
+        method: Conditions
+        kwargs: {stage: true}
+        as: staged_conditions
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.staged_conditions]
+      - target: *make_execution
+        method: Execution
+        kwargs: {target: $r.ref_stage, method: path, data_key: first}
+        as: first_step
+      - target: $r.runtime
+        method: handle_execution
+        args: [$r.first_step]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+      - target: $r.data
+        method: get
+        args: [first]
+        as: first
+      - target: $r.runtime
+        method: handle_conditions
+        args: [$r.staged_conditions]
+      - target:
+          module_path: pathlib
+          attribute: Path
+        method: Path
+        args: [$r.first]
+        as: first_path
+      - target: $r.first_path
+        method: exists
+        as: first_exists
+      - target: $r.runtime
+        method: close_stage
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, stage]
+        as: stage_after
+      - target: *stage_directories
+        method: _stage_directories
+        as: directories_after
+    assert:
+      - outcome: first_exists
+        equals: false
+      - outcome: stage_after
+        'null': true
+      - outcome: directories_after
+        equals: $r.directories_before
+
+  stage_records_and_message:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *request_prefix
+        method: __add__
+        args: [named_logger]
+        as: ref_named_logger
+      - target: *request_prefix
+        method: __add__
+        args: [boom]
+        as: ref_boom
+      - target: *get_logger
+        method: getLogger
+        args: [tiferet.stage_probe]
+        as: probe_logger
+      - target: $r.probe_logger
+        method: debug
+        args: [before the stage]
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.records
+          - stage: true
+          - - target: $r.ref_stage
+              method: records
+              data_key: empty
+            - target: {module_path: logging, attribute: debug}
+              method: debug
+              args: [Executing SampleEvent]
+            - target: {module_path: logging, attribute: getLogger}
+              method: getLogger
+              args: [tiferet.stage_probe]
+              data_key: named_logger
+            - target: $r.ref_named_logger
+              method: debug
+              args: [named record]
+            - target: {module_path: builtins, attribute: ValueError}
+              method: ValueError
+              args: [boom]
+              data_key: boom
+            - target: {module_path: logging, attribute: error}
+              method: error
+              args: [Failed SampleEvent]
+              kwargs: {exc_info: $r.ref_boom}
+            - target: {module_path: logging, attribute: error}
+              method: error
+              args: [No active exception]
+              kwargs: {exc_info: true}
+            - target: $r.ref_stage
+              method: records
+              data_key: records
+            - target: $r.ref_stage
+              method: message
+              kwargs: {level: DEBUG, index: 0}
+              data_key: line
+          - - check: equals
+              outcome: empty
+              equals: []
+        as: records_test
+      - target: $r.runtime
+        method: run
+        args: [$r.records_test]
+      - target: $r.probe_logger
+        method: debug
+        args: [after the stage]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.later_records
+          - stage: true
+          - - target: $r.ref_stage
+              method: records
+              data_key: later
+          - - check: equals
+              outcome: later
+              equals: []
+        as: later_test
+      - target: $r.runtime
+        method: run
+        args: [$r.later_test]
+      - target: *make_test
+        method: _test
+        args:
+          - phase.missing_index
+          - stage: true
+          - - target: $r.ref_stage
+              method: message
+              kwargs: {level: DEBUG, index: 0}
+              data_key: line
+          - - check: 'null'
+              outcome: line
+        as: missing_index_test
+      - target: $r.runtime
+        method: run
+        args: [$r.missing_index_test]
+        raises: true
+        as: missing_index_failed
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+    assert:
+      - outcome: data
+        attribute: empty
+        equals: []
+      - outcome: data
+        attribute: line
+        equals: Executing SampleEvent
+      - outcome: data
+        attribute: records
+        equals:
+          - {level: DEBUG, message: Executing SampleEvent, error: false, logger: root}
+          - {level: DEBUG, message: named record, error: false, logger: tiferet.stage_probe}
+          - {level: ERROR, message: Failed SampleEvent, error: true, logger: root}
+          - {level: ERROR, message: No active exception, error: true, logger: root}
+      - outcome: missing_index_failed
+        error_code: PHASE_STEP_FAILED
+
+  fixture_construction_does_not_call_new:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, HasNew]
+        kwargs:
+          tester_attributes: {value: built}
+          root_fixtures:
+            sample:
+              module_path: *test_module
+              class_name: HasNew
+              attributes: {value: fixture}
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.construct
+          - fixtures: [sample]
+          - - target: self
+              method: new
+              data_key: built
+          - - check: fields
+              outcome: built
+              fields: {value: built}
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, fixtures]
+        as: arranged
+      - target: $r.arranged
+        method: get
+        args: [sample]
+        as: sample
+      - target: *hasattr
+        method: hasattr
+        args: [$r.sample, _called_new]
+        as: sample_called_new
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+      - target: $r.data
+        method: get
+        args: [built]
+        as: built
+    assert:
+      - outcome: sample
+        attribute: value
+        equals: fixture
+      - outcome: built
+        attribute: value
+        equals: built
+      - outcome: sample_called_new
+        equals: false
+
+  stage_cleanup_error_rules:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *import_module
+        method: import_module
+        args: [*test_module]
+        as: test_module
+      - target: *getattr
+        method: getattr
+        args: [$r.test_module, FailingCloseStage]
+        as: failing_close_stage
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: failed_runtime
+      - target: *setattr
+        method: setattr
+        args: [$r.failed_runtime, stage_factory, $r.failing_close_stage]
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: passed_runtime
+      - target: *setattr
+        method: setattr
+        args: [$r.passed_runtime, stage_factory, $r.failing_close_stage]
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: quiet_runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.cleanup_after_failure
+          - stage: true
+          - - target: $r.ref_stage
+              method: path
+              data_key: directory
+          - - check: equals
+              outcome: directory
+              equals: not the path
+        as: failed_test
+      - target: $r.failed_runtime
+        method: run
+        args: [$r.failed_test]
+        raises: true
+        as: failed_check
+      - target:
+          module_path: tiferet.utils.tester_stage
+          class_name: STAGE_PREFIX
+        method: __add__
+        args: ['']
+        as: stage_prefix
+      - target: *make_test
+        method: _test
+        args:
+          - phase.cleanup_after_pass
+          - stage: true
+          - - target: $r.ref_stage
+              method: path
+              data_key: directory
+          - - check: message
+              outcome: directory
+              message: $r.stage_prefix
+        as: passed_test
+      - target: $r.passed_runtime
+        method: run
+        args: [$r.passed_test]
+        raises: true
+        as: cleanup_failed
+      - target: $r.passed_runtime
+        method: close_stage
+      - target: $r.passed_runtime
+        method: close_stage
+        kwargs: {failed: true}
+      - target: $r.quiet_runtime
+        method: close_stage
+    assert:
+      - outcome: failed_check
+        error_code: PHASE_CHECK_FAILED
+      - outcome: cleanup_failed
+        error_code: PHASE_STEP_FAILED
+      - outcome: cleanup_failed
+        message: cleanup failed
+
+  named_handle_uses_explicit_dependencies:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *request_prefix
+        method: __add__
+        args: [got]
+        as: ref_got
+      - target: *mock_prefix
+        method: __add__
+        args: [dep]
+        as: ref_mock_dep
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, NamedEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.explicit_dependencies
+          - mocks:
+              dep:
+                module_path: *interfaces
+                class_name: ErrorService
+          - - target: *echo
+              method: echo
+              args: [loader]
+              data_key: got
+            - target: &named_event
+                module_path: *test_module
+                class_name: NamedEvent
+              method: handle
+              kwargs: {arg: x}
+              data_key: bare
+            - target: *named_event
+              method: handle
+              dependencies: {dep: $r.ref_got}
+              data_key: by_ref
+            - target: *named_event
+              method: handle
+              dependencies: {dep: $r.ref_mock_dep}
+              data_key: by_mock
+          - - check: equals
+              outcome: bare
+              equals: {dep: null, kwargs: {arg: x}}
+            - check: equals
+              outcome: by_ref
+              attribute: dep
+              equals: loader
+            - check: equals
+              outcome: by_mock
+              attribute: dep
+              equals: $r.ref_mock_dep
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, mocks]
+        as: mocks
+      - target: $r.mocks
+        method: get
+        args: [dep]
+        as: arranged_dep
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+      - target: $r.data
+        method: get
+        args: [by_mock]
+        as: by_mock
+    assert:
+      - outcome: data
+        attribute: bare
+        equals: {dep: null, kwargs: {arg: x}}
+      - outcome: by_mock
+        attribute: dep
+        equals: $r.arranged_dep
+
+  named_handle_on_mock_and_ref:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *mock_prefix
+        method: __add__
+        args: [command]
+        as: ref_command
+      - target: *request_prefix
+        method: __add__
+        args: [event]
+        as: ref_event
+      - target: *request_prefix
+        method: __add__
+        args: [got]
+        as: ref_got
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, NamedEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.mock_and_ref
+          - mocks:
+              command:
+                module_path: *test_module
+                class_name: NamedEvent
+          - - target:
+                module_path: *test_module
+                attribute: named_event_class
+              method: named_event_class
+              data_key: event
+            - target: $r.ref_command
+              method: handle
+              dependencies: {dep: value}
+              kwargs: {arg: test}
+              data_key: handled
+            - target: $r.ref_event
+              method: handle
+              kwargs: {arg: ref}
+              data_key: by_ref
+          - - check: assert_called_once_with
+              mock: command
+              method: __call__
+              assert_called_once_with:
+                kwargs: {dep: value}
+            - check: equals
+              outcome: by_ref
+              equals: {dep: null, kwargs: {arg: ref}}
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime, mocks]
+        as: mocks
+      - target: $r.mocks
+        method: get
+        args: [command]
+        as: command
+      - target: *getattr
+        method: getattr
+        args: [$r.command, return_value]
+        as: command_instance
+      - target: *getattr
+        method: getattr
+        args: [$r.command_instance, execute]
+        as: command_execute
+      - target: $r.command_execute
+        method: assert_called_once_with
+        kwargs: {arg: test}
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, NamedEvent]
+        as: second_runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.not_callable
+          - {}
+          - - target: *echo
+              method: echo
+              args: [not callable]
+              data_key: got
+            - target: $r.ref_got
+              method: handle
+              data_key: handled
+          - - check: 'null'
+              outcome: handled
+        as: not_callable_test
+      - target: $r.second_runtime
+        method: run
+        args: [$r.not_callable_test]
+        raises: true
+        as: not_callable_failed
+    assert:
+      - outcome: data
+        attribute: by_ref
+        equals: {dep: null, kwargs: {arg: ref}}
+      - outcome: not_callable_failed
+        error_code: PHASE_STEP_FAILED
+
+  handle_uses_arranged_mocks_not_sample_kwargs:
+    conditions:
+      fixtures: [session]
+    execute:
+      - target: *build_phase_runtime
+        method: build_phase_runtime
+        args: [$fixture.session, *test_module, RecordingEvent]
+        as: runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.arranged_mocks
+          - mocks:
+              error_service:
+                module_path: *interfaces
+                class_name: ErrorService
+          - - target: self
+              method: handle
+              kwargs: {id: NEW_ERROR}
+              data_key: seen
+          - - check: fields
+              outcome: seen
+              fields: {id: NEW_ERROR}
+        as: inner
+      - target: $r.runtime
+        method: run
+        args: [$r.inner]
+      - target: *getattr
+        method: getattr
+        args: [$fixture.session, data]
+        as: data
+      - target: *import_module
+        method: import_module
+        args: [*phase_context]
+        as: phase_context
+      - target: *getattr
+        method: getattr
+        args: [$r.phase_context, PhaseRuntimeContext]
+        as: runtime_class
+      - target: *getattr
+        method: getattr
+        args: [$r.runtime_class, _call_handle]
+        as: call_handle
+      - target: *getattr
+        method: getattr
+        args: [$r.call_handle, __code__]
+        as: call_handle_code
+      - target: *getattr
+        method: getattr
+        args: [$r.call_handle_code, co_varnames]
+        as: call_handle_names
+      - target: $r.call_handle_names
+        method: __contains__
+        args: [sample_kwargs]
+        as: has_sample_kwargs
+    assert:
+      - outcome: data
+        attribute: seen
+        equals: {id: NEW_ERROR}
+      - outcome: has_sample_kwargs
+        equals: false
+
+  stage_adds_no_runtime_field_or_step:
+    conditions: {}
+    execute:
+      - target: *stage_ref
+        method: __add__
+        args: ['']
+        as: ref_stage
+      - target: *import_module
+        method: import_module
+        args: [*phase_domain]
+        as: phase_domain
+      - target: *getattr
+        method: getattr
+        args: [$r.phase_domain, PhaseRuntime]
+        as: phase_runtime_class
+      - target: *getattr
+        method: getattr
+        args: [$r.phase_runtime_class, model_fields]
+        as: runtime_fields
+      - target: $r.runtime_fields
+        method: __contains__
+        args: [stage]
+        as: has_stage_field
+      - target: *import_module
+        method: import_module
+        args: [tiferet.blueprints.tester]
+        as: tester_blueprints
+      - target: *getattr
+        method: getattr
+        args: [$r.tester_blueprints, build_phase_runtime]
+        as: builder
+      - target: *getattr
+        method: getattr
+        args: [$r.builder, __code__]
+        as: builder_code
+      - target: *getattr
+        method: getattr
+        args: [$r.builder_code, co_varnames]
+        as: builder_names
+      - target: {module_path: builtins, attribute: slice}
+        method: slice
+        args: [0, 6]
+        as: first_six
+      - target: $r.builder_names
+        method: __getitem__
+        args: [$r.first_six]
+        as: builder_parameters
+      - target: *to_list
+        method: list
+        args: [$r.builder_parameters]
+        as: parameter_names
+      - target: *getattr
+        method: getattr
+        args: [$r.builder_code, co_argcount]
+        as: argument_count
+      - target:
+          module_path: tiferet.blueprints.tester
+          attribute: register_phase_handlers
+        method: register_phase_handlers
+        as: handlers
+      - target: *to_list
+        method: list
+        args: [$r.handlers]
+        as: handler_ids
+      - target: *make_test
+        method: _test
+        args:
+          - phase.staged
+          - stage: true
+          - - target: $r.ref_stage
+              method: path
+              data_key: directory
+          - - check: 'null'
+              outcome: directory
+        as: staged_test
+      - target:
+          module_path: *phase_context
+          attribute: compile_phase_steps
+        method: compile_phase_steps
+        args: [$r.staged_test]
+        as: steps
+      - target: $r.steps
+        method: __len__
+        as: step_count
+      - target: $r.steps
+        method: __getitem__
+        args: [0]
+        as: first_step
+      - target: $r.steps
+        method: __getitem__
+        args: [1]
+        as: second_step
+      - target: $r.steps
+        method: __getitem__
+        args: [2]
+        as: third_step
+    assert:
+      - outcome: has_stage_field
+        equals: false
+      - outcome: parameter_names
+        equals: [session, tester_module_path, tester_class_name, tester_attributes, root_fixtures, tester_fixtures]
+      - outcome: argument_count
+        equals: 6
+      - outcome: handler_ids
+        equals: [conditions, execute, assert]
+      - outcome: step_count
+        equals: 3
+      - outcome: first_step
+        attribute: service_id
+        equals: phase_conditions
+      - outcome: second_step
+        attribute: service_id
+        equals: phase_execute
+      - outcome: third_step
+        attribute: service_id
+        equals: phase_assert
+
+  harness_checks_run:
+    conditions: {}
+    execute:
+      - target: *import_module
+        method: import_module
+        args: [*test_module]
+        as: test_module
+      - target: *getattr
+        method: getattr
+        args: [$r.test_module, ERROR_MESSAGE_FIXTURE]
+        as: error_message_fixture
+      - target: &runtime
+          module_path: *test_module
+          attribute: _runtime
+        method: _runtime
+        args: [tiferet.domain.error, ErrorMessage]
+        kwargs:
+          root_fixtures: {error_message: $r.error_message_fixture}
+        as: domain_runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.domain_harness
+          - fixtures: [error_message]
+          - - &format_step
+              target: error_message
+              method: format
+              data_key: formatted
+          - - check: domain_contract
+            - check: mapper_contract
+              exclude: [id]
+        as: domain_test
+      - target: $r.domain_runtime
+        method: run
+        args: [$r.domain_test]
+      - target: *runtime
+        method: _runtime
+        args: [tiferet.events.error, ErrorEvent]
+        kwargs:
+          root_fixtures: {error_message: $r.error_message_fixture}
+        as: event_runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.event_harness
+          - fixtures: [error_message]
+            mocks:
+              error_service:
+                module_path: *interfaces
+                class_name: ErrorService
+          - - *format_step
+          - - check: event_base
+              module_path: tiferet.events.core
+              class_name: DomainEvent
+            - check: parameters_required
+              names: [id]
+            - check: middleware_chain
+              middleware_chain: async
+        as: event_test
+      - target: $r.event_runtime
+        method: run
+        args: [$r.event_test]
+      - target: *runtime
+        method: _runtime
+        args: [*interfaces, ErrorService]
+        kwargs:
+          root_fixtures: {error_message: $r.error_message_fixture}
+        as: service_runtime
+      - target: *make_test
+        method: _test
+        args:
+          - phase.service_harness
+          - fixtures: [error_message]
+          - - *format_step
+          - - check: service_contract
+              abstracts: [delete, exists, get, list, save]
+              methods:
+                - name: get
+                  params: [self, id]
+              absent: [legacy_name]
+        as: service_test
+      - target: $r.service_runtime
+        method: run
+        args: [$r.service_test]
+      - target: *import_module
+        method: import_module
+        args: [*interfaces]
+        as: interfaces
+      - target: *getattr
+        method: getattr
+        args: [$r.interfaces, Service]
+        as: service_class
+      - target:
+          module_path: *interfaces
+          class_name: MiddlewareService
+        method: mro
+        as: middleware_mro
+      - target: $r.middleware_mro
+        method: __contains__
+        args: [$r.service_class]
+        as: middleware_is_service
+    assert:
+      - outcome: middleware_is_service
+        equals: true
+
+  illegal_keys_and_python_tags_are_rejected:
+    conditions: {}
+    execute:
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, predicate: x}]
+        raises: true
+        as: predicate_failed
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, field_normalizers: x}]
+        raises: true
+        as: field_normalizers_failed
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, side_effect: x}]
+        raises: true
+        as: side_effect_failed
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, eval: x}]
+        raises: true
+        as: eval_failed
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, code: x}]
+        raises: true
+        as: code_failed
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, python: x}]
+        raises: true
+        as: python_failed
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, body: x}]
+        raises: true
+        as: body_failed
+      - target:
+          module_path: *phase_domain
+          class_name: Assertion
+        method: model_validate
+        args: [{check: equals, outcome: built, equals: a, contains: x}]
+        raises: true
+        as: contains_failed
+      - target: *to_text
+        method: str
+        args: ['!!python']
+        as: tag_head
+      - target: $r.tag_head
+        method: __add__
+        args: [/object:os.system]
+        as: python_tag
+      - target: *make_execution
+        method: Execution
+        kwargs:
+          target: fixture
+          method: format
+          kwargs:
+            body: $r.python_tag
+        raises: true
+        as: python_tag_failed
+    assert:
+      - outcome: predicate_failed
+        type: *model_error
+      - outcome: field_normalizers_failed
+        type: *model_error
+      - outcome: side_effect_failed
+        type: *model_error
+      - outcome: eval_failed
+        type: *model_error
+      - outcome: code_failed
+        type: *model_error
+      - outcome: python_failed
+        type: *model_error
+      - outcome: body_failed
+        type: *model_error
+      - outcome: contains_failed
+        type: *model_error
+      - outcome: python_tag_failed
+        type: *model_error

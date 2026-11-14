@@ -43,6 +43,16 @@ MODULE_PATH = 'tests.contexts.test_phase'
 # ** constant: handle_target_message
 HANDLE_TARGET_MESSAGE = 'handle requires target self, a class target, $mock.<name>, or $r.<key>.'
 
+# ** constant: error_message_fixture
+ERROR_MESSAGE_FIXTURE = {
+    'module_path': 'tiferet.domain.error',
+    'class_name': 'ErrorMessage',
+    'attributes': {
+        'lang': 'en_US',
+        'text': 'An error occurred.',
+    },
+}
+
 # ** constant: handle_dependencies_message
 HANDLE_DEPENDENCIES_MESSAGE = 'dependencies is legal only on handle with a named event target.'
 
@@ -51,25 +61,40 @@ HANDLE_DEPENDENCIES_MESSAGE = 'dependencies is legal only on handle with a named
 # ** class: has_new
 class HasNew:
     '''
-    A tester double whose new method raises if it is ever called.
+    A tester double with a value, whose new method is not the reserved-new factory.
     '''
+
+    # * init
+    def __init__(self, value: Any = None) -> None:
+        '''
+        Store the value.
+
+        :param value: The constructor value.
+        :type value: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Store the value.
+        self.value = value
 
     # * method: new
     def new(self) -> None:
         '''
-        Raise to prove reserved new did not call this method.
+        Mark the instance, then raise to prove reserved new did not call this method.
 
         :return: Never returns.
         :rtype: None
         '''
 
-        # Raise the guard error.
+        # Mark the call, then raise the guard error.
+        self._called_new = True
         raise AssertionError('HasNew.new was called.')
 
 # ** class: recording_event
 class RecordingEvent(DomainEvent):
     '''
-    A domain event that stores its constructor mapping and its execute kwargs.
+    A domain event that stores its constructor mapping and returns its execute kwargs.
     '''
 
     # * init
@@ -89,25 +114,25 @@ class RecordingEvent(DomainEvent):
     # * method: execute
     def execute(self, **kwargs) -> dict:
         '''
-        Return the constructor mapping and the execute kwargs.
+        Return only the execute kwargs.
 
         :param kwargs: The execute keyword arguments.
         :type kwargs: dict
-        :return: The recorded mapping and kwargs.
+        :return: The execute kwargs.
         :rtype: dict
         '''
 
-        # Return both recorded mappings.
-        return {'dependencies': self.dependencies, 'kwargs': kwargs}
+        # Return the execute kwargs.
+        return kwargs
 
 # ** class: named_event
 class NamedEvent(DomainEvent):
     '''
-    A domain event with one constructor parameter dep.
+    A domain event with one constructor parameter dep that defaults to None.
     '''
 
     # * init
-    def __init__(self, dep: Any) -> None:
+    def __init__(self, dep: Any = None) -> None:
         '''
         Store the dep collaborator.
 
@@ -168,6 +193,18 @@ def echo(value: Any) -> Any:
 
     # Return the value unchanged.
     return value
+
+# ** function: named_event_class
+def named_event_class() -> type:
+    '''
+    Return the NamedEvent class.
+
+    :return: The NamedEvent class.
+    :rtype: type
+    '''
+
+    # Return the class.
+    return NamedEvent
 
 # ** function: stage_directories
 def _stage_directories() -> set:
@@ -479,11 +516,13 @@ class TestPhaseRuntime:
             assert HANDLE_TARGET_MESSAGE in str(raised.value)
             assert 'handle is legal only on target self.' not in str(raised.value)
 
-        # Reject dependencies on a self handle.
+        # Reject nonempty dependencies on a self handle; an empty mapping equals omit.
         with pytest.raises(ModelError) as raised:
             Execution(target='self', method='handle', dependencies={'dep': 1})
         assert raised.value.error_code == 'INVALID_MODEL_VALUE'
         assert HANDLE_DEPENDENCIES_MESSAGE in str(raised.value)
+        assert Execution(target='self', method='handle', dependencies={}).dependencies == {}
+        assert Execution(target='self', method='handle').dependencies == {}
 
         # Reject handle with args.
         with pytest.raises(ModelError) as raised:
@@ -557,7 +596,7 @@ class TestPhaseRuntime:
 
         # A kwargs key named dependencies is an event argument, not the field.
         kwarg = Execution(target='$mock.command', method='handle', kwargs={'dependencies': {'dep': 1}})
-        assert kwarg.dependencies is None
+        assert kwarg.dependencies == {}
         assert kwarg.kwargs == {'dependencies': {'dep': 1}}
 
         # The non-callable $r. target is a step failure.
@@ -600,12 +639,12 @@ class TestPhaseRuntime:
         empty = ExecutionConfigObject.model_validate({'target': target, 'method': 'handle', 'dependencies': {}})
         present = ExecutionConfigObject.model_validate({'target': target, 'method': 'handle', 'dependencies': {'dep': 1}})
         assert present.map().dependencies == {'dep': 1}
-        assert omitted.map().dependencies is None
+        assert omitted.map().dependencies == {}
 
         # Dump the executions.
-        assert 'dependencies' not in omitted.to_primitive(role='to_data')
+        assert omitted.to_primitive(role='to_data')['dependencies'] == {}
         assert empty.to_primitive(role='to_data')['dependencies'] == {}
-        assert 'dependencies' not in ExecutionConfigObject.from_model(omitted.map()).to_primitive(role='to_data')
+        assert ExecutionConfigObject.from_model(omitted.map()).to_primitive(role='to_data')['dependencies'] == {}
         assert ExecutionConfigObject.from_model(present.map()).dependencies == {'dep': 1}
 
         # Dump an assertion without and with attribute.

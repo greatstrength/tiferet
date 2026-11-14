@@ -613,9 +613,9 @@ class Execution(DomainObject):
     )
 
     # * attribute: dependencies
-    dependencies: Dict[str, Any] | None = Field(
-        default=None,
-        description='The constructor mapping for a named handle. Absent means the call passes an empty mapping.',
+    dependencies: Dict[str, Any] = Field(
+        default_factory=dict,
+        description='The constructor mapping for a named handle. An omitted key is an empty mapping.',
     )
 
     # * method: _reject_closed_set (model validator)
@@ -678,7 +678,7 @@ class Execution(DomainObject):
             )
 
         # dependencies is legal only on the named-handle form.
-        if self.dependencies is not None and not self.is_named_handle():
+        if self.dependencies and not self.is_named_handle():
             ModelError.raise_error(
                 INVALID_MODEL_VALUE_ID,
                 message='dependencies is legal only on handle with a named event target.',
@@ -748,28 +748,6 @@ class Execution(DomainObject):
 
         # Any other string target, including self, is not named.
         return False
-
-    # * method: serialize_execution
-    @model_serializer(mode='wrap')
-    def serialize_execution(self, handler: Any) -> Any:
-        '''
-        Serialize the execution without a dependencies key when it was omitted.
-
-        :param handler: The default pydantic serializer.
-        :type handler: Any
-        :return: The serialized execution.
-        :rtype: Any
-        '''
-
-        # Serialize the execution with the default handler.
-        result = handler(self)
-
-        # Drop the dependencies key when the execution omitted it.
-        if isinstance(result, dict) and result.get('dependencies') is None:
-            result.pop('dependencies', None)
-
-        # Return the serialized execution.
-        return result
 
 # ** model: assertion
 class Assertion(DomainObject):

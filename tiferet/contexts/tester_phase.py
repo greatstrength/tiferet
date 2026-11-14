@@ -1052,9 +1052,9 @@ class PhaseRuntimeContext(BaseContext):
                 detail=f'handle target {execution.target} is not callable.',
             )
 
-        # Resolve the explicit dependencies; null means an empty mapping.
+        # Resolve the explicit dependencies; an omitted key is already empty.
         dependencies = self._resolve_value(
-            _copy_data(execution.dependencies or {}),
+            _copy_data(execution.dependencies),
             allow_request=True,
         )
 

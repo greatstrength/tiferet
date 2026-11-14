@@ -578,9 +578,8 @@ class ExecutionConfigObject(Execution, TransferObject):
         aggregate.store_data_key(self.data_key)
         aggregate.set_attribute('raises', self.raises)
 
-        # Copy a present dependencies mapping; a null value stays omitted.
-        if self.dependencies is not None:
-            aggregate.set_attribute('dependencies', dict(self.dependencies))
+        # Copy the dependencies mapping; an omitted key is an empty mapping.
+        aggregate.set_attribute('dependencies', dict(self.dependencies))
 
         # Apply each remaining override through set_attribute.
         for attribute, value in overrides.items():
