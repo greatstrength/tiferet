@@ -34,22 +34,15 @@ def build_calculator_fluent_context(app_session: AppSession, cache: CacheContext
     # Register the calculator's own dedicated 'calc'-flagged container.
     register_calc_container(resolver, cache)
 
-    # Resolve any remaining injectable collaborators the context class declares.
-    collaborators = core.resolve_collaborators(CalculatorFluentContext, app_container)
-
-    # Construct and return the calculator fluent context, wiring the six template-method handlers.
-    return CalculatorFluentContext.from_domain(
+    # Delegate handler wiring and construction, adding the calculator's own slots.
+    return core.compose_session_context(
+        CalculatorFluentContext,
         app_session,
-        get_dependency=resolver.get_dependency,
-        cache=cache,
-        resolver=resolver,
-        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
-        execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
-        raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
+        cache,
+        resolver,
+        create_request_handler=core.create_request_context,
         response_handler=core.response_handler,
-        create_request_handler=core.create_session_request,
         record_run_handler=record_run_handler(resolver.get_dependency),
-        **collaborators,
     )
 
 # ** blueprint: create_calculator_fluent
