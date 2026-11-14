@@ -326,7 +326,7 @@ class TestSetDefaultServiceRegistration:
         assert result is service_registration_aggregate
         assert result.module_path == 'new.module'
         assert result.class_name == 'NewClass'
-        assert result.parameters == {'param': 'value'}
+        assert result.parameters == {'param_1': 'value_1', 'param': 'value'}
 
         # Assert the service was called to save.
         mock_dependencies['di_service'].save_registration.assert_called_once_with(result)
@@ -348,16 +348,16 @@ class TestSetDefaultServiceRegistration:
         # Default type should remain unchanged.
         assert result.module_path == 'tiferet.repos.example'
         assert result.class_name == 'ExampleRepository'
-        # Parameters should be cleaned via set_default_type.
+        # Parameters should be overlaid via set_default_type.
         assert result.parameters == {'param_1': 'updated'}
 
-    # * test: clear_parameters
-    def test_clear_parameters(self, test_ctx, mock_dependencies, service_registration_aggregate):
+    # * test: parameters_none_leaves_existing
+    def test_parameters_none_leaves_existing(self, test_ctx, mock_dependencies, service_registration_aggregate):
         '''
-        Test clearing parameters when parameters is None.
+        Test that passing parameters=None leaves the existing parameters unchanged.
         '''
 
-        # Execute with parameters=None to clear.
+        # Execute with parameters=None.
         result = test_ctx.handle(
             mock_dependencies,
             module_path=None,
@@ -365,8 +365,8 @@ class TestSetDefaultServiceRegistration:
             parameters=None,
         )
 
-        # Parameters should be cleared.
-        assert result.parameters == {}
+        # Parameters and the default type should be unchanged.
+        assert result.parameters == {'param_1': 'value_1'}
         assert result.module_path == 'tiferet.repos.example'
 
     # * test: incomplete_type

@@ -136,8 +136,9 @@ class SetDefaultServiceRegistration(DIEvent):
         :type module_path: str | None
         :param class_name: Optional default class name.
         :type class_name: str | None
-        :param parameters: Optional registration parameters. When None,
-            existing parameters are cleared.
+        :param parameters: Optional parameter overlay. A new value wins, a
+            ``None`` value removes that key, and a ``None`` argument leaves the
+            existing parameters unchanged.
         :type parameters: Dict[str, Any] | None
         :return: The updated service registration.
         :rtype: ServiceRegistration
@@ -168,9 +169,9 @@ class SetDefaultServiceRegistration(DIEvent):
                 parameters,
             )
         else:
-            # Only parameters are being updated (or cleared). Keep the
-            # existing module_path and class_name but delegate parameter
-            # handling/cleanup to the model helper.
+            # Only parameters are being updated. Keep the existing
+            # module_path and class_name and delegate the parameter overlay
+            # to the model helper.
             registration.set_default_type(
                 registration.module_path,
                 registration.class_name,
