@@ -2,10 +2,12 @@
 
 # *** imports
 
+# ** core
+from unittest import mock
+
 # ** infra
 import pytest
 import yaml
-from unittest import mock
 
 # ** app
 from tiferet import assets as a
@@ -40,6 +42,127 @@ def test_build_cache_seeds_admin_services():
     # Assert the admin service catalog is seeded under the admin prefix.
     assert isinstance(cached, AppServiceDependency)
     assert cached.service_id == 'di_service'
+
+# ** test: build_cache_seeds_admin_feature_events
+def test_build_cache_seeds_admin_feature_events():
+    '''
+    Test that build_cache seeds every admin feature-step event registration
+    under ADMIN_SERVICE_CACHE_PREFIX.
+    '''
+
+    # Build the admin cache.
+    cache = build_cache()
+
+    # Assert every admin feature-step event registration is seeded under the admin prefix.
+    for service_id in a.cli_svc.ADMIN_DEFAULT_SERVICES:
+        cached = cache.get(service_id, *a.app.ADMIN_SERVICE_CACHE_PREFIX)
+        assert isinstance(cached, AppServiceDependency)
+        assert cached.service_id == service_id
+
+    # Assert the list features event registration names its event class.
+    assert cache.get('list_features_evt', *a.app.ADMIN_SERVICE_CACHE_PREFIX).class_name == 'ListFeatures'
+
+# ** test: build_admin_app_runs_feature_list
+def test_build_admin_app_runs_feature_list(tmp_path, monkeypatch):
+    '''
+    Test that feature.list runs through build_admin_app and reads the
+    supplied config file.
+
+    :param tmp_path: A temporary working directory.
+    :type tmp_path: pathlib.Path
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Work in a directory holding an empty config.yml and an other.yml with one feature.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / 'config.yml').write_text('features: {}\n')
+    (tmp_path / 'other.yml').write_text(
+        'features:\n'
+        '  demo:\n'
+        '    demo:\n'
+        '      name: Demo\n'
+    )
+
+    # Build the admin app against other.yml and run feature.list.
+    context = build_admin_app(app_config='other.yml')
+    features = context.run('feature.list')
+
+    # Assert exactly the feature defined in other.yml is returned.
+    assert len(features) == 1
+    assert features[0].id == 'demo.demo'
+
+# ** test: build_admin_app_resolves_every_admin_feature_step
+def test_build_admin_app_resolves_every_admin_feature_step():
+    '''
+    Test that every distinct step service_id in the admin default features
+    resolves from the admin app context.
+    '''
+
+    # Build the admin app and collect the distinct admin feature step service ids.
+    context = build_admin_app()
+    service_ids = sorted({
+        step['service_id']
+        for feature in a.feat.ADMIN_DEFAULT_FEATURES.values()
+        for step in feature['steps']
+    })
+
+    # Collect every service id that fails to resolve.
+    unresolved = []
+    for service_id in service_ids:
+        try:
+            context.get_dependency(service_id)
+        except Exception:
+            unresolved.append(service_id)
+
+    # Assert all 41 step service ids resolve.
+    assert len(service_ids) == 41
+    assert unresolved == []
+
+# ** test: build_admin_app_resolves_add_error_evt
+def test_build_admin_app_resolves_add_error_evt():
+    '''
+    Test that the add and list error events resolve from the admin app context.
+    '''
+
+    # Build the admin app.
+    context = build_admin_app()
+
+    # Assert the error events resolve to their event classes.
+    assert type(context.get_dependency('add_error_evt')).__name__ == 'AddError'
+    assert type(context.get_dependency('list_errors_evt')).__name__ == 'ListErrors'
+
+# ** test: build_admin_app_runs_error_list
+def test_build_admin_app_runs_error_list(tmp_path, monkeypatch):
+    '''
+    Test that error.list runs through build_admin_app and reads the
+    supplied config file.
+
+    :param tmp_path: A temporary working directory.
+    :type tmp_path: pathlib.Path
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Work in a directory holding an empty config.yml and an other.yml with one error.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / 'config.yml').write_text('errors: {}\n')
+    (tmp_path / 'other.yml').write_text(
+        'errors:\n'
+        '  MY_ERR:\n'
+        '    name: My Error\n'
+        '    message:\n'
+        '      - lang: en_US\n'
+        '        text: Boom\n'
+    )
+
+    # Build the admin app against other.yml and run error.list.
+    context = build_admin_app(app_config='other.yml')
+    errors = context.run('error.list')
+
+    # Assert exactly the error defined in other.yml is returned.
+    assert len(errors) == 1
+    assert errors[0].id == 'MY_ERR'
 
 # ** test: build_admin_service_resolver_routes_by_flag
 def test_build_admin_service_resolver_routes_by_flag():
