@@ -84,8 +84,39 @@ class Check(CheckService):
         if actual != expected:
             return f'{actual!r} != {expected!r}.'
 
+        # Reject a concealed bool or int/float match.
+        if self._scalar_types_differ(actual, expected):
+            return f'{actual!r} ({type(actual).__name__}) != {expected!r} ({type(expected).__name__}).'
+
         # Values match.
         return None
+
+    # * method: scalar_types_differ
+    def _scalar_types_differ(self, actual: Any, expected: Any) -> bool:
+        '''
+        Report whether two scalars differ by the bool or int/float rule.
+
+        The method does not compare values, format a mismatch, or raise.
+
+        :param actual: The value under check.
+        :type actual: Any
+        :param expected: The expected value.
+        :type expected: Any
+        :return: True when exactly one value is a bool, or when one is a float and the other a non-bool int.
+        :rtype: bool
+        '''
+
+        # Differ when exactly one value is a bool.
+        if (type(actual) is bool) != (type(expected) is bool):
+            return True
+
+        # Differ when one value is a float and the other is a non-bool int.
+        actual_int = isinstance(actual, int) and type(actual) is not bool
+        expected_int = isinstance(expected, int) and type(expected) is not bool
+        return (
+            (isinstance(actual, float) and expected_int)
+            or (isinstance(expected, float) and actual_int)
+        )
 
     # * method: codes
     def codes(self, actual: str, expected: str) -> str | None:
