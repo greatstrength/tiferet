@@ -20,7 +20,6 @@ from tiferet.assets.error import (
     PHASE_STEP_FAILED_ID,
 )
 
-
 # *** tests
 
 # ** test: test_admin_default_errors_extends_core
@@ -36,7 +35,6 @@ def test_admin_default_errors_extends_core():
     for error_id, definition in CORE_DEFAULT_ERRORS.items():
         assert ADMIN_DEFAULT_ERRORS[error_id] is definition
 
-
 # ** test: test_tier_sizes
 def test_tier_sizes():
     '''
@@ -46,7 +44,6 @@ def test_tier_sizes():
     # Core tier size and admin-only delta.
     assert len(CORE_DEFAULT_ERRORS) == 22
     assert len(set(ADMIN_DEFAULT_ERRORS) - set(CORE_DEFAULT_ERRORS)) == 13
-
 
 # ** test: test_every_entry_omits_redundant_id
 def test_every_entry_omits_redundant_id():
