@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 # ** app
 from tiferet import TiferetError
+from tiferet.blueprints import app as app_bp
 from tiferet.blueprints import core
 from tiferet.blueprints import cli as cli_bp
 from tiferet.contexts.app import AppSession
@@ -31,7 +32,7 @@ def build_calculator_cache(cache: Dict[str, Any] = None) -> CacheContext:
     Build the bootstrap cache pre-seeded with the framework's own core
     defaults plus the calculator's arithmetic bounded-context defaults.
 
-    Mirrors tiferet.blueprints.core.build_cache's stacked-decorator shape,
+    Mirrors tiferet.blueprints.app.build_cache's stacked-decorator shape,
     scoped to the calculator's own arithmetic operators instead of the
     framework core, so calc.add/subtract/multiply/divide/exp/sqrt resolve
     regardless of what config.yml declares.
@@ -42,9 +43,9 @@ def build_calculator_cache(cache: Dict[str, Any] = None) -> CacheContext:
     :rtype: CacheContext
     '''
 
-    # Delegate to the framework's own core cache builder; the stacked
+    # Delegate to the framework's standard app cache builder; the stacked
     # decorators above layer the calculator's own defaults on top.
-    return core.build_cache(cache)
+    return app_bp.build_cache(cache)
 
 # ** blueprint: build_calculator_cli_cache
 @add_default_errors(a.error.CALC_DEFAULT_ERRORS)
@@ -125,11 +126,7 @@ def record_run_handler(get_dependency: Callable) -> Callable:
     def handler(feature_id: str, request: RequestContext) -> None:
 
         # Resolve and execute the record-run event; non-arithmetic runs no-op.
-        # request.result (not request.data) carries the feature's final
-        # response, since the default arithmetic features have no data_key
-        # step to set it -- request.data still carries the raw a/b operands
-        # for a plain call, or the accumulated values/operators logged by a
-        # fluent chain's single calc.resolve run.
+        # request.result carries the final response; request.data keeps the raw operands.
         record_run_evt = get_dependency(a.core.RECORD_RUN_EVT_ID, 'app')
         record_run_evt.execute(feature_id=feature_id, result=request.result, **request.data)
 
@@ -141,7 +138,7 @@ def build_calculator_app_context(app_session: AppSession, cache: CacheContext) -
     '''
     Compose a fully wired CalculatorAppContext from a resolved app session.
 
-    Parallel to core.build_app_session_context, but dedicated to the fluent
+    Parallel to tiferet.blueprints.app.build_app_session_context, but dedicated to the fluent
     calculator path: it selects CalculatorAppContext at the blueprint level
     directly, since App(...) has no dynamic module_path/class_name
     resolution of a custom high-level context.
@@ -161,24 +158,15 @@ def build_calculator_app_context(app_session: AppSession, cache: CacheContext) -
     # Register the calculator's own dedicated 'calc'-flagged container.
     register_calc_container(resolver, cache)
 
-    # Resolve any remaining injectable collaborators the context class declares.
-    collaborators = core.resolve_collaborators(CalculatorAppContext, app_container)
-
-    # Construct and return the calculator app context, wiring the six template-method handlers.
-    # The resolver itself (not just its bound get_dependency) is passed through so
-    # future collaborators can resolve additional services without a signature change.
-    return CalculatorAppContext.from_domain(
+    # Delegate handler wiring and construction, adding the calculator's own slots.
+    return core.compose_session_context(
+        CalculatorAppContext,
         app_session,
-        get_dependency=resolver.get_dependency,
-        cache=cache,
-        resolver=resolver,
-        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
-        execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
-        raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
+        cache,
+        resolver,
+        create_request_handler=core.create_request_context,
         response_handler=core.response_handler,
-        create_request_handler=core.create_session_request,
         record_run_handler=record_run_handler(resolver.get_dependency),
-        **collaborators,
     )
 
 # ** blueprint: create_calculator_app
@@ -243,33 +231,25 @@ def build_calculator_cli_session_context(app_session: AppSession, cache: CacheCo
     # Register the calculator's own dedicated 'calc'-flagged container.
     register_calc_container(resolver, cache)
 
-    # Resolve the CLI event collaborators from the app container.
-    list_commands_evt = app_container.get_dependency('list_commands_evt')
-    get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
-
-    # Build the arg-parsing closure from the resolved events and cache-seeded defaults.
+    # Build the CLI handlers without resolving events during construction.
+    commands_handler = cli_bp.list_commands_handler(cache, resolver.get_dependency)
+    parent_args_handler = cli_bp.get_parent_args_handler(resolver.get_dependency)
     parse_cli_args = cli_bp.parse_cli_args_handler(
-        list_commands_evt,
-        get_parent_args_evt,
-        cli_bp.get_default_cli_commands(cache),
+        list_commands=commands_handler,
+        get_parent_args=parent_args_handler,
     )
 
-    # Resolve any remaining injectable collaborators the context class declares.
-    collaborators = core.resolve_collaborators(cli_bp.CliSessionContext, app_container)
-
-    # Construct and return the CLI session context, wiring the CLI-specific
-    # request/response handlers alongside the standard template methods.
-    return cli_bp.CliSessionContext.from_domain(
+    # Delegate handler wiring and construction.
+    return core.compose_session_context(
+        cli_bp.CliSessionContext,
         app_session,
-        get_dependency=resolver.get_dependency,
-        cache=cache,
-        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
-        parse_cli_args=parse_cli_args,
-        execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
+        cache,
+        resolver,
         create_request_handler=cli_bp.create_cli_request_context,
-        raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
-        response_handler=cli_bp.cli_response_handler,
-        **collaborators,
+        response_handler=core.response_handler,
+        parse_cli_args=parse_cli_args,
+        list_commands_handler=commands_handler,
+        get_parent_args_handler=parent_args_handler,
     )
 
 # ** blueprint: create_calculator_cli
