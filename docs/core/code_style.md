@@ -158,6 +158,7 @@ These labels are an order, not a menu. See [Ordering and Declaration Constraints
 ### Docstrings
 - Use reStructuredText (RST) format.
 - Include description, `:param`/`:type`, `:return`/`:rtype` for all parameters and returns.
+- A `None` return does not need to be declared. For any function or method, public or private, that returns nothing, the `-> None` annotation and the `:return:`/`:rtype:` `None` docstring lines are optional, not required; the type checker infers it. Existing annotations stay (see the `tiferet-code-style` skill).
 - One empty line after docstring before first code snippet.
 
 ### Parameter Indentation
