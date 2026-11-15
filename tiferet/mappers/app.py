@@ -10,8 +10,10 @@ from pydantic import AliasChoices, Field
 
 # ** app
 from ..domain import (
+    INVALID_MODEL_VALUE_ID,
     AppServiceDependency,
     AppSession,
+    ModelError,
 )
 from .core import (
     Aggregate,
@@ -43,7 +45,11 @@ class AppSessionAggregate(AppSession, Aggregate):
         parameters: Dict[str, str] | None = None,
     ) -> None:
         '''
-        Add a service dependency to the app session.
+        Add a new service dependency to the app session.
+
+        An existing service_id is rejected before the services list is changed.
+        The new dependency omits parameters whose value is None, and a None
+        argument creates an empty parameters mapping.
 
         :param service_id: The id for the service dependency.
         :type service_id: str
@@ -57,12 +63,26 @@ class AppSessionAggregate(AppSession, Aggregate):
         :rtype: None
         '''
 
-        # Create a new AppServiceDependency object.
+        # Reject an existing service_id before mutating the services list.
+        if self.get_service(service_id) is not None:
+            ModelError.raise_error(
+                INVALID_MODEL_VALUE_ID,
+                message=f'Service dependency {service_id!r} already exists in app session {self.id!r}.',
+                model=self,
+                attribute='services',
+                service_id=service_id,
+            )
+
+        # Create a new AppServiceDependency object, omitting None-valued parameters.
         dependency = AppServiceDependency(
             service_id=service_id,
             module_path=module_path,
             class_name=class_name,
-            parameters=parameters or {},
+            parameters={
+                key: value
+                for key, value in (parameters or {}).items()
+                if value is not None
+            },
         )
 
         # Add the service dependency via list reassignment.
@@ -74,27 +94,34 @@ class AppSessionAggregate(AppSession, Aggregate):
         service_id: str,
     ) -> AppServiceDependency | None:
         '''
-        Remove and return a service dependency by its service_id (idempotent).
+        Remove every service dependency with the given service_id (idempotent).
 
-        If a service dependency with the given service_id exists, it is removed.
-        If no matching service dependency exists, no action is taken (silent success).
+        When a match exists, every entry with that service_id is removed, the
+        surviving entries keep their order, and the first match is returned.
+        When no entry matches, the services list is left as is and None is returned.
 
         :param service_id: The service_id of the service dependency to remove.
         :type service_id: str
-        :return: The removed AppServiceDependency or None.
+        :return: The first removed AppServiceDependency or None.
         :rtype: AppServiceDependency | None
         '''
 
-        # Work on a local copy; reassign only when a match is found.
-        services = list(self.services)
-        for index, dep in enumerate(services):
-            if dep.service_id == service_id:
-                removed = services.pop(index)
-                self.services = services
-                return removed
+        # Find the first matching service dependency.
+        removed = self.get_service(service_id)
 
         # If no service dependency matches, return None without modifying the list.
-        return None
+        if removed is None:
+            return None
+
+        # Remove every matching entry via list reassignment, preserving survivor order.
+        self.services = [
+            dep
+            for dep in self.services
+            if dep.service_id != service_id
+        ]
+
+        # Return the first matched service dependency.
+        return removed
 
     # * method: set_service
     def set_service(
@@ -107,13 +134,15 @@ class AppSessionAggregate(AppSession, Aggregate):
         '''
         Set or update a service dependency by service_id (PUT semantics).
 
-        If a service dependency with the given service_id exists:
-          - Update module_path and class_name.
-          - Merge parameters (favor new values; remove keys with None value).
-          - Clear parameters if parameters is None.
+        If a service dependency with the given service_id exists, its first match
+        is updated in place without moving it:
+          - Assign module_path and class_name, even when None.
+          - Overlay parameters: a new value wins and a None value removes that key.
+          - A None argument leaves the existing parameters unchanged.
 
         If no service dependency exists:
-          - Create new AppServiceDependency and append to services.
+          - Append a new AppServiceDependency whose parameters omit None values;
+            a None argument creates an empty parameters mapping.
 
         :param service_id: The service dependency identifier.
         :type service_id: str
@@ -121,7 +150,7 @@ class AppSessionAggregate(AppSession, Aggregate):
         :type module_path: str | None
         :param class_name: The class name.
         :type class_name: str | None
-        :param parameters: New parameters (None to clear).
+        :param parameters: The parameter overlay, or None to leave existing parameters unchanged.
         :type parameters: Dict[str, Any] | None
         :return: None
         :rtype: None
@@ -130,17 +159,13 @@ class AppSessionAggregate(AppSession, Aggregate):
         # Find the existing service dependency by service_id.
         dep = self.get_service(service_id)
 
-        # If the service dependency exists, update its type fields and merge parameters.
+        # If the service dependency exists, update its type fields in place.
         if dep is not None:
             dep.module_path = module_path
             dep.class_name = class_name
 
-            # Clear parameters when parameters is None.
-            if parameters is None:
-                dep.parameters = {}
-
-            # Otherwise merge and then remove keys whose value is None.
-            else:
+            # Overlay parameters unless None, then remove keys whose value is None.
+            if parameters is not None:
                 merged = dict(dep.parameters or {})
                 merged.update(parameters)
                 dep.parameters = {
@@ -152,12 +177,16 @@ class AppSessionAggregate(AppSession, Aggregate):
             # Return early after in-place update.
             return
 
-        # If the service dependency does not exist, create a new one and reassign.
+        # Otherwise append a new service dependency, omitting None-valued parameters.
         new_dep = AppServiceDependency(
             service_id=service_id,
             module_path=module_path,
             class_name=class_name,
-            parameters=parameters or {},
+            parameters={
+                key: value
+                for key, value in (parameters or {}).items()
+                if value is not None
+            },
         )
         self.services = list(self.services) + [new_dep]
 
@@ -185,7 +214,6 @@ class AppSessionAggregate(AppSession, Aggregate):
             for key, value in merged.items()
             if value is not None
         }
-
 
 # ** mapper: app_service_dependency_config_object
 class AppServiceDependencyConfigObject(AppServiceDependency, TransferObject):
@@ -251,7 +279,6 @@ class AppServiceDependencyConfigObject(AppServiceDependency, TransferObject):
         # Create a new AppServiceDependencyConfigObject from the model.
         return super().from_model(dependency, **overrides)
 
-
 # ** mapper: app_session_config_object
 class AppSessionConfigObject(AppSession, TransferObject):
     '''
@@ -305,6 +332,9 @@ class AppSessionConfigObject(AppSession, TransferObject):
         '''
         Create an AppSessionConfigObject from an AppSession model.
 
+        The services list is keyed by service_id in list order. A repeated
+        service_id is rejected before conversion, and the model is not mutated.
+
         :param app_session: The AppSession domain object.
         :type app_session: AppSession
         :param overrides: Additional field overrides.
@@ -312,6 +342,19 @@ class AppSessionConfigObject(AppSession, TransferObject):
         :return: The constructed AppSessionConfigObject.
         :rtype: AppSessionConfigObject
         '''
+
+        # Reject the first repeated service_id before keyed conversion.
+        seen = set()
+        for dep in app_session.services:
+            if dep.service_id in seen:
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message=f'Service dependency {dep.service_id!r} is repeated in app session {app_session.id!r}.',
+                    model=app_session,
+                    attribute='services',
+                    service_id=dep.service_id,
+                )
+            seen.add(dep.service_id)
 
         # Convert the services list to a dict keyed by service_id.
         return super().from_model(
