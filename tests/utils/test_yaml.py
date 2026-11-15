@@ -2276,19 +2276,19 @@ class TestYamlLoader:
         value_result = YamlLoader().set_anchor(
             str(value_path),
             'base',
-            {'n': 1},
+            value={'n': 1},
             key_path=[['val', 'held']],
         )
         key_result = YamlLoader().set_anchor(
             str(key_path),
             'keyname',
-            'shared',
+            value='shared',
             key_path=[['key', 'shared']],
         )
         seq_result = YamlLoader().set_anchor(
             str(seq_path),
             'item',
-            9,
+            value=9,
             key_path=[['seq', 0]],
         )
         value_root = YamlLoader.compose_anchored(value_path.read_text(encoding='utf-8'))
@@ -2475,7 +2475,7 @@ class TestYamlLoader:
         loader.compose_anchored = compose_double
 
         # Set a replacement mapping value.
-        result = loader.set_anchor(str(path), 'base', {'n': 2, 'm': 3})
+        result = loader.set_anchor(str(path), 'base', value={'n': 2, 'm': 3})
         root = composed[0]
         target = root.value[0][1]
         loaded = YamlLoader().load_mapping(str(path))
@@ -2521,8 +2521,8 @@ class TestYamlLoader:
         root_path.write_text(YamlLoader.serialize_anchored(root_base), encoding='utf-8')
 
         # Set a scalar value on each file.
-        YamlLoader().set_anchor(str(path), 'base', 'scalar')
-        YamlLoader().set_anchor(str(root_path), 'base', 'scalar')
+        YamlLoader().set_anchor(str(path), 'base', value='scalar')
+        YamlLoader().set_anchor(str(root_path), 'base', value='scalar')
         text = path.read_text(encoding='utf-8')
         changed = YamlLoader.compose_anchored(text)
         replaced = YamlLoader.compose_anchored(root_path.read_text(encoding='utf-8'))
