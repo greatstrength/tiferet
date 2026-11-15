@@ -2,9 +2,11 @@
 
 # *** imports
 
+# ** core
+from unittest import mock
+
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from tiferet.events.di import (
@@ -319,25 +321,25 @@ class TestSetDefaultServiceRegistration:
         service.get_registration.return_value = service_registration_aggregate
         return {'di_service': service}
 
-    # * test: full_update
-    def test_full_update(
+    # * test: type_update_overlays_parameters
+    def test_type_update_overlays_parameters(
             self,
             test_ctx,
             mock_dependencies,
             service_registration_aggregate,
         ):
         '''
-        Test updating both default type and parameters.
+        Test updating the default type and overlaying the parameters.
         '''
 
         # Execute via the harness handle helper.
         result = test_ctx.handle(mock_dependencies)
 
-        # Assert the registration was updated.
+        # Assert the registration was updated and the parameters overlaid.
         assert result is service_registration_aggregate
         assert result.module_path == 'new.module'
         assert result.class_name == 'NewClass'
-        assert result.parameters == {'param': 'value'}
+        assert result.parameters == {'param_1': 'value_1', 'param': 'value'}
 
         # Assert the service was called to save.
         mock_dependencies['di_service'].save_registration.assert_called_once_with(result)
@@ -367,18 +369,18 @@ class TestSetDefaultServiceRegistration:
         # Parameters should be cleaned via set_default_type.
         assert result.parameters == {'param_1': 'updated'}
 
-    # * test: clear_parameters
-    def test_clear_parameters(
+    # * test: parameters_none_leaves_existing
+    def test_parameters_none_leaves_existing(
             self,
             test_ctx,
             mock_dependencies,
             service_registration_aggregate,
         ):
         '''
-        Test clearing parameters when parameters is None.
+        Test that parameters=None leaves the existing parameters unchanged.
         '''
 
-        # Execute with parameters=None to clear.
+        # Execute with parameters=None and no type update.
         result = test_ctx.handle(
             mock_dependencies,
             module_path=None,
@@ -386,8 +388,8 @@ class TestSetDefaultServiceRegistration:
             parameters=None,
         )
 
-        # Parameters should be cleared.
-        assert result.parameters == {}
+        # Parameters should be unchanged.
+        assert result.parameters == {'param_1': 'value_1'}
         assert result.module_path == 'tiferet.repos.example'
 
     # * test: incomplete_type
