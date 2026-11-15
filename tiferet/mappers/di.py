@@ -131,34 +131,36 @@ class ServiceRegistrationAggregate(ServiceRegistration, Aggregate):
         parameters: Dict[str, Any] | None = None,
     ) -> None:
         '''
-        Update the default type and parameters for this service registration.
+        Update the default type and overlay the parameters for this service
+        registration.
 
-        :param module_path: New module path (or None to clear).
+        The type fields are assigned as supplied. The parameters are overlaid
+        onto the existing mapping: a new value wins, a ``None`` value removes
+        that key, and a ``None`` argument leaves the parameters unchanged.
+
+        :param module_path: New module path.
         :type module_path: str | None
-        :param class_name: New class name (or None to clear).
+        :param class_name: New class name.
         :type class_name: str | None
-        :param parameters: New parameters dict (or None to clear all).
+        :param parameters: Optional parameter overlay.
         :type parameters: Dict[str, Any] | None
         :return: None
         :rtype: None
         '''
 
-        # If both type fields are None, clear default type entirely.
-        if module_path is None and class_name is None:
-            self.module_path = None
-            self.class_name = None
-            self.parameters = {}
+        # Set the type fields to whatever is provided.
+        self.module_path = module_path
+        self.class_name = class_name
 
-        # Otherwise, set them to whatever is provided.
-        else:
-            self.module_path = module_path
-            self.class_name = class_name
-
-        # Update parameters: clear when None, otherwise replace with filtered dict.
+        # Leave the parameters unchanged when no overlay is supplied.
         if parameters is None:
-            self.parameters = {}
-        else:
-            self.parameters = {k: v for k, v in parameters.items() if v is not None}
+            return
+
+        # Overlay the new parameters onto a copy of the existing ones, then
+        # remove entries whose value is None.
+        merged = dict(self.parameters or {})
+        merged.update(parameters)
+        self.parameters = {k: v for k, v in merged.items() if v is not None}
 
     # * method: set_dependency
     def set_dependency(
