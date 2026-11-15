@@ -9,10 +9,18 @@ import json
 import pytest
 
 # ** app
+from tiferet.blueprints.tester import use_tester
 from tiferet.domain.core import DomainObject
 from tiferet.domain.cli import (
     CliArgument,
     CliCommand,
+)
+from tiferet.domain import (
+    CliRecord,
+    CliTable,
+    CliOutputLines,
+    CliOutputRecord,
+    CliRecordList,
 )
 
 # *** fixtures
@@ -57,6 +65,135 @@ def cli_command() -> CliCommand:
         description='A command for testing CLI features.',
         arguments=[arg],
     )
+
+# ** fixture: cli_record
+@pytest.fixture
+def cli_record() -> CliRecord:
+    '''
+    Fixture for a CliRecord with id and name fields.
+
+    :return: The CliRecord instance.
+    :rtype: CliRecord
+    '''
+
+    # Create and return a record with id and name fields.
+    return CliRecord(fields={'id': '42', 'name': 'foo'})
+
+# ** fixture: cli_output_record
+@pytest.fixture
+def cli_output_record() -> CliOutputRecord:
+    '''
+    Fixture for a CliOutputRecord used as the default output-record sample.
+
+    :return: The CliOutputRecord instance.
+    :rtype: CliOutputRecord
+    '''
+
+    # Create and return an output record with id and name fields.
+    return CliOutputRecord(record=CliRecord(fields={'id': '42', 'name': 'foo bar'}))
+
+# ** fixture: empty_output_record
+@pytest.fixture
+def empty_output_record() -> CliOutputRecord:
+    '''
+    Fixture for a CliOutputRecord with an empty record.
+
+    :return: The CliOutputRecord instance.
+    :rtype: CliOutputRecord
+    '''
+
+    # Create and return an output record with an empty record mapping.
+    return CliOutputRecord(record={})
+
+# ** fixture: cli_record_list
+@pytest.fixture
+def cli_record_list() -> CliRecordList:
+    '''
+    Fixture for a CliRecordList used as the default record-list sample.
+
+    :return: The CliRecordList instance.
+    :rtype: CliRecordList
+    '''
+
+    # Create and return a two-row list with id and name fields.
+    return CliRecordList(records=[
+        CliRecord(fields={'id': '1', 'name': 'Alpha'}),
+        CliRecord(fields={'id': '200', 'name': 'Beta'}),
+    ])
+
+# ** fixture: aligned_record_list
+@pytest.fixture
+def aligned_record_list() -> CliRecordList:
+    '''
+    Fixture for a CliRecordList whose column widths are driven by value length.
+
+    :return: The CliRecordList instance.
+    :rtype: CliRecordList
+    '''
+
+    # Create and return a two-row list with unequal id widths.
+    return CliRecordList(records=[
+        CliRecord(fields={'id': '1', 'name': 'A'}),
+        CliRecord(fields={'id': '99999', 'name': 'B'}),
+    ])
+
+# ** fixture: empty_record_list
+@pytest.fixture
+def empty_record_list() -> CliRecordList:
+    '''
+    Fixture for a CliRecordList with no supplied attributes.
+
+    :return: The CliRecordList instance.
+    :rtype: CliRecordList
+    '''
+
+    # Create and return a record list with no attributes supplied.
+    return CliRecordList()
+
+# ** fixture: uneven_record_list
+@pytest.fixture
+def uneven_record_list() -> CliRecordList:
+    '''
+    Fixture for a CliRecordList whose records expose different field keys.
+
+    :return: The CliRecordList instance.
+    :rtype: CliRecordList
+    '''
+
+    # Create and return a two-row list with a union of id, name, and extra keys.
+    return CliRecordList(records=[
+        CliRecord(fields={'id': '1', 'name': 'A'}),
+        CliRecord(fields={'id': '2', 'extra': 'Z'}),
+    ])
+
+# ** fixture: hole_record_list
+@pytest.fixture
+def hole_record_list() -> CliRecordList:
+    '''
+    Fixture for a CliRecordList with an empty first record and a later id.
+
+    :return: The CliRecordList instance.
+    :rtype: CliRecordList
+    '''
+
+    # Create and return a two-row list with a missing first-row id.
+    return CliRecordList(records=[
+        CliRecord(fields={}),
+        CliRecord(fields={'id': '9'}),
+    ])
+
+# ** fixture: blank_record_list
+@pytest.fixture
+def blank_record_list() -> CliRecordList:
+    '''
+    Fixture for a CliRecordList whose records are empty mappings.
+
+    :return: The CliRecordList instance.
+    :rtype: CliRecordList
+    '''
+
+    # Create and return a list of two empty record mappings.
+    return CliRecordList(records=[{}, {}])
 
 # *** tests
 
@@ -366,3 +503,328 @@ def test_cli_command_has_argument(cli_command: CliCommand) -> None:
 
     # Assert non-existent argument flags return False.
     assert cli_command.has_argument(['-b', '--arg2']) is False
+
+# *** testers
+
+# ** tester: test_cli_output_record
+@use_tester(
+    type='domain',
+    target_cls=CliOutputRecord,
+    equality_fields=[],
+)
+class TestCliOutputRecord:
+    '''
+    Tests for CliOutputRecord vertical layout and formatted output.
+    '''
+
+    # * test: format_output
+    def test_format_output(self, cli_output_record: CliOutputRecord):
+        '''
+        Test that format_output renders indented attribute-value lines.
+
+        :param cli_output_record: The output record to format.
+        :type cli_output_record: CliOutputRecord
+        '''
+
+        # Format the record and split the result into lines.
+        lines = cli_output_record.format_output(indent=2).split('\n')
+
+        # Assert both attribute-value lines are present and indented.
+        assert len(lines) == 2
+        assert lines[0].startswith('  id  ') and '42' in lines[0]
+        assert lines[1].startswith('  name') and 'foo bar' in lines[1]
+
+    # * test: format_output_empty
+    def test_format_output_empty(self, empty_output_record: CliOutputRecord):
+        '''
+        Test that format_output returns an empty string for an empty record.
+
+        :param empty_output_record: The empty output record to format.
+        :type empty_output_record: CliOutputRecord
+        '''
+
+        # Format the empty record.
+        result = empty_output_record.format_output()
+
+        # Assert the formatted outcome is empty.
+        assert result == ''
+
+    # * test: output_lines
+    def test_output_lines(self, cli_output_record: CliOutputRecord):
+        '''
+        Test that output_lines returns the default vertical layout value.
+
+        :param cli_output_record: The output record to lay out.
+        :type cli_output_record: CliOutputRecord
+        '''
+
+        # Build the vertical layout at the default indent.
+        output = cli_output_record.output_lines(indent=2)
+
+        # Assert the layout type and fields.
+        assert isinstance(output, CliOutputLines)
+        assert output.indent == 2
+        assert output.key_width == 4
+        assert output.lines == ['  id  : 42', '  name: foo bar']
+
+    # * test: output_lines_indent
+    def test_output_lines_indent(self, cli_output_record: CliOutputRecord):
+        '''
+        Test that output_lines and format_output honor a custom indent.
+
+        :param cli_output_record: The output record to lay out.
+        :type cli_output_record: CliOutputRecord
+        '''
+
+        # Build the vertical layout and formatted output at indent 4.
+        output = cli_output_record.output_lines(indent=4)
+        formatted = cli_output_record.format_output(indent=4)
+
+        # Assert the layout fields and the joined formatted outcome.
+        assert output.indent == 4
+        assert output.key_width == 4
+        assert output.lines == ['    id  : 42', '    name: foo bar']
+        assert formatted == '    id  : 42\n    name: foo bar'
+
+    # * test: format_output_locked_join
+    def test_format_output_locked_join(self, cli_output_record: CliOutputRecord):
+        '''
+        Test that format_output joins vertical lines, not a table.
+
+        :param cli_output_record: The output record to format.
+        :type cli_output_record: CliOutputRecord
+        '''
+
+        # Format the record and compare it with a tabular rendering.
+        formatted = cli_output_record.format_output()
+        table_form = 'id  name   \n--  -------\n42  foo bar'
+
+        # Assert the vertical join, reject the table form, and confirm no table method.
+        assert formatted == '  id  : 42\n  name: foo bar'
+        assert (formatted == table_form) is False
+        assert hasattr(cli_output_record, 'table') is False
+
+    # * test: output_lines_empty
+    def test_output_lines_empty(self, empty_output_record: CliOutputRecord):
+        '''
+        Test that output_lines returns None for an empty record.
+
+        :param empty_output_record: The empty output record to lay out.
+        :type empty_output_record: CliOutputRecord
+        '''
+
+        # Build the layout and formatted output for the empty record.
+        output = empty_output_record.output_lines()
+        formatted = empty_output_record.format_output()
+
+        # Assert a null layout and an empty formatted outcome.
+        assert output is None
+        assert formatted == ''
+
+    # * test: output_lines_from_record
+    def test_output_lines_from_record(self, cli_record: CliRecord):
+        '''
+        Test that CliOutputLines.from_record builds a vertical layout value.
+
+        :param cli_record: The record to lay out.
+        :type cli_record: CliRecord
+        '''
+
+        # Build the layout from the public CliOutputLines factory.
+        output = CliOutputLines.from_record(cli_record, indent=3)
+
+        # Assert the layout fields and the absence of table attributes.
+        assert output.indent == 3
+        assert output.key_width == 4
+        assert output.lines == ['   id  : 42', '   name: foo']
+        assert hasattr(output, 'format_output') is False
+        assert hasattr(output, 'widths') is False
+
+# ** tester: test_cli_record_list
+@use_tester(
+    type='domain',
+    target_cls=CliRecordList,
+    equality_fields=[],
+)
+class TestCliRecordList:
+    '''
+    Tests for CliRecordList table layout and formatted output.
+    '''
+
+    # * test: format_output
+    def test_format_output(self, cli_record_list: CliRecordList):
+        '''
+        Test that format_output renders a header, separator, and data rows.
+
+        :param cli_record_list: The record list to format.
+        :type cli_record_list: CliRecordList
+        '''
+
+        # Format the record list and split the result into lines.
+        lines = cli_record_list.format_output().split('\n')
+
+        # Assert the four-line table and the expected cell contents.
+        assert len(lines) == 4
+        header, separator, first_row, second_row = lines
+        assert 'id' in header and 'name' in header
+        assert '-' in separator and separator.replace('-', '').replace(' ', '') == ''
+        assert '1' in first_row and 'Alpha' in first_row
+        assert '200' in second_row and 'Beta' in second_row
+
+    # * test: format_output_aligns_columns
+    def test_format_output_aligns_columns(self, aligned_record_list: CliRecordList):
+        '''
+        Test that format_output aligns header and data rows to the same width.
+
+        :param aligned_record_list: The record list to format.
+        :type aligned_record_list: CliRecordList
+        '''
+
+        # Format the record list and measure header and data-row lengths.
+        lines = aligned_record_list.format_output().split('\n')
+        header, _separator, first_row, second_row = lines
+
+        # Assert the header and both data rows share the same length.
+        assert len(header) == 11
+        assert len(first_row) == 11
+        assert len(second_row) == 11
+
+    # * test: format_output_empty
+    def test_format_output_empty(self, empty_record_list: CliRecordList):
+        '''
+        Test that format_output returns an empty string for an empty list.
+
+        :param empty_record_list: The empty record list to format.
+        :type empty_record_list: CliRecordList
+        '''
+
+        # Format the empty record list.
+        result = empty_record_list.format_output()
+
+        # Assert the formatted outcome is empty.
+        assert result == ''
+
+    # * test: table
+    def test_table(self, cli_record_list: CliRecordList):
+        '''
+        Test that table returns the default horizontal layout value.
+
+        :param cli_record_list: The record list to lay out.
+        :type cli_record_list: CliRecordList
+        '''
+
+        # Build the table layout and the formatted output.
+        table = cli_record_list.table()
+        formatted = cli_record_list.format_output()
+
+        # Assert the layout type, fields, width-key order, and joined output.
+        assert isinstance(table, CliTable)
+        assert table.keys == ['id', 'name']
+        assert table.widths == {'id': 3, 'name': 5}
+        assert table.header == 'id   name '
+        assert table.separator == '---  -----'
+        assert table.rows == ['1    Alpha', '200  Beta ']
+        assert list(table.widths.keys()) == ['id', 'name']
+        assert formatted == 'id   name \n---  -----\n1    Alpha\n200  Beta '
+
+    # * test: table_uneven_keys
+    def test_table_uneven_keys(self, uneven_record_list: CliRecordList):
+        '''
+        Test that table unions keys in encounter order and pads missing cells.
+
+        :param uneven_record_list: The uneven record list to lay out.
+        :type uneven_record_list: CliRecordList
+        '''
+
+        # Build the table layout and the formatted output.
+        table = uneven_record_list.table()
+        formatted = uneven_record_list.format_output()
+
+        # Assert the unioned keys, padded rows, width-key order, and joined output.
+        assert isinstance(table, CliTable)
+        assert table.keys == ['id', 'name', 'extra']
+        assert table.widths == {'id': 2, 'name': 4, 'extra': 5}
+        assert table.header == 'id  name  extra'
+        assert table.separator == '--  ----  -----'
+        assert table.rows == ['1   A          ', '2         Z    ']
+        assert list(table.widths.keys()) == ['id', 'name', 'extra']
+        assert formatted == 'id  name  extra\n--  ----  -----\n1   A          \n2         Z    '
+
+    # * test: table_empty_cell
+    def test_table_empty_cell(self, hole_record_list: CliRecordList):
+        '''
+        Test that table preserves an empty cell and trailing spaces.
+
+        :param hole_record_list: The record list with an empty first row.
+        :type hole_record_list: CliRecordList
+        '''
+
+        # Build the table layout and the formatted output.
+        table = hole_record_list.table()
+        formatted = hole_record_list.format_output()
+
+        # Assert the single-column layout, empty first row, and joined output.
+        assert isinstance(table, CliTable)
+        assert table.keys == ['id']
+        assert table.widths == {'id': 2}
+        assert table.header == 'id'
+        assert table.separator == '--'
+        assert table.rows == ['  ', '9 ']
+        assert list(table.widths.keys()) == ['id']
+        assert formatted == 'id\n--\n  \n9 '
+
+    # * test: table_empty
+    def test_table_empty(self, empty_record_list: CliRecordList):
+        '''
+        Test that table returns None for an empty record list.
+
+        :param empty_record_list: The empty record list to lay out.
+        :type empty_record_list: CliRecordList
+        '''
+
+        # Build the table layout and the formatted output.
+        table = empty_record_list.table()
+        formatted = empty_record_list.format_output()
+
+        # Assert a null layout and an empty formatted outcome.
+        assert table is None
+        assert formatted == ''
+
+    # * test: table_blank_records
+    def test_table_blank_records(self, blank_record_list: CliRecordList):
+        '''
+        Test that table returns None when every record has empty fields.
+
+        :param blank_record_list: The record list of empty mappings.
+        :type blank_record_list: CliRecordList
+        '''
+
+        # Build the table layout and the formatted output.
+        table = blank_record_list.table()
+        formatted = blank_record_list.format_output()
+
+        # Assert a null layout and an empty formatted outcome.
+        assert table is None
+        assert formatted == ''
+
+    # * test: table_from_records
+    def test_table_from_records(self, cli_record: CliRecord):
+        '''
+        Test that CliTable.from_records builds a horizontal layout value.
+
+        :param cli_record: The record to lay out.
+        :type cli_record: CliRecord
+        '''
+
+        # Build the layout from the public CliTable factory.
+        table = CliTable.from_records([cli_record])
+
+        # Assert the layout fields and the absence of record-join attributes.
+        assert table.keys == ['id', 'name']
+        assert table.widths == {'id': 2, 'name': 4}
+        assert table.header == 'id  name'
+        assert table.separator == '--  ----'
+        assert table.rows == ['42  foo ']
+        assert list(table.widths.keys()) == ['id', 'name']
+        assert hasattr(table, 'format_output') is False
+        assert hasattr(table, 'records') is False
