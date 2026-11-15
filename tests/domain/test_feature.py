@@ -641,7 +641,7 @@ class TestParameterSpecification:
     # * test: to_config_value_key_order
     def test_to_config_value_key_order(self):
         '''
-        Test that an expanded configuration value emits fields in the specified order.
+        Test that an expanded configuration value emits type, default, required, then the constraint fields.
         '''
 
         # Emit the configuration value for a parameter with every optional field set.

@@ -193,20 +193,15 @@ class ParameterSpecification(DomainObject):
         # Read a mapping through a fresh dictionary so the input is not mutated.
         if isinstance(value, Mapping):
             fields = dict(value)
-            inner_name = fields.get('name')
 
-            # Drop an inner name that matches the authoritative name.
-            if inner_name is None:
-                pass
-            elif inner_name == name:
-                fields.pop('name')
-
-            # Reject an inner name that conflicts with the authoritative name.
-            else:
-                ModelError.raise_error(
-                    INVALID_MODEL_VALUE_ID,
-                    message=f'Parameter {name!r} config value names a different parameter: {inner_name!r}.',
-                )
+            # Drop an inner name that matches the authoritative name, and reject any other.
+            if 'name' in fields:
+                inner_name = fields.pop('name')
+                if inner_name != name:
+                    ModelError.raise_error(
+                        INVALID_MODEL_VALUE_ID,
+                        message=f'Parameter {name!r} config value names a different parameter: {inner_name!r}.',
+                    )
 
             # Construct the expanded specification from the remaining fields.
             return cls(name=name, **fields)
@@ -226,7 +221,7 @@ class ParameterSpecification(DomainObject):
         :rtype: str | Dict[str, Any]
         '''
 
-        # Collect additional fields under the inclusion rules, in the specified order.
+        # Collect included fields in order: default, required, then the constraint fields.
         extras: Dict[str, Any] = {}
         if self.default is not None:
             extras['default'] = self.default
