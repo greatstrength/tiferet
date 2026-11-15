@@ -18,7 +18,7 @@ An RFP is not a sloppy TRD. A TRD is not "the RFP, but for `main`." A Doc PR is 
 - An **RFP** asks: is this the right language? Anyone may submit one, as long as it follows [rfp.md](rfp.md). Opening a proto PR with no RFP is out of process.
 - A **reconstruction TRD** asks: can we rebuild a frozen catalog on trunk, artifact by artifact? It names those artifacts. It never says "copy from proto." It cites a freeze id in §7. If there is no freeze id, do not write the TRD.
 - A **hotfix TRD** asks: can we fix this small, already-understood defect on trunk? Prototype is not consulted. There is no freeze id.
-- A **Doc / skills** change needs **no issue and no TRD**. Cut `docs-<context>` from `main` and open a PR to `main` titled `Docs - <Title>`: no issue, no TRD, no milestone, no project-board item, and no `Closes #N`. See [doc.md](doc.md).
+- A **Doc / skills** change needs **no issue and no TRD**. Cut `docs-<context>` from `main` and open a PR to `main` titled `Docs - <Title>`: no issue, no TRD, no milestone, and no `Closes #N`. The PR is acceptable on the project board, associated with Ultimate Deferred. See [doc.md](doc.md).
 
 The long forms: [rfp.md](rfp.md), [main.md](main.md), [doc.md](doc.md). The TRD genre is [tech_requirements.md](tech_requirements.md). Review judgment is [code_review.md](code_review.md).
 
@@ -44,13 +44,16 @@ Git *may* flow the other way - trunk → prototype - when proto has not yet abso
 
 **A reconstruction already specified.** If a TRD issue exists, implement that issue. A standalone PR targets `main` and links that TRD. A Super-TRD child also targets `main`, and links the child and the parent. See [Super-TRD](#super-trd).
 
-**Docs or skills.** Open a Doc PR. No issue, no milestone, no project-board item.
+**Docs or skills.** Open a Doc PR. No issue and no milestone. The PR is acceptable on the project board, associated with Ultimate Deferred, so the maintainer can see it and trace it back.
+
+**Tests.** Open a Tests PR. Python and YAML test updates go straight to a PR, with no TRD or RFP, and outside any milestone, the same way a Doc PR does. A Tests PR may target any branch at any time and goes through the standard PR review. The PR is acceptable on the project board, associated with Ultimate Deferred, so the maintainer can see it and trace it back. Every test name states the invariant it guards, so a reader knows what property the test checks without reading its body. This applies to Python tests, testers, and YAML cases across Tiferet and its extensions.
 
 ## Issues, PRs, and blocking
 
 Pull requests are for reviewing code. Issues are for remembering the work item.
 
 - **The issue** may sit on a milestone. **The PR does not.** Do not add the PR to the milestone.
+- Only Doc PRs and Tests PRs go on the project board as PR items, associated with Ultimate Deferred. Every other PR stays off the board; its issue carries the board item.
 - Every implementation PR is **GitHub-linked** to its authorizing issue (not a title mention alone): proto PR to the RFP issue; standalone trunk PR to that TRD; sub-TRD PR to the child and the parent.
 - Proto PRs do not honor `Closes`, `Fixes`, or `Resolves`. Link `#issue` in the body. Proto PRs do not close their issue on merge; the issue is closed after squash-merge.
 - A standalone trunk PR may use `Closes #<issue>`. A sub-TRD PR uses `Closes #<child>` and `Refs #<parent>`, so the child closes on merge. It never puts `Closes`, `Fixes`, or `Resolves` on the parent - not in the body, and not in the squash commit. The squash commit keeps `Closes #<child>` and `Refs #<parent>`, so the child closes through that keyword. `Refs` does not close the parent. The parent has no PR, so the project administrator closes the parent issue after its final review, once every child issue is closed.

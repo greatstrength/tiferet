@@ -28,7 +28,7 @@ Patch versions are welcome. New trunk milestones do **not** use `bN`. Older titl
 
 You do not assign your issue to a milestone, close the milestone, or publish the GitHub Release.
 
-Every issue goes on the **Tiferet Framework** project. A Doc PR has no issue, so it has no board item. What the fields mean is in [project_fields.md](project_fields.md). The ids for *this* repo are in [binding.md](binding.md).
+Every issue goes on the **Tiferet Framework** project. A Doc PR or Tests PR has no issue; the PR itself may go on the board as a PR item, associated with Ultimate Deferred. No other PR goes on the board. What the fields mean is in [project_fields.md](project_fields.md). The ids for *this* repo are in [binding.md](binding.md).
 
 ## Issue titles
 
