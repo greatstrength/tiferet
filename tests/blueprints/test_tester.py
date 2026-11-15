@@ -356,7 +356,7 @@ def test_harness_caches_seed_only_harness_data() -> None:
         (tester_blueprints, '_reporter_cache'),
         (tester_cli_blueprints, 'build_cache'),
     ]:
-        assert non_harness_decorator_args(module, function_name) == []
+        assert non_harness_decorator_args(module, function_name) == [], function_name
 
 # *** testers
 

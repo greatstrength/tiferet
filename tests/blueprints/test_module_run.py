@@ -1085,6 +1085,65 @@ def test_sys_path_restored_after_raise(tmp_path, capsys) -> None:
     assert sys.path == before
     assert capsys.readouterr().out == ''
 
+# ** test: subject_dropped_root_still_returns_the_report
+def test_subject_dropped_root_still_returns_the_report(tmp_path, capsys) -> None:
+    '''
+    Run a pair whose subject drops the project root from sys.path and still return the report.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The subject module removes its own root from sys.path when imported.
+    (tmp_path / 'drop_root_subject.py').write_text(
+        'import os\n'
+        'import sys\n'
+        '_root = os.path.dirname(os.path.realpath(__file__))\n'
+        'if _root in sys.path:\n'
+        '    sys.path.remove(_root)\n'
+        'from tiferet.domain.error import ErrorMessage\n',
+        encoding='utf-8',
+    )
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: drop_root_subject
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    root = str(tmp_path.resolve())
+    assert root not in sys.path
+    before = list(sys.path)
+    try:
+        report = run_test_module(str(python_path))
+    finally:
+        sys.modules.pop('drop_root_subject', None)
+
+    # The cleanup tolerates the missing entry and sys.path matches its value before the call.
+    assert report['outcomes'][0]['status'] == 'PASSED'
+    assert sys.path == before
+    assert capsys.readouterr().out.splitlines()[-1] == '1 passed'
+
 # ** test: existing_entry_is_kept
 def test_existing_entry_is_kept(tmp_path, capsys) -> None:
     '''
@@ -1574,7 +1633,7 @@ tests:
 
     # The collision is that test's failure and does not abort the neighbor.
     assert report['outcomes'][0]['status'] == 'FAILED'
-    assert 'sample' in message
+    assert "Mock and fixture names collide: ['sample']." in message
     assert report['outcomes'][1]['status'] == 'PASSED'
     assert printed.splitlines()[-1] == '1 failed, 1 passed'
 

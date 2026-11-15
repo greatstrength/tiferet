@@ -1678,5 +1678,5 @@ def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
     finally:
 
         # Remove only the entry this run added. Do not change the process cwd.
-        if added:
+        if added and project_root in sys.path:
             sys.path.remove(project_root)
