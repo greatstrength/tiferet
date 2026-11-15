@@ -602,7 +602,7 @@ def plain_from_node(node: Any) -> tuple:
 
             # Sexagesimal sums the reversed parts with successive powers of 60.
             if ':' in token:
-                parts = [int(part, base=10) for part in token.split(':')]
+                parts = [int(part, base=10) for part in token.split(sep=':')]
                 return sign * sum(part * 60 ** place for place, part in enumerate(reversed(parts)))
 
             # Otherwise decimal.
