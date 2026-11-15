@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from .core import BaseContext, add_default_cache_items
 from .cache import CacheContext
 from .request import RequestContext
+from ..assets import TiferetError
 from ..assets.error import (
     FEATURE_STEP_LOADING_FAILED_ID,
     MIDDLEWARE_LOADING_FAILED_ID,
@@ -23,10 +24,7 @@ from ..assets.error import (
     REQUEST_VALIDATION_FAILED_ID,
 )
 from ..assets.core import REQUEST_REF_PREFIX
-from ..events import (
-    DomainEvent,
-    TiferetError,
-)
+from ..events import DomainEvent
 from ..domain import Feature, EventFeatureStep, unpack_validation_error
 
 # *** constants
@@ -429,7 +427,7 @@ class FeatureContext(BaseContext):
         '''
 
         # Delegate non-$r. parameters to the injected parser.
-        if not isinstance(parameter, str) or not parameter.startswith(REQUEST_REF_PREFIX):
+        if not parameter.startswith(REQUEST_REF_PREFIX):
             return self.parse_parameter(parameter)
 
         # Raise an error if the request is not provided for a request-backed parameter.
@@ -514,7 +512,7 @@ class FeatureContext(BaseContext):
         :type merged_kwargs: Dict[str, Any]
         :param data_key: Optional key to store the result in the request data.
         :type data_key: str
-        :param pass_on_error: If True, pass on the error instead of raising it.
+        :param pass_on_error: If True, pass on a domain error instead of raising it; only a `TiferetError` is skippable - a model or infrastructure defect is not a domain outcome and always propagates.
         :type pass_on_error: bool
         :param middleware: Optional ordered list of resolved middleware callables.
         :type middleware: list
@@ -527,8 +525,8 @@ class FeatureContext(BaseContext):
         try:
             result = chain()
 
-        # Handle errors based on the pass_on_error flag.
-        except Exception as e:
+        # Pass on domain errors only; anything else is a defect and propagates.
+        except TiferetError as e:
             if not pass_on_error:
                 raise e
 
@@ -565,7 +563,7 @@ class FeatureContext(BaseContext):
         :type merged_kwargs: Dict[str, Any]
         :param data_key: Optional key to store the result in the request data.
         :type data_key: str
-        :param pass_on_error: If True, pass on the error instead of raising it.
+        :param pass_on_error: If True, pass on a domain error instead of raising it; only a `TiferetError` is skippable - a model or infrastructure defect is not a domain outcome and always propagates.
         :type pass_on_error: bool
         :param middleware: Optional ordered list of resolved middleware callables.
         :type middleware: list
@@ -578,8 +576,8 @@ class FeatureContext(BaseContext):
         try:
             result = await chain()
 
-        # Handle errors based on the pass_on_error flag.
-        except Exception as e:
+        # Pass on domain errors only; anything else is a defect and propagates.
+        except TiferetError as e:
             if not pass_on_error:
                 raise e
 
