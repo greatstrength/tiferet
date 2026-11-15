@@ -527,7 +527,7 @@ class TestCliOutputRecord:
         '''
 
         # Format the record and split the result into lines.
-        lines = cli_output_record.format_output(indent=2).split('\n')
+        lines = cli_output_record.format_output(indent=2).split(sep='\n')
 
         # Assert both attribute-value lines are present and indented.
         assert len(lines) == 2
@@ -661,7 +661,7 @@ class TestCliRecordList:
         '''
 
         # Format the record list and split the result into lines.
-        lines = cli_record_list.format_output().split('\n')
+        lines = cli_record_list.format_output().split(sep='\n')
 
         # Assert the four-line table and the expected cell contents.
         assert len(lines) == 4
@@ -681,7 +681,7 @@ class TestCliRecordList:
         '''
 
         # Format the record list and measure header and data-row lengths.
-        lines = aligned_record_list.format_output().split('\n')
+        lines = aligned_record_list.format_output().split(sep='\n')
         header, _separator, first_row, second_row = lines
 
         # Assert the header and both data rows share the same length.
