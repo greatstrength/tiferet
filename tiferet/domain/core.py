@@ -73,9 +73,9 @@ def unpack_validation_error(error: ValidationError) -> List[Dict[str, Any]]:
     # Flatten each underlying error into a comparable descriptor.
     return [
         {
-            'field': '.'.join(str(loc) for loc in err['loc']),
-            'type': err['type'],
-            'message': err['msg'],
+            'field': '.'.join(str(loc) for loc in err.get('loc', ())),
+            'type': err.get('type'),
+            'message': err.get('msg'),
         }
         for err in error.errors()
     ]
@@ -134,8 +134,8 @@ class ModelError(Exception):
 
         # Set the error code, model descriptor, violations, and additional arguments.
         self.error_code = error_code
-        self.model = model
-        self.violations = violations
+        self.model = model or {}
+        self.violations = violations or []
         self.kwargs = kwargs
 
         # Initialize base exception with error data.
@@ -143,8 +143,8 @@ class ModelError(Exception):
             json.dumps({
                 'error_code': error_code,
                 'message': message,
-                'model': model,
-                'violations': violations,
+                'model': self.model,
+                'violations': self.violations,
                 **kwargs,
             })
         )
