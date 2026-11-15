@@ -554,10 +554,10 @@ def test_context_omits_domain_type():
     :rtype: None
     '''
 
-    # Import the class from its module and read its own namespace.
-    from tiferet.contexts.tester_cli import TesterCliSessionContext
-    assert tester_cli_contexts.TesterCliSessionContext is TesterCliSessionContext
-    assert 'domain_type' not in TesterCliSessionContext.__dict__
+    # Read the class from its module and check its own namespace.
+    session_context_cls = tester_cli_contexts.TesterCliSessionContext
+    assert session_context_cls.__module__ == 'tiferet.contexts.tester_cli'
+    assert 'domain_type' not in session_context_cls.__dict__
 
 # ** test: package_exports_and_script
 def test_package_exports_and_script():
