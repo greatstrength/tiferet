@@ -437,7 +437,7 @@ class TestFlaggedDependencyAggregate:
         '''
 
         # Call set_parameters with None.
-        flagged_dependency_aggregate.set_parameters(None)
+        flagged_dependency_aggregate.set_parameters(parameters=None)
 
         # The seeded parameters are unchanged.
         assert flagged_dependency_aggregate.parameters == {'keep': 'original', 'override': 'old'}
@@ -481,8 +481,8 @@ class TestFlaggedDependencyAggregate:
         second = flagged_dependency_aggregate.model_copy(deep=True)
 
         # Apply an overlay to the first and an empty overlay to the second.
-        first.set_parameters({'override': 'new', 'remove': None, 'add': 'added'})
-        second.set_parameters({})
+        first.set_parameters(parameters={'override': 'new', 'remove': None, 'add': 'added'})
+        second.set_parameters(parameters={})
 
         # The first carries the exact overlay in key order.
         assert first.parameters == {'keep': 'original', 'override': 'new', 'add': 'added'}

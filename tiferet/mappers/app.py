@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, ClassVar, Dict, List
+from typing import Any, ClassVar, Dict
 
 # ** infra
 from pydantic import AliasChoices, Field
