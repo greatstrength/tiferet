@@ -597,6 +597,22 @@ class TestParameterSpecification:
             "Parameter 'a' config value names a different parameter: 'b'.",
         )
 
+    # * test: from_config_entry_none_inner_name_raises
+    def test_from_config_entry_none_inner_name_raises(self):
+        '''
+        Test that an explicit null inner name is a conflicting name and raises a model error.
+        '''
+
+        # Read an expanded mapping whose inner name is explicitly null.
+        with pytest.raises(ModelError) as exc_info:
+            ParameterSpecification.from_config_entry('a', {'name': None, 'type': 'str'})
+
+        # Assert the exact conflicting-name model error.
+        assert_model_value_error(
+            exc_info.value,
+            "Parameter 'a' config value names a different parameter: None.",
+        )
+
     # * test: from_config_entry_bad_value_raises
     def test_from_config_entry_bad_value_raises(self):
         '''
