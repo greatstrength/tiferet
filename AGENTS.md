@@ -1,4 +1,4 @@
-# AGENTS.md - Tiferet Framework (v2.2.2)
+# AGENTS.md - Tiferet Framework (v2.2.3)
 
 ## Project Overview
 
@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.2.2`
+- **Version:** `2.2.3`
 
 ## Architecture
 
