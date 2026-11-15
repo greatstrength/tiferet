@@ -2,11 +2,19 @@
 
 # *** imports
 
+# ** core
+import json
+
 # ** infra
 import pytest
 
 # ** app
-from tiferet.domain import ATTRIBUTE_NOT_SETTABLE_ID, AppServiceDependency
+from tiferet.domain import (
+    ATTRIBUTE_NOT_SETTABLE_ID,
+    INVALID_MODEL_VALUE_ID,
+    AppServiceDependency,
+    ModelError,
+)
 from tiferet.mappers.app import (
     AppSessionAggregate,
     AppSessionConfigObject,
@@ -119,6 +127,190 @@ TEST_APP_SESSION_CONFIG_OBJECT_SAMPLE_DATA = {
         'DEBUG': '1',
     },
 }
+
+# *** fixtures
+
+# ** fixture: app_session_aggregate
+@pytest.fixture
+def app_session_aggregate() -> AppSessionAggregate:
+    '''
+    Fixture for an app session aggregate with two ordered services.
+
+    :return: The app session aggregate.
+    :rtype: AppSessionAggregate
+    '''
+
+    # Create the aggregate with test_attribute then logging.
+    return AppSessionAggregate(
+        id='test.interface',
+        name='Test Interface',
+        services=[
+            AppServiceDependency(
+                service_id='test_attribute',
+                module_path='test.module.path',
+                class_name='TestClassName',
+                parameters={'test_param': 'test_value', 'debug': '1'},
+            ),
+            AppServiceDependency(
+                service_id='logging',
+                module_path='tiferet.utils.logging',
+                class_name='LoggingService',
+                parameters={},
+            ),
+        ],
+    )
+
+# ** fixture: overlay_session
+@pytest.fixture
+def overlay_session() -> AppSessionAggregate:
+    '''
+    Fixture for an app session aggregate whose services carry overlay parameters.
+
+    :return: The app session aggregate.
+    :rtype: AppSessionAggregate
+    '''
+
+    # Create the aggregate with first then second.
+    return AppSessionAggregate(
+        id='test.interface',
+        name='Test Interface',
+        services=[
+            AppServiceDependency(
+                service_id='first',
+                module_path='mod.first',
+                class_name='FirstClass',
+                parameters={'keep': 'original', 'override': 'old'},
+            ),
+            AppServiceDependency(
+                service_id='second',
+                module_path='mod.second',
+                class_name='SecondClass',
+                parameters={'p': 'second'},
+            ),
+        ],
+    )
+
+# ** fixture: repeat_session
+@pytest.fixture
+def repeat_session() -> AppSessionAggregate:
+    '''
+    Fixture for an app session aggregate with a repeated service id around another service.
+
+    :return: The app session aggregate.
+    :rtype: AppSessionAggregate
+    '''
+
+    # Create the aggregate with dup_svc, other_svc, then dup_svc again.
+    return AppSessionAggregate(
+        id='test.interface',
+        name='Test Interface',
+        services=[
+            AppServiceDependency(
+                service_id='dup_svc',
+                module_path='mod.dup',
+                class_name='DupOne',
+                parameters={'p': 'one'},
+            ),
+            AppServiceDependency(
+                service_id='other_svc',
+                module_path='mod.other',
+                class_name='OtherClass',
+                parameters={'p': 'other'},
+            ),
+            AppServiceDependency(
+                service_id='dup_svc',
+                module_path='mod.dup',
+                class_name='DupTwo',
+                parameters={'p': 'two'},
+            ),
+        ],
+    )
+
+# ** fixture: reversed_session
+@pytest.fixture
+def reversed_session() -> AppSessionAggregate:
+    '''
+    Fixture for an app session aggregate with the two services in reverse order.
+
+    :return: The app session aggregate.
+    :rtype: AppSessionAggregate
+    '''
+
+    # Create the aggregate with logging then test_attribute.
+    return AppSessionAggregate(
+        id='test.interface',
+        name='Test Interface',
+        services=[
+            AppServiceDependency(
+                service_id='logging',
+                module_path='tiferet.utils.logging',
+                class_name='LoggingService',
+                parameters={},
+            ),
+            AppServiceDependency(
+                service_id='test_attribute',
+                module_path='test.module.path',
+                class_name='TestClassName',
+                parameters={'test_param': 'test_value', 'debug': '1'},
+            ),
+        ],
+    )
+
+# ** fixture: app_session_config
+@pytest.fixture
+def app_session_config() -> AppSessionConfigObject:
+    '''
+    Fixture for an app session config object with services keyed in declared order.
+
+    :return: The app session config object.
+    :rtype: AppSessionConfigObject
+    '''
+
+    # Create the config object with test_attribute then logging.
+    return AppSessionConfigObject.model_validate({
+        'id': 'test.interface',
+        'name': 'Test Interface',
+        'services': {
+            'test_attribute': {
+                'module_path': 'test.module.path',
+                'class_name': 'TestClassName',
+                'parameters': {'test_param': 'test_value', 'debug': '1'},
+            },
+            'logging': {
+                'module_path': 'tiferet.utils.logging',
+                'class_name': 'LoggingService',
+                'parameters': {},
+            },
+        },
+    })
+
+# ** fixture: reversed_app_session_config
+@pytest.fixture
+def reversed_app_session_config() -> AppSessionConfigObject:
+    '''
+    Fixture for an app session config object with attrs keyed in reverse order.
+
+    :return: The app session config object.
+    :rtype: AppSessionConfigObject
+    '''
+
+    # Create the config object with logging then test_attribute.
+    return AppSessionConfigObject.model_validate({
+        'id': 'test.interface',
+        'name': 'Test Interface',
+        'attrs': {
+            'logging': {
+                'module_path': 'tiferet.utils.logging',
+                'class_name': 'LoggingService',
+                'parameters': {},
+            },
+            'test_attribute': {
+                'module_path': 'test.module.path',
+                'class_name': 'TestClassName',
+                'params': {'test_param': 'test_value', 'debug': '1'},
+            },
+        },
+    })
 
 # *** testers
 
@@ -430,6 +622,216 @@ class TestAppSessionAggregate:
         assert created.class_name == 'FreshService'
         assert created.parameters == {'p1': 'v1', 'p2': '42'}
 
+    # * test: add_service_existing_id_raises
+    def test_add_service_existing_id_raises(self, app_session_aggregate):
+        '''
+        Test that add_service rejects an existing service id without changing the services list.
+
+        :param app_session_aggregate: The seeded app session aggregate.
+        :type app_session_aggregate: AppSessionAggregate
+        '''
+
+        # Record the original ordered service fields.
+        original = [service.model_dump() for service in app_session_aggregate.services]
+
+        # Add a service under an existing service id.
+        with pytest.raises(ModelError) as exc_info:
+            app_session_aggregate.add_service(
+                'test_attribute',
+                'pkg.other.module',
+                'OtherService',
+                parameters={'other': 'value'},
+            )
+
+        # Assert the exact already-exists model error.
+        error = exc_info.value
+        assert error.error_code == INVALID_MODEL_VALUE_ID
+        assert json.loads(str(error))['message'] == (
+            "Service dependency 'test_attribute' already exists in app session 'test.interface'."
+        )
+        assert error.kwargs == {'attribute': 'services', 'service_id': 'test_attribute'}
+
+        # The services list is unchanged.
+        assert [service.model_dump() for service in app_session_aggregate.services] == original
+
+    # * test: add_service_drops_none_values
+    def test_add_service_drops_none_values(self, app_session_aggregate):
+        '''
+        Test that add_service omits None-valued parameters and creates empty parameters for None.
+
+        :param app_session_aggregate: The seeded app session aggregate.
+        :type app_session_aggregate: AppSessionAggregate
+        '''
+
+        # Add one service with a None-valued parameter and one with None parameters.
+        app_session_aggregate.add_service(
+            'pruned_svc',
+            'pkg.pruned',
+            'PrunedService',
+            parameters={'p1': 'v1', 'gone': None},
+        )
+        app_session_aggregate.add_service(
+            'null_svc',
+            'pkg.null',
+            'NullService',
+            parameters=None,
+        )
+
+        # Verify the created service fields.
+        pruned = app_session_aggregate.get_service('pruned_svc')
+        assert (pruned.service_id, pruned.module_path, pruned.class_name) == ('pruned_svc', 'pkg.pruned', 'PrunedService')
+        assert pruned.parameters == {'p1': 'v1'}
+        assert isinstance(pruned.parameters, dict)
+        null = app_session_aggregate.get_service('null_svc')
+        assert (null.service_id, null.module_path, null.class_name) == ('null_svc', 'pkg.null', 'NullService')
+        assert null.parameters == {}
+        assert isinstance(null.parameters, dict)
+
+        # The new services are appended in order.
+        assert [service.service_id for service in app_session_aggregate.services] == [
+            'test_attribute',
+            'logging',
+            'pruned_svc',
+            'null_svc',
+        ]
+
+    # * test: set_service_existing_none_parameters_leaves_existing
+    def test_set_service_existing_none_parameters_leaves_existing(self, app_session_aggregate):
+        '''
+        Test that set_service updates type fields and leaves existing parameters unchanged for None.
+
+        :param app_session_aggregate: The seeded app session aggregate.
+        :type app_session_aggregate: AppSessionAggregate
+        '''
+
+        # Update the existing service with None parameters.
+        app_session_aggregate.set_service(
+            'test_attribute',
+            module_path='new.mod.path',
+            class_name='NewImplementation',
+            parameters=None,
+        )
+
+        # The type fields are updated and the parameters are unchanged.
+        updated = app_session_aggregate.get_service('test_attribute')
+        assert updated.module_path == 'new.mod.path'
+        assert updated.class_name == 'NewImplementation'
+        assert updated.parameters == {'test_param': 'test_value', 'debug': '1'}
+        assert list(updated.parameters) == ['test_param', 'debug']
+
+    # * test: set_service_existing_overlay_in_place
+    def test_set_service_existing_overlay_in_place(self, overlay_session):
+        '''
+        Test that set_service overlays parameters on the existing service instance without moving it.
+
+        :param overlay_session: The app session aggregate with overlay parameters.
+        :type overlay_session: AppSessionAggregate
+        '''
+
+        # Retain the original first service instance.
+        first = overlay_session.services[0]
+
+        # Overlay the first service and apply an empty overlay to the second.
+        overlay_session.set_service(
+            'first',
+            module_path='mod.first.updated',
+            class_name='FirstUpdated',
+            parameters={'override': 'new', 'remove': None, 'add': 'added'},
+        )
+        overlay_session.set_service(
+            'second',
+            module_path='mod.second',
+            class_name='SecondClass',
+            parameters={},
+        )
+
+        # The first service is updated in place with the overlaid parameters.
+        updated = overlay_session.services[0]
+        assert updated is first
+        assert updated.module_path == 'mod.first.updated'
+        assert updated.class_name == 'FirstUpdated'
+        assert updated.parameters == {'keep': 'original', 'override': 'new', 'add': 'added'}
+        assert list(updated.parameters) == ['keep', 'override', 'add']
+
+        # The empty overlay preserves the second service parameters, and the order is unchanged.
+        assert overlay_session.get_service('second').parameters == {'p': 'second'}
+        assert [service.service_id for service in overlay_session.services] == ['first', 'second']
+
+    # * test: set_service_create_drops_none_values
+    def test_set_service_create_drops_none_values(self, app_session_aggregate):
+        '''
+        Test that set_service creates services omitting None-valued parameters and with empty parameters for None.
+
+        :param app_session_aggregate: The seeded app session aggregate.
+        :type app_session_aggregate: AppSessionAggregate
+        '''
+
+        # Create one service with a None-valued parameter and one with None parameters.
+        app_session_aggregate.set_service(
+            'pruned_new',
+            module_path='pkg.pruned',
+            class_name='PrunedService',
+            parameters={'p1': 'v1', 'gone': None},
+        )
+        app_session_aggregate.set_service(
+            'null_new',
+            module_path='pkg.null',
+            class_name='NullService',
+            parameters=None,
+        )
+
+        # Verify the created service fields.
+        pruned = app_session_aggregate.get_service('pruned_new')
+        assert (pruned.service_id, pruned.module_path, pruned.class_name) == ('pruned_new', 'pkg.pruned', 'PrunedService')
+        assert pruned.parameters == {'p1': 'v1'}
+        assert isinstance(pruned.parameters, dict)
+        null = app_session_aggregate.get_service('null_new')
+        assert (null.service_id, null.module_path, null.class_name) == ('null_new', 'pkg.null', 'NullService')
+        assert null.parameters == {}
+        assert isinstance(null.parameters, dict)
+
+        # The new services are appended in order.
+        assert [service.service_id for service in app_session_aggregate.services] == [
+            'test_attribute',
+            'logging',
+            'pruned_new',
+            'null_new',
+        ]
+
+    # * test: remove_service_drops_every_match
+    def test_remove_service_drops_every_match(self, repeat_session):
+        '''
+        Test that remove_service removes every matching service and returns the first match.
+
+        :param repeat_session: The app session aggregate with a repeated service id.
+        :type repeat_session: AppSessionAggregate
+        '''
+
+        # Retain the original first matching service instance.
+        first = repeat_session.services[0]
+
+        # Remove the repeated service id.
+        removed = repeat_session.remove_service('dup_svc')
+
+        # The first match is returned.
+        assert removed is first
+        assert removed.model_dump() == {
+            'service_id': 'dup_svc',
+            'module_path': 'mod.dup',
+            'class_name': 'DupOne',
+            'parameters': {'p': 'one'},
+        }
+
+        # Only the other service survives.
+        assert [service.model_dump() for service in repeat_session.services] == [
+            {
+                'service_id': 'other_svc',
+                'module_path': 'mod.other',
+                'class_name': 'OtherClass',
+                'parameters': {'p': 'other'},
+            },
+        ]
+
 # ** tester: test_app_session_config_object
 @use_tester(
     type='transfer_object',
@@ -587,3 +989,79 @@ class TestAppSessionConfigObject:
             assert mapped.module_path == original.module_path
             assert mapped.class_name == original.class_name
             assert mapped.parameters == original.parameters
+
+    # * test: from_model_key_order
+    def test_from_model_key_order(self, app_session_aggregate, reversed_session):
+        '''
+        Test that from_model keys services by service id in list order.
+
+        :param app_session_aggregate: The seeded app session aggregate.
+        :type app_session_aggregate: AppSessionAggregate
+        :param reversed_session: The app session aggregate with services reversed.
+        :type reversed_session: AppSessionAggregate
+        '''
+
+        # Convert each source and compare its keys and keyed child fields.
+        for source, expected in (
+            (app_session_aggregate, ['test_attribute', 'logging']),
+            (reversed_session, ['logging', 'test_attribute']),
+        ):
+            config = AppSessionConfigObject.from_model(source)
+            assert list(config.services) == expected
+            for service in source.services:
+                child = config.services[service.service_id]
+                assert child.module_path == service.module_path
+                assert child.class_name == service.class_name
+                assert child.parameters == service.parameters
+
+    # * test: map_key_order
+    def test_map_key_order(self, app_session_config, reversed_app_session_config):
+        '''
+        Test that map orders services by the declared mapping-key order.
+
+        :param app_session_config: The app session config object.
+        :type app_session_config: AppSessionConfigObject
+        :param reversed_app_session_config: The app session config object with attrs reversed.
+        :type reversed_app_session_config: AppSessionConfigObject
+        '''
+
+        # Map each config object.
+        aggregate = app_session_config.map()
+        reversed_aggregate = reversed_app_session_config.map()
+
+        # The service order follows each mapping-key order.
+        assert [service.service_id for service in aggregate.services] == ['test_attribute', 'logging']
+        assert [service.service_id for service in reversed_aggregate.services] == ['logging', 'test_attribute']
+
+        # The reversed params alias supplies the test_attribute parameters.
+        assert reversed_aggregate.get_service('test_attribute').parameters == {
+            'test_param': 'test_value',
+            'debug': '1',
+        }
+
+    # * test: from_model_repeated_service_id_raises
+    def test_from_model_repeated_service_id_raises(self, repeat_session):
+        '''
+        Test that from_model rejects a repeated service id without changing the source services.
+
+        :param repeat_session: The app session aggregate with a repeated service id.
+        :type repeat_session: AppSessionAggregate
+        '''
+
+        # Record the original ordered service fields.
+        original = [service.model_dump() for service in repeat_session.services]
+
+        # Convert the source with a repeated service id.
+        with pytest.raises(ModelError) as exc_info:
+            AppSessionConfigObject.from_model(repeat_session)
+
+        # Assert the exact repeated-identity model error.
+        error = exc_info.value
+        assert error.error_code == INVALID_MODEL_VALUE_ID
+        assert json.loads(str(error))['message'] == (
+            "Service dependency 'dup_svc' is repeated in app session 'test.interface'."
+        )
+        assert error.kwargs == {'attribute': 'services', 'service_id': 'dup_svc'}
+
+        # The source services are unchanged.
+        assert [service.model_dump() for service in repeat_session.services] == original

@@ -2,8 +2,19 @@
 
 # *** imports
 
+# ** core
+import json
+
+# ** infra
+import pytest
+
 # ** app
-from tiferet.domain import FlaggedDependency, INVALID_MODEL_ATTRIBUTE_ID
+from tiferet.domain import (
+    INVALID_MODEL_ATTRIBUTE_ID,
+    INVALID_MODEL_VALUE_ID,
+    FlaggedDependency,
+    ModelError,
+)
 from tiferet.mappers.di import (
     FlaggedDependencyAggregate,
     FlaggedDependencyConfigObject,
@@ -125,6 +136,246 @@ TEST_SERVICE_REGISTRATION_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
     ],
 }
 
+# *** fixtures
+
+# ** fixture: flagged_dependency_aggregate
+@pytest.fixture
+def flagged_dependency_aggregate() -> FlaggedDependencyAggregate:
+    '''
+    Fixture for a flagged dependency aggregate with seeded parameters.
+
+    :return: The flagged dependency aggregate.
+    :rtype: FlaggedDependencyAggregate
+    '''
+
+    # Create the aggregate with keep and override parameters.
+    return FlaggedDependencyAggregate(
+        module_path='tests.repos.test',
+        class_name='TestRepoProxy',
+        flag='test',
+        parameters={'keep': 'original', 'override': 'old'},
+    )
+
+# ** fixture: service_registration_aggregate
+@pytest.fixture
+def service_registration_aggregate() -> ServiceRegistrationAggregate:
+    '''
+    Fixture for a service registration aggregate with one existing dependency.
+
+    :return: The service registration aggregate.
+    :rtype: ServiceRegistrationAggregate
+    '''
+
+    # Create the aggregate with the existing dependency.
+    return ServiceRegistrationAggregate(
+        id='test_repo',
+        module_path='tests.repos.test',
+        class_name='DefaultTestRepoProxy',
+        parameters={'default_param': 'default_value'},
+        dependencies=[
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='TestRepoProxy',
+                flag='existing',
+                parameters={'param1': 'value1'},
+            ),
+        ],
+    )
+
+# ** fixture: overlay_registration
+@pytest.fixture
+def overlay_registration() -> ServiceRegistrationAggregate:
+    '''
+    Fixture for a service registration aggregate whose dependencies carry overlay parameters.
+
+    :return: The service registration aggregate.
+    :rtype: ServiceRegistrationAggregate
+    '''
+
+    # Create the aggregate with existing then other.
+    return ServiceRegistrationAggregate(
+        id='test_repo',
+        module_path='tests.repos.test',
+        class_name='DefaultTestRepoProxy',
+        parameters={'default_param': 'default_value'},
+        dependencies=[
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='TestRepoProxy',
+                flag='existing',
+                parameters={'keep': 'original', 'override': 'old'},
+            ),
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='OtherRepoProxy',
+                flag='other',
+                parameters={'p': 'other'},
+            ),
+        ],
+    )
+
+# ** fixture: repeat_registration
+@pytest.fixture
+def repeat_registration() -> ServiceRegistrationAggregate:
+    '''
+    Fixture for a service registration aggregate with a repeated flag around another dependency.
+
+    :return: The service registration aggregate.
+    :rtype: ServiceRegistrationAggregate
+    '''
+
+    # Create the aggregate with dup_flag, other, then dup_flag again.
+    return ServiceRegistrationAggregate(
+        id='test_repo',
+        module_path='tests.repos.test',
+        class_name='DefaultTestRepoProxy',
+        parameters={'default_param': 'default_value'},
+        dependencies=[
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='DupOne',
+                flag='dup_flag',
+                parameters={},
+            ),
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='OtherRepoProxy',
+                flag='other',
+                parameters={},
+            ),
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='DupTwo',
+                flag='dup_flag',
+                parameters={},
+            ),
+        ],
+    )
+
+# ** fixture: registration_for_transfer
+@pytest.fixture
+def registration_for_transfer() -> ServiceRegistrationAggregate:
+    '''
+    Fixture for a service registration aggregate with two ordered dependencies for transfer.
+
+    :return: The service registration aggregate.
+    :rtype: ServiceRegistrationAggregate
+    '''
+
+    # Create the aggregate with test then test2.
+    return ServiceRegistrationAggregate(
+        id='test_repo',
+        module_path='tests.repos.test',
+        class_name='DefaultTestRepoProxy',
+        parameters={'test_param': 'test_value', 'param0': 'value0'},
+        dependencies=[
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='TestRepoProxy',
+                flag='test',
+                parameters={'test_param': 'test_value'},
+            ),
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='TestRepoProxy2',
+                flag='test2',
+                parameters={'param2': 'value2'},
+            ),
+        ],
+    )
+
+# ** fixture: reversed_registration
+@pytest.fixture
+def reversed_registration() -> ServiceRegistrationAggregate:
+    '''
+    Fixture for the transfer service registration aggregate with its dependencies reversed.
+
+    :return: The service registration aggregate.
+    :rtype: ServiceRegistrationAggregate
+    '''
+
+    # Create the aggregate with test2 then test.
+    return ServiceRegistrationAggregate(
+        id='test_repo',
+        module_path='tests.repos.test',
+        class_name='DefaultTestRepoProxy',
+        parameters={'test_param': 'test_value', 'param0': 'value0'},
+        dependencies=[
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='TestRepoProxy2',
+                flag='test2',
+                parameters={'param2': 'value2'},
+            ),
+            FlaggedDependency(
+                module_path='tests.repos.test',
+                class_name='TestRepoProxy',
+                flag='test',
+                parameters={'test_param': 'test_value'},
+            ),
+        ],
+    )
+
+# ** fixture: service_registration_config
+@pytest.fixture
+def service_registration_config() -> ServiceRegistrationConfigObject:
+    '''
+    Fixture for a service registration config object with deps keyed in declared order.
+
+    :return: The service registration config object.
+    :rtype: ServiceRegistrationConfigObject
+    '''
+
+    # Create the config object with test then test2.
+    return ServiceRegistrationConfigObject.model_validate({
+        'id': 'test_repo',
+        'module_path': 'tests.repos.test',
+        'class_name': 'DefaultTestRepoProxy',
+        'params': {'test_param': 'test_value', 'param0': 'value0'},
+        'deps': {
+            'test': {
+                'module_path': 'tests.repos.test',
+                'class_name': 'TestRepoProxy',
+                'params': {'test_param': 'test_value'},
+            },
+            'test2': {
+                'module_path': 'tests.repos.test',
+                'class_name': 'TestRepoProxy2',
+                'params': {'param2': 'value2'},
+            },
+        },
+    })
+
+# ** fixture: reversed_service_registration_config
+@pytest.fixture
+def reversed_service_registration_config() -> ServiceRegistrationConfigObject:
+    '''
+    Fixture for a service registration config object with deps keyed in reverse order.
+
+    :return: The service registration config object.
+    :rtype: ServiceRegistrationConfigObject
+    '''
+
+    # Create the config object with test2 then test.
+    return ServiceRegistrationConfigObject.model_validate({
+        'id': 'test_repo',
+        'module_path': 'tests.repos.test',
+        'class_name': 'DefaultTestRepoProxy',
+        'params': {'test_param': 'test_value', 'param0': 'value0'},
+        'deps': {
+            'test2': {
+                'module_path': 'tests.repos.test',
+                'class_name': 'TestRepoProxy2',
+                'params': {'param2': 'value2'},
+            },
+            'test': {
+                'module_path': 'tests.repos.test',
+                'class_name': 'TestRepoProxy',
+                'params': {'test_param': 'test_value'},
+            },
+        },
+    })
+
 # *** testers
 
 # ** tester: test_flagged_dependency_aggregate
@@ -176,20 +427,22 @@ class TestFlaggedDependencyAggregate:
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * test: set_parameters_clears_when_none
-    def test_set_parameters_clears_when_none(self, test_ctx):
+    # * test: set_parameters_none_leaves_existing
+    def test_set_parameters_none_leaves_existing(self, flagged_dependency_aggregate):
         '''
-        Test that set_parameters clears all parameters when called with None.
+        Test that set_parameters leaves the existing parameters unchanged when called with None.
+
+        :param flagged_dependency_aggregate: The seeded flagged dependency aggregate.
+        :type flagged_dependency_aggregate: FlaggedDependencyAggregate
         '''
 
-        # Build a fresh aggregate from the declared sample.
-        aggregate = test_ctx.make_target()
+        # Call set_parameters with None.
+        flagged_dependency_aggregate.set_parameters(parameters=None)
 
-        # Call set_parameters with None to clear all parameters.
-        aggregate.set_parameters(None)
-
-        # All parameters should be cleared.
-        assert aggregate.parameters == {}
+        # The seeded parameters are unchanged.
+        assert flagged_dependency_aggregate.parameters == {'keep': 'original', 'override': 'old'}
+        assert isinstance(flagged_dependency_aggregate.parameters, dict)
+        assert list(flagged_dependency_aggregate.parameters) == ['keep', 'override']
 
     # * test: set_parameters_merges_and_prunes_none_values
     def test_set_parameters_merges_and_prunes_none_values(self, test_ctx):
@@ -213,6 +466,31 @@ class TestFlaggedDependencyAggregate:
             'override': 'new',
             'add': 'added',
         }
+
+    # * test: set_parameters_overlay_exact
+    def test_set_parameters_overlay_exact(self, flagged_dependency_aggregate):
+        '''
+        Test that set_parameters overlays exact keys in order and an empty overlay preserves existing entries.
+
+        :param flagged_dependency_aggregate: The seeded flagged dependency aggregate.
+        :type flagged_dependency_aggregate: FlaggedDependencyAggregate
+        '''
+
+        # Take a second fresh aggregate with the same seeded parameters.
+        first = flagged_dependency_aggregate
+        second = flagged_dependency_aggregate.model_copy(deep=True)
+
+        # Apply an overlay to the first and an empty overlay to the second.
+        first.set_parameters(parameters={'override': 'new', 'remove': None, 'add': 'added'})
+        second.set_parameters(parameters={})
+
+        # The first carries the exact overlay in key order.
+        assert first.parameters == {'keep': 'original', 'override': 'new', 'add': 'added'}
+        assert list(first.parameters) == ['keep', 'override', 'add']
+
+        # The second keeps the original mapping.
+        assert second.parameters == {'keep': 'original', 'override': 'old'}
+        assert list(second.parameters) == ['keep', 'override']
 
 # ** tester: test_service_registration_aggregate
 @use_tester(
@@ -404,6 +682,131 @@ class TestServiceRegistrationAggregate:
 
         # The list should be unchanged.
         assert len(aggregate.dependencies) == initial_count
+
+    # * test: set_dependency_none_parameters_leaves_existing
+    def test_set_dependency_none_parameters_leaves_existing(self, service_registration_aggregate):
+        '''
+        Test that set_dependency updates type fields and leaves existing parameters unchanged for None.
+
+        :param service_registration_aggregate: The seeded service registration aggregate.
+        :type service_registration_aggregate: ServiceRegistrationAggregate
+        '''
+
+        # Update the existing dependency with None parameters.
+        service_registration_aggregate.set_dependency(
+            'existing',
+            module_path='tests.repos.updated',
+            class_name='UpdatedRepoProxy',
+            parameters=None,
+        )
+
+        # The type fields are updated and the parameters are unchanged.
+        dep = service_registration_aggregate.get_dependency('existing')
+        assert dep.module_path == 'tests.repos.updated'
+        assert dep.class_name == 'UpdatedRepoProxy'
+        assert dep.parameters == {'param1': 'value1'}
+        assert list(dep.parameters) == ['param1']
+
+    # * test: set_dependency_overlay_in_place
+    def test_set_dependency_overlay_in_place(self, overlay_registration):
+        '''
+        Test that set_dependency overlays parameters on the existing dependency instance without moving it.
+
+        :param overlay_registration: The service registration aggregate with overlay parameters.
+        :type overlay_registration: ServiceRegistrationAggregate
+        '''
+
+        # Retain the original existing dependency instance.
+        existing = overlay_registration.dependencies[0]
+
+        # Overlay the existing dependency and apply an empty overlay to the other.
+        overlay_registration.set_dependency(
+            'existing',
+            module_path='tests.repos.updated',
+            class_name='UpdatedRepoProxy',
+            parameters={'override': 'new', 'remove': None, 'add': 'added'},
+        )
+        overlay_registration.set_dependency(
+            'other',
+            module_path='tests.repos.test',
+            class_name='OtherRepoProxy',
+            parameters={},
+        )
+
+        # The existing dependency is updated in place with the overlaid parameters.
+        updated = overlay_registration.dependencies[0]
+        assert updated is existing
+        assert updated.module_path == 'tests.repos.updated'
+        assert updated.class_name == 'UpdatedRepoProxy'
+        assert updated.parameters == {'keep': 'original', 'override': 'new', 'add': 'added'}
+        assert list(updated.parameters) == ['keep', 'override', 'add']
+
+        # The empty overlay preserves the other parameters, and the order is unchanged.
+        assert overlay_registration.get_dependency('other').parameters == {'p': 'other'}
+        assert [dep.flag for dep in overlay_registration.dependencies] == ['existing', 'other']
+
+    # * test: set_dependency_create_drops_none_values
+    def test_set_dependency_create_drops_none_values(self, service_registration_aggregate):
+        '''
+        Test that set_dependency creates dependencies omitting None-valued parameters and with empty parameters for None.
+
+        :param service_registration_aggregate: The seeded service registration aggregate.
+        :type service_registration_aggregate: ServiceRegistrationAggregate
+        '''
+
+        # Create one dependency with a None-valued parameter and one with None parameters.
+        service_registration_aggregate.set_dependency(
+            'pruned_flag',
+            module_path='tests.repos.test',
+            class_name='PrunedRepoProxy',
+            parameters={'p1': 'v1', 'gone': None},
+        )
+        service_registration_aggregate.set_dependency(
+            'null_flag',
+            module_path='tests.repos.test',
+            class_name='NullRepoProxy',
+            parameters=None,
+        )
+
+        # Verify the created dependency fields.
+        pruned = service_registration_aggregate.get_dependency('pruned_flag')
+        assert (pruned.flag, pruned.module_path, pruned.class_name) == ('pruned_flag', 'tests.repos.test', 'PrunedRepoProxy')
+        assert pruned.parameters == {'p1': 'v1'}
+        assert isinstance(pruned.parameters, dict)
+        null = service_registration_aggregate.get_dependency('null_flag')
+        assert (null.flag, null.module_path, null.class_name) == ('null_flag', 'tests.repos.test', 'NullRepoProxy')
+        assert null.parameters == {}
+        assert isinstance(null.parameters, dict)
+
+        # The new dependencies are appended in order.
+        assert [dep.flag for dep in service_registration_aggregate.dependencies] == [
+            'existing',
+            'pruned_flag',
+            'null_flag',
+        ]
+
+    # * test: remove_dependency_drops_every_match
+    def test_remove_dependency_drops_every_match(self, repeat_registration):
+        '''
+        Test that remove_dependency removes every dependency matching the flag.
+
+        :param repeat_registration: The service registration aggregate with a repeated flag.
+        :type repeat_registration: ServiceRegistrationAggregate
+        '''
+
+        # Remove the repeated flag.
+        result = repeat_registration.remove_dependency('dup_flag')
+
+        # Nothing is returned, and only the other dependency survives.
+        assert result is None
+        assert [dep.model_dump() for dep in repeat_registration.dependencies] == [
+            {
+                'module_path': 'tests.repos.test',
+                'class_name': 'OtherRepoProxy',
+                'parameters': {},
+                'flag': 'other',
+            },
+        ]
 
 # ** tester: test_service_registration_config_object
 @use_tester(
@@ -677,3 +1080,74 @@ class TestServiceRegistrationConfigObject:
             assert left.module_path == right.module_path
             assert left.class_name == right.class_name
             assert left.parameters == right.parameters
+
+    # * test: from_model_key_order
+    def test_from_model_key_order(self, registration_for_transfer, reversed_registration):
+        '''
+        Test that from_model keys dependencies by flag in list order.
+
+        :param registration_for_transfer: The service registration aggregate for transfer.
+        :type registration_for_transfer: ServiceRegistrationAggregate
+        :param reversed_registration: The service registration aggregate with dependencies reversed.
+        :type reversed_registration: ServiceRegistrationAggregate
+        '''
+
+        # Convert each source and compare its keys and keyed child fields.
+        for source, expected in (
+            (registration_for_transfer, ['test', 'test2']),
+            (reversed_registration, ['test2', 'test']),
+        ):
+            config = ServiceRegistrationConfigObject.from_model(source)
+            assert list(config.dependencies) == expected
+            for dep in source.dependencies:
+                child = config.dependencies[dep.flag]
+                assert child.module_path == dep.module_path
+                assert child.class_name == dep.class_name
+                assert child.parameters == dep.parameters
+
+    # * test: map_key_order
+    def test_map_key_order(self, service_registration_config, reversed_service_registration_config):
+        '''
+        Test that map orders dependencies by the declared deps key order.
+
+        :param service_registration_config: The service registration config object.
+        :type service_registration_config: ServiceRegistrationConfigObject
+        :param reversed_service_registration_config: The service registration config object with deps reversed.
+        :type reversed_service_registration_config: ServiceRegistrationConfigObject
+        '''
+
+        # Map each config object and compare flags with their child type fields.
+        for config, expected in (
+            (service_registration_config, [('test', 'TestRepoProxy'), ('test2', 'TestRepoProxy2')]),
+            (reversed_service_registration_config, [('test2', 'TestRepoProxy2'), ('test', 'TestRepoProxy')]),
+        ):
+            aggregate = config.map()
+            assert [(dep.flag, dep.class_name) for dep in aggregate.dependencies] == expected
+            assert all(dep.module_path == 'tests.repos.test' for dep in aggregate.dependencies)
+
+    # * test: from_model_repeated_flag_raises
+    def test_from_model_repeated_flag_raises(self, repeat_registration):
+        '''
+        Test that from_model rejects a repeated flag without changing the source dependencies.
+
+        :param repeat_registration: The service registration aggregate with a repeated flag.
+        :type repeat_registration: ServiceRegistrationAggregate
+        '''
+
+        # Record the original ordered dependency fields.
+        original = [dep.model_dump() for dep in repeat_registration.dependencies]
+
+        # Convert the source with a repeated flag.
+        with pytest.raises(ModelError) as exc_info:
+            ServiceRegistrationConfigObject.from_model(repeat_registration)
+
+        # Assert the exact repeated-flag model error.
+        error = exc_info.value
+        assert error.error_code == INVALID_MODEL_VALUE_ID
+        assert json.loads(str(error))['message'] == (
+            "Flagged dependency 'dup_flag' is repeated in service registration 'test_repo'."
+        )
+        assert error.kwargs == {'attribute': 'dependencies', 'flag': 'dup_flag'}
+
+        # The source dependencies are unchanged.
+        assert [dep.model_dump() for dep in repeat_registration.dependencies] == original
