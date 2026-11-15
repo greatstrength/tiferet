@@ -13,6 +13,7 @@ from ..domain import (
     Feature,
     FeatureStep,
     EventFeatureStep,
+    ParameterSpecification,
 )
 from .core import (
     Aggregate,
@@ -95,7 +96,6 @@ class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
         # Delegate to the base Aggregate for all other attributes.
         super().set_attribute(attribute, value)
 
-
 # ** mapper: event_feature_step_config_object
 class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
     '''
@@ -152,7 +152,6 @@ class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
 
         # Create a new EventFeatureStepConfigObject from the model.
         return super().from_model(event_feature_step, **overrides)
-
 
 # ** mapper: feature_aggregate
 class FeatureAggregate(Feature, Aggregate):
@@ -311,7 +310,6 @@ class FeatureAggregate(Feature, Aggregate):
         # Update the description.
         self.description = description
 
-
 # ** mapper: feature_config_object
 class FeatureConfigObject(Feature, TransferObject):
     '''
@@ -344,9 +342,8 @@ class FeatureConfigObject(Feature, TransferObject):
     @field_serializer('params_schema')
     def serialize_params_schema(self, value: Any, _info: Any) -> Any:
         '''
-        Serialize ``params_schema`` into the ergonomic keyed mapping used in
-        configuration files, emitting shorthand ``name: type`` when a parameter
-        has no extra constraints and the expanded mapping otherwise.
+        Serialize ``params_schema`` into the configuration-value face owned by
+        ``ParameterSpecification``.
 
         :param value: The request specification to serialize.
         :type value: Any
@@ -356,43 +353,12 @@ class FeatureConfigObject(Feature, TransferObject):
         :rtype: Any
         '''
 
-        # Emit nothing when no schema is configured.
+        # Return a null schema unchanged, without calling the domain writer.
         if value is None:
             return None
 
-        # Build a keyed mapping of parameter name to its specification.
-        result: Dict[str, Any] = {}
-        for param in value.parameters:
-
-            # Collect non-default constraint fields beyond name and type.
-            extras: Dict[str, Any] = {}
-            if param.default is not None:
-                extras['default'] = param.default
-            if not param.required:
-                extras['required'] = param.required
-            if param.description is not None:
-                extras['description'] = param.description
-            if param.minimum is not None:
-                extras['minimum'] = param.minimum
-            if param.maximum is not None:
-                extras['maximum'] = param.maximum
-            if param.min_length is not None:
-                extras['min_length'] = param.min_length
-            if param.max_length is not None:
-                extras['max_length'] = param.max_length
-            if param.pattern is not None:
-                extras['pattern'] = param.pattern
-            if param.choices is not None:
-                extras['choices'] = param.choices
-
-            # Use shorthand when only the type is meaningful, else the expanded form.
-            if not extras:
-                result[param.name] = param.type
-            else:
-                result[param.name] = {'type': param.type, **extras}
-
-        # Return the keyed parameter mapping.
-        return result
+        # Delegate non-null schema serialization to ParameterSpecification.
+        return ParameterSpecification.to_config_map(value.parameters)
 
     # * method: map
     def map(self, **overrides) -> FeatureAggregate:
