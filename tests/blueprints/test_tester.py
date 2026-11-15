@@ -18,7 +18,6 @@ from tiferet.blueprints import tester as tester_blueprints
 from tiferet.blueprints import tester_cli as tester_cli_blueprints
 from tiferet.blueprints.tester import (
     build_cache,
-    build_phase_runtime,
     build_test_session,
     build_tester_context,
 )
