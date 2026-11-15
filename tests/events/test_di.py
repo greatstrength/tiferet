@@ -321,8 +321,8 @@ class TestSetDefaultServiceRegistration:
         service.get_registration.return_value = service_registration_aggregate
         return {'di_service': service}
 
-    # * test: full_update
-    def test_full_update(
+    # * test: type_update_overlays_parameters
+    def test_type_update_overlays_parameters(
             self,
             test_ctx,
             mock_dependencies,

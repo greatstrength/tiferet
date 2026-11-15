@@ -161,18 +161,18 @@ class SetDefaultServiceRegistration(DIEvent):
 
             # Update both type and parameters via the model helper.
             registration.set_default_type(
-                module_path,
-                class_name,
-                parameters,
+                module_path=module_path,
+                class_name=class_name,
+                parameters=parameters,
             )
         else:
             # Only parameters are being updated. Keep the existing module_path
             # and class_name and delegate the parameter overlay to the model
             # helper.
             registration.set_default_type(
-                registration.module_path,
-                registration.class_name,
-                parameters,
+                module_path=registration.module_path,
+                class_name=registration.class_name,
+                parameters=parameters,
             )
 
         # Persist the updated registration and return it.
@@ -234,9 +234,6 @@ class SetServiceDependency(DIEvent):
             a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
             id=id,
         )
-
-        # Coerce optional parameters that argparse may pass as None.
-        parameters = parameters or {}
 
         # Delegate to the model to set/update the flagged dependency.
         registration.set_dependency(

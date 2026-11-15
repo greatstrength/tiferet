@@ -546,8 +546,8 @@ class TestServiceRegistrationAggregate:
         ('invalid_attr', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
-    # * test: set_default_type_updates
-    def test_set_default_type_updates(self, test_ctx):
+    # * test: set_default_type_overlays_parameters
+    def test_set_default_type_overlays_parameters(self, test_ctx):
         '''
         Test that set_default_type updates module_path and class_name and
         overlays the parameters.
