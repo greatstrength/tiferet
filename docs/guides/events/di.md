@@ -86,7 +86,7 @@ Sets or updates the default module/class and parameters for an existing service 
 |---|---|---|---|
 | `module_path` | `str \| None` | `None` | New default module path |
 | `class_name` | `str \| None` | `None` | New default class name |
-| `parameters` | `Dict[str, Any] \| None` | `None` | New parameters. `None` clears all parameters. |
+| `parameters` | `Dict[str, Any] \| None` | `None` | Parameter overlay. A new value wins, a `None` value removes that key, and a `None` or omitted argument leaves the existing parameters unchanged. |
 
 **Returns:** The updated `ServiceRegistration` instance.
 
@@ -95,9 +95,9 @@ Sets or updates the default module/class and parameters for an existing service 
 - `INVALID_SERVICE_REGISTRATION` if only one of `module_path` or `class_name` is provided (both must be provided for an atomic type update).
 
 **Behavior:**
-- If both `module_path` and `class_name` are provided, updates the default type and parameters.
-- If neither is provided, only parameters are updated (or cleared) while keeping the existing type.
-- Parameters with `None` values are removed from the dict.
+- If both `module_path` and `class_name` are provided, updates the default type and overlays the parameters.
+- If neither is provided, only the parameters are overlaid while keeping the existing type.
+- Parameters with `None` values are removed from the dict; keys not named in the overlay are kept.
 
 ```python
 DomainEvent.handle(

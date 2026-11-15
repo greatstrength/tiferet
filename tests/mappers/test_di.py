@@ -266,7 +266,8 @@ class TestServiceRegistrationAggregate:
     # * test: set_default_type_updates
     def test_set_default_type_updates(self, test_ctx):
         '''
-        Test that set_default_type updates module_path, class_name, and parameters.
+        Test that set_default_type updates module_path and class_name and overlays
+        the parameters, keeping existing keys not named in the overlay.
         '''
 
         target = test_ctx.make_target()
@@ -284,30 +285,10 @@ class TestServiceRegistrationAggregate:
         # Assert the fields were updated correctly.
         assert aggregate.module_path == 'updated.module'
         assert aggregate.class_name == 'UpdatedClass'
-        assert aggregate.parameters == {'new_param': 'new_value'}
-
-    # * test: set_default_type_clears_when_both_none
-    def test_set_default_type_clears_when_both_none(self, test_ctx):
-        '''
-        Test that set_default_type clears module_path, class_name, and parameters
-        when both type fields are None.
-        '''
-
-        target = test_ctx.make_target()
-
-        # Bind the generated target fixture to the established local name.
-        aggregate = target
-
-        # Call with both type fields as None to clear the default type.
-        aggregate.set_default_type(
-            module_path=None,
-            class_name=None,
-        )
-
-        # Both type fields and parameters should be cleared.
-        assert aggregate.module_path is None
-        assert aggregate.class_name is None
-        assert aggregate.parameters == {}
+        assert aggregate.parameters == {
+            'default_param': 'default_value',
+            'new_param': 'new_value',
+        }
 
     # * test: set_dependency_creates_new
     def test_set_dependency_creates_new(self, test_ctx):

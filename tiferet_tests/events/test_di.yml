@@ -250,6 +250,7 @@ testers:
               module_path: new.module
               class_name: NewClass
               parameters:
+                param_1: value_1
                 param: value
           - mock: di_service
             method: save_registration
@@ -281,7 +282,7 @@ testers:
               class_name: ExampleRepository
               parameters:
                 param_1: updated
-      clear_parameters:
+      parameters_none_leaves_existing:
         conditions:
           fixtures: [service_registration]
           mocks:
@@ -301,7 +302,8 @@ testers:
         assert:
           - outcome: service_registration
             fields:
-              parameters: {}
+              parameters:
+                param_1: value_1
               module_path: tiferet.repos.example
       incomplete_type:
         conditions:

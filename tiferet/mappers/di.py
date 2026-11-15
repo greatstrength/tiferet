@@ -129,34 +129,33 @@ class ServiceRegistrationAggregate(ServiceRegistration, Aggregate):
         parameters: Dict[str, Any] | None = None,
     ) -> None:
         '''
-        Update the default type and parameters for this service registration.
+        Update the default type and overlay the parameters for this service
+        registration. A new value wins, a ``None`` value removes that key, and
+        a ``None`` argument leaves the parameters unchanged.
 
-        :param module_path: New module path (or None to clear).
+        :param module_path: The default module path.
         :type module_path: str | None
-        :param class_name: New class name (or None to clear).
+        :param class_name: The default class name.
         :type class_name: str | None
-        :param parameters: New parameters dict (or None to clear all).
+        :param parameters: The parameter overlay (None leaves the parameters).
         :type parameters: Dict[str, Any] | None
         :return: None
         :rtype: None
         '''
 
-        # If both type fields are None, clear default type entirely.
-        if module_path is None and class_name is None:
-            self.module_path = None
-            self.class_name = None
-            self.parameters = {}
+        # Set the default type to the provided values.
+        self.module_path = module_path
+        self.class_name = class_name
 
-        # Otherwise, set them to whatever is provided.
-        else:
-            self.module_path = module_path
-            self.class_name = class_name
-
-        # Update parameters: clear when None, otherwise replace with filtered dict.
+        # Leave the parameters unchanged when None is provided.
         if parameters is None:
-            self.parameters = {}
-        else:
-            self.parameters = {k: v for k, v in parameters.items() if v is not None}
+            return
+
+        # Merge existing parameters with new ones (new values win), then drop
+        # any keys whose value is None.
+        merged = dict(self.parameters or {})
+        merged.update(parameters)
+        self.parameters = {k: v for k, v in merged.items() if v is not None}
 
     # * method: set_dependency
     def set_dependency(

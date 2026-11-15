@@ -396,31 +396,8 @@ testers:
               module_path: updated.module
               class_name: UpdatedClass
               parameters:
+                default_param: default_value
                 new_param: new_value
-      set_default_type_clears_when_both_none:
-        conditions: {}
-        execute:
-          - target: self
-            method: new
-            as: built
-          - target: $r.built
-            method: set_default_type
-            kwargs:
-              module_path: null
-              class_name: null
-          - target:
-              module_path: builtins
-              attribute: getattr
-            method: getattr
-            args: [$r.built, parameters]
-            as: parameters
-        assert:
-          - outcome: built
-            fields:
-              module_path: null
-              class_name: null
-          - outcome: parameters
-            equals: {}
       set_dependency_creates_new:
         conditions: {}
         execute:
