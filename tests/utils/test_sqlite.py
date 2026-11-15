@@ -456,7 +456,12 @@ class TestSqliteClient:
         assert row == expected
 
     # * test: backup_with_progress
-    def test_backup_with_progress(self, tmp_path: Path, memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str, test_ctx):
+    def test_backup_with_progress(self,
+                                  tmp_path: Path,
+                                  memory_client: SqliteClient,
+                                  sample_table_sql: str,
+                                  sample_insert_sql: str,
+                                  test_ctx):
         '''
         Test backup with a progress callback.
 
