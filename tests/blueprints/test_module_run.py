@@ -5,6 +5,7 @@
 # ** core
 import logging
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -795,3 +796,1027 @@ def test_stage_cleanup_failure_is_recorded(tmp_path, capsys, monkeypatch) -> Non
     for outcome in outcomes:
         assert 'cleanup failed' in outcome['message']
     assert printed.splitlines()[-1].endswith('3 failed')
+
+# ** test: proof_run_prints_yaml_node_ids
+def test_proof_run_prints_yaml_node_ids(tmp_path, capsys) -> None:
+    '''
+    Run one passing root test and read the YAML node id and count line.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Write one passing format case and run it with summary off.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    run_test_module(str(python_path), summary=False)
+    lines = capsys.readouterr().out.splitlines()
+
+    # The first line is the YAML node id. The last line is the count.
+    assert lines[0] == 'tiferet_tests/domain/test_run.yml::kept PASSED'
+    assert lines[-1] == '1 passed'
+
+# ** test: summary_prints_only_the_count
+def test_summary_prints_only_the_count(tmp_path, capsys) -> None:
+    '''
+    Run one passing pair with summary on and read only the count line.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Write the same passing format case and run it with summary on.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    run_test_module(str(python_path), summary=True)
+    printed = capsys.readouterr().out
+
+    # Summary prints only the count line.
+    assert printed == '1 passed\n'
+    assert 'PASSED' not in printed
+    assert 'FAILED' not in printed
+
+# ** test: session_uses_test_context
+def test_session_uses_test_context() -> None:
+    '''
+    Build a session from a test context and omit tester_ctx.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build one TestContext from a passing format mapping.
+    test_mapping = {
+        'conditions': {
+            'fixtures': ['sample'],
+        },
+        'execute': [
+            {
+                'target': 'sample',
+                'method': 'format',
+                'as': 'raw',
+            },
+        ],
+        'assert': [
+            {
+                'outcome': 'raw',
+                'equals': 'kept',
+            },
+        ],
+    }
+    coordinates = {
+        'tester_module_path': '',
+        'tester_class_name': '',
+        'tester_attributes': {},
+        'root_fixtures': {
+            'sample': {
+                'module_path': 'tiferet.domain.error',
+                'class_name': 'ErrorMessage',
+                'attributes': {
+                    'lang': 'en_US',
+                    'text': 'kept',
+                },
+            },
+        },
+        'tester_fixtures': {},
+    }
+    test_context = tester_blueprints._build_module_test(
+        'kept',
+        test_mapping,
+        coordinates,
+    )
+
+    # Pass test_context keyword-only and omit tester_ctx.
+    session = build_test_session(test_context=test_context)
+
+    # The session holds that same test context and leaves tester_ctx null.
+    assert session.test_context is test_context
+    assert session.tester_ctx is None
+
+# ** test: phase_runtime_comes_from_the_injected_callable
+def test_phase_runtime_comes_from_the_injected_callable(monkeypatch) -> None:
+    '''
+    Build a module test and store the injected runtime in the slot.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    :return: None
+    :rtype: None
+    '''
+
+    # Observe the instance the injected callable returns.
+    observed = []
+    real = tester_blueprints.build_phase_runtime
+
+    def spy(*args, **kwargs):
+        runtime = real(*args, **kwargs)
+        observed.append(runtime)
+        return runtime
+
+    monkeypatch.setattr(tester_blueprints, 'build_phase_runtime', spy)
+
+    # Build one module test from a passing format mapping.
+    test_mapping = {
+        'conditions': {
+            'fixtures': ['sample'],
+        },
+        'execute': [
+            {
+                'target': 'sample',
+                'method': 'format',
+                'as': 'raw',
+            },
+        ],
+        'assert': [
+            {
+                'outcome': 'raw',
+                'equals': 'kept',
+            },
+        ],
+    }
+    coordinates = {
+        'tester_module_path': '',
+        'tester_class_name': '',
+        'tester_attributes': {},
+        'root_fixtures': {
+            'sample': {
+                'module_path': 'tiferet.domain.error',
+                'class_name': 'ErrorMessage',
+                'attributes': {
+                    'lang': 'en_US',
+                    'text': 'kept',
+                },
+            },
+        },
+        'tester_fixtures': {},
+    }
+    test_context = tester_blueprints._build_module_test(
+        'kept',
+        test_mapping,
+        coordinates,
+    )
+
+    # Running the bound test fills the slot with that same runtime instance.
+    session = build_test_session(test_context=test_context)
+    test_context.execute_feature(session)
+    assert observed
+    assert test_context._phase_runtime_slot['runtime'] is observed[0]
+
+# ** test: sys_path_restored_after_run
+def test_sys_path_restored_after_run(tmp_path, capsys) -> None:
+    '''
+    Run a passing pair whose root is absent from sys.path and restore the path.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The resolved project root is absent from sys.path before the call.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    root = str(tmp_path.resolve())
+    assert root not in sys.path
+    before = list(sys.path)
+    report = run_test_module(str(python_path))
+
+    # The report returns and sys.path matches its value before the call.
+    assert report['outcomes'][0]['status'] == 'PASSED'
+    assert sys.path == before
+
+# ** test: sys_path_restored_after_raise
+def test_sys_path_restored_after_raise(tmp_path, capsys) -> None:
+    '''
+    Run a Python module whose counterpart is missing and restore the path.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The Python module exists. The counterpart does not.
+    python_path = tmp_path / 'tests' / 'domain' / 'test_absent.py'
+    python_path.parent.mkdir(parents=True, exist_ok=True)
+    python_path.write_text('"""temporary"""\n', encoding='utf-8')
+    root = str(tmp_path.resolve())
+    assert root not in sys.path
+    before = list(sys.path)
+    with pytest.raises(ServiceError, match='YAML_FILE_NOT_FOUND'):
+        run_test_module(str(python_path))
+
+    # The missing-document error still restores sys.path.
+    assert sys.path == before
+    assert capsys.readouterr().out == ''
+
+# ** test: subject_dropped_root_still_returns_the_report
+def test_subject_dropped_root_still_returns_the_report(tmp_path, capsys) -> None:
+    '''
+    Run a pair whose subject drops the project root from sys.path and still return the report.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The subject module removes its own root from sys.path when imported.
+    (tmp_path / 'drop_root_subject.py').write_text(
+        'import os\n'
+        'import sys\n'
+        '_root = os.path.dirname(os.path.realpath(__file__))\n'
+        'if _root in sys.path:\n'
+        '    sys.path.remove(_root)\n'
+        'from tiferet.domain.error import ErrorMessage\n',
+        encoding='utf-8',
+    )
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: drop_root_subject
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    root = str(tmp_path.resolve())
+    assert root not in sys.path
+    before = list(sys.path)
+    try:
+        report = run_test_module(str(python_path))
+    finally:
+        sys.modules.pop('drop_root_subject', None)
+
+    # The cleanup tolerates the missing entry and sys.path matches its value before the call.
+    assert report['outcomes'][0]['status'] == 'PASSED'
+    assert sys.path == before
+    assert capsys.readouterr().out.splitlines()[-1] == '1 passed'
+
+# ** test: existing_entry_is_kept
+def test_existing_entry_is_kept(tmp_path, capsys) -> None:
+    '''
+    Run a passing pair whose root is already on sys.path and keep that entry.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Place the resolved project root on sys.path before the call.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    root = str(tmp_path.resolve())
+    sys.path.insert(0, root)
+    before_count = sys.path.count(root)
+    try:
+        run_test_module(str(python_path))
+        assert root in sys.path
+        assert sys.path.count(root) == before_count
+    finally:
+        if root in sys.path:
+            sys.path.remove(root)
+
+# ** test: project_root_on_path_for_the_run
+def test_project_root_on_path_for_the_run(tmp_path, capsys) -> None:
+    '''
+    Import a temporary package that is only visible when the project root is on the path.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Write a package outside tests/ and a document that imports it during the test.
+    sys.modules.pop('visible_pkg', None)
+    package = tmp_path / 'visible_pkg'
+    package.mkdir()
+    (package / '__init__.py').write_text(
+        'MARKER = "visible"\n\ndef marker():\n    return MARKER\n',
+        encoding='utf-8',
+    )
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''tests:
+  import_pkg:
+    conditions: {}
+    execute:
+      - target:
+          module_path: visible_pkg
+          attribute: marker
+        method: marker
+        as: got
+    assert:
+      - outcome: got
+        equals: visible
+''',
+    )
+    report = run_test_module(str(python_path))
+    lines = capsys.readouterr().out.splitlines()
+
+    # The package import passes because the project root is on sys.path for the run.
+    assert report['outcomes'][0]['status'] == 'PASSED'
+    assert lines[-1] == '1 passed'
+
+# ** test: absolute_path_from_another_cwd
+def test_absolute_path_from_another_cwd(tmp_path, capsys, monkeypatch) -> None:
+    '''
+    Run an absolute module path from a cwd outside the temporary root.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    :return: None
+    :rtype: None
+    '''
+
+    # Write the same temporary package and a document that imports it.
+    sys.modules.pop('visible_pkg', None)
+    package = tmp_path / 'visible_pkg'
+    package.mkdir()
+    (package / '__init__.py').write_text(
+        'MARKER = "visible"\n\ndef marker():\n    return MARKER\n',
+        encoding='utf-8',
+    )
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''tests:
+  import_pkg:
+    conditions: {}
+    execute:
+      - target:
+          module_path: visible_pkg
+          attribute: marker
+        method: marker
+        as: got
+    assert:
+      - outcome: got
+        equals: visible
+''',
+    )
+
+    # Change the process cwd to a directory outside the temporary root.
+    outside = tmp_path.parent
+    monkeypatch.chdir(outside)
+    report = run_test_module(str(python_path.resolve()))
+
+    # The import still passes and the process cwd is unchanged.
+    assert report['outcomes'][0]['status'] == 'PASSED'
+    assert Path.cwd() == outside.resolve()
+
+# ** test: import_miss_and_attribute_miss_are_distinct
+def test_import_miss_and_attribute_miss_are_distinct(tmp_path, capsys) -> None:
+    '''
+    Run an unimportable fixture module beside a missing fixture class.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # One fixture module cannot be imported. One class is absent from its module.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  missing:
+    module_path: tests.missing_module_1436
+    class_name: NamedThing
+    attributes: {}
+  noattr:
+    module_path: tiferet.domain.error
+    class_name: DoesNotExist
+    attributes: {}
+tests:
+  import_miss:
+    conditions:
+      fixtures: [missing]
+    execute:
+      - target: missing
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  attr_miss:
+    conditions:
+      fixtures: [noattr]
+    execute:
+      - target: noattr
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+    import_message = report['outcomes'][0]['message']
+    attr_message = report['outcomes'][1]['message']
+
+    # Both tests fail, and the two miss details stay distinct.
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert report['outcomes'][1]['status'] == 'FAILED'
+    assert 'Could not import module tests.missing_module_1436: ' in import_message
+    assert 'tiferet.domain.error has no DoesNotExist.' in attr_message
+    assert printed.splitlines()[-1] == '2 failed'
+
+# ** test: subject_path_entry_survives
+def test_subject_path_entry_survives(tmp_path, capsys) -> None:
+    '''
+    Keep a caller-added path entry and a preloaded module after the run.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Add a sys.path entry that is not the resolved project root.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    extra = str((tmp_path / 'caller_entry').resolve())
+    sys.path.append(extra)
+    assert 'tiferet.domain.error' in sys.modules
+    try:
+        run_test_module(str(python_path))
+        assert extra in sys.path
+        assert 'tiferet.domain.error' in sys.modules
+    finally:
+        if extra in sys.path:
+            sys.path.remove(extra)
+
+# ** test: project_root_is_first_during_the_run
+def test_project_root_is_first_during_the_run(tmp_path, capsys) -> None:
+    '''
+    Assert a subject that returns sys.path[0] equals the resolved project root.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # Write a subject that returns sys.path[0] from the temporary project root.
+    sys.modules.pop('visible_pkg', None)
+    package = tmp_path / 'visible_pkg'
+    package.mkdir()
+    (package / '__init__.py').write_text(
+        'import sys\n\ndef first():\n    return sys.path[0]\n',
+        encoding='utf-8',
+    )
+    root = str(tmp_path.resolve())
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        f'''tests:
+  first:
+    conditions: {{}}
+    execute:
+      - target:
+          module_path: visible_pkg
+          attribute: first
+        method: first
+        as: got
+    assert:
+      - outcome: got
+        equals: {root!r}
+''',
+    )
+    report = run_test_module(str(python_path))
+    lines = capsys.readouterr().out.splitlines()
+
+    # The subject sees the resolved project root at the front of sys.path.
+    assert report['outcomes'][0]['status'] == 'PASSED'
+    assert lines[-1] == '1 passed'
+
+# ** test: subject_import_miss_fails_that_test
+def test_subject_import_miss_fails_that_test(tmp_path, capsys) -> None:
+    '''
+    Fail a subject that imports a missing module and still run the neighbor.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The missing module is imported by the subject, not as a dialect fixture.
+    sys.modules.pop('visible_pkg', None)
+    package = tmp_path / 'visible_pkg'
+    package.mkdir()
+    (package / '__init__.py').write_text(
+        'def import_missing():\n    import no_such_module_1436\n',
+        encoding='utf-8',
+    )
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  missing:
+    conditions: {}
+    execute:
+      - target:
+          module_path: visible_pkg
+          attribute: import_missing
+        method: import_missing
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+    message = report['outcomes'][0]['message']
+
+    # The subject miss is that test's failure and does not abort the neighbor.
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert 'ModuleNotFoundError' in message
+    assert 'no_such_module_1436' in message
+    assert 'Could not import module' not in message
+    assert report['outcomes'][1]['status'] == 'PASSED'
+    assert printed.splitlines()[-1] == '1 failed, 1 passed'
+
+# ** test: uncatalogued_tiferet_error_does_not_abort_the_other_test
+def test_uncatalogued_tiferet_error_does_not_abort_the_other_test(tmp_path, capsys) -> None:
+    '''
+    Raise an uncatalogued TiferetError beside a passing neighbor and return a report.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The subject raises a TiferetError whose code is absent from the catalog.
+    sys.modules.pop('visible_pkg', None)
+    package = tmp_path / 'visible_pkg'
+    package.mkdir()
+    (package / '__init__.py').write_text(
+        'from tiferet.assets import TiferetError\n\n'
+        'def raise_uncatalogued():\n'
+        "    raise TiferetError('NOT_IN_THE_CATALOG')\n",
+        encoding='utf-8',
+    )
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  uncatalogued:
+    conditions: {}
+    execute:
+      - target:
+          module_path: visible_pkg
+          attribute: raise_uncatalogued
+        method: raise_uncatalogued
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    captured = capsys.readouterr()
+
+    # The uncatalogued error does not abort the neighbor or become a harness exit.
+    assert isinstance(report, dict)
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert report['outcomes'][1]['status'] == 'PASSED'
+    assert captured.out.splitlines()[-1] == '1 failed, 1 passed'
+    assert 'tiferet-tester harness error:' not in captured.err
+
+# ** test: conditions_phase_error_does_not_abort_the_other_test
+def test_conditions_phase_error_does_not_abort_the_other_test(tmp_path, capsys) -> None:
+    '''
+    Collide a fixture name with a mock and still run the passing neighbor.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The collision uses the same name as both a fixture and a mock.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  collision:
+    conditions:
+      fixtures: [sample]
+      mocks:
+        sample:
+          module_path: tiferet.domain.error
+          class_name: ErrorMessage
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+    message = report['outcomes'][0]['message']
+
+    # The collision is that test's failure and does not abort the neighbor.
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert "Mock and fixture names collide: ['sample']." in message
+    assert report['outcomes'][1]['status'] == 'PASSED'
+    assert printed.splitlines()[-1] == '1 failed, 1 passed'
+
+# ** test: assert_phase_failure_does_not_abort_the_other_test
+def test_assert_phase_failure_does_not_abort_the_other_test(tmp_path, capsys) -> None:
+    '''
+    Reject a null equals assert and still run the passing neighbor.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The broken assert carries a YAML null under equals.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  broken:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: null
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+    message = report['outcomes'][0]['message']
+
+    # Model validation rejects the null equals as that test's failure and does not abort the neighbor.
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert "Check equals requires ['equals']." in message
+    assert report['outcomes'][1]['status'] == 'PASSED'
+    assert printed.splitlines()[-1] == '1 failed, 1 passed'
+
+# ** test: subject_service_error_does_not_abort_the_other_test
+def test_subject_service_error_does_not_abort_the_other_test(tmp_path, capsys) -> None:
+    '''
+    Raise a ServiceError beside a passing neighbor and keep both outcomes.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :return: None
+    :rtype: None
+    '''
+
+    # The first subject raises ServiceError. The neighbor is the passing format case.
+    sys.modules.pop('visible_pkg', None)
+    package = tmp_path / 'visible_pkg'
+    package.mkdir()
+    (package / '__init__.py').write_text(
+        'from tiferet.interfaces.core import ServiceError\n\n'
+        'def raise_service():\n'
+        "    raise ServiceError('BROKEN')\n",
+        encoding='utf-8',
+    )
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  broken:
+    conditions: {}
+    execute:
+      - target:
+          module_path: visible_pkg
+          attribute: raise_service
+        method: raise_service
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    report = run_test_module(str(python_path))
+    printed = capsys.readouterr().out
+    message = report['outcomes'][0]['message']
+
+    # The service error is that test's failure and does not abort the neighbor.
+    assert report['outcomes'][0]['status'] == 'FAILED'
+    assert 'ServiceError' in message
+    assert report['outcomes'][1]['status'] == 'PASSED'
+    assert printed.splitlines()[-1] == '1 failed, 1 passed'
+
+# ** test: reporter_session_harness_error
+def test_reporter_session_harness_error(tmp_path, capsys, monkeypatch) -> None:
+    '''
+    Exit 3 when the reporter-session build fails, and restore sys.path.
+
+    :param tmp_path: A writable temporary directory.
+    :type tmp_path: Path
+    :param capsys: The pytest capture fixture.
+    :type capsys: pytest.CaptureFixture
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    :return: None
+    :rtype: None
+    '''
+
+    # Write a valid pair whose resolved root is absent from sys.path.
+    python_path = write_pair(
+        tmp_path,
+        'domain/test_run',
+        '''fixtures:
+  sample:
+    module_path: tiferet.domain.error
+    class_name: ErrorMessage
+    attributes:
+      lang: en_US
+      text: kept
+tests:
+  kept:
+    conditions:
+      fixtures: [sample]
+    execute:
+      - target: sample
+        method: format
+        as: raw
+    assert:
+      - outcome: raw
+        equals: kept
+''',
+    )
+    root = str(tmp_path.resolve())
+    assert root not in sys.path
+    before = list(sys.path)
+
+    # The reporter-session build raises KeyError whose text is CORE_DEFAULT_ERRORS.
+    def boom():
+        raise KeyError('CORE_DEFAULT_ERRORS')
+
+    monkeypatch.setattr(tester_blueprints, '_module_run_session', boom)
+    with pytest.raises(SystemExit) as exit_info:
+        run_test_module(str(python_path))
+    captured = capsys.readouterr()
+
+    # The harness exit has no case line, one stderr line, and a restored path.
+    assert exit_info.value.code == 3
+    assert captured.out == ''
+    assert captured.err.splitlines() == [
+        "tiferet-tester harness error: reporter session: KeyError: 'CORE_DEFAULT_ERRORS'",
+    ]
+    assert sys.path == before

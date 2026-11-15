@@ -8,6 +8,7 @@ import copy
 import functools
 import inspect
 import os
+import sys
 from importlib import import_module
 import tempfile
 from pathlib import Path
@@ -18,12 +19,25 @@ from typing import Any, Callable, Dict, List
 from pydantic import ValidationError
 
 # ** app
-from .. import a
 from ..assets import TiferetAPIError, TiferetError
 from ..assets.tester import (
-    CORE_DEFAULT_TESTERS,
-    CORE_DEFAULT_TESTER_SESSIONS,
     TEST_MODULE_LOAD_FAILED_ID,
+)
+from ..assets.tester_harness import (
+    HARNESS_CORE_DEFAULT_ERRORS,
+    HARNESS_CORE_DEFAULT_TESTERS,
+    HARNESS_CORE_DEFAULT_TESTER_SESSIONS,
+    HARNESS_DEFAULT_CONFIG_FILE,
+    HARNESS_DI_CONFIG_ID,
+    HARNESS_DI_SERVICE_DATA,
+    HARNESS_DI_SERVICE_ID,
+    HARNESS_ERROR_EXIT_CODE,
+    HARNESS_ERROR_PREFIX,
+    HARNESS_FEATURE_CONFIG_ID,
+    HARNESS_FEATURE_SERVICE_DATA,
+    HARNESS_FEATURE_SERVICE_ID,
+    HARNESS_GET_FEATURE_EVT_DATA,
+    HARNESS_GET_FEATURE_EVT_ID,
 )
 from ..contexts.app import (
     add_default_app_constants,
@@ -677,8 +691,41 @@ def _registered_stage() -> Any:
     # Return the class, not an instance.
     return getattr(module, 'Stage')
 
+# ** function: harness_step
+def _harness_step(step: str,
+                  build: Callable,
+                  *args,
+                  **kwargs) -> Any:
+    '''
+    Call a harness builder and exit with a harness diagnostic on failure.
+
+    :param step: The harness step name.
+    :type step: str
+    :param build: The builder to call.
+    :type build: Callable
+    :param args: Positional arguments for the builder.
+    :type args: tuple
+    :param kwargs: Keyword arguments for the builder.
+    :type kwargs: dict
+    :return: The builder result.
+    :rtype: Any
+    '''
+
+    # Call the builder and return its result.
+    try:
+        return build(*args, **kwargs)
+    except Exception as error:
+
+        # Collapse the error text to one line and exit as a harness failure.
+        message = ' '.join(str(error).split())
+        print(
+            f'{HARNESS_ERROR_PREFIX} {step}: {type(error).__name__}: {message}',
+            file=sys.stderr,
+        )
+        sys.exit(HARNESS_ERROR_EXIT_CODE)
+
 # ** function: reporter_cache
-@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
+@add_default_errors(HARNESS_CORE_DEFAULT_ERRORS)
 def _reporter_cache(cache: Dict[str, Any] = None) -> CacheContext:
     '''
     Decorated only with the error catalog. Return a cache context.
@@ -730,16 +777,16 @@ def _unused_dependency(*args, **kwargs) -> None:
     raise RuntimeError('get_error_evt')
 
 # ** blueprint: build_cache
-@add_default_app_sessions(CORE_DEFAULT_TESTER_SESSIONS)
-@add_default_testers(CORE_DEFAULT_TESTERS)
+@add_default_app_sessions(HARNESS_CORE_DEFAULT_TESTER_SESSIONS)
+@add_default_testers(HARNESS_CORE_DEFAULT_TESTERS)
 @add_default_app_constants({
-    a.app.DI_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
-    a.app.FEATURE_CONFIG_ID: a.app.DEFAULT_CONFIG_FILE,
+    HARNESS_DI_CONFIG_ID: HARNESS_DEFAULT_CONFIG_FILE,
+    HARNESS_FEATURE_CONFIG_ID: HARNESS_DEFAULT_CONFIG_FILE,
 })
 @add_default_app_services({
-    a.app.DI_SERVICE_ID: a.app.DI_SERVICE_DATA,
-    a.app.FEATURE_SERVICE_ID: a.app.FEATURE_SERVICE_DATA,
-    a.app.GET_FEATURE_EVT_ID: a.app.GET_FEATURE_EVT_DATA,
+    HARNESS_DI_SERVICE_ID: HARNESS_DI_SERVICE_DATA,
+    HARNESS_FEATURE_SERVICE_ID: HARNESS_FEATURE_SERVICE_DATA,
+    HARNESS_GET_FEATURE_EVT_ID: HARNESS_GET_FEATURE_EVT_DATA,
 })
 def build_cache(cache: Dict[str, Any] = None) -> CacheContext:
     '''
@@ -1549,6 +1596,11 @@ def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
     '''
     Run one Python test module from its counterpart and print the count line.
 
+    The resolved project root, the directory that holds tests/, is inserted at
+    the front of sys.path for the run when it is not already present. This run
+    removes that entry afterwards only if it added it. A reporter-session
+    failure exits with the harness code instead of returning a report.
+
     :param module_path: The filesystem path of a Python test module.
     :type module_path: str
     :param summary: Whether to print only the count line.
@@ -1564,52 +1616,67 @@ def run_test_module(module_path: str, summary: bool = False) -> Dict[str, Any]:
     # Read the Python bytes. Do not decode them into a test.
     path.read_bytes()
 
-    # Derive the counterpart and load it. A missing counterpart propagates.
+    # Derive the counterpart. The document load sits inside the path lifetime.
     rel, base_dir = _yaml_counterpart(path)
-    address = TestModuleContext._address(rel, base_dir)
-    document = DomainEvent.handle(
-        ReadTestModuleDocument,
-        address=address,
-        text=_read_test_module_text(address.path),
-        required=True,
-    )
 
-    # A non-mapping, or an illegal root key, raises before any test line.
-    mapping = document.mapping
-    if not isinstance(mapping, dict):
-        raise ValueError('A test module document must be a mapping.')
-    for key in mapping:
-        if key not in ('fixtures', 'tests', 'testers'):
-            raise ValueError(f'Illegal test-module root: {key}')
+    # The project root is the directory that holds tests/, not the process cwd.
+    project_root = str(Path(base_dir).resolve())
+    added = False
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+        added = True
+    try:
 
-    # Run each yielded test. One failure does not abort the module.
-    session = _module_run_session()
-    node_root = f'tiferet_tests/{rel}.yml'
-    passed = 0
-    failed = 0
-    for node_id, test_key, test_mapping, coordinates in _iter_document_tests(
-            mapping,
-            node_root,
-        ):
-        error, test_session = _run_one_test(
-            test_key,
-            test_mapping,
-            coordinates,
+        # Load the counterpart. A missing counterpart propagates.
+        address = TestModuleContext._address(rel, base_dir)
+        document = DomainEvent.handle(
+            ReadTestModuleDocument,
+            address=address,
+            text=_read_test_module_text(address.path),
+            required=True,
         )
-        printable = session.note(node_id, error, test_session)
-        if printable is None:
-            passed += 1
-            if not summary:
-                print(f'{node_id} PASSED')
-        else:
-            failed += 1
-            if not summary:
-                print(f'{node_id} FAILED')
-                if isinstance(printable, (ModelError, TiferetAPIError)):
-                    print(printable)
-                else:
-                    print(f'{type(printable).__name__}: {printable}')
 
-    # The count line is always printed on a run that reaches it.
-    print(_count_line(passed, failed))
-    return session.report()
+        # A non-mapping, or an illegal root key, raises before any test line.
+        mapping = document.mapping
+        if not isinstance(mapping, dict):
+            raise ValueError('A test module document must be a mapping.')
+        for key in mapping:
+            if key not in ('fixtures', 'tests', 'testers'):
+                raise ValueError(f'Illegal test-module root: {key}')
+
+        # A reporter-session failure exits before any case or count line.
+        session = _harness_step('reporter session', _module_run_session)
+        node_root = f'tiferet_tests/{rel}.yml'
+        passed = 0
+        failed = 0
+        for node_id, test_key, test_mapping, coordinates in _iter_document_tests(
+                mapping,
+                node_root,
+            ):
+            error, test_session = _run_one_test(
+                test_key,
+                test_mapping,
+                coordinates,
+            )
+            printable = session.note(node_id, error, test_session)
+            if printable is None:
+                passed += 1
+                if not summary:
+                    print(f'{node_id} PASSED')
+            else:
+                failed += 1
+                if not summary:
+                    print(f'{node_id} FAILED')
+                    if isinstance(printable, (ModelError, TiferetAPIError)):
+                        print(printable)
+                    else:
+                        print(f'{type(printable).__name__}: {printable}')
+
+        # The count line is always printed on a run that reaches it.
+        print(_count_line(passed, failed))
+        return session.report()
+    finally:
+
+        # Remove only the entry this run added. Do not change the process cwd.
+        if added and project_root in sys.path:
+            sys.path.remove(project_root)
