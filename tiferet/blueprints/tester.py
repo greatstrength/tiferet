@@ -693,9 +693,9 @@ def _registered_stage() -> Any:
 
 # ** function: harness_step
 def _harness_step(step: str,
-                 build: Callable,
-                 *args,
-                 **kwargs) -> Any:
+                  build: Callable,
+                  *args,
+                  **kwargs) -> Any:
     '''
     Call a harness builder and exit with a harness diagnostic on failure.
 
