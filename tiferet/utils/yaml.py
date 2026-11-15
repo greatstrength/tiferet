@@ -121,10 +121,9 @@ def find_mapping_pair(mapping: Any, key: str):
         return None
 
     # Return the first scalar key whose text equals key.
-    for pair in mapping.value:
-        key_node = pair[0]
+    for key_node, value_node in mapping.value:
         if isinstance(key_node, ScalarNode) and key_node.value == key:
-            return pair
+            return key_node, value_node
 
     # No scalar key matched.
     return None
@@ -145,29 +144,27 @@ def walk_test_module_nodes(root: Any, visit: Callable) -> None:
     # Remember nodes already visited so a later visit is not descended.
     seen = set()
 
-    def walk(node, path):
+    def walk(node: Any, path: tuple) -> None:
         '''
-        Visit one node and descend only on its first visit.
+        Visit one occurrence and descend only on its first visit.
         '''
 
-        # Visit the node, including a null root, and record that visit.
+        # Visit every occurrence, including a null root. A later visit stops here.
         later = id(node) in seen
         visit(node, path, later)
-        if not later:
-            seen.add(id(node))
-        if later or node is None:
+        if later:
             return
 
-        # Mapping children are the key node, then the value node.
+        # Record the first visit before descending.
+        seen.add(id(node))
+
+        # Mapping children are the key node, then the value node. Sequence items follow index order.
         if isinstance(node, MappingNode):
             for key_node, value_node in node.value:
-                text = key_node.value if isinstance(key_node, ScalarNode) else id(key_node)
-                walk(key_node, path + (('key', text),))
-                walk(value_node, path + (('val', text),))
-            return
-
-        # Sequence children are items in index order.
-        if isinstance(node, SequenceNode):
+                key_text = key_node.value if isinstance(key_node, ScalarNode) else id(key_node)
+                walk(key_node, path + (('key', key_text),))
+                walk(value_node, path + (('val', key_text),))
+        elif isinstance(node, SequenceNode):
             for index, item in enumerate(node.value):
                 walk(item, path + (('seq', index),))
 
@@ -188,7 +185,7 @@ def index_first_visits(root: Any) -> Dict[int, tuple]:
     # A later visit does not overwrite the first path.
     index = {}
 
-    def visit(node, path, later):
+    def visit(node: Any, path: tuple, later: bool) -> None:
         '''
         Record the path only on the first visit.
         '''
@@ -233,22 +230,19 @@ def node_from_plain(value: Any):
     if isinstance(value, str):
         return ScalarNode(YAML_STR_TAG, value)
 
-    # A list is a block sequence of plain children.
+    # A list is an empty block sequence, then its converted items.
     if isinstance(value, list):
-        return SequenceNode(
-            YAML_SEQ_TAG,
-            [node_from_plain(item) for item in value],
-            flow_style=False,
-        )
+        node = SequenceNode(YAML_SEQ_TAG, [], flow_style=False)
+        node.value = [node_from_plain(item) for item in value]
+        return node
 
-    # A mapping is a block map. Keys stay strings.
-    pairs = []
-    for key, item in value.items():
-        pairs.append((
-            ScalarNode(YAML_STR_TAG, key),
-            node_from_plain(item),
-        ))
-    return MappingNode(YAML_MAP_TAG, pairs, flow_style=False)
+    # A mapping is an empty block map, then string keys and converted values in insertion order.
+    node = MappingNode(YAML_MAP_TAG, [], flow_style=False)
+    node.value = [
+        (ScalarNode(YAML_STR_TAG, key), node_from_plain(item))
+        for key, item in value.items()
+    ]
+    return node
 
 # ** function: empty_mapping_node
 def empty_mapping_node() -> MappingNode:
@@ -287,11 +281,13 @@ def format_plain_float(value: float) -> str:
     :rtype: str
     '''
 
-    # Append .0 when repr has no decimal or exponent marker.
+    # Keep repr when it has a decimal or exponent marker.
     text = repr(value)
-    if '.' not in text and 'e' not in text and 'E' not in text:
-        text += '.0'
-    return text
+    if '.' in text or 'e' in text or 'E' in text:
+        return text
+
+    # Otherwise append .0 so the text stays a float.
+    return f'{text}.0'
 
 # ** function: nodes_before_path
 def nodes_before_path(root: Any, target_path: tuple) -> list:
@@ -306,29 +302,41 @@ def nodes_before_path(root: Any, target_path: tuple) -> list:
     :rtype: list
     '''
 
-    # Stop at the target. Do not include it.
+    # Collect first visits in order. Remember identities so a repeat is not entered.
     found = []
+    seen = set()
 
-    class _StopWalk(Exception):
+    def walk(node: Any, path: tuple) -> bool:
         '''
-        Signal that the target path has been reached.
-        '''
-
-    def visit(node, path, later):
-        '''
-        Collect a first visit, or stop when the target path is reached.
+        Collect one first visit, or report that the target path is reached.
         '''
 
+        # Test the target path before recording the node.
         if path == target_path:
-            raise _StopWalk()
-        if not later:
-            found.append(node)
+            return True
 
-    # A later visit is not entered and is not collected again.
-    try:
-        walk_test_module_nodes(root, visit)
-    except _StopWalk:
-        return found
+        # A repeat is not recorded or entered.
+        if id(node) in seen:
+            return False
+        seen.add(id(node))
+        found.append(node)
+
+        # Propagate the stop through mapping keys, mapping values, and sequence items.
+        if isinstance(node, MappingNode):
+            for key_node, value_node in node.value:
+                key_text = key_node.value if isinstance(key_node, ScalarNode) else id(key_node)
+                if walk(key_node, path + (('key', key_text),)):
+                    return True
+                if walk(value_node, path + (('val', key_text),)):
+                    return True
+        elif isinstance(node, SequenceNode):
+            for index, item in enumerate(node.value):
+                if walk(item, path + (('seq', index),)):
+                    return True
+        return False
+
+    # An absent target returns every first-visit node.
+    walk(root, ())
     return found
 
 # ** function: anchor_table
@@ -342,14 +350,10 @@ def anchor_table(root: Any) -> Dict[str, Any]:
     :rtype: Dict[str, Any]
     '''
 
-    # A null root has no anchors. Do not invent a name.
-    if root is None:
-        return {}
-
-    # Record a name only on the first visit of a named node.
+    # Record a name only on the first visit of a named node. Do not invent or sort names.
     table = {}
 
-    def visit(node, path, later):
+    def visit(node: Any, _path: tuple, later: bool) -> None:
         '''
         Store a recorded name. Skip later visits and unnamed nodes.
         '''
@@ -360,8 +364,9 @@ def anchor_table(root: Any) -> Dict[str, Any]:
         if name:
             table[name] = node
 
-    # Walk in document order.
-    walk_test_module_nodes(root, visit)
+    # Walk only a non-null root. A null root has no anchors.
+    if root is not None:
+        walk_test_module_nodes(root, visit)
     return table
 
 # ** function: node_ids
@@ -375,14 +380,10 @@ def node_ids(root: Any) -> set:
     :rtype: set
     '''
 
-    # A null root has no nodes.
-    if root is None:
-        return set()
-
     # Collect identities on the first visit only.
     identities = set()
 
-    def visit(node, path, later):
+    def visit(node: Any, _path: tuple, later: bool) -> None:
         '''
         Add the identity when this is not a later visit.
         '''
@@ -390,8 +391,9 @@ def node_ids(root: Any) -> set:
         if not later:
             identities.add(id(node))
 
-    # Walk in document order.
-    walk_test_module_nodes(root, visit)
+    # Walk only a non-null root. A null root has no nodes.
+    if root is not None:
+        walk_test_module_nodes(root, visit)
     return identities
 
 # ** function: delete_mapping_key
@@ -412,17 +414,16 @@ def delete_mapping_key(mapping: Any, key: str) -> bool:
         return False
 
     # Delete the first matching scalar key and leave every other pair.
-    for index, pair in enumerate(mapping.value):
-        key_node = pair[0]
+    for index, (key_node, _value_node) in enumerate(mapping.value):
         if isinstance(key_node, ScalarNode) and key_node.value == key:
             del mapping.value[index]
             return True
     return False
 
 # ** function: replace_mapping_value
-def replace_mapping_value(mapping,
+def replace_mapping_value(mapping: Any,
                           key: str,
-                          value_node,
+                          value_node: Any,
                           key_node: ScalarNode = None) -> None:
     '''
     Replace a scalar key's value, or append the pair when the key is absent.
@@ -440,15 +441,13 @@ def replace_mapping_value(mapping,
     '''
 
     # Keep the stored key node and replace only the value.
-    for index, pair in enumerate(mapping.value):
-        existing_key = pair[0]
+    for index, (existing_key, _existing_value) in enumerate(mapping.value):
         if isinstance(existing_key, ScalarNode) and existing_key.value == key:
             mapping.value[index] = (existing_key, value_node)
             return
 
     # Append a new pair. The container node stays.
-    appended_key = key_node if key_node is not None else ScalarNode(YAML_STR_TAG, key)
-    mapping.value.append((appended_key, value_node))
+    mapping.value.append((key_node or ScalarNode(YAML_STR_TAG, key), value_node))
 
 # ** function: insert_mapping_key
 def insert_mapping_key(mapping,
@@ -518,10 +517,9 @@ def plain_mapping(root: Any) -> Any:
     if root is None:
         return {}
 
-    # Copy before construct so a merge does not edit the writer's nodes.
-    copied = copy.deepcopy(root)
+    # Construct a deep copy so merge flattening does not edit the writer's nodes.
     try:
-        value = yaml.constructor.SafeConstructor().construct_document(copied)
+        value = yaml.constructor.SafeConstructor().construct_document(copy.deepcopy(root))
     except yaml.constructor.ConstructorError as error:
         ServiceError.raise_for(
             YamlLoader,
@@ -547,148 +545,164 @@ def plain_from_node(node: Any) -> tuple:
     :rtype: tuple
     '''
 
-    # A completed node returns the same object. A cycle refuses.
+    # A unique sentinel marks refusal, since null is a legal plain value.
+    refused = object()
+
+    # A completed node returns the same object. An active node on the stack is a cycle.
     memo = {}
     stack = set()
 
-    def walk(current):
+    def plain_bool(text: Any) -> Any:
         '''
-        Project one node, reusing a completed object and refusing a cycle.
+        Convert a bool token, case insensitive, or refuse.
         '''
 
-        if current is None:
-            return (None, False)
+        # Only text is a bool token.
+        if not isinstance(text, str):
+            return refused
+
+        # Match the true and false token sets. Any other text refuses.
+        token = text.lower()
+        if token in ('true', 'yes', 'on'):
+            return True
+        if token in ('false', 'no', 'off'):
+            return False
+        return refused
+
+    def plain_int(text: Any) -> Any:
+        '''
+        Convert a YAML 1.1 int token, or refuse.
+        '''
+
+        # Only non-empty text is an int token.
+        if not isinstance(text, str) or not text:
+            return refused
+
+        # Strip underscores and one leading sign. A sign without digits refuses.
+        token = text.replace('_', '')
+        sign = -1 if token[:1] == '-' else 1
+        if token[:1] in ('+', '-'):
+            token = token[1:]
+        if not token:
+            return refused
+
+        # Zero, then binary or hex with a case-insensitive prefix, then octal, then sexagesimal, then decimal.
+        try:
+            lowered = token.lower()
+            if token == '0':
+                return 0
+            if lowered.startswith('0b'):
+                return sign * int(token[2:], base=2)
+            if lowered.startswith('0x'):
+                return sign * int(token[2:], base=16)
+
+            # A leading-zero digit token is octal under YAML 1.1. A non-octal digit refuses, with no decimal fallback.
+            if token[0] == '0' and token.isdigit():
+                return sign * int(token, base=8)
+
+            # Sexagesimal sums the reversed parts with successive powers of 60.
+            if ':' in token:
+                parts = [int(part, base=10) for part in token.split(sep=':')]
+                return sign * sum(part * 60 ** place for place, part in enumerate(reversed(parts)))
+
+            # Otherwise decimal.
+            return sign * int(token, base=10)
+
+        # A bad digit for the base refuses.
+        except ValueError:
+            return refused
+
+    def plain_float(text: Any) -> Any:
+        '''
+        Convert a finite float token, or refuse.
+        '''
+
+        # Only text is a float token.
+        if not isinstance(text, str):
+            return refused
+
+        # A failed conversion or a non-finite result refuses.
+        try:
+            number = float(text)
+        except ValueError:
+            return refused
+        if not math.isfinite(number):
+            return refused
+        return number
+
+    def convert(current: Any) -> Any:
+        '''
+        Convert one node by kind and tag, reusing a completed value and refusing a cycle.
+        '''
+
+        # A completed node returns its value. An active node refuses.
         identity = id(current)
         if identity in memo:
-            return (memo[identity], True)
+            return memo[identity]
         if identity in stack:
-            return (None, False)
+            return refused
 
-        # Mark the node while its children are projected.
+        # Record the node on the stack before conversion.
         stack.add(identity)
-        value, plain = project(current)
-        stack.discard(identity)
-        if plain:
-            memo[identity] = value
-        return (value, plain)
-
-    def project(current):
-        '''
-        Project one node from its tag. Do not safe-load a string.
-        '''
-
         tag = getattr(current, 'tag', None)
 
-        # A string tag returns the scalar text unchanged.
-        if tag == YAML_STR_TAG and isinstance(current, ScalarNode):
-            return (current.value, True)
+        # A scalar converts by tag. A string returns its text unchanged. Unsupported tags refuse.
+        if isinstance(current, ScalarNode):
+            if tag == YAML_STR_TAG:
+                value = current.value
+            elif tag == YAML_NULL_TAG:
+                value = None
+            elif tag == YAML_BOOL_TAG:
+                value = plain_bool(current.value)
+            elif tag == YAML_INT_TAG:
+                value = plain_int(current.value)
+            elif tag == YAML_FLOAT_TAG:
+                value = plain_float(current.value)
+            else:
+                value = refused
 
-        # Null is a legal plain value.
-        if tag == YAML_NULL_TAG and isinstance(current, ScalarNode):
-            return (None, True)
-
-        # Bool tokens are case insensitive. Any other text refuses.
-        if tag == YAML_BOOL_TAG and isinstance(current, ScalarNode):
-            token = current.value.lower()
-            if token in ('true', 'yes', 'on'):
-                return (True, True)
-            if token in ('false', 'no', 'off'):
-                return (False, True)
-            return (None, False)
-
-        # Int forms: binary, hex, octal, sexagesimal, and decimal.
-        if tag == YAML_INT_TAG and isinstance(current, ScalarNode):
-            number = _plain_int(current.value)
-            if number is None:
-                return (None, False)
-            return (number, True)
-
-        # A non-finite or bad float token refuses.
-        if tag == YAML_FLOAT_TAG and isinstance(current, ScalarNode):
-            try:
-                number = float(current.value)
-            except ValueError:
-                return (None, False)
-            if not math.isfinite(number):
-                return (None, False)
-            return (number, True)
-
-        # A sequence is a list, or a refusal if any item refuses.
-        if tag == YAML_SEQ_TAG and isinstance(current, SequenceNode):
-            items = []
+        # A sequence is an ordered list. A refused child refuses the sequence.
+        elif isinstance(current, SequenceNode) and tag == YAML_SEQ_TAG:
+            value = []
             for item in current.value:
-                value, plain = walk(item)
-                if not plain:
-                    return (None, False)
-                items.append(value)
-            return (items, True)
+                child = convert(item)
+                if child is refused:
+                    value = refused
+                    break
+                value.append(child)
 
-        # A mapping is plain pairs. A merge key is the string << and is not applied.
-        if tag == YAML_MAP_TAG and isinstance(current, MappingNode):
-            mapping = {}
+        # A mapping takes string-tagged scalar keys and merge-tagged keys. A merge key is the string << and is not applied.
+        elif isinstance(current, MappingNode) and tag == YAML_MAP_TAG:
+            value = {}
             for key_node, value_node in current.value:
                 if getattr(key_node, 'tag', None) == YAML_MERGE_TAG:
                     key = '<<'
                 elif isinstance(key_node, ScalarNode) and key_node.tag == YAML_STR_TAG:
                     key = key_node.value
                 else:
-                    return (None, False)
-                value, plain = walk(value_node)
-                if not plain:
-                    return (None, False)
-                mapping[key] = value
-            return (mapping, True)
+                    value = refused
+                    break
+                child = convert(value_node)
+                if child is refused:
+                    value = refused
+                    break
+                value[key] = child
 
-        # Any other tag refuses.
-        return (None, False)
+        # Any other kind or tag refuses, including a null node reference.
+        else:
+            value = refused
 
-    def _plain_int(text):
-        '''
-        Parse a plain int token, or return null when the token is bad.
-        '''
+        # Remove the node from the stack. Memoize only a successful value.
+        stack.discard(identity)
+        if value is not refused:
+            memo[identity] = value
+        return value
 
-        # Remove underscores, then split an optional sign.
-        raw = text.replace('_', '')
-        if not raw or raw in ('+', '-'):
-            return None
-        sign = 1
-        body = raw
-        if body[0] in ('+', '-'):
-            sign = -1 if body[0] == '-' else 1
-            body = body[1:]
-        if not body:
-            return None
-
-        # Sexagesimal is least place first, base 60.
-        if ':' in body:
-            total = 0
-            for part in body.split(':'):
-                if not part.isdigit():
-                    return None
-                total = total * 60 + int(part)
-            return sign * total
-
-        # Binary, hex, a leading 0 octal, or decimal.
-        try:
-            lowered = body.lower()
-            if lowered.startswith('0b'):
-                return None if len(body) == 2 else sign * int(body[2:], 2)
-            if lowered.startswith('0x'):
-                return None if len(body) == 2 else sign * int(body[2:], 16)
-            if (
-                len(body) > 1
-                and body[0] == '0'
-                and all(char in '01234567' for char in body)
-            ):
-                return sign * int(body, 8)
-            if body.isdigit():
-                return sign * int(body, 10)
-        except ValueError:
-            return None
-        return None
-
-    # Project the root. Do not raise.
-    return walk(node)
+    # Convert the root. Do not raise or safe-load.
+    value = convert(node)
+    if value is refused:
+        return None, False
+    return value, True
 
 # *** classes
 
@@ -711,9 +725,9 @@ class AnchorComposer(Composer):
         :rtype: None
         '''
 
-        # Start from the composer table, then copy a given table over it.
+        # Start from the composer table, then seed a copy of a truthy given table.
         Composer.__init__(self)
-        if anchors is not None:
+        if anchors:
             self.anchors = dict(anchors)
 
     # * method: compose_document
@@ -732,15 +746,10 @@ class AnchorComposer(Composer):
         self.get_event()
 
         # Record each name, or refuse a node that already has a different name.
-        for name, anchored in list(self.anchors.items()):
+        for name, anchored in self.anchors.items():
             existing = getattr(anchored, 'anchor_name', None)
-            if existing is not None and existing != name:
-                raise ComposerError(
-                    None,
-                    None,
-                    'found duplicate anchor %r' % name,
-                    None,
-                )
+            if existing not in (None, name):
+                raise ComposerError(problem='found duplicate anchor %r' % name)
             anchored.anchor_name = name
 
         # Clear the table and return the node.
@@ -817,21 +826,20 @@ class AnchorSerializer(Serializer):
         # Store the recorded name, which may be null. Do not generate one.
         self.anchors[node] = getattr(node, 'anchor_name', None)
 
-        # Walk sequence items and mapping keys and values.
+        # Walk sequence items, or mapping keys then values.
         if isinstance(node, SequenceNode):
             for item in node.value:
                 self.anchor_node(item)
-            return
-        if isinstance(node, MappingNode):
+        elif isinstance(node, MappingNode):
             for key_node, value_node in node.value:
                 self.anchor_node(key_node)
                 self.anchor_node(value_node)
 
     # * method: serialize_node
     def serialize_node(self,
-                       node,
-                       parent,
-                       index) -> None:
+                       node: Any,
+                       parent: Any,
+                       index: Any) -> None:
         '''
         Emit a recorded name on the first visit and an alias on a later visit.
 
@@ -847,11 +855,11 @@ class AnchorSerializer(Serializer):
         '''
 
         # A later visit with no recorded name fails. A named later visit is an alias.
-        recorded = getattr(node, 'anchor_name', None)
+        alias = getattr(node, 'anchor_name', None)
         if node in self.serialized_nodes:
-            if not recorded:
+            if not alias:
                 YamlLoader.require_recorded_anchor()
-            self.emit(AliasEvent(recorded))
+            self.emit(AliasEvent(alias))
             return
 
         # Mark the first visit, descend, and emit the same event shape as Serializer.
@@ -862,7 +870,7 @@ class AnchorSerializer(Serializer):
             default_tag = self.resolve(ScalarNode, node.value, (False, True))
             implicit = (node.tag == detected_tag), (node.tag == default_tag)
             self.emit(ScalarEvent(
-                recorded,
+                alias,
                 node.tag,
                 implicit,
                 node.value,
@@ -871,7 +879,7 @@ class AnchorSerializer(Serializer):
         elif isinstance(node, SequenceNode):
             implicit = (node.tag == self.resolve(SequenceNode, node.value, True))
             self.emit(SequenceStartEvent(
-                recorded,
+                alias,
                 node.tag,
                 implicit,
                 flow_style=node.flow_style,
@@ -882,7 +890,7 @@ class AnchorSerializer(Serializer):
         elif isinstance(node, MappingNode):
             implicit = (node.tag == self.resolve(MappingNode, node.value, True))
             self.emit(MappingStartEvent(
-                recorded,
+                alias,
                 node.tag,
                 implicit,
                 flow_style=node.flow_style,
@@ -1137,18 +1145,12 @@ class YamlLoader(FileLoader, YamlService):
         try:
             return loader.get_single_node()
 
-        # An undefined alias or a duplicate anchor is a conflict.
+        # An undefined alias or a duplicate anchor is a conflict. Other composer errors fail the compose.
         except ComposerError as error:
-            message = str(error)
-            if 'undefined alias' in message or 'duplicate anchor' in message:
-                YamlLoader.raise_anchor_conflict(
-                    message,
-                    cause=error,
-                )
-            YamlLoader.raise_compose_failed(
-                message,
-                cause=error,
-            )
+            problem = str(error)
+            if 'undefined alias' in problem or 'duplicate anchor' in problem:
+                YamlLoader.raise_anchor_conflict(problem, cause=error)
+            YamlLoader.raise_compose_failed(problem, cause=error)
 
         # Any other driver error is a compose failure.
         except YAMLError as error:
@@ -1172,21 +1174,28 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When a shared node has no recorded name.
         '''
 
-        # Open first. An unrecorded share fails during emit.
+        # Open the dumper and seed nodes already serialized before this call.
         stream = StringIO()
         dumper = AnchorDumper(stream)
-        try:
-            dumper.open()
-            if already:
-                for item in already:
-                    dumper.serialized_nodes[item] = True
-            dumper.serialize(node)
-            dumper.close()
+        dumper.open()
+        if already:
+            for item in already:
+                dumper.serialized_nodes[item] = True
 
-        # Close the dumper and re-raise. A close failure still propagates.
-        except ServiceError:
-            dumper.close()
-            raise
+        # Serialize the node. An unrecorded share fails during emit.
+        try:
+            dumper.serialize(node)
+
+        # Close inside a guard, since the emitter is mid-document and close raises. Re-raise the original error.
+        except ServiceError as error:
+            try:
+                dumper.close()
+            except YAMLError:
+                pass
+            raise error
+
+        # Close once after success.
+        dumper.close()
 
         # Append a newline only when the text is non-empty and does not end with one.
         text = stream.getvalue()
@@ -1232,12 +1241,14 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the file is missing, not YAML, or not a mapping.
         '''
 
-        # Build a read loader. Ignore this instance's path, mode, and encoding.
-        reader = YamlLoader(path=path, mode='r', encoding='utf-8')
-        YamlLoader.verify_yaml_file(reader)
+        # Build a read loader for the call path. Ignore this instance's path, mode, and encoding.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+        self.verify_yaml_file(bound)
 
         # Load the file. An empty file stays an empty mapping.
-        data = reader.load()
+        data = bound.load()
+
+        # Require a mapping root.
         if not isinstance(data, dict):
             ServiceError.raise_for(
                 self,
@@ -1271,7 +1282,7 @@ class YamlLoader(FileLoader, YamlService):
             )
 
         # Reject a non-YAML suffix before creating the file.
-        if Path(path).suffix.lower() not in ('.yaml', '.yml'):
+        if Path(path).suffix.lower() not in {'.yaml', '.yml'}:
             ServiceError.raise_for(
                 self,
                 INVALID_FILE_ID,
@@ -1279,9 +1290,9 @@ class YamlLoader(FileLoader, YamlService):
                 path=str(path),
             )
 
-        # Save through a write loader. Do not re-read.
-        writer = YamlLoader(path=path, mode='w', encoding='utf-8')
-        writer.save(data)
+        # Save through a write loader for the call path. Do not re-read.
+        bound = YamlLoader(path=path, mode='w', encoding='utf-8')
+        bound.save(data)
         return data
 
     # * method: read_anchored
@@ -1296,20 +1307,20 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the file is missing or not YAML.
         '''
 
-        # Build a read loader and verify the suffix before opening.
-        reader = YamlLoader(path=path, mode='r', encoding='utf-8')
-        YamlLoader.verify_yaml_file(reader)
+        # Build a read loader for the call path and verify it before opening.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+        self.verify_yaml_file(bound)
 
-        # Read the opened stream as text. Do not safe-load.
-        with reader:
-            text = reader.file.read()
+        # Read the returned stream as text. Do not safe-load.
+        with bound as stream:
+            text = stream.read()
 
         # Compose only to collect names. A list root is legal. The node is not returned.
-        root = YamlLoader.compose_anchored(text)
-        anchors = [] if root is None else list(anchor_table(root))
+        root = self.compose_anchored(text)
+        names = list(anchor_table(root))
         return {
             'text': text,
-            'anchors': anchors,
+            'anchors': names,
         }
 
     # * method: write_anchored
@@ -1327,7 +1338,7 @@ class YamlLoader(FileLoader, YamlService):
         '''
 
         # Reject a non-YAML suffix before creating the file.
-        if Path(path).suffix.lower() not in ('.yaml', '.yml'):
+        if Path(path).suffix.lower() not in {'.yaml', '.yml'}:
             ServiceError.raise_for(
                 self,
                 INVALID_FILE_ID,
@@ -1335,18 +1346,18 @@ class YamlLoader(FileLoader, YamlService):
                 path=str(path),
             )
 
-        # Compose before opening, so a rejected document does not create the file.
-        root = YamlLoader.compose_anchored(text)
-        serialized = YamlLoader.serialize_anchored(root)
-        anchors = [] if root is None else list(anchor_table(root))
+        # Compose and serialize before opening, so a rejected document does not create the file.
+        root = self.compose_anchored(text)
+        serialized = self.serialize_anchored(root)
+        names = list(anchor_table(root))
 
-        # Write the serialized string. Do not call save.
-        writer = YamlLoader(path=path, mode='w', encoding='utf-8')
-        with writer:
-            writer.file.write(serialized)
+        # Write the serialized string through the returned stream. Do not call save.
+        bound = YamlLoader(path=path, mode='w', encoding='utf-8')
+        with bound as stream:
+            stream.write(serialized)
         return {
             'text': serialized,
-            'anchors': anchors,
+            'anchors': names,
         }
 
     # * method: list_anchors
@@ -1361,16 +1372,18 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the file is missing or not YAML.
         '''
 
-        # Read and compose as read_anchored does.
-        reader = YamlLoader(path=path, mode='r', encoding='utf-8')
-        YamlLoader.verify_yaml_file(reader)
-        with reader:
-            text = reader.file.read()
-        root = YamlLoader.compose_anchored(text)
+        # Verify and read the call path through the returned stream.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+        self.verify_yaml_file(bound)
+        with bound as stream:
+            text = stream.read()
 
-        # A null root returns an empty list. Do not sort. Do not return the table.
+        # Compose. An empty stream has no names.
+        root = self.compose_anchored(text)
         if root is None:
             return []
+
+        # Return first-visit order. Do not sort. Do not return the table.
         return list(anchor_table(root))
 
     # * method: get_anchor
@@ -1387,21 +1400,19 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the anchor is missing or not plain.
         '''
 
-        # Read and compose, then require the name.
-        reader = YamlLoader(path=path, mode='r', encoding='utf-8')
-        YamlLoader.verify_yaml_file(reader)
-        with reader:
-            text = reader.file.read()
-        root = YamlLoader.compose_anchored(text)
-        node = YamlLoader.require_anchor(
-            name,
-            {} if root is None else anchor_table(root),
-            path=path,
-        )
+        # Verify and read the call path through the returned stream.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+        self.verify_yaml_file(bound)
+        with bound as stream:
+            text = stream.read()
+
+        # Compose, then require the name.
+        root = self.compose_anchored(text)
+        node = self.require_anchor(name, anchor_table(root), path=path)
 
         # A node does not cross this method.
         return {
-            'value': YamlLoader.require_plain_node(node, name, path=path),
+            'value': self.require_plain_node(node, name, path=path),
         }
 
     # * method: set_anchor
@@ -1426,90 +1437,103 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the value, path, or target is rejected.
         '''
 
-        def retarget(node, seen):
+        def install(current: Any, target: Any) -> Any:
             '''
-            Replace parent references and do not walk into the replacement.
+            Install the plain value at the target and return the root.
             '''
 
-            if node is None or node is replacement or id(node) in seen:
-                return
-            seen.add(id(node))
-            if isinstance(node, SequenceNode):
-                for index, item in enumerate(node.value):
-                    if item is target:
-                        node.value[index] = replacement
-                    else:
-                        retarget(item, seen)
-                return
-            if isinstance(node, MappingNode):
-                pairs = []
-                for key_node, value_node in node.value:
-                    if key_node is target:
-                        key_node = replacement
-                    else:
-                        retarget(key_node, seen)
-                    if value_node is target:
-                        value_node = replacement
-                    else:
-                        retarget(value_node, seen)
-                    pairs.append((key_node, value_node))
-                node.value = pairs
+            # Build the named replacement.
+            replacement = node_from_plain(value)
+            replacement.anchor_name = name
+
+            # The same node kind keeps the target node and its styles.
+            if type(target) is type(replacement):
+                target.tag = replacement.tag
+                target.value = replacement.value
+                target.anchor_name = name
+                return current
+
+            # A kind change at the root returns the replacement.
+            if current is target:
+                return replacement
+
+            # Otherwise retarget every reference to the single replacement.
+            seen = set()
+
+            def walk(node: Any) -> None:
+                '''
+                Retarget references under one node. Do not enter the target or the replacement.
+                '''
+
+                # Skip a repeat, the target, and the replacement.
+                if id(node) in seen or node is target or node is replacement:
+                    return
+                seen.add(id(node))
+
+                # Edit mapping pairs in place. Do not rebuild the pair list.
+                if isinstance(node, MappingNode):
+                    for index, (key_node, value_node) in enumerate(node.value):
+                        if key_node is target:
+                            key_node = replacement
+                        if value_node is target:
+                            value_node = replacement
+                        node.value[index] = (key_node, value_node)
+                        walk(key_node)
+                        walk(value_node)
+
+                # Retarget sequence items in place.
+                elif isinstance(node, SequenceNode):
+                    for index, item in enumerate(node.value):
+                        if item is target:
+                            node.value[index] = replacement
+                        else:
+                            walk(item)
+
+            # Walk from the root and keep it.
+            walk(current)
+            return current
 
         # Reject a bad value or key path before opening a file.
-        value = YamlLoader.require_anchor_value(value)
-        value = YamlLoader.require_plain_value(value)
+        self.require_anchor_value(value)
+        self.require_plain_value(value)
         steps = None
         if key_path is not None:
-            steps = YamlLoader.require_key_path(key_path)
+            steps = self.require_key_path(key_path)
 
-        # Read and compose. A failure does not write.
-        reader = YamlLoader(path=path, mode='r', encoding='utf-8')
-        YamlLoader.verify_yaml_file(reader)
-        with reader:
-            text = reader.file.read()
-        root = YamlLoader.compose_anchored(text)
+        # Verify and read the call path through the returned stream, then compose.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+        self.verify_yaml_file(bound)
+        with bound as stream:
+            text = stream.read()
+        root = self.compose_anchored(text)
 
-        # A null root cannot name an anchor or resolve a key path.
+        # An empty document requires the missing anchor, or refuses a path without inventing a root.
         if root is None and steps is None:
-            YamlLoader.require_anchor(name, {}, path=path)
+            self.require_anchor(name, {}, path=path)
         if root is None and steps is not None:
-            YamlLoader.resolve_key_path(steps, root)
+            self.resolve_key_path(steps, root)
 
-        # Choose the target node. A mismatch or a missing name does not write.
+        # An existing name must match any supplied path. An absent name needs a path to an unnamed node.
         table = anchor_table(root)
         if name in table:
             target = table[name]
             if steps is not None:
-                resolved = YamlLoader.resolve_key_path(steps, root)
-                YamlLoader.require_same_node(
-                    target,
-                    resolved,
-                    name,
-                    path=path,
-                )
+                resolved = self.resolve_key_path(steps, root)
+                self.require_same_node(resolved, target, name, path=path)
         elif steps is None:
-            target = YamlLoader.require_anchor(name, table, path=path)
+            target = self.require_anchor(name, table, path=path)
         else:
-            target = YamlLoader.resolve_key_path(steps, root)
-            YamlLoader.require_unnamed(target, name, path=path)
+            target = self.resolve_key_path(steps, root)
+            self.require_unnamed(target, name, path=path)
 
-        # Install the plain node with the recorded name.
-        replacement = node_from_plain(value)
-        replacement.anchor_name = name
-        if type(target) is type(replacement):
-            target.tag = replacement.tag
-            target.value = replacement.value
-            target.anchor_name = name
-        elif target is root:
-            root = replacement
-        else:
-            retarget(root, set())
+        # Install the plain value with the recorded name.
+        root = install(root, target)
 
         # Serialize before opening the write, so a serialize failure does not truncate.
-        serialized = YamlLoader.serialize_anchored(root)
+        serialized = self.serialize_anchored(root)
         writer = YamlLoader(path=path, mode='w', encoding='utf-8')
-        with writer:
-            writer.file.write(serialized)
+        with writer as stream:
+            stream.write(serialized)
         return {
             'value': value,
         }
@@ -1528,40 +1552,38 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the name is missing or still has a later visit.
         '''
 
-        # Read, compose, and require the name.
-        reader = YamlLoader(path=path, mode='r', encoding='utf-8')
-        YamlLoader.verify_yaml_file(reader)
-        with reader:
-            text = reader.file.read()
-        root = YamlLoader.compose_anchored(text)
-        target = YamlLoader.require_anchor(
-            name,
-            {} if root is None else anchor_table(root),
-            path=path,
-        )
+        # Verify and read the call path through the returned stream.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+        self.verify_yaml_file(bound)
+        with bound as stream:
+            text = stream.read()
 
-        # A later visit does not write.
-        def visit(node, node_path, later):
+        # Compose and require the name.
+        root = self.compose_anchored(text)
+        target = self.require_anchor(name, anchor_table(root), path=path)
+
+        def visit(node: Any, _path: tuple, later: bool) -> None:
             '''
             Refuse a later visit of the target node.
             '''
 
-            YamlLoader.require_single_visit(
+            self.require_single_visit(
                 node,
                 target,
-                later,
-                name,
+                later=later,
+                name=name,
                 path=path,
             )
 
+        # A later visit does not write.
         walk_test_module_nodes(root, visit)
 
-        # Clear the name, leave the value, then serialize and write.
+        # Clear only the name and leave the value. Serialize before opening the write.
         target.anchor_name = None
-        serialized = YamlLoader.serialize_anchored(root)
+        serialized = self.serialize_anchored(root)
         writer = YamlLoader(path=path, mode='w', encoding='utf-8')
-        with writer:
-            writer.file.write(serialized)
+        with writer as stream:
+            stream.write(serialized)
         return name
 
     # * method: rename_anchor
@@ -1583,14 +1605,16 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the name is missing or the new name is taken.
         '''
 
-        # Read, compose, and require the current name.
-        reader = YamlLoader(path=path, mode='r', encoding='utf-8')
-        YamlLoader.verify_yaml_file(reader)
-        with reader:
-            text = reader.file.read()
-        root = YamlLoader.compose_anchored(text)
-        table = {} if root is None else anchor_table(root)
-        node = YamlLoader.require_anchor(name, table, path=path)
+        # Verify and read the call path through the returned stream.
+        bound = YamlLoader(path=path, mode='r', encoding='utf-8')
+        self.verify_yaml_file(bound)
+        with bound as stream:
+            text = stream.read()
+
+        # Compose and require the current name.
+        root = self.compose_anchored(text)
+        table = anchor_table(root)
+        node = self.require_anchor(name, table, path=path)
 
         # The same name does not write.
         if new_name == name:
@@ -1598,19 +1622,19 @@ class YamlLoader(FileLoader, YamlService):
 
         # A taken name does not write.
         if new_name in table:
-            YamlLoader.raise_anchor_conflict(
+            self.raise_anchor_conflict(
                 f'Anchor {new_name} already exists. Path: {path}.',
-                path=path,
+                path=str(path),
                 name=name,
                 new_name=new_name,
             )
 
-        # Set the name on the same node. Do not move it.
+        # Set the name on the same node. Serialize before opening the write.
         node.anchor_name = new_name
-        serialized = YamlLoader.serialize_anchored(root)
+        serialized = self.serialize_anchored(root)
         writer = YamlLoader(path=path, mode='w', encoding='utf-8')
-        with writer:
-            writer.file.write(serialized)
+        with writer as stream:
+            stream.write(serialized)
         return new_name
 
     # * method: require_anchor_value (static)
@@ -1637,14 +1661,14 @@ class YamlLoader(FileLoader, YamlService):
 
     # * method: require_plain_value (static)
     @staticmethod
-    def require_plain_value(value, seen=None) -> Any:
+    def require_plain_value(value: Any, seen: Optional[set] = None) -> Any:
         '''
         Reject a value that is not plain YAML data.
 
         :param value: The value to check.
         :type value: Any
         :param seen: Identities already walked, used to reject a repeat.
-        :type seen: set
+        :type seen: Optional[set]
         :return: The value when it is plain.
         :rtype: Any
         :raises ServiceError: When the value is not plain.
@@ -1670,20 +1694,28 @@ class YamlLoader(FileLoader, YamlService):
                 )
             return value
 
-        # A list or mapping is walked. A repeated identity raises.
-        if isinstance(value, list) or isinstance(value, dict):
-            identity = id(value)
-            if identity in seen:
+        # A list records its identity before walking its items. A repeated identity raises.
+        if isinstance(value, list):
+            if id(value) in seen:
                 ServiceError.raise_for(
                     YamlLoader,
                     YAML_PLAIN_VALUE_REQUIRED_ID,
                     message='An anchor value must be a plain value.',
                 )
-            seen.add(identity)
-            if isinstance(value, list):
-                for item in value:
-                    YamlLoader.require_plain_value(item, seen=seen)
-                return value
+            seen.add(id(value))
+            for item in value:
+                YamlLoader.require_plain_value(item, seen=seen)
+            return value
+
+        # A mapping records its identity before walking. A repeated identity or a non-string key raises.
+        if isinstance(value, dict):
+            if id(value) in seen:
+                ServiceError.raise_for(
+                    YamlLoader,
+                    YAML_PLAIN_VALUE_REQUIRED_ID,
+                    message='An anchor value must be a plain value.',
+                )
+            seen.add(id(value))
             for key, item in value.items():
                 if not isinstance(key, str):
                     ServiceError.raise_for(
@@ -1703,12 +1735,12 @@ class YamlLoader(FileLoader, YamlService):
 
     # * method: require_key_path (static)
     @staticmethod
-    def require_key_path(key_path) -> Optional[tuple]:
+    def require_key_path(key_path: Any) -> Optional[tuple]:
         '''
         Validate a key path and return its steps as tuples.
 
         :param key_path: The key path, or null.
-        :type key_path: list
+        :type key_path: Any
         :return: The steps as tuples, or null.
         :rtype: Optional[tuple]
         :raises ServiceError: When the key path is not a list of legal steps.
@@ -1738,13 +1770,20 @@ class YamlLoader(FileLoader, YamlService):
                     key_path=key_path,
                 )
             kind, token = step
-            if kind in ('val', 'key'):
+            if kind == 'val':
                 if not isinstance(token, str):
-                    label = 'value' if kind == 'val' else 'key'
                     ServiceError.raise_for(
                         YamlLoader,
                         YAML_KEY_PATH_INVALID_ID,
-                        message=f'A {label} token must be text: {token}.',
+                        message=f'A value token must be text: {token}.',
+                        key_path=key_path,
+                    )
+            elif kind == 'key':
+                if not isinstance(token, str):
+                    ServiceError.raise_for(
+                        YamlLoader,
+                        YAML_KEY_PATH_INVALID_ID,
+                        message=f'A key token must be text: {token}.',
                         key_path=key_path,
                     )
             elif kind == 'seq':
@@ -1767,7 +1806,7 @@ class YamlLoader(FileLoader, YamlService):
 
     # * method: resolve_key_path (static)
     @staticmethod
-    def resolve_key_path(steps, root) -> Any:
+    def resolve_key_path(steps: tuple, root: Any) -> Any:
         '''
         Resolve key-path steps to a node.
 
@@ -1780,8 +1819,9 @@ class YamlLoader(FileLoader, YamlService):
         :raises ServiceError: When the path does not resolve.
         '''
 
-        # A null root does not resolve.
-        if root is None:
+        # Start at the root. A null root does not resolve.
+        node = root
+        if node is None:
             ServiceError.raise_for(
                 YamlLoader,
                 YAML_KEY_PATH_INVALID_ID,
@@ -1790,7 +1830,6 @@ class YamlLoader(FileLoader, YamlService):
             )
 
         # Walk each step. A miss raises.
-        node = root
         for kind, token in steps:
             if kind == 'seq':
                 if not isinstance(node, SequenceNode) or token >= len(node.value):
@@ -1815,7 +1854,7 @@ class YamlLoader(FileLoader, YamlService):
 
     # * method: require_anchor (static)
     @staticmethod
-    def require_anchor(name, table, path='') -> Any:
+    def require_anchor(name: str, table: dict, path: str = '') -> Any:
         '''
         Return the node recorded under a name.
 
@@ -1836,17 +1875,17 @@ class YamlLoader(FileLoader, YamlService):
                 YamlLoader,
                 YAML_ANCHOR_NOT_FOUND_ID,
                 message=f'Anchor {name} was not found. Path: {path}.',
-                path=path,
+                path=str(path),
                 name=name,
             )
         return table[name]
 
     # * method: require_same_node (static)
     @staticmethod
-    def require_same_node(left,
-                          right,
-                          name,
-                          path='') -> Any:
+    def require_same_node(left: Any,
+                          right: Any,
+                          name: str,
+                          path: str = '') -> Any:
         '''
         Require two references to be the same node.
 
@@ -1869,14 +1908,14 @@ class YamlLoader(FileLoader, YamlService):
                 YamlLoader,
                 YAML_ANCHOR_CONFLICT_ID,
                 message=f'Anchor {name} and the key path name different nodes. Path: {path}.',
-                path=path,
+                path=str(path),
                 name=name,
             )
         return left
 
     # * method: require_unnamed (static)
     @staticmethod
-    def require_unnamed(node, name, path='') -> Any:
+    def require_unnamed(node: Any, name: str, path: str = '') -> Any:
         '''
         Require a node to have no recorded anchor name.
 
@@ -1897,18 +1936,18 @@ class YamlLoader(FileLoader, YamlService):
                 YamlLoader,
                 YAML_ANCHOR_CONFLICT_ID,
                 message=f'Anchor {name} would rename a node that already has a name. Path: {path}.',
-                path=path,
+                path=str(path),
                 name=name,
             )
         return node
 
     # * method: require_single_visit (static)
     @staticmethod
-    def require_single_visit(node,
-                             target,
-                             later,
-                             name,
-                             path='') -> None:
+    def require_single_visit(node: Any,
+                             target: Any,
+                             later: bool,
+                             name: str,
+                             path: str = '') -> None:
         '''
         Refuse a later visit of the target node.
 
@@ -1933,13 +1972,13 @@ class YamlLoader(FileLoader, YamlService):
                 YamlLoader,
                 YAML_ANCHOR_CONFLICT_ID,
                 message=f'Anchor {name} still has a later visit. Path: {path}.',
-                path=path,
+                path=str(path),
                 name=name,
             )
 
     # * method: require_plain_node (static)
     @staticmethod
-    def require_plain_node(node, name, path='') -> Any:
+    def require_plain_node(node: Any, name: str, path: str = '') -> Any:
         '''
         Return the plain value of a node.
 
@@ -1961,7 +2000,7 @@ class YamlLoader(FileLoader, YamlService):
                 YamlLoader,
                 YAML_PLAIN_VALUE_REQUIRED_ID,
                 message=f'Anchor {name} is not a plain value. Path: {path}.',
-                path=path,
+                path=str(path),
                 name=name,
             )
         return projected

@@ -166,23 +166,27 @@ def test_local_constants():
 # ** test: find_mapping_pair_found
 def test_find_mapping_pair_found():
     '''
-    Return the first scalar-key pair.
+    Return the first scalar-key pair when two keys share the text.
     '''
 
-    # Build a mapping whose first scalar key is a and whose second is b.
-    key_a = ScalarNode(YAML_STR_TAG, 'a')
-    value_a = ScalarNode(YAML_INT_TAG, '1')
-    key_b = ScalarNode(YAML_STR_TAG, 'b')
-    value_b = ScalarNode(YAML_INT_TAG, '2')
-    mapping = MappingNode(YAML_MAP_TAG, [(key_a, value_a), (key_b, value_b)], flow_style=False)
+    # Build a mapping whose two scalar keys both have text a, with values 1 then 2.
+    first_key = ScalarNode(YAML_STR_TAG, 'a')
+    first_value = ScalarNode(YAML_INT_TAG, '1')
+    second_key = ScalarNode(YAML_STR_TAG, 'a')
+    second_value = ScalarNode(YAML_INT_TAG, '2')
+    mapping = MappingNode(
+        YAML_MAP_TAG,
+        [(first_key, first_value), (second_key, second_value)],
+        flow_style=False,
+    )
 
     # Find the pair for a.
     pair = find_mapping_pair(mapping, 'a')
 
-    # The returned nodes are the nodes stored on the mapping.
-    assert pair == (key_a, value_a)
-    assert pair[0] is key_a
-    assert pair[1] is value_a
+    # The outcome is the first key/value pair, not the second.
+    assert pair == (first_key, first_value)
+    assert pair[0] is first_key
+    assert pair[1] is first_value
 
 # ** test: find_mapping_pair_absent
 def test_find_mapping_pair_absent():
@@ -221,12 +225,13 @@ def test_find_mapping_pair_not_mapping():
 # ** test: walk_stops_at_later_visit
 def test_walk_stops_at_later_visit():
     '''
-    Stop descending when a node is visited again.
+    Visit every occurrence in document order and stop descending at a later visit.
     '''
 
-    # Key a has a sequence of one scalar. Key b has that same sequence.
-    scalar_x = ScalarNode(YAML_STR_TAG, 'x')
-    sequence = SequenceNode(YAML_SEQ_TAG, [scalar_x], flow_style=False)
+    # Key a holds a named sequence of scalar 1. Key b holds that same sequence.
+    item = ScalarNode(YAML_INT_TAG, '1')
+    sequence = SequenceNode(YAML_SEQ_TAG, [item], flow_style=False)
+    sequence.anchor_name = 'shared'
     key_a = ScalarNode(YAML_STR_TAG, 'a')
     key_b = ScalarNode(YAML_STR_TAG, 'b')
     root = MappingNode(
@@ -238,35 +243,34 @@ def test_walk_stops_at_later_visit():
 
     def visit(node, path, later):
         '''
-        Record whether the visit is later and the path.
+        Record the path and whether the visit is later.
         '''
 
-        recorded.append((later, path))
+        recorded.append((path, later))
 
     # Walk and record each visit.
     walk_test_module_nodes(root, visit)
 
-    # No child of the later visit is recorded.
+    # Keys precede values, the second sequence visit is later, and its item is not visited again.
     assert recorded == [
-        (False, ()),
-        (False, (('key', 'a'),)),
-        (False, (('val', 'a'),)),
-        (False, (('val', 'a'), ('seq', 0))),
-        (False, (('key', 'b'),)),
-        (True, (('val', 'b'),)),
+        ((), False),
+        ((('key', 'a'),), False),
+        ((('val', 'a'),), False),
+        ((('val', 'a'), ('seq', 0)), False),
+        ((('key', 'b'),), False),
+        ((('val', 'b'),), True),
     ]
-    assert key_a.value == 'a'
-    assert sequence.value == [scalar_x]
 
 # ** test: index_first_visit
 def test_index_first_visit():
     '''
-    Keep the first-visit path of a shared node.
+    Map each node identity to its first document path.
     '''
 
-    # Use the later-visit tree.
-    scalar_x = ScalarNode(YAML_STR_TAG, 'x')
-    sequence = SequenceNode(YAML_SEQ_TAG, [scalar_x], flow_style=False)
+    # Key a holds a named sequence of scalar 1. Key b holds that same sequence.
+    item = ScalarNode(YAML_INT_TAG, '1')
+    sequence = SequenceNode(YAML_SEQ_TAG, [item], flow_style=False)
+    sequence.anchor_name = 'shared'
     key_a = ScalarNode(YAML_STR_TAG, 'a')
     key_b = ScalarNode(YAML_STR_TAG, 'b')
     root = MappingNode(
@@ -278,42 +282,56 @@ def test_index_first_visit():
     # Index first visits.
     index = index_first_visits(root)
 
-    # The sequence identity maps to the a path, not the b path.
-    assert index[id(sequence)] == (('val', 'a'),)
-    assert index[id(sequence)] != (('val', 'b'),)
-    assert key_a.value == 'a'
-    assert scalar_x.value == 'x'
+    # Each identity maps to its first path. The shared sequence maps to the a value path.
+    assert index == {
+        id(root): (),
+        id(key_a): (('key', 'a'),),
+        id(sequence): (('val', 'a'),),
+        id(item): (('val', 'a'), ('seq', 0)),
+        id(key_b): (('key', 'b'),),
+    }
 
 # ** test: node_from_plain_kinds
 def test_node_from_plain_kinds():
     '''
-    Build a node for each plain kind.
+    Build a tagged node for each plain kind.
     '''
 
-    # Build a node for each named kind.
+    # Build a node for each named input.
     null_node = node_from_plain(None)
     bool_node = node_from_plain(True)
-    int_node = node_from_plain(1)
-    float_node = node_from_plain(1.0)
-    str_node = node_from_plain('*base')
-    seq_node = node_from_plain(['x'])
-    map_node = node_from_plain({'k': 1})
+    int_node = node_from_plain(3)
+    float_node = node_from_plain(3.0)
+    str_node = node_from_plain('*named')
+    seq_node = node_from_plain([1])
+    map_node = node_from_plain({'a': 1})
 
-    # True is a bool node, not an int node. The string is a scalar, not an alias.
-    assert null_node.tag == YAML_NULL_TAG and null_node.value == 'null'
-    assert bool_node.tag == YAML_BOOL_TAG and bool_node.value == 'true'
+    # Scalars carry their tag and text. True is a bool, not an int. The string is not an alias.
+    assert type(null_node) is ScalarNode
+    assert (null_node.tag, null_node.value) == (YAML_NULL_TAG, 'null')
     assert type(bool_node) is ScalarNode
-    assert int_node.tag == YAML_INT_TAG and int_node.value == '1'
-    assert float_node.tag == YAML_FLOAT_TAG and float_node.value == '1.0'
+    assert (bool_node.tag, bool_node.value) == (YAML_BOOL_TAG, 'true')
+    assert type(int_node) is ScalarNode
+    assert (int_node.tag, int_node.value) == (YAML_INT_TAG, '3')
     assert type(float_node) is ScalarNode
-    assert bool_node.tag != YAML_INT_TAG
-    assert float_node.tag != YAML_INT_TAG
-    assert str_node.tag == YAML_STR_TAG and str_node.value == '*base'
+    assert (float_node.tag, float_node.value) == (YAML_FLOAT_TAG, '3.0')
     assert type(str_node) is ScalarNode
-    assert isinstance(seq_node, SequenceNode)
-    assert len(seq_node.value) == 1
-    assert seq_node.value[0].tag == YAML_STR_TAG and seq_node.value[0].value == 'x'
-    assert map_node.value[0][0].value == 'k'
+    assert (str_node.tag, str_node.value) == (YAML_STR_TAG, '*named')
+
+    # The list is a block sequence of converted items.
+    assert type(seq_node) is SequenceNode
+    assert seq_node.tag == YAML_SEQ_TAG
+    assert seq_node.flow_style is False
+    assert [(child.tag, child.value) for child in seq_node.value] == [(YAML_INT_TAG, '1')]
+
+    # The mapping is a block map with string keys and converted values in insertion order.
+    assert type(map_node) is MappingNode
+    assert map_node.tag == YAML_MAP_TAG
+    assert map_node.flow_style is False
+    assert [
+        (key.tag, key.value, value.tag, value.value)
+        for key, value in map_node.value
+    ] == [(YAML_STR_TAG, 'a', YAML_INT_TAG, '1')]
 
 # ** test: empty_mapping_node
 def test_empty_mapping_node():
@@ -356,24 +374,25 @@ def test_is_null_node_empty_mapping():
 # ** test: format_plain_float
 def test_format_plain_float():
     '''
-    Format 1.0 so a later compose reads a float.
+    Format finite floats so a later compose reads a float.
     '''
 
-    # Format the float 1.0.
-    text = format_plain_float(1.0)
+    # Format 3.0 and 1e20.
+    texts = (format_plain_float(3.0), format_plain_float(1e20))
 
-    # The outcome equals 1.0.
-    assert text == '1.0'
+    # A bare repr gains .0. An exponent repr stays unchanged.
+    assert texts == ('3.0', '1e+20')
 
 # ** test: nodes_before_path
 def test_nodes_before_path():
     '''
-    Collect first-visit nodes before a target path.
+    Collect ordered first-visit nodes before a later occurrence.
     '''
 
-    # The target path is the scalar under a.
-    scalar_x = ScalarNode(YAML_STR_TAG, 'x')
-    sequence = SequenceNode(YAML_SEQ_TAG, [scalar_x], flow_style=False)
+    # Key a holds a named sequence of scalar 1. Key b holds that same sequence.
+    item = ScalarNode(YAML_INT_TAG, '1')
+    sequence = SequenceNode(YAML_SEQ_TAG, [item], flow_style=False)
+    sequence.anchor_name = 'shared'
     key_a = ScalarNode(YAML_STR_TAG, 'a')
     key_b = ScalarNode(YAML_STR_TAG, 'b')
     root = MappingNode(
@@ -381,45 +400,50 @@ def test_nodes_before_path():
         [(key_a, sequence), (key_b, sequence)],
         flow_style=False,
     )
-    target = (('val', 'a'), ('seq', 0))
 
-    # Collect nodes reached before that path.
-    found = nodes_before_path(root, target)
+    # Collect nodes reached before the later sequence occurrence under b.
+    found = nodes_before_path(root, (('val', 'b'),))
 
-    # Those three outcomes are the root, the key a, and the sequence.
-    assert found == [root, key_a, sequence]
-    assert found[0] is root
-    assert found[1] is key_a
-    assert found[2] is sequence
-    assert scalar_x not in found
+    # First visits come in order. The target occurrence is excluded and the shared children are not repeated.
+    assert [id(node) for node in found] == [
+        id(root),
+        id(key_a),
+        id(sequence),
+        id(item),
+        id(key_b),
+    ]
 
 # ** test: anchor_table_recorded
 def test_anchor_table_recorded():
     '''
-    Map a recorded name once and omit an unnamed node.
+    Map only recorded names to their original nodes in first-visit order.
     '''
 
-    # A named node has a later visit. A second node has no name.
-    named = ScalarNode(YAML_INT_TAG, '1')
-    named.anchor_name = 'base'
-    unnamed = ScalarNode(YAML_INT_TAG, '2')
+    # Named nodes z then a, each repeated as an alias, plus an unnamed node.
+    named_z = ScalarNode(YAML_INT_TAG, '1')
+    named_z.anchor_name = 'z'
+    named_a = ScalarNode(YAML_INT_TAG, '2')
+    named_a.anchor_name = 'a'
+    unnamed = ScalarNode(YAML_INT_TAG, '3')
     root = MappingNode(
         YAML_MAP_TAG,
         [
-            (ScalarNode(YAML_STR_TAG, 'a'), named),
-            (ScalarNode(YAML_STR_TAG, 'b'), named),
-            (ScalarNode(YAML_STR_TAG, 'c'), unnamed),
+            (ScalarNode(YAML_STR_TAG, 'first'), named_z),
+            (ScalarNode(YAML_STR_TAG, 'second'), named_a),
+            (ScalarNode(YAML_STR_TAG, 'third'), named_z),
+            (ScalarNode(YAML_STR_TAG, 'fourth'), named_a),
+            (ScalarNode(YAML_STR_TAG, 'fifth'), unnamed),
         ],
         flow_style=False,
     )
 
-    # Build the anchor table.
+    # Build the table.
     table = anchor_table(root)
 
-    # base maps to the named node and appears once. The unnamed node is absent.
-    assert table['base'] is named
-    assert list(table) == ['base']
-    assert unnamed not in table.values()
+    # Only the recorded names appear, unsorted, each mapped to its original node.
+    assert list(table) == ['z', 'a']
+    assert table['z'] is named_z
+    assert table['a'] is named_a
 
 # ** test: anchor_table_none
 def test_anchor_table_none():
@@ -436,12 +460,13 @@ def test_anchor_table_none():
 # ** test: node_ids
 def test_node_ids():
     '''
-    Collect first-visit identities only.
+    Collect distinct graph identities, or none for a null root.
     '''
 
-    # Use the later-visit tree.
-    scalar_x = ScalarNode(YAML_STR_TAG, 'x')
-    sequence = SequenceNode(YAML_SEQ_TAG, [scalar_x], flow_style=False)
+    # Key a holds a named sequence of scalar 1. Key b holds that same sequence.
+    item = ScalarNode(YAML_INT_TAG, '1')
+    sequence = SequenceNode(YAML_SEQ_TAG, [item], flow_style=False)
+    sequence.anchor_name = 'shared'
     key_a = ScalarNode(YAML_STR_TAG, 'a')
     key_b = ScalarNode(YAML_STR_TAG, 'b')
     root = MappingNode(
@@ -449,37 +474,37 @@ def test_node_ids():
         [(key_a, sequence), (key_b, sequence)],
         flow_style=False,
     )
-    key_b = root.value[1][0]
 
-    # Collect identities.
+    # Collect identities for the graph and for a null root.
     identities = node_ids(root)
+    empty = node_ids(None)
 
-    # The later visit does not add an identity.
-    assert identities == {id(root), id(key_a), id(sequence), id(scalar_x), id(key_b)}
+    # The later visit adds nothing. A null root has no identities.
+    assert identities == {id(root), id(key_a), id(sequence), id(item), id(key_b)}
+    assert empty == set()
 
 # ** test: delete_mapping_key
 def test_delete_mapping_key():
     '''
-    Delete the first scalar key and leave the other pair.
+    Delete only the first scalar key with matching text.
     '''
 
-    # A mapping with scalar keys a and b.
+    # Duplicate scalar keys a, followed by b.
+    first_pair = (ScalarNode(YAML_STR_TAG, 'a'), ScalarNode(YAML_INT_TAG, '1'))
+    second_pair = (ScalarNode(YAML_STR_TAG, 'a'), ScalarNode(YAML_INT_TAG, '2'))
+    third_pair = (ScalarNode(YAML_STR_TAG, 'b'), ScalarNode(YAML_INT_TAG, '3'))
     mapping = MappingNode(
         YAML_MAP_TAG,
-        [
-            (ScalarNode(YAML_STR_TAG, 'a'), ScalarNode(YAML_INT_TAG, '1')),
-            (ScalarNode(YAML_STR_TAG, 'b'), ScalarNode(YAML_INT_TAG, '2')),
-        ],
+        [first_pair, second_pair, third_pair],
         flow_style=False,
     )
 
     # Delete a.
     deleted = delete_mapping_key(mapping, 'a')
 
-    # The remaining key text is b.
+    # The outcome is true. The second a and b remain.
     assert deleted is True
-    assert mapping.value[0][0].value == 'b'
-    assert len(mapping.value) == 1
+    assert mapping.value == [second_pair, third_pair]
 
 # ** test: delete_mapping_key_absent
 def test_delete_mapping_key_absent():
@@ -671,41 +696,53 @@ def test_plain_mapping_alias():
 # ** test: plain_mapping_does_not_edit
 def test_plain_mapping_does_not_edit():
     '''
-    Construction does not edit the writer's nodes.
+    Project a merge-applied value without editing the composed graph.
     '''
 
-    # The shared node has anchor name base.
-    shared = node_from_plain(1)
-    shared.anchor_name = 'base'
-    root = MappingNode(
-        YAML_MAP_TAG,
-        [
-            (ScalarNode(YAML_STR_TAG, 'a'), shared),
-            (ScalarNode(YAML_STR_TAG, 'b'), shared),
-        ],
-        flow_style=False,
-    )
+    # A composed mapping with a named base, a merge pair, and an alias.
+    root = YamlLoader.compose_anchored('base: &base\n  n: 1\nchild:\n  <<: *base\n  m: 2\nagain: *base\n')
+    base = root.value[0][1]
+    child = root.value[1][1]
+    root_pairs = list(root.value)
+    child_pairs = list(child.value)
+    base_pairs = list(base.value)
 
-    # Project the mapping.
-    plain_mapping(root)
+    # Project its plain value.
+    value = plain_mapping(root)
 
-    # The two mapping values are still that node, and the name remains.
-    assert root.value[0][1] is shared
-    assert root.value[1][1] is shared
-    assert shared.anchor_name == 'base'
+    # The outcome applies the merge.
+    assert value == {
+        'base': {'n': 1},
+        'child': {'n': 1, 'm': 2},
+        'again': {'n': 1},
+    }
+
+    # The original nodes are unchanged, including the merge pair and the alias.
+    assert root.value == root_pairs
+    assert child.value == child_pairs
+    assert base.value == base_pairs
+    assert child.value[0][0].tag == YAML_MERGE_TAG
+    assert child.value[0][1] is base
+    assert root.value[2][1] is base
+    assert base.anchor_name == 'base'
 
 # ** test: plain_mapping_constructor_error
 def test_plain_mapping_constructor_error():
     '''
-    A mapping value that is not a list of pairs is not converted.
+    Translate a safe-construction ConstructorError into a load error.
     '''
 
-    # A mapping node whose value is not a list of pairs.
-    root = MappingNode(YAML_MAP_TAG, 'not-pairs', flow_style=False)
+    # A node whose tag has no safe constructor.
+    root = ScalarNode('tag:example.com,2026:odd', 'value')
 
-    # Project the mapping. The driver ValueError is not converted.
-    with pytest.raises(ValueError):
+    # Project the node.
+    with pytest.raises(ServiceError) as exc_info:
         plain_mapping(root)
+
+    # The error is a load error whose message names the construction error.
+    assert exc_info.value.error_code == YAML_FILE_LOAD_ERROR_ID
+    assert 'Failed to parse YAML file' in exc_info.value.message
+    assert 'could not determine a constructor' in exc_info.value.message
 
 # ** test: plain_from_node_string
 def test_plain_from_node_string():
@@ -713,14 +750,14 @@ def test_plain_from_node_string():
     A string tag returns its text unchanged.
     '''
 
-    # A str-tag scalar whose text looks like an alias.
-    node = ScalarNode(YAML_STR_TAG, '*base')
+    # String-tagged scalars whose text looks like a bool, an int, and an alias.
+    texts = ('true', '3', '*named')
 
-    # Project the node.
-    value = plain_from_node(node)
+    # Project each scalar.
+    values = [plain_from_node(ScalarNode(YAML_STR_TAG, text)) for text in texts]
 
-    # The outcome equals the text and plain true.
-    assert value == ('*base', True)
+    # Each outcome is the unchanged string paired with true.
+    assert values == [('true', True), ('3', True), ('*named', True)]
 
 # ** test: plain_from_node_merge
 def test_plain_from_node_merge():
@@ -744,17 +781,29 @@ def test_plain_from_node_merge():
 # ** test: plain_from_node_refused
 def test_plain_from_node_refused():
     '''
-    A non-plain tag refuses.
+    Refuse nodes that have no plain value.
     '''
 
-    # A scalar whose tag is not a plain tag.
-    node = ScalarNode('tag:example.com,2026:odd', 'value')
+    # A null reference, an unsupported tag, a non-string key, an unsupported child, and a self-referential sequence.
+    odd = ScalarNode('tag:example.com,2026:odd', 'value')
+    int_key = MappingNode(
+        YAML_MAP_TAG,
+        [(ScalarNode(YAML_INT_TAG, '1'), ScalarNode(YAML_STR_TAG, 'x'))],
+        flow_style=False,
+    )
+    odd_child = SequenceNode(
+        YAML_SEQ_TAG,
+        [ScalarNode('tag:example.com,2026:odd', 'value')],
+        flow_style=False,
+    )
+    cycle = SequenceNode(YAML_SEQ_TAG, [], flow_style=False)
+    cycle.value.append(cycle)
 
-    # Project the node.
-    value = plain_from_node(node)
+    # Project each variant.
+    values = [plain_from_node(node) for node in (None, odd, int_key, odd_child, cycle)]
 
-    # The outcome is the refusal pair.
-    assert value == (None, False)
+    # Each outcome is the refusal pair.
+    assert values == [(None, False)] * 5
 
 # ** test: plain_from_node_shared
 def test_plain_from_node_shared():
@@ -776,18 +825,67 @@ def test_plain_from_node_shared():
 # ** test: plain_from_node_int_forms
 def test_plain_from_node_int_forms():
     '''
-    Parse the plain int forms.
+    Convert YAML 1.1 int forms and refuse bad tokens.
     '''
 
-    # Int-tag scalars for each named form.
-    texts = ('0', '0b10', '0x10', '010', '1:30', '1_000')
-    expected = (0, 2, 16, 8, 90, 1000)
+    # Int-tagged tokens. Binary and hex prefixes are case insensitive. A leading 0 with a non-octal digit is a bad octal.
+    texts = ('0', '+12', '-0b10', '0x10', '077', '1_000', '1:02', '0B10', '0XFF', '09', '+', 'bad')
 
-    # Project each scalar.
+    # Project each token.
     values = [plain_from_node(ScalarNode(YAML_INT_TAG, text)) for text in texts]
 
-    # Each value is plain and equals the named int.
-    assert values == [(item, True) for item in expected]
+    # Nine values convert. 09, +, and bad refuse, with no decimal fallback for 09.
+    assert values == [
+        (0, True),
+        (12, True),
+        (-2, True),
+        (16, True),
+        (63, True),
+        (1000, True),
+        (62, True),
+        (2, True),
+        (255, True),
+        (None, False),
+        (None, False),
+        (None, False),
+    ]
+
+# ** test: plain_from_node_scalar_refusals
+def test_plain_from_node_scalar_refusals():
+    '''
+    Convert bool, float, and null scalars, and refuse bad or non-string tokens.
+    '''
+
+    # Bool tokens, float tokens, and a null scalar. The integer 1 is a non-string token.
+    nodes = (
+        ScalarNode(YAML_BOOL_TAG, 'YES'),
+        ScalarNode(YAML_BOOL_TAG, 'off'),
+        ScalarNode(YAML_BOOL_TAG, 'bad'),
+        ScalarNode(YAML_BOOL_TAG, 1),
+        ScalarNode(YAML_FLOAT_TAG, '2.5'),
+        ScalarNode(YAML_FLOAT_TAG, 'nan'),
+        ScalarNode(YAML_FLOAT_TAG, 'inf'),
+        ScalarNode(YAML_FLOAT_TAG, 'bad'),
+        ScalarNode(YAML_FLOAT_TAG, 1),
+        ScalarNode(YAML_NULL_TAG, 'null'),
+    )
+
+    # Project each node.
+    values = [plain_from_node(node) for node in nodes]
+
+    # Good tokens convert. Bad, non-finite, and non-string tokens refuse. Null is a legal value.
+    assert values == [
+        (True, True),
+        (False, True),
+        (None, False),
+        (None, False),
+        (2.5, True),
+        (None, False),
+        (None, False),
+        (None, False),
+        (None, False),
+        (None, True),
+    ]
 
 # *** testers
 
@@ -1552,21 +1650,57 @@ class TestYamlLoader:
     # * test: write_anchored_once_round_trip
     def test_write_anchored_once_round_trip(self, tmp_path):
         '''
-        A written once-anchor can be read back.
+        Write anchored text and read back its names, aliases, merge pair, styles, and key order.
 
         :param tmp_path: The temporary directory.
         :type tmp_path: pathlib.Path
         '''
 
-        # Read the file written by write_anchored_once.
-        node = node_from_plain(1)
-        node.anchor_name = 'once'
-        path = tmp_path / 'once.yaml'
-        YamlLoader().write_anchored(str(path), YamlLoader.serialize_anchored(node))
-        result = YamlLoader().read_anchored(str(path))
+        # A once-named scalar, a shared named sequence, a merge pair, a quoted scalar, and a flow collection.
+        text = (
+            'once: &once 1\n'
+            'shared: &shared\n'
+            '- x\n'
+            '- y\n'
+            'again: *shared\n'
+            'base: &base\n'
+            '  n: 1\n'
+            'child:\n'
+            '  <<: *base\n'
+            '  m: 2\n'
+            "quoted: 'text'\n"
+            'flow: {a: 1, b: 2}\n'
+        )
+        path = tmp_path / 'round.yaml'
 
-        # The name is still once.
-        assert result['anchors'] == ['once']
+        # Write the anchored text, then read it back.
+        written = YamlLoader().write_anchored(str(path), text)
+        result = YamlLoader().read_anchored(str(path))
+        root = YamlLoader.compose_anchored(result['text'])
+
+        # The names are preserved in order and the emitted text ends with a newline.
+        assert written['anchors'] == ['once', 'shared', 'base']
+        assert result['anchors'] == ['once', 'shared', 'base']
+        assert written['text'].endswith('\n')
+        assert result['text'] == written['text']
+
+        # Key order, the alias, the merge pair, and the styles are preserved.
+        assert [key.value for key, _value in root.value] == [
+            'once',
+            'shared',
+            'again',
+            'base',
+            'child',
+            'quoted',
+            'flow',
+        ]
+        assert root.value[0][1].anchor_name == 'once'
+        assert root.value[2][1] is root.value[1][1]
+        child = root.value[4][1]
+        assert child.value[0][0].tag == YAML_MERGE_TAG
+        assert child.value[0][1] is root.value[3][1]
+        assert root.value[5][1].style == "'"
+        assert root.value[6][1].flow_style is True
 
     # * test: write_anchored_bad_suffix
     def test_write_anchored_bad_suffix(self, tmp_path):
@@ -2124,80 +2258,128 @@ class TestYamlLoader:
     # * test: set_anchor_records_value_step
     def test_set_anchor_records_value_step(self, tmp_path):
         '''
-        A key path can name an unnamed mapping value.
+        A key path records a new name at an unnamed mapping value, scalar key, or sequence item.
 
         :param tmp_path: The temporary directory.
         :type tmp_path: pathlib.Path
         '''
 
-        # An unnamed mapping value at key shared.
-        shared = node_from_plain({'old': 0})
-        root = MappingNode(
-            YAML_MAP_TAG,
-            [(ScalarNode(YAML_STR_TAG, 'shared'), shared)],
-            flow_style=False,
-        )
-        path = tmp_path / 'value.yaml'
-        path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        result = YamlLoader().set_anchor(
-            str(path),
+        # An unnamed mapping value, an unnamed scalar key, and an unnamed sequence item.
+        value_path = tmp_path / 'value.yaml'
+        value_path.write_text('held:\n  old: 0\nother: 1\n', encoding='utf-8')
+        key_path = tmp_path / 'key.yaml'
+        key_path.write_text('shared: 1\nother: 2\n', encoding='utf-8')
+        seq_path = tmp_path / 'seq.yaml'
+        seq_path.write_text('- 1\n- 2\n', encoding='utf-8')
+
+        # Set and record a new name at each path.
+        value_result = YamlLoader().set_anchor(
+            str(value_path),
             'base',
-            {'n': 1},
-            key_path=[['val', 'shared']],
+            value={'n': 1},
+            key_path=[['val', 'held']],
         )
-
-        # The value equals the recorded mapping.
-        assert result['value'] == {'n': 1}
-
-    # * test: set_anchor_records_sequence_step
-    def test_set_anchor_records_sequence_step(self, tmp_path):
-        '''
-        A key path can name an unnamed sequence item.
-
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
-        '''
-
-        # An unnamed sequence item at index 0.
-        root = SequenceNode(YAML_SEQ_TAG, [node_from_plain(1)], flow_style=False)
-        path = tmp_path / 'seq.yaml'
-        path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        result = YamlLoader().set_anchor(
-            str(path),
-            'item',
-            9,
-            key_path=[['seq', 0]],
-        )
-
-        # The value equals 9.
-        assert result['value'] == 9
-
-    # * test: set_anchor_records_key_step
-    def test_set_anchor_records_key_step(self, tmp_path):
-        '''
-        A key path can name an unnamed key.
-
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
-        '''
-
-        # An unnamed key whose text is shared.
-        root = MappingNode(
-            YAML_MAP_TAG,
-            [(ScalarNode(YAML_STR_TAG, 'shared'), node_from_plain(1))],
-            flow_style=False,
-        )
-        path = tmp_path / 'key.yaml'
-        path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        result = YamlLoader().set_anchor(
-            str(path),
+        key_result = YamlLoader().set_anchor(
+            str(key_path),
             'keyname',
-            'shared',
+            value='shared',
             key_path=[['key', 'shared']],
         )
+        seq_result = YamlLoader().set_anchor(
+            str(seq_path),
+            'item',
+            value=9,
+            key_path=[['seq', 0]],
+        )
+        value_root = YamlLoader.compose_anchored(value_path.read_text(encoding='utf-8'))
+        key_root = YamlLoader.compose_anchored(key_path.read_text(encoding='utf-8'))
+        seq_root = YamlLoader.compose_anchored(seq_path.read_text(encoding='utf-8'))
 
-        # The value equals shared.
-        assert result['value'] == 'shared'
+        # The returned fields equal the supplied values.
+        assert value_result == {'value': {'n': 1}}
+        assert key_result == {'value': 'shared'}
+        assert seq_result == {'value': 9}
+
+        # Each composed result records the new name at the chosen node only.
+        assert anchor_table(value_root) == {'base': value_root.value[0][1]}
+        assert plain_from_node(value_root.value[0][1]) == ({'n': 1}, True)
+        assert anchor_table(key_root) == {'keyname': key_root.value[0][0]}
+        assert key_root.value[0][0].value == 'shared'
+        assert anchor_table(seq_root) == {'item': seq_root.value[0]}
+        assert plain_from_node(seq_root) == ([9, 2], True)
+
+    # * test: anchor_error_path_context_is_text
+    def test_anchor_error_path_context_is_text(self, tmp_path):
+        '''
+        Anchor errors name the anchor and path, and carry the path context as text.
+
+        :param tmp_path: The temporary directory.
+        :type tmp_path: pathlib.Path
+        '''
+
+        # A Path object and a file whose names base and next are both taken.
+        path = tmp_path / 'context.yaml'
+        named = node_from_plain(1)
+        named.anchor_name = 'base'
+        taken = node_from_plain(2)
+        taken.anchor_name = 'next'
+        root = MappingNode(
+            YAML_MAP_TAG,
+            [
+                (ScalarNode(YAML_STR_TAG, 'a'), named),
+                (ScalarNode(YAML_STR_TAG, 'b'), taken),
+            ],
+            flow_style=False,
+        )
+        path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
+        odd = ScalarNode('tag:example.com,2026:odd', 'value')
+
+        # Each failure and its declared code and message.
+        failures = (
+            (
+                lambda: YamlLoader.require_anchor('missing', {}, path=path),
+                YAML_ANCHOR_NOT_FOUND_ID,
+                f'Anchor missing was not found. Path: {path}.',
+            ),
+            (
+                lambda: YamlLoader.require_same_node(named, taken, 'base', path=path),
+                YAML_ANCHOR_CONFLICT_ID,
+                f'Anchor base and the key path name different nodes. Path: {path}.',
+            ),
+            (
+                lambda: YamlLoader.require_unnamed(named, 'other', path=path),
+                YAML_ANCHOR_CONFLICT_ID,
+                f'Anchor other would rename a node that already has a name. Path: {path}.',
+            ),
+            (
+                lambda: YamlLoader.require_single_visit(named, named, later=True, name='base', path=path),
+                YAML_ANCHOR_CONFLICT_ID,
+                f'Anchor base still has a later visit. Path: {path}.',
+            ),
+            (
+                lambda: YamlLoader.require_plain_node(odd, 'base', path=path),
+                YAML_PLAIN_VALUE_REQUIRED_ID,
+                f'Anchor base is not a plain value. Path: {path}.',
+            ),
+            (
+                lambda: YamlLoader().rename_anchor(path, 'base', 'next'),
+                YAML_ANCHOR_CONFLICT_ID,
+                f'Anchor next already exists. Path: {path}.',
+            ),
+        )
+
+        # Invoke each failure.
+        errors = []
+        for invoke, _code, _message in failures:
+            with pytest.raises(ServiceError) as exc_info:
+                invoke()
+            errors.append(exc_info.value)
+
+        # Each error has its declared code and message, and its path context equals str(path).
+        for error, (_invoke, code, message) in zip(errors, failures):
+            assert error.error_code == code
+            assert error.message == message
+            assert error.kwargs['path'] == str(path)
 
     # * test: set_anchor_path_mismatch
     def test_set_anchor_path_mismatch(self, tmp_path):
@@ -2267,62 +2449,98 @@ class TestYamlLoader:
     # * test: set_anchor_keeps_identity
     def test_set_anchor_keeps_identity(self, tmp_path):
         '''
-        Updating a shared node keeps both sites as one node.
+        Setting a same-kind value keeps the target node, its style, and every reference.
 
         :param tmp_path: The temporary directory.
         :type tmp_path: pathlib.Path
         '''
 
-        # shared and alias are one node, recorded as base.
-        shared = node_from_plain({'n': 1})
-        shared.anchor_name = 'base'
-        root = MappingNode(
-            YAML_MAP_TAG,
-            [
-                (ScalarNode(YAML_STR_TAG, 'shared'), shared),
-                (ScalarNode(YAML_STR_TAG, 'alias'), shared),
-            ],
-            flow_style=False,
-        )
+        # A named flow mapping and its alias.
         path = tmp_path / 'shared.yaml'
-        path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        YamlLoader().set_anchor(str(path), 'base', {'n': 2})
+        path.write_text('shared: &base {n: 1}\nalias: *base\n', encoding='utf-8')
+
+        # A composition double exposes the composed root.
+        composed = []
+
+        def compose_double(text, anchors=None):
+            '''
+            Compose the text and record the root.
+            '''
+
+            root = YamlLoader.compose_anchored(text, anchors=anchors)
+            composed.append(root)
+            return root
+
+        loader = YamlLoader()
+        loader.compose_anchored = compose_double
+
+        # Set a replacement mapping value.
+        result = loader.set_anchor(str(path), 'base', value={'n': 2, 'm': 3})
+        root = composed[0]
+        target = root.value[0][1]
         loaded = YamlLoader().load_mapping(str(path))
 
-        # Both keys equal the new mapping and are one node.
-        assert loaded['shared'] == {'n': 2}
-        assert loaded['alias'] == {'n': 2}
-        assert loaded['shared'] is loaded['alias']
+        # The returned value and every reference equal the replacement.
+        assert result == {'value': {'n': 2, 'm': 3}}
+        assert plain_from_node(target) == ({'n': 2, 'm': 3}, True)
+        assert loaded == {'shared': {'n': 2, 'm': 3}, 'alias': {'n': 2, 'm': 3}}
+
+        # The target keeps its flow style and name, and the alias is still the target node.
+        assert target.flow_style is True
+        assert target.anchor_name == 'base'
+        assert root.value[1][1] is target
 
     # * test: set_anchor_changes_kind
     def test_set_anchor_changes_kind(self, tmp_path):
         '''
-        A kind change retargets every parent reference.
+        A kind change installs one named scalar at every reference, or replaces the root.
 
         :param tmp_path: The temporary directory.
         :type tmp_path: pathlib.Path
         '''
 
-        # base is a scalar. A second key refers to that same node.
-        shared = node_from_plain(1)
-        shared.anchor_name = 'base'
+        # A named sequence referenced as a mapping key, a mapping value, and a sequence item.
+        base = SequenceNode(YAML_SEQ_TAG, [node_from_plain(1)], flow_style=True)
+        base.anchor_name = 'base'
         root = MappingNode(
             YAML_MAP_TAG,
             [
-                (ScalarNode(YAML_STR_TAG, 'shared'), shared),
-                (ScalarNode(YAML_STR_TAG, 'alias'), shared),
+                (base, ScalarNode(YAML_STR_TAG, 'key')),
+                (ScalarNode(YAML_STR_TAG, 'value'), base),
+                (ScalarNode(YAML_STR_TAG, 'items'), SequenceNode(YAML_SEQ_TAG, [base], flow_style=False)),
             ],
             flow_style=False,
         )
         path = tmp_path / 'kind.yaml'
         path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        YamlLoader().set_anchor(str(path), 'base', {'n': 1})
-        loaded = YamlLoader().load_mapping(str(path))
 
-        # Both keys equal the mapping and are one node.
-        assert loaded['shared'] == {'n': 1}
-        assert loaded['alias'] == {'n': 1}
-        assert loaded['shared'] is loaded['alias']
+        # A root-target variant names the root sequence.
+        root_base = SequenceNode(YAML_SEQ_TAG, [node_from_plain(1)], flow_style=False)
+        root_base.anchor_name = 'base'
+        root_path = tmp_path / 'root.yaml'
+        root_path.write_text(YamlLoader.serialize_anchored(root_base), encoding='utf-8')
+
+        # Set a scalar value on each file.
+        YamlLoader().set_anchor(str(path), 'base', value='scalar')
+        YamlLoader().set_anchor(str(root_path), 'base', value='scalar')
+        text = path.read_text(encoding='utf-8')
+        changed = YamlLoader.compose_anchored(text)
+        replaced = YamlLoader.compose_anchored(root_path.read_text(encoding='utf-8'))
+
+        # One named scalar sits at the key, the value, and the item.
+        scalar = changed.value[0][0]
+        assert type(scalar) is ScalarNode
+        assert (scalar.tag, scalar.value, scalar.anchor_name) == (YAML_STR_TAG, 'scalar', 'base')
+        assert changed.value[1][1] is scalar
+        assert changed.value[2][1].value[0] is scalar
+
+        # The serialized text keeps the name and its two later aliases.
+        assert text.count('&base') == 1
+        assert text.count('*base') == 2
+
+        # The root-target variant is the replacement root.
+        assert type(replaced) is ScalarNode
+        assert (replaced.tag, replaced.value, replaced.anchor_name) == (YAML_STR_TAG, 'scalar', 'base')
 
     # * test: set_anchor_string_not_alias
     def test_set_anchor_string_not_alias(self, tmp_path):
@@ -2442,13 +2660,13 @@ class TestYamlLoader:
     # * test: remove_anchor_leaves_value
     def test_remove_anchor_leaves_value(self, tmp_path):
         '''
-        Removing a name leaves the value.
+        Removing a singly referenced name leaves its value.
 
         :param tmp_path: The temporary directory.
         :type tmp_path: pathlib.Path
         '''
 
-        # The value under base was the mapping n = 1.
+        # The value under base is the mapping n = 1, referenced once.
         node = node_from_plain({'n': 1})
         node.anchor_name = 'base'
         root = MappingNode(
@@ -2458,13 +2676,16 @@ class TestYamlLoader:
         )
         path = tmp_path / 'remove.yaml'
         path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        YamlLoader().remove_anchor(str(path), 'base')
-        loaded = YamlLoader().load_mapping(str(path))
-        names = YamlLoader().list_anchors(str(path))
 
-        # The mapping still has that value. No anchors remain.
-        assert loaded['held'] == {'n': 1}
-        assert names == []
+        # Remove the name and reload.
+        result = YamlLoader().remove_anchor(str(path), 'base')
+        reloaded = YamlLoader.compose_anchored(path.read_text(encoding='utf-8'))
+        held = reloaded.value[0][1]
+
+        # The outcome is the removed name. The value is unchanged and has no recorded name.
+        assert result == 'base'
+        assert plain_from_node(held) == ({'n': 1}, True)
+        assert getattr(held, 'anchor_name', None) is None
 
     # * test: remove_anchor_later_visit
     def test_remove_anchor_later_visit(self, tmp_path):
@@ -2498,13 +2719,13 @@ class TestYamlLoader:
     # * test: remove_anchor_later_visit_keeps_text
     def test_remove_anchor_later_visit_keeps_text(self, tmp_path):
         '''
-        A refused remove does not write.
+        A refused remove raises a conflict and does not write.
 
         :param tmp_path: The temporary directory.
         :type tmp_path: pathlib.Path
         '''
 
-        # Capture the text before the refused remove.
+        # base has a later alias.
         shared = node_from_plain({'n': 1})
         shared.anchor_name = 'base'
         root = MappingNode(
@@ -2517,13 +2738,16 @@ class TestYamlLoader:
         )
         path = tmp_path / 'later.yaml'
         path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        before = YamlLoader().read_anchored(str(path))['text']
-        with pytest.raises(ServiceError):
-            YamlLoader().remove_anchor(str(path), 'base')
-        after = YamlLoader().read_anchored(str(path))
+        before = path.read_bytes()
 
-        # The text equals the prior text.
-        assert after['text'] == before
+        # Remove the name.
+        with pytest.raises(ServiceError) as exc_info:
+            YamlLoader().remove_anchor(str(path), 'base')
+
+        # The error is a conflict naming base. The file bytes are unchanged.
+        assert exc_info.value.error_code == YAML_ANCHOR_CONFLICT_ID
+        assert 'Anchor base still has a later visit' in exc_info.value.message
+        assert path.read_bytes() == before
 
     # * test: remove_anchor_missing
     def test_remove_anchor_missing(self, temp_yaml_file):
@@ -2564,95 +2788,57 @@ class TestYamlLoader:
     # * test: rename_anchor_same_node
     def test_rename_anchor_same_node(self, tmp_path):
         '''
-        A rename stays on the same node.
+        A rename stays on the same node. A same-name rename and a taken name do not write.
 
         :param tmp_path: The temporary directory.
         :type tmp_path: pathlib.Path
         '''
 
-        # Read the file written by rename_anchor_returns_new.
-        node = node_from_plain({'n': 1})
-        node.anchor_name = 'base'
-        path = tmp_path / 'rename.yaml'
-        path.write_text(YamlLoader.serialize_anchored(node), encoding='utf-8')
-        YamlLoader().rename_anchor(str(path), 'base', 'next')
-        result = YamlLoader().get_anchor(str(path), 'next')
-        names = YamlLoader().list_anchors(str(path))
-
-        # The value is unchanged and the only name is next.
-        assert result['value'] == {'n': 1}
-        assert names == ['next']
-
-    # * test: rename_anchor_same_name
-    def test_rename_anchor_same_name(self, tmp_path):
-        '''
-        Renaming to the same name returns that name.
-
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
-        '''
-
-        # base exists.
-        node = node_from_plain(1)
-        node.anchor_name = 'base'
-        path = tmp_path / 'same.yaml'
-        path.write_text(YamlLoader.serialize_anchored(node), encoding='utf-8')
-        result = YamlLoader().rename_anchor(str(path), 'base', 'base')
-
-        # The outcome equals base.
-        assert result == 'base'
-
-    # * test: rename_anchor_same_name_does_not_write
-    def test_rename_anchor_same_name_does_not_write(self, tmp_path):
-        '''
-        Renaming to the same name does not write.
-
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
-        '''
-
-        # Capture the text before the same-name rename.
-        node = node_from_plain(1)
-        node.anchor_name = 'base'
-        path = tmp_path / 'same.yaml'
-        path.write_text(YamlLoader.serialize_anchored(node), encoding='utf-8')
-        before = YamlLoader().read_anchored(str(path))['text']
-        YamlLoader().rename_anchor(str(path), 'base', 'base')
-        after = YamlLoader().read_anchored(str(path))
-
-        # The text equals the prior text.
-        assert after['text'] == before
-
-    # * test: rename_anchor_taken
-    def test_rename_anchor_taken(self, tmp_path):
-        '''
-        A taken name is a conflict.
-
-        :param tmp_path: The temporary directory.
-        :type tmp_path: pathlib.Path
-        '''
-
-        # Both base and next exist.
-        base = node_from_plain(1)
+        # A named value and its alias, plus a second name for the taken-name variant.
+        base = node_from_plain({'n': 1})
         base.anchor_name = 'base'
-        nxt = node_from_plain(2)
-        nxt.anchor_name = 'next'
+        other = node_from_plain(2)
+        other.anchor_name = 'other'
         root = MappingNode(
             YAML_MAP_TAG,
             [
                 (ScalarNode(YAML_STR_TAG, 'a'), base),
-                (ScalarNode(YAML_STR_TAG, 'b'), nxt),
+                (ScalarNode(YAML_STR_TAG, 'b'), base),
+                (ScalarNode(YAML_STR_TAG, 'c'), other),
             ],
             flow_style=False,
         )
-        path = tmp_path / 'taken.yaml'
-        path.write_text(YamlLoader.serialize_anchored(root), encoding='utf-8')
-        with pytest.raises(ServiceError) as exc_info:
-            YamlLoader().rename_anchor(str(path), 'base', 'next')
+        text = YamlLoader.serialize_anchored(root)
+        path = tmp_path / 'rename.yaml'
+        path.write_text(text, encoding='utf-8')
+        same_path = tmp_path / 'same.yaml'
+        same_path.write_text(text, encoding='utf-8')
+        taken_path = tmp_path / 'taken.yaml'
+        taken_path.write_text(text, encoding='utf-8')
+        same_before = same_path.read_bytes()
+        taken_before = taken_path.read_bytes()
 
-        # The message names the taken name.
-        assert 'next' in exc_info.value.message
-        assert 'already exists' in exc_info.value.message
+        # Rename on each file.
+        result = YamlLoader().rename_anchor(str(path), 'base', 'next')
+        same_result = YamlLoader().rename_anchor(str(same_path), 'base', 'base')
+        with pytest.raises(ServiceError) as exc_info:
+            YamlLoader().rename_anchor(str(taken_path), 'base', 'other')
+        renamed = YamlLoader.compose_anchored(path.read_text(encoding='utf-8'))
+
+        # The new name is on the same node, and the anchor and alias agree.
+        assert result == 'next'
+        assert renamed.value[0][1].anchor_name == 'next'
+        assert renamed.value[1][1] is renamed.value[0][1]
+        assert list(anchor_table(renamed)) == ['next', 'other']
+
+        # A same-name rename returns the name and leaves the bytes unchanged.
+        assert same_result == 'base'
+        assert same_path.read_bytes() == same_before
+
+        # A taken name raises the conflict and leaves the bytes unchanged.
+        assert exc_info.value.error_code == YAML_ANCHOR_CONFLICT_ID
+        assert 'Anchor other already exists' in exc_info.value.message
+        assert taken_path.read_bytes() == taken_before
 
     # * test: rename_anchor_missing
     def test_rename_anchor_missing(self, temp_yaml_file):
@@ -2674,20 +2860,21 @@ class TestYamlLoader:
     # * test: compose_anchored_duplicate
     def test_compose_anchored_duplicate(self):
         '''
-        Composing a duplicate anchor raises.
+        Composing a duplicate anchor raises an anchor conflict.
         '''
 
-        # The text records the name base twice.
+        # The text records the name a twice.
         with pytest.raises(ServiceError) as exc_info:
-            YamlLoader.compose_anchored('a: &base 1\nb: &base 2\n')
+            YamlLoader.compose_anchored('a: &a 1\nb: &a 2\n')
 
-        # The message names the duplicate anchor.
-        assert 'duplicate anchor' in exc_info.value.message
+        # The error is an anchor conflict whose message names a.
+        assert exc_info.value.error_code == YAML_ANCHOR_CONFLICT_ID
+        assert "duplicate anchor 'a'" in exc_info.value.message
 
     # * test: serialize_unrecorded_shared
     def test_serialize_unrecorded_shared(self):
         '''
-        A shared node with no recorded name fails during emit.
+        A shared node with no recorded name raises the original compose failure.
         '''
 
         # Two parents hold one node. That node has no anchor name.
@@ -2700,13 +2887,15 @@ class TestYamlLoader:
             ],
             flow_style=False,
         )
-        with pytest.raises(EmitterError) as exc_info:
+
+        # Serialize the graph.
+        with pytest.raises(ServiceError) as exc_info:
             YamlLoader.serialize_anchored(root)
 
-        # The share fails during emit. Closing the dumper does not hide that failure.
-        cause = exc_info.value.__context__
-        assert isinstance(cause, ServiceError)
-        assert 'A shared node has no recorded anchor' in cause.message
+        # The raised error is the ServiceError itself, not an EmitterError from closing the dumper.
+        assert exc_info.value.error_code == YAML_COMPOSE_FAILED_ID
+        assert exc_info.value.message == 'A shared node has no recorded anchor.'
+        assert not isinstance(exc_info.value, EmitterError)
 
     # * test: anchored_compose
     def test_anchored_compose(self):
