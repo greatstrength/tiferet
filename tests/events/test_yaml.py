@@ -196,6 +196,18 @@ def test_cycle_rejected():
     # The outcome equals false.
     assert outcome is False
 
+# ** test: mapping_value_tuple_rejected
+def test_mapping_value_tuple_rejected():
+    '''
+    Assert a mapping whose value is the tuple (1,) is not plain.
+    '''
+
+    # Call is_plain_value on that mapping.
+    outcome = is_plain_value({'a': (1,)})
+
+    # The outcome equals false.
+    assert outcome is False
+
 # ** test: absent_is_path
 def test_absent_is_path():
     '''
@@ -336,6 +348,18 @@ def test_non_string_token_rejected():
 
     # Call is_key_path on one val step whose token is 1.
     outcome = is_key_path([['val', 1]])
+
+    # The outcome equals false.
+    assert outcome is False
+
+# ** test: step_tuple_rejected
+def test_step_tuple_rejected():
+    '''
+    Assert a step that is the tuple val, user is not a path.
+    '''
+
+    # Call is_key_path on a list whose only step is the tuple ('val', 'user').
+    outcome = is_key_path([('val', 'user')])
 
     # The outcome equals false.
     assert outcome is False

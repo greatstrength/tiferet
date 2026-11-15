@@ -46,18 +46,21 @@ def is_plain_value(value: Any, seen: Optional[set] = None) -> bool:
     if isinstance(value, float):
         return math.isfinite(value)
 
+    # Read the container identity once for the cycle checks.
+    identity = id(value)
+
     # Nested lists and string-keyed mappings are plain. A cycle is not.
     if isinstance(value, list):
-        if id(value) in seen:
+        if identity in seen:
             return False
-        seen.add(id(value))
+        seen.add(identity)
         return all(is_plain_value(item, seen=seen) for item in value)
 
     # A string-keyed mapping is plain. A cycle or a non-string key is not.
     if isinstance(value, dict):
-        if id(value) in seen:
+        if identity in seen:
             return False
-        seen.add(id(value))
+        seen.add(identity)
         return all(
             isinstance(key, str) and is_plain_value(item, seen=seen)
             for key, item in value.items()
@@ -97,14 +100,9 @@ def is_key_path(key_path: Any) -> bool:
                 return False
             continue
 
-        # Kind val or key requires a string token.
-        if kind in ('val', 'key'):
-            if not isinstance(token, str):
-                return False
-            continue
-
-        # Any other kind is not a path.
-        return False
+        # Kind val or key requires a string token. Any other kind is not a path.
+        if kind not in ('val', 'key') or not isinstance(token, str):
+            return False
 
     # A list whose every step passed is a path.
     return True
@@ -125,9 +123,9 @@ class YamlEvent(DomainEvent):
     # * init
     def __init__(self, yaml_service: YamlService) -> None:
         '''
-        Initialize the YAML event with its injected service.
+        Initialize the YAML event with its shared service.
 
-        :param yaml_service: The injected YAML service.
+        :param yaml_service: The YAML service shared across file verbs.
         :type yaml_service: YamlService
         :return: None
         :rtype: None
