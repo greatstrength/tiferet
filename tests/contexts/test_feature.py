@@ -26,7 +26,7 @@ from tiferet.contexts.feature import (
     validate_request,
 )
 from tiferet.events import DomainEvent, AsyncDomainEvent
-from tiferet.domain import Feature, EventFeatureStep
+from tiferet.domain import Feature, EventFeatureStep, ModelError, INVALID_MODEL_ATTRIBUTE_ID
 
 # *** fixtures
 
@@ -970,6 +970,102 @@ async def test_feature_context_execute_step_async_pass_on_error(
 
     # Assert no result was recorded.
     assert not request.handle_response()
+
+# ** test: feature_context_execute_step_pass_on_error_propagates_model_error
+def test_feature_context_execute_step_pass_on_error_propagates_model_error(feature_context: FeatureContext):
+    '''
+    Test that execute_step propagates a ModelError even when pass_on_error is True.
+
+    :param feature_context: The feature context to test.
+    :type feature_context: FeatureContext
+    '''
+
+    # Define a domain event whose execute raises a model defect.
+    class ModelErrorEvent(DomainEvent):
+
+        def execute(self, **kwargs):
+
+            # Raise a model defect that is not a domain outcome.
+            ModelError.raise_error(INVALID_MODEL_ATTRIBUTE_ID, attribute='nope')
+
+    # Create a request carrying the command inputs.
+    request = RequestContext(data={'key': 'value'})
+
+    # Assert the model error propagates even when pass_on_error is True.
+    with pytest.raises(ModelError) as exc_info:
+        feature_context.execute_step(
+            ModelErrorEvent(),
+            request,
+            request.data,
+            pass_on_error=True,
+        )
+
+    # Assert the raised error is the model's own error.
+    assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
+
+# ** test: feature_context_execute_step_async_pass_on_error_propagates_model_error
+@pytest.mark.asyncio
+async def test_feature_context_execute_step_async_pass_on_error_propagates_model_error(
+    async_feature_context: FeatureContext,
+):
+    '''
+    Test that _execute_step_async propagates a ModelError even when pass_on_error is True.
+
+    :param async_feature_context: The feature context to test.
+    :type async_feature_context: FeatureContext
+    '''
+
+    # Define an asynchronous domain event whose execute raises a model defect.
+    class AsyncModelErrorEvent(AsyncDomainEvent):
+
+        async def execute(self, **kwargs):
+
+            # Raise a model defect that is not a domain outcome.
+            ModelError.raise_error(INVALID_MODEL_ATTRIBUTE_ID, attribute='nope')
+
+    # Create a request carrying the command inputs.
+    request = RequestContext(data={'key': 'value'})
+
+    # Assert the model error propagates even when pass_on_error is True.
+    with pytest.raises(ModelError) as exc_info:
+        await async_feature_context._execute_step_async(
+            AsyncModelErrorEvent(),
+            request,
+            request.data,
+            pass_on_error=True,
+        )
+
+    # Assert the raised error is the model's own error.
+    assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
+
+# ** test: feature_context_execute_step_pass_on_error_propagates_plain_exception
+def test_feature_context_execute_step_pass_on_error_propagates_plain_exception(feature_context: FeatureContext):
+    '''
+    Test that execute_step propagates a plain exception even when pass_on_error is True.
+
+    :param feature_context: The feature context to test.
+    :type feature_context: FeatureContext
+    '''
+
+    # Define a domain event whose execute raises a plain exception.
+    class BuggyEvent(DomainEvent):
+
+        def execute(self, **kwargs):
+
+            # Raise a plain exception that is not a domain outcome.
+            raise ValueError('buggy event')
+
+    # Create a request carrying the command inputs.
+    request = RequestContext(data={'key': 'value'})
+
+    # Assert the plain exception propagates even when pass_on_error is True.
+    with pytest.raises(ValueError):
+        feature_context.execute_step(
+            BuggyEvent(),
+            request,
+            request.data,
+            pass_on_error=True,
+        )
 
 # ** test: feature_context_resolve_feature_steps_yields_steps
 def test_feature_context_resolve_feature_steps_yields_steps(
