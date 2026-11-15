@@ -9,7 +9,12 @@ from typing import Any, ClassVar, Dict
 from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import FlaggedDependency, ServiceRegistration
+from ..domain import (
+    INVALID_MODEL_VALUE_ID,
+    FlaggedDependency,
+    ModelError,
+    ServiceRegistration,
+)
 from .core import Aggregate, TransferObject
 
 # *** mappers
@@ -23,18 +28,20 @@ class FlaggedDependencyAggregate(FlaggedDependency, Aggregate):
     # * method: set_parameters
     def set_parameters(self, parameters: Dict[str, Any] | None = None) -> None:
         '''
-        Update the parameters dictionary for this flagged dependency.
+        Overlay new parameters onto the existing parameters for this flagged dependency.
 
-        :param parameters: New parameters, or None to clear all.
-                           Keys with None values are removed.
+        A new value wins, a None value removes that key, an empty overlay
+        preserves existing entries, and a None argument leaves the mapping
+        unchanged.
+
+        :param parameters: The parameter overlay, or None for a no-op.
         :type parameters: Dict[str, Any] | None
         :return: None
         :rtype: None
         '''
 
-        # Clear all when None is provided.
+        # Leave the parameters unchanged when None is provided.
         if parameters is None:
-            self.parameters = {}
             return
 
         # Merge existing parameters with new ones (new values win), then drop
@@ -164,22 +171,29 @@ class ServiceRegistrationAggregate(ServiceRegistration, Aggregate):
         '''
         Sets or updates a flagged dependency.
 
+        The first dependency with a matching flag is updated in place and keeps
+        its list position: its type fields are assigned, even when None, and
+        its parameters are overlaid so a new value wins, a None value removes
+        that key, and a None or empty overlay preserves existing entries. For
+        an absent flag, a new dependency is appended whose parameters omit None
+        values; a None argument creates an empty parameters mapping.
+
         :param flag: The flag that identifies the dependency.
         :type flag: str
         :param module_path: The module path for the dependency.
         :type module_path: str | None
         :param class_name: The class name for the dependency.
         :type class_name: str | None
-        :param parameters: The parameters for the dependency (empty dict by default).
+        :param parameters: The parameter overlay for the dependency, or None for an empty overlay.
         :type parameters: Dict[str, Any] | None
         :return: None
         :rtype: None
         '''
 
-        # Normalize parameters to a dict.
+        # Normalize absent parameters to an empty overlay.
         parameters = parameters or {}
 
-        # Replace the existing dependency if one exists with the same flag.
+        # Update the first dependency with the same flag in place.
         for dep in self.dependencies:
             if dep.flag == flag:
                 dep.module_path = module_path
@@ -189,12 +203,12 @@ class ServiceRegistrationAggregate(ServiceRegistration, Aggregate):
                 dep.parameters = {k: v for k, v in merged.items() if v is not None}
                 return
 
-        # Otherwise create a new dependency and append it.
+        # Otherwise create a new dependency omitting None-valued parameters and append it.
         dependency = FlaggedDependency(
             module_path=module_path,
             class_name=class_name,
             flag=flag,
-            parameters=parameters,
+            parameters={k: v for k, v in parameters.items() if v is not None},
         )
         self.dependencies = list(self.dependencies) + [dependency]
 
@@ -269,6 +283,9 @@ class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
         '''
         Creates a ServiceRegistrationConfigObject from a ServiceRegistration model.
 
+        The dependencies list is keyed by flag in list order. A repeated flag
+        is rejected before conversion, and the model is not mutated.
+
         :param service_registration: The service registration model to copy from.
         :type service_registration: ServiceRegistration
         :param overrides: Additional field overrides.
@@ -276,6 +293,19 @@ class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
         :return: A new ServiceRegistrationConfigObject instance.
         :rtype: ServiceRegistrationConfigObject
         '''
+
+        # Reject the first repeated flag before keyed conversion.
+        seen = set()
+        for dep in service_registration.dependencies:
+            if dep.flag in seen:
+                ModelError.raise_error(
+                    INVALID_MODEL_VALUE_ID,
+                    message=f'Flagged dependency {dep.flag!r} is repeated in service registration {service_registration.id!r}.',
+                    model=service_registration,
+                    attribute='dependencies',
+                    flag=dep.flag,
+                )
+            seen.add(dep.flag)
 
         # Convert the dependencies list into a dictionary keyed by flag.
         return super().from_model(
