@@ -35,6 +35,155 @@ class CliRecord(DomainObject):
         description='Ordered attribute-to-string-value pairs extracted from the raw result.',
     )
 
+# ** model: cli_table
+class CliTable(DomainObject):
+    '''
+    A computed horizontal layout for a list of CLI records.
+
+    Holds column keys, widths, header, separator, and row strings rather
+    than the records themselves, and does not join those parts into a
+    rendered table.
+    '''
+
+    # * attribute: keys
+    keys: List[str] = Field(
+        ...,
+        description='The column keys, in encounter order across all records.',
+    )
+
+    # * attribute: widths
+    widths: Dict[str, int] = Field(
+        ...,
+        description='The width of each column, keyed and ordered by column key.',
+    )
+
+    # * attribute: header
+    header: str = Field(
+        ...,
+        description='The header row: each key left-justified to its width, joined on two spaces.',
+    )
+
+    # * attribute: separator
+    separator: str = Field(
+        ...,
+        description='The separator row: one dash run per column width, joined on two spaces.',
+    )
+
+    # * attribute: rows
+    rows: List[str] = Field(
+        ...,
+        description='One left-justified row string per record, in record order.',
+    )
+
+    # * method: from_records (classmethod)
+    @classmethod
+    def from_records(cls, records: List[CliRecord]) -> 'CliTable | None':
+        '''
+        Build a horizontal table layout from a list of CLI records.
+
+        :param records: The typed record rows to lay out.
+        :type records: List[CliRecord]
+        :return: The layout value, or None when there are no records or no field keys.
+        :rtype: CliTable | None
+        '''
+
+        # Return early when there are no records.
+        if not records:
+            return None
+
+        # Build the union of field keys in first-encounter order.
+        keys: List[str] = []
+        seen: set = set()
+        for record in records:
+            for key in record.fields:
+                if key not in seen:
+                    keys.append(key)
+                    seen.add(key)
+
+        # Return early when every record has an empty fields mapping.
+        if not keys:
+            return None
+
+        # Calculate each column width as the max of the key and all values.
+        widths: Dict[str, int] = {key: len(key) for key in keys}
+        for record in records:
+            for key in keys:
+                widths[key] = max(widths[key], len(record.fields.get(key, '')))
+
+        # Build the header, separator, and one data row per record.
+        header = '  '.join(key.ljust(widths[key]) for key in keys)
+        separator = '  '.join('-' * widths[key] for key in keys)
+        rows = [
+            '  '.join(record.fields.get(key, '').ljust(widths[key]) for key in keys)
+            for record in records
+        ]
+
+        # Return the layout value.
+        return cls(
+            keys=keys,
+            widths=widths,
+            header=header,
+            separator=separator,
+            rows=rows,
+        )
+
+# ** model: cli_output_lines
+class CliOutputLines(DomainObject):
+    '''
+    A computed vertical layout for a single CLI record.
+
+    Holds indent, key width, and attribute-value lines rather than tabular
+    columns, and does not join those lines into a rendered block.
+    '''
+
+    # * attribute: indent
+    indent: int = Field(
+        ...,
+        description='The number of leading spaces before each line.',
+    )
+
+    # * attribute: key_width
+    key_width: int = Field(
+        ...,
+        description='The width of the widest attribute name; every name is padded to it.',
+    )
+
+    # * attribute: lines
+    lines: List[str] = Field(
+        ...,
+        description='One indented attribute-value line per field, in field order.',
+    )
+
+    # * method: from_record (classmethod)
+    @classmethod
+    def from_record(cls, record: CliRecord, indent: int = 2) -> 'CliOutputLines | None':
+        '''
+        Build a vertical line layout from a single CLI record.
+
+        :param record: The typed record to lay out.
+        :type record: CliRecord
+        :param indent: The number of leading spaces before each line.
+        :type indent: int
+        :return: The layout value, or None when the record has no fields.
+        :rtype: CliOutputLines | None
+        '''
+
+        # Return early when the record has no fields.
+        if not record.fields:
+            return None
+
+        # Set the key width to the greatest field-key length.
+        key_width = max(len(key) for key in record.fields)
+
+        # Build one indented attribute-value line per field, in field order.
+        lines = [
+            f'{" " * indent}{key.ljust(key_width)}: {value}'
+            for key, value in record.fields.items()
+        ]
+
+        # Return the layout value.
+        return cls(indent=indent, key_width=key_width, lines=lines)
+
 # ** model: cli_output_record
 class CliOutputRecord(DomainObject):
     '''
@@ -51,13 +200,27 @@ class CliOutputRecord(DomainObject):
         description='The typed record to display.',
     )
 
+    # * method: output_lines
+    def output_lines(self, indent: int = 2) -> CliOutputLines | None:
+        '''
+        Build the vertical layout for this record.
+
+        :param indent: Number of leading spaces before each line.
+        :type indent: int
+        :return: The layout value, or None when the record has no fields.
+        :rtype: CliOutputLines | None
+        '''
+
+        # Delegate layout construction to the vertical-line factory.
+        return CliOutputLines.from_record(self.record, indent=indent)
+
     # * method: format_output
     def format_output(self, indent: int = 2) -> str:
         '''
         Render the record as an indented attribute-value list.
 
-        Each line is ``<indent><attribute padded to max width>: <value>``. An
-        empty string is returned when the record has no fields.
+        Obtains the vertical layout from ``output_lines`` and joins its lines
+        with newlines. An empty string is returned when there is no layout.
 
         :param indent: Number of leading spaces before each line.
         :type indent: int
@@ -65,21 +228,13 @@ class CliOutputRecord(DomainObject):
         :rtype: str
         '''
 
-        # Return early when the record is empty.
-        if not self.record.fields:
+        # Obtain the vertical layout and return an empty string when it is absent.
+        output = self.output_lines(indent=indent)
+        if output is None:
             return ''
 
-        # Determine the width of the widest attribute name.
-        max_key_len = max(len(k) for k in self.record.fields)
-
-        # Render one line per field.
-        lines = [
-            f'{" " * indent}{k.ljust(max_key_len)}: {v}'
-            for k, v in self.record.fields.items()
-        ]
-
-        # Return the joined lines.
-        return '\n'.join(lines)
+        # Return the joined layout lines.
+        return '\n'.join(output.lines)
 
 # ** model: cli_record_list
 class CliRecordList(DomainObject):
@@ -98,58 +253,38 @@ class CliRecordList(DomainObject):
         description='The typed record rows; each CliRecord represents one table row.',
     )
 
+    # * method: table
+    def table(self) -> CliTable | None:
+        '''
+        Build the horizontal table layout for these records.
+
+        :return: The layout value, or None when there are no records or no field keys.
+        :rtype: CliTable | None
+        '''
+
+        # Delegate layout construction to the table factory.
+        return CliTable.from_records(self.records)
+
     # * method: format_output
     def format_output(self) -> str:
         '''
         Render the records as an aligned table.
 
-        The header row is derived from the union of all field keys in encounter
-        order. Each column is aligned to the widest value in that column
-        (including the header). An empty string is returned when the list is
-        empty.
+        Obtains the horizontal layout from ``table`` and joins the header,
+        separator, and data rows with newlines. An empty string is returned
+        when there is no layout.
 
         :return: The formatted table string.
         :rtype: str
         '''
 
-        # Return early when there are no records.
-        if not self.records:
+        # Obtain the table layout and return an empty string when it is absent.
+        table = self.table()
+        if table is None:
             return ''
 
-        # Derive the ordered header from the union of all field keys.
-        all_keys: List[str] = []
-        seen: set = set()
-        for record in self.records:
-            for k in record.fields:
-                if k not in seen:
-                    all_keys.append(k)
-                    seen.add(k)
-
-        # Return early when all records are empty.
-        if not all_keys:
-            return ''
-
-        # Calculate per-column widths as the max of the header and all values.
-        col_widths = {k: len(k) for k in all_keys}
-        for record in self.records:
-            for k in all_keys:
-                v = record.fields.get(k, '')
-                col_widths[k] = max(col_widths[k], len(v))
-
-        # Build the header and separator rows.
-        header = '  '.join(k.ljust(col_widths[k]) for k in all_keys)
-        separator = '  '.join('-' * col_widths[k] for k in all_keys)
-
-        # Build one data row per record.
-        rows = [
-            '  '.join(
-                record.fields.get(k, '').ljust(col_widths[k]) for k in all_keys
-            )
-            for record in self.records
-        ]
-
-        # Return the joined table.
-        return '\n'.join([header, separator] + rows)
+        # Return the joined header, separator, and data rows.
+        return '\n'.join([table.header, table.separator, *table.rows])
 
 # ** model: cli_argument
 class CliArgument(DomainObject):

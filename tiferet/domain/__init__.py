@@ -25,6 +25,8 @@ from .cli import (
     CliArgument,
     CliCommand,
     CliRecord,
+    CliTable,
+    CliOutputLines,
     CliOutputRecord,
     CliRecordList,
 )
@@ -81,6 +83,8 @@ __all__ = [
     'CliArgument',
     'CliCommand',
     'CliRecord',
+    'CliTable',
+    'CliOutputLines',
     'CliOutputRecord',
     'CliRecordList',
     'Error',
