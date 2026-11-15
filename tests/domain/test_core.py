@@ -202,7 +202,6 @@ def test_model_error_serializes_model_descriptor():
 def test_model_error_defaults_empty_collections():
     '''
     Test that ModelError defaults absent model and violations to empty collections.
-    Added coverage beyond the reference prototype.
     '''
 
     # Construct a ModelError with only an error code.
@@ -242,7 +241,6 @@ def test_unpack_validation_error_flattens_violations(test_domain_object: type):
 def test_unpack_validation_error_defaults_missing_keys():
     '''
     Test that unpack_validation_error defaults missing error keys.
-    Added coverage beyond the reference prototype.
     '''
 
     # Define a stand-in whose errors carry no keys.
