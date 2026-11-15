@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet.domain import EventFeatureStep, INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.feature import (
@@ -103,6 +106,21 @@ TEST_FEATURE_CONFIG_OBJECT_AGGREGATE_SAMPLE_DATA = {
         'parameters': {'precision': '2'},
     }],
 }
+
+# *** fixtures
+
+# ** fixture: feature_config
+@pytest.fixture
+def feature_config() -> FeatureConfigObject:
+    '''
+    Fixture for a FeatureConfigObject with no params_schema set.
+
+    :return: The FeatureConfigObject instance.
+    :rtype: FeatureConfigObject
+    '''
+
+    # Construct the subject with the declared identity and an empty step list.
+    return FeatureConfigObject(id='calc.add', name='Add', steps=[])
 
 # *** tests
 
@@ -760,3 +778,20 @@ class TestFeatureConfigObject:
         # Assert the middleware list landed on the step and the steps list.
         assert step.middleware == ['timing_middleware']
         assert aggregate.steps[0].middleware == ['timing_middleware']
+
+    # * test: serialize_params_schema_none
+    def test_serialize_params_schema_none(self, feature_config: FeatureConfigObject):
+        '''
+        Test that a null params_schema is returned and serialized as null.
+
+        :param feature_config: The configured feature transfer object.
+        :type feature_config: FeatureConfigObject
+        '''
+
+        # Call the serializer directly and serialize with the data role.
+        direct = feature_config.serialize_params_schema(None, None)
+        serialized = feature_config.to_primitive(role='to_data', exclude_none=False)
+
+        # Assert the direct outcome and the serialized schema are null.
+        assert direct is None
+        assert serialized['params_schema'] is None
