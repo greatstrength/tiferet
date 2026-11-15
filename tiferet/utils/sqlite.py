@@ -113,6 +113,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_INVALID_MODE_ID,
                 f'Invalid SQLite mode: {self.mode}. Supported: {", ".join(VALID_SQLITE_MODES)} (or None for default auto-create).',
+                mode=self.mode,
             )
 
     # * method: open_file
@@ -130,6 +131,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_CONN_ALREADY_OPEN_ID,
                 f'Connection already open for path: {self.path}.',
+                path=str(self.path),
             )
 
         # Validate the SQLite mode.
@@ -163,6 +165,8 @@ class SqliteClient(FileLoader, SqliteService):
                 SQLITE_CONN_FAILED_ID,
                 f'Failed to connect to SQLite database at {self.path}: {e}',
                 cause=e,
+                original_error=str(e),
+                path=str(self.path),
             )
 
     # * method: close_file
@@ -206,6 +210,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_STATEMENT_FAILED_ID,
                 f'Failed to execute SQL statement: {e}',
+                cause=e,
                 original_error=str(e),
                 sql=sql,
             )
@@ -239,6 +244,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_STATEMENT_FAILED_ID,
                 f'Failed to execute SQL statement: {e}',
+                cause=e,
                 original_error=str(e),
                 sql=sql,
             )
@@ -270,6 +276,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_STATEMENT_FAILED_ID,
                 f'Failed to execute SQL script: {e}',
+                cause=e,
                 original_error=str(e),
                 sql=sql_script,
             )
@@ -298,6 +305,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_QUERY_FAILED_ID,
                 f'Failed to fetch a row for the SQL query: {e}',
+                cause=e,
                 original_error=str(e),
                 sql=query,
             )
@@ -326,6 +334,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_QUERY_FAILED_ID,
                 f'Failed to fetch rows for the SQL query: {e}',
+                cause=e,
                 original_error=str(e),
                 sql=query,
             )
@@ -352,6 +361,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_TRANSACTION_FAILED_ID,
                 f'Failed to commit the SQLite transaction: {e}',
+                cause=e,
                 original_error=str(e),
             )
 
@@ -377,6 +387,7 @@ class SqliteClient(FileLoader, SqliteService):
                 self,
                 SQLITE_TRANSACTION_FAILED_ID,
                 f'Failed to roll back the SQLite transaction: {e}',
+                cause=e,
                 original_error=str(e),
             )
 
@@ -429,6 +440,8 @@ class SqliteClient(FileLoader, SqliteService):
                 SQLITE_BACKUP_FAILED_ID,
                 f'Backup to {target_path} failed: {e}',
                 cause=e,
+                original_error=str(e),
+                target_path=str(target_path),
             )
 
         finally:
